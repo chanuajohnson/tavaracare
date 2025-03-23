@@ -28,6 +28,6 @@ export default defineConfig(({ mode }) => ({
   },
   define: {
     // Make environment variables available to client code
-    __APP_ENV__: JSON.stringify(import.meta.env.VITE_ENV || mode),
+    __APP_ENV__: JSON.stringify(process.env.VITE_ENV || mode),
   }
 }));
