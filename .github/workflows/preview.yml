@@ -1,18 +1,13 @@
 
-name: Build Preview
+name: Deploy Preview from Develop
 
 on:
-  # For manual preview builds only
+  push:
+    branches:
+      - develop  # ✅ Create preview builds from develop branch
+  
+  # Allow manual preview deployments
   workflow_dispatch:
-    inputs:
-      environment:
-        description: 'Environment to build for'
-        required: true
-        default: 'development'
-        type: choice
-        options:
-        - development
-        - staging
 
 jobs:
   build-preview:
