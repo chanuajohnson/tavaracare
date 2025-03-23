@@ -1,0 +1,42 @@
+
+name: Deploy Preview from Develop
+
+on:
+  push:
+    branches:
+      - develop  # ✅ Create preview builds from develop branch
+  
+  # Allow manual preview deployments
+  workflow_dispatch:
+
+jobs:
+  build-preview:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build project
+        run: npm run build
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          VITE_ENV: development  # Mark as development environment
+
+      # This step is for verification only - no actual deployment
+      - name: Archive build artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: dist-preview
+          path: dist
+          retention-days: 5  # Keep preview builds for 5 days
+
+      # Optional: You could deploy to a preview/staging environment here if needed
