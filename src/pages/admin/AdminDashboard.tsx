@@ -24,11 +24,12 @@ const AdminDashboard = () => {
     },
   ];
 
-  // Track admin dashboard visits
+  // Track admin dashboard visits with our hook that feeds into Zapier
   useJourneyTracking({
     journeyStage: "admin_dashboard_visit",
     additionalData: {
-      admin_section: "main_dashboard"
+      admin_section: "main_dashboard",
+      zapier_integration: "enabled"
     }
   });
 
@@ -38,7 +39,10 @@ const AdminDashboard = () => {
         {/* Also add the component-based tracking for demonstration */}
         <UserJourneyTracker 
           journeyStage="admin_section_view" 
-          additionalData={{ section: "admin_dashboard" }}
+          additionalData={{ 
+            section: "admin_dashboard",
+            zapier_webhook: "enabled"
+          }}
         />
         
         <DashboardHeader
