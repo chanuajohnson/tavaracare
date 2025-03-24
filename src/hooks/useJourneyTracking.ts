@@ -1,7 +1,9 @@
+
 import { useEffect } from "react";
 import { useTracking } from "./useTracking";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useLocation } from "react-router-dom";
+import { supabase } from "@/lib/supabase"; // Added missing import
 
 type JourneyStage = 
   | 'first_visit'
