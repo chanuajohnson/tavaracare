@@ -28,6 +28,9 @@ export type TrackingActionType =
   | 'auth_logout'
   | 'auth_password_reset_request'
   
+  // User Journey
+  | 'user_journey_progress'
+  
   // CTA Clicks
   | 'caregiver_matching_cta_click'
   | 'family_matching_cta_click'
@@ -84,13 +87,14 @@ const isCaregiverMatchingAction = (actionType: string): boolean => {
 
 /**
  * Hook for tracking user engagement across the platform
+ * Enhanced with better error handling and retry logic
  */
 export function useTracking(options: TrackingOptions = {}) {
   const { user, isProfileComplete } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   
   /**
-   * Track a user engagement event
+   * Track a user engagement event with improved error handling
    * 
    * @param actionType The type of action being tracked
    * @param additionalData Optional additional data to store with the tracking event
@@ -113,11 +117,16 @@ export function useTracking(options: TrackingOptions = {}) {
       setIsLoading(true);
       
       // Get or create a session ID to track anonymous users
-      const sessionId = localStorage.getItem('session_id') || uuidv4();
-      
-      // Store the session ID if it's new
-      if (!localStorage.getItem('session_id')) {
-        localStorage.setItem('session_id', sessionId);
+      let sessionId;
+      try {
+        sessionId = localStorage.getItem('session_id');
+        if (!sessionId) {
+          sessionId = uuidv4();
+          localStorage.setItem('session_id', sessionId);
+        }
+      } catch (storageError) {
+        console.error("Error with sessionId in localStorage:", storageError);
+        sessionId = uuidv4(); // Fallback to a new ID if localStorage fails
       }
       
       // Add user role to additional data if user is logged in
@@ -127,19 +136,50 @@ export function useTracking(options: TrackingOptions = {}) {
         user_profile_complete: isProfileComplete || false,
       };
       
-      // Record the tracking event in Supabase
-      const { error } = await supabase.from('cta_engagement_tracking').insert({
-        user_id: user?.id || null,
-        action_type: actionType,
-        session_id: sessionId,
-        additional_data: enhancedData
-      });
+      // Implement retry logic for more reliable tracking
+      const maxRetries = 2;
+      let retryCount = 0;
+      let success = false;
       
-      if (error) {
-        console.error("Error tracking engagement:", error);
+      while (retryCount <= maxRetries && !success) {
+        try {
+          // Record the tracking event in Supabase
+          const { error } = await supabase.from('cta_engagement_tracking').insert({
+            user_id: user?.id || null,
+            action_type: actionType,
+            session_id: sessionId,
+            additional_data: enhancedData
+          });
+          
+          if (error) {
+            console.warn(`Tracking attempt ${retryCount + 1} failed:`, error);
+            retryCount++;
+            
+            if (retryCount <= maxRetries) {
+              // Exponential backoff with jitter
+              const delay = Math.min(100 * Math.pow(2, retryCount) + Math.random() * 100, 1000);
+              await new Promise(resolve => setTimeout(resolve, delay));
+            }
+          } else {
+            success = true;
+            console.log(`Successfully tracked: ${actionType}`);
+          }
+        } catch (error) {
+          console.error(`Unexpected error during tracking attempt ${retryCount + 1}:`, error);
+          retryCount++;
+          
+          if (retryCount <= maxRetries) {
+            await new Promise(resolve => setTimeout(resolve, 300 * retryCount));
+          }
+        }
+      }
+      
+      if (!success) {
+        console.error(`Failed to track event after ${maxRetries + 1} attempts:`, actionType);
       }
     } catch (error) {
       console.error("Error in trackEngagement:", error);
+      // Don't rethrow to avoid breaking components that use this hook
     } finally {
       setIsLoading(false);
     }
