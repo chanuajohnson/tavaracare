@@ -3,7 +3,6 @@ import { useEffect } from "react";
 import { useTracking } from "./useTracking";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useLocation } from "react-router-dom";
-import { supabase } from "@/lib/supabase"; // Added missing import
 
 type JourneyStage = 
   | 'first_visit'
@@ -82,19 +81,6 @@ export function useJourneyTracking({
         
         // Track the journey stage
         await trackEngagement('user_journey_progress', enhancedData);
-        
-        // Also insert into user_events table to trigger Zapier if the user is logged in
-        if (user?.id) {
-          try {
-            await supabase.from('user_events').insert([{
-              user_id: user.id,
-              event_type: 'journey_' + journeyStage,
-              additional_data: enhancedData
-            }]);
-          } catch (err) {
-            console.error("Failed to insert journey event for Zapier:", err);
-          }
-        }
         
         // If we're tracking once per session, mark this stage as tracked
         if (trackOnce) {
