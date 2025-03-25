@@ -324,13 +324,21 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           const intendedRole = localStorage.getItem('registrationRole');
           registrationPath = `/registration/${intendedRole?.toLowerCase()}`;
         }
-        
-        console.log('[AuthProvider] Redirecting to registration page:', registrationPath);
-        toast.info('Please complete your profile to continue');
-        safeNavigate(registrationPath, { skipCheck: true });
-        isRedirectingRef.current = false;
-        return;
-      }
+        //Chan Commented out likes 327 -332 added
+        //console.log('[AuthProvider] Redirecting to registration page:', registrationPath);
+        //toast.info('Please complete your profile to continue');
+        //safeNavigate(registrationPath, { skipCheck: true });
+        //isRedirectingRef.current = false;
+        //return;
+        if (!profileComplete) {
+  console.log('[AuthProvider] Profile incomplete, but skipping registration');
+  const fallbackPath = effectiveRole ? `/dashboard/${effectiveRole.toLowerCase()}` : '/';
+  safeNavigate(fallbackPath, { skipCheck: true });
+  isRedirectingRef.current = false;
+  return;
+}
+
+      //}
       
       const pendingFeatureId = localStorage.getItem('pendingFeatureId') || localStorage.getItem('pendingFeatureUpvote');
       if (pendingFeatureId) {
@@ -536,9 +544,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
           console.log('[AuthProvider] User signed in or token refreshed');
           setLoadingWithTimeout(true, `auth-state-change-${event}`);
-           //Chan
+           //Chan inserted like 540-541
           //👉 INSERT THIS LINE HERE:
-    setIsProfileComplete(true); // Force profile completion immediately after sign-in
+    //setIsProfileComplete(true); // Force profile completion immediately after sign-in
           if (newSession?.user) {
             console.log('[AuthProvider] Getting role for signed in user...');
             
