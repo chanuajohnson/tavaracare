@@ -1370,13 +1370,24 @@ const ProfessionalRegistration = () => {
         </Card>
         
         <div className="flex justify-end gap-3">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => navigate(isProfileManagement ? '/dashboard/professional' : '/auth')}
-          >
-            Cancel
-          </Button>
+         //Chan edited the cancel button code
+          //<Button
+            //type="button"
+            //variant="outline"
+            //onClick={() => navigate(isProfileManagement ? '/dashboard/professional' : '/auth')}
+          //>
+            //Cancel
+          //</Button>
+        <Button
+  type="button"
+  variant="outline"
+  onClick={() => {
+    localStorage.setItem('registrationSkipped', 'true'); // <-- 👈 this prevents forced redirect
+    navigate(isProfileManagement ? '/dashboard/professional' : '/auth');
+  }}
+>
+  Cancel
+</Button>
           <Button
             type="submit"
             disabled={isSubmitting}
