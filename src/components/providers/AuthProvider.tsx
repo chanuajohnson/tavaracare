@@ -526,13 +526,13 @@ if (!profileComplete && registrationSkipped !== 'true') {
     //if (!initialRedirectionDoneRef.current || location.pathname === '/auth') {
     //  handlePostLoginRedirection();
    // } */
-   useEffect(() => {
+  useEffect(() => {
   if (isLoading || !user) return;
 
   const registrationSkipped = localStorage.getItem('registrationSkipped');
   const isOnDashboard = location.pathname.startsWith('/dashboard');
 
-  // If on dashboard, don't interfere
+  // Don’t do anything if we’re already on dashboard
   if (isOnDashboard) return;
 
   if (location.pathname.includes('/registration/') && isProfileComplete) {
@@ -542,6 +542,7 @@ if (!profileComplete && registrationSkipped !== 'true') {
     return;
   }
 
+  // 🚫 Only redirect if registration wasn't skipped
   if ((!initialRedirectionDoneRef.current || location.pathname === '/auth') && registrationSkipped !== 'true') {
     handlePostLoginRedirection();
   }
