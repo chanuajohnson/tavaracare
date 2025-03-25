@@ -8,7 +8,6 @@ import {
   LayoutDashboard,
   ChevronDown,
   Loader2,
-  BarChart,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -80,7 +79,6 @@ export function Navigation() {
   };
 
   const dashboardPath = getDashboardPath();
-  const isSpecificUser = user?.id === '605540d7-ae87-4a7c-9bd0-5699937f0670';
 
   return (
     <nav className="bg-background border-b py-3 px-4 sm:px-6">
@@ -98,13 +96,6 @@ export function Navigation() {
           <Link to="/features" className="text-gray-700 hover:text-primary">
             Features
           </Link>
-          
-          {isSpecificUser && (
-            <Link to="/admin/user-journey" className="flex items-center gap-1 text-indigo-600 hover:text-indigo-700">
-              <BarChart className="h-4 w-4" />
-              <span className="hidden sm:inline">User Journey</span>
-            </Link>
-          )}
           
           {user && dashboardPath ? (
             <Link to={dashboardPath} className="flex items-center gap-1 text-gray-700 hover:text-primary">
@@ -168,4 +159,4 @@ export function Navigation() {
       </div>
     </nav>
   );
-};
+}

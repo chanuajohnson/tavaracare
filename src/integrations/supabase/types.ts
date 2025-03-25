@@ -1194,30 +1194,6 @@ export type Database = {
         }
         Relationships: []
       }
-      user_journey: {
-        Row: {
-          event_data: Json | null
-          event_timestamp: string | null
-          event_type: string | null
-          id: number
-          user_id: string | null
-        }
-        Insert: {
-          event_data?: Json | null
-          event_timestamp?: string | null
-          event_type?: string | null
-          id?: never
-          user_id?: string | null
-        }
-        Update: {
-          event_data?: Json | null
-          event_timestamp?: string | null
-          event_type?: string | null
-          id?: never
-          user_id?: string | null
-        }
-        Relationships: []
-      }
       user_module_progress: {
         Row: {
           completed_lessons: number | null

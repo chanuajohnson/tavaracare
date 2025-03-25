@@ -24,10 +24,5 @@ export default defineConfig(({ mode }) => ({
   },
   build: {
     outDir: "dist", // Output to 'dist' directory
-    sourcemap: mode === 'development', // Enable sourcemaps in development
   },
-  define: {
-    // Make environment variables available to client code
-    __APP_ENV__: JSON.stringify(process.env.VITE_ENV || mode),
-  }
 }));
