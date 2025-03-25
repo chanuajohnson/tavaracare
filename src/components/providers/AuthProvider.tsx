@@ -191,6 +191,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       
       console.log('[AuthProvider] Profile complete:', profileComplete);
       setIsProfileComplete(profileComplete);
+      
+      // If profile is now complete but we had previously skipped registration, clear the flag
+      if (profileComplete && localStorage.getItem('registrationSkipped') === 'true') {
+        localStorage.removeItem('registrationSkipped');
+      }
+      
       return profileComplete;
     } catch (error) {
       console.error('[AuthProvider] Error checking profile completion:', error);
@@ -305,33 +311,36 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         isRedirectingRef.current = false;
         return;
       }
-      
+    
+      // Check for skipped registration state
+      const registrationSkipped = localStorage.getItem('registrationSkipped') === 'true';
+    
       if (profileComplete && location.pathname.includes('/registration/')) {
         console.log('[AuthProvider] Profile is complete and user is on registration page, redirecting to dashboard');
-        const dashboardPath = effectiveRole ? /dashboard/${effectiveRole.toLowerCase()} : '/';
+        const dashboardPath = effectiveRole ? `/dashboard/${effectiveRole.toLowerCase()}` : '/';
         safeNavigate(dashboardPath, { skipCheck: true });
-        toast.success(Profile completed successfully! Welcome to your dashboard.);
+        toast.success('Profile completed successfully! Welcome to your dashboard.');
         isRedirectingRef.current = false;
         return;
       }
-      
-      if (!profileComplete) {
+    
+      if (!profileComplete && !registrationSkipped) {
         let registrationPath = '/registration/family';
-        
+      
         if (effectiveRole) {
-          registrationPath = /registration/${effectiveRole.toLowerCase()};
+          registrationPath = `/registration/${effectiveRole.toLowerCase()}`;
         } else if (localStorage.getItem('registrationRole')) {
           const intendedRole = localStorage.getItem('registrationRole');
-          registrationPath = /registration/${intendedRole?.toLowerCase()};
+          registrationPath = `/registration/${intendedRole?.toLowerCase()}`;
         }
-        
+      
         console.log('[AuthProvider] Redirecting to registration page:', registrationPath);
         toast.info('Please complete your profile to continue');
         safeNavigate(registrationPath, { skipCheck: true });
         isRedirectingRef.current = false;
         return;
       }
-      
+    
       const pendingFeatureId = localStorage.getItem('pendingFeatureId') || localStorage.getItem('pendingFeatureUpvote');
       if (pendingFeatureId) {
         await checkPendingUpvote();
@@ -362,7 +371,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         isRedirectingRef.current = false;
         return;
       }
-      
+
       if (effectiveRole) {
         const dashboardRoutes: Record<UserRole, string> = {
           'family': '/dashboard/family',
@@ -375,7 +384,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         
         console.log('[AuthProvider] Redirecting to dashboard for role:', effectiveRole);
         safeNavigate(dashboardRoutes[effectiveRole], { skipCheck: true });
-        toast.success(Welcome to your ${effectiveRole} dashboard!);
+        
+        if (!isProfileComplete && localStorage.getItem('registrationSkipped') === 'true') {
+          toast.info('You can complete your profile anytime to unlock all features.');
+        } else {
+          toast.success(`Welcome to your ${effectiveRole} dashboard!`);
+        }
+        
         clearLastAction();
       } else {
         console.log('[AuthProvider] No role detected, redirecting to home');
@@ -485,7 +500,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     
     if (location.pathname.includes('/registration/') && isProfileComplete) {
       console.log('[AuthProvider] User has completed profile but is still on registration page');
-      const dashboardPath = userRole ? /dashboard/${userRole.toLowerCase()} : '/';
+      const dashboardPath = userRole ? `/dashboard/${userRole.toLowerCase()}` : '/';
       safeNavigate(dashboardPath, { skipCheck: true });
       toast.success(Welcome to your dashboard!);
       return;
@@ -535,7 +550,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         
         if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
           console.log('[AuthProvider] User signed in or token refreshed');
-          setLoadingWithTimeout(true, auth-state-change-${event});
+          setLoadingWithTimeout(true, `auth-state-change-${event}`);
           
           if (newSession?.user) {
             console.log('[AuthProvider] Getting role for signed in user...');
@@ -566,7 +581,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             }
           }
           
-          setLoadingWithTimeout(false, auth-state-change-complete-${event});
+          setLoadingWithTimeout(false, `auth-state-change-complete-${event}`);
         } else if (event === 'SIGNED_OUT') {
           console.log('[AuthProvider] User signed out');
           setLoadingWithTimeout(false, 'auth-state-change-SIGNED_OUT');
@@ -577,6 +592,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           localStorage.removeItem('authTimeoutRecovery');
           localStorage.removeItem('registrationRole');
           localStorage.removeItem('registeringAs');
+          localStorage.removeItem('registrationSkipped');
           
           if (isSigningOutRef.current) {
             isSigningOutRef.current = false;
@@ -596,14 +612,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             }
           }
           
-          setLoadingWithTimeout(false, auth-state-change-complete-${event});
+          setLoadingWithTimeout(false, `auth-state-change-complete-${event}`);
         } else {
-          setLoadingWithTimeout(false, auth-state-change-complete-${event});
+          setLoadingWithTimeout(false, `auth-state-change-complete-${event}`);
         }
       } catch (error) {
         console.error('[AuthProvider] Error handling auth state change:', error);
         localStorage.setItem('authStateError', 'true');
-        setLoadingWithTimeout(false, auth-state-change-error-${event});
+        setLoadingWithTimeout(false, `auth-state-change-error-${event}`);
       }
     });
 
@@ -631,6 +647,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       localStorage.removeItem('lastAuthState');
       localStorage.removeItem('lastAction');
       localStorage.removeItem('lastPath');
+      localStorage.removeItem('registrationSkipped'); // Add this line
       
       try {
         const { error } = await supabase.auth.signOut({ scope: 'local' });

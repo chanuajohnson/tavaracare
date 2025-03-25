@@ -1,3 +1,4 @@
+
 import { motion } from "framer-motion";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,9 +15,10 @@ import { TrainingProgramSection } from "@/components/professional/TrainingProgra
 import { TrainingModulesSection } from "@/components/professional/TrainingModulesSection";
 import { DashboardFamilyMatches } from "@/components/professional/DashboardFamilyMatches";
 import { CaregiverMatchingCard } from "@/components/professional/CaregiverMatchingCard";
+import { IncompleteProfileBanner } from "@/components/registration/IncompleteProfileBanner";
 
 const ProfessionalDashboard = () => {
-  const { user } = useAuth();
+  const { user, isProfileComplete } = useAuth();
   
   const breadcrumbItems = [
     {
@@ -29,6 +31,8 @@ const ProfessionalDashboard = () => {
     <div className="min-h-screen bg-background">
       <div className="container px-4 py-8">
         <DashboardHeader breadcrumbItems={breadcrumbItems} />
+
+        {user && !isProfileComplete && <IncompleteProfileBanner />}
 
         <motion.div
           initial={{ opacity: 0, y: 20 }}

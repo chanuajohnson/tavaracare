@@ -296,6 +296,12 @@ const ProfessionalRegistration = () => {
     }
   };
   
+  const handleSkipRegistration = () => {
+    localStorage.setItem('registrationSkipped', 'true');
+    toast.info("You can continue exploring, but some features will be limited until your profile is complete.");
+    navigate('/dashboard/professional');
+  };
+  
   return (
     <div className="container max-w-4xl mx-auto py-10 px-4">
       <h1 className="text-3xl font-bold text-center mb-2">
@@ -1369,19 +1375,17 @@ const ProfessionalRegistration = () => {
           </CardContent>
         </Card>
         
-        <div className="flex justify-end gap-3">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => navigate(isProfileManagement ? '/dashboard/professional' : '/auth')}
-          >
-            Cancel
+        <div className="flex justify-end mt-6">
+          <Button type="submit" disabled={isSubmitting}>
+            {isSubmitting ? 'Saving...' : 'Save Profile'}
           </Button>
-          <Button
-            type="submit"
-            disabled={isSubmitting}
+          <Button 
+            type="button" 
+            variant="outline" 
+            className="ml-2" 
+            onClick={handleSkipRegistration}
           >
-            {isSubmitting ? 'Submitting...' : (isProfileManagement ? 'Update Profile' : 'Complete Registration')}
+            Skip for now
           </Button>
         </div>
       </form>
