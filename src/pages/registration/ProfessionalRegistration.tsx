@@ -1,11 +1,10 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -68,7 +67,6 @@ const ProfessionalRegistration = () => {
     },
   });
 
-  // Fetch existing profile data if any
   useEffect(() => {
     const fetchProfileData = async () => {
       if (!user) return;
@@ -88,7 +86,6 @@ const ProfessionalRegistration = () => {
         if (data) {
           setProfileData(data);
           
-          // Set form values from profile data
           form.setValue('firstName', data.first_name || '');
           form.setValue('lastName', data.last_name || '');
           form.setValue('professionalType', data.professional_type || '');
@@ -147,7 +144,6 @@ const ProfessionalRegistration = () => {
         return;
       }
       
-      // Clear the registration skipped flag if it was set
       localStorage.removeItem('registrationSkipped');
       
       toast.success('Profile updated successfully');
@@ -319,9 +315,9 @@ const ProfessionalRegistration = () => {
                     <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
                       <div className="space-y-0.5">
                         <FormLabel className="text-base">Available for Consultation</FormLabel>
-                        <FormDescription>
+                        <CardDescription>
                           Let families know you're available for virtual consultations
-                        </FormDescription>
+                        </CardDescription>
                       </div>
                       <FormControl>
                         <Switch

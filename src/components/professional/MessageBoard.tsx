@@ -1,12 +1,19 @@
 
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Link, useLocation } from "react-router-dom";
 import { Lock } from "lucide-react";
 import { SubscriptionFeatureLink } from "@/components/subscription/SubscriptionFeatureLink";
 
-export const MessageBoard = () => {
+interface MessageBoardProps {
+  limit?: number;
+  showViewAll?: boolean;
+}
+
+export const MessageBoard: React.FC<MessageBoardProps> = ({ 
+  limit = 5, 
+  showViewAll = false 
+}) => {
   const location = useLocation();
   
   // Determine the current dashboard path to use as referring page
