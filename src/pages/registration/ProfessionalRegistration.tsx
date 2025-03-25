@@ -232,6 +232,9 @@ const ProfessionalRegistration = () => {
         return;
       }
   
+    // 👇✅ ADD THIS RIGHT HERE:
+    console.log('Submitting data:', data);
+    
       let avatar_url = null;
   
       // Upload profile image if it exists
