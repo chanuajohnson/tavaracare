@@ -110,7 +110,38 @@ const ProfessionalRegistration = () => {
   });
   
   const selectedProfessionalType = watch('professional_type');
-
+  const generateDummyProfessionalData = (): ProfessionalFormValues => {
+    const randomId = Math.floor(Math.random() * 100000);
+    return {
+      first_name: `Alex${randomId}`,
+      last_name: `Doe${randomId}`,
+      professional_type: 'cna',
+      other_professional_type: '',
+      years_of_experience: ['0-1', '2-5', '5-10', '10+'][Math.floor(Math.random() * 4)],
+      certifications: 'CPR, First Aid',
+      location: `City${randomId}, Country`,
+      email: `alex${randomId}@example.com`,
+      phone: `555000${randomId.toString().padStart(4, '0')}`,
+      preferred_contact_method: 'email',
+      care_services: ['in_home', 'medical_support', 'household'],
+      medical_conditions_experience: ['alzheimers', 'chronic'],
+      other_medical_condition: '',
+      availability: ['daytime', 'weekends'],
+      work_type: 'independent',
+      preferred_matches: ['elderly', 'children'],
+      administers_medication: true,
+      provides_housekeeping: true,
+      provides_transportation: true,
+      handles_medical_equipment: true,
+      has_liability_insurance: true,
+      background_check: true,
+      emergency_contact: 'Jane Doe - Sister - 555-1234',
+      hourly_rate: '$25/hour',
+      additional_professional_notes: 'Compassionate and experienced caregiver',
+      terms_accepted: true,
+    };
+  };
+  
   // Check if the user is here for profile management (has an existing profile)
   useEffect(() => {
     const checkExistingProfile = async () => {
@@ -1372,13 +1403,15 @@ const ProfessionalRegistration = () => {
         <div className="flex justify-end gap-3">
         <Button
   type="button"
-  onClick={() => navigate(-1)}
-  className="w-36"
+  onClick={() => {
+    const dummyData = generateDummyProfessionalData();
+    reset(dummyData);
+    handleSubmit(onSubmit)(); // Immediately submit the form with dummy data
+  }}
+  variant="secondary"
   disabled={isSubmitting}
 >
-  {isSubmitting
-    ? "Saving..."
-    : (isProfileManagement ? "Update Profile" : "Skip Registration")}
+  {isSubmitting ? 'Submitting...' : 'Skip Registration'}
 </Button>
         
           <Button
