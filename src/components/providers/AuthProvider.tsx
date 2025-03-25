@@ -526,26 +526,27 @@ if (!profileComplete && registrationSkipped !== 'true') {
     //if (!initialRedirectionDoneRef.current || location.pathname === '/auth') {
     //  handlePostLoginRedirection();
    // } */
-    useEffect(() => {
-  if (isLoading || !user) return; // Wait until auth is loaded and we have a user
+   useEffect(() => {
+  if (isLoading || !user) return;
 
-  console.log('[AuthProvider] User loaded. Handling redirection...');
+  const registrationSkipped = localStorage.getItem('registrationSkipped');
+  const isOnDashboard = location.pathname.startsWith('/dashboard');
+
+  // If on dashboard, don't interfere
+  if (isOnDashboard) return;
 
   if (location.pathname.includes('/registration/') && isProfileComplete) {
-    console.log('[AuthProvider] User has completed profile but is still on registration page');
     const dashboardPath = userRole ? `/dashboard/${userRole.toLowerCase()}` : '/';
     safeNavigate(dashboardPath, { skipCheck: true });
     toast.success(`Welcome to your dashboard!`);
     return;
   }
 
-  const registrationSkipped = localStorage.getItem('registrationSkipped');
-  console.log('[AuthProvider] registrationSkipped in useEffect:', registrationSkipped);
-
   if ((!initialRedirectionDoneRef.current || location.pathname === '/auth') && registrationSkipped !== 'true') {
     handlePostLoginRedirection();
   }
 }, [isLoading, user, userRole, isProfileComplete, location.pathname]);
+
 useEffect(() => {
   if (isProfileComplete && location.pathname.includes('/registration/')) {
     console.log('[AuthProvider] Profile now complete, redirecting to dashboard');
