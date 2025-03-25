@@ -546,6 +546,14 @@ if (!profileComplete && registrationSkipped !== 'true') {
     handlePostLoginRedirection();
   }
 }, [isLoading, user, userRole, isProfileComplete, location.pathname]);
+useEffect(() => {
+  if (isProfileComplete && location.pathname.includes('/registration/')) {
+    console.log('[AuthProvider] Profile now complete, redirecting to dashboard');
+    const dashboardPath = userRole ? `/dashboard/${userRole.toLowerCase()}` : '/';
+    safeNavigate(dashboardPath, { skipCheck: true });
+    toast.success(`Welcome to your dashboard!`);
+  }
+}, [isProfileComplete, location.pathname, userRole]);
 
   /*  Chan commented out this useEffect(() => {
   if (isLoading || !user) return; // Wait until auth is loaded and we have a user
