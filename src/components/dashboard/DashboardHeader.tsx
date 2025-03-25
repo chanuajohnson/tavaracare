@@ -1,3 +1,4 @@
+
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { 
@@ -82,4 +83,3 @@ export const DashboardHeader = ({ breadcrumbItems, title, description }: Dashboa
     </div>
   );
 };
-
