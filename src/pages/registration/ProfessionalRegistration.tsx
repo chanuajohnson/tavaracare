@@ -205,21 +205,21 @@ const ProfessionalRegistration = () => {
   
       // Upload profile image if it exists
       if (profileImage) {
-        const filename = `${uuidv4()}-${profileImage.name}`;
+        const filename = ${uuidv4()}-${profileImage.name};
         const { data: uploadData, error: uploadError } = await supabase.storage
           .from('profile-images')
           .upload(filename, profileImage);
   
         if (uploadError) {
           console.error("Error uploading image:", uploadError);
-          throw new Error(`Error uploading image: ${uploadError.message}`);
+          throw new Error(Error uploading image: ${uploadError.message});
         }
   
         avatar_url = filename;
       }
       
       // Combine first and last name for full_name
-      const full_name = `${data.first_name} ${data.last_name}`.trim();
+      const full_name = ${data.first_name} ${data.last_name}.trim();
   
       // Update profile directly, similar to the family registration flow
       const { error } = await supabase
@@ -268,7 +268,7 @@ const ProfessionalRegistration = () => {
   
       if (error) {
         console.error("Error updating profile:", error);
-        throw new Error(`Error updating professional profile: ${error.message}`);
+        throw new Error(Error updating professional profile: ${error.message});
       }
       
       // Update user metadata to match database role
@@ -1370,26 +1370,13 @@ const ProfessionalRegistration = () => {
         </Card>
         
         <div className="flex justify-end gap-3">
-         //Chan edited the cancel button code
-          //<Button
-            //type="button"
-            //variant="outline"
-            //onClick={() => navigate(isProfileManagement ? '/dashboard/professional' : '/auth')}
-          //>
-            //Cancel
-          //</Button>
-    <Button
-  type="button"
-  variant="outline"
-  onClick={() => {
-    console.log('[Cancel] Skipping registration and going to dashboard');
-    localStorage.setItem('registrationSkipped', 'true');
-    navigate('/dashboard/professional');
-  }}
->
-  Cancel
-</Button>
-
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => navigate(isProfileManagement ? '/dashboard/professional' : '/auth')}
+          >
+            Cancel
+          </Button>
           <Button
             type="submit"
             disabled={isSubmitting}
