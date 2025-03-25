@@ -219,7 +219,6 @@ const ProfessionalRegistration = () => {
         .eq('id', user.id);
       
       toast({
-        title: "Registration skipped",
         description: "You can complete your profile later. Some features may be limited until then.",
         variant: "warning",
         duration: 5000
