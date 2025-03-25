@@ -23,19 +23,15 @@ const professionalFormSchema = z.object({
   // Personal Information
   first_name: z.string().min(1, 'First name is required'),
   last_name: z.string().min(1, 'Last name is required'),
-  professional_type: z.string().optional(),
-  //professional_type: z.string().min(1, 'Professional role is required'),
+  professional_type: z.string().min(1, 'Professional role is required'),
   other_professional_type: z.string().optional(),
-  years_of_experience: z.string().optional(),
-  //years_of_experience: z.string().min(1, 'Years of experience is required'),
+  years_of_experience: z.string().min(1, 'Years of experience is required'),
   certifications: z.string().optional(),
   
   // Contact Information
-  location: z.string().optional(),
-  //location: z.string().min(1, 'Location is required'),
+  location: z.string().min(1, 'Location is required'),
   email: z.string().email('Invalid email address'),
-  phone: z.string().optional(),
-  //phone: z.string().min(10, 'Valid phone number is required'),
+  phone: z.string().min(10, 'Valid phone number is required'),
   preferred_contact_method: z.string().optional(),
   
   // Care Services
