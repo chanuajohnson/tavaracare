@@ -13,8 +13,6 @@ export type UserJourneyStage =
   | 'subscription_consideration'
   | 'active_usage'
   | 'return_visit'
-  | 'admin_dashboard_visit'
-  | 'admin_section_view'
   | string; // Allow custom journey stages
 
 interface UserJourneyTrackerProps {
@@ -37,7 +35,6 @@ interface UserJourneyTrackerProps {
 /**
  * Component to track user journey stages
  * Use this component on key pages to track where users are in their journey
- * Enhanced with better error handling and fallbacks
  */
 export const UserJourneyTracker = ({ 
   journeyStage, 
@@ -54,82 +51,59 @@ export const UserJourneyTracker = ({
     setIsMounted(true);
     
     const trackJourneyStage = async () => {
-      try {
-        // Skip if we've already tracked this journey stage and trackOnce is true
-        if (trackOnce) {
-          try {
-            const trackedStages = JSON.parse(sessionStorage.getItem('tracked_journey_stages') || '{}');
-            if (trackedStages[journeyStage]) {
-              console.log(`Journey stage ${journeyStage} already tracked this session`);
-              return;
-            }
-          } catch (parseError) {
-            console.error("Error parsing tracked stages from sessionStorage:", parseError);
-            // Continue if we can't determine if it was already tracked
-          }
+      // Skip if we've already tracked this journey stage and trackOnce is true
+      if (trackOnce) {
+        const trackedStages = JSON.parse(sessionStorage.getItem('tracked_journey_stages') || '{}');
+        if (trackedStages[journeyStage]) {
+          console.log(`Journey stage ${journeyStage} already tracked this session`);
+          return;
         }
+      }
+      
+      if (!isMounted || trackingAttempted.current) return;
+      
+      try {
+        trackingAttempted.current = true;
         
-        if (!isMounted || trackingAttempted.current) return;
+        // Create an enhanced data object with useful context
+        const enhancedData = {
+          ...additionalData,
+          journey_stage: journeyStage,
+          path: location.pathname,
+          is_authenticated: !!user,
+          profile_status: isProfileComplete ? 'complete' : 'incomplete',
+          user_role: user?.role || 'anonymous',
+          referrer: document.referrer || 'direct',
+          timestamp: new Date().toISOString(),
+          session_duration: sessionStorage.getItem('session_start') 
+            ? Math.floor((Date.now() - Number(sessionStorage.getItem('session_start'))) / 1000)
+            : 0
+        };
         
-        try {
-          trackingAttempted.current = true;
-          
-          // Create an enhanced data object with useful context
-          const enhancedData = {
-            ...additionalData,
-            journey_stage: journeyStage,
-            path: location.pathname,
-            is_authenticated: !!user,
-            profile_status: isProfileComplete ? 'complete' : 'incomplete',
-            user_role: user?.role || 'anonymous',
-            referrer: document.referrer || 'direct',
-            timestamp: new Date().toISOString(),
-            session_duration: sessionStorage.getItem('session_start') 
-              ? Math.floor((Date.now() - Number(sessionStorage.getItem('session_start'))) / 1000)
-              : 0
-          };
-          
-          // Track the journey stage
-          await trackEngagement('user_journey_progress', enhancedData);
-          console.log(`Successfully tracked journey stage: ${journeyStage}`);
-          
-          // If we're tracking once per session, mark this stage as tracked
-          if (trackOnce) {
-            try {
-              const trackedStages = JSON.parse(sessionStorage.getItem('tracked_journey_stages') || '{}');
-              trackedStages[journeyStage] = Date.now();
-              sessionStorage.setItem('tracked_journey_stages', JSON.stringify(trackedStages));
-            } catch (storageError) {
-              console.error("Error updating tracked stages in sessionStorage:", storageError);
-              // Non-critical error, can continue
-            }
-          }
-        } catch (trackingError) {
-          console.error(`Error in trackEngagement for ${journeyStage}:`, trackingError);
-          // Non-critical error, don't re-throw
+        // Track the journey stage
+        await trackEngagement('user_journey_progress', enhancedData);
+        
+        // If we're tracking once per session, mark this stage as tracked
+        if (trackOnce) {
+          const trackedStages = JSON.parse(sessionStorage.getItem('tracked_journey_stages') || '{}');
+          trackedStages[journeyStage] = Date.now();
+          sessionStorage.setItem('tracked_journey_stages', JSON.stringify(trackedStages));
         }
       } catch (error) {
-        console.error(`Error in tracking journey stage ${journeyStage}:`, error);
-        // Ensure component doesn't break
+        console.error(`Error tracking journey stage ${journeyStage}:`, error);
       }
     };
     
     // Set session start time if not already set
     if (!sessionStorage.getItem('session_start')) {
-      try {
-        sessionStorage.setItem('session_start', Date.now().toString());
-      } catch (storageError) {
-        console.error("Error setting session_start in sessionStorage:", storageError);
-        // Non-critical error, can continue
-      }
+      sessionStorage.setItem('session_start', Date.now().toString());
     }
     
     // Delay tracking slightly to avoid blocking rendering
     const trackingTimer = setTimeout(() => {
       if (isMounted) {
         trackJourneyStage().catch(err => {
-          console.error("Uncaught tracking error:", err);
-          // Final catch to ensure component doesn't break
+          console.error("Tracking error:", err);
         });
       }
     }, 500);

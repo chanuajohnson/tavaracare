@@ -16,15 +16,13 @@ interface BreadcrumbItem {
   path: string;
 }
 
-export interface DashboardHeaderProps {
-  breadcrumbItems?: BreadcrumbItem[];
-  title?: string;
-  description?: string;
+interface DashboardHeaderProps {
+  breadcrumbItems: BreadcrumbItem[];
 }
 
-export const DashboardHeader = ({ breadcrumbItems = [], title, description }: DashboardHeaderProps) => {
+export const DashboardHeader = ({ breadcrumbItems }: DashboardHeaderProps) => {
   return (
-    <div className="space-y-4 mb-8">
+    <div className="flex justify-between items-center mb-8">
       <Breadcrumb>
         <BreadcrumbList>
           <BreadcrumbItem>
@@ -51,21 +49,12 @@ export const DashboardHeader = ({ breadcrumbItems = [], title, description }: Da
         </BreadcrumbList>
       </Breadcrumb>
       
-      {title && (
-        <div>
-          <h1 className="text-2xl font-bold">{title}</h1>
-          {description && <p className="text-muted-foreground mt-1">{description}</p>}
-        </div>
-      )}
-      
-      <div className="flex justify-end">
-        <Button asChild variant="outline" size="sm" className="hidden md:flex items-center gap-1">
-          <Link to="/legacy-stories">
-            <BookOpen className="h-4 w-4 mr-1" />
-            Legacy Stories
-          </Link>
-        </Button>
-      </div>
+      <Button asChild variant="outline" size="sm" className="hidden md:flex items-center gap-1">
+        <Link to="/legacy-stories">
+          <BookOpen className="h-4 w-4 mr-1" />
+          Legacy Stories
+        </Link>
+      </Button>
     </div>
   );
 };
