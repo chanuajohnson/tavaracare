@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm, Controller } from 'react-hook-form';
@@ -800,45 +801,29 @@ const ProfessionalRegistration = () => {
                 </div>
               </div>
             </div>
-            
-            <div className="mb-6">
-              <Label className="mb-3 block">What medical conditions have you worked with? (Select all that apply)</Label>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <div className="flex items-start space-x-2">
-                  <Controller
-                    control={control}
-                    name="medical_conditions_experience"
-                    render={({ field }) => (
-                      <Checkbox
-                        id="alzheimers"
-                        checked={field.value?.includes('alzheimers')}
-                        onCheckedChange={(checked) => {
-                          const currentValues = field.value || [];
-                          if (checked) {
-                            setValue('medical_conditions_experience', [...currentValues, 'alzheimers']);
-                          } else {
-                            setValue('medical_conditions_experience', currentValues.filter(value => value !== 'alzheimers'));
-                          }
-                        }}
-                      />
-                    )}
-                  />
-                  <Label htmlFor="alzheimers" className="leading-tight cursor-pointer">
-                    🧠 Alzheimer's / Dementia / Cognitive Decline
-                  </Label>
-                </div>
-                
-                <div className="flex items-start space-x-2">
-                  <Controller
-                    control={control}
-                    name="medical_conditions_experience"
-                    render={({ field }) => (
-                      <Checkbox
-                        id="cancer"
-                        checked={field.value?.includes('cancer')}
-                        onCheckedChange={(checked) => {
-                          const currentValues = field.value || [];
-                          if (checked) {
-                            setValue('medical_conditions_experience', [...currentValues, 'cancer']);
-                          } else {
-                            setValue('medical_conditions_experience', currentValues.filter(value => value
+          </CardContent>
+        </Card>
+        
+        <div className="flex justify-between mt-8">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => navigate(-1)}
+            className="w-24"
+          >
+            Cancel
+          </Button>
+          <Button
+            type="submit"
+            disabled={isSubmitting}
+            className="w-36"
+          >
+            {isSubmitting ? "Saving..." : (isProfileManagement ? "Update Profile" : "Complete Registration")}
+          </Button>
+        </div>
+      </form>
+    </div>
+  );
+};
+
+export default ProfessionalRegistration;
