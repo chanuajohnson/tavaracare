@@ -510,7 +510,7 @@ if (!profileComplete && registrationSkipped !== 'true') {
     }
   };
 
-  useEffect(() => {
+ /* useEffect(() => {
     if (isLoading || !user) return; // Wait until auth is loaded and we have a user
     
     console.log('[AuthProvider] User loaded. Handling redirection...');
@@ -525,7 +525,7 @@ if (!profileComplete && registrationSkipped !== 'true') {
     //Chan edited this line and the next three out and added 
     //if (!initialRedirectionDoneRef.current || location.pathname === '/auth') {
     //  handlePostLoginRedirection();
-   // } 
+   // } */
     useEffect(() => {
   if (isLoading || !user) return; // Wait until auth is loaded and we have a user
 
@@ -562,13 +562,13 @@ if (!profileComplete && registrationSkipped !== 'true') {
 
   const registrationSkipped = localStorage.getItem('registrationSkipped');
   console.log('[AuthProvider] registrationSkipped in useEffect:', registrationSkipped);
-*/
+
   if ((!initialRedirectionDoneRef.current || location.pathname === '/auth') && registrationSkipped !== 'true') {
     handlePostLoginRedirection();
   }
 }, [isLoading, user, userRole, isProfileComplete, location.pathname]);
 
-  }, [isLoading, user, userRole, isProfileComplete, location.pathname]);
+  }, [isLoading, user, userRole, isProfileComplete, location.pathname]);*/
 
   useEffect(() => {
     const clearStaleState = async () => {
