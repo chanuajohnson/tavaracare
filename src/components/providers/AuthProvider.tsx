@@ -162,7 +162,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       console.log('[AuthProvider] Checking profile completion for user:', userId);
       const { data: profile, error } = await supabase
         .from('profiles')
-        .select('full_name, avatar_url, role, professional_type, first_name, last_name, registration_skipped')
+        .select('full_name, avatar_url, role, professional_type, first_name, last_name')
         .eq('id', userId)
         .maybeSingle();
       
@@ -176,12 +176,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       if (profile?.role && !userRole) {
         console.log('[AuthProvider] Setting user role from profile:', profile.role);
         setUserRole(profile.role);
-      }
-      
-      if (profile?.registration_skipped) {
-        console.log('[AuthProvider] User has skipped registration');
-        setIsProfileComplete(false);
-        return false;
       }
       
       let profileComplete = false;
@@ -312,8 +306,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         return;
       }
       
-      const registrationSkipped = user.user_metadata?.registrationSkipped === true;
-      
       if (profileComplete && location.pathname.includes('/registration/')) {
         console.log('[AuthProvider] Profile is complete and user is on registration page, redirecting to dashboard');
         const dashboardPath = effectiveRole ? `/dashboard/${effectiveRole.toLowerCase()}` : '/';
@@ -323,7 +315,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         return;
       }
       
-      if (!profileComplete && !registrationSkipped) {
+      if (!profileComplete) {
         let registrationPath = '/registration/family';
         
         if (effectiveRole) {

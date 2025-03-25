@@ -1194,30 +1194,6 @@ export type Database = {
         }
         Relationships: []
       }
-      user_events: {
-        Row: {
-          additional_data: Json | null
-          event_timestamp: string | null
-          event_type: string | null
-          id: number
-          user_id: string | null
-        }
-        Insert: {
-          additional_data?: Json | null
-          event_timestamp?: string | null
-          event_type?: string | null
-          id?: never
-          user_id?: string | null
-        }
-        Update: {
-          additional_data?: Json | null
-          event_timestamp?: string | null
-          event_type?: string | null
-          id?: never
-          user_id?: string | null
-        }
-        Relationships: []
-      }
       user_journey: {
         Row: {
           event_data: Json | null
@@ -1377,21 +1353,6 @@ export type Database = {
       }
     }
     Views: {
-      daily_pmf_metrics: {
-        Row: {
-          daily_retained_users: number | null
-          date: string | null
-          family_active_users: number | null
-          family_dashboard_views: number | null
-          family_new_signups: number | null
-          matching_clicks_family: number | null
-          professional_active_users: number | null
-          professional_new_signups: number | null
-          subscription_clicks_family: number | null
-          unlock_clicks_family: number | null
-        }
-        Relationships: []
-      }
       feature_lookup: {
         Row: {
           id: string | null

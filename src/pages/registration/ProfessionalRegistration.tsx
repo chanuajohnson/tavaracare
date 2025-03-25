@@ -1,4 +1,4 @@
- // Personal Informationimport React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -20,7 +20,7 @@ import { v4 as uuidv4 } from 'uuid';
 
 // Define form schema with Zod
 const professionalFormSchema = z.object({
- // Personal Information
+  // Personal Information
   first_name: z.string().min(1, 'First name is required'),
   last_name: z.string().min(1, 'Last name is required'),
   professional_type: z.string().min(1, 'Professional role is required'),
@@ -28,23 +28,23 @@ const professionalFormSchema = z.object({
   years_of_experience: z.string().min(1, 'Years of experience is required'),
   certifications: z.string().optional(),
   
-// Contact Information
+  // Contact Information
   location: z.string().min(1, 'Location is required'),
   email: z.string().email('Invalid email address'),
   phone: z.string().min(10, 'Valid phone number is required'),
   preferred_contact_method: z.string().optional(),
   
- // Care Services
+  // Care Services
   care_services: z.array(z.string()).optional(),
   medical_conditions_experience: z.array(z.string()).optional(),
   other_medical_condition: z.string().optional(),
   
-   // Availability & Preferences
+  // Availability & Preferences
   availability: z.array(z.string()).optional(),
   work_type: z.string().optional(),
   preferred_matches: z.array(z.string()).optional(),
   
-// Compliance & Additional Details
+  // Compliance & Additional Details
   administers_medication: z.boolean().optional(),
   provides_housekeeping: z.boolean().optional(),
   provides_transportation: z.boolean().optional(),
@@ -55,7 +55,7 @@ const professionalFormSchema = z.object({
   hourly_rate: z.string().optional(),
   additional_professional_notes: z.string().optional(),
   
-    // Terms and Conditions
+  // Terms and Conditions
   terms_accepted: z.boolean().refine(val => val === true, {
     message: 'You must accept the terms and conditions',
   }),
@@ -70,7 +70,6 @@ const ProfessionalRegistration = () => {
   const [profileImage, setProfileImage] = useState<File | null>(null);
   const [profileImageURL, setProfileImageURL] = useState<string | null>(null);
   const [isProfileManagement, setIsProfileManagement] = useState(false);
-  const [isSkippingRegistration, setIsSkippingRegistration] = useState(false);
   
   const { 
     control, 
@@ -112,7 +111,7 @@ const ProfessionalRegistration = () => {
   
   const selectedProfessionalType = watch('professional_type');
 
- // Check if the user is here for profile management (has an existing profile)
+  // Check if the user is here for profile management (has an existing profile)
   useEffect(() => {
     const checkExistingProfile = async () => {
       if (!user) return;
@@ -129,6 +128,7 @@ const ProfessionalRegistration = () => {
         if (profileData && profileData.role === 'professional') {
           setIsProfileManagement(true);
           
+          // Set profile image if it exists
           if (profileData.avatar_url) {
             const { data: { publicUrl } } = supabase
               .storage
@@ -138,12 +138,12 @@ const ProfessionalRegistration = () => {
             setProfileImageURL(publicUrl);
           }
           
-     // Populate form with existing data
+          // Populate form with existing data
           const names = profileData.full_name ? profileData.full_name.split(' ') : ['', ''];
           const firstName = names[0] || '';
           const lastName = names.slice(1).join(' ') || '';
           
-           // Set form values
+          // Set form values
           reset({
             first_name: firstName,
             last_name: lastName,
@@ -170,7 +170,7 @@ const ProfessionalRegistration = () => {
             emergency_contact: profileData.emergency_contact || '',
             hourly_rate: profileData.hourly_rate || '',
             additional_professional_notes: profileData.additional_professional_notes || '',
-            terms_accepted: true,// Already accepted if they have a profile
+            terms_accepted: true, // Already accepted if they have a profile
           });
           
           // Log that we loaded profile data
@@ -193,40 +193,6 @@ const ProfessionalRegistration = () => {
     }
   };
   
-  const handleSkipRegistration = async () => {
-    setIsSkippingRegistration(true);
-    
-    try {
-      if (!user) {
-        toast.error("You must be logged in to skip registration");
-        return;
-      }
-      
-      await supabase.auth.updateUser({
-        data: { registrationSkipped: true, role: 'professional' }
-      });
-      
-      await supabase
-        .from('profiles')
-        .update({
-          role: 'professional',
-          registration_skipped: true
-        })
-        .eq('id', user.id);
-      
-      toast.warning("You can complete your profile later. Some features may be limited until then.", {
-        duration: 5000
-      });
-      
-      navigate('/dashboard/professional');
-    } catch (error) {
-      console.error('Error skipping registration:', error);
-      toast.error("Error skipping registration. Please try again.");
-    } finally {
-      setIsSkippingRegistration(false);
-    }
-  };
-
   const onSubmit = async (data: ProfessionalFormValues) => {
     setIsSubmitting(true);
     try {
@@ -259,7 +225,7 @@ const ProfessionalRegistration = () => {
       const { error } = await supabase
         .from('profiles')
         .update({
-           // Basic information
+          // Basic information
           full_name,
           avatar_url: avatar_url || undefined, // Only update if we have a new image
           phone_number: data.phone,
@@ -267,8 +233,7 @@ const ProfessionalRegistration = () => {
           location: data.location,
           preferred_contact_method: data.preferred_contact_method,
           
-          
-           // Professional specific fields
+          // Professional specific fields
           professional_type: data.professional_type,
           other_certification: data.other_professional_type,
           years_of_experience: data.years_of_experience,
@@ -292,14 +257,12 @@ const ProfessionalRegistration = () => {
           hourly_rate: data.hourly_rate,
           additional_professional_notes: data.additional_professional_notes,
           
-           // Important role flag
+          // Important role flag
           role: 'professional',
           
           // First name and last name separately
           first_name: data.first_name,
-          last_name: data.last_name,
-          
-          registration_skipped: false
+          last_name: data.last_name
         })
         .eq('id', user.id);
   
@@ -308,14 +271,14 @@ const ProfessionalRegistration = () => {
         throw new Error(`Error updating professional profile: ${error.message}`);
       }
       
-       // Update user metadata to match database role
+      // Update user metadata to match database role
       const { error: metadataError } = await supabase.auth.updateUser({
-        data: { role: 'professional', registrationSkipped: false }
+        data: { role: 'professional' }
       });
       
       if (metadataError) {
         console.warn("Error updating user metadata:", metadataError);
-      // Continue anyway - this is not critical
+        // Continue anyway - this is not critical
       }
   
       toast.success(isProfileManagement 
@@ -362,27 +325,6 @@ const ProfessionalRegistration = () => {
           <span>Availability-Based Matches – Filters caregivers by their schedule, role, and medical expertise.</span>
         </div>
       </div>
-      
-      {!isProfileManagement && (
-        <div className="bg-amber-50 border border-amber-200 rounded-md p-4 mb-6">
-          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-            <div>
-              <h3 className="font-medium text-amber-800">Want to explore first?</h3>
-              <p className="text-sm text-amber-700">
-                You can skip completing your profile for now, but some features will be limited until you return to finish.
-              </p>
-            </div>
-            <Button 
-              variant="outline" 
-              className="border-amber-300 text-amber-700 hover:bg-amber-100"
-              onClick={handleSkipRegistration}
-              disabled={isSkippingRegistration}
-            >
-              {isSkippingRegistration ? "Processing..." : "Skip for now"}
-            </Button>
-          </div>
-        </div>
-      )}
   
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
         <Card>
@@ -792,7 +734,7 @@ const ProfessionalRegistration = () => {
                 </div>
               </div>
             </div>
-          
+            
             <div className="mb-6">
               <Label className="mb-3 block">What medical conditions have you worked with? (Select all that apply)</Label>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -1431,17 +1373,15 @@ const ProfessionalRegistration = () => {
           <Button
             type="button"
             variant="outline"
-            onClick={() => navigate(-1)}
-            className="w-24"
+            onClick={() => navigate(isProfileManagement ? '/dashboard/professional' : '/auth')}
           >
             Cancel
           </Button>
           <Button
             type="submit"
             disabled={isSubmitting}
-            className="w-36"
           >
-            {isSubmitting ? "Saving..." : (isProfileManagement ? "Update Profile" : "Complete Registration")}
+            {isSubmitting ? 'Submitting...' : (isProfileManagement ? 'Update Profile' : 'Complete Registration')}
           </Button>
         </div>
       </form>
