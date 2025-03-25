@@ -8,6 +8,7 @@ type JourneyStage =
   | 'first_visit'
   | 'authentication'
   | 'profile_creation'
+  | 'registration_skipped'
   | 'feature_discovery'
   | 'matching_exploration'
   | 'subscription_consideration'
@@ -70,7 +71,8 @@ export function useJourneyTracking({
           journey_stage: journeyStage,
           path: location.pathname,
           is_authenticated: !!user,
-          profile_status: isProfileComplete ? 'complete' : 'incomplete',
+          profile_status: isProfileComplete ? 'complete' : 
+                          (user?.user_metadata?.registrationSkipped ? 'skipped' : 'incomplete'),
           user_role: user?.role || 'anonymous',
           referrer: document.referrer || 'direct',
           timestamp: new Date().toISOString(),
