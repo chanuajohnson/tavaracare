@@ -1370,13 +1370,17 @@ const ProfessionalRegistration = () => {
         </Card>
         
         <div className="flex justify-end gap-3">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => navigate(isProfileManagement ? '/dashboard/professional' : '/auth')}
-          >
-            Cancel
-          </Button>
+        <Button
+  type="button"
+  onClick={() => navigate(-1)}
+  className="w-36"
+  disabled={isSubmitting}
+>
+  {isSubmitting
+    ? "Saving..."
+    : (isProfileManagement ? "Update Profile" : "Skip Registration")}
+</Button>
+        
           <Button
             type="submit"
             disabled={isSubmitting}
