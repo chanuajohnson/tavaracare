@@ -314,17 +314,34 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         isRedirectingRef.current = false;
         return;
       }
-      
-      if (!profileComplete) {
-        let registrationPath = '/registration/family';
+      //Chan commented out this line and the next 8 lines of code
+      //if (!profileComplete) {
+       // let registrationPath = '/registration/family';
         
-        if (effectiveRole) {
-          registrationPath = `/registration/${effectiveRole.toLowerCase()}`;
-        } else if (localStorage.getItem('registrationRole')) {
-          const intendedRole = localStorage.getItem('registrationRole');
-          registrationPath = `/registration/${intendedRole?.toLowerCase()}`;
-        }
-        //Chan Commented out likes 327 -332 added
+        //if (effectiveRole) {
+        //  registrationPath = `/registration/${effectiveRole.toLowerCase()}`;
+       // } else if (localStorage.getItem('registrationRole')) {
+          //const intendedRole = localStorage.getItem('registrationRole');
+         // registrationPath = `/registration/${intendedRole?.toLowerCase()}`;
+       // }
+      if (!profileComplete && localStorage.getItem('registrationSkipped') !== 'true') {
+  let registrationPath = '/registration/family';
+
+  if (effectiveRole) {
+    registrationPath = `/registration/${effectiveRole.toLowerCase()}`;
+  } else if (localStorage.getItem('registrationRole')) {
+    const intendedRole = localStorage.getItem('registrationRole');
+    registrationPath = `/registration/${intendedRole?.toLowerCase()}`;
+  }
+
+  console.log('[AuthProvider] Redirecting to registration page:', registrationPath);
+  toast.info('Please complete your profile to continue');
+  safeNavigate(registrationPath, { skipCheck: true });
+  isRedirectingRef.current = false;
+  return;
+}
+
+        //Chan Commented out this line and the next 5 lines of code
         //console.log('[AuthProvider] Redirecting to registration page:', registrationPath);
         //toast.info('Please complete your profile to continue');
         //safeNavigate(registrationPath, { skipCheck: true });
