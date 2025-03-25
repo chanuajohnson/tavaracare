@@ -234,7 +234,7 @@ const ProfessionalRegistration = () => {
   
     // 👇✅ ADD THIS RIGHT HERE:
     console.log('Submitting data:', data);
-    
+
       let avatar_url = null;
   
       // Upload profile image if it exists
@@ -1409,6 +1409,7 @@ const ProfessionalRegistration = () => {
   variant="secondary"
   disabled={isSubmitting}
   onClick={() => {
+    console.log('Button clicked to trigger dummy submission');
     const dummyData = generateDummyProfessionalData();
 
     // First set the dummy values
