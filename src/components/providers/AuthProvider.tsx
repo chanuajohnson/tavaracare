@@ -536,7 +536,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
           console.log('[AuthProvider] User signed in or token refreshed');
           setLoadingWithTimeout(true, `auth-state-change-${event}`);
-          
+           //Chan
+          //👉 INSERT THIS LINE HERE:
+    setIsProfileComplete(true); // Force profile completion immediately after sign-in
           if (newSession?.user) {
             console.log('[AuthProvider] Getting role for signed in user...');
             
