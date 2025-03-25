@@ -18,9 +18,7 @@ import { useAuth } from '@/components/providers/AuthProvider';
 import { supabase } from '@/lib/supabase';
 import { v4 as uuidv4 } from 'uuid';
 
-// Define form schema with Zod
 const professionalFormSchema = z.object({
-  // Personal Information
   first_name: z.string().min(1, 'First name is required'),
   last_name: z.string().min(1, 'Last name is required'),
   professional_type: z.string().min(1, 'Professional role is required'),
@@ -28,23 +26,19 @@ const professionalFormSchema = z.object({
   years_of_experience: z.string().min(1, 'Years of experience is required'),
   certifications: z.string().optional(),
   
-  // Contact Information
   location: z.string().min(1, 'Location is required'),
   email: z.string().email('Invalid email address'),
   phone: z.string().min(10, 'Valid phone number is required'),
   preferred_contact_method: z.string().optional(),
   
-  // Care Services
   care_services: z.array(z.string()).optional(),
   medical_conditions_experience: z.array(z.string()).optional(),
   other_medical_condition: z.string().optional(),
   
-  // Availability & Preferences
   availability: z.array(z.string()).optional(),
   work_type: z.string().optional(),
   preferred_matches: z.array(z.string()).optional(),
   
-  // Compliance & Additional Details
   administers_medication: z.boolean().optional(),
   provides_housekeeping: z.boolean().optional(),
   provides_transportation: z.boolean().optional(),
@@ -55,7 +49,6 @@ const professionalFormSchema = z.object({
   hourly_rate: z.string().optional(),
   additional_professional_notes: z.string().optional(),
   
-  // Terms and Conditions
   terms_accepted: z.boolean().refine(val => val === true, {
     message: 'You must accept the terms and conditions',
   }),
@@ -111,7 +104,6 @@ const ProfessionalRegistration = () => {
   
   const selectedProfessionalType = watch('professional_type');
 
-  // Check if the user is here for profile management (has an existing profile)
   useEffect(() => {
     const checkExistingProfile = async () => {
       if (!user) return;
@@ -128,7 +120,6 @@ const ProfessionalRegistration = () => {
         if (profileData && profileData.role === 'professional') {
           setIsProfileManagement(true);
           
-          // Set profile image if it exists
           if (profileData.avatar_url) {
             const { data: { publicUrl } } = supabase
               .storage
@@ -138,12 +129,10 @@ const ProfessionalRegistration = () => {
             setProfileImageURL(publicUrl);
           }
           
-          // Populate form with existing data
           const names = profileData.full_name ? profileData.full_name.split(' ') : ['', ''];
           const firstName = names[0] || '';
           const lastName = names.slice(1).join(' ') || '';
           
-          // Set form values
           reset({
             first_name: firstName,
             last_name: lastName,
@@ -160,7 +149,7 @@ const ProfessionalRegistration = () => {
             other_medical_condition: profileData.other_medical_condition || '',
             availability: profileData.availability || [],
             work_type: profileData.work_type || '',
-            preferred_matches: [], // Not clear where this is stored in the profile
+            preferred_matches: [],
             administers_medication: profileData.administers_medication || false,
             provides_housekeeping: profileData.provides_housekeeping || false,
             provides_transportation: profileData.provides_transportation || false,
@@ -170,10 +159,9 @@ const ProfessionalRegistration = () => {
             emergency_contact: profileData.emergency_contact || '',
             hourly_rate: profileData.hourly_rate || '',
             additional_professional_notes: profileData.additional_professional_notes || '',
-            terms_accepted: true, // Already accepted if they have a profile
+            terms_accepted: true,
           });
           
-          // Log that we loaded profile data
           console.log('Loaded professional profile data:', profileData);
         }
       } catch (error) {
@@ -203,37 +191,32 @@ const ProfessionalRegistration = () => {
   
       let avatar_url = null;
   
-      // Upload profile image if it exists
       if (profileImage) {
-        const filename = ${uuidv4()}-${profileImage.name};
+        const filename = `${uuidv4()}-${profileImage.name}`;
         const { data: uploadData, error: uploadError } = await supabase.storage
           .from('profile-images')
           .upload(filename, profileImage);
   
         if (uploadError) {
           console.error("Error uploading image:", uploadError);
-          throw new Error(Error uploading image: ${uploadError.message});
+          throw new Error(`Error uploading image: ${uploadError.message}`);
         }
   
         avatar_url = filename;
       }
       
-      // Combine first and last name for full_name
-      const full_name = ${data.first_name} ${data.last_name}.trim();
+      const full_name = `${data.first_name} ${data.last_name}`.trim();
   
-      // Update profile directly, similar to the family registration flow
       const { error } = await supabase
         .from('profiles')
         .update({
-          // Basic information
           full_name,
-          avatar_url: avatar_url || undefined, // Only update if we have a new image
+          avatar_url: avatar_url || undefined,
           phone_number: data.phone,
           address: data.location,
           location: data.location,
           preferred_contact_method: data.preferred_contact_method,
           
-          // Professional specific fields
           professional_type: data.professional_type,
           other_certification: data.other_professional_type,
           years_of_experience: data.years_of_experience,
@@ -244,7 +227,6 @@ const ProfessionalRegistration = () => {
           availability: data.availability,
           work_type: data.work_type,
           
-          // Specific capabilities
           administers_medication: data.administers_medication,
           provides_housekeeping: data.provides_housekeeping,
           provides_transportation: data.provides_transportation,
@@ -252,15 +234,12 @@ const ProfessionalRegistration = () => {
           has_liability_insurance: data.has_liability_insurance,
           background_check: data.background_check,
           
-          // Additional information
           emergency_contact: data.emergency_contact,
           hourly_rate: data.hourly_rate,
           additional_professional_notes: data.additional_professional_notes,
           
-          // Important role flag
           role: 'professional',
           
-          // First name and last name separately
           first_name: data.first_name,
           last_name: data.last_name
         })
@@ -268,17 +247,15 @@ const ProfessionalRegistration = () => {
   
       if (error) {
         console.error("Error updating profile:", error);
-        throw new Error(Error updating professional profile: ${error.message});
+        throw new Error(`Error updating professional profile: ${error.message}`);
       }
       
-      // Update user metadata to match database role
       const { error: metadataError } = await supabase.auth.updateUser({
         data: { role: 'professional' }
       });
       
       if (metadataError) {
         console.warn("Error updating user metadata:", metadataError);
-        // Continue anyway - this is not critical
       }
   
       toast.success(isProfileManagement 
@@ -286,7 +263,6 @@ const ProfessionalRegistration = () => {
         : "Professional registration completed successfully!"
       );
       
-      // Navigate directly to the professional dashboard
       navigate('/dashboard/professional');
     } catch (error) {
       console.error('Registration error:', error);
@@ -1375,17 +1351,22 @@ const ProfessionalRegistration = () => {
           </CardContent>
         </Card>
         
-        <div className="flex justify-end mt-6">
-          <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? 'Saving...' : 'Save Profile'}
-          </Button>
-          <Button 
-            type="button" 
-            variant="outline" 
-            className="ml-2" 
+        <div className="flex justify-between mt-6">
+          <Button
+            type="button"
+            variant="outline"
             onClick={handleSkipRegistration}
+            className="w-[48%]"
           >
             Skip for now
+          </Button>
+          
+          <Button 
+            type="submit" 
+            className="w-[48%] bg-primary text-white" 
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? "Saving..." : isProfileManagement ? "Update Profile" : "Complete Registration"}
           </Button>
         </div>
       </form>
