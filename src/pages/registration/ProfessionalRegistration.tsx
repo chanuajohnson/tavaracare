@@ -1403,13 +1403,19 @@ const ProfessionalRegistration = () => {
         <div className="flex justify-end gap-3">
         <Button
   type="button"
-  onClick={() => {
-    const dummyData = generateDummyProfessionalData();
-    reset(dummyData);
-    handleSubmit(onSubmit)(); // Submits as if "Complete Registration"
-  }}
   variant="secondary"
   disabled={isSubmitting}
+  onClick={() => {
+    const dummyData = generateDummyProfessionalData();
+
+    // First set the dummy values
+    reset(dummyData);
+
+    // Then submit after a short delay to allow state to sync
+    setTimeout(() => {
+      handleSubmit(onSubmit)();
+    }, 100); // 100ms delay is usually enough
+  }}
 >
   {isSubmitting ? 'Submitting...' : 'Skip Registration'}
 </Button>
