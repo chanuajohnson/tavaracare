@@ -182,10 +182,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       
       if (profile) {
         if (profile.role === 'professional') {
-          profileComplete = !!(profile.full_name || (profile.first_name && profile.last_name)) && 
-                           !!profile.professional_type;
+          profileComplete = !!(profile.full_name );
+          //profileComplete = !!(profile.full_name || (profile.first_name && profile.last_name)) && 
+            //               !!profile.professional_type;
         } else {
-          profileComplete = !!(profile.full_name || (profile.first_name && profile.last_name));
+          profileComplete = !!(profile.full_name);
         }
       }
       
