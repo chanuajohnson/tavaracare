@@ -18,7 +18,9 @@ import { useAuth } from '@/components/providers/AuthProvider';
 import { supabase } from '@/lib/supabase';
 import { v4 as uuidv4 } from 'uuid';
 
+// Define form schema with Zod
 const professionalFormSchema = z.object({
+  // Personal Information
   first_name: z.string().min(1, 'First name is required'),
   last_name: z.string().min(1, 'Last name is required'),
   professional_type: z.string().min(1, 'Professional role is required'),
@@ -26,19 +28,23 @@ const professionalFormSchema = z.object({
   years_of_experience: z.string().min(1, 'Years of experience is required'),
   certifications: z.string().optional(),
   
+  // Contact Information
   location: z.string().min(1, 'Location is required'),
   email: z.string().email('Invalid email address'),
   phone: z.string().min(10, 'Valid phone number is required'),
   preferred_contact_method: z.string().optional(),
   
+  // Care Services
   care_services: z.array(z.string()).optional(),
   medical_conditions_experience: z.array(z.string()).optional(),
   other_medical_condition: z.string().optional(),
   
+  // Availability & Preferences
   availability: z.array(z.string()).optional(),
   work_type: z.string().optional(),
   preferred_matches: z.array(z.string()).optional(),
   
+  // Compliance & Additional Details
   administers_medication: z.boolean().optional(),
   provides_housekeeping: z.boolean().optional(),
   provides_transportation: z.boolean().optional(),
@@ -49,6 +55,7 @@ const professionalFormSchema = z.object({
   hourly_rate: z.string().optional(),
   additional_professional_notes: z.string().optional(),
   
+  // Terms and Conditions
   terms_accepted: z.boolean().refine(val => val === true, {
     message: 'You must accept the terms and conditions',
   }),
@@ -63,7 +70,6 @@ const ProfessionalRegistration = () => {
   const [profileImage, setProfileImage] = useState<File | null>(null);
   const [profileImageURL, setProfileImageURL] = useState<string | null>(null);
   const [isProfileManagement, setIsProfileManagement] = useState(false);
-  const [isSkippingRegistration, setIsSkippingRegistration] = useState(false);
   
   const { 
     control, 
@@ -105,6 +111,7 @@ const ProfessionalRegistration = () => {
   
   const selectedProfessionalType = watch('professional_type');
 
+  // Check if the user is here for profile management (has an existing profile)
   useEffect(() => {
     const checkExistingProfile = async () => {
       if (!user) return;
@@ -121,6 +128,7 @@ const ProfessionalRegistration = () => {
         if (profileData && profileData.role === 'professional') {
           setIsProfileManagement(true);
           
+          // Set profile image if it exists
           if (profileData.avatar_url) {
             const { data: { publicUrl } } = supabase
               .storage
@@ -130,10 +138,12 @@ const ProfessionalRegistration = () => {
             setProfileImageURL(publicUrl);
           }
           
+          // Populate form with existing data
           const names = profileData.full_name ? profileData.full_name.split(' ') : ['', ''];
           const firstName = names[0] || '';
           const lastName = names.slice(1).join(' ') || '';
           
+          // Set form values
           reset({
             first_name: firstName,
             last_name: lastName,
@@ -150,6 +160,7 @@ const ProfessionalRegistration = () => {
             other_medical_condition: profileData.other_medical_condition || '',
             availability: profileData.availability || [],
             work_type: profileData.work_type || '',
+            preferred_matches: [], // Not clear where this is stored in the profile
             administers_medication: profileData.administers_medication || false,
             provides_housekeeping: profileData.provides_housekeeping || false,
             provides_transportation: profileData.provides_transportation || false,
@@ -159,9 +170,10 @@ const ProfessionalRegistration = () => {
             emergency_contact: profileData.emergency_contact || '',
             hourly_rate: profileData.hourly_rate || '',
             additional_professional_notes: profileData.additional_professional_notes || '',
-            terms_accepted: true,
+            terms_accepted: true, // Already accepted if they have a profile
           });
           
+          // Log that we loaded profile data
           console.log('Loaded professional profile data:', profileData);
         }
       } catch (error) {
@@ -181,40 +193,6 @@ const ProfessionalRegistration = () => {
     }
   };
   
-  const handleSkipRegistration = async () => {
-    setIsSkippingRegistration(true);
-    
-    try {
-      if (!user) {
-        toast.error("You must be logged in to skip registration");
-        return;
-      }
-      
-      await supabase.auth.updateUser({
-        data: { registrationSkipped: true, role: 'professional' }
-      });
-      
-      await supabase
-        .from('profiles')
-        .update({
-          role: 'professional',
-          registration_skipped: true
-        })
-        .eq('id', user.id);
-      
-      toast.warning("You can complete your profile later. Some features may be limited until then.", {
-        duration: 5000
-      });
-      
-      navigate('/dashboard/professional');
-    } catch (error) {
-      console.error('Error skipping registration:', error);
-      toast.error("Error skipping registration. Please try again.");
-    } finally {
-      setIsSkippingRegistration(false);
-    }
-  };
-  
   const onSubmit = async (data: ProfessionalFormValues) => {
     setIsSubmitting(true);
     try {
@@ -225,6 +203,7 @@ const ProfessionalRegistration = () => {
   
       let avatar_url = null;
   
+      // Upload profile image if it exists
       if (profileImage) {
         const filename = `${uuidv4()}-${profileImage.name}`;
         const { data: uploadData, error: uploadError } = await supabase.storage
@@ -239,18 +218,22 @@ const ProfessionalRegistration = () => {
         avatar_url = filename;
       }
       
+      // Combine first and last name for full_name
       const full_name = `${data.first_name} ${data.last_name}`.trim();
   
+      // Update profile directly, similar to the family registration flow
       const { error } = await supabase
         .from('profiles')
         .update({
+          // Basic information
           full_name,
-          avatar_url: avatar_url || undefined,
+          avatar_url: avatar_url || undefined, // Only update if we have a new image
           phone_number: data.phone,
           address: data.location,
           location: data.location,
           preferred_contact_method: data.preferred_contact_method,
           
+          // Professional specific fields
           professional_type: data.professional_type,
           other_certification: data.other_professional_type,
           years_of_experience: data.years_of_experience,
@@ -261,6 +244,7 @@ const ProfessionalRegistration = () => {
           availability: data.availability,
           work_type: data.work_type,
           
+          // Specific capabilities
           administers_medication: data.administers_medication,
           provides_housekeeping: data.provides_housekeeping,
           provides_transportation: data.provides_transportation,
@@ -268,16 +252,17 @@ const ProfessionalRegistration = () => {
           has_liability_insurance: data.has_liability_insurance,
           background_check: data.background_check,
           
+          // Additional information
           emergency_contact: data.emergency_contact,
           hourly_rate: data.hourly_rate,
           additional_professional_notes: data.additional_professional_notes,
           
+          // Important role flag
           role: 'professional',
           
+          // First name and last name separately
           first_name: data.first_name,
-          last_name: data.last_name,
-          
-          registration_skipped: false
+          last_name: data.last_name
         })
         .eq('id', user.id);
   
@@ -286,12 +271,14 @@ const ProfessionalRegistration = () => {
         throw new Error(`Error updating professional profile: ${error.message}`);
       }
       
+      // Update user metadata to match database role
       const { error: metadataError } = await supabase.auth.updateUser({
-        data: { role: 'professional', registrationSkipped: false }
+        data: { role: 'professional' }
       });
       
       if (metadataError) {
         console.warn("Error updating user metadata:", metadataError);
+        // Continue anyway - this is not critical
       }
   
       toast.success(isProfileManagement 
@@ -299,6 +286,7 @@ const ProfessionalRegistration = () => {
         : "Professional registration completed successfully!"
       );
       
+      // Navigate directly to the professional dashboard
       navigate('/dashboard/professional');
     } catch (error) {
       console.error('Registration error:', error);
@@ -337,27 +325,6 @@ const ProfessionalRegistration = () => {
           <span>Availability-Based Matches – Filters caregivers by their schedule, role, and medical expertise.</span>
         </div>
       </div>
-      
-      {!isProfileManagement && (
-        <div className="bg-amber-50 border border-amber-200 rounded-md p-4 mb-6">
-          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-            <div>
-              <h3 className="font-medium text-amber-800">Want to explore first?</h3>
-              <p className="text-sm text-amber-700">
-                You can skip completing your profile for now, but some features will be limited until you return to finish.
-              </p>
-            </div>
-            <Button 
-              variant="outline" 
-              className="border-amber-300 text-amber-700 hover:bg-amber-100"
-              onClick={handleSkipRegistration}
-              disabled={isSkippingRegistration}
-            >
-              {isSkippingRegistration ? "Processing..." : "Skip for now"}
-            </Button>
-          </div>
-        </div>
-      )}
   
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
         <Card>
@@ -767,24 +734,654 @@ const ProfessionalRegistration = () => {
                 </div>
               </div>
             </div>
+            
+            <div className="mb-6">
+              <Label className="mb-3 block">What medical conditions have you worked with? (Select all that apply)</Label>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="flex items-start space-x-2">
+                  <Controller
+                    control={control}
+                    name="medical_conditions_experience"
+                    render={({ field }) => (
+                      <Checkbox
+                        id="alzheimers"
+                        checked={field.value?.includes('alzheimers')}
+                        onCheckedChange={(checked) => {
+                          const currentValues = field.value || [];
+                          if (checked) {
+                            setValue('medical_conditions_experience', [...currentValues, 'alzheimers']);
+                          } else {
+                            setValue('medical_conditions_experience', currentValues.filter(value => value !== 'alzheimers'));
+                          }
+                        }}
+                      />
+                    )}
+                  />
+                  <Label htmlFor="alzheimers" className="leading-tight cursor-pointer">
+                    🧠 Alzheimer's / Dementia / Cognitive Decline
+                  </Label>
+                </div>
+                
+                <div className="flex items-start space-x-2">
+                  <Controller
+                    control={control}
+                    name="medical_conditions_experience"
+                    render={({ field }) => (
+                      <Checkbox
+                        id="cancer"
+                        checked={field.value?.includes('cancer')}
+                        onCheckedChange={(checked) => {
+                          const currentValues = field.value || [];
+                          if (checked) {
+                            setValue('medical_conditions_experience', [...currentValues, 'cancer']);
+                          } else {
+                            setValue('medical_conditions_experience', currentValues.filter(value => value !== 'cancer'));
+                          }
+                        }}
+                      />
+                    )}
+                  />
+                  <Label htmlFor="cancer" className="leading-tight cursor-pointer">
+                    🏥 Cancer Patients (Palliative/Hospice Care)
+                  </Label>
+                </div>
+                
+                <div className="flex items-start space-x-2">
+                  <Controller
+                    control={control}
+                    name="medical_conditions_experience"
+                    render={({ field }) => (
+                      <Checkbox
+                        id="parkinsons"
+                        checked={field.value?.includes('parkinsons')}
+                        onCheckedChange={(checked) => {
+                          const currentValues = field.value || [];
+                          if (checked) {
+                            setValue('medical_conditions_experience', [...currentValues, 'parkinsons']);
+                          } else {
+                            setValue('medical_conditions_experience', currentValues.filter(value => value !== 'parkinsons'));
+                          }
+                        }}
+                      />
+                    )}
+                  />
+                  <Label htmlFor="parkinsons" className="leading-tight cursor-pointer">
+                    👨‍🦽 Parkinson's / Stroke Recovery / Paralysis
+                  </Label>
+                </div>
+                
+                <div className="flex items-start space-x-2">
+                  <Controller
+                    control={control}
+                    name="medical_conditions_experience"
+                    render={({ field }) => (
+                      <Checkbox
+                        id="special-needs-med"
+                        checked={field.value?.includes('special_needs')}
+                        onCheckedChange={(checked) => {
+                          const currentValues = field.value || [];
+                          if (checked) {
+                            setValue('medical_conditions_experience', [...currentValues, 'special_needs']);
+                          } else {
+                            setValue('medical_conditions_experience', currentValues.filter(value => value !== 'special_needs'));
+                          }
+                        }}
+                      />
+                    )}
+                  />
+                  <Label htmlFor="special-needs-med" className="leading-tight cursor-pointer">
+                    🧩 Special Needs (Autism, ADHD, Cerebral Palsy, etc.)
+                  </Label>
+                </div>
+                
+                <div className="flex items-start space-x-2">
+                  <Controller
+                    control={control}
+                    name="medical_conditions_experience"
+                    render={({ field }) => (
+                      <Checkbox
+                        id="chronic"
+                        checked={field.value?.includes('chronic')}
+                        onCheckedChange={(checked) => {
+                          const currentValues = field.value || [];
+                          if (checked) {
+                            setValue('medical_conditions_experience', [...currentValues, 'chronic']);
+                          } else {
+                            setValue('medical_conditions_experience', currentValues.filter(value => value !== 'chronic'));
+                          }
+                        }}
+                      />
+                    )}
+                  />
+                  <Label htmlFor="chronic" className="leading-tight cursor-pointer">
+                    💊 Chronic Illnesses (Diabetes, Heart Disease, Kidney Disease, etc.)
+                  </Label>
+                </div>
+                
+                <div className="flex items-start space-x-2">
+                  <Controller
+                    control={control}
+                    name="medical_conditions_experience"
+                    render={({ field }) => (
+                      <Checkbox
+                        id="post-surgical"
+                        checked={field.value?.includes('post_surgical')}
+                        onCheckedChange={(checked) => {
+                          const currentValues = field.value || [];
+                          if (checked) {
+                            setValue('medical_conditions_experience', [...currentValues, 'post_surgical']);
+                          } else {
+                            setValue('medical_conditions_experience', currentValues.filter(value => value !== 'post_surgical'));
+                          }
+                        }}
+                      />
+                    )}
+                  />
+                  <Label htmlFor="post-surgical" className="leading-tight cursor-pointer">
+                    🩺 Post-Surgical Rehabilitation
+                  </Label>
+                </div>
+                
+                <div className="flex items-start space-x-2">
+                  <Controller
+                    control={control}
+                    name="medical_conditions_experience"
+                    render={({ field }) => (
+                      <Checkbox
+                        id="bedridden"
+                        checked={field.value?.includes('bedridden')}
+                        onCheckedChange={(checked) => {
+                          const currentValues = field.value || [];
+                          if (checked) {
+                            setValue('medical_conditions_experience', [...currentValues, 'bedridden']);
+                          } else {
+                            setValue('medical_conditions_experience', currentValues.filter(value => value !== 'bedridden'));
+                          }
+                        }}
+                      />
+                    )}
+                  />
+                  <Label htmlFor="bedridden" className="leading-tight cursor-pointer">
+                    🛏️ Bedridden Patients (Full-time care, Hygiene Assistance, etc.)
+                  </Label>
+                </div>
+              </div>
+              
+              <div className="mt-3">
+                <Label htmlFor="other-medical-condition" className="mb-1">Other Medical Conditions</Label>
+                <Input
+                  id="other-medical-condition"
+                  placeholder="Please specify any other medical conditions you have experience with"
+                  {...register('other_medical_condition')}
+                />
+              </div>
+            </div>
           </CardContent>
         </Card>
         
-        <div className="flex justify-between mt-8">
+        <Card>
+          <CardContent className="pt-6">
+            <h2 className="text-xl font-semibold">🟡 Availability & Matching Preferences</h2>
+            <p className="text-sm text-muted-foreground mb-4">Let clients know when and how you prefer to work.</p>
+            
+            <div className="mb-6">
+              <Label className="mb-3 block">Preferred Work Hours (Select all that apply)</Label>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="flex items-start space-x-2">
+                  <Controller
+                    control={control}
+                    name="availability"
+                    render={({ field }) => (
+                      <Checkbox
+                        id="daytime"
+                        checked={field.value?.includes('daytime')}
+                        onCheckedChange={(checked) => {
+                          const currentValues = field.value || [];
+                          if (checked) {
+                            setValue('availability', [...currentValues, 'daytime']);
+                          } else {
+                            setValue('availability', currentValues.filter(value => value !== 'daytime'));
+                          }
+                        }}
+                      />
+                    )}
+                  />
+                  <Label htmlFor="daytime" className="leading-tight cursor-pointer">
+                    ☀️ Daytime (8 AM - 5 PM)
+                  </Label>
+                </div>
+                
+                <div className="flex items-start space-x-2">
+                  <Controller
+                    control={control}
+                    name="availability"
+                    render={({ field }) => (
+                      <Checkbox
+                        id="night"
+                        checked={field.value?.includes('night')}
+                        onCheckedChange={(checked) => {
+                          const currentValues = field.value || [];
+                          if (checked) {
+                            setValue('availability', [...currentValues, 'night']);
+                          } else {
+                            setValue('availability', currentValues.filter(value => value !== 'night'));
+                          }
+                        }}
+                      />
+                    )}
+                  />
+                  <Label htmlFor="night" className="leading-tight cursor-pointer">
+                    🌙 Night Shifts (5 PM - 8 AM)
+                  </Label>
+                </div>
+                
+                <div className="flex items-start space-x-2">
+                  <Controller
+                    control={control}
+                    name="availability"
+                    render={({ field }) => (
+                      <Checkbox
+                        id="weekends"
+                        checked={field.value?.includes('weekends')}
+                        onCheckedChange={(checked) => {
+                          const currentValues = field.value || [];
+                          if (checked) {
+                            setValue('availability', [...currentValues, 'weekends']);
+                          } else {
+                            setValue('availability', currentValues.filter(value => value !== 'weekends'));
+                          }
+                        }}
+                      />
+                    )}
+                  />
+                  <Label htmlFor="weekends" className="leading-tight cursor-pointer">
+                    📆 Weekends Only
+                  </Label>
+                </div>
+                
+                <div className="flex items-start space-x-2">
+                  <Controller
+                    control={control}
+                    name="availability"
+                    render={({ field }) => (
+                      <Checkbox
+                        id="live-in"
+                        checked={field.value?.includes('live_in')}
+                        onCheckedChange={(checked) => {
+                          const currentValues = field.value || [];
+                          if (checked) {
+                            setValue('availability', [...currentValues, 'live_in']);
+                          } else {
+                            setValue('availability', currentValues.filter(value => value !== 'live_in'));
+                          }
+                        }}
+                      />
+                    )}
+                  />
+                  <Label htmlFor="live-in" className="leading-tight cursor-pointer">
+                    🏡 Live-In Care (Full-time in-home support)
+                  </Label>
+                </div>
+                
+                <div className="flex items-start space-x-2">
+                  <Controller
+                    control={control}
+                    name="availability"
+                    render={({ field }) => (
+                      <Checkbox
+                        id="flexible"
+                        checked={field.value?.includes('flexible')}
+                        onCheckedChange={(checked) => {
+                          const currentValues = field.value || [];
+                          if (checked) {
+                            setValue('availability', [...currentValues, 'flexible']);
+                          } else {
+                            setValue('availability', currentValues.filter(value => value !== 'flexible'));
+                          }
+                        }}
+                      />
+                    )}
+                  />
+                  <Label htmlFor="flexible" className="leading-tight cursor-pointer">
+                    ⏳ Flexible / On-Demand Availability
+                  </Label>
+                </div>
+              </div>
+            </div>
+            
+            <div className="mb-6">
+              <Label htmlFor="work-type" className="mb-2 block">Do you work with:</Label>
+              <Controller
+                control={control}
+                name="work_type"
+                render={({ field }) => (
+                  <Select 
+                    onValueChange={field.onChange} 
+                    defaultValue={field.value}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select work arrangement" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="agency">🏥 Care Agencies</SelectItem>
+                      <SelectItem value="independent">👩‍⚕️ Private Independent Care (Freelance)</SelectItem>
+                      <SelectItem value="both">🔀 Both (Agency & Independent Work Available)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+            </div>
+            
+            <div className="mb-6">
+              <Label className="mb-3 block">Preferred Family Matching:</Label>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="flex items-start space-x-2">
+                  <Controller
+                    control={control}
+                    name="preferred_matches"
+                    render={({ field }) => (
+                      <Checkbox
+                        id="elderly"
+                        checked={field.value?.includes('elderly')}
+                        onCheckedChange={(checked) => {
+                          const currentValues = field.value || [];
+                          if (checked) {
+                            setValue('preferred_matches', [...currentValues, 'elderly']);
+                          } else {
+                            setValue('preferred_matches', currentValues.filter(value => value !== 'elderly'));
+                          }
+                        }}
+                      />
+                    )}
+                  />
+                  <Label htmlFor="elderly" className="leading-tight cursor-pointer">
+                    🏡 Elderly Care Only
+                  </Label>
+                </div>
+                
+                <div className="flex items-start space-x-2">
+                  <Controller
+                    control={control}
+                    name="preferred_matches"
+                    render={({ field }) => (
+                      <Checkbox
+                        id="children"
+                        checked={field.value?.includes('children')}
+                        onCheckedChange={(checked) => {
+                          const currentValues = field.value || [];
+                          if (checked) {
+                            setValue('preferred_matches', [...currentValues, 'children']);
+                          } else {
+                            setValue('preferred_matches', currentValues.filter(value => value !== 'children'));
+                          }
+                        }}
+                      />
+                    )}
+                  />
+                  <Label htmlFor="children" className="leading-tight cursor-pointer">
+                    🧒 Children / Special Needs Care Only
+                  </Label>
+                </div>
+                
+                <div className="flex items-start space-x-2">
+                  <Controller
+                    control={control}
+                    name="preferred_matches"
+                    render={({ field }) => (
+                      <Checkbox
+                        id="medical"
+                        checked={field.value?.includes('medical')}
+                        onCheckedChange={(checked) => {
+                          const currentValues = field.value || [];
+                          if (checked) {
+                            setValue('preferred_matches', [...currentValues, 'medical']);
+                          } else {
+                            setValue('preferred_matches', currentValues.filter(value => value !== 'medical'));
+                          }
+                        }}
+                      />
+                    )}
+                  />
+                  <Label htmlFor="medical" className="leading-tight cursor-pointer">
+                    🏥 Medical & Rehabilitation Patients
+                  </Label>
+                </div>
+                
+                <div className="flex items-start space-x-2">
+                  <Controller
+                    control={control}
+                    name="preferred_matches"
+                    render={({ field }) => (
+                      <Checkbox
+                        id="mobility-hospice"
+                        checked={field.value?.includes('mobility_hospice')}
+                        onCheckedChange={(checked) => {
+                          const currentValues = field.value || [];
+                          if (checked) {
+                            setValue('preferred_matches', [...currentValues, 'mobility_hospice']);
+                          } else {
+                            setValue('preferred_matches', currentValues.filter(value => value !== 'mobility_hospice'));
+                          }
+                        }}
+                      />
+                    )}
+                  />
+                  <Label htmlFor="mobility-hospice" className="leading-tight cursor-pointer">
+                    ♿ Mobility & Hospice Care
+                  </Label>
+                </div>
+                
+                <div className="flex items-start space-x-2">
+                  <Controller
+                    control={control}
+                    name="preferred_matches"
+                    render={({ field }) => (
+                      <Checkbox
+                        id="all"
+                        checked={field.value?.includes('all')}
+                        onCheckedChange={(checked) => {
+                          const currentValues = field.value || [];
+                          if (checked) {
+                            setValue('preferred_matches', [...currentValues, 'all']);
+                          } else {
+                            setValue('preferred_matches', currentValues.filter(value => value !== 'all'));
+                          }
+                        }}
+                      />
+                    )}
+                  />
+                  <Label htmlFor="all" className="leading-tight cursor-pointer">
+                    🔀 Open to All Matches
+                  </Label>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="pt-6">
+            <h2 className="text-xl font-semibold">🟡 Additional Details & Compliance</h2>
+            <p className="text-sm text-muted-foreground mb-4">Required verification and any additional information.</p>
+            
+            <div className="mb-6">
+              <Label className="mb-3 block">Are you comfortable with:</Label>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="flex items-start space-x-2">
+                  <Controller
+                    control={control}
+                    name="administers_medication"
+                    render={({ field }) => (
+                      <Checkbox
+                        id="administers-medication"
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    )}
+                  />
+                  <Label htmlFor="administers-medication" className="leading-tight cursor-pointer">
+                    💊 Administering Medication
+                  </Label>
+                </div>
+                
+                <div className="flex items-start space-x-2">
+                  <Controller
+                    control={control}
+                    name="provides_housekeeping"
+                    render={({ field }) => (
+                      <Checkbox
+                        id="provides-housekeeping"
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    )}
+                  />
+                  <Label htmlFor="provides-housekeeping" className="leading-tight cursor-pointer">
+                    🏡 Housekeeping / Meal Preparation
+                  </Label>
+                </div>
+                
+                <div className="flex items-start space-x-2">
+                  <Controller
+                    control={control}
+                    name="provides_transportation"
+                    render={({ field }) => (
+                      <Checkbox
+                        id="provides-transportation"
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    )}
+                  />
+                  <Label htmlFor="provides-transportation" className="leading-tight cursor-pointer">
+                    🚗 Transportation for Appointments
+                  </Label>
+                </div>
+                
+                <div className="flex items-start space-x-2">
+                  <Controller
+                    control={control}
+                    name="handles_medical_equipment"
+                    render={({ field }) => (
+                      <Checkbox
+                        id="handles-medical-equipment"
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    )}
+                  />
+                  <Label htmlFor="handles-medical-equipment" className="leading-tight cursor-pointer">
+                    🩺 Handling Medical Equipment
+                  </Label>
+                </div>
+              </div>
+            </div>
+            
+            <div className="mb-6">
+              <div className="flex items-start space-x-2 mb-4">
+                <Controller
+                  control={control}
+                  name="background_check"
+                  render={({ field }) => (
+                    <Checkbox
+                      id="background-check"
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  )}
+                />
+                <Label htmlFor="background-check" className="leading-tight cursor-pointer">
+                  I consent to a background check if required by families
+                </Label>
+              </div>
+              
+              <div className="flex items-start space-x-2">
+                <Controller
+                  control={control}
+                  name="has_liability_insurance"
+                  render={({ field }) => (
+                    <Checkbox
+                      id="has-liability-insurance"
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  )}
+                />
+                <Label htmlFor="has-liability-insurance" className="leading-tight cursor-pointer">
+                  I have liability insurance (for independent caregivers)
+                </Label>
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+              <div>
+                <Label htmlFor="emergency-contact" className="mb-1">Emergency Contact</Label>
+                <Input
+                  id="emergency-contact"
+                  placeholder="Name, relationship, phone number"
+                  {...register('emergency_contact')}
+                />
+                <p className="text-xs text-muted-foreground mt-1">For caregivers' safety</p>
+              </div>
+              
+              <div>
+                <Label htmlFor="hourly-rate" className="mb-1">Hourly Rate / Salary Expectations</Label>
+                <Input
+                  id="hourly-rate"
+                  placeholder="e.g., $25/hour or salary range"
+                  {...register('hourly_rate')}
+                />
+              </div>
+            </div>
+            
+            <div className="mb-6">
+              <Label htmlFor="additional-professional-notes" className="mb-1">Any Additional Notes for Families or Agencies?</Label>
+              <Textarea
+                id="additional-professional-notes"
+                placeholder="Share any other information you would like families to know about your services..."
+                {...register('additional_professional_notes')}
+                className="min-h-[100px]"
+              />
+            </div>
+            
+            <div className="flex items-start space-x-2 mt-6">
+              <Controller
+                control={control}
+                name="terms_accepted"
+                render={({ field }) => (
+                  <Checkbox
+                    id="terms"
+                    checked={field.value}
+                    onCheckedChange={field.onChange}
+                    className={errors.terms_accepted ? "border-red-500" : ""}
+                  />
+                )}
+              />
+              <div>
+                <Label htmlFor="terms" className="leading-tight cursor-pointer">
+                  I agree to the <span className="text-primary underline">Terms of Service</span> and <span className="text-primary underline">Privacy Policy</span>
+                </Label>
+                {errors.terms_accepted && (
+                  <p className="text-red-500 text-sm mt-1">{errors.terms_accepted.message}</p>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        
+        <div className="flex justify-end gap-3">
           <Button
             type="button"
             variant="outline"
-            onClick={() => navigate(-1)}
-            className="w-24"
+            onClick={() => navigate(isProfileManagement ? '/dashboard/professional' : '/auth')}
           >
             Cancel
           </Button>
           <Button
             type="submit"
             disabled={isSubmitting}
-            className="w-36"
           >
-            {isSubmitting ? "Saving..." : (isProfileManagement ? "Update Profile" : "Complete Registration")}
+            {isSubmitting ? 'Submitting...' : (isProfileManagement ? 'Update Profile' : 'Complete Registration')}
           </Button>
         </div>
       </form>
