@@ -1378,17 +1378,18 @@ const ProfessionalRegistration = () => {
           //>
             //Cancel
           //</Button>
-        <Button
+    <Button
   type="button"
   variant="outline"
   onClick={() => {
-  localStorage.setItem('registrationSkipped', 'true');
-  navigate('/dashboard/professional');
-}}
+    console.log('[Cancel] Skipping registration and going to dashboard');
+    localStorage.setItem('registrationSkipped', 'true');
+    navigate('/dashboard/professional');
   }}
 >
   Cancel
 </Button>
+
           <Button
             type="submit"
             disabled={isSubmitting}
