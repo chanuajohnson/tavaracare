@@ -1406,7 +1406,7 @@ const ProfessionalRegistration = () => {
   onClick={() => {
     const dummyData = generateDummyProfessionalData();
     reset(dummyData);
-    handleSubmit(onSubmit)(); // Immediately submit the form with dummy data
+    handleSubmit(onSubmit)(); // Submits as if "Complete Registration"
   }}
   variant="secondary"
   disabled={isSubmitting}
