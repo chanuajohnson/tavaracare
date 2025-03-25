@@ -324,7 +324,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           //const intendedRole = localStorage.getItem('registrationRole');
          // registrationPath = `/registration/${intendedRole?.toLowerCase()}`;
        // }
-      if (!profileComplete && localStorage.getItem('registrationSkipped') !== 'true') {
+    //  if (!profileComplete && localStorage.getItem('registrationSkipped') !== 'true') {
+      const registrationSkipped = localStorage.getItem('registrationSkipped');
+console.log('[AuthProvider] Skipped registration?', registrationSkipped);
+
+if (!profileComplete && registrationSkipped !== 'true') {
+  // force registration redirect
+}
+
   let registrationPath = '/registration/family';
 
   if (effectiveRole) {
@@ -515,10 +522,52 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       toast.success(`Welcome to your dashboard!`);
       return;
     }
-    
-    if (!initialRedirectionDoneRef.current || location.pathname === '/auth') {
-      handlePostLoginRedirection();
-    }
+    //Chan edited this line and the next three out and added 
+    //if (!initialRedirectionDoneRef.current || location.pathname === '/auth') {
+    //  handlePostLoginRedirection();
+   // } 
+    useEffect(() => {
+  if (isLoading || !user) return; // Wait until auth is loaded and we have a user
+
+  console.log('[AuthProvider] User loaded. Handling redirection...');
+
+  if (location.pathname.includes('/registration/') && isProfileComplete) {
+    console.log('[AuthProvider] User has completed profile but is still on registration page');
+    const dashboardPath = userRole ? `/dashboard/${userRole.toLowerCase()}` : '/';
+    safeNavigate(dashboardPath, { skipCheck: true });
+    toast.success(`Welcome to your dashboard!`);
+    return;
+  }
+
+  const registrationSkipped = localStorage.getItem('registrationSkipped');
+  console.log('[AuthProvider] registrationSkipped in useEffect:', registrationSkipped);
+
+  if ((!initialRedirectionDoneRef.current || location.pathname === '/auth') && registrationSkipped !== 'true') {
+    handlePostLoginRedirection();
+  }
+}, [isLoading, user, userRole, isProfileComplete, location.pathname]);
+
+  /*  Chan commented out this useEffect(() => {
+  if (isLoading || !user) return; // Wait until auth is loaded and we have a user
+
+  console.log('[AuthProvider] User loaded. Handling redirection...');
+
+  if (location.pathname.includes('/registration/') && isProfileComplete) {
+    console.log('[AuthProvider] User has completed profile but is still on registration page');
+    const dashboardPath = userRole ? `/dashboard/${userRole.toLowerCase()}` : '/';
+    safeNavigate(dashboardPath, { skipCheck: true });
+    toast.success(`Welcome to your dashboard!`);
+    return;
+  }
+
+  const registrationSkipped = localStorage.getItem('registrationSkipped');
+  console.log('[AuthProvider] registrationSkipped in useEffect:', registrationSkipped);
+*/
+  if ((!initialRedirectionDoneRef.current || location.pathname === '/auth') && registrationSkipped !== 'true') {
+    handlePostLoginRedirection();
+  }
+}, [isLoading, user, userRole, isProfileComplete, location.pathname]);
+
   }, [isLoading, user, userRole, isProfileComplete, location.pathname]);
 
   useEffect(() => {
