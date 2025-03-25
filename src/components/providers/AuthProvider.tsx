@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useEffect, useState, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Session, User } from '@supabase/supabase-js';
@@ -648,7 +647,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       localStorage.removeItem('lastAuthState');
       localStorage.removeItem('lastAction');
       localStorage.removeItem('lastPath');
-      localStorage.removeItem('registrationSkipped'); // Add this line
+      localStorage.removeItem('registrationSkipped');
       
       try {
         const { error } = await supabase.auth.signOut({ scope: 'local' });
