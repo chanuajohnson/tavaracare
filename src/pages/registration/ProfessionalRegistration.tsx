@@ -1382,8 +1382,9 @@ const ProfessionalRegistration = () => {
   type="button"
   variant="outline"
   onClick={() => {
-    localStorage.setItem('registrationSkipped', 'true'); // <-- 👈 this prevents forced redirect
-    navigate(isProfileManagement ? '/dashboard/professional' : '/auth');
+  localStorage.setItem('registrationSkipped', 'true');
+  navigate('/dashboard/professional');
+}}
   }}
 >
   Cancel
