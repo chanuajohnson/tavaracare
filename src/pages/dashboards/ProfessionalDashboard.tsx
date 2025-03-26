@@ -121,7 +121,7 @@ const ProfessionalDashboard = () => {
                   variant="default"
                   className="w-full bg-primary hover:bg-primary-600 text-white"
                 >
-                  Manage Profile
+                  Complete Profile
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </Link>

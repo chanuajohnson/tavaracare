@@ -91,7 +91,6 @@ export default function AuthPage() {
       
       if (data.session && data.user) {
         console.log("[AuthPage] Session created after signup - auto-confirm must be enabled");
-        console.log("[AuthPage] Ensuring profile is created with role:", role);
         
         const userRole = role as UserRole;
         await ensureUserProfile(data.user.id, userRole);
@@ -106,8 +105,6 @@ export default function AuthPage() {
         });
         
         toast.success("Account created successfully! You'll be redirected to your dashboard shortly.");
-        
-        console.log("[AuthPage] Auth provider will handle redirects");
         return true;
       } else {
         console.log("[AuthPage] No session after signup - auto-confirm may be disabled");

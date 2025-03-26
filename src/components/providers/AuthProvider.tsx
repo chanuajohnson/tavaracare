@@ -178,15 +178,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setUserRole(profile.role);
       }
       
-      let profileComplete = false;
+      // Professional users are considered complete by default
+      let profileComplete = profile?.role === 'professional' ? true : false;
       
-      if (profile) {
-        if (profile.role === 'professional') {
-          profileComplete = !!(profile.full_name || (profile.first_name && profile.last_name)) && 
-                           !!profile.professional_type;
-        } else {
-          profileComplete = !!(profile.full_name || (profile.first_name && profile.last_name));
-        }
+      // Only check completion for non-professional roles
+      if (profile && profile.role !== 'professional') {
+        profileComplete = !!(profile.full_name || (profile.first_name && profile.last_name));
       }
       
       console.log('[AuthProvider] Profile complete:', profileComplete);
@@ -284,8 +281,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     
     try {
       console.log('[AuthProvider] Handling post-login redirection for user:', user.id);
-      console.log('[AuthProvider] Current user role:', userRole);
-      console.log('[AuthProvider] Current path:', location.pathname);
       
       let effectiveRole = userRole;
       if (!effectiveRole && user.user_metadata?.role) {
@@ -293,19 +288,26 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         effectiveRole = user.user_metadata.role;
         setUserRole(user.user_metadata.role);
       }
-      
-      const profileComplete = await checkProfileCompletion(user.id);
-      console.log('[AuthProvider] Profile complete:', profileComplete);
-      
+
+      // Handle special return paths first
       const locationState = location.state as { returnPath?: string; action?: string } | null;
-      
       if (locationState?.returnPath === "/family/story" && locationState?.action === "tellStory") {
-        console.log('[AuthProvider] Redirecting to Tell Their Story page from location state');
         safeNavigate('/family/story', { skipCheck: true });
         isRedirectingRef.current = false;
         return;
       }
-      
+
+      // For professional users, always redirect to dashboard
+      if (effectiveRole === 'professional') {
+        safeNavigate('/dashboard/professional', { skipCheck: true });
+        isRedirectingRef.current = false;
+        return;
+      }
+
+      // For other roles, check profile completion
+      const profileComplete = await checkProfileCompletion(user.id);
+
+      // Handle pending actions (upvotes, bookings, etc)
       if (profileComplete && location.pathname.includes('/registration/')) {
         console.log('[AuthProvider] Profile is complete and user is on registration page, redirecting to dashboard');
         const dashboardPath = effectiveRole ? `/dashboard/${effectiveRole.toLowerCase()}` : '/';
@@ -316,7 +318,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
       
       if (!profileComplete) {
-        let registrationPath = '/registration/family';
+        let registrationPath = `/registration/${effectiveRole.toLowerCase()}`;
         
         if (effectiveRole) {
           registrationPath = `/registration/${effectiveRole.toLowerCase()}`;
@@ -371,14 +373,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           'admin': '/dashboard/admin'
         };
         
-        initialRedirectionDoneRef.current = true;
-        
-        console.log('[AuthProvider] Redirecting to dashboard for role:', effectiveRole);
-        safeNavigate(dashboardRoutes[effectiveRole], { skipCheck: true });
-        toast.success(`Welcome to your ${effectiveRole} dashboard!`);
-        clearLastAction();
+        if (!profileComplete) {
+          const registrationPath = `/registration/${effectiveRole.toLowerCase()}`;
+          safeNavigate(registrationPath, { skipCheck: true });
+        } else {
+          safeNavigate(dashboardRoutes[effectiveRole], { skipCheck: true });
+        }
       } else {
-        console.log('[AuthProvider] No role detected, redirecting to home');
         safeNavigate('/', { skipCheck: true });
       }
     } catch (error) {
