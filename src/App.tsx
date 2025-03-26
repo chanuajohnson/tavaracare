@@ -116,6 +116,11 @@ const AppContent = () => {
   const location = useLocation();
   const isIndexPage = location.pathname === "/";
   
+  // Add debugging logging for route changes
+  useEffect(() => {
+    console.log('[App] Route changed to:', location.pathname);
+  }, [location.pathname]);
+  
   return (
     <div className="min-h-screen flex flex-col">
       <Navigation />

@@ -178,12 +178,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setUserRole(profile.role);
       }
       
-      // Professional users are considered complete by default
-      let profileComplete = profile?.role === 'professional' ? true : false;
+      // Professional users are considered complete by default - we've changed this behavior
+      let profileComplete = true;
       
-      // Only check completion for non-professional roles
-      if (profile && profile.role !== 'professional') {
-        profileComplete = !!(profile.full_name || (profile.first_name && profile.last_name));
+      if (profile?.role !== 'professional') {
+        // Only check completion for non-professional roles
+        profileComplete = !!(profile?.full_name || (profile?.first_name && profile?.last_name));
       }
       
       console.log('[AuthProvider] Profile complete:', profileComplete);
@@ -304,36 +304,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         return;
       }
 
-      // For other roles, check profile completion
-      const profileComplete = await checkProfileCompletion(user.id);
-
-      // Handle pending actions (upvotes, bookings, etc)
-      if (profileComplete && location.pathname.includes('/registration/')) {
-        console.log('[AuthProvider] Profile is complete and user is on registration page, redirecting to dashboard');
-        const dashboardPath = effectiveRole ? `/dashboard/${effectiveRole.toLowerCase()}` : '/';
-        safeNavigate(dashboardPath, { skipCheck: true });
-        toast.success(`Profile completed successfully! Welcome to your dashboard.`);
-        isRedirectingRef.current = false;
-        return;
-      }
-      
-      if (!profileComplete) {
-        let registrationPath = `/registration/${effectiveRole.toLowerCase()}`;
-        
-        if (effectiveRole) {
-          registrationPath = `/registration/${effectiveRole.toLowerCase()}`;
-        } else if (localStorage.getItem('registrationRole')) {
-          const intendedRole = localStorage.getItem('registrationRole');
-          registrationPath = `/registration/${intendedRole?.toLowerCase()}`;
-        }
-        
-        console.log('[AuthProvider] Redirecting to registration page:', registrationPath);
-        toast.info('Please complete your profile to continue');
-        safeNavigate(registrationPath, { skipCheck: true });
-        isRedirectingRef.current = false;
-        return;
-      }
-      
+      // Check for pending actions only after determining profile is complete
       const pendingFeatureId = localStorage.getItem('pendingFeatureId') || localStorage.getItem('pendingFeatureUpvote');
       if (pendingFeatureId) {
         await checkPendingUpvote();
@@ -365,6 +336,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         return;
       }
       
+      // For other roles, check profile completion
+      const profileComplete = await checkProfileCompletion(user.id);
+      
+      // For non-professional roles that are incomplete, redirect to registration
+      if (!profileComplete && effectiveRole && effectiveRole !== 'professional') {
+        const registrationPath = `/registration/${effectiveRole.toLowerCase()}`;
+        safeNavigate(registrationPath, { skipCheck: true });
+        isRedirectingRef.current = false;
+        return;
+      }
+      
       if (effectiveRole) {
         const dashboardRoutes: Record<UserRole, string> = {
           'family': '/dashboard/family',
@@ -373,12 +355,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           'admin': '/dashboard/admin'
         };
         
-        if (!profileComplete) {
-          const registrationPath = `/registration/${effectiveRole.toLowerCase()}`;
-          safeNavigate(registrationPath, { skipCheck: true });
-        } else {
-          safeNavigate(dashboardRoutes[effectiveRole], { skipCheck: true });
-        }
+        safeNavigate(dashboardRoutes[effectiveRole], { skipCheck: true });
       } else {
         safeNavigate('/', { skipCheck: true });
       }
@@ -484,18 +461,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     
     console.log('[AuthProvider] User loaded. Handling redirection...');
     
-    if (location.pathname.includes('/registration/') && isProfileComplete) {
-      console.log('[AuthProvider] User has completed profile but is still on registration page');
-      const dashboardPath = userRole ? `/dashboard/${userRole.toLowerCase()}` : '/';
-      safeNavigate(dashboardPath, { skipCheck: true });
-      toast.success(`Welcome to your dashboard!`);
-      return;
-    }
-    
+    // Only handle initial redirection and auth page redirections
     if (!initialRedirectionDoneRef.current || location.pathname === '/auth') {
       handlePostLoginRedirection();
+      initialRedirectionDoneRef.current = true;
     }
-  }, [isLoading, user, userRole, isProfileComplete, location.pathname]);
+  }, [isLoading, user, userRole, location.pathname]);
 
   useEffect(() => {
     const clearStaleState = async () => {
@@ -706,3 +677,4 @@ export const useAuth = () => {
   }
   return context;
 };
+

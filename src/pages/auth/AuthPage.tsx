@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -20,8 +21,6 @@ export default function AuthPage() {
   const [activeTab, setActiveTab] = useState("login");
 
   useEffect(() => {
-    const registeringAs = localStorage.getItem('registeringAs');
-
     if (user) {
       console.log("[AuthPage] User already logged in, AuthProvider will handle redirection");
       return;

@@ -40,9 +40,9 @@ export const DashboardCardGrid = () => {
                 <span>Contact preferences</span>
               </li>
             </ul>
-            <Button className="w-full" asChild>
-              <Link to="/registration/professional">Manage Profile</Link>
-            </Button>
+            <Link to="/registration/professional">
+              <Button className="w-full">Manage Profile</Button>
+            </Link>
           </CardContent>
         </Card>
       </motion.div>
@@ -78,9 +78,9 @@ export const DashboardCardGrid = () => {
                 <span>Certification paths</span>
               </li>
             </ul>
-            <Button className="w-full" asChild>
-              <Link to="/resources">View Resources</Link>
-            </Button>
+            <Link to="/professional/training-resources">
+              <Button className="w-full">View Resources</Button>
+            </Link>
           </CardContent>
         </Card>
       </motion.div>
@@ -114,9 +114,9 @@ export const DashboardCardGrid = () => {
                 <span>Reports and analytics</span>
               </li>
             </ul>
-            <Button className="w-full" asChild>
-              <Link to="/documentation">View Documentation</Link>
-            </Button>
+            <Link to="/professional/features-overview">
+              <Button className="w-full">View Documentation</Button>
+            </Link>
           </CardContent>
         </Card>
       </motion.div>
