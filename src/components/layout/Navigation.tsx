@@ -8,6 +8,7 @@ import {
   LayoutDashboard,
   ChevronDown,
   Loader2,
+  AlertCircle
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -132,6 +133,13 @@ export function Navigation() {
               </DropdownMenuContent>
             </DropdownMenu>
           ) : null}
+
+          {location.pathname.includes('/registration/professional') && (
+            <Link to="/registration/professional-fix" className="flex items-center gap-1 text-orange-600 hover:text-orange-700">
+              <AlertCircle className="h-4 w-4" />
+              <span className="hidden sm:inline">Fix Registration</span>
+            </Link>
+          )}
 
           {isLoading ? (
             <Button variant="outline" size="sm" disabled className="flex items-center gap-2">

@@ -5,6 +5,7 @@ import { useAuth } from '@/components/providers/AuthProvider';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
+import { ensureUserProfile } from '@/lib/profile-utils';
 
 const ProfessionalRegistrationFix = () => {
   const { user } = useAuth();

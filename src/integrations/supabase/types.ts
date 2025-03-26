@@ -937,6 +937,7 @@ export type Database = {
           professional_type: string | null
           provides_housekeeping: boolean | null
           provides_transportation: boolean | null
+          registration_skipped: boolean | null
           relationship: string | null
           role: Database["public"]["Enums"]["user_role"]
           special_needs: string[] | null
@@ -1008,6 +1009,7 @@ export type Database = {
           professional_type?: string | null
           provides_housekeeping?: boolean | null
           provides_transportation?: boolean | null
+          registration_skipped?: boolean | null
           relationship?: string | null
           role?: Database["public"]["Enums"]["user_role"]
           special_needs?: string[] | null
@@ -1079,6 +1081,7 @@ export type Database = {
           professional_type?: string | null
           provides_housekeeping?: boolean | null
           provides_transportation?: boolean | null
+          registration_skipped?: boolean | null
           relationship?: string | null
           role?: Database["public"]["Enums"]["user_role"]
           special_needs?: string[] | null
@@ -1191,6 +1194,54 @@ export type Database = {
           order_index?: number
           title?: string
           total_lessons?: number
+        }
+        Relationships: []
+      }
+      user_events: {
+        Row: {
+          additional_data: Json | null
+          event_timestamp: string | null
+          event_type: string | null
+          id: number
+          user_id: string | null
+        }
+        Insert: {
+          additional_data?: Json | null
+          event_timestamp?: string | null
+          event_type?: string | null
+          id?: never
+          user_id?: string | null
+        }
+        Update: {
+          additional_data?: Json | null
+          event_timestamp?: string | null
+          event_type?: string | null
+          id?: never
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      user_journey: {
+        Row: {
+          event_data: Json | null
+          event_timestamp: string | null
+          event_type: string | null
+          id: number
+          user_id: string | null
+        }
+        Insert: {
+          event_data?: Json | null
+          event_timestamp?: string | null
+          event_type?: string | null
+          id?: never
+          user_id?: string | null
+        }
+        Update: {
+          event_data?: Json | null
+          event_timestamp?: string | null
+          event_type?: string | null
+          id?: never
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -1329,6 +1380,21 @@ export type Database = {
       }
     }
     Views: {
+      daily_pmf_metrics: {
+        Row: {
+          daily_retained_users: number | null
+          date: string | null
+          family_active_users: number | null
+          family_dashboard_views: number | null
+          family_new_signups: number | null
+          matching_clicks_family: number | null
+          professional_active_users: number | null
+          professional_new_signups: number | null
+          subscription_clicks_family: number | null
+          unlock_clicks_family: number | null
+        }
+        Relationships: []
+      }
       feature_lookup: {
         Row: {
           id: string | null
