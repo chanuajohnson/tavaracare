@@ -1,18 +1,18 @@
+
 import { createClient } from '@supabase/supabase-js';
 import { UserRole } from '@/types/database';
 
 // Constants for Supabase connection
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 
-                    'https://cpdfmyemjrefnhddyrck.supabase.co';
-
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 
-                        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNwZGZteWVtanJlZm5oZGR5cmNrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mzk4MjcwODAsImV4cCI6MjA1NTQwMzA4MH0.9LwhYWSuTbiqvSGGPAT7nfz8IFZIgnNzYoa_hLQ_2PY';
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const currentEnvironment = import.meta.env.VITE_ENV || 'development';
 
 // Enhanced validation and logging for connection parameters
 if (!supabaseUrl || !supabaseAnonKey) {
   console.error('Supabase URL or Anon Key is missing or invalid!', { 
     hasUrl: !!supabaseUrl,
-    hasKey: !!supabaseAnonKey
+    hasKey: !!supabaseAnonKey,
+    environment: currentEnvironment
   });
 }
 
@@ -36,9 +36,11 @@ const isOfflineMode = () => {
   return false;
 };
 
-// More detailed logging for debugging connection issues
-console.log('Initializing Supabase client with URL:', supabaseUrl);
-console.log('API Key exists:', !!supabaseAnonKey);
+// Log environment information for debugging
+console.log(`Environment: ${currentEnvironment}`);
+console.log('Initializing Supabase client for:', currentEnvironment);
+console.log('Supabase URL configured:', !!supabaseUrl);
+console.log('API Key configured:', !!supabaseAnonKey);
 
 // Create and export the Supabase client
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
@@ -46,11 +48,11 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: true,
-    storageKey: 'supabase.auth.token',
+    storageKey: `supabase.auth.token.${currentEnvironment}`,
   },
   global: {
     headers: {
-      'x-client-info': 'lovable-app',
+      'x-client-info': `lovable-app-${currentEnvironment}`,
       'Content-Type': 'application/json',
     },
   },

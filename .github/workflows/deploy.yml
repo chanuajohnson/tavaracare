@@ -12,6 +12,7 @@ on:
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
+    environment: production
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -29,6 +30,7 @@ jobs:
         env:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          VITE_ENV: production
 
       - name: Ensure CNAME exists
         run: |
@@ -41,4 +43,3 @@ jobs:
           publish_dir: ./dist  # ✅ Deploys only the dist/ folder
           cname: tavara.care   # ✅ Forces CNAME for custom domain
           force_orphan: true   # ✅ Ensures a clean gh-pages branch each time
-

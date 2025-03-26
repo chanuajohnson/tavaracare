@@ -7,8 +7,10 @@ import { componentTagger } from "lovable-tagger";
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => {
   // Determine if we're in a preview environment by checking environment variables
-  // We can't access window here since this runs in Node.js
   const isPreview = process.env.PREVIEW === 'true';
+  
+  // Determine environment for variable loading
+  const envPrefix = 'VITE_';
   
   return {
     // Use empty base for custom domain and preview environments
@@ -35,6 +37,10 @@ export default defineConfig(({ mode }) => {
       // Make environment variables available to client code
       __APP_ENV__: JSON.stringify(process.env.VITE_ENV || mode),
       __IS_PREVIEW__: isPreview,
-    }
+    },
+    // Enhanced environment variable handling
+    envPrefix: envPrefix,
+    // Make Vite load the correct .env file based on mode
+    envDir: process.cwd(),
   }
 });
