@@ -30,6 +30,7 @@ jobs:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
           VITE_ENV: development  # Mark as development environment
+          PREVIEW: 'true'        # Mark as preview environment
 
       # This step is for verification only - no actual deployment
       - name: Archive build artifacts
@@ -39,4 +40,11 @@ jobs:
           path: dist
           retention-days: 5  # Keep preview builds for 5 days
 
-      # Optional: You could deploy to a preview/staging environment here if needed
+      # Deploy to GitHub Pages preview environment
+      - name: Deploy to GitHub Pages (Preview)
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./dist
+          destination_dir: preview  # Deploy to a preview directory
+          cname: preview.tavara.care  # Optional: set a separate CNAME for preview
