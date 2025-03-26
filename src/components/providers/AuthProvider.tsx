@@ -1,3 +1,4 @@
+
 import { createContext, useContext, useEffect, useState, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Session, User } from '@supabase/supabase-js';
@@ -298,7 +299,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
 
       // For professional users, always redirect to dashboard
-      if (effectiveRole === 'professional') {
+      // Fix the type error by ensuring effectiveRole is checked against a UserRole type
+      if (effectiveRole === 'professional' as UserRole) {
         safeNavigate('/dashboard/professional', { skipCheck: true });
         isRedirectingRef.current = false;
         return;
@@ -677,4 +679,3 @@ export const useAuth = () => {
   }
   return context;
 };
-
