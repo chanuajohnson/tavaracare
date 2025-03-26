@@ -1,4 +1,3 @@
-
 import { Link, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/components/providers/AuthProvider';
@@ -134,7 +133,8 @@ export function Navigation() {
             </DropdownMenu>
           ) : null}
 
-          {location.pathname.includes('/registration/professional') && (
+          {/* Professional Registration Fix link - only show if on ProfessionalRegistrationFix page */}
+          {location.pathname.includes('/registration/professional-fix') && (
             <Link to="/registration/professional-fix" className="flex items-center gap-1 text-orange-600 hover:text-orange-700">
               <AlertCircle className="h-4 w-4" />
               <span className="hidden sm:inline">Fix Registration</span>

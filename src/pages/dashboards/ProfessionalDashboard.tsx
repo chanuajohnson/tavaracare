@@ -1,8 +1,9 @@
+
 import { motion } from "framer-motion";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, FileText, UserCog, BookOpen, Building, Users, Briefcase, CheckCircle2, List } from "lucide-react";
+import { ArrowRight, FileText, UserCog, BookOpen, Building, Users, Briefcase, CheckCircle2, List, AlertCircle } from "lucide-react";
 import { UpvoteFeatureButton } from "@/components/features/UpvoteFeatureButton";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/components/providers/AuthProvider";
@@ -14,9 +15,36 @@ import { TrainingProgramSection } from "@/components/professional/TrainingProgra
 import { TrainingModulesSection } from "@/components/professional/TrainingModulesSection";
 import { DashboardFamilyMatches } from "@/components/professional/DashboardFamilyMatches";
 import { CaregiverMatchingCard } from "@/components/professional/CaregiverMatchingCard";
+import { supabase } from "@/lib/supabase";
+import { useState, useEffect } from "react";
 
 const ProfessionalDashboard = () => {
   const { user } = useAuth();
+  const [profileHasData, setProfileHasData] = useState(true);
+  
+  useEffect(() => {
+    const checkProfileData = async () => {
+      if (!user) return;
+      
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('professional_type, first_name, last_name')
+          .eq('id', user.id)
+          .maybeSingle();
+          
+        if (error) throw error;
+        
+        // Check if essential professional profile fields are filled
+        setProfileHasData(!!(data?.professional_type && (data?.first_name || data?.last_name)));
+      } catch (err) {
+        console.error("Error checking profile data:", err);
+        setProfileHasData(false);
+      }
+    };
+    
+    checkProfileData();
+  }, [user]);
   
   const breadcrumbItems = [
     {
@@ -29,6 +57,29 @@ const ProfessionalDashboard = () => {
     <div className="min-h-screen bg-background">
       <div className="container px-4 py-8">
         <DashboardHeader breadcrumbItems={breadcrumbItems} />
+
+        {user && !profileHasData && (
+          <div className="mb-6 bg-amber-50 border-l-4 border-amber-500 p-4 rounded-md">
+            <div className="flex items-start">
+              <div className="flex-shrink-0">
+                <AlertCircle className="h-5 w-5 text-amber-500" />
+              </div>
+              <div className="ml-3">
+                <h3 className="text-sm font-medium text-amber-800">Your profile is incomplete</h3>
+                <div className="mt-2 text-sm text-amber-700">
+                  <p>Complete your professional profile to unlock all features and increase visibility to potential clients.</p>
+                </div>
+                <div className="mt-3">
+                  <Link to="/registration/professional">
+                    <Button size="sm" variant="default" className="bg-amber-500 hover:bg-amber-600">
+                      Complete Your Profile
+                    </Button>
+                  </Link>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         <motion.div
           initial={{ opacity: 0, y: 20 }}

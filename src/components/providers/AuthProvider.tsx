@@ -1,3 +1,4 @@
+
 import { createContext, useContext, useEffect, useState, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Session, User } from '@supabase/supabase-js';
@@ -182,8 +183,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       
       if (profile) {
         if (profile.role === 'professional') {
-          profileComplete = !!(profile.full_name || (profile.first_name && profile.last_name)) && 
-                           !!profile.professional_type;
+          // For professional users, we consider them "complete" as soon as they sign in
+          // This bypasses the registration form requirement
+          profileComplete = true;
         } else {
           profileComplete = !!(profile.full_name || (profile.first_name && profile.last_name));
         }
