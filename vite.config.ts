@@ -6,10 +6,9 @@ import { componentTagger } from "lovable-tagger";
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => {
-  // Determine if we're in a preview environment by checking the hostname
-  const isPreview = process.env.PREVIEW === 'true' || 
-                   (typeof window !== 'undefined' && 
-                    window.location.hostname.includes('preview--'));
+  // Determine if we're in a preview environment by checking environment variables
+  // We can't access window here since this runs in Node.js
+  const isPreview = process.env.PREVIEW === 'true';
   
   return {
     // Use empty base for custom domain and preview environments
