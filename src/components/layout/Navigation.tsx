@@ -1,3 +1,4 @@
+
 import { Link, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/components/providers/AuthProvider';
@@ -7,7 +8,7 @@ import {
   LayoutDashboard,
   ChevronDown,
   Loader2,
-  AlertCircle
+  BarChart,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -79,6 +80,7 @@ export function Navigation() {
   };
 
   const dashboardPath = getDashboardPath();
+  const isSpecificUser = user?.id === '605540d7-ae87-4a7c-9bd0-5699937f0670';
 
   return (
     <nav className="bg-background border-b py-3 px-4 sm:px-6">
@@ -96,6 +98,13 @@ export function Navigation() {
           <Link to="/features" className="text-gray-700 hover:text-primary">
             Features
           </Link>
+          
+          {isSpecificUser && (
+            <Link to="/admin/user-journey" className="flex items-center gap-1 text-indigo-600 hover:text-indigo-700">
+              <BarChart className="h-4 w-4" />
+              <span className="hidden sm:inline">User Journey</span>
+            </Link>
+          )}
           
           {user && dashboardPath ? (
             <Link to={dashboardPath} className="flex items-center gap-1 text-gray-700 hover:text-primary">
@@ -133,14 +142,6 @@ export function Navigation() {
             </DropdownMenu>
           ) : null}
 
-          {/* Professional Registration Fix link - only show if on ProfessionalRegistrationFix page */}
-          {location.pathname.includes('/registration/professional-fix') && (
-            <Link to="/registration/professional-fix" className="flex items-center gap-1 text-orange-600 hover:text-orange-700">
-              <AlertCircle className="h-4 w-4" />
-              <span className="hidden sm:inline">Fix Registration</span>
-            </Link>
-          )}
-
           {isLoading ? (
             <Button variant="outline" size="sm" disabled className="flex items-center gap-2">
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -167,4 +168,4 @@ export function Navigation() {
       </div>
     </nav>
   );
-}
+};

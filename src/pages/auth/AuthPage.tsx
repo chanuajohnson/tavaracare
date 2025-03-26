@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -106,16 +105,9 @@ export default function AuthPage() {
           }
         });
         
-        // For professional users, we'll direct them straight to the dashboard
-        if (role === 'professional') {
-          toast.success("Account created successfully! You'll be redirected to your dashboard.");
-          navigate('/dashboard/professional');
-        } else {
-          toast.success("Account created successfully! You'll be redirected to your dashboard shortly.");
-          // For other roles, let the auth provider handle redirects
-        }
+        toast.success("Account created successfully! You'll be redirected to your dashboard shortly.");
         
-        console.log("[AuthPage] Auth provider will handle redirects for non-professional users");
+        console.log("[AuthPage] Auth provider will handle redirects");
         return true;
       } else {
         console.log("[AuthPage] No session after signup - auto-confirm may be disabled");

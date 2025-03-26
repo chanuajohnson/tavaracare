@@ -4,7 +4,10 @@ name: Deploy to GitHub Pages
 on:
   push:
     branches:
-      - main  # ✅ Deploy whenever main is updated
+      - main  # ✅ Only deploy when main is updated
+
+  # Allow manual deployments from the Actions tab
+  workflow_dispatch:
 
 jobs:
   build-and-deploy:
@@ -38,3 +41,4 @@ jobs:
           publish_dir: ./dist  # ✅ Deploys only the dist/ folder
           cname: tavara.care   # ✅ Forces CNAME for custom domain
           force_orphan: true   # ✅ Ensures a clean gh-pages branch each time
+
