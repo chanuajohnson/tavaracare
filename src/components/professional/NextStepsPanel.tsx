@@ -213,7 +213,7 @@ export const NextStepsPanel = () => {
             </a>
           </div>
         </div>
-      ),
+      ) as any, // Fix: Type assertion to any to resolve Element vs string issue
       duration: 8000,
     });
   };
