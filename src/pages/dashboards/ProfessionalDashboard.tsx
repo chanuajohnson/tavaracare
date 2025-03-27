@@ -1,3 +1,4 @@
+
 import { motion } from "framer-motion";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,6 +15,7 @@ import { TrainingProgramSection } from "@/components/professional/TrainingProgra
 import { TrainingModulesSection } from "@/components/professional/TrainingModulesSection";
 import { DashboardFamilyMatches } from "@/components/professional/DashboardFamilyMatches";
 import { CaregiverMatchingCard } from "@/components/professional/CaregiverMatchingCard";
+import { ProfessionalShortcutMenuBar } from "@/components/professional/ProfessionalShortcutMenuBar";
 
 const ProfessionalDashboard = () => {
   const { user } = useAuth();
@@ -41,6 +43,9 @@ const ProfessionalDashboard = () => {
             Manage your caregiving services and professional development.
           </p>
         </motion.div>
+
+        {/* Quick Access Menu Bar */}
+        <ProfessionalShortcutMenuBar />
 
         {!user ? (
           <motion.div
@@ -78,27 +83,11 @@ const ProfessionalDashboard = () => {
           </motion.div>
         ) : null}
 
-        <CaregiverMatchingCard />
-
-        {/* Family Matches Section */}
-        <div className="mt-8">
-          <DashboardFamilyMatches />
-        </div>
-        
-        <div className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <NextStepsPanel />
-            <TrainingProgressTracker />
-          </div>
-              
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <JobListings />
-            <MessageBoard />
-          </div>
-        </div>
-
-        {/* Profile Management and Admin Assistant - side by side */}
+        {/* Next Steps and Profile Management - side by side */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
+          <NextStepsPanel />
+          
+          {/* Profile Management Card */}
           <Card className="bg-white shadow-sm">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -133,41 +122,60 @@ const ProfessionalDashboard = () => {
               </div>
             </CardContent>
           </Card>
+        </div>
 
-          <Card className="bg-white shadow-sm">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <FileText className="h-5 w-5" />
-                Admin Assistant
-              </CardTitle>
-              <CardDescription>
-                Streamline your administrative tasks
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2 mb-4 text-left">
-                <p className="text-sm text-gray-600">Get Job Letters</p>
-                <p className="text-sm text-gray-600">NIS Registration Assistance</p>
-                <p className="text-sm text-gray-600">Document Management</p>
-                <p className="text-sm text-gray-600">Administrative Support</p>
-              </div>
-              <Link to="/professional/features-overview">
-                <Button 
-                  variant="default"
-                  className="w-full bg-primary hover:bg-primary-600 text-white"
-                >
-                  Access Tools
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
-              </Link>
-              <div className="pt-4">
-                <UpvoteFeatureButton
-                  featureTitle="Admin Assistant Tools"
-                  buttonText="Upvote this Feature"
-                />
-              </div>
-            </CardContent>
-          </Card>
+        <CaregiverMatchingCard />
+
+        {/* Family Matches Section */}
+        <div className="mt-8">
+          <DashboardFamilyMatches />
+        </div>
+        
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <TrainingProgressTracker />
+            <JobListings />
+          </div>
+              
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <MessageBoard />
+            
+            {/* Admin Assistant */}
+            <Card className="bg-white shadow-sm">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <FileText className="h-5 w-5" />
+                  Admin Assistant
+                </CardTitle>
+                <CardDescription>
+                  Streamline your administrative tasks
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2 mb-4 text-left">
+                  <p className="text-sm text-gray-600">Get Job Letters</p>
+                  <p className="text-sm text-gray-600">NIS Registration Assistance</p>
+                  <p className="text-sm text-gray-600">Document Management</p>
+                  <p className="text-sm text-gray-600">Administrative Support</p>
+                </div>
+                <Link to="/professional/features-overview">
+                  <Button 
+                    variant="default"
+                    className="w-full bg-primary hover:bg-primary-600 text-white"
+                  >
+                    Access Tools
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
+                </Link>
+                <div className="pt-4">
+                  <UpvoteFeatureButton
+                    featureTitle="Admin Assistant Tools"
+                    buttonText="Upvote this Feature"
+                  />
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </div>
 
         {/* Training Resources - single column, full width */}
