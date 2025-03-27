@@ -17,8 +17,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { supabase } from '@/lib/supabase';
 import { v4 as uuidv4 } from 'uuid';
+import { ensureUserProfile } from '@/lib/profile-utils';
 
-// Define form schema with Zod
 const professionalFormSchema = z.object({
   // Personal Information
   first_name: z.string().min(1, 'First name is required'),
@@ -111,7 +111,6 @@ const ProfessionalRegistration = () => {
   
   const selectedProfessionalType = watch('professional_type');
 
-  // Check if the user is here for profile management (has an existing profile)
   useEffect(() => {
     const checkExistingProfile = async () => {
       if (!user) return;
@@ -128,7 +127,6 @@ const ProfessionalRegistration = () => {
         if (profileData && profileData.role === 'professional') {
           setIsProfileManagement(true);
           
-          // Set profile image if it exists
           if (profileData.avatar_url) {
             const { data: { publicUrl } } = supabase
               .storage
@@ -138,12 +136,10 @@ const ProfessionalRegistration = () => {
             setProfileImageURL(publicUrl);
           }
           
-          // Populate form with existing data
           const names = profileData.full_name ? profileData.full_name.split(' ') : ['', ''];
           const firstName = names[0] || '';
           const lastName = names.slice(1).join(' ') || '';
           
-          // Set form values
           reset({
             first_name: firstName,
             last_name: lastName,
@@ -160,7 +156,7 @@ const ProfessionalRegistration = () => {
             other_medical_condition: profileData.other_medical_condition || '',
             availability: profileData.availability || [],
             work_type: profileData.work_type || '',
-            preferred_matches: [], // Not clear where this is stored in the profile
+            preferred_matches: [],
             administers_medication: profileData.administers_medication || false,
             provides_housekeeping: profileData.provides_housekeeping || false,
             provides_transportation: profileData.provides_transportation || false,
@@ -170,10 +166,9 @@ const ProfessionalRegistration = () => {
             emergency_contact: profileData.emergency_contact || '',
             hourly_rate: profileData.hourly_rate || '',
             additional_professional_notes: profileData.additional_professional_notes || '',
-            terms_accepted: true, // Already accepted if they have a profile
+            terms_accepted: true,
           });
           
-          // Log that we loaded profile data
           console.log('Loaded professional profile data:', profileData);
         }
       } catch (error) {
@@ -200,10 +195,16 @@ const ProfessionalRegistration = () => {
         toast.error("You must be logged in to register");
         return;
       }
+      
+      const { success: profileEnsured, error: profileError } = await ensureUserProfile(user.id, 'professional');
+      
+      if (!profileEnsured) {
+        console.error("Error ensuring profile:", profileError);
+        throw new Error(`Error ensuring profile exists: ${profileError}`);
+      }
   
       let avatar_url = null;
   
-      // Upload profile image if it exists
       if (profileImage) {
         const filename = `${uuidv4()}-${profileImage.name}`;
         const { data: uploadData, error: uploadError } = await supabase.storage
@@ -218,22 +219,18 @@ const ProfessionalRegistration = () => {
         avatar_url = filename;
       }
       
-      // Combine first and last name for full_name
       const full_name = `${data.first_name} ${data.last_name}`.trim();
   
-      // Update profile directly, similar to the family registration flow
       const { error } = await supabase
         .from('profiles')
         .update({
-          // Basic information
           full_name,
-          avatar_url: avatar_url || undefined, // Only update if we have a new image
+          avatar_url: avatar_url || undefined,
           phone_number: data.phone,
           address: data.location,
           location: data.location,
           preferred_contact_method: data.preferred_contact_method,
           
-          // Professional specific fields
           professional_type: data.professional_type,
           other_certification: data.other_professional_type,
           years_of_experience: data.years_of_experience,
@@ -244,7 +241,6 @@ const ProfessionalRegistration = () => {
           availability: data.availability,
           work_type: data.work_type,
           
-          // Specific capabilities
           administers_medication: data.administers_medication,
           provides_housekeeping: data.provides_housekeeping,
           provides_transportation: data.provides_transportation,
@@ -252,15 +248,12 @@ const ProfessionalRegistration = () => {
           has_liability_insurance: data.has_liability_insurance,
           background_check: data.background_check,
           
-          // Additional information
           emergency_contact: data.emergency_contact,
           hourly_rate: data.hourly_rate,
           additional_professional_notes: data.additional_professional_notes,
           
-          // Important role flag
           role: 'professional',
           
-          // First name and last name separately
           first_name: data.first_name,
           last_name: data.last_name
         })
@@ -271,22 +264,11 @@ const ProfessionalRegistration = () => {
         throw new Error(`Error updating professional profile: ${error.message}`);
       }
       
-      // Update user metadata to match database role
-      const { error: metadataError } = await supabase.auth.updateUser({
-        data: { role: 'professional' }
-      });
-      
-      if (metadataError) {
-        console.warn("Error updating user metadata:", metadataError);
-        // Continue anyway - this is not critical
-      }
-  
       toast.success(isProfileManagement 
         ? "Profile updated successfully!" 
         : "Professional registration completed successfully!"
       );
       
-      // Navigate directly to the professional dashboard
       navigate('/dashboard/professional');
     } catch (error) {
       console.error('Registration error:', error);
