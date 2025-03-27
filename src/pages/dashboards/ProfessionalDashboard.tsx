@@ -44,8 +44,8 @@ const ProfessionalDashboard = () => {
           </p>
         </motion.div>
 
-        {/* Quick Access Menu Bar */}
-        <ProfessionalShortcutMenuBar />
+        {/* Quick Access Menu Bar - Only show when user is logged in */}
+        {user && <ProfessionalShortcutMenuBar />}
 
         {!user ? (
           <motion.div
