@@ -28,6 +28,7 @@ export const NextStepsPanel = () => {
   const [otherAvailability, setOtherAvailability] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isOfflineMode, setIsOfflineMode] = useState(false);
   
   // Track onboarding journey for analytics
   useJourneyTracking({
@@ -89,33 +90,45 @@ export const NextStepsPanel = () => {
       
       try {
         setLoading(true);
-        // Try to load from Supabase if user is logged in
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('onboarding_progress, availability')
-          .eq('id', user.id)
-          .maybeSingle();
+        // Check connection first
+        const isConnected = navigator.onLine;
+        setIsOfflineMode(!isConnected);
         
-        if (error) {
-          console.error("Error loading progress:", error);
-          setError(`Failed to load progress: ${error.message}`);
-          // Fall back to localStorage
-          loadProgressFromLocalStorage();
-          return;
-        }
-        
-        if (data) {
-          console.log("Loaded progress data:", data);
-          // Update from database
-          updateProgressFromData(data.onboarding_progress, data.availability);
+        if (isConnected) {
+          // Try to load from Supabase if user is logged in and online
+          const { data, error } = await supabase
+            .from('profiles')
+            .select('onboarding_progress, availability')
+            .eq('id', user.id)
+            .maybeSingle();
+          
+          if (error) {
+            console.error("Error loading progress:", error);
+            setError(`Failed to load progress: ${error.message}`);
+            
+            // If there's an error with Supabase, set offline mode and fall back to localStorage
+            setIsOfflineMode(true);
+            loadProgressFromLocalStorage();
+            return;
+          }
+          
+          if (data) {
+            console.log("Loaded progress data:", data);
+            // Update from database
+            updateProgressFromData(data.onboarding_progress, data.availability);
+          } else {
+            console.log("No progress data found for user:", user.id);
+            // Fall back to localStorage
+            loadProgressFromLocalStorage();
+          }
         } else {
-          console.log("No progress data found for user:", user.id);
-          // Fall back to localStorage
+          // Offline mode - load from localStorage
           loadProgressFromLocalStorage();
         }
       } catch (err) {
         console.error("Error in loadProgress:", err);
         setError(`Unexpected error: ${err instanceof Error ? err.message : String(err)}`);
+        setIsOfflineMode(true);
         loadProgressFromLocalStorage();
       } finally {
         setLoading(false);
@@ -172,7 +185,7 @@ export const NextStepsPanel = () => {
     };
     
     loadProgress();
-  }, [user]);
+  }, [user, steps]);
 
   // Update progress when steps change
   useEffect(() => {
@@ -186,33 +199,36 @@ export const NextStepsPanel = () => {
       
       try {
         console.log("Saving progress:", progressData);
-        // Save to Supabase
-        const { error } = await supabase
-          .from('profiles')
-          .update({ 
-            onboarding_progress: progressData,
-            availability: selectedAvailability
-          })
-          .eq('id', user.id);
-          
-        if (error) {
-          console.error("Error saving progress:", error);
-          setError(`Failed to save progress: ${error.message}`);
+        
+        // Always save to localStorage first as a backup
+        localStorage.setItem('professionalOnboardingProgress', JSON.stringify({
+          steps: progressData,
+          availability: selectedAvailability
+        }));
+        
+        // Only try to save to Supabase if we're online
+        if (!isOfflineMode) {
+          const { error } = await supabase
+            .from('profiles')
+            .update({ 
+              onboarding_progress: progressData,
+              availability: selectedAvailability
+            })
+            .eq('id', user.id);
+            
+          if (error) {
+            console.error("Error saving progress:", error);
+            setError(`Failed to save progress: ${error.message}`);
+          }
         }
       } catch (err) {
         console.error("Error in saveProgress:", err);
         setError(`Unexpected error: ${err instanceof Error ? err.message : String(err)}`);
       }
-      
-      // Also save to localStorage as backup
-      localStorage.setItem('professionalOnboardingProgress', JSON.stringify({
-        steps: progressData,
-        availability: selectedAvailability
-      }));
     };
     
     saveProgress();
-  }, [steps, selectedAvailability, user]);
+  }, [steps, selectedAvailability, user, isOfflineMode]);
 
   // Calculate progress percentage
   const completedSteps = steps.filter(step => step.completed).length;
@@ -395,35 +411,6 @@ export const NextStepsPanel = () => {
     );
   }
 
-  if (error) {
-    return (
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-      >
-        <Card className="h-full border-l-4 border-l-red-500">
-          <CardHeader className="pb-2">
-            <CardTitle className="flex items-center gap-2 text-xl">
-              <List className="h-5 w-5 text-red-500" />
-              Next Steps
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-red-500">{error}</p>
-            <Button 
-              variant="outline" 
-              className="mt-4"
-              onClick={() => window.location.reload()}
-            >
-              Retry
-            </Button>
-          </CardContent>
-        </Card>
-      </motion.div>
-    );
-  }
-
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -446,6 +433,17 @@ export const NextStepsPanel = () => {
               />
             </div>
           </div>
+          {isOfflineMode && (
+            <div className="mt-1 text-xs text-amber-600 flex items-center">
+              <Clock className="h-3 w-3 mr-1" />
+              <span>Offline mode: Changes saved locally</span>
+            </div>
+          )}
+          {error && (
+            <div className="mt-1 text-xs text-red-500">
+              {error}
+            </div>
+          )}
         </CardHeader>
         <CardContent>
           <ul className="space-y-3">
