@@ -1,3 +1,4 @@
+
 import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -17,6 +18,51 @@ import { useJourneyTracking } from "@/hooks/useJourneyTracking";
 import { useTracking } from "@/hooks/useTracking";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Calendar, Sun, Moon, Home } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+
+// Initial step data structure
+const initialSteps = [
+  { 
+    id: 1, 
+    title: "Complete your profile", 
+    description: "Add your qualifications, experience, and preferences", 
+    completed: false, 
+    link: "/registration/professional",
+    action: "complete" 
+  },
+  { 
+    id: 2, 
+    title: "Upload certifications", 
+    description: "Share your professional certifications and required documents", 
+    completed: false,
+    link: "",
+    action: "upload" 
+  },
+  { 
+    id: 3, 
+    title: "Set your availability", 
+    description: "Let clients know when you're available for work", 
+    completed: false,
+    link: "",
+    action: "availability" 
+  },
+  { 
+    id: 4, 
+    title: "Complete training", 
+    description: "Learn essential caregiving techniques and protocols", 
+    completed: false,
+    link: "/professional/training-resources",
+    action: "training" 
+  },
+  { 
+    id: 5, 
+    title: "Orientation and shadowing", 
+    description: "Complete in-person orientation and care shadowing", 
+    completed: false,
+    link: "",
+    action: "orientation" 
+  }
+];
 
 export const NextStepsPanel = () => {
   const { user } = useAuth();
@@ -27,7 +73,12 @@ export const NextStepsPanel = () => {
   const [isAvailabilityModalOpen, setIsAvailabilityModalOpen] = useState(false);
   const [selectedAvailability, setSelectedAvailability] = useState<string[]>([]);
   const [otherAvailability, setOtherAvailability] = useState("");
+  
+  // State for loading and steps
+  const [steps, setSteps] = useState(initialSteps);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [dataSource, setDataSource] = useState<'local' | 'database' | 'none'>('none');
   
   // Track onboarding journey for analytics
   useJourneyTracking({
@@ -36,179 +87,196 @@ export const NextStepsPanel = () => {
     trackOnce: true
   });
 
-  const [steps, setSteps] = useState([
-    { 
-      id: 1, 
-      title: "Complete your profile", 
-      description: "Add your qualifications, experience, and preferences", 
-      completed: false, 
-      link: "/registration/professional",
-      action: "complete" 
-    },
-    { 
-      id: 2, 
-      title: "Upload certifications", 
-      description: "Share your professional certifications and required documents", 
-      completed: false,
-      link: "",
-      action: "upload" 
-    },
-    { 
-      id: 3, 
-      title: "Set your availability", 
-      description: "Let clients know when you're available for work", 
-      completed: false,
-      link: "",
-      action: "availability" 
-    },
-    { 
-      id: 4, 
-      title: "Complete training", 
-      description: "Learn essential caregiving techniques and protocols", 
-      completed: false,
-      link: "/professional/training-resources",
-      action: "training" 
-    },
-    { 
-      id: 5, 
-      title: "Orientation and shadowing", 
-      description: "Complete in-person orientation and care shadowing", 
-      completed: false,
-      link: "",
-      action: "orientation" 
-    }
-  ]);
+  // Calculate progress
+  const completedSteps = steps.filter(step => step.completed).length;
+  const progress = Math.round((completedSteps / steps.length) * 100);
 
-  // Load saved progress from Supabase or localStorage
+  // Load saved progress
   useEffect(() => {
     const loadProgress = async () => {
-      if (!user) {
-        setLoading(false);
-        return;
-      }
+      // Start loading
+      setLoading(true);
       
       try {
-        setLoading(true);
+        // Always try local storage first for immediate UI response
+        const localDataLoaded = loadProgressFromLocalStorage();
+        if (localDataLoaded) {
+          setDataSource('local');
+        }
         
-        // Always load from localStorage first as a fallback
-        loadProgressFromLocalStorage();
-        
-        // Try to load from Supabase if user is logged in and online
-        if (navigator.onLine) {
-          try {
-            const { data, error } = await supabase
-              .from('profiles')
-              .select('onboarding_progress, availability')
-              .eq('id', user.id)
-              .maybeSingle();
-            
-            if (!error && data) {
-              // Update from database
-              updateProgressFromData(data.onboarding_progress, data.availability);
-            }
-          } catch (err) {
-            // Silently fallback to localStorage data
-            console.error("Error loading from Supabase:", err);
+        // Only try to load from database if user is logged in
+        if (user && navigator.onLine) {
+          const databaseDataLoaded = await loadProgressFromDatabase();
+          if (databaseDataLoaded) {
+            setDataSource('database');
           }
         }
-      } finally {
-        setLoading(false);
-      }
-    };
-    
-    const loadProgressFromLocalStorage = () => {
-      const savedProgress = localStorage.getItem('professionalOnboardingProgress');
-      if (savedProgress) {
-        try {
-          const parsedData = JSON.parse(savedProgress);
-          updateProgressFromData(parsedData.steps, parsedData.availability);
-        } catch (e) {
-          console.error("Error parsing saved progress:", e);
-          // Set first step completed if user exists (profile creation)
-          if (user) {
-            const updatedSteps = [...steps];
-            updatedSteps[0].completed = true;
-            setSteps(updatedSteps);
-          }
-        }
-      } else {
-        // Set first step completed if user exists (profile creation)
-        if (user) {
-          const updatedSteps = [...steps];
+        
+        // If no data was loaded, set defaults for first-time users
+        if (dataSource === 'none' && user) {
+          // If user exists but no data, mark first step as completed by default
+          const updatedSteps = [...initialSteps];
           updatedSteps[0].completed = true;
           setSteps(updatedSteps);
+          // Save to localStorage
+          saveProgressToLocalStorage(updatedSteps, []);
         }
-      }
-    };
-    
-    const updateProgressFromData = (progressData: any, availabilityData: any) => {
-      if (progressData) {
-        const updatedSteps = [...steps];
-        Object.keys(progressData).forEach(stepId => {
-          const index = updatedSteps.findIndex(s => s.id === parseInt(stepId));
-          if (index >= 0) {
-            updatedSteps[index].completed = progressData[stepId];
-          }
-        });
-        setSteps(updatedSteps);
-      } else if (user) {
-        // If no progress data but user exists, mark first step as completed
-        const updatedSteps = [...steps];
-        updatedSteps[0].completed = true;
-        setSteps(updatedSteps);
-      }
-      
-      if (availabilityData) {
-        setSelectedAvailability(Array.isArray(availabilityData) ? availabilityData : []);
+      } catch (err) {
+        console.error("Error loading progress:", err);
+        setError("Failed to load progress. Please refresh the page.");
+      } finally {
+        // Always finish loading regardless of outcome
+        setLoading(false);
       }
     };
     
     loadProgress();
-  }, [user, steps]);
+  }, [user]); // Only depend on user to avoid infinite re-renders
 
-  // Update progress when steps change
-  useEffect(() => {
-    const saveProgress = async () => {
-      if (!user) return;
+  // Load progress from localStorage
+  const loadProgressFromLocalStorage = () => {
+    try {
+      const savedProgress = localStorage.getItem('professionalOnboardingProgress');
+      if (savedProgress) {
+        const parsedData = JSON.parse(savedProgress);
+        
+        // Update steps from localStorage if available
+        if (parsedData.steps) {
+          const updatedSteps = [...initialSteps];
+          Object.keys(parsedData.steps).forEach(stepId => {
+            const index = updatedSteps.findIndex(s => s.id === parseInt(stepId));
+            if (index >= 0) {
+              updatedSteps[index].completed = parsedData.steps[stepId];
+            }
+          });
+          setSteps(updatedSteps);
+        }
+        
+        // Update availability from localStorage if available
+        if (parsedData.availability) {
+          setSelectedAvailability(Array.isArray(parsedData.availability) ? parsedData.availability : []);
+        }
+        
+        return true;
+      }
+      return false;
+    } catch (e) {
+      console.error("Error parsing saved local progress:", e);
+      return false;
+    }
+  };
+
+  // Load progress from database
+  const loadProgressFromDatabase = async () => {
+    if (!user) return false;
+    
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('onboarding_progress, availability')
+        .eq('id', user.id)
+        .maybeSingle();
       
-      const progressData = steps.reduce((acc, step) => {
+      if (error) {
+        console.error("Supabase error loading progress:", error);
+        return false;
+      }
+      
+      if (!data) {
+        return false;
+      }
+      
+      // Update steps from database if available
+      if (data.onboarding_progress) {
+        const updatedSteps = [...initialSteps];
+        Object.keys(data.onboarding_progress).forEach(stepId => {
+          const index = updatedSteps.findIndex(s => s.id === parseInt(stepId));
+          if (index >= 0) {
+            updatedSteps[index].completed = data.onboarding_progress[stepId];
+          }
+        });
+        setSteps(updatedSteps);
+      }
+      
+      // Update availability from database if available
+      if (data.availability) {
+        setSelectedAvailability(Array.isArray(data.availability) ? data.availability : []);
+      }
+      
+      return true;
+    } catch (err) {
+      console.error("Error loading from database:", err);
+      return false;
+    }
+  };
+
+  // Save progress to localStorage
+  const saveProgressToLocalStorage = (currentSteps: typeof initialSteps, availability: string[]) => {
+    try {
+      const progressData = currentSteps.reduce((acc, step) => {
         acc[step.id] = step.completed;
         return acc;
       }, {} as Record<number, boolean>);
       
-      try {
-        // Always save to localStorage first as a backup
-        localStorage.setItem('professionalOnboardingProgress', JSON.stringify({
-          steps: progressData,
-          availability: selectedAvailability
-        }));
-        
-        // Only try to save to Supabase if we're online
-        if (navigator.onLine) {
-          try {
-            await supabase
-              .from('profiles')
-              .update({ 
-                onboarding_progress: progressData,
-                availability: selectedAvailability
-              })
-              .eq('id', user.id);
-          } catch (err) {
-            // Silent fail - data is already in localStorage
-            console.error("Error saving to Supabase:", err);
-          }
-        }
-      } catch (err) {
-        console.error("Error in saveProgress:", err);
+      localStorage.setItem('professionalOnboardingProgress', JSON.stringify({
+        steps: progressData,
+        availability: availability || selectedAvailability
+      }));
+      
+      return true;
+    } catch (err) {
+      console.error("Error saving to localStorage:", err);
+      return false;
+    }
+  };
+
+  // Save progress to database
+  const saveProgressToDatabase = async (currentSteps: typeof initialSteps, availability: string[]) => {
+    if (!user || !navigator.onLine) return false;
+    
+    try {
+      const progressData = currentSteps.reduce((acc, step) => {
+        acc[step.id] = step.completed;
+        return acc;
+      }, {} as Record<number, boolean>);
+      
+      const { error } = await supabase
+        .from('profiles')
+        .update({ 
+          onboarding_progress: progressData,
+          availability: availability || selectedAvailability
+        })
+        .eq('id', user.id);
+      
+      if (error) {
+        console.error("Supabase error saving progress:", error);
+        return false;
+      }
+      
+      return true;
+    } catch (err) {
+      console.error("Error saving to database:", err);
+      return false;
+    }
+  };
+
+  // Update progress when steps change
+  useEffect(() => {
+    // Skip saving on initial load when loading is true
+    if (loading) return;
+    
+    const saveProgress = async () => {
+      // Always save to localStorage first as a backup
+      saveProgressToLocalStorage(steps, selectedAvailability);
+      
+      // Only try to save to database if user is logged in and online
+      if (user && navigator.onLine) {
+        saveProgressToDatabase(steps, selectedAvailability);
       }
     };
     
     saveProgress();
-  }, [steps, selectedAvailability, user]);
-
-  // Calculate progress percentage
-  const completedSteps = steps.filter(step => step.completed).length;
-  const progress = Math.round((completedSteps / steps.length) * 100);
+  }, [steps, selectedAvailability, loading]); // Added loading to dependencies
 
   // Handle upload certificates action
   const handleUploadCertificates = () => {
@@ -285,6 +353,14 @@ export const NextStepsPanel = () => {
     // Close modal
     setIsAvailabilityModalOpen(false);
     
+    // Save to localStorage immediately
+    saveProgressToLocalStorage(updatedSteps, finalAvailability);
+    
+    // Save to database if online
+    if (user && navigator.onLine) {
+      await saveProgressToDatabase(updatedSteps, finalAvailability);
+    }
+    
     toast({
       title: "Availability saved",
       description: "Your availability preferences have been saved.",
@@ -293,7 +369,7 @@ export const NextStepsPanel = () => {
   };
 
   // Render the appropriate action button based on step type
-  const renderActionButton = (step: typeof steps[0]) => {
+  const renderActionButton = (step: typeof initialSteps[0]) => {
     if (step.completed) return null;
     
     switch (step.action) {
@@ -344,12 +420,13 @@ export const NextStepsPanel = () => {
     }
   };
 
+  // Loading skeleton
   if (loading) {
     return (
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
+        transition={{ duration: 0.3 }}
       >
         <Card className="h-full border-l-4 border-l-primary">
           <CardHeader className="pb-2">
@@ -357,10 +434,26 @@ export const NextStepsPanel = () => {
               <List className="h-5 w-5 text-primary" />
               Next Steps
             </CardTitle>
+            <div className="flex justify-between items-center">
+              <Skeleton className="h-4 w-[150px]" />
+              <div className="flex items-center space-x-2">
+                <Skeleton className="h-4 w-8" />
+                <Skeleton className="h-2 w-24" />
+              </div>
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="flex items-center justify-center h-40">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            <div className="space-y-4">
+              {[1, 2, 3, 4, 5].map((item) => (
+                <div key={item} className="flex items-start gap-3">
+                  <Skeleton className="h-5 w-5 rounded-full mt-0.5" />
+                  <div className="flex-1 space-y-2">
+                    <Skeleton className="h-5 w-[200px]" />
+                    <Skeleton className="h-4 w-full" />
+                  </div>
+                </div>
+              ))}
+              <Skeleton className="h-10 w-full mt-4" />
             </div>
           </CardContent>
         </Card>
@@ -368,6 +461,35 @@ export const NextStepsPanel = () => {
     );
   }
 
+  // Error state
+  if (error) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+      >
+        <Card className="h-full border-l-4 border-l-red-500">
+          <CardHeader className="pb-2">
+            <CardTitle className="flex items-center gap-2 text-xl">
+              <List className="h-5 w-5 text-red-500" />
+              Next Steps
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-center py-8">
+              <p className="text-red-500 mb-4">{error}</p>
+              <Button onClick={() => window.location.reload()}>
+                Refresh Page
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </motion.div>
+    );
+  }
+
+  // Main content
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
