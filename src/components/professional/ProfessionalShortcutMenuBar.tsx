@@ -5,9 +5,23 @@ import { Button } from "@/components/ui/button";
 import { Container } from "@/components/ui/container";
 import { ClipboardEdit, ArrowRight, UserCircle, HandHeart } from "lucide-react";
 import { useAuth } from "@/components/providers/AuthProvider";
+import { toast } from "sonner";
 
 export function ProfessionalShortcutMenuBar() {
-  const { user } = useAuth();
+  const { user, isLoading } = useAuth();
+  
+  const handleAuthRequired = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    if (!user && !isLoading) {
+      e.preventDefault();
+      toast.info("Authentication Required", {
+        description: "Please log in to access your profile hub.",
+        action: {
+          label: "Login",
+          onClick: () => window.location.href = "/auth"
+        }
+      });
+    }
+  };
   
   return (
     <div className="bg-muted py-2 border-y">
@@ -21,7 +35,7 @@ export function ProfessionalShortcutMenuBar() {
               <ArrowRight className="h-3 w-3" />
             </Button>
           </Link>
-          <Link to="/professional/profile">
+          <Link to="/professional/profile" onClick={handleAuthRequired}>
             <Button variant="outline" size="sm" className="flex items-center gap-1">
               <UserCircle className="h-4 w-4" />
               <span>Profile Hub</span>

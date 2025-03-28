@@ -1,3 +1,4 @@
+
 import { motion } from "framer-motion";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -21,11 +22,12 @@ import {
   Circle,
   Sun,
   Moon,
-  Home
+  Home,
+  AlertCircle
 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/components/providers/AuthProvider";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -89,6 +91,7 @@ const initialSteps = [
 
 const ProfessionalProfileHub = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const { trackEngagement } = useTracking();
   const { toast: toastHook } = useToast();
   const { modules, loading: loadingModules, totalProgress } = useTrainingProgress();
@@ -96,6 +99,7 @@ const ProfessionalProfileHub = () => {
   const [profileData, setProfileData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [recoverAttempted, setRecoverAttempted] = useState(false);
 
   const [steps, setSteps] = useState(initialSteps);
 
@@ -123,6 +127,48 @@ const ProfessionalProfileHub = () => {
     trackOnce: true
   });
 
+  // Check if user is logged in and redirect if not
+  useEffect(() => {
+    if (!user && !loading) {
+      toast.info("Authentication Required", {
+        description: "Please log in to access your profile hub.",
+      });
+      navigate("/auth", { state: { returnPath: "/professional/profile" } });
+    }
+  }, [user, loading, navigate]);
+
+  // Handle data recovery for onboarding progress
+  const recoverOnboardingProgress = async (userId: string) => {
+    if (recoverAttempted) return false;
+    
+    try {
+      setRecoverAttempted(true);
+      console.log("Attempting to recover onboarding progress for user:", userId);
+      
+      // Create default onboarding progress if missing
+      const progressData = initialSteps.reduce((acc, step) => {
+        acc[step.id] = false;
+        return acc;
+      }, {} as Record<number, boolean>);
+      
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ onboarding_progress: progressData })
+        .eq('id', userId);
+      
+      if (updateError) {
+        console.error("Error updating profile with default onboarding progress:", updateError);
+        return false;
+      }
+      
+      console.log("Successfully recovered onboarding progress data");
+      return true;
+    } catch (err) {
+      console.error("Error in recovery attempt:", err);
+      return false;
+    }
+  };
+
   const completedSteps = steps.filter(step => step.completed).length;
   const progress = Math.round((completedSteps / steps.length) * 100);
 
@@ -146,15 +192,31 @@ const ProfessionalProfileHub = () => {
         
         setProfileData(data);
         
+        // Handle onboarding_progress properly with fallback
         if (data.onboarding_progress) {
-          const updatedSteps = [...initialSteps];
-          Object.keys(data.onboarding_progress).forEach(stepId => {
-            const index = updatedSteps.findIndex(s => s.id === parseInt(stepId));
-            if (index >= 0) {
-              updatedSteps[index].completed = data.onboarding_progress[stepId];
+          try {
+            const updatedSteps = [...initialSteps];
+            Object.keys(data.onboarding_progress).forEach(stepId => {
+              const index = updatedSteps.findIndex(s => s.id === parseInt(stepId));
+              if (index >= 0) {
+                updatedSteps[index].completed = data.onboarding_progress[stepId];
+              }
+            });
+            setSteps(updatedSteps);
+          } catch (parseError) {
+            console.error("Error parsing onboarding progress:", parseError);
+            // If parsing fails, recover by initializing with default values
+            const success = await recoverOnboardingProgress(user.id);
+            if (!success) {
+              setSteps(initialSteps);
             }
-          });
-          setSteps(updatedSteps);
+          }
+        } else {
+          // If onboarding_progress is missing, initialize it
+          const success = await recoverOnboardingProgress(user.id);
+          if (!success) {
+            setSteps(initialSteps);
+          }
         }
         
         if (data.availability) {
@@ -162,9 +224,23 @@ const ProfessionalProfileHub = () => {
         }
         
         setLoading(false);
-      } catch (err) {
+      } catch (err: any) {
         console.error("Error loading profile:", err);
-        setError("Failed to load profile data. Please try again.");
+        
+        // Attempt recovery for specific errors related to onboarding_progress
+        if (err.message && (
+            err.message.includes("onboarding_progress") || 
+            err.message.includes("column") || 
+            err.message.includes("does not exist"))) {
+          
+          if (user && await recoverOnboardingProgress(user.id)) {
+            // Try loading again after recovery
+            loadProfileData();
+            return;
+          }
+        }
+        
+        setError(`Failed to load profile data: ${err.message || "Unknown error"}. Please try again.`);
         setLoading(false);
       }
     };
@@ -422,9 +498,40 @@ const ProfessionalProfileHub = () => {
         <div className="container px-4 py-8">
           <DashboardHeader breadcrumbItems={breadcrumbItems} />
           <div className="text-center py-12">
-            <h2 className="text-2xl font-bold text-gray-800 mb-4">Oops! Something went wrong</h2>
-            <p className="mb-6 text-gray-600">{error}</p>
-            <Button onClick={() => window.location.reload()}>Reload Page</Button>
+            <div className="bg-red-50 border border-red-200 text-red-700 p-6 rounded-lg max-w-2xl mx-auto">
+              <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+              <h2 className="text-2xl font-bold text-gray-800 mb-4">Oops! Something went wrong</h2>
+              <p className="mb-6 text-gray-600">{error}</p>
+              <div className="space-y-2">
+                <Button onClick={() => window.location.reload()}>Reload Page</Button>
+                <div className="flex justify-center mt-4">
+                  <Link to="/dashboard/professional">
+                    <Button variant="outline">Return to Dashboard</Button>
+                  </Link>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Handle case when user is not logged in
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-background">
+        <div className="container px-4 py-8">
+          <DashboardHeader breadcrumbItems={breadcrumbItems} />
+          <div className="text-center py-12">
+            <div className="bg-blue-50 border border-blue-200 text-blue-700 p-6 rounded-lg max-w-2xl mx-auto">
+              <AlertCircle className="h-12 w-12 text-blue-500 mx-auto mb-4" />
+              <h2 className="text-2xl font-bold text-gray-800 mb-4">Authentication Required</h2>
+              <p className="mb-6 text-gray-600">Please log in to view your professional profile hub.</p>
+              <Link to="/auth">
+                <Button>Log In or Sign Up</Button>
+              </Link>
+            </div>
           </div>
         </div>
       </div>
