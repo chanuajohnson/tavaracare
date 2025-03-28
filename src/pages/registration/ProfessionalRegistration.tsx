@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm, Controller } from 'react-hook-form';
@@ -83,8 +84,8 @@ const ProfessionalRegistration = () => {
     resolver: zodResolver(professionalFormSchema),
     defaultValues: {
       email: user?.email || '',
-      first_name: '',
-      last_name: '',
+      first_name: user?.user_metadata?.first_name || '',
+      last_name: user?.user_metadata?.last_name || '',
       professional_type: '',
       years_of_experience: '',
       location: '',
