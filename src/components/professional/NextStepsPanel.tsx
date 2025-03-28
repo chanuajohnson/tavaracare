@@ -5,7 +5,6 @@ import { CheckCircle2, Circle, List, ArrowRight, Upload, Clock, Mail, Phone } fr
 import { Link } from "react-router-dom";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useState, useEffect } from "react";
-import { SubscriptionFeatureLink } from "@/components/subscription/SubscriptionFeatureLink";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
@@ -528,22 +527,9 @@ export const NextStepsPanel = () => {
           <div className="space-y-4 mt-4">
             <Link to="/professional/profile">
               <Button variant="default" className="w-full">
-                View Profile Hub
+                View all tasks
               </Button>
             </Link>
-            
-            <SubscriptionFeatureLink
-              featureType="Task Management" 
-              returnPath="/dashboard/professional"
-              referringPagePath="/dashboard/professional"
-              referringPageLabel="Professional Dashboard"
-              className="w-full"
-            >
-              <span className="flex justify-between items-center w-full">
-                <span>View all tasks</span>
-                <ArrowRight className="h-4 w-4" />
-              </span>
-            </SubscriptionFeatureLink>
           </div>
         </CardContent>
       </Card>
