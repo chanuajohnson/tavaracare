@@ -26,6 +26,8 @@ export const NextStepsPanel = () => {
   const [isAvailabilityModalOpen, setIsAvailabilityModalOpen] = useState(false);
   const [selectedAvailability, setSelectedAvailability] = useState<string[]>([]);
   const [otherAvailability, setOtherAvailability] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   
   // Track onboarding journey for analytics
   useJourneyTracking({
@@ -80,9 +82,13 @@ export const NextStepsPanel = () => {
   // Load saved progress from Supabase or localStorage
   useEffect(() => {
     const loadProgress = async () => {
-      if (!user) return;
+      if (!user) {
+        setLoading(false);
+        return;
+      }
       
       try {
+        setLoading(true);
         // Try to load from Supabase if user is logged in
         const { data, error } = await supabase
           .from('profiles')
@@ -92,21 +98,27 @@ export const NextStepsPanel = () => {
         
         if (error) {
           console.error("Error loading progress:", error);
+          setError(`Failed to load progress: ${error.message}`);
           // Fall back to localStorage
           loadProgressFromLocalStorage();
           return;
         }
         
         if (data) {
+          console.log("Loaded progress data:", data);
           // Update from database
           updateProgressFromData(data.onboarding_progress, data.availability);
         } else {
+          console.log("No progress data found for user:", user.id);
           // Fall back to localStorage
           loadProgressFromLocalStorage();
         }
       } catch (err) {
         console.error("Error in loadProgress:", err);
+        setError(`Unexpected error: ${err instanceof Error ? err.message : String(err)}`);
         loadProgressFromLocalStorage();
+      } finally {
+        setLoading(false);
       }
     };
     
@@ -118,6 +130,12 @@ export const NextStepsPanel = () => {
           updateProgressFromData(parsedData.steps, parsedData.availability);
         } catch (e) {
           console.error("Error parsing saved progress:", e);
+          // Set first step completed if user exists (profile creation)
+          if (user) {
+            const updatedSteps = [...steps];
+            updatedSteps[0].completed = true;
+            setSteps(updatedSteps);
+          }
         }
       } else {
         // Set first step completed if user exists (profile creation)
@@ -130,6 +148,8 @@ export const NextStepsPanel = () => {
     };
     
     const updateProgressFromData = (progressData: any, availabilityData: any) => {
+      console.log("Updating progress from data:", { progressData, availabilityData });
+      
       if (progressData) {
         const updatedSteps = [...steps];
         Object.keys(progressData).forEach(stepId => {
@@ -139,10 +159,15 @@ export const NextStepsPanel = () => {
           }
         });
         setSteps(updatedSteps);
+      } else if (user) {
+        // If no progress data but user exists, mark first step as completed
+        const updatedSteps = [...steps];
+        updatedSteps[0].completed = true;
+        setSteps(updatedSteps);
       }
       
       if (availabilityData) {
-        setSelectedAvailability(availabilityData);
+        setSelectedAvailability(Array.isArray(availabilityData) ? availabilityData : []);
       }
     };
     
@@ -160,6 +185,7 @@ export const NextStepsPanel = () => {
       }, {} as Record<number, boolean>);
       
       try {
+        console.log("Saving progress:", progressData);
         // Save to Supabase
         const { error } = await supabase
           .from('profiles')
@@ -171,9 +197,11 @@ export const NextStepsPanel = () => {
           
         if (error) {
           console.error("Error saving progress:", error);
+          setError(`Failed to save progress: ${error.message}`);
         }
       } catch (err) {
         console.error("Error in saveProgress:", err);
+        setError(`Unexpected error: ${err instanceof Error ? err.message : String(err)}`);
       }
       
       // Also save to localStorage as backup
@@ -213,7 +241,7 @@ export const NextStepsPanel = () => {
             </a>
           </div>
         </div>
-      ) as any, // Fix: Type assertion to any to resolve Element vs string issue
+      ) as any,
       duration: 8000,
     });
   };
@@ -342,6 +370,59 @@ export const NextStepsPanel = () => {
         );
     }
   };
+
+  if (loading) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+      >
+        <Card className="h-full border-l-4 border-l-primary">
+          <CardHeader className="pb-2">
+            <CardTitle className="flex items-center gap-2 text-xl">
+              <List className="h-5 w-5 text-primary" />
+              Next Steps
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-center h-40">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            </div>
+          </CardContent>
+        </Card>
+      </motion.div>
+    );
+  }
+
+  if (error) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+      >
+        <Card className="h-full border-l-4 border-l-red-500">
+          <CardHeader className="pb-2">
+            <CardTitle className="flex items-center gap-2 text-xl">
+              <List className="h-5 w-5 text-red-500" />
+              Next Steps
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-red-500">{error}</p>
+            <Button 
+              variant="outline" 
+              className="mt-4"
+              onClick={() => window.location.reload()}
+            >
+              Retry
+            </Button>
+          </CardContent>
+        </Card>
+      </motion.div>
+    );
+  }
 
   return (
     <motion.div

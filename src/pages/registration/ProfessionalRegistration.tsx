@@ -221,6 +221,15 @@ const ProfessionalRegistration = () => {
       }
       
       const full_name = `${data.first_name} ${data.last_name}`.trim();
+      
+      // Create onboarding progress object with first step completed
+      const onboardingProgress = {
+        1: true,  // Mark "Complete your profile" step as completed
+        2: false, // "Upload certifications" step
+        3: false, // "Set your availability" step
+        4: false, // "Complete training" step
+        5: false  // "Orientation and shadowing" step
+      };
   
       const { error } = await supabase
         .from('profiles')
@@ -256,7 +265,10 @@ const ProfessionalRegistration = () => {
           role: 'professional',
           
           first_name: data.first_name,
-          last_name: data.last_name
+          last_name: data.last_name,
+          
+          // Set onboarding progress
+          onboarding_progress: onboardingProgress
         })
         .eq('id', user.id);
   

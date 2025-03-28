@@ -927,6 +927,7 @@ export type Database = {
           list_in_directory: boolean | null
           location: string | null
           medical_conditions_experience: string[] | null
+          onboarding_progress: Json | null
           other_certification: string | null
           other_medical_condition: string | null
           other_special_needs: string | null
@@ -999,6 +1000,7 @@ export type Database = {
           list_in_directory?: boolean | null
           location?: string | null
           medical_conditions_experience?: string[] | null
+          onboarding_progress?: Json | null
           other_certification?: string | null
           other_medical_condition?: string | null
           other_special_needs?: string | null
@@ -1071,6 +1073,7 @@ export type Database = {
           list_in_directory?: boolean | null
           location?: string | null
           medical_conditions_experience?: string[] | null
+          onboarding_progress?: Json | null
           other_certification?: string | null
           other_medical_condition?: string | null
           other_special_needs?: string | null
