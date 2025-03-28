@@ -1,3 +1,4 @@
+
 import { motion } from "framer-motion";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -716,7 +717,7 @@ const ProfessionalProfileHub = () => {
                         <CardTitle className="flex items-center gap-2">
                           <Award className="h-5 w-5 text-primary" />
                           Your Certifications and Credentials
-                        CardTitle>
+                        </CardTitle>
                         <CardDescription>
                           Professional qualifications and documentation
                         </CardDescription>
