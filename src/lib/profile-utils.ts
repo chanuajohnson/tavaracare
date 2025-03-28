@@ -31,12 +31,12 @@ export const ensureUserProfile = async (userId: string, role: UserRole = 'family
       };
     }
     
-    // Check if profile exists
+    // Check if profile exists using maybeSingle() instead of single() to handle cases where no profile exists
     const { data: existingProfile, error: profileError } = await supabase
       .from('profiles')
       .select('id, role')
       .eq('id', userId)
-      .maybeSingle(); // Use maybeSingle() instead of single() to prevent errors when no profile exists
+      .maybeSingle();
     
     if (profileError) {
       console.error('Error checking for existing profile:', profileError);
@@ -85,7 +85,13 @@ export const ensureUserProfile = async (userId: string, role: UserRole = 'family
       .from('profiles')
       .insert({
         id: userId,
-        role: role // Use the provided role instead of hardcoding 'family'
+        role: role,
+        full_name: session.user?.user_metadata?.full_name || '',
+        first_name: session.user?.user_metadata?.first_name || '',
+        last_name: session.user?.user_metadata?.last_name || '',
+        email: session.user?.email || '',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
       });
     
     if (insertError) {

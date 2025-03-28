@@ -45,6 +45,7 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useTrainingProgress } from "@/hooks/useTrainingProgress";
 import { CaregiverHealthCard } from "@/components/professional/CaregiverHealthCard";
+import { ensureUserProfile } from "@/lib/profile-utils";
 
 const initialSteps = [
   { 
@@ -100,6 +101,7 @@ const ProfessionalProfileHub = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [recoverAttempted, setRecoverAttempted] = useState(false);
+  const [profileCreationAttempted, setProfileCreationAttempted] = useState(false);
 
   const [steps, setSteps] = useState(initialSteps);
 
@@ -169,6 +171,30 @@ const ProfessionalProfileHub = () => {
     }
   };
 
+  // Create profile if it doesn't exist
+  const createProfileIfNeeded = async (userId: string) => {
+    if (profileCreationAttempted) return false;
+    
+    try {
+      setProfileCreationAttempted(true);
+      console.log("Attempting to create profile for user:", userId);
+      
+      // Use the ensureUserProfile utility function with professional role
+      const result = await ensureUserProfile(userId, 'professional');
+      
+      if (!result.success) {
+        console.error("Error creating profile:", result.error);
+        return false;
+      }
+      
+      console.log("Successfully created or verified professional profile");
+      return true;
+    } catch (err) {
+      console.error("Error in profile creation attempt:", err);
+      return false;
+    }
+  };
+
   const completedSteps = steps.filter(step => step.completed).length;
   const progress = Math.round((completedSteps / steps.length) * 100);
 
@@ -182,13 +208,27 @@ const ProfessionalProfileHub = () => {
       try {
         setLoading(true);
         
+        // First, ensure the user has a profile
+        await createProfileIfNeeded(user.id);
+        
+        // Then fetch the profile data using maybeSingle instead of single
         const { data, error: profileError } = await supabase
           .from('profiles')
           .select('*')
           .eq('id', user.id)
-          .single();
+          .maybeSingle();
         
-        if (profileError) throw profileError;
+        if (profileError) {
+          console.error("Profile fetch error:", profileError);
+          throw profileError;
+        }
+        
+        if (!data) {
+          console.log("No profile found after creation attempt, this should not happen");
+          setError("Unable to load profile data. Please try again or contact support.");
+          setLoading(false);
+          return;
+        }
         
         setProfileData(data);
         
