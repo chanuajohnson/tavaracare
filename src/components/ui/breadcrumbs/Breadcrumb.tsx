@@ -1,4 +1,3 @@
-
 import { Fragment, useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { ChevronRight, Home, Loader2 } from "lucide-react";
@@ -24,13 +23,13 @@ const routeMap: Record<string, string> = {
   lesson: "Lesson",
   "message-board": "Message Board",
   subscription: "Subscription",
-  caregiver: "Caregiver",
+  caregiver: "Professional Dashboard",
   health: "Health & Support",
 };
 
 // Custom path overrides to handle special navigation paths
 const customPathMap: Record<string, string> = {
-  "/caregiver/health": "/dashboard/professional", // Maps the caregiver breadcrumb to professional dashboard
+  "/caregiver/health": "/dashboard/professional",
 };
 
 const getBreadcrumbItems = (pathname: string): BreadcrumbItem[] => {
@@ -58,7 +57,7 @@ const getBreadcrumbItems = (pathname: string): BreadcrumbItem[] => {
       breadcrumbItems.push({
         label: `Module ${paths[index + 1]}`,
         path: currentPath,
-        isLoading: true, // Mark for loading the actual module title
+        isLoading: true,
       });
       return;
     }
@@ -68,7 +67,7 @@ const getBreadcrumbItems = (pathname: string): BreadcrumbItem[] => {
       breadcrumbItems.push({
         label: `Lesson ${paths[index + 1]}`,
         path: currentPath,
-        isLoading: true, // Mark for loading the actual lesson title
+        isLoading: true,
       });
       return;
     }
