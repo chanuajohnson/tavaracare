@@ -1,4 +1,3 @@
-
 import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -17,7 +16,7 @@ import { supabase } from "@/lib/supabase";
 import { useJourneyTracking } from "@/hooks/useJourneyTracking";
 import { useTracking } from "@/hooks/useTracking";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { Calendar, Sun, Moon, Home } from "lucide-react";
+import { Calendar, Sun, Moon, Home, Clock as ClockIcon } from "lucide-react";
 
 export const NextStepsPanel = () => {
   const { user } = useAuth();
@@ -286,6 +285,81 @@ export const NextStepsPanel = () => {
     }
   };
 
+  // Define the availability options - THIS WAS THE PART WITH THE ERROR
+  // Changed to ensure each option is stored as a string value
+  const availabilityOptions = [
+    {
+      id: "standard-weekday",
+      label: "Monday – Friday, 8 AM – 4 PM",
+      description: "Standard daytime coverage",
+      icon: <Sun className="h-4 w-4 mr-2 text-amber-400" />,
+      value: "Monday – Friday, 8 AM – 4 PM (Standard daytime coverage)"
+    },
+    {
+      id: "extended-weekday",
+      label: "Monday – Friday, 6 AM – 6 PM",
+      description: "Extended daytime coverage",
+      icon: <Sun className="h-4 w-4 mr-2 text-amber-500" />,
+      value: "Monday – Friday, 6 AM – 6 PM (Extended daytime coverage)"
+    },
+    {
+      id: "weekday-night",
+      label: "Monday – Friday, 6 PM – 8 AM",
+      description: "Nighttime coverage",
+      icon: <Moon className="h-4 w-4 mr-2 text-indigo-400" />,
+      value: "Monday – Friday, 6 PM – 8 AM (Nighttime coverage)"
+    },
+    {
+      id: "weekend-day",
+      label: "Saturday – Sunday, 6 AM – 6 PM",
+      description: "Daytime weekend coverage",
+      icon: <Calendar className="h-4 w-4 mr-2 text-green-500" />,
+      value: "Saturday – Sunday, 6 AM – 6 PM (Daytime weekend coverage)"
+    },
+    {
+      id: "evening-shift-1",
+      label: "Weekday Evening Shift (4 PM – 6 AM)",
+      description: "",
+      icon: <Moon className="h-4 w-4 mr-2 text-purple-400" />,
+      value: "Weekday Evening Shift (4 PM – 6 AM)"
+    },
+    {
+      id: "evening-shift-2",
+      label: "Weekday Evening Shift (4 PM – 8 AM)",
+      description: "",
+      icon: <Moon className="h-4 w-4 mr-2 text-purple-500" />,
+      value: "Weekday Evening Shift (4 PM – 8 AM)"
+    },
+    {
+      id: "evening-shift-3",
+      label: "Weekday Evening Shift (6 PM – 6 AM)",
+      description: "",
+      icon: <Moon className="h-4 w-4 mr-2 text-purple-600" />,
+      value: "Weekday Evening Shift (6 PM – 6 AM)"
+    },
+    {
+      id: "evening-shift-4",
+      label: "Weekday Evening Shift (6 PM – 8 AM)",
+      description: "",
+      icon: <Moon className="h-4 w-4 mr-2 text-purple-700" />,
+      value: "Weekday Evening Shift (6 PM – 8 AM)"
+    },
+    {
+      id: "flexible",
+      label: "Flexible / On-Demand Availability",
+      description: "",
+      icon: <ClockIcon className="h-4 w-4 mr-2 text-blue-500" />,
+      value: "Flexible / On-Demand Availability"
+    },
+    {
+      id: "live-in",
+      label: "Live-In Care",
+      description: "Full-time in-home support",
+      icon: <Home className="h-4 w-4 mr-2 text-green-600" />,
+      value: "Live-In Care (Full-time in-home support)"
+    }
+  ];
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -370,107 +444,136 @@ export const NextStepsPanel = () => {
           <div className="py-4">
             <div className="space-y-5">
               <div>
-                <h3 className="text-sm font-medium mb-2 flex items-center">
-                  <Calendar className="h-4 w-4 mr-2 text-primary" /> Preferred Work Hours (Select all that apply)
+                <h3 className="text-sm font-medium mb-3 flex items-center">
+                  <Calendar className="h-4 w-4 mr-2 text-primary" /> 
+                  Select your available shifts
                 </h3>
-                <div className="space-y-3">
-                  <div className="flex items-center space-x-2">
-                    <Checkbox 
-                      id="daytime" 
-                      checked={selectedAvailability.includes("Daytime (8 AM - 5 PM)")}
-                      onCheckedChange={(checked) => {
-                        if (checked) {
-                          setSelectedAvailability([...selectedAvailability, "Daytime (8 AM - 5 PM)"]);
-                        } else {
-                          setSelectedAvailability(selectedAvailability.filter(a => a !== "Daytime (8 AM - 5 PM)"));
-                        }
-                      }}
-                    />
-                    <Label htmlFor="daytime" className="flex items-center">
-                      <Sun className="h-4 w-4 mr-2 text-amber-400" /> Daytime (8 AM - 5 PM)
-                    </Label>
+                
+                {/* Standard Weekday Shifts */}
+                <div className="mb-4">
+                  <h4 className="text-xs uppercase text-gray-500 font-medium mb-2">🗓️ Standard Weekday Shifts</h4>
+                  <div className="space-y-2">
+                    {availabilityOptions.slice(0, 3).map(option => (
+                      <div key={option.id} className="flex items-center space-x-2">
+                        <Checkbox 
+                          id={option.id} 
+                          checked={selectedAvailability.includes(option.value)}
+                          onCheckedChange={(checked) => {
+                            if (checked) {
+                              setSelectedAvailability([...selectedAvailability, option.value]);
+                            } else {
+                              setSelectedAvailability(selectedAvailability.filter(a => a !== option.value));
+                            }
+                          }}
+                        />
+                        <Label htmlFor={option.id} className="flex items-center">
+                          {option.icon}
+                          <span>{option.label}</span>
+                          {option.description && (
+                            <span className="text-xs text-gray-500 ml-1">({option.description})</span>
+                          )}
+                        </Label>
+                      </div>
+                    ))}
                   </div>
-                  
-                  <div className="flex items-center space-x-2">
-                    <Checkbox 
-                      id="night-shifts" 
-                      checked={selectedAvailability.includes("Night Shifts (5 PM - 8 AM)")}
-                      onCheckedChange={(checked) => {
-                        if (checked) {
-                          setSelectedAvailability([...selectedAvailability, "Night Shifts (5 PM - 8 AM)"]);
-                        } else {
-                          setSelectedAvailability(selectedAvailability.filter(a => a !== "Night Shifts (5 PM - 8 AM)"));
-                        }
-                      }}
-                    />
-                    <Label htmlFor="night-shifts" className="flex items-center">
-                      <Moon className="h-4 w-4 mr-2 text-indigo-400" /> Night Shifts (5 PM - 8 AM)
-                    </Label>
+                </div>
+                
+                {/* Weekend Shifts */}
+                <div className="mb-4">
+                  <h4 className="text-xs uppercase text-gray-500 font-medium mb-2">📅 Weekend Shifts</h4>
+                  <div className="space-y-2">
+                    {availabilityOptions.slice(3, 4).map(option => (
+                      <div key={option.id} className="flex items-center space-x-2">
+                        <Checkbox 
+                          id={option.id} 
+                          checked={selectedAvailability.includes(option.value)}
+                          onCheckedChange={(checked) => {
+                            if (checked) {
+                              setSelectedAvailability([...selectedAvailability, option.value]);
+                            } else {
+                              setSelectedAvailability(selectedAvailability.filter(a => a !== option.value));
+                            }
+                          }}
+                        />
+                        <Label htmlFor={option.id} className="flex items-center">
+                          {option.icon}
+                          <span>{option.label}</span>
+                          {option.description && (
+                            <span className="text-xs text-gray-500 ml-1">({option.description})</span>
+                          )}
+                        </Label>
+                      </div>
+                    ))}
                   </div>
-                  
-                  <div className="flex items-center space-x-2">
-                    <Checkbox 
-                      id="weekends-only" 
-                      checked={selectedAvailability.includes("Weekends Only")}
-                      onCheckedChange={(checked) => {
-                        if (checked) {
-                          setSelectedAvailability([...selectedAvailability, "Weekends Only"]);
-                        } else {
-                          setSelectedAvailability(selectedAvailability.filter(a => a !== "Weekends Only"));
-                        }
-                      }}
-                    />
-                    <Label htmlFor="weekends-only" className="flex items-center">
-                      <span className="mr-2">📅</span> Weekends Only
-                    </Label>
+                </div>
+                
+                {/* Evening & Overnight Shifts */}
+                <div className="mb-4">
+                  <h4 className="text-xs uppercase text-gray-500 font-medium mb-2">🌆 Evening & Overnight Shifts</h4>
+                  <div className="space-y-2">
+                    {availabilityOptions.slice(4, 8).map(option => (
+                      <div key={option.id} className="flex items-center space-x-2">
+                        <Checkbox 
+                          id={option.id} 
+                          checked={selectedAvailability.includes(option.value)}
+                          onCheckedChange={(checked) => {
+                            if (checked) {
+                              setSelectedAvailability([...selectedAvailability, option.value]);
+                            } else {
+                              setSelectedAvailability(selectedAvailability.filter(a => a !== option.value));
+                            }
+                          }}
+                        />
+                        <Label htmlFor={option.id} className="flex items-center">
+                          {option.icon}
+                          <span>{option.label}</span>
+                        </Label>
+                      </div>
+                    ))}
                   </div>
-                  
-                  <div className="flex items-center space-x-2">
-                    <Checkbox 
-                      id="flexible" 
-                      checked={selectedAvailability.includes("Flexible / On-Demand Availability")}
-                      onCheckedChange={(checked) => {
-                        if (checked) {
-                          setSelectedAvailability([...selectedAvailability, "Flexible / On-Demand Availability"]);
-                        } else {
-                          setSelectedAvailability(selectedAvailability.filter(a => a !== "Flexible / On-Demand Availability"));
-                        }
-                      }}
-                    />
-                    <Label htmlFor="flexible" className="flex items-center">
-                      <span className="mr-2">⌛</span> Flexible / On-Demand Availability
-                    </Label>
+                </div>
+                
+                {/* Other Options */}
+                <div className="mb-4">
+                  <h4 className="text-xs uppercase text-gray-500 font-medium mb-2">🔄 Other Options</h4>
+                  <div className="space-y-2">
+                    {availabilityOptions.slice(8, 10).map(option => (
+                      <div key={option.id} className="flex items-center space-x-2">
+                        <Checkbox 
+                          id={option.id} 
+                          checked={selectedAvailability.includes(option.value)}
+                          onCheckedChange={(checked) => {
+                            if (checked) {
+                              setSelectedAvailability([...selectedAvailability, option.value]);
+                            } else {
+                              setSelectedAvailability(selectedAvailability.filter(a => a !== option.value));
+                            }
+                          }}
+                        />
+                        <Label htmlFor={option.id} className="flex items-center">
+                          {option.icon}
+                          <span>{option.label}</span>
+                          {option.description && (
+                            <span className="text-xs text-gray-500 ml-1">({option.description})</span>
+                          )}
+                        </Label>
+                      </div>
+                    ))}
                   </div>
-                  
-                  <div className="flex items-center space-x-2">
-                    <Checkbox 
-                      id="live-in" 
-                      checked={selectedAvailability.includes("Live-In Care (Full-time in-home support)")}
-                      onCheckedChange={(checked) => {
-                        if (checked) {
-                          setSelectedAvailability([...selectedAvailability, "Live-In Care (Full-time in-home support)"]);
-                        } else {
-                          setSelectedAvailability(selectedAvailability.filter(a => a !== "Live-In Care (Full-time in-home support)"));
-                        }
-                      }}
-                    />
-                    <Label htmlFor="live-in" className="flex items-center">
-                      <Home className="h-4 w-4 mr-2 text-green-600" /> Live-In Care (Full-time in-home support)
-                    </Label>
-                  </div>
-                  
-                  <div className="space-y-1 pt-2">
-                    <Label htmlFor="other-availability" className="flex items-center mb-1">
-                      <span className="mr-2">✏️</span> Other (Custom shift — specify your hours):
-                    </Label>
-                    <textarea
-                      id="other-availability"
-                      value={otherAvailability}
-                      onChange={(e) => setOtherAvailability(e.target.value)}
-                      className="w-full h-20 px-3 py-2 text-sm border rounded-md"
-                      placeholder="Please specify any other availability or special arrangements..."
-                    />
-                  </div>
+                </div>
+
+                {/* Custom Shift Option */}
+                <div className="space-y-1 pt-2">
+                  <Label htmlFor="other-availability" className="flex items-center mb-1">
+                    <span className="mr-2">✏️</span> Other (Custom shift — specify your hours):
+                  </Label>
+                  <textarea
+                    id="other-availability"
+                    value={otherAvailability}
+                    onChange={(e) => setOtherAvailability(e.target.value)}
+                    className="w-full h-20 px-3 py-2 text-sm border rounded-md"
+                    placeholder="Please specify any other availability or special arrangements..."
+                  />
                 </div>
               </div>
             </div>
