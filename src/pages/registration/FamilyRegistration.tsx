@@ -13,6 +13,7 @@ import { useToast } from '../../components/ui/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { Avatar, AvatarFallback, AvatarImage } from '../../components/ui/avatar';
 import { toast } from 'sonner';
+import { Calendar, Sun, Moon, Clock, Home } from "lucide-react";
 
 const FamilyRegistration = () => {
   const [loading, setLoading] = useState(false);
@@ -34,7 +35,8 @@ const FamilyRegistration = () => {
   
   const [caregiverType, setCaregiverType] = useState('');
   const [preferredContactMethod, setPreferredContactMethod] = useState('');
-  const [careSchedule, setCareSchedule] = useState('');
+  const [careSchedule, setCareSchedule] = useState<string[]>([]);
+  const [customSchedule, setCustomSchedule] = useState('');
   const [caregiverPreferences, setCaregiverPreferences] = useState('');
   const [emergencyContact, setEmergencyContact] = useState('');
   const [budgetPreferences, setBudgetPreferences] = useState('');
@@ -112,7 +114,12 @@ const FamilyRegistration = () => {
             setOtherSpecialNeeds(profileData.other_special_needs || '');
             setCaregiverType(profileData.caregiver_type || '');
             setPreferredContactMethod(profileData.preferred_contact_method || '');
-            setCareSchedule(profileData.care_schedule || '');
+            setCareSchedule(profileData.care_schedule ? 
+              (typeof profileData.care_schedule === 'string' ? 
+                [profileData.care_schedule] : 
+                profileData.care_schedule) : 
+              []);
+            setCustomSchedule(profileData.custom_schedule || '');
             setBudgetPreferences(profileData.budget_preferences || '');
             setCaregiverPreferences(profileData.caregiver_preferences || '');
             setEmergencyContact(profileData.emergency_contact || '');
@@ -208,6 +215,28 @@ const FamilyRegistration = () => {
     reader.readAsDataURL(file);
   };
 
+  const handleCareScheduleChange = (value: string) => {
+    setCareSchedule(prev => {
+      if (prev.includes(value)) {
+        return prev.filter(item => item !== value);
+      } else {
+        return [...prev, value];
+      }
+    });
+  };
+
+  const handleCheckboxArrayChange = (
+    value: string, 
+    currentArray: string[], 
+    setFunction: React.Dispatch<React.SetStateAction<string[]>>
+  ) => {
+    if (currentArray.includes(value)) {
+      setFunction(currentArray.filter(item => item !== value));
+    } else {
+      setFunction([...currentArray, value]);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -236,7 +265,7 @@ const FamilyRegistration = () => {
         setLoading(false);
         return;
       }
-      
+
       let uploadedAvatarUrl = avatarUrl;
       
       if (avatarFile) {
@@ -284,7 +313,8 @@ const FamilyRegistration = () => {
         other_special_needs: otherSpecialNeeds || '',
         caregiver_type: caregiverType || '',
         preferred_contact_method: preferredContactMethod || '',
-        care_schedule: careSchedule || '',
+        care_schedule: careSchedule || [],
+        custom_schedule: customSchedule || '',
         budget_preferences: budgetPreferences || '',
         caregiver_preferences: caregiverPreferences || '',
         emergency_contact: emergencyContact || '',
@@ -312,18 +342,6 @@ const FamilyRegistration = () => {
       toast.error(error.message || 'Failed to update profile. Please try again.');
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleCheckboxArrayChange = (
-    value: string, 
-    currentArray: string[], 
-    setFunction: React.Dispatch<React.SetStateAction<string[]>>
-  ) => {
-    if (currentArray.includes(value)) {
-      setFunction(currentArray.filter(item => item !== value));
-    } else {
-      setFunction([...currentArray, value]);
     }
   };
 
@@ -583,15 +601,172 @@ const FamilyRegistration = () => {
               Help us better understand your specific needs and preferences.
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="careSchedule">Care Schedule & Availability – Preferred care hours</Label>
-              <Input 
-                id="careSchedule" 
-                placeholder="e.g., Mon-Fri, 8 AM - 5 PM" 
-                value={careSchedule} 
-                onChange={(e) => setCareSchedule(e.target.value)}
-              />
+          <CardContent className="space-y-6">
+            <div className="space-y-4">
+              <Label className="text-base font-medium">Care Schedule & Availability – Preferred care hours</Label>
+              <p className="text-sm text-gray-500 mb-4">Select the care schedule options that best fit your needs. This helps us match you with caregivers who have matching availability.</p>
+              
+              <div className="space-y-5">
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <Calendar className="h-5 w-5 text-primary" />
+                    <span className="font-medium">Standard Weekday Shifts</span>
+                  </div>
+                  <div className="pl-7 space-y-3">
+                    <div className="flex items-start space-x-2">
+                      <Checkbox 
+                        id="weekday-standard" 
+                        checked={careSchedule.includes('weekday_standard')}
+                        onCheckedChange={() => handleCareScheduleChange('weekday_standard')}
+                      />
+                      <Label htmlFor="weekday-standard" className="font-normal">
+                        ☀️ Monday – Friday, 8 AM – 4 PM (Standard daytime coverage)
+                      </Label>
+                    </div>
+                    <div className="flex items-start space-x-2">
+                      <Checkbox 
+                        id="weekday-extended" 
+                        checked={careSchedule.includes('weekday_extended')}
+                        onCheckedChange={() => handleCareScheduleChange('weekday_extended')}
+                      />
+                      <Label htmlFor="weekday-extended" className="font-normal">
+                        🕕 Monday – Friday, 6 AM – 6 PM (Extended daytime coverage)
+                      </Label>
+                    </div>
+                    <div className="flex items-start space-x-2">
+                      <Checkbox 
+                        id="weekday-night" 
+                        checked={careSchedule.includes('weekday_night')}
+                        onCheckedChange={() => handleCareScheduleChange('weekday_night')}
+                      />
+                      <Label htmlFor="weekday-night" className="font-normal">
+                        🌙 Monday – Friday, 6 PM – 8 AM (Nighttime coverage)
+                      </Label>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <Sun className="h-5 w-5 text-primary" />
+                    <span className="font-medium">Weekend Shifts</span>
+                  </div>
+                  <div className="pl-7 space-y-3">
+                    <div className="flex items-start space-x-2">
+                      <Checkbox 
+                        id="weekend-day" 
+                        checked={careSchedule.includes('weekend_day')}
+                        onCheckedChange={() => handleCareScheduleChange('weekend_day')}
+                      />
+                      <Label htmlFor="weekend-day" className="font-normal">
+                        🌞 Saturday – Sunday, 6 AM – 6 PM (Daytime weekend coverage)
+                      </Label>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <Moon className="h-5 w-5 text-primary" />
+                    <span className="font-medium">Evening & Overnight Shifts</span>
+                  </div>
+                  <div className="pl-7 space-y-3">
+                    <div className="flex items-start space-x-2">
+                      <Checkbox 
+                        id="evening-4-6" 
+                        checked={careSchedule.includes('evening_4_6')}
+                        onCheckedChange={() => handleCareScheduleChange('evening_4_6')}
+                      />
+                      <Label htmlFor="evening-4-6" className="font-normal">
+                        🌙 Weekday Evening Shift (4 PM – 6 AM)
+                      </Label>
+                    </div>
+                    <div className="flex items-start space-x-2">
+                      <Checkbox 
+                        id="evening-4-8" 
+                        checked={careSchedule.includes('evening_4_8')}
+                        onCheckedChange={() => handleCareScheduleChange('evening_4_8')}
+                      />
+                      <Label htmlFor="evening-4-8" className="font-normal">
+                        🌙 Weekday Evening Shift (4 PM – 8 AM)
+                      </Label>
+                    </div>
+                    <div className="flex items-start space-x-2">
+                      <Checkbox 
+                        id="evening-6-6" 
+                        checked={careSchedule.includes('evening_6_6')}
+                        onCheckedChange={() => handleCareScheduleChange('evening_6_6')}
+                      />
+                      <Label htmlFor="evening-6-6" className="font-normal">
+                        🌙 Weekday Evening Shift (6 PM – 6 AM)
+                      </Label>
+                    </div>
+                    <div className="flex items-start space-x-2">
+                      <Checkbox 
+                        id="evening-6-8" 
+                        checked={careSchedule.includes('evening_6_8')}
+                        onCheckedChange={() => handleCareScheduleChange('evening_6_8')}
+                      />
+                      <Label htmlFor="evening-6-8" className="font-normal">
+                        🌙 Weekday Evening Shift (6 PM – 8 AM)
+                      </Label>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <Clock className="h-5 w-5 text-primary" />
+                    <span className="font-medium">Other Options</span>
+                  </div>
+                  <div className="pl-7 space-y-3">
+                    <div className="flex items-start space-x-2">
+                      <Checkbox 
+                        id="flexible" 
+                        checked={careSchedule.includes('flexible')}
+                        onCheckedChange={() => handleCareScheduleChange('flexible')}
+                      />
+                      <Label htmlFor="flexible" className="font-normal">
+                        ⏳ Flexible / On-Demand Availability
+                      </Label>
+                    </div>
+                    <div className="flex items-start space-x-2">
+                      <Checkbox 
+                        id="live-in" 
+                        checked={careSchedule.includes('live_in')}
+                        onCheckedChange={() => handleCareScheduleChange('live_in')}
+                      />
+                      <Label htmlFor="live-in" className="font-normal">
+                        🏡 Live-In Care (Full-time in-home support)
+                      </Label>
+                    </div>
+                    <div className="flex items-start space-x-2">
+                      <Checkbox 
+                        id="custom" 
+                        checked={careSchedule.includes('custom')}
+                        onCheckedChange={() => handleCareScheduleChange('custom')}
+                      />
+                      <Label htmlFor="custom" className="font-normal">
+                        ✏️ Other (Custom shift — specify your hours)
+                      </Label>
+                    </div>
+                    
+                    {careSchedule.includes('custom') && (
+                      <div className="pt-2 pl-6">
+                        <Label htmlFor="customSchedule" className="text-sm mb-1 block">Please specify your custom schedule:</Label>
+                        <Textarea
+                          id="customSchedule"
+                          placeholder="Describe your specific schedule needs"
+                          value={customSchedule}
+                          onChange={(e) => setCustomSchedule(e.target.value)}
+                          rows={2}
+                          className="w-full"
+                        />
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
             </div>
 
             <div className="space-y-2">
