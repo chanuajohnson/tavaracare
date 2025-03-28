@@ -16,6 +16,8 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase";
 import { useJourneyTracking } from "@/hooks/useJourneyTracking";
 import { useTracking } from "@/hooks/useTracking";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { Calendar, Sun, Moon, Home } from "lucide-react";
 
 export const NextStepsPanel = () => {
   const { user } = useAuth();
@@ -449,10 +451,12 @@ export const NextStepsPanel = () => {
             </DialogDescription>
           </DialogHeader>
           <div className="py-4">
-            <div className="space-y-4">
+            <div className="space-y-5">
               <div>
-                <h3 className="text-sm font-medium mb-2">Standard Weekday Shifts</h3>
-                <div className="space-y-2">
+                <h3 className="text-sm font-medium mb-2 flex items-center">
+                  <Calendar className="h-4 w-4 mr-2 text-primary" /> Standard Weekday Shifts
+                </h3>
+                <div className="space-y-3">
                   <div className="flex items-center space-x-2">
                     <Checkbox 
                       id="weekday-standard" 
@@ -465,7 +469,9 @@ export const NextStepsPanel = () => {
                         }
                       }}
                     />
-                    <Label htmlFor="weekday-standard">Monday - Friday, 8 AM - 4 PM (Standard daytime coverage)</Label>
+                    <Label htmlFor="weekday-standard" className="flex items-center">
+                      <Sun className="h-4 w-4 mr-2 text-amber-400" /> Monday - Friday, 8 AM - 4 PM (Standard daytime coverage)
+                    </Label>
                   </div>
                   <div className="flex items-center space-x-2">
                     <Checkbox 
@@ -479,7 +485,9 @@ export const NextStepsPanel = () => {
                         }
                       }}
                     />
-                    <Label htmlFor="weekday-extended">Monday - Friday, 6 AM - 6 PM (Extended daytime coverage)</Label>
+                    <Label htmlFor="weekday-extended" className="flex items-center">
+                      <Sun className="h-4 w-4 mr-2 text-amber-400" /> Monday - Friday, 6 AM - 6 PM (Extended daytime coverage)
+                    </Label>
                   </div>
                   <div className="flex items-center space-x-2">
                     <Checkbox 
@@ -493,14 +501,18 @@ export const NextStepsPanel = () => {
                         }
                       }}
                     />
-                    <Label htmlFor="weekday-night">Monday - Friday, 6 PM - 8 AM (Nighttime coverage)</Label>
+                    <Label htmlFor="weekday-night" className="flex items-center">
+                      <Moon className="h-4 w-4 mr-2 text-indigo-400" /> Monday - Friday, 6 PM - 8 AM (Nighttime coverage)
+                    </Label>
                   </div>
                 </div>
               </div>
 
               <div>
-                <h3 className="text-sm font-medium mb-2">Weekend Shifts</h3>
-                <div className="space-y-2">
+                <h3 className="text-sm font-medium mb-2 flex items-center">
+                  <Calendar className="h-4 w-4 mr-2 text-primary" /> Weekend Shifts
+                </h3>
+                <div className="space-y-3">
                   <div className="flex items-center space-x-2">
                     <Checkbox 
                       id="weekend-day" 
@@ -513,14 +525,18 @@ export const NextStepsPanel = () => {
                         }
                       }}
                     />
-                    <Label htmlFor="weekend-day">Saturday - Sunday, 6 AM - 6 PM (Daytime weekend coverage)</Label>
+                    <Label htmlFor="weekend-day" className="flex items-center">
+                      <Sun className="h-4 w-4 mr-2 text-amber-400" /> Saturday - Sunday, 6 AM - 6 PM (Daytime weekend coverage)
+                    </Label>
                   </div>
                 </div>
               </div>
 
               <div>
-                <h3 className="text-sm font-medium mb-2">Evening Shifts</h3>
-                <div className="space-y-2">
+                <h3 className="text-sm font-medium mb-2 flex items-center">
+                  <Calendar className="h-4 w-4 mr-2 text-primary" /> Evening & Overnight Shifts
+                </h3>
+                <div className="space-y-3">
                   <div className="flex items-center space-x-2">
                     <Checkbox 
                       id="evening-1" 
@@ -533,7 +549,9 @@ export const NextStepsPanel = () => {
                         }
                       }}
                     />
-                    <Label htmlFor="evening-1">Weekday Evening Shift (4 PM - 6 AM)</Label>
+                    <Label htmlFor="evening-1" className="flex items-center">
+                      <Moon className="h-4 w-4 mr-2 text-indigo-400" /> Weekday Evening Shift (4 PM - 6 AM)
+                    </Label>
                   </div>
                   <div className="flex items-center space-x-2">
                     <Checkbox 
@@ -547,7 +565,9 @@ export const NextStepsPanel = () => {
                         }
                       }}
                     />
-                    <Label htmlFor="evening-2">Weekday Evening Shift (4 PM - 8 AM)</Label>
+                    <Label htmlFor="evening-2" className="flex items-center">
+                      <Moon className="h-4 w-4 mr-2 text-indigo-400" /> Weekday Evening Shift (4 PM - 8 AM)
+                    </Label>
                   </div>
                   <div className="flex items-center space-x-2">
                     <Checkbox 
@@ -561,7 +581,9 @@ export const NextStepsPanel = () => {
                         }
                       }}
                     />
-                    <Label htmlFor="evening-3">Weekday Evening Shift (6 PM - 6 AM)</Label>
+                    <Label htmlFor="evening-3" className="flex items-center">
+                      <Moon className="h-4 w-4 mr-2 text-indigo-400" /> Weekday Evening Shift (6 PM - 6 AM)
+                    </Label>
                   </div>
                   <div className="flex items-center space-x-2">
                     <Checkbox 
@@ -575,30 +597,38 @@ export const NextStepsPanel = () => {
                         }
                       }}
                     />
-                    <Label htmlFor="evening-4">Weekday Evening Shift (6 PM - 8 AM)</Label>
+                    <Label htmlFor="evening-4" className="flex items-center">
+                      <Moon className="h-4 w-4 mr-2 text-indigo-400" /> Weekday Evening Shift (6 PM - 8 AM)
+                    </Label>
                   </div>
                 </div>
               </div>
 
               <div>
-                <h3 className="text-sm font-medium mb-2">Other Options</h3>
+                <h3 className="text-sm font-medium mb-2 flex items-center">
+                  <Calendar className="h-4 w-4 mr-2 text-primary" /> Other Options
+                </h3>
                 <div className="space-y-2">
                   <div className="flex items-center space-x-2">
                     <Checkbox 
                       id="on-demand" 
-                      checked={selectedAvailability.includes("On-Demand (As Needed)")}
+                      checked={selectedAvailability.includes("Flexible / On-Demand Availability")}
                       onCheckedChange={(checked) => {
                         if (checked) {
-                          setSelectedAvailability([...selectedAvailability, "On-Demand (As Needed)"]);
+                          setSelectedAvailability([...selectedAvailability, "Flexible / On-Demand Availability"]);
                         } else {
-                          setSelectedAvailability(selectedAvailability.filter(a => a !== "On-Demand (As Needed)"));
+                          setSelectedAvailability(selectedAvailability.filter(a => a !== "Flexible / On-Demand Availability"));
                         }
                       }}
                     />
-                    <Label htmlFor="on-demand">On-Demand (As Needed)</Label>
+                    <Label htmlFor="on-demand" className="flex items-center">
+                      <Clock className="h-4 w-4 mr-2 text-gray-600" /> Flexible / On-Demand Availability
+                    </Label>
                   </div>
                   <div className="space-y-1 pt-2">
-                    <Label htmlFor="other-availability">Other (Please specify):</Label>
+                    <Label htmlFor="other-availability" className="flex items-center mb-1">
+                      <Clock className="h-4 w-4 mr-2 text-gray-600" /> Other (Custom shift — specify your hours):
+                    </Label>
                     <textarea
                       id="other-availability"
                       value={otherAvailability}
@@ -606,6 +636,22 @@ export const NextStepsPanel = () => {
                       className="w-full h-20 px-3 py-2 text-sm border rounded-md"
                       placeholder="Please specify any other availability or special arrangements..."
                     />
+                  </div>
+                  <div className="flex items-center space-x-2 mt-3">
+                    <Checkbox 
+                      id="live-in" 
+                      checked={selectedAvailability.includes("Live-In Care (Full-time in-home support)")}
+                      onCheckedChange={(checked) => {
+                        if (checked) {
+                          setSelectedAvailability([...selectedAvailability, "Live-In Care (Full-time in-home support)"]);
+                        } else {
+                          setSelectedAvailability(selectedAvailability.filter(a => a !== "Live-In Care (Full-time in-home support)"));
+                        }
+                      }}
+                    />
+                    <Label htmlFor="live-in" className="flex items-center">
+                      <Home className="h-4 w-4 mr-2 text-green-600" /> Live-In Care (Full-time in-home support)
+                    </Label>
                   </div>
                 </div>
               </div>
