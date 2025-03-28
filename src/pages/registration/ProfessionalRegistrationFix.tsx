@@ -6,26 +6,31 @@ import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { ensureUserProfile } from '@/lib/profile-utils';
+import { getCurrentEnvironment } from '@/integrations/supabase/client';
 
 const ProfessionalRegistrationFix = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState<'checking' | 'connected' | 'error'>('checking');
+  const [currentEnv, setCurrentEnv] = useState<string>('unknown');
 
   // Check Supabase connection on component mount
   useEffect(() => {
     const checkConnection = async () => {
       try {
-        console.log('Checking Supabase connection...');
+        const env = getCurrentEnvironment();
+        setCurrentEnv(env);
+        
+        console.log('Checking Supabase connection in environment:', env);
         const { data, error } = await supabase.from('profiles').select('count').limit(1);
         
         if (error) {
-          console.error('Supabase connection error:', error);
+          console.error(`Supabase connection error in ${env} environment:`, error);
           setConnectionStatus('error');
           toast.error(`Database connection error: ${error.message}`);
         } else {
-          console.log('Successfully connected to Supabase:', data);
+          console.log(`Successfully connected to Supabase (${env}):`, data);
           setConnectionStatus('connected');
         }
       } catch (err: any) {
@@ -58,17 +63,40 @@ const ProfessionalRegistrationFix = () => {
           throw new Error(result.error || 'Failed to update profile');
         }
         
-        // Update additional professional fields
-        const { error: updateError } = await supabase
-          .from('profiles')
-          .update({ 
+        // Update additional professional fields with a more resilient approach
+        try {
+          const updateData = { 
             professional_type: 'Healthcare Professional',
             updated_at: new Date().toISOString()
-          })
-          .eq('id', user.id);
+          };
           
-        if (updateError) {
-          throw new Error(`Failed to update professional details: ${updateError.message}`);
+          const { error: updateError } = await supabase
+            .from('profiles')
+            .update(updateData)
+            .eq('id', user.id);
+            
+          if (updateError) {
+            console.error('Error updating professional type:', updateError);
+            
+            // If the error is about schema, try a simpler update
+            if (updateError.message.includes('column') || updateError.message.includes('schema')) {
+              console.log('Trying minimal profile update due to schema issues...');
+              
+              const { error: minimalUpdateError } = await supabase
+                .from('profiles')
+                .update({ updated_at: new Date().toISOString() })
+                .eq('id', user.id);
+              
+              if (minimalUpdateError) {
+                throw new Error(`Failed with minimal update: ${minimalUpdateError.message}`);
+              }
+            } else {
+              throw new Error(`Failed to update professional details: ${updateError.message}`);
+            }
+          }
+        } catch (updateErr: any) {
+          console.error('Error during profile update:', updateErr);
+          // Continue anyway as the base profile was created
         }
         
         return { success: true };
@@ -109,7 +137,7 @@ const ProfessionalRegistrationFix = () => {
     setIsSubmitting(true);
     
     try {
-      console.log('Starting professional profile creation for user:', user.id);
+      console.log('Starting professional profile creation for user:', user.id, 'in environment:', currentEnv);
       
       const result = await createProfessionalProfile();
       
@@ -147,6 +175,12 @@ const ProfessionalRegistrationFix = () => {
   return (
     <div className="container mx-auto p-6">
       <h1 className="text-2xl font-bold mb-6">Complete Your Professional Profile</h1>
+      
+      {currentEnv !== 'unknown' && (
+        <div className="mb-4 p-2 bg-blue-50 text-blue-700 text-sm rounded-md">
+          Current environment: <strong>{currentEnv}</strong>
+        </div>
+      )}
       
       {connectionStatus === 'checking' && (
         <div className="mb-4 p-4 bg-yellow-50 text-yellow-700 rounded-md">

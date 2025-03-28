@@ -6,6 +6,12 @@ import type { Database } from './types';
 // Use environment variables instead of hardcoded values
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const CURRENT_ENV = import.meta.env.VITE_ENV || 'development';
+
+// Better logging for environment detection
+console.log(`Supabase Client Initialization (${CURRENT_ENV})`);
+console.log(`Supabase URL: ${SUPABASE_URL?.substring(0, 16)}...`);
+console.log(`Environment: ${CURRENT_ENV}`);
 
 // Fallback only for local development without env variables
 if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
@@ -17,13 +23,49 @@ if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
 
 export const supabase = createClient<Database>(
   SUPABASE_URL,
-  SUPABASE_PUBLISHABLE_KEY
+  SUPABASE_PUBLISHABLE_KEY, 
+  {
+    auth: {
+      persistSession: true,
+      autoRefreshToken: true,
+      detectSessionInUrl: true,
+      storageKey: `supabase.auth.token.${CURRENT_ENV}`,
+    },
+    global: {
+      headers: {
+        'x-client-env': CURRENT_ENV,
+      },
+    },
+  }
 );
 
 // Add a helper function to identify the current environment
 export const getCurrentEnvironment = (): 'development' | 'preview' | 'production' => {
-  return import.meta.env.VITE_ENV as 'development' | 'preview' | 'production' || 'development';
+  return CURRENT_ENV as 'development' | 'preview' | 'production' || 'development';
 };
 
-// Log the active environment (helpful for debugging)
+// Log the active environment and URL for debugging
 console.log(`Active environment: ${getCurrentEnvironment()}`);
+console.log(`Using Supabase project: ${SUPABASE_URL}`);
+
+// Helper to detect development vs production environment
+export const isDevelopment = (): boolean => {
+  return getCurrentEnvironment() === 'development';
+};
+
+export const isProduction = (): boolean => {
+  return getCurrentEnvironment() === 'production';
+};
+
+// Function to help debug environment issues
+export const getEnvironmentInfo = () => {
+  return {
+    environment: getCurrentEnvironment(),
+    supabaseUrl: SUPABASE_URL,
+    isDev: isDevelopment(),
+    isProd: isProduction(),
+    clientHeaders: {
+      'x-client-env': CURRENT_ENV,
+    }
+  };
+};

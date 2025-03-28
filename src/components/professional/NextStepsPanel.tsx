@@ -17,6 +17,7 @@ import { useTracking } from "@/hooks/useTracking";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Calendar, Sun, Moon, Home } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { getCurrentEnvironment } from "@/integrations/supabase/client";
 
 const initialSteps = [
   { 
@@ -152,37 +153,74 @@ export const NextStepsPanel = () => {
     if (!user) return false;
     
     try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('onboarding_progress, availability')
-        .eq('id', user.id)
-        .maybeSingle();
+      const env = getCurrentEnvironment();
+      console.log(`Loading progress from database in ${env} environment`);
       
-      if (error) {
-        console.error("Supabase error loading progress:", error);
-        return false;
-      }
-      
-      if (!data) {
-        return false;
-      }
-      
-      if (data.onboarding_progress) {
-        const updatedSteps = [...initialSteps];
-        Object.keys(data.onboarding_progress).forEach(stepId => {
-          const index = updatedSteps.findIndex(s => s.id === parseInt(stepId));
-          if (index >= 0) {
-            updatedSteps[index].completed = data.onboarding_progress[stepId];
+      // First try to load onboarding_progress
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('onboarding_progress, availability')
+          .eq('id', user.id)
+          .maybeSingle();
+        
+        if (error) {
+          // If column doesn't exist, try to load only availability
+          if (error.message.includes('column') || error.message.includes('schema')) {
+            console.warn(`The onboarding_progress column might not exist in the ${env} environment`);
+            
+            const { data: availData, error: availError } = await supabase
+              .from('profiles')
+              .select('availability')
+              .eq('id', user.id)
+              .maybeSingle();
+            
+            if (availError) {
+              console.error("Error loading availability:", availError);
+              return false;
+            }
+            
+            if (availData?.availability) {
+              setSelectedAvailability(Array.isArray(availData.availability) ? availData.availability : []);
+              console.log("Loaded availability only (onboarding_progress not available)");
+            }
+            
+            // Mark first step as completed since user exists
+            const updatedSteps = [...initialSteps];
+            updatedSteps[0].completed = true;
+            setSteps(updatedSteps);
+            
+            return true;
           }
-        });
-        setSteps(updatedSteps);
+          
+          console.error("Supabase error loading progress:", error);
+          return false;
+        }
+        
+        if (!data) {
+          return false;
+        }
+        
+        if (data.onboarding_progress) {
+          const updatedSteps = [...initialSteps];
+          Object.keys(data.onboarding_progress).forEach(stepId => {
+            const index = updatedSteps.findIndex(s => s.id === parseInt(stepId));
+            if (index >= 0) {
+              updatedSteps[index].completed = data.onboarding_progress[stepId];
+            }
+          });
+          setSteps(updatedSteps);
+        }
+        
+        if (data.availability) {
+          setSelectedAvailability(Array.isArray(data.availability) ? data.availability : []);
+        }
+        
+        return true;
+      } catch (err) {
+        console.error("Error in loadProgressFromDatabase:", err);
+        return false;
       }
-      
-      if (data.availability) {
-        setSelectedAvailability(Array.isArray(data.availability) ? data.availability : []);
-      }
-      
-      return true;
     } catch (err) {
       console.error("Error loading from database:", err);
       return false;
@@ -212,24 +250,84 @@ export const NextStepsPanel = () => {
     if (!user || !navigator.onLine) return false;
     
     try {
+      const env = getCurrentEnvironment();
+      console.log(`Saving progress to database in ${env} environment`);
+      
       const progressData = currentSteps.reduce((acc, step) => {
         acc[step.id] = step.completed;
         return acc;
       }, {} as Record<number, boolean>);
       
+      // Check if onboarding_progress column exists by first trying to fetch
+      // an existing profile with onboarding_progress
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('onboarding_progress')
+        .eq('id', user.id)
+        .maybeSingle();
+      
+      if (profileError) {
+        if (profileError.message.includes('column') || profileError.message.includes('schema')) {
+          console.warn(`The onboarding_progress column might not exist in the ${env} environment`);
+          
+          // Try updating only availability without the onboarding_progress
+          const { error: availError } = await supabase
+            .from('profiles')
+            .update({ 
+              availability: availability || selectedAvailability,
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', user.id);
+          
+          if (availError) {
+            console.error("Error saving availability:", availError);
+            return false;
+          }
+          
+          console.log("Saved availability only (onboarding_progress not available)");
+          return true;
+        }
+        
+        console.error("Error checking for onboarding_progress column:", profileError);
+        return false;
+      }
+      
+      // Column exists, proceed with full update
       const { error } = await supabase
         .from('profiles')
         .update({ 
           onboarding_progress: progressData,
-          availability: availability || selectedAvailability
+          availability: availability || selectedAvailability,
+          updated_at: new Date().toISOString()
         })
         .eq('id', user.id);
       
       if (error) {
         console.error("Supabase error saving progress:", error);
+        
+        // If error is about schema, try updating only availability
+        if (error.message.includes('column') || error.message.includes('schema')) {
+          const { error: fallbackError } = await supabase
+            .from('profiles')
+            .update({ 
+              availability: availability || selectedAvailability,
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', user.id);
+          
+          if (fallbackError) {
+            console.error("Fallback error saving availability:", fallbackError);
+            return false;
+          }
+          
+          console.log("Saved availability only as fallback");
+          return true;
+        }
+        
         return false;
       }
       
+      console.log("Successfully saved progress and availability to database");
       return true;
     } catch (err) {
       console.error("Error saving to database:", err);

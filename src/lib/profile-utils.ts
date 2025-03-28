@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabase';
 import { UserRole } from '@/types/database';
+import { getCurrentEnvironment } from '@/integrations/supabase/client';
 
 /**
  * Ensures a user profile exists in the database
@@ -9,7 +10,8 @@ import { UserRole } from '@/types/database';
  */
 export const ensureUserProfile = async (userId: string, role: UserRole = 'family') => {
   try {
-    console.log('Ensuring profile exists for user:', userId, 'with role:', role);
+    const env = getCurrentEnvironment();
+    console.log('Ensuring profile exists for user:', userId, 'with role:', role, 'in environment:', env);
     
     // First check if session is valid
     const { data: { session }, error: sessionError } = await supabase.auth.getSession();
@@ -51,27 +53,38 @@ export const ensureUserProfile = async (userId: string, role: UserRole = 'family
       // If the role doesn't match what was requested, update it
       if (existingProfile.role !== role) {
         console.log(`Updating profile role from ${existingProfile.role} to ${role}`);
-        const { error: updateError } = await supabase
-          .from('profiles')
-          .update({ role: role })
-          .eq('id', userId);
-          
-        if (updateError) {
-          console.error('Error updating profile role:', updateError);
-          return { 
-            success: false, 
-            error: `Profile update error: ${updateError.message}` 
-          };
+        
+        try {
+          const { error: updateError } = await supabase
+            .from('profiles')
+            .update({ role: role })
+            .eq('id', userId);
+            
+          if (updateError) {
+            console.error('Error updating profile role:', updateError);
+            return { 
+              success: false, 
+              error: `Profile update error: ${updateError.message}` 
+            };
+          }
+        } catch (updateErr) {
+          console.error('Unexpected error updating profile role:', updateErr);
+          // Continue with metadata update anyway
         }
         
         // Also update user metadata to keep roles in sync
-        const { error: metadataError } = await supabase.auth.updateUser({
-          data: { role: role }
-        });
-        
-        if (metadataError) {
-          console.error('Error updating user metadata role:', metadataError);
-          // Continue anyway as profile was updated
+        try {
+          const { error: metadataError } = await supabase.auth.updateUser({
+            data: { role: role }
+          });
+          
+          if (metadataError) {
+            console.error('Error updating user metadata role:', metadataError);
+            // Continue anyway as profile was updated
+          }
+        } catch (metaErr) {
+          console.error('Unexpected error updating user metadata:', metaErr);
+          // Continue anyway
         }
       }
       
@@ -80,17 +93,21 @@ export const ensureUserProfile = async (userId: string, role: UserRole = 'family
     
     // Create profile if it doesn't exist
     console.log('Creating new profile for user:', userId, 'with role:', role);
+    
+    // Build base profile object
+    const profileData = {
+      id: userId,
+      role: role,
+      full_name: session.user?.user_metadata?.full_name || '',
+      first_name: session.user?.user_metadata?.first_name || '',
+      last_name: session.user?.user_metadata?.last_name || '',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+    
     const { error: insertError } = await supabase
       .from('profiles')
-      .insert({
-        id: userId,
-        role: role,
-        full_name: session.user?.user_metadata?.full_name || '',
-        first_name: session.user?.user_metadata?.first_name || '',
-        last_name: session.user?.user_metadata?.last_name || '',
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      });
+      .insert(profileData);
     
     if (insertError) {
       console.error('Error creating profile:', insertError);
@@ -119,7 +136,8 @@ export const ensureUserProfile = async (userId: string, role: UserRole = 'family
  */
 export const updateUserProfile = async (userId: string, profileData: any) => {
   try {
-    console.log('Updating profile for user:', userId, 'with data:', profileData);
+    const env = getCurrentEnvironment();
+    console.log('Updating profile for user:', userId, 'with data:', profileData, 'in environment:', env);
     
     // Refresh the session to ensure we have the latest auth state
     const { data: authData, error: authError } = await supabase.auth.refreshSession();
@@ -140,52 +158,108 @@ export const updateUserProfile = async (userId: string, profileData: any) => {
       };
     }
     
-    // Update the profile
-    const { data, error: updateError } = await supabase
-      .from('profiles')
-      .update(profileData)
-      .eq('id', userId)
-      .select();
-    
-    if (updateError) {
-      console.error('Error updating profile:', updateError);
+    // Handle potential schema differences between environments
+    // by checking which fields exist before updating
+    try {
+      // First, get the existing profile to determine available columns
+      const { data: existingProfile, error: getError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .maybeSingle();
+        
+      if (getError) {
+        console.error('Error fetching existing profile:', getError);
+        // Continue with update anyway, the error will be caught if columns don't exist
+      }
+      
+      // Filter profileData to only include fields that exist in the database
+      // or are expected to be there based on standard schema
+      const safeProfileData: Record<string, any> = {};
+      
+      Object.keys(profileData).forEach(key => {
+        // If we have an existing profile to check against
+        if (existingProfile) {
+          // Only include keys that already exist in the profile
+          if (key in existingProfile || key === 'updated_at') {
+            safeProfileData[key] = profileData[key];
+          } else {
+            console.warn(`Field '${key}' not found in existing profile, skipping`);
+          }
+        } else {
+          // If we couldn't fetch the profile, include all basic fields that
+          // should be present in all environments
+          const basicFields = [
+            'role', 'full_name', 'first_name', 'last_name', 
+            'avatar_url', 'updated_at', 'professional_type'
+          ];
+          
+          if (basicFields.includes(key)) {
+            safeProfileData[key] = profileData[key];
+          } else {
+            // For other fields, include them but log a warning
+            safeProfileData[key] = profileData[key];
+            console.warn(`Including field '${key}' without verification, may cause error if not in schema`);
+          }
+        }
+      });
+      
+      // Always include updated_at
+      safeProfileData.updated_at = new Date().toISOString();
+      
+      // Update the profile with filtered data
+      const { data, error: updateError } = await supabase
+        .from('profiles')
+        .update(safeProfileData)
+        .eq('id', userId)
+        .select();
+      
+      if (updateError) {
+        console.error('Error updating profile:', updateError);
+        return { 
+          success: false, 
+          error: `Profile update error: ${updateError.message}` 
+        };
+      }
+      
+      // Force update the user's metadata to keep it in sync with profile
+      if (profileData.role || profileData.full_name || profileData.first_name || profileData.last_name) {
+        try {
+          const metadata: any = {};
+          
+          if (profileData.role) {
+            metadata.role = profileData.role;
+          }
+          
+          if (profileData.full_name) {
+            metadata.full_name = profileData.full_name;
+          }
+          
+          if (profileData.first_name) {
+            metadata.first_name = profileData.first_name;
+          }
+          
+          if (profileData.last_name) {
+            metadata.last_name = profileData.last_name;
+          }
+          
+          console.log('Updating user metadata:', metadata);
+          await supabase.auth.updateUser({ data: metadata });
+        } catch (metadataError) {
+          console.error('Error updating user metadata:', metadataError);
+          // Continue anyway as profile was updated
+        }
+      }
+      
+      console.log('Profile updated successfully, response:', data);
+      return { success: true, data };
+    } catch (updateErr: any) {
+      console.error('Error during profile update process:', updateErr);
       return { 
         success: false, 
-        error: `Profile update error: ${updateError.message}` 
+        error: `Update process error: ${updateErr.message}` 
       };
     }
-    
-    // Force update the user's metadata to keep it in sync with profile
-    if (profileData.role || profileData.full_name || profileData.first_name || profileData.last_name) {
-      try {
-        const metadata: any = {};
-        
-        if (profileData.role) {
-          metadata.role = profileData.role;
-        }
-        
-        if (profileData.full_name) {
-          metadata.full_name = profileData.full_name;
-        }
-        
-        if (profileData.first_name) {
-          metadata.first_name = profileData.first_name;
-        }
-        
-        if (profileData.last_name) {
-          metadata.last_name = profileData.last_name;
-        }
-        
-        console.log('Updating user metadata:', metadata);
-        await supabase.auth.updateUser({ data: metadata });
-      } catch (metadataError) {
-        console.error('Error updating user metadata:', metadataError);
-        // Continue anyway as profile was updated
-      }
-    }
-    
-    console.log('Profile updated successfully, response:', data);
-    return { success: true, data };
   } catch (error: any) {
     console.error('Unexpected error updating profile:', error);
     return { 
