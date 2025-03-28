@@ -2,7 +2,7 @@
 import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { CheckCircle2, Circle, List, ArrowRight, Clock, Upload, FileText } from "lucide-react";
+import { CheckCircle2, Circle, List, ArrowRight, Upload, Clock } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useState, useEffect } from "react";
@@ -27,8 +27,6 @@ export const NextStepsPanel = () => {
   const [selectedAvailability, setSelectedAvailability] = useState<string[]>([]);
   const [otherAvailability, setOtherAvailability] = useState("");
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [isOfflineMode, setIsOfflineMode] = useState(false);
   
   // Track onboarding journey for analytics
   useJourneyTracking({
@@ -90,46 +88,28 @@ export const NextStepsPanel = () => {
       
       try {
         setLoading(true);
-        // Check connection first
-        const isConnected = navigator.onLine;
-        setIsOfflineMode(!isConnected);
         
-        if (isConnected) {
-          // Try to load from Supabase if user is logged in and online
-          const { data, error } = await supabase
-            .from('profiles')
-            .select('onboarding_progress, availability')
-            .eq('id', user.id)
-            .maybeSingle();
-          
-          if (error) {
-            console.error("Error loading progress:", error);
-            setError(`Failed to load progress: ${error.message}`);
-            
-            // If there's an error with Supabase, set offline mode and fall back to localStorage
-            setIsOfflineMode(true);
-            loadProgressFromLocalStorage();
-            return;
-          }
-          
-          if (data) {
-            console.log("Loaded progress data:", data);
-            // Update from database
-            updateProgressFromData(data.onboarding_progress, data.availability);
-          } else {
-            console.log("No progress data found for user:", user.id);
-            // Fall back to localStorage
-            loadProgressFromLocalStorage();
-          }
-        } else {
-          // Offline mode - load from localStorage
-          loadProgressFromLocalStorage();
-        }
-      } catch (err) {
-        console.error("Error in loadProgress:", err);
-        setError(`Unexpected error: ${err instanceof Error ? err.message : String(err)}`);
-        setIsOfflineMode(true);
+        // Always load from localStorage first as a fallback
         loadProgressFromLocalStorage();
+        
+        // Try to load from Supabase if user is logged in and online
+        if (navigator.onLine) {
+          try {
+            const { data, error } = await supabase
+              .from('profiles')
+              .select('onboarding_progress, availability')
+              .eq('id', user.id)
+              .maybeSingle();
+            
+            if (!error && data) {
+              // Update from database
+              updateProgressFromData(data.onboarding_progress, data.availability);
+            }
+          } catch (err) {
+            // Silently fallback to localStorage data
+            console.error("Error loading from Supabase:", err);
+          }
+        }
       } finally {
         setLoading(false);
       }
@@ -161,8 +141,6 @@ export const NextStepsPanel = () => {
     };
     
     const updateProgressFromData = (progressData: any, availabilityData: any) => {
-      console.log("Updating progress from data:", { progressData, availabilityData });
-      
       if (progressData) {
         const updatedSteps = [...steps];
         Object.keys(progressData).forEach(stepId => {
@@ -198,8 +176,6 @@ export const NextStepsPanel = () => {
       }, {} as Record<number, boolean>);
       
       try {
-        console.log("Saving progress:", progressData);
-        
         // Always save to localStorage first as a backup
         localStorage.setItem('professionalOnboardingProgress', JSON.stringify({
           steps: progressData,
@@ -207,28 +183,27 @@ export const NextStepsPanel = () => {
         }));
         
         // Only try to save to Supabase if we're online
-        if (!isOfflineMode) {
-          const { error } = await supabase
-            .from('profiles')
-            .update({ 
-              onboarding_progress: progressData,
-              availability: selectedAvailability
-            })
-            .eq('id', user.id);
-            
-          if (error) {
-            console.error("Error saving progress:", error);
-            setError(`Failed to save progress: ${error.message}`);
+        if (navigator.onLine) {
+          try {
+            await supabase
+              .from('profiles')
+              .update({ 
+                onboarding_progress: progressData,
+                availability: selectedAvailability
+              })
+              .eq('id', user.id);
+          } catch (err) {
+            // Silent fail - data is already in localStorage
+            console.error("Error saving to Supabase:", err);
           }
         }
       } catch (err) {
         console.error("Error in saveProgress:", err);
-        setError(`Unexpected error: ${err instanceof Error ? err.message : String(err)}`);
       }
     };
     
     saveProgress();
-  }, [steps, selectedAvailability, user, isOfflineMode]);
+  }, [steps, selectedAvailability, user]);
 
   // Calculate progress percentage
   const completedSteps = steps.filter(step => step.completed).length;
@@ -237,6 +212,19 @@ export const NextStepsPanel = () => {
   // Handle upload certificates action
   const handleUploadCertificates = () => {
     trackEngagement('upload_documents_click', { step: 'certificates' });
+    
+    // Auto-mark as completed after showing the upload instructions
+    const updatedSteps = [...steps];
+    const index = updatedSteps.findIndex(s => s.id === 2);
+    if (index >= 0 && !updatedSteps[index].completed) {
+      updatedSteps[index].completed = true;
+      setSteps(updatedSteps);
+      
+      trackEngagement('onboarding_step_complete', { 
+        step: 'certificates',
+        progress_percent: Math.round(((completedSteps + 1) / steps.length) * 100)
+      });
+    }
     
     toast({
       title: "📩 Submit Your Documents",
@@ -260,27 +248,6 @@ export const NextStepsPanel = () => {
       ) as any,
       duration: 8000,
     });
-  };
-
-  // Mark certificates as uploaded
-  const markCertificatesUploaded = () => {
-    const updatedSteps = [...steps];
-    const index = updatedSteps.findIndex(s => s.id === 2);
-    if (index >= 0) {
-      updatedSteps[index].completed = true;
-      setSteps(updatedSteps);
-      
-      trackEngagement('onboarding_step_complete', { 
-        step: 'certificates',
-        progress_percent: Math.round(((completedSteps + 1) / steps.length) * 100)
-      });
-      
-      toast({
-        title: "Step completed",
-        description: "Certificates marked as uploaded. Our team will verify your documents.",
-        variant: "success",
-      });
-    }
   };
 
   // Save availability preferences
@@ -331,26 +298,15 @@ export const NextStepsPanel = () => {
     switch (step.action) {
       case "upload":
         return (
-          <div className="flex space-x-2">
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              className="p-0 h-6 text-primary hover:text-primary-600"
-              onClick={handleUploadCertificates}
-            >
-              Upload
-              <Upload className="ml-1 h-3 w-3" />
-            </Button>
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              className="p-0 h-6 text-green-600 hover:text-green-700"
-              onClick={markCertificatesUploaded}
-            >
-              Mark Complete
-              <CheckCircle2 className="ml-1 h-3 w-3" />
-            </Button>
-          </div>
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="p-0 h-6 text-primary hover:text-primary-600"
+            onClick={handleUploadCertificates}
+          >
+            Upload
+            <Upload className="ml-1 h-3 w-3" />
+          </Button>
         );
       
       case "availability":
@@ -433,17 +389,6 @@ export const NextStepsPanel = () => {
               />
             </div>
           </div>
-          {isOfflineMode && (
-            <div className="mt-1 text-xs text-amber-600 flex items-center">
-              <Clock className="h-3 w-3 mr-1" />
-              <span>Offline mode: Changes saved locally</span>
-            </div>
-          )}
-          {error && (
-            <div className="mt-1 text-xs text-red-500">
-              {error}
-            </div>
-          )}
         </CardHeader>
         <CardContent>
           <ul className="space-y-3">
@@ -470,7 +415,9 @@ export const NextStepsPanel = () => {
                   </div>
                   <p className="text-sm text-gray-500">{step.description}</p>
                 </div>
-                {renderActionButton(step)}
+                <div className="flex-shrink-0">
+                  {renderActionButton(step)}
+                </div>
               </li>
             ))}
           </ul>
