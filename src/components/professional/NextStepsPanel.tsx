@@ -2,7 +2,7 @@
 import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { CheckCircle2, Circle, List, ArrowRight, Upload, Clock } from "lucide-react";
+import { CheckCircle2, Circle, List, ArrowRight, Upload, Clock, Mail, Phone } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useState, useEffect } from "react";
@@ -306,8 +306,8 @@ export const NextStepsPanel = () => {
             <li>Certificate of Character from the Trinidad & Tobago Police</li>
           </ul>
           <div className="pt-2">
-            <a href="mailto:Tavaracare@gmail.com" className="text-primary hover:underline block">
-              Email: Tavaracare@gmail.com
+            <a href="mailto:chanuajohnson@gmail.com" className="text-primary hover:underline block">
+              Email: chanuajohnson@gmail.com
             </a>
             <a href="https://wa.me/18687865357" className="text-primary hover:underline block">
               WhatsApp: +1 (868) 786-5357
@@ -537,6 +537,24 @@ export const NextStepsPanel = () => {
                     )}
                   </div>
                   <p className="text-sm text-gray-500">{step.description}</p>
+                  
+                  {/* Add Email and WhatsApp links for step 2 (Upload certifications) */}
+                  {step.id === 2 && (
+                    <div className="mt-1 flex flex-col space-y-1">
+                      <a 
+                        href="mailto:chanuajohnson@gmail.com" 
+                        className="text-sm text-primary hover:underline flex items-center"
+                      >
+                        <Mail className="h-3 w-3 mr-1" /> E-mail
+                      </a>
+                      <a 
+                        href="https://wa.me/18687865357" 
+                        className="text-sm text-primary hover:underline flex items-center"
+                      >
+                        <Phone className="h-3 w-3 mr-1" /> WhatsApp
+                      </a>
+                    </div>
+                  )}
                 </div>
                 <div className="flex-shrink-0">
                   {renderActionButton(step)}
