@@ -1,4 +1,3 @@
-
 import { Fragment, useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { ChevronRight, Home, Loader2 } from "lucide-react";
@@ -24,6 +23,8 @@ const routeMap: Record<string, string> = {
   lesson: "Lesson",
   "message-board": "Message Board",
   subscription: "Subscription",
+  caregiver: "Caregiver",
+  health: "Health & Support",
 };
 
 const getBreadcrumbItems = (pathname: string): BreadcrumbItem[] => {

@@ -1,4 +1,3 @@
-
 import React from "react";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
@@ -10,6 +9,7 @@ import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { useJourneyTracking } from "@/hooks/useJourneyTracking";
 import { toast } from "sonner";
+import { Breadcrumb } from "@/components/ui/breadcrumbs/Breadcrumb";
 
 const CaregiverHealthPage = () => {
   useJourneyTracking({
@@ -27,7 +27,9 @@ const CaregiverHealthPage = () => {
   
   return (
     <div className="min-h-screen bg-gradient-to-b from-primary-50 to-white">
-      <Container className="py-12">
+      <Container className="py-6">
+        <Breadcrumb />
+        
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
