@@ -1,4 +1,3 @@
-
 import { motion } from "framer-motion";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -24,7 +23,7 @@ import {
   Moon,
   Home
 } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { Link } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
@@ -43,6 +42,7 @@ import { useTracking } from "@/hooks/useTracking";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useTrainingProgress } from "@/hooks/useTrainingProgress";
+import { CaregiverHealthCard } from "@/components/professional/CaregiverHealthCard";
 
 const initialSteps = [
   { 
@@ -215,6 +215,14 @@ const ProfessionalProfileHub = () => {
     
     loadCarePlans();
   }, [user]);
+
+  const caregiverHealthRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (window.location.hash === '#caregiver-health' && caregiverHealthRef.current) {
+      caregiverHealthRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, []);
 
   const handleUploadCertificates = () => {
     trackEngagement('upload_documents_click', { section: 'profile_hub' });
@@ -440,6 +448,10 @@ const ProfessionalProfileHub = () => {
               Manage your profile, availability, training progress, and care assignments
             </p>
           </motion.div>
+          
+          <div ref={caregiverHealthRef} id="caregiver-health">
+            <CaregiverHealthCard />
+          </div>
             
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="md:col-span-1 space-y-6">

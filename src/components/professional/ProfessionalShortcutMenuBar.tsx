@@ -3,7 +3,7 @@ import React from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Container } from "@/components/ui/container";
-import { ClipboardEdit, ArrowRight, UserCircle } from "lucide-react";
+import { ClipboardEdit, ArrowRight, UserCircle, HandHeart } from "lucide-react";
 import { useAuth } from "@/components/providers/AuthProvider";
 
 export function ProfessionalShortcutMenuBar() {
@@ -25,6 +25,13 @@ export function ProfessionalShortcutMenuBar() {
             <Button variant="outline" size="sm" className="flex items-center gap-1">
               <UserCircle className="h-4 w-4" />
               <span>Profile Hub</span>
+              <ArrowRight className="h-3 w-3" />
+            </Button>
+          </Link>
+          <Link to="/professional/profile#caregiver-health">
+            <Button variant="outline" size="sm" className="flex items-center gap-1 bg-primary-50 border-primary-200 text-primary-700 hover:bg-primary-100">
+              <HandHeart className="h-4 w-4" />
+              <span>Caregiver Health</span>
               <ArrowRight className="h-3 w-3" />
             </Button>
           </Link>
