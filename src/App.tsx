@@ -40,6 +40,7 @@ import FAQPage from "@/pages/support/FAQPage";
 import SubscriptionPage from "@/pages/subscription/SubscriptionPage";
 import SubscriptionFeaturesPage from "@/pages/subscription/SubscriptionFeaturesPage";
 import CaregiverMatchingPage from "@/pages/caregiver/CaregiverMatchingPage";
+import CaregiverHealthPage from "@/pages/caregiver/CaregiverHealthPage";
 import FamilyMatchingPage from "@/pages/family/FamilyMatchingPage";
 import NotFound from "@/pages/NotFound";
 
@@ -165,6 +166,7 @@ const AppContent = () => {
           <Route path="/subscription-features" element={<SubscriptionFeaturesPage />} />
           
           <Route path="/caregiver-matching" element={<CaregiverMatchingPage />} />
+          <Route path="/caregiver/health" element={<CaregiverHealthPage />} />
           <Route path="/family-matching" element={<FamilyMatchingPage />} />
           
           <Route path="*" element={<NotFound />} />

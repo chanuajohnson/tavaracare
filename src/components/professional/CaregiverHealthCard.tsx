@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { HandHeart, Users, ShoppingBag, HeartHandshake, Footprints } from "lucide-react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
+import { Link } from "react-router-dom";
 
 interface CaregiverHealthCardProps {
   className?: string;
@@ -31,9 +32,11 @@ export function CaregiverHealthCard({ className }: CaregiverHealthCardProps) {
                 </CardDescription>
               </div>
             </div>
-            <Button variant="outline" className="border-primary-200 text-primary-700 hover:bg-primary-100">
-              Explore Support
-            </Button>
+            <Link to="/caregiver/health">
+              <Button variant="outline" className="border-primary-200 text-primary-700 hover:bg-primary-100">
+                Explore Support
+              </Button>
+            </Link>
           </div>
         </CardHeader>
         <CardContent>

@@ -28,7 +28,7 @@ export function ProfessionalShortcutMenuBar() {
               <ArrowRight className="h-3 w-3" />
             </Button>
           </Link>
-          <Link to="/professional/profile#caregiver-health">
+          <Link to="/caregiver/health">
             <Button variant="outline" size="sm" className="flex items-center gap-1 bg-primary-50 border-primary-200 text-primary-700 hover:bg-primary-100">
               <HandHeart className="h-4 w-4" />
               <span>Caregiver Health</span>
