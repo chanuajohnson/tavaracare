@@ -1,4 +1,3 @@
-
 import { supabase } from '@/lib/supabase';
 import { UserRole } from '@/types/database';
 
@@ -89,7 +88,6 @@ export const ensureUserProfile = async (userId: string, role: UserRole = 'family
         full_name: session.user?.user_metadata?.full_name || '',
         first_name: session.user?.user_metadata?.first_name || '',
         last_name: session.user?.user_metadata?.last_name || '',
-        email: session.user?.email || '',
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       });
