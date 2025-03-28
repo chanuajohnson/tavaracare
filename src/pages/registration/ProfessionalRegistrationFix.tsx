@@ -5,6 +5,7 @@ import { useAuth } from '@/components/providers/AuthProvider';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
+import { ensureUserProfile } from '@/lib/profile-utils';
 
 const ProfessionalRegistrationFix = () => {
   const { user } = useAuth();
@@ -46,65 +47,30 @@ const ProfessionalRegistrationFix = () => {
       try {
         console.log(`Attempt ${retries + 1} to update profile for user:`, user?.id);
         
-        // Get the current session to ensure we're authenticated
-        const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
-        
-        if (sessionError) {
-          console.error('Session error before profile update:', sessionError);
-          throw new Error(`Authentication error: ${sessionError.message}`);
+        if (!user?.id) {
+          throw new Error('User ID is not available');
         }
         
-        if (!sessionData.session) {
-          console.error('No active session found');
-          throw new Error('No active session found. Please sign in again.');
+        // Use the ensureUserProfile utility function
+        const result = await ensureUserProfile(user.id, 'professional');
+        
+        if (!result.success) {
+          throw new Error(result.error || 'Failed to update profile');
         }
         
-        console.log('Active session found:', sessionData.session.user.id);
-        
-        // First check if profile exists
-        const { data: existingProfile, error: profileCheckError } = await supabase
+        // Update additional professional fields
+        const { error: updateError } = await supabase
           .from('profiles')
-          .select('*')
-          .eq('id', user?.id)
-          .maybeSingle();
+          .update({ 
+            professional_type: 'Healthcare Professional',
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', user.id);
           
-        if (profileCheckError) {
-          console.error('Error checking existing profile:', profileCheckError);
-          throw new Error(`Profile check error: ${profileCheckError.message}`);
+        if (updateError) {
+          throw new Error(`Failed to update professional details: ${updateError.message}`);
         }
         
-        let updateResult;
-        
-        if (!existingProfile) {
-          console.log('Profile does not exist, creating new profile');
-          updateResult = await supabase
-            .from('profiles')
-            .insert([{
-              id: user?.id,
-              role: 'professional',
-              full_name: user?.user_metadata?.full_name || 'Professional User',
-              professional_type: 'Healthcare Professional',
-              created_at: new Date().toISOString(),
-              updated_at: new Date().toISOString()
-            }]);
-        } else {
-          console.log('Existing profile found, updating:', existingProfile);
-          updateResult = await supabase
-            .from('profiles')
-            .update({ 
-              role: 'professional',
-              professional_type: 'Healthcare Professional',
-              updated_at: new Date().toISOString()
-            })
-            .eq('id', user?.id);
-        }
-        
-        if (updateResult.error) {
-          console.error('Profile update error:', updateResult.error);
-          throw new Error(`Profile update error: ${updateResult.error.message}`);
-        }
-        
-        console.log('Profile update successful:', updateResult.data);
         return { success: true };
       } catch (err: any) {
         console.error(`Attempt ${retries + 1} failed:`, err);
@@ -195,7 +161,6 @@ const ProfessionalRegistrationFix = () => {
       )}
       
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Form fields would go here */}
         <p className="text-gray-600">
           Clicking "Complete Registration" will create your professional profile and redirect you to your dashboard.
         </p>

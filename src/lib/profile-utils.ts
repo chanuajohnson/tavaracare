@@ -1,3 +1,4 @@
+
 import { supabase } from '@/lib/supabase';
 import { UserRole } from '@/types/database';
 
@@ -35,7 +36,7 @@ export const ensureUserProfile = async (userId: string, role: UserRole = 'family
       .from('profiles')
       .select('id, role')
       .eq('id', userId)
-      .maybeSingle();
+      .maybeSingle(); // Use maybeSingle() instead of single() to prevent errors when no profile exists
     
     if (profileError) {
       console.error('Error checking for existing profile:', profileError);
@@ -186,6 +187,61 @@ export const updateUserProfile = async (userId: string, profileData: any) => {
     return { 
       success: false, 
       error: `Unexpected error: ${error.message}` 
+    };
+  }
+};
+
+/**
+ * Gets a user profile from the database
+ * @param userId The user ID to get the profile for
+ * @returns Object with success status, data, and error message if applicable
+ */
+export const getUserProfile = async (userId: string) => {
+  try {
+    console.log('Fetching profile for user:', userId);
+    
+    if (!userId) {
+      console.error('No user ID provided to getUserProfile');
+      return {
+        success: false,
+        error: 'No user ID provided'
+      };
+    }
+    
+    // Get the profile, using maybeSingle to handle cases where the profile might not exist
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', userId)
+      .maybeSingle();
+    
+    if (profileError) {
+      console.error('Error fetching profile:', profileError);
+      return {
+        success: false,
+        error: `Database error: ${profileError.message}`
+      };
+    }
+    
+    if (!profile) {
+      console.log('No profile found for user:', userId);
+      return {
+        success: false,
+        error: 'Profile not found',
+        notFound: true
+      };
+    }
+    
+    console.log('Profile fetched successfully:', profile);
+    return {
+      success: true,
+      data: profile
+    };
+  } catch (error: any) {
+    console.error('Unexpected error getting profile:', error);
+    return {
+      success: false,
+      error: `Unexpected error: ${error.message}`
     };
   }
 };
