@@ -29,6 +29,7 @@ import ProfessionalFeaturesOverview from "@/pages/professional/ProfessionalFeatu
 import MessageBoardPage from "@/pages/professional/MessageBoardPage";
 import TrainingResourcesPage from "@/pages/professional/TrainingResourcesPage";
 import ModuleViewerPage from "@/pages/professional/ModuleViewerPage";
+import ProfessionalProfileHub from "@/pages/professional/ProfessionalProfileHub";
 import FamilyFeaturesOverview from "@/pages/family/FamilyFeaturesOverview";
 import FamilyStoryPage from "@/pages/family/FamilyStoryPage";
 import CareManagementPage from "@/pages/family/care-management/CareManagementPage";
@@ -146,6 +147,7 @@ const AppContent = () => {
           <Route path="/professional/features-overview" element={<ProfessionalFeaturesOverview />} />
           <Route path="/professional/message-board" element={<MessageBoardPage />} />
           <Route path="/professional/training-resources" element={<TrainingResourcesPage />} />
+          <Route path="/professional/profile" element={<ProfessionalProfileHub />} />
           
           <Route path="/professional/module/:moduleId" element={<ModuleViewerPage />} />
           <Route path="/professional/training-resources/module/:moduleId" element={<ModuleViewerPage />} />

@@ -1,4 +1,3 @@
-
 import { motion } from "framer-motion";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -105,12 +104,12 @@ const ProfessionalDashboard = () => {
                 <p className="text-sm text-gray-600">Update Skills & Experience</p>
                 <p className="text-sm text-gray-600">Set Availability & Preferences</p>
               </div>
-              <Link to="/registration/professional">
+              <Link to="/professional/profile">
                 <Button 
                   variant="default"
                   className="w-full bg-primary hover:bg-primary-600 text-white"
                 >
-                  Complete Profile
+                  View Profile Hub
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </Link>

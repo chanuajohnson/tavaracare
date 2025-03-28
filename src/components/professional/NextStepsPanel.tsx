@@ -1,4 +1,3 @@
-
 import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -20,7 +19,6 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Calendar, Sun, Moon, Home } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 
-// Initial step data structure
 const initialSteps = [
   { 
     id: 1, 
@@ -69,42 +67,34 @@ export const NextStepsPanel = () => {
   const { trackEngagement } = useTracking();
   const { toast } = useToast();
   
-  // State for availability modal
   const [isAvailabilityModalOpen, setIsAvailabilityModalOpen] = useState(false);
   const [selectedAvailability, setSelectedAvailability] = useState<string[]>([]);
   const [otherAvailability, setOtherAvailability] = useState("");
-  
-  // State for loading and steps
+
   const [steps, setSteps] = useState(initialSteps);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [dataSource, setDataSource] = useState<'local' | 'database' | 'none'>('none');
-  
-  // Track onboarding journey for analytics
+
   useJourneyTracking({
     journeyStage: 'profile_creation',
     additionalData: { section: 'next_steps_panel' },
     trackOnce: true
   });
 
-  // Calculate progress
   const completedSteps = steps.filter(step => step.completed).length;
   const progress = Math.round((completedSteps / steps.length) * 100);
 
-  // Load saved progress
   useEffect(() => {
     const loadProgress = async () => {
-      // Start loading
       setLoading(true);
       
       try {
-        // Always try local storage first for immediate UI response
         const localDataLoaded = loadProgressFromLocalStorage();
         if (localDataLoaded) {
           setDataSource('local');
         }
         
-        // Only try to load from database if user is logged in
         if (user && navigator.onLine) {
           const databaseDataLoaded = await loadProgressFromDatabase();
           if (databaseDataLoaded) {
@@ -112,35 +102,29 @@ export const NextStepsPanel = () => {
           }
         }
         
-        // If no data was loaded, set defaults for first-time users
         if (dataSource === 'none' && user) {
-          // If user exists but no data, mark first step as completed by default
           const updatedSteps = [...initialSteps];
           updatedSteps[0].completed = true;
           setSteps(updatedSteps);
-          // Save to localStorage
           saveProgressToLocalStorage(updatedSteps, []);
         }
       } catch (err) {
         console.error("Error loading progress:", err);
         setError("Failed to load progress. Please refresh the page.");
       } finally {
-        // Always finish loading regardless of outcome
         setLoading(false);
       }
     };
     
     loadProgress();
-  }, [user]); // Only depend on user to avoid infinite re-renders
+  }, [user]);
 
-  // Load progress from localStorage
   const loadProgressFromLocalStorage = () => {
     try {
       const savedProgress = localStorage.getItem('professionalOnboardingProgress');
       if (savedProgress) {
         const parsedData = JSON.parse(savedProgress);
         
-        // Update steps from localStorage if available
         if (parsedData.steps) {
           const updatedSteps = [...initialSteps];
           Object.keys(parsedData.steps).forEach(stepId => {
@@ -152,7 +136,6 @@ export const NextStepsPanel = () => {
           setSteps(updatedSteps);
         }
         
-        // Update availability from localStorage if available
         if (parsedData.availability) {
           setSelectedAvailability(Array.isArray(parsedData.availability) ? parsedData.availability : []);
         }
@@ -166,7 +149,6 @@ export const NextStepsPanel = () => {
     }
   };
 
-  // Load progress from database
   const loadProgressFromDatabase = async () => {
     if (!user) return false;
     
@@ -186,7 +168,6 @@ export const NextStepsPanel = () => {
         return false;
       }
       
-      // Update steps from database if available
       if (data.onboarding_progress) {
         const updatedSteps = [...initialSteps];
         Object.keys(data.onboarding_progress).forEach(stepId => {
@@ -198,7 +179,6 @@ export const NextStepsPanel = () => {
         setSteps(updatedSteps);
       }
       
-      // Update availability from database if available
       if (data.availability) {
         setSelectedAvailability(Array.isArray(data.availability) ? data.availability : []);
       }
@@ -210,7 +190,6 @@ export const NextStepsPanel = () => {
     }
   };
 
-  // Save progress to localStorage
   const saveProgressToLocalStorage = (currentSteps: typeof initialSteps, availability: string[]) => {
     try {
       const progressData = currentSteps.reduce((acc, step) => {
@@ -230,7 +209,6 @@ export const NextStepsPanel = () => {
     }
   };
 
-  // Save progress to database
   const saveProgressToDatabase = async (currentSteps: typeof initialSteps, availability: string[]) => {
     if (!user || !navigator.onLine) return false;
     
@@ -260,29 +238,23 @@ export const NextStepsPanel = () => {
     }
   };
 
-  // Update progress when steps change
   useEffect(() => {
-    // Skip saving on initial load when loading is true
     if (loading) return;
     
     const saveProgress = async () => {
-      // Always save to localStorage first as a backup
       saveProgressToLocalStorage(steps, selectedAvailability);
       
-      // Only try to save to database if user is logged in and online
       if (user && navigator.onLine) {
         saveProgressToDatabase(steps, selectedAvailability);
       }
     };
     
     saveProgress();
-  }, [steps, selectedAvailability, loading]); // Added loading to dependencies
+  }, [steps, selectedAvailability, loading]);
 
-  // Handle upload certificates action
   const handleUploadCertificates = () => {
     trackEngagement('upload_documents_click', { step: 'certificates' });
     
-    // Auto-mark as completed after showing the upload instructions
     const updatedSteps = [...steps];
     const index = updatedSteps.findIndex(s => s.id === 2);
     if (index >= 0 && !updatedSteps[index].completed) {
@@ -319,7 +291,6 @@ export const NextStepsPanel = () => {
     });
   };
 
-  // Save availability preferences
   const saveAvailability = async () => {
     if (selectedAvailability.length === 0 && !otherAvailability) {
       toast({
@@ -337,7 +308,6 @@ export const NextStepsPanel = () => {
 
     setSelectedAvailability(finalAvailability);
     
-    // Update step as completed
     const updatedSteps = [...steps];
     const index = updatedSteps.findIndex(s => s.id === 3);
     if (index >= 0) {
@@ -350,13 +320,10 @@ export const NextStepsPanel = () => {
       });
     }
 
-    // Close modal
     setIsAvailabilityModalOpen(false);
     
-    // Save to localStorage immediately
     saveProgressToLocalStorage(updatedSteps, finalAvailability);
     
-    // Save to database if online
     if (user && navigator.onLine) {
       await saveProgressToDatabase(updatedSteps, finalAvailability);
     }
@@ -368,7 +335,6 @@ export const NextStepsPanel = () => {
     });
   };
 
-  // Render the appropriate action button based on step type
   const renderActionButton = (step: typeof initialSteps[0]) => {
     if (step.completed) return null;
     
@@ -400,7 +366,7 @@ export const NextStepsPanel = () => {
         );
       
       case "orientation":
-        return null; // Admin controlled
+        return null;
       
       case "training":
       case "complete":
@@ -420,7 +386,6 @@ export const NextStepsPanel = () => {
     }
   };
 
-  // Loading skeleton
   if (loading) {
     return (
       <motion.div
@@ -461,7 +426,6 @@ export const NextStepsPanel = () => {
     );
   }
 
-  // Error state
   if (error) {
     return (
       <motion.div
@@ -489,7 +453,6 @@ export const NextStepsPanel = () => {
     );
   }
 
-  // Main content
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -538,7 +501,6 @@ export const NextStepsPanel = () => {
                   </div>
                   <p className="text-sm text-gray-500">{step.description}</p>
                   
-                  {/* Add Email and WhatsApp links for step 2 (Upload certifications) */}
                   {step.id === 2 && (
                     <div className="mt-1 flex flex-col space-y-1">
                       <a 
@@ -563,7 +525,13 @@ export const NextStepsPanel = () => {
             ))}
           </ul>
           
-          <div className="mt-4">
+          <div className="space-y-4 mt-4">
+            <Link to="/professional/profile">
+              <Button variant="default" className="w-full">
+                View Profile Hub
+              </Button>
+            </Link>
+            
             <SubscriptionFeatureLink
               featureType="Task Management" 
               returnPath="/dashboard/professional"
@@ -580,7 +548,6 @@ export const NextStepsPanel = () => {
         </CardContent>
       </Card>
 
-      {/* Availability Modal */}
       <Dialog open={isAvailabilityModalOpen} onOpenChange={setIsAvailabilityModalOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
