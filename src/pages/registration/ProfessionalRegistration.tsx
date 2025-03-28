@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm, Controller } from 'react-hook-form';
@@ -840,4 +841,524 @@ const ProfessionalRegistration = () => {
                         onCheckedChange={(checked) => {
                           const currentValues = field.value || [];
                           if (checked) {
-                            setValue('medical_conditions_
+                            setValue('medical_conditions_experience', [...currentValues, 'chronic']);
+                          } else {
+                            setValue('medical_conditions_experience', currentValues.filter(value => value !== 'chronic'));
+                          }
+                        }}
+                      />
+                    )}
+                  />
+                  <Label htmlFor="chronic" className="leading-tight cursor-pointer">
+                    ❤️ Chronic Conditions (Diabetes, Heart Disease, COPD)
+                  </Label>
+                </div>
+              </div>
+            </div>
+            
+            <div className="mb-6">
+              <Label htmlFor="other-medical-condition" className="mb-2 block">Other Medical Conditions</Label>
+              <Textarea
+                id="other-medical-condition"
+                placeholder="If you have experience with other medical conditions not listed above, please specify them here."
+                {...register('other_medical_condition')}
+              />
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="pt-6">
+            <h2 className="text-xl font-semibold">🗓️ Availability & Preferences</h2>
+            <p className="text-sm text-muted-foreground mb-4">Let families know when you're available to work and what types of assignments you prefer.</p>
+            
+            <div className="mb-6">
+              <Label className="mb-3 block">When are you available to work? (Select all that apply)</Label>
+              
+              <div className="mb-4">
+                <h4 className="text-sm font-medium mb-2 flex items-center">
+                  <Calendar className="w-4 h-4 mr-2" /> Standard Weekday Shifts
+                </h4>
+                <div className="grid grid-cols-1 gap-2 pl-6">
+                  <div className="flex items-start space-x-2">
+                    <Controller
+                      control={control}
+                      name="availability"
+                      render={({ field }) => (
+                        <Checkbox
+                          id="weekday-standard"
+                          checked={field.value?.includes('weekday_standard')}
+                          onCheckedChange={(checked) => {
+                            const currentValues = field.value || [];
+                            if (checked) {
+                              setValue('availability', [...currentValues, 'weekday_standard']);
+                            } else {
+                              setValue('availability', currentValues.filter(value => value !== 'weekday_standard'));
+                            }
+                          }}
+                        />
+                      )}
+                    />
+                    <Label htmlFor="weekday-standard" className="leading-tight cursor-pointer">
+                      Monday – Friday, 8 AM – 4 PM (Standard daytime coverage)
+                    </Label>
+                  </div>
+                  
+                  <div className="flex items-start space-x-2">
+                    <Controller
+                      control={control}
+                      name="availability"
+                      render={({ field }) => (
+                        <Checkbox
+                          id="weekday-extended"
+                          checked={field.value?.includes('weekday_extended')}
+                          onCheckedChange={(checked) => {
+                            const currentValues = field.value || [];
+                            if (checked) {
+                              setValue('availability', [...currentValues, 'weekday_extended']);
+                            } else {
+                              setValue('availability', currentValues.filter(value => value !== 'weekday_extended'));
+                            }
+                          }}
+                        />
+                      )}
+                    />
+                    <Label htmlFor="weekday-extended" className="leading-tight cursor-pointer">
+                      Monday – Friday, 6 AM – 6 PM (Extended daytime coverage)
+                    </Label>
+                  </div>
+                  
+                  <div className="flex items-start space-x-2">
+                    <Controller
+                      control={control}
+                      name="availability"
+                      render={({ field }) => (
+                        <Checkbox
+                          id="weekday-night"
+                          checked={field.value?.includes('weekday_night')}
+                          onCheckedChange={(checked) => {
+                            const currentValues = field.value || [];
+                            if (checked) {
+                              setValue('availability', [...currentValues, 'weekday_night']);
+                            } else {
+                              setValue('availability', currentValues.filter(value => value !== 'weekday_night'));
+                            }
+                          }}
+                        />
+                      )}
+                    />
+                    <Label htmlFor="weekday-night" className="leading-tight cursor-pointer">
+                      Monday – Friday, 6 PM – 8 AM (Nighttime coverage)
+                    </Label>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="mb-4">
+                <h4 className="text-sm font-medium mb-2 flex items-center">
+                  <Sun className="w-4 h-4 mr-2" /> Weekend Shifts
+                </h4>
+                <div className="grid grid-cols-1 gap-2 pl-6">
+                  <div className="flex items-start space-x-2">
+                    <Controller
+                      control={control}
+                      name="availability"
+                      render={({ field }) => (
+                        <Checkbox
+                          id="weekend-day"
+                          checked={field.value?.includes('weekend_day')}
+                          onCheckedChange={(checked) => {
+                            const currentValues = field.value || [];
+                            if (checked) {
+                              setValue('availability', [...currentValues, 'weekend_day']);
+                            } else {
+                              setValue('availability', currentValues.filter(value => value !== 'weekend_day'));
+                            }
+                          }}
+                        />
+                      )}
+                    />
+                    <Label htmlFor="weekend-day" className="leading-tight cursor-pointer">
+                      Saturday – Sunday, 6 AM – 6 PM (Daytime weekend coverage)
+                    </Label>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="mb-4">
+                <h4 className="text-sm font-medium mb-2 flex items-center">
+                  <Moon className="w-4 h-4 mr-2" /> Evening & Overnight Shifts
+                </h4>
+                <div className="grid grid-cols-1 gap-2 pl-6">
+                  <div className="flex items-start space-x-2">
+                    <Controller
+                      control={control}
+                      name="availability"
+                      render={({ field }) => (
+                        <Checkbox
+                          id="evening-4pm-6am"
+                          checked={field.value?.includes('evening_4pm_6am')}
+                          onCheckedChange={(checked) => {
+                            const currentValues = field.value || [];
+                            if (checked) {
+                              setValue('availability', [...currentValues, 'evening_4pm_6am']);
+                            } else {
+                              setValue('availability', currentValues.filter(value => value !== 'evening_4pm_6am'));
+                            }
+                          }}
+                        />
+                      )}
+                    />
+                    <Label htmlFor="evening-4pm-6am" className="leading-tight cursor-pointer">
+                      Weekday Evening Shift (4 PM – 6 AM)
+                    </Label>
+                  </div>
+                  
+                  <div className="flex items-start space-x-2">
+                    <Controller
+                      control={control}
+                      name="availability"
+                      render={({ field }) => (
+                        <Checkbox
+                          id="evening-4pm-8am"
+                          checked={field.value?.includes('evening_4pm_8am')}
+                          onCheckedChange={(checked) => {
+                            const currentValues = field.value || [];
+                            if (checked) {
+                              setValue('availability', [...currentValues, 'evening_4pm_8am']);
+                            } else {
+                              setValue('availability', currentValues.filter(value => value !== 'evening_4pm_8am'));
+                            }
+                          }}
+                        />
+                      )}
+                    />
+                    <Label htmlFor="evening-4pm-8am" className="leading-tight cursor-pointer">
+                      Weekday Evening Shift (4 PM – 8 AM)
+                    </Label>
+                  </div>
+                  
+                  <div className="flex items-start space-x-2">
+                    <Controller
+                      control={control}
+                      name="availability"
+                      render={({ field }) => (
+                        <Checkbox
+                          id="evening-6pm-6am"
+                          checked={field.value?.includes('evening_6pm_6am')}
+                          onCheckedChange={(checked) => {
+                            const currentValues = field.value || [];
+                            if (checked) {
+                              setValue('availability', [...currentValues, 'evening_6pm_6am']);
+                            } else {
+                              setValue('availability', currentValues.filter(value => value !== 'evening_6pm_6am'));
+                            }
+                          }}
+                        />
+                      )}
+                    />
+                    <Label htmlFor="evening-6pm-6am" className="leading-tight cursor-pointer">
+                      Weekday Evening Shift (6 PM – 6 AM)
+                    </Label>
+                  </div>
+                  
+                  <div className="flex items-start space-x-2">
+                    <Controller
+                      control={control}
+                      name="availability"
+                      render={({ field }) => (
+                        <Checkbox
+                          id="evening-6pm-8am"
+                          checked={field.value?.includes('evening_6pm_8am')}
+                          onCheckedChange={(checked) => {
+                            const currentValues = field.value || [];
+                            if (checked) {
+                              setValue('availability', [...currentValues, 'evening_6pm_8am']);
+                            } else {
+                              setValue('availability', currentValues.filter(value => value !== 'evening_6pm_8am'));
+                            }
+                          }}
+                        />
+                      )}
+                    />
+                    <Label htmlFor="evening-6pm-8am" className="leading-tight cursor-pointer">
+                      Weekday Evening Shift (6 PM – 8 AM)
+                    </Label>
+                  </div>
+                </div>
+              </div>
+              
+              <div>
+                <h4 className="text-sm font-medium mb-2 flex items-center">
+                  <Clock className="w-4 h-4 mr-2" /> Other Options
+                </h4>
+                <div className="grid grid-cols-1 gap-2 pl-6">
+                  <div className="flex items-start space-x-2">
+                    <Controller
+                      control={control}
+                      name="availability"
+                      render={({ field }) => (
+                        <Checkbox
+                          id="flexible"
+                          checked={field.value?.includes('flexible')}
+                          onCheckedChange={(checked) => {
+                            const currentValues = field.value || [];
+                            if (checked) {
+                              setValue('availability', [...currentValues, 'flexible']);
+                            } else {
+                              setValue('availability', currentValues.filter(value => value !== 'flexible'));
+                            }
+                          }}
+                        />
+                      )}
+                    />
+                    <Label htmlFor="flexible" className="leading-tight cursor-pointer">
+                      Flexible / On-Demand Availability
+                    </Label>
+                  </div>
+                  
+                  <div className="flex items-start space-x-2">
+                    <Controller
+                      control={control}
+                      name="availability"
+                      render={({ field }) => (
+                        <Checkbox
+                          id="other-custom"
+                          checked={field.value?.includes('other_custom')}
+                          onCheckedChange={(checked) => {
+                            const currentValues = field.value || [];
+                            if (checked) {
+                              setValue('availability', [...currentValues, 'other_custom']);
+                            } else {
+                              setValue('availability', currentValues.filter(value => value !== 'other_custom'));
+                            }
+                          }}
+                        />
+                      )}
+                    />
+                    <Label htmlFor="other-custom" className="leading-tight cursor-pointer">
+                      Other (Custom shift — specify your hours)
+                    </Label>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div className="mb-6">
+              <Label htmlFor="work-type" className="mb-2 block">What type of work arrangement do you prefer?</Label>
+              <Controller
+                control={control}
+                name="work_type"
+                render={({ field }) => (
+                  <Select 
+                    onValueChange={field.onChange} 
+                    defaultValue={field.value}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select Work Type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="full_time">Full-time position (30+ hours/week)</SelectItem>
+                      <SelectItem value="part_time">Part-time position (Under 30 hours/week)</SelectItem>
+                      <SelectItem value="live_in">Live-in caregiver</SelectItem>
+                      <SelectItem value="as_needed">As-needed basis</SelectItem>
+                      <SelectItem value="respite">Respite care (occasional relief)</SelectItem>
+                      <SelectItem value="flexible">Flexible (open to various arrangements)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+              <p className="text-xs text-muted-foreground mt-1">This helps match you with families looking for similar arrangements</p>
+            </div>
+            
+            <div className="mb-6">
+              <Label className="mb-3 block">Additional Qualifications & Care Capabilities (Select all that apply)</Label>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="flex items-start space-x-2">
+                  <Controller
+                    control={control}
+                    name="administers_medication"
+                    render={({ field }) => (
+                      <Checkbox
+                        id="administers-medication"
+                        checked={field.value}
+                        onCheckedChange={(checked) => {
+                          setValue('administers_medication', !!checked);
+                        }}
+                      />
+                    )}
+                  />
+                  <Label htmlFor="administers-medication" className="leading-tight cursor-pointer">
+                    💊 Administers Medication
+                  </Label>
+                </div>
+                
+                <div className="flex items-start space-x-2">
+                  <Controller
+                    control={control}
+                    name="provides_housekeeping"
+                    render={({ field }) => (
+                      <Checkbox
+                        id="provides-housekeeping"
+                        checked={field.value}
+                        onCheckedChange={(checked) => {
+                          setValue('provides_housekeeping', !!checked);
+                        }}
+                      />
+                    )}
+                  />
+                  <Label htmlFor="provides-housekeeping" className="leading-tight cursor-pointer">
+                    🧹 Provides Light Housekeeping
+                  </Label>
+                </div>
+                
+                <div className="flex items-start space-x-2">
+                  <Controller
+                    control={control}
+                    name="provides_transportation"
+                    render={({ field }) => (
+                      <Checkbox
+                        id="provides-transportation"
+                        checked={field.value}
+                        onCheckedChange={(checked) => {
+                          setValue('provides_transportation', !!checked);
+                        }}
+                      />
+                    )}
+                  />
+                  <Label htmlFor="provides-transportation" className="leading-tight cursor-pointer">
+                    🚗 Provides Transportation
+                  </Label>
+                </div>
+                
+                <div className="flex items-start space-x-2">
+                  <Controller
+                    control={control}
+                    name="handles_medical_equipment"
+                    render={({ field }) => (
+                      <Checkbox
+                        id="handles-medical-equipment"
+                        checked={field.value}
+                        onCheckedChange={(checked) => {
+                          setValue('handles_medical_equipment', !!checked);
+                        }}
+                      />
+                    )}
+                  />
+                  <Label htmlFor="handles-medical-equipment" className="leading-tight cursor-pointer">
+                    🔧 Handles Medical Equipment
+                  </Label>
+                </div>
+                
+                <div className="flex items-start space-x-2">
+                  <Controller
+                    control={control}
+                    name="has_liability_insurance"
+                    render={({ field }) => (
+                      <Checkbox
+                        id="has-liability-insurance"
+                        checked={field.value}
+                        onCheckedChange={(checked) => {
+                          setValue('has_liability_insurance', !!checked);
+                        }}
+                      />
+                    )}
+                  />
+                  <Label htmlFor="has-liability-insurance" className="leading-tight cursor-pointer">
+                    📝 Has Liability Insurance
+                  </Label>
+                </div>
+                
+                <div className="flex items-start space-x-2">
+                  <Controller
+                    control={control}
+                    name="background_check"
+                    render={({ field }) => (
+                      <Checkbox
+                        id="background-check"
+                        checked={field.value}
+                        onCheckedChange={(checked) => {
+                          setValue('background_check', !!checked);
+                        }}
+                      />
+                    )}
+                  />
+                  <Label htmlFor="background-check" className="leading-tight cursor-pointer">
+                    🔍 Has Recent Background Check
+                  </Label>
+                </div>
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+              <div>
+                <Label htmlFor="emergency-contact" className="mb-2 block">Emergency Contact Information</Label>
+                <Textarea
+                  id="emergency-contact"
+                  placeholder="Name, relationship, and phone number"
+                  {...register('emergency_contact')}
+                />
+                <p className="text-xs text-muted-foreground mt-1">Only shared in case of emergency</p>
+              </div>
+              
+              <div>
+                <Label htmlFor="hourly-rate" className="mb-2 block">Hourly Rate (Optional)</Label>
+                <Input
+                  id="hourly-rate"
+                  placeholder="Preferred hourly rate range"
+                  {...register('hourly_rate')}
+                />
+                <p className="text-xs text-muted-foreground mt-1">You can list a range or fixed rate (e.g. "$20-25/hour" or "Negotiable")</p>
+              </div>
+            </div>
+            
+            <div className="mb-6">
+              <Label htmlFor="additional-notes" className="mb-2 block">Additional Notes for Families</Label>
+              <Textarea
+                id="additional-notes"
+                placeholder="Add any additional information about your skills, approach to care, or special accommodations you may require."
+                className="h-32"
+                {...register('additional_professional_notes')}
+              />
+            </div>
+          </CardContent>
+        </Card>
+        
+        <div className="flex items-start space-x-2 mb-6">
+          <Controller
+            control={control}
+            name="terms_accepted"
+            render={({ field }) => (
+              <Checkbox
+                id="terms"
+                checked={field.value}
+                onCheckedChange={(checked) => {
+                  setValue('terms_accepted', !!checked);
+                }}
+                className={errors.terms_accepted ? "border-red-500" : ""}
+              />
+            )}
+          />
+          <div>
+            <Label htmlFor="terms" className="leading-tight cursor-pointer">
+              I agree to the <a href="#" className="text-blue-600 hover:underline">Terms of Service</a> and <a href="#" className="text-blue-600 hover:underline">Privacy Policy</a>
+            </Label>
+            {errors.terms_accepted && (
+              <p className="text-red-500 text-sm mt-1">{errors.terms_accepted.message}</p>
+            )}
+          </div>
+        </div>
+        
+        <Button
+          type="submit"
+          className="w-full"
+          disabled={isSubmitting}
+        >
+          {isSubmitting ? "Processing..." : isProfileManagement ? "Save Profile Changes" : "Complete Registration"}
+        </Button>
+      </form>
+    </div>
+  );
+};
+
+export default ProfessionalRegistration;
