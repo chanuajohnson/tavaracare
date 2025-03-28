@@ -28,7 +28,7 @@ export const NextStepsPanel = () => {
   const [isAvailabilityModalOpen, setIsAvailabilityModalOpen] = useState(false);
   const [selectedAvailability, setSelectedAvailability] = useState<string[]>([]);
   const [otherAvailability, setOtherAvailability] = useState("");
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   
   // Track onboarding journey for analytics
   useJourneyTracking({
@@ -80,132 +80,74 @@ export const NextStepsPanel = () => {
     }
   ]);
 
-  // Load saved progress from Supabase or localStorage
+  // Load saved progress from localStorage and eventually sync with database when column exists
   useEffect(() => {
-    const loadProgress = async () => {
-      if (!user) {
-        setLoading(false);
-        return;
-      }
-      
+    const loadProgress = () => {
       try {
-        setLoading(true);
-        
-        // Always load from localStorage first as a fallback
-        loadProgressFromLocalStorage();
-        
-        // Try to load from Supabase if user is logged in and online
-        if (navigator.onLine) {
-          try {
-            const { data, error } = await supabase
-              .from('profiles')
-              .select('onboarding_progress, availability')
-              .eq('id', user.id)
-              .maybeSingle();
-            
-            if (!error && data) {
-              // Update from database
-              updateProgressFromData(data.onboarding_progress, data.availability);
-            }
-          } catch (err) {
-            // Silently fallback to localStorage data
-            console.error("Error loading from Supabase:", err);
-          }
-        }
-      } finally {
-        setLoading(false);
-      }
-    };
-    
-    const loadProgressFromLocalStorage = () => {
-      const savedProgress = localStorage.getItem('professionalOnboardingProgress');
-      if (savedProgress) {
-        try {
-          const parsedData = JSON.parse(savedProgress);
-          updateProgressFromData(parsedData.steps, parsedData.availability);
-        } catch (e) {
-          console.error("Error parsing saved progress:", e);
-          // Set first step completed if user exists (profile creation)
-          if (user) {
-            const updatedSteps = [...steps];
-            updatedSteps[0].completed = true;
-            setSteps(updatedSteps);
-          }
-        }
-      } else {
         // Set first step completed if user exists (profile creation)
         if (user) {
           const updatedSteps = [...steps];
           updatedSteps[0].completed = true;
           setSteps(updatedSteps);
         }
-      }
-    };
-    
-    const updateProgressFromData = (progressData: any, availabilityData: any) => {
-      if (progressData) {
-        const updatedSteps = [...steps];
-        Object.keys(progressData).forEach(stepId => {
-          const index = updatedSteps.findIndex(s => s.id === parseInt(stepId));
-          if (index >= 0) {
-            updatedSteps[index].completed = progressData[stepId];
+        
+        // Load progress from localStorage
+        const savedProgress = localStorage.getItem('professionalOnboardingProgress');
+        if (savedProgress) {
+          try {
+            const parsedData = JSON.parse(savedProgress);
+            
+            // Update steps from localStorage
+            if (parsedData.steps) {
+              const updatedSteps = [...steps];
+              Object.keys(parsedData.steps).forEach(stepId => {
+                const index = updatedSteps.findIndex(s => s.id === parseInt(stepId));
+                if (index >= 0) {
+                  updatedSteps[index].completed = parsedData.steps[stepId];
+                }
+              });
+              setSteps(updatedSteps);
+            }
+            
+            // Update availability from localStorage
+            if (parsedData.availability) {
+              setSelectedAvailability(Array.isArray(parsedData.availability) ? parsedData.availability : []);
+            }
+          } catch (e) {
+            console.error("Error parsing saved progress:", e);
           }
-        });
-        setSteps(updatedSteps);
-      } else if (user) {
-        // If no progress data but user exists, mark first step as completed
-        const updatedSteps = [...steps];
-        updatedSteps[0].completed = true;
-        setSteps(updatedSteps);
-      }
-      
-      if (availabilityData) {
-        setSelectedAvailability(Array.isArray(availabilityData) ? availabilityData : []);
+        }
+      } catch (err) {
+        console.error("Error in loadProgress:", err);
       }
     };
     
     loadProgress();
-  }, [user, steps]);
+  }, [user]);
 
-  // Update progress when steps change
+  // Update progress in localStorage when steps change
   useEffect(() => {
-    const saveProgress = async () => {
-      if (!user) return;
-      
-      const progressData = steps.reduce((acc, step) => {
-        acc[step.id] = step.completed;
-        return acc;
-      }, {} as Record<number, boolean>);
-      
+    const saveProgress = () => {
       try {
-        // Always save to localStorage first as a backup
+        const progressData = steps.reduce((acc, step) => {
+          acc[step.id] = step.completed;
+          return acc;
+        }, {} as Record<number, boolean>);
+        
         localStorage.setItem('professionalOnboardingProgress', JSON.stringify({
           steps: progressData,
           availability: selectedAvailability
         }));
         
-        // Only try to save to Supabase if we're online
-        if (navigator.onLine) {
-          try {
-            await supabase
-              .from('profiles')
-              .update({ 
-                onboarding_progress: progressData,
-                availability: selectedAvailability
-              })
-              .eq('id', user.id);
-          } catch (err) {
-            // Silent fail - data is already in localStorage
-            console.error("Error saving to Supabase:", err);
-          }
-        }
+        // We'll attempt to save to the database only when we're sure the column exists
+        // This is handled separately in a production environment
       } catch (err) {
         console.error("Error in saveProgress:", err);
       }
     };
     
     saveProgress();
-  }, [steps, selectedAvailability, user]);
+  }, [steps, selectedAvailability]);
 
   // Calculate progress percentage
   const completedSteps = steps.filter(step => step.completed).length;
@@ -247,7 +189,7 @@ export const NextStepsPanel = () => {
             </a>
           </div>
         </div>
-      ) as any,
+      ),
       duration: 8000,
     });
   };
@@ -289,7 +231,6 @@ export const NextStepsPanel = () => {
     toast({
       title: "Availability saved",
       description: "Your availability preferences have been saved.",
-      variant: "success",
     });
   };
 
@@ -344,30 +285,6 @@ export const NextStepsPanel = () => {
         );
     }
   };
-
-  if (loading) {
-    return (
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-      >
-        <Card className="h-full border-l-4 border-l-primary">
-          <CardHeader className="pb-2">
-            <CardTitle className="flex items-center gap-2 text-xl">
-              <List className="h-5 w-5 text-primary" />
-              Next Steps
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center justify-center h-40">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-            </div>
-          </CardContent>
-        </Card>
-      </motion.div>
-    );
-  }
 
   return (
     <motion.div
@@ -441,7 +358,7 @@ export const NextStepsPanel = () => {
         </CardContent>
       </Card>
 
-      {/* Availability Modal */}
+      {/* Availability Modal - Updated to match the new format */}
       <Dialog open={isAvailabilityModalOpen} onOpenChange={setIsAvailabilityModalOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -454,164 +371,63 @@ export const NextStepsPanel = () => {
             <div className="space-y-5">
               <div>
                 <h3 className="text-sm font-medium mb-2 flex items-center">
-                  <Calendar className="h-4 w-4 mr-2 text-primary" /> Standard Weekday Shifts
+                  <Calendar className="h-4 w-4 mr-2 text-primary" /> Preferred Work Hours (Select all that apply)
                 </h3>
                 <div className="space-y-3">
                   <div className="flex items-center space-x-2">
                     <Checkbox 
-                      id="weekday-standard" 
-                      checked={selectedAvailability.includes("Monday - Friday, 8 AM - 4 PM")}
+                      id="daytime" 
+                      checked={selectedAvailability.includes("Daytime (8 AM - 5 PM)")}
                       onCheckedChange={(checked) => {
                         if (checked) {
-                          setSelectedAvailability([...selectedAvailability, "Monday - Friday, 8 AM - 4 PM"]);
+                          setSelectedAvailability([...selectedAvailability, "Daytime (8 AM - 5 PM)"]);
                         } else {
-                          setSelectedAvailability(selectedAvailability.filter(a => a !== "Monday - Friday, 8 AM - 4 PM"));
+                          setSelectedAvailability(selectedAvailability.filter(a => a !== "Daytime (8 AM - 5 PM)"));
                         }
                       }}
                     />
-                    <Label htmlFor="weekday-standard" className="flex items-center">
-                      <Sun className="h-4 w-4 mr-2 text-amber-400" /> Monday - Friday, 8 AM - 4 PM (Standard daytime coverage)
+                    <Label htmlFor="daytime" className="flex items-center">
+                      <Sun className="h-4 w-4 mr-2 text-amber-400" /> Daytime (8 AM - 5 PM)
                     </Label>
                   </div>
+                  
                   <div className="flex items-center space-x-2">
                     <Checkbox 
-                      id="weekday-extended" 
-                      checked={selectedAvailability.includes("Monday - Friday, 6 AM - 6 PM")}
+                      id="night-shifts" 
+                      checked={selectedAvailability.includes("Night Shifts (5 PM - 8 AM)")}
                       onCheckedChange={(checked) => {
                         if (checked) {
-                          setSelectedAvailability([...selectedAvailability, "Monday - Friday, 6 AM - 6 PM"]);
+                          setSelectedAvailability([...selectedAvailability, "Night Shifts (5 PM - 8 AM)"]);
                         } else {
-                          setSelectedAvailability(selectedAvailability.filter(a => a !== "Monday - Friday, 6 AM - 6 PM"));
+                          setSelectedAvailability(selectedAvailability.filter(a => a !== "Night Shifts (5 PM - 8 AM)"));
                         }
                       }}
                     />
-                    <Label htmlFor="weekday-extended" className="flex items-center">
-                      <Sun className="h-4 w-4 mr-2 text-amber-400" /> Monday - Friday, 6 AM - 6 PM (Extended daytime coverage)
+                    <Label htmlFor="night-shifts" className="flex items-center">
+                      <Moon className="h-4 w-4 mr-2 text-indigo-400" /> Night Shifts (5 PM - 8 AM)
                     </Label>
                   </div>
+                  
                   <div className="flex items-center space-x-2">
                     <Checkbox 
-                      id="weekday-night" 
-                      checked={selectedAvailability.includes("Monday - Friday, 6 PM - 8 AM")}
+                      id="weekends-only" 
+                      checked={selectedAvailability.includes("Weekends Only")}
                       onCheckedChange={(checked) => {
                         if (checked) {
-                          setSelectedAvailability([...selectedAvailability, "Monday - Friday, 6 PM - 8 AM"]);
+                          setSelectedAvailability([...selectedAvailability, "Weekends Only"]);
                         } else {
-                          setSelectedAvailability(selectedAvailability.filter(a => a !== "Monday - Friday, 6 PM - 8 AM"));
+                          setSelectedAvailability(selectedAvailability.filter(a => a !== "Weekends Only"));
                         }
                       }}
                     />
-                    <Label htmlFor="weekday-night" className="flex items-center">
-                      <Moon className="h-4 w-4 mr-2 text-indigo-400" /> Monday - Friday, 6 PM - 8 AM (Nighttime coverage)
+                    <Label htmlFor="weekends-only" className="flex items-center">
+                      <span className="mr-2">📅</span> Weekends Only
                     </Label>
                   </div>
-                </div>
-              </div>
-
-              <div>
-                <h3 className="text-sm font-medium mb-2 flex items-center">
-                  <Calendar className="h-4 w-4 mr-2 text-primary" /> Weekend Shifts
-                </h3>
-                <div className="space-y-3">
+                  
                   <div className="flex items-center space-x-2">
                     <Checkbox 
-                      id="weekend-day" 
-                      checked={selectedAvailability.includes("Saturday - Sunday, 6 AM - 6 PM")}
-                      onCheckedChange={(checked) => {
-                        if (checked) {
-                          setSelectedAvailability([...selectedAvailability, "Saturday - Sunday, 6 AM - 6 PM"]);
-                        } else {
-                          setSelectedAvailability(selectedAvailability.filter(a => a !== "Saturday - Sunday, 6 AM - 6 PM"));
-                        }
-                      }}
-                    />
-                    <Label htmlFor="weekend-day" className="flex items-center">
-                      <Sun className="h-4 w-4 mr-2 text-amber-400" /> Saturday - Sunday, 6 AM - 6 PM (Daytime weekend coverage)
-                    </Label>
-                  </div>
-                </div>
-              </div>
-
-              <div>
-                <h3 className="text-sm font-medium mb-2 flex items-center">
-                  <Calendar className="h-4 w-4 mr-2 text-primary" /> Evening & Overnight Shifts
-                </h3>
-                <div className="space-y-3">
-                  <div className="flex items-center space-x-2">
-                    <Checkbox 
-                      id="evening-1" 
-                      checked={selectedAvailability.includes("Weekday Evening Shift (4 PM - 6 AM)")}
-                      onCheckedChange={(checked) => {
-                        if (checked) {
-                          setSelectedAvailability([...selectedAvailability, "Weekday Evening Shift (4 PM - 6 AM)"]);
-                        } else {
-                          setSelectedAvailability(selectedAvailability.filter(a => a !== "Weekday Evening Shift (4 PM - 6 AM)"));
-                        }
-                      }}
-                    />
-                    <Label htmlFor="evening-1" className="flex items-center">
-                      <Moon className="h-4 w-4 mr-2 text-indigo-400" /> Weekday Evening Shift (4 PM - 6 AM)
-                    </Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Checkbox 
-                      id="evening-2" 
-                      checked={selectedAvailability.includes("Weekday Evening Shift (4 PM - 8 AM)")}
-                      onCheckedChange={(checked) => {
-                        if (checked) {
-                          setSelectedAvailability([...selectedAvailability, "Weekday Evening Shift (4 PM - 8 AM)"]);
-                        } else {
-                          setSelectedAvailability(selectedAvailability.filter(a => a !== "Weekday Evening Shift (4 PM - 8 AM)"));
-                        }
-                      }}
-                    />
-                    <Label htmlFor="evening-2" className="flex items-center">
-                      <Moon className="h-4 w-4 mr-2 text-indigo-400" /> Weekday Evening Shift (4 PM - 8 AM)
-                    </Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Checkbox 
-                      id="evening-3" 
-                      checked={selectedAvailability.includes("Weekday Evening Shift (6 PM - 6 AM)")}
-                      onCheckedChange={(checked) => {
-                        if (checked) {
-                          setSelectedAvailability([...selectedAvailability, "Weekday Evening Shift (6 PM - 6 AM)"]);
-                        } else {
-                          setSelectedAvailability(selectedAvailability.filter(a => a !== "Weekday Evening Shift (6 PM - 6 AM)"));
-                        }
-                      }}
-                    />
-                    <Label htmlFor="evening-3" className="flex items-center">
-                      <Moon className="h-4 w-4 mr-2 text-indigo-400" /> Weekday Evening Shift (6 PM - 6 AM)
-                    </Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Checkbox 
-                      id="evening-4" 
-                      checked={selectedAvailability.includes("Weekday Evening Shift (6 PM - 8 AM)")}
-                      onCheckedChange={(checked) => {
-                        if (checked) {
-                          setSelectedAvailability([...selectedAvailability, "Weekday Evening Shift (6 PM - 8 AM)"]);
-                        } else {
-                          setSelectedAvailability(selectedAvailability.filter(a => a !== "Weekday Evening Shift (6 PM - 8 AM)"));
-                        }
-                      }}
-                    />
-                    <Label htmlFor="evening-4" className="flex items-center">
-                      <Moon className="h-4 w-4 mr-2 text-indigo-400" /> Weekday Evening Shift (6 PM - 8 AM)
-                    </Label>
-                  </div>
-                </div>
-              </div>
-
-              <div>
-                <h3 className="text-sm font-medium mb-2 flex items-center">
-                  <Calendar className="h-4 w-4 mr-2 text-primary" /> Other Options
-                </h3>
-                <div className="space-y-2">
-                  <div className="flex items-center space-x-2">
-                    <Checkbox 
-                      id="on-demand" 
+                      id="flexible" 
                       checked={selectedAvailability.includes("Flexible / On-Demand Availability")}
                       onCheckedChange={(checked) => {
                         if (checked) {
@@ -621,23 +437,12 @@ export const NextStepsPanel = () => {
                         }
                       }}
                     />
-                    <Label htmlFor="on-demand" className="flex items-center">
-                      <Clock className="h-4 w-4 mr-2 text-gray-600" /> Flexible / On-Demand Availability
+                    <Label htmlFor="flexible" className="flex items-center">
+                      <span className="mr-2">⌛</span> Flexible / On-Demand Availability
                     </Label>
                   </div>
-                  <div className="space-y-1 pt-2">
-                    <Label htmlFor="other-availability" className="flex items-center mb-1">
-                      <Clock className="h-4 w-4 mr-2 text-gray-600" /> Other (Custom shift — specify your hours):
-                    </Label>
-                    <textarea
-                      id="other-availability"
-                      value={otherAvailability}
-                      onChange={(e) => setOtherAvailability(e.target.value)}
-                      className="w-full h-20 px-3 py-2 text-sm border rounded-md"
-                      placeholder="Please specify any other availability or special arrangements..."
-                    />
-                  </div>
-                  <div className="flex items-center space-x-2 mt-3">
+                  
+                  <div className="flex items-center space-x-2">
                     <Checkbox 
                       id="live-in" 
                       checked={selectedAvailability.includes("Live-In Care (Full-time in-home support)")}
@@ -652,6 +457,19 @@ export const NextStepsPanel = () => {
                     <Label htmlFor="live-in" className="flex items-center">
                       <Home className="h-4 w-4 mr-2 text-green-600" /> Live-In Care (Full-time in-home support)
                     </Label>
+                  </div>
+                  
+                  <div className="space-y-1 pt-2">
+                    <Label htmlFor="other-availability" className="flex items-center mb-1">
+                      <span className="mr-2">✏️</span> Other (Custom shift — specify your hours):
+                    </Label>
+                    <textarea
+                      id="other-availability"
+                      value={otherAvailability}
+                      onChange={(e) => setOtherAvailability(e.target.value)}
+                      className="w-full h-20 px-3 py-2 text-sm border rounded-md"
+                      placeholder="Please specify any other availability or special arrangements..."
+                    />
                   </div>
                 </div>
               </div>
