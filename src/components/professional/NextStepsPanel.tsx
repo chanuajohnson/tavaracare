@@ -1,3 +1,4 @@
+
 import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -285,8 +286,8 @@ export const NextStepsPanel = () => {
     }
   };
 
-  // Define the availability options - THIS WAS THE PART WITH THE ERROR
-  // Changed to ensure each option is stored as a string value
+  // Define the availability options
+  // Fixed: Changed to ensure each option has a string value property
   const availabilityOptions = [
     {
       id: "standard-weekday",
