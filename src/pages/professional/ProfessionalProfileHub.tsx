@@ -1,4 +1,3 @@
-
 import { motion } from "framer-motion";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,7 +16,12 @@ import {
   MapPin,
   Clock,
   Award,
-  Briefcase
+  Briefcase,
+  CheckCircle2,
+  Circle,
+  Sun,
+  Moon,
+  Home
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useAuth } from "@/components/providers/AuthProvider";
@@ -39,7 +43,6 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useTrainingProgress } from "@/hooks/useTrainingProgress";
 
-// Initial step data structure for the Next Steps panel
 const initialSteps = [
   { 
     id: 1, 
@@ -89,24 +92,19 @@ const ProfessionalProfileHub = () => {
   const { toast: toastHook } = useToast();
   const { modules, loading: loadingModules, totalProgress } = useTrainingProgress();
   
-  // State for profile data
   const [profileData, setProfileData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // State for steps progress
   const [steps, setSteps] = useState(initialSteps);
 
-  // State for care plans
   const [carePlans, setCarePlans] = useState<any[]>([]);
   const [loadingCarePlans, setLoadingCarePlans] = useState(true);
 
-  // State for availability modal
   const [isAvailabilityModalOpen, setIsAvailabilityModalOpen] = useState(false);
   const [selectedAvailability, setSelectedAvailability] = useState<string[]>([]);
   const [otherAvailability, setOtherAvailability] = useState("");
-  
-  // Bread crumb items
+
   const breadcrumbItems = [
     {
       label: "Professional Dashboard",
@@ -118,18 +116,15 @@ const ProfessionalProfileHub = () => {
     },
   ];
 
-  // Track page view for analytics
   useJourneyTracking({
     journeyStage: 'profile_management',
     additionalData: { page: 'professional_profile_hub' },
     trackOnce: true
   });
 
-  // Calculate progress
   const completedSteps = steps.filter(step => step.completed).length;
   const progress = Math.round((completedSteps / steps.length) * 100);
 
-  // Load profile data
   useEffect(() => {
     const loadProfileData = async () => {
       if (!user) {
@@ -140,7 +135,6 @@ const ProfessionalProfileHub = () => {
       try {
         setLoading(true);
         
-        // Fetch profile data
         const { data, error: profileError } = await supabase
           .from('profiles')
           .select('*')
@@ -151,7 +145,6 @@ const ProfessionalProfileHub = () => {
         
         setProfileData(data);
         
-        // Load progress from profile
         if (data.onboarding_progress) {
           const updatedSteps = [...initialSteps];
           Object.keys(data.onboarding_progress).forEach(stepId => {
@@ -163,7 +156,6 @@ const ProfessionalProfileHub = () => {
           setSteps(updatedSteps);
         }
         
-        // Set availability from profile
         if (data.availability) {
           setSelectedAvailability(Array.isArray(data.availability) ? data.availability : []);
         }
@@ -179,7 +171,6 @@ const ProfessionalProfileHub = () => {
     loadProfileData();
   }, [user]);
 
-  // Load care plans
   useEffect(() => {
     const loadCarePlans = async () => {
       if (!user) {
@@ -190,7 +181,6 @@ const ProfessionalProfileHub = () => {
       try {
         setLoadingCarePlans(true);
         
-        // Fetch care plans where this professional is assigned
         const { data, error: carePlansError } = await supabase
           .from('care_team_members')
           .select(`
@@ -225,18 +215,15 @@ const ProfessionalProfileHub = () => {
     loadCarePlans();
   }, [user]);
 
-  // Handle upload certificates action
   const handleUploadCertificates = () => {
     trackEngagement('upload_documents_click', { section: 'profile_hub' });
     
-    // Auto-mark as completed after showing the upload instructions
     const updatedSteps = [...steps];
     const index = updatedSteps.findIndex(s => s.id === 2);
     if (index >= 0 && !updatedSteps[index].completed) {
       updatedSteps[index].completed = true;
       setSteps(updatedSteps);
       
-      // Update profile
       if (user) {
         const progressData = updatedSteps.reduce((acc, step) => {
           acc[step.id] = step.completed;
@@ -270,7 +257,6 @@ const ProfessionalProfileHub = () => {
     });
   };
 
-  // Save availability preferences
   const saveAvailability = async () => {
     if (selectedAvailability.length === 0 && !otherAvailability) {
       toastHook({
@@ -288,7 +274,6 @@ const ProfessionalProfileHub = () => {
 
     setSelectedAvailability(finalAvailability);
     
-    // Update step as completed
     const updatedSteps = [...steps];
     const index = updatedSteps.findIndex(s => s.id === 3);
     if (index >= 0) {
@@ -301,10 +286,8 @@ const ProfessionalProfileHub = () => {
       });
     }
 
-    // Close modal
     setIsAvailabilityModalOpen(false);
     
-    // Save to database if online
     if (user) {
       const progressData = updatedSteps.reduce((acc, step) => {
         acc[step.id] = step.completed;
@@ -335,13 +318,11 @@ const ProfessionalProfileHub = () => {
     });
   };
 
-  // Get initials for avatar fallback
   const getInitials = (name?: string) => {
     if (!name) return "U";
     return name.split(' ').map(n => n[0]).join('').toUpperCase();
   };
 
-  // Render the appropriate action button based on step type
   const renderActionButton = (step: typeof initialSteps[0]) => {
     if (step.completed) return null;
     
@@ -460,7 +441,6 @@ const ProfessionalProfileHub = () => {
           </motion.div>
             
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {/* Profile Overview - Left Column */}
             <div className="md:col-span-1 space-y-6">
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
@@ -539,7 +519,6 @@ const ProfessionalProfileHub = () => {
                 </Card>
               </motion.div>
 
-              {/* Availability Card */}
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -587,7 +566,6 @@ const ProfessionalProfileHub = () => {
                 </Card>
               </motion.div>
 
-              {/* Training Progress Card */}
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -642,7 +620,6 @@ const ProfessionalProfileHub = () => {
               </motion.div>
             </div>
             
-            {/* Main Content - Right Column */}
             <div className="md:col-span-2 space-y-6">
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
@@ -665,7 +642,6 @@ const ProfessionalProfileHub = () => {
                     </TabsTrigger>
                   </TabsList>
                   
-                  {/* Next Steps Tab */}
                   <TabsContent value="next-steps" className="space-y-6">
                     <Card className="border-l-4 border-l-primary">
                       <CardHeader className="pb-2">
@@ -709,7 +685,6 @@ const ProfessionalProfileHub = () => {
                                 </div>
                                 <p className="text-sm text-gray-500">{step.description}</p>
                                 
-                                {/* Add Email and WhatsApp links for step 2 (Upload certifications) */}
                                 {step.id === 2 && (
                                   <div className="mt-1 flex flex-col space-y-1">
                                     <a 
@@ -736,13 +711,12 @@ const ProfessionalProfileHub = () => {
                       </CardContent>
                     </Card>
                     
-                    {/* Certifications and Credentials */}
                     <Card>
                       <CardHeader>
                         <CardTitle className="flex items-center gap-2">
                           <Award className="h-5 w-5 text-primary" />
                           Your Certifications and Credentials
-                        </CardTitle>
+                        CardTitle>
                         <CardDescription>
                           Professional qualifications and documentation
                         </CardDescription>
@@ -796,7 +770,6 @@ const ProfessionalProfileHub = () => {
                     </Card>
                   </TabsContent>
                   
-                  {/* Care Plans Tab */}
                   <TabsContent value="care-plans" className="space-y-6">
                     <Card>
                       <CardHeader>
@@ -899,7 +872,6 @@ const ProfessionalProfileHub = () => {
                     </Card>
                   </TabsContent>
                   
-                  {/* Documents Tab */}
                   <TabsContent value="documents" className="space-y-6">
                     <Card>
                       <CardHeader>
@@ -934,7 +906,6 @@ const ProfessionalProfileHub = () => {
         </div>
       </div>
       
-      {/* Availability Modal */}
       <Dialog open={isAvailabilityModalOpen} onOpenChange={setIsAvailabilityModalOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
