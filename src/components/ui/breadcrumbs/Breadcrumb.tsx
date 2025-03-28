@@ -1,3 +1,4 @@
+
 import { Fragment, useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { ChevronRight, Home, Loader2 } from "lucide-react";
@@ -27,6 +28,11 @@ const routeMap: Record<string, string> = {
   health: "Health & Support",
 };
 
+// Custom path overrides to handle special navigation paths
+const customPathMap: Record<string, string> = {
+  "/caregiver/health": "/dashboard/professional", // Maps the caregiver breadcrumb to professional dashboard
+};
+
 const getBreadcrumbItems = (pathname: string): BreadcrumbItem[] => {
   if (pathname === "/") return [];
 
@@ -37,6 +43,15 @@ const getBreadcrumbItems = (pathname: string): BreadcrumbItem[] => {
   // Process each path segment
   paths.forEach((path, index) => {
     currentPath += `/${path}`;
+    
+    // Check for custom path mapping
+    let itemPath = currentPath;
+    if (index < paths.length - 1 && customPathMap[`/${paths[0]}/${paths[1]}`]) {
+      // If this is part of a custom path mapping and not the last segment
+      if (path === "caregiver") {
+        itemPath = customPathMap[`/${paths[0]}/${paths[1]}`];
+      }
+    }
     
     // Handle module IDs - mark for later replacement with actual module titles
     if (path === "module" && index < paths.length - 1) {
@@ -61,7 +76,7 @@ const getBreadcrumbItems = (pathname: string): BreadcrumbItem[] => {
     // Normal path handling for other routes
     breadcrumbItems.push({
       label: routeMap[path] || path.charAt(0).toUpperCase() + path.slice(1),
-      path: currentPath,
+      path: itemPath,
     });
   });
   
