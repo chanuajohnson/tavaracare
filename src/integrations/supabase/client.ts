@@ -34,7 +34,12 @@ export const supabase = createClient<Database>(
     global: {
       headers: {
         'x-client-env': CURRENT_ENV,
+        'x-app-version': '1.0', // Helps with debugging client/server mismatches
       },
+    },
+    // Added debug mode for development
+    db: {
+      schema: 'public',
     },
   }
 );
@@ -64,8 +69,60 @@ export const getEnvironmentInfo = () => {
     supabaseUrl: SUPABASE_URL,
     isDev: isDevelopment(),
     isProd: isProduction(),
+    projectId: SUPABASE_URL?.split('.')[0]?.split('//')[1] || 'unknown',
     clientHeaders: {
       'x-client-env': CURRENT_ENV,
+      'x-app-version': '1.0',
     }
   };
+};
+
+// Helper function to verify schema compatibility
+export const verifySchemaCompatibility = async (): Promise<{
+  compatible: boolean;
+  missingColumns: string[];
+  tables: string[];
+}> => {
+  try {
+    // List of columns to check for proper functionality
+    const requiredColumns = [
+      { table: 'profiles', column: 'onboarding_progress' },
+      { table: 'profiles', column: 'role' },
+      { table: 'profiles', column: 'professional_type' }
+    ];
+    
+    const missingColumns: string[] = [];
+    const tables: string[] = [];
+    
+    // Check if tables and columns exist
+    for (const { table, column } of requiredColumns) {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select(column)
+        .limit(1);
+      
+      if (error) {
+        if (error.message.includes('column') && error.message.includes('does not exist')) {
+          missingColumns.push(`${table}.${column}`);
+        }
+      } else {
+        if (!tables.includes(table)) {
+          tables.push(table);
+        }
+      }
+    }
+    
+    return {
+      compatible: missingColumns.length === 0,
+      missingColumns,
+      tables
+    };
+  } catch (err) {
+    console.error('Error verifying schema compatibility:', err);
+    return {
+      compatible: false,
+      missingColumns: ['Error checking compatibility'],
+      tables: []
+    };
+  }
 };

@@ -6,7 +6,11 @@ import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { ensureUserProfile } from '@/lib/profile-utils';
-import { getCurrentEnvironment } from '@/integrations/supabase/client';
+import { 
+  getCurrentEnvironment, 
+  getEnvironmentInfo, 
+  verifySchemaCompatibility 
+} from '@/integrations/supabase/client';
 
 const ProfessionalRegistrationFix = () => {
   const { user } = useAuth();
@@ -14,6 +18,10 @@ const ProfessionalRegistrationFix = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState<'checking' | 'connected' | 'error'>('checking');
   const [currentEnv, setCurrentEnv] = useState<string>('unknown');
+  const [schemaStatus, setSchemaStatus] = useState<{
+    compatible: boolean;
+    missingColumns: string[];
+  } | null>(null);
 
   // Check Supabase connection on component mount
   useEffect(() => {
@@ -21,6 +29,10 @@ const ProfessionalRegistrationFix = () => {
       try {
         const env = getCurrentEnvironment();
         setCurrentEnv(env);
+        
+        // Get additional environment details for debugging
+        const envInfo = getEnvironmentInfo();
+        console.log('Environment info:', envInfo);
         
         console.log('Checking Supabase connection in environment:', env);
         const { data, error } = await supabase.from('profiles').select('count').limit(1);
@@ -32,6 +44,21 @@ const ProfessionalRegistrationFix = () => {
         } else {
           console.log(`Successfully connected to Supabase (${env}):`, data);
           setConnectionStatus('connected');
+          
+          // Check schema compatibility
+          const schemaCheck = await verifySchemaCompatibility();
+          console.log('Schema compatibility check:', schemaCheck);
+          setSchemaStatus({
+            compatible: schemaCheck.compatible,
+            missingColumns: schemaCheck.missingColumns
+          });
+          
+          if (!schemaCheck.compatible) {
+            toast.warning("Schema differences detected", {
+              description: "Some database features may be limited in this environment.",
+              duration: 5000
+            });
+          }
         }
       } catch (err: any) {
         console.error('Unexpected error checking connection:', err);
@@ -97,6 +124,43 @@ const ProfessionalRegistrationFix = () => {
         } catch (updateErr: any) {
           console.error('Error during profile update:', updateErr);
           // Continue anyway as the base profile was created
+        }
+        
+        // Save onboarding progress if the column exists
+        if (!schemaStatus || schemaStatus.compatible || 
+            !schemaStatus.missingColumns.includes('profiles.onboarding_progress')) {
+          try {
+            console.log('Initializing onboarding_progress');
+            // Initialize onboarding progress for a new professional
+            const progressData = {
+              1: true,  // Mark "Complete profile" as complete
+              2: false, // Upload certifications
+              3: false, // Set availability
+              4: false, // Complete training
+              5: false  // Orientation and shadowing
+            };
+            
+            const { error: progressError } = await supabase
+              .from('profiles')
+              .update({ onboarding_progress: progressData })
+              .eq('id', user.id);
+              
+            if (progressError) {
+              if (progressError.message.includes('column') || 
+                  progressError.message.includes('does not exist')) {
+                console.warn('onboarding_progress column not found, skipping initialization');
+              } else {
+                console.error('Error initializing onboarding progress:', progressError);
+              }
+            } else {
+              console.log('Successfully initialized onboarding progress');
+            }
+          } catch (progressErr) {
+            console.warn('Error handling onboarding progress:', progressErr);
+            // Continue anyway as this is non-critical
+          }
+        } else {
+          console.warn('Skipping onboarding_progress initialization - column missing in this environment');
         }
         
         return { success: true };
@@ -179,6 +243,14 @@ const ProfessionalRegistrationFix = () => {
       {currentEnv !== 'unknown' && (
         <div className="mb-4 p-2 bg-blue-50 text-blue-700 text-sm rounded-md">
           Current environment: <strong>{currentEnv}</strong>
+          {schemaStatus && !schemaStatus.compatible && (
+            <div className="mt-1 text-xs">
+              <p>Note: Some database features may be limited in this environment.</p>
+              {schemaStatus.missingColumns.length > 0 && (
+                <p className="text-yellow-600">Missing columns: {schemaStatus.missingColumns.join(', ')}</p>
+              )}
+            </div>
+          )}
         </div>
       )}
       

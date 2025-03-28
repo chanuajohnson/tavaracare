@@ -1,3 +1,4 @@
+
 import { supabase } from '@/lib/supabase';
 import { UserRole } from '@/types/database';
 import { getCurrentEnvironment } from '@/integrations/supabase/client';
@@ -203,6 +204,36 @@ export const updateUserProfile = async (userId: string, profileData: any) => {
           }
         }
       });
+      
+      // Special handling for onboarding_progress
+      if (profileData.onboarding_progress) {
+        try {
+          // Try to update onboarding_progress separately first to test if column exists
+          const testUpdate = {
+            updated_at: new Date().toISOString()
+          };
+          
+          // Try updating onboarding_progress in a separate operation
+          if (existingProfile || !getError) {
+            const { error: progressError } = await supabase
+              .from('profiles')
+              .update({ onboarding_progress: profileData.onboarding_progress })
+              .eq('id', userId);
+              
+            if (progressError) {
+              if (progressError.message.includes('column') || progressError.message.includes('does not exist')) {
+                console.warn('onboarding_progress column not available in this environment, skipping');
+              } else {
+                console.error('Error updating onboarding_progress:', progressError);
+              }
+            } else {
+              console.log('Successfully updated onboarding_progress');
+            }
+          }
+        } catch (progressErr) {
+          console.warn('Error handling onboarding_progress:', progressErr);
+        }
+      }
       
       // Always include updated_at
       safeProfileData.updated_at = new Date().toISOString();
