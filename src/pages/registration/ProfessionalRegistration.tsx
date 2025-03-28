@@ -840,4 +840,4 @@ const ProfessionalRegistration = () => {
                         onCheckedChange={(checked) => {
                           const currentValues = field.value || [];
                           if (checked) {
-                            setValue('medical_conditions_experience', [...
+                            setValue('medical_conditions_
