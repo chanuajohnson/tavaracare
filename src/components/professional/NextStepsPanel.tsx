@@ -95,34 +95,43 @@ export const NextStepsPanel = () => {
         setIsOfflineMode(!isConnected);
         
         if (isConnected) {
-          // Try to load from Supabase if user is logged in and online
-          const { data, error } = await supabase
-            .from('profiles')
-            .select('onboarding_progress, availability')
-            .eq('id', user.id)
-            .maybeSingle();
-          
-          if (error) {
-            console.error("Error loading progress:", error);
-            setError(`Failed to load progress: ${error.message}`);
+          try {
+            // Try to load from Supabase if user is logged in and online
+            console.log('Attempting to load progress from Supabase for user:', user.id);
+            const { data, error } = await supabase
+              .from('profiles')
+              .select('onboarding_progress, availability')
+              .eq('id', user.id)
+              .maybeSingle();
             
-            // If there's an error with Supabase, set offline mode and fall back to localStorage
+            if (error) {
+              console.error("Error loading progress from Supabase:", error);
+              setError(`Failed to load progress: ${error.message}`);
+              
+              // If there's an error with Supabase, set offline mode and fall back to localStorage
+              setIsOfflineMode(true);
+              loadProgressFromLocalStorage();
+              return;
+            }
+            
+            if (data) {
+              console.log("Loaded progress data from Supabase:", data);
+              // Update from database
+              updateProgressFromData(data.onboarding_progress, data.availability);
+            } else {
+              console.log("No progress data found in Supabase for user:", user.id);
+              // Fall back to localStorage
+              loadProgressFromLocalStorage();
+            }
+          } catch (supabaseError) {
+            console.error("Supabase operation failed:", supabaseError);
+            setError(`Supabase error: ${supabaseError instanceof Error ? supabaseError.message : String(supabaseError)}`);
             setIsOfflineMode(true);
-            loadProgressFromLocalStorage();
-            return;
-          }
-          
-          if (data) {
-            console.log("Loaded progress data:", data);
-            // Update from database
-            updateProgressFromData(data.onboarding_progress, data.availability);
-          } else {
-            console.log("No progress data found for user:", user.id);
-            // Fall back to localStorage
             loadProgressFromLocalStorage();
           }
         } else {
           // Offline mode - load from localStorage
+          console.log('Device is offline, loading from localStorage');
           loadProgressFromLocalStorage();
         }
       } catch (err) {
@@ -136,13 +145,15 @@ export const NextStepsPanel = () => {
     };
     
     const loadProgressFromLocalStorage = () => {
+      console.log('Loading progress from localStorage');
       const savedProgress = localStorage.getItem('professionalOnboardingProgress');
       if (savedProgress) {
         try {
           const parsedData = JSON.parse(savedProgress);
+          console.log("Loaded progress from localStorage:", parsedData);
           updateProgressFromData(parsedData.steps, parsedData.availability);
         } catch (e) {
-          console.error("Error parsing saved progress:", e);
+          console.error("Error parsing saved progress from localStorage:", e);
           // Set first step completed if user exists (profile creation)
           if (user) {
             const updatedSteps = [...steps];
@@ -151,6 +162,7 @@ export const NextStepsPanel = () => {
           }
         }
       } else {
+        console.log('No saved progress in localStorage');
         // Set first step completed if user exists (profile creation)
         if (user) {
           const updatedSteps = [...steps];
@@ -208,18 +220,28 @@ export const NextStepsPanel = () => {
         
         // Only try to save to Supabase if we're online
         if (!isOfflineMode) {
-          const { error } = await supabase
-            .from('profiles')
-            .update({ 
-              onboarding_progress: progressData,
-              availability: selectedAvailability
-            })
-            .eq('id', user.id);
-            
-          if (error) {
-            console.error("Error saving progress:", error);
-            setError(`Failed to save progress: ${error.message}`);
+          try {
+            console.log('Saving progress to Supabase for user:', user.id);
+            const { error } = await supabase
+              .from('profiles')
+              .update({ 
+                onboarding_progress: progressData,
+                availability: selectedAvailability
+              })
+              .eq('id', user.id);
+              
+            if (error) {
+              console.error("Error saving progress to Supabase:", error);
+              setError(`Failed to save progress: ${error.message}`);
+            } else {
+              console.log('Successfully saved progress to Supabase');
+            }
+          } catch (supabaseError) {
+            console.error("Supabase update operation failed:", supabaseError);
+            setError(`Supabase error: ${supabaseError instanceof Error ? supabaseError.message : String(supabaseError)}`);
           }
+        } else {
+          console.log('In offline mode - progress saved to localStorage only');
         }
       } catch (err) {
         console.error("Error in saveProgress:", err);
