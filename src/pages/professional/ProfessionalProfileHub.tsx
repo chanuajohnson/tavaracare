@@ -1,8 +1,6 @@
-
 import { motion } from "framer-motion";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { 
   UserCircle, 
@@ -24,7 +22,10 @@ import {
   Moon,
   AlertCircle,
   ChevronUp,
-  ChevronDown
+  ChevronDown,
+  FileSpreadsheet,
+  HelpCircle,
+  BookOpen
 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/components/providers/AuthProvider";
@@ -49,6 +50,8 @@ import { ensureUserProfile } from "@/lib/profile-utils";
 import { CareAssignmentCard } from "@/components/professional/CareAssignmentCard";
 import { ProfessionalCalendar } from "@/components/professional/ProfessionalCalendar";
 import { useCareShifts } from "@/hooks/useCareShifts";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { TrackableButton } from "@/components/tracking/TrackableButton";
 
 const initialSteps = [
   { 
@@ -501,6 +504,17 @@ const ProfessionalProfileHub = () => {
     }
   };
 
+  const trackJobLetterRequest = (method: 'email' | 'whatsapp') => {
+    trackEngagement(`job_letter_request_${method}`, { 
+      section: 'admin_assistant',
+      source: 'profile_hub'
+    });
+    
+    toast.success(`Job letter request initiated via ${method}`, {
+      description: "We've received your request and will process it shortly.",
+    });
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background">
@@ -784,7 +798,7 @@ const ProfessionalProfileHub = () => {
                 transition={{ duration: 0.5, delay: 0.1 }}
               >
                 <Tabs defaultValue="next-steps" className="w-full">
-                  <TabsList className="w-full justify-start mb-6">
+                  <TabsList className="w-full justify-start mb-6 overflow-x-auto">
                     <TabsTrigger value="next-steps" className="flex items-center gap-1">
                       <ListChecks className="h-4 w-4" />
                       <span>Next Steps</span>
@@ -796,6 +810,10 @@ const ProfessionalProfileHub = () => {
                     <TabsTrigger value="documents" className="flex items-center gap-1">
                       <FileText className="h-4 w-4" />
                       <span>Documents</span>
+                    </TabsTrigger>
+                    <TabsTrigger value="admin-assist" className="flex items-center gap-1">
+                      <FileSpreadsheet className="h-4 w-4" />
+                      <span>Admin Assistant</span>
                     </TabsTrigger>
                   </TabsList>
                   
@@ -1113,6 +1131,125 @@ const ProfessionalProfileHub = () => {
                             </Button>
                           </div>
                         </div>
+                      </CardContent>
+                    </Card>
+                  </TabsContent>
+                  
+                  <TabsContent value="admin-assist" className="space-y-6">
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                          <FileSpreadsheet className="h-5 w-5 text-primary" />
+                          Job Letter Requests
+                        </CardTitle>
+                        <CardDescription>
+                          Request official job letters and employment verification
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        <div className="p-4 rounded-md bg-muted/50 border">
+                          <div className="flex items-start gap-3">
+                            <div className="mt-1 text-primary">
+                              <HelpCircle className="h-5 w-5" />
+                            </div>
+                            <div>
+                              <h4 className="font-medium mb-1">Job Letter Policy</h4>
+                              <p className="text-sm text-muted-foreground mb-2">
+                                Qualified users receive one free job letter every 6 months. Additional requests require a subscription.
+                              </p>
+                              <div className="text-sm flex items-center gap-1 text-green-600">
+                                <CheckCircle2 className="h-4 w-4" />
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger className="cursor-help underline underline-offset-2 text-sm">
+                                      Check if you qualify for a free letter
+                                    </TooltipTrigger>
+                                    <TooltipContent className="max-w-xs">
+                                      <p>To qualify for a free job letter, you must:</p>
+                                      <ul className="list-disc pl-4 mt-1 text-xs">
+                                        <li>Be an active caregiver for at least 3 months</li>
+                                        <li>Have completed at least one care assignment</li>
+                                        <li>Not have requested a free letter in the past 6 months</li>
+                                      </ul>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <div className="space-y-3">
+                          <h4 className="text-sm font-medium">Request a Job Letter</h4>
+                          <p className="text-sm text-muted-foreground">
+                            Contact our team to request your job letter. Please include your full name and job letter purpose in your message.
+                          </p>
+                          
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2">
+                            <TrackableButton
+                              onClick={() => trackJobLetterRequest('email')}
+                              variant="outline"
+                              className="w-full justify-start px-3 py-2 h-auto"
+                              trackingAction="job_letter_request_email"
+                              trackingData={{ source: 'admin_assistant_tab' }}
+                            >
+                              <a 
+                                href="mailto:chanuajohnson@gmail.com?subject=Job Letter Request&body=I would like to request a job letter. %0A%0AFull Name: %0APurpose of letter: %0A%0AThank you." 
+                                className="flex items-center gap-2 w-full"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                              >
+                                <Mail className="h-4 w-4 text-primary" />
+                                <span>Request via Email</span>
+                              </a>
+                            </TrackableButton>
+                            
+                            <TrackableButton
+                              onClick={() => trackJobLetterRequest('whatsapp')}
+                              variant="outline"
+                              className="w-full justify-start px-3 py-2 h-auto"
+                              trackingAction="job_letter_request_whatsapp"
+                              trackingData={{ source: 'admin_assistant_tab' }}
+                            >
+                              <a 
+                                href="https://wa.me/18687865357?text=I would like to request a job letter.%0A%0AFull Name:%0APurpose of letter:%0A%0AThank you." 
+                                className="flex items-center gap-2 w-full"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                              >
+                                <Phone className="h-4 w-4 text-primary" />
+                                <span>Request via WhatsApp</span>
+                              </a>
+                            </TrackableButton>
+                          </div>
+                        </div>
+                        
+                        <Separator className="my-3" />
+                        
+                        <div className="space-y-3">
+                          <h4 className="text-sm font-medium">Other Administrative Services</h4>
+                          <div className="grid grid-cols-1 gap-3">
+                            <div className="p-3 rounded-md border bg-muted/30 flex justify-between items-center">
+                              <div className="flex items-center gap-2">
+                                <BookOpen className="h-4 w-4 text-primary" />
+                                <span className="text-sm">NIS Registration Assistance</span>
+                              </div>
+                              <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">
+                                Coming Soon
+                              </Badge>
+                            </div>
+                            <div className="p-3 rounded-md border bg-muted/30 flex justify-between items-center">
+                              <div className="flex items-center gap-2">
+                                <FileText className="h-4 w-4 text-primary" />
+                                <span className="text-sm">Document Verification</span>
+                              </div>
+                              <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">
+                                Coming Soon
+                              </Badge>
+                            </div>
+                          </div>
+                        </div>
+                        
                       </CardContent>
                     </Card>
                   </TabsContent>
