@@ -12,7 +12,7 @@ import { useJourneyTracking } from "@/hooks/useJourneyTracking";
 import { toast } from "sonner";
 import { Breadcrumb } from "@/components/ui/breadcrumbs/Breadcrumb";
 import { useAuth } from "@/components/providers/AuthProvider";
-import { supabase } from "@/lib/supabase";
+import { supabase } from "@/integrations/supabase/client";
 
 const CaregiverHealthPage = () => {
   const { user } = useAuth();
@@ -25,26 +25,26 @@ const CaregiverHealthPage = () => {
   });
   
   const handleRequestSupport = async (type: string) => {
-    // For non-logged in users, just show a toast
+    // For non-logged in users, show a login prompt toast
     if (!user) {
-      toast.info(`Support request received`, {
-        description: `We'll be in touch soon about your ${type} request.`,
+      toast.info(`Please log in or register`, {
+        description: `You need to be logged in to request ${type} support.`,
         duration: 5000,
       });
       return;
     }
     
-    // For logged in users, send an actual email via the edge function
+    // For logged in users, store the request in the database
     try {
       setIsSubmitting(type);
       
-      const { data, error } = await supabase.functions.invoke("send-contact-email", {
-        body: {
-          name: user.user_metadata?.full_name || "Tavara User",
-          email: user.email || "",
-          message: `I'd like to request support with ${type}. Please contact me to discuss this further.`,
-        },
-      });
+      const { data, error } = await supabase
+        .from('support_requests')
+        .insert({
+          user_id: user.id,
+          request_type: type,
+          message: `Support request for ${type}`
+        });
       
       if (error) throw error;
       
@@ -131,30 +131,20 @@ const CaregiverHealthPage = () => {
                     </p>
                   </div>
                   
-                  {user ? (
-                    <Button 
-                      className="w-full bg-blue-600 hover:bg-blue-700 flex items-center justify-center gap-2"
-                      onClick={() => handleRequestSupport('Presence Support')}
-                      disabled={isSubmitting === 'Presence Support'}
-                    >
-                      {isSubmitting === 'Presence Support' ? (
-                        <>Sending Request...</>
-                      ) : (
-                        <>
-                          <Mail className="h-4 w-4" />
-                          Request Support
-                        </>
-                      )}
-                    </Button>
-                  ) : (
-                    <Button 
-                      className="w-full bg-blue-600 hover:bg-blue-700"
-                      onClick={() => handleRequestSupport('presence support')}
-                    >
-                      Request a Companion
-                      <ArrowRight className="h-4 w-4 ml-2" />
-                    </Button>
-                  )}
+                  <Button 
+                    className="w-full bg-blue-600 hover:bg-blue-700 flex items-center justify-center gap-2"
+                    onClick={() => handleRequestSupport('Presence Support')}
+                    disabled={isSubmitting === 'Presence Support'}
+                  >
+                    {isSubmitting === 'Presence Support' ? (
+                      <>Sending Request...</>
+                    ) : (
+                      <>
+                        <Mail className="h-4 w-4" />
+                        Request Support
+                      </>
+                    )}
+                  </Button>
                 </CardContent>
               </Card>
             </motion.div>
@@ -189,38 +179,21 @@ const CaregiverHealthPage = () => {
                     </p>
                   </div>
                   
-                  {user ? (
+                  <div className="grid grid-cols-2 gap-3">
                     <Button 
-                      className="w-full bg-green-600 hover:bg-green-700 flex items-center justify-center gap-2"
-                      onClick={() => handleRequestSupport('Errand Circle')}
-                      disabled={isSubmitting === 'Errand Circle'}
+                      variant="outline" 
+                      className="border-green-200 text-green-700 hover:bg-green-50"
+                      onClick={() => handleRequestSupport('Browse Helpers')}
                     >
-                      {isSubmitting === 'Errand Circle' ? (
-                        <>Sending Request...</>
-                      ) : (
-                        <>
-                          <Mail className="h-4 w-4" />
-                          Request Errand Help
-                        </>
-                      )}
+                      Browse Helpers
                     </Button>
-                  ) : (
-                    <div className="grid grid-cols-2 gap-3">
-                      <Button 
-                        variant="outline" 
-                        className="border-green-200 text-green-700 hover:bg-green-50"
-                        onClick={() => handleRequestSupport('browse helpers')}
-                      >
-                        Browse Helpers
-                      </Button>
-                      <Button 
-                        className="bg-green-600 hover:bg-green-700"
-                        onClick={() => handleRequestSupport('post a need')}
-                      >
-                        Post a Need
-                      </Button>
-                    </div>
-                  )}
+                    <Button 
+                      className="bg-green-600 hover:bg-green-700"
+                      onClick={() => handleRequestSupport('Post a Need')}
+                    >
+                      Post a Need
+                    </Button>
+                  </div>
                 </CardContent>
               </Card>
             </motion.div>
@@ -249,30 +222,20 @@ const CaregiverHealthPage = () => {
                     You're not the only one. We'll help you find someone who needs the company just as much as you do.
                   </p>
                   
-                  {user ? (
-                    <Button 
-                      className="w-full bg-amber-600 hover:bg-amber-700 flex items-center justify-center gap-2"
-                      onClick={() => handleRequestSupport('Companion Matching')}
-                      disabled={isSubmitting === 'Companion Matching'}
-                    >
-                      {isSubmitting === 'Companion Matching' ? (
-                        <>Sending Request...</>
-                      ) : (
-                        <>
-                          <Mail className="h-4 w-4" />
-                          Request Companion Match
-                        </>
-                      )}
-                    </Button>
-                  ) : (
-                    <Button 
-                      className="w-full bg-amber-600 hover:bg-amber-700"
-                      onClick={() => handleRequestSupport('companion matching')}
-                    >
-                      See Companion Matches
-                      <ArrowRight className="h-4 w-4 ml-2" />
-                    </Button>
-                  )}
+                  <Button 
+                    className="w-full bg-amber-600 hover:bg-amber-700"
+                    onClick={() => handleRequestSupport('Companion Matching')}
+                    disabled={isSubmitting === 'Companion Matching'}
+                  >
+                    {isSubmitting === 'Companion Matching' ? (
+                      <>Sending Request...</>
+                    ) : (
+                      <>
+                        See Companion Matches
+                        <ArrowRight className="h-4 w-4 ml-2" />
+                      </>
+                    )}
+                  </Button>
                 </CardContent>
               </Card>
             </motion.div>
@@ -307,30 +270,20 @@ const CaregiverHealthPage = () => {
                     </p>
                   </div>
                   
-                  {user ? (
-                    <Button 
-                      className="w-full bg-purple-600 hover:bg-purple-700 flex items-center justify-center gap-2"
-                      onClick={() => handleRequestSupport('Emotional Co-Care')}
-                      disabled={isSubmitting === 'Emotional Co-Care'}
-                    >
-                      {isSubmitting === 'Emotional Co-Care' ? (
-                        <>Sending Request...</>
-                      ) : (
-                        <>
-                          <Mail className="h-4 w-4" />
-                          Request Emotional Support
-                        </>
-                      )}
-                    </Button>
-                  ) : (
-                    <Button 
-                      className="w-full bg-purple-600 hover:bg-purple-700"
-                      onClick={() => handleRequestSupport('emotional presence')}
-                    >
-                      Schedule Emotional Presence
-                      <ArrowRight className="h-4 w-4 ml-2" />
-                    </Button>
-                  )}
+                  <Button 
+                    className="w-full bg-purple-600 hover:bg-purple-700"
+                    onClick={() => handleRequestSupport('Emotional Co-Care')}
+                    disabled={isSubmitting === 'Emotional Co-Care'}
+                  >
+                    {isSubmitting === 'Emotional Co-Care' ? (
+                      <>Sending Request...</>
+                    ) : (
+                      <>
+                        Schedule Emotional Presence
+                        <ArrowRight className="h-4 w-4 ml-2" />
+                      </>
+                    )}
+                  </Button>
                 </CardContent>
               </Card>
             </motion.div>
@@ -404,7 +357,7 @@ const CaregiverHealthPage = () => {
           <Button 
             size="lg" 
             className="bg-primary-600 hover:bg-primary-700"
-            onClick={() => handleRequestSupport('share story')}
+            onClick={() => handleRequestSupport('Share Story or Suggestion')}
           >
             Share Your Story or Suggest a Feature
           </Button>

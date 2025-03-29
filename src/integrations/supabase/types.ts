@@ -1167,6 +1167,33 @@ export type Database = {
         }
         Relationships: []
       }
+      support_requests: {
+        Row: {
+          created_at: string
+          id: string
+          message: string
+          request_type: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          message: string
+          request_type: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          message?: string
+          request_type?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       training_modules: {
         Row: {
           created_at: string | null
