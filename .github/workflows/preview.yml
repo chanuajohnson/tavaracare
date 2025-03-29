@@ -33,6 +33,13 @@ jobs:
           VITE_ENV: development  # Mark as development environment
           PREVIEW: 'true'        # Mark as preview environment
 
+      - name: Ensure 404.html exists in preview
+        run: |
+          # Copy 404.html to dist if it doesn't exist in build output
+          if [ ! -f dist/404.html ]; then
+            cp public/404.html dist/404.html
+          fi
+
       # This step is for verification only - no actual deployment
       - name: Archive build artifacts
         uses: actions/upload-artifact@v2

@@ -2,7 +2,7 @@
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { AuthProvider } from "@/components/providers/AuthProvider";
 import { Navigation } from "@/components/layout/Navigation";
 import { useEffect, Suspense, lazy, useState } from "react";
@@ -55,6 +55,27 @@ const queryClient = new QueryClient({
   },
 });
 
+// Component to handle redirect from the 404.html page
+const RedirectHandler = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
+  
+  useEffect(() => {
+    // Check if we have a route parameter in the URL (from 404.html redirect)
+    const params = new URLSearchParams(location.search);
+    const routeParam = params.get('route');
+    
+    if (routeParam) {
+      // Remove the route parameter from the URL and navigate to the actual route
+      const newUrl = '/' + routeParam;
+      // Use replace to avoid adding to history stack
+      navigate(newUrl, { replace: true });
+    }
+  }, [location, navigate]);
+  
+  return null;
+};
+
 const AppWithProviders = () => {
   const [supabaseStatus, setSupabaseStatus] = useState<'checking' | 'available' | 'issues'>('checking');
   
@@ -105,6 +126,7 @@ const AppWithProviders = () => {
           </div>
         )}
         <BrowserRouter>
+          <RedirectHandler />
           <AuthProvider>
             <AppContent />
           </AuthProvider>

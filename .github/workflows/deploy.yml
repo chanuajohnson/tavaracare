@@ -32,9 +32,13 @@ jobs:
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
           VITE_ENV: production
 
-      - name: Ensure CNAME exists
+      - name: Ensure CNAME and 404.html exists
         run: |
           echo "tavara.care" > dist/CNAME  # ✅ Force CNAME file in deployment
+          # Copy 404.html to dist if it doesn't exist in build output
+          if [ ! -f dist/404.html ]; then
+            cp public/404.html dist/404.html
+          fi
           
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
