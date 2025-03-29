@@ -21,6 +21,7 @@ import { SubscriptionFeatureLink } from "@/components/subscription/SubscriptionF
 import { TellTheirStoryCard } from "@/components/family/TellTheirStoryCard";
 import { DashboardTracker } from "@/components/tracking/DashboardTracker";
 import { FamilyShortcutMenuBar } from "@/components/family/FamilyShortcutMenuBar";
+import { CaregiverHealthCard } from "@/components/professional/CaregiverHealthCard";
 
 const FamilyDashboard = () => {
   const {
@@ -164,6 +165,8 @@ const FamilyDashboard = () => {
           {user && <FamilyShortcutMenuBar />}
 
           <CaregiverMatchingCard />
+          
+          <CaregiverHealthCard className="mb-8" />
           
           <TellTheirStoryCard />
 
