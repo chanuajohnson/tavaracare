@@ -1,0 +1,6 @@
+import{c as k,d as f,j as c,L as b,B as m}from"./index-DxZEI8H5.js";/**
+ * @license lucide-react v0.462.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */const y=k("List",[["path",{d:"M3 12h.01",key:"nlz23k"}],["path",{d:"M3 18h.01",key:"1tta3j"}],["path",{d:"M3 6h.01",key:"1rqtza"}],["path",{d:"M8 12h13",key:"1za7za"}],["path",{d:"M8 18h13",key:"1lx6n3"}],["path",{d:"M8 6h13",key:"ik3vkj"}]]),L=({featureType:t,returnPath:s,referringPagePath:o,referringPageLabel:a,children:l,className:d,variant:p="default",directToSubscription:e=!1})=>{const{user:u,userRole:r}=f(),h=e?"/subscription":"/subscription-features",i=r==="professional"||o.includes("professional")||s.includes("professional"),n=s==="/professional/jobs"?"/dashboard/professional":(s==="/family-matching"&&o.includes("dashboard"),s);return console.log("SubscriptionFeatureLink:",{featureType:t,returnPath:n,referringPagePath:o,referringPageLabel:a,isProfessionalFeature:i}),c.jsx(b,{to:h,state:{featureType:t,returnPath:n,referringPagePath:o,referringPageLabel:a,directSubscription:e,fromProfessionalFeatures:i},className:d,children:c.jsx(m,{className:"w-full",variant:p,children:l||(u?"Upgrade to Access":"Subscribe to Access")})})};export{y as L,L as S};

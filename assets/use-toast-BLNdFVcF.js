@@ -1,0 +1,1 @@
+import{J as i}from"./index-DxZEI8H5.js";const c=5e3;function l(n){const{title:s,description:a,duration:e=c,variant:t="default",action:o}=n,r=t==="destructive"?"error":t==="default"?"normal":t;return i(s||"",{description:a,duration:e,action:o?{label:o.label,onClick:o.onClick}:void 0,type:r})}const u=()=>{i.dismiss()};function f(){return{toast:l,dismiss:u}}export{l as t,f as u};
