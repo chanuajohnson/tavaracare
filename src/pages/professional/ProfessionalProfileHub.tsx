@@ -1,3 +1,4 @@
+
 import { motion } from "framer-motion";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -908,3 +909,292 @@ const ProfessionalProfileHub = () => {
                               className="w-full"
                             >
                               Update Certifications
+                            </Button>
+                          </div>
+                        ) : (
+                          <div className="text-center py-6 space-y-4">
+                            <Award className="h-12 w-12 text-gray-300 mx-auto" />
+                            <p className="text-gray-500">No certifications uploaded yet</p>
+                            <Button
+                              onClick={handleUploadCertificates}
+                              className="w-full"
+                            >
+                              Upload Certifications
+                            </Button>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  </TabsContent>
+                  
+                  <TabsContent value="care-plans" className="space-y-6">
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                          <ClipboardList className="h-5 w-5 text-primary" />
+                          Your Care Assignments
+                        </CardTitle>
+                        <CardDescription>
+                          Current and upcoming care assignments
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        {loadingCarePlans ? (
+                          <div className="space-y-3">
+                            <Skeleton className="h-24 w-full" />
+                            <Skeleton className="h-24 w-full" />
+                          </div>
+                        ) : carePlans.length > 0 ? (
+                          <div className="space-y-4">
+                            {carePlans.map((assignment) => (
+                              <CareAssignmentCard 
+                                key={assignment.id}
+                                assignment={assignment}
+                              />
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="text-center py-12 space-y-4">
+                            <ClipboardList className="h-12 w-12 text-gray-300 mx-auto" />
+                            <div>
+                              <p className="font-medium text-gray-700">No care assignments yet</p>
+                              <p className="text-sm text-gray-500 mt-1">
+                                You'll see your care assignments here when you're matched with families
+                              </p>
+                            </div>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                    
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                          <Calendar className="h-5 w-5 text-primary" />
+                          Upcoming Schedule
+                        </CardTitle>
+                        <CardDescription>
+                          Your upcoming care shifts and appointments
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        {loadingShifts ? (
+                          <div className="space-y-3">
+                            <Skeleton className="h-48 w-full" />
+                          </div>
+                        ) : shifts && shifts.length > 0 ? (
+                          <ProfessionalCalendar shifts={shifts} />
+                        ) : (
+                          <div className="text-center py-12 space-y-4">
+                            <Calendar className="h-12 w-12 text-gray-300 mx-auto" />
+                            <div>
+                              <p className="font-medium text-gray-700">No scheduled shifts yet</p>
+                              <p className="text-sm text-gray-500 mt-1">
+                                Your upcoming care shifts will appear here
+                              </p>
+                            </div>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  </TabsContent>
+                  
+                  <TabsContent value="documents" className="space-y-6">
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                          <FileText className="h-5 w-5 text-primary" />
+                          Important Documents
+                        </CardTitle>
+                        <CardDescription>
+                          Submit and manage your professional documents
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-4">
+                          <div className="bg-amber-50 border border-amber-200 rounded-md p-4 text-sm">
+                            <div className="flex gap-2">
+                              <div className="text-amber-600">
+                                <AlertCircle className="h-5 w-5" />
+                              </div>
+                              <div>
+                                <h4 className="font-medium text-amber-800">Documents Required</h4>
+                                <p className="mt-1 text-amber-700">
+                                  Please submit the following documents to complete your profile verification:
+                                </p>
+                                <ul className="mt-2 space-y-1 list-disc list-inside text-amber-700">
+                                  <li>National ID or Passport</li>
+                                  <li>Professional certifications</li>
+                                  <li>Certificate of Character</li>
+                                  <li>Reference letters (at least 2)</li>
+                                </ul>
+                              </div>
+                            </div>
+                          </div>
+                          
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div className="border rounded-md p-4 flex flex-col justify-between">
+                              <div>
+                                <h4 className="font-medium flex items-center gap-1">
+                                  <FileText className="h-4 w-4" /> ID Documents
+                                </h4>
+                                <p className="text-sm text-gray-500 mt-1">
+                                  Upload your identification documents
+                                </p>
+                              </div>
+                              <Button
+                                variant="outline"
+                                className="mt-4"
+                                onClick={handleUploadCertificates}
+                              >
+                                Upload ID
+                              </Button>
+                            </div>
+                            
+                            <div className="border rounded-md p-4 flex flex-col justify-between">
+                              <div>
+                                <h4 className="font-medium flex items-center gap-1">
+                                  <Award className="h-4 w-4" /> Certifications
+                                </h4>
+                                <p className="text-sm text-gray-500 mt-1">
+                                  Upload your professional certifications
+                                </p>
+                              </div>
+                              <Button
+                                variant="outline"
+                                className="mt-4"
+                                onClick={handleUploadCertificates}
+                              >
+                                Upload Certificates
+                              </Button>
+                            </div>
+                            
+                            <div className="border rounded-md p-4 flex flex-col justify-between">
+                              <div>
+                                <h4 className="font-medium flex items-center gap-1">
+                                  <FileText className="h-4 w-4" /> Certificate of Character
+                                </h4>
+                                <p className="text-sm text-gray-500 mt-1">
+                                  Upload police certificate
+                                </p>
+                              </div>
+                              <Button
+                                variant="outline"
+                                className="mt-4"
+                                onClick={handleUploadCertificates}
+                              >
+                                Upload Certificate
+                              </Button>
+                            </div>
+                            
+                            <div className="border rounded-md p-4 flex flex-col justify-between">
+                              <div>
+                                <h4 className="font-medium flex items-center gap-1">
+                                  <FileText className="h-4 w-4" /> References
+                                </h4>
+                                <p className="text-sm text-gray-500 mt-1">
+                                  Upload reference letters
+                                </p>
+                              </div>
+                              <Button
+                                variant="outline"
+                                className="mt-4"
+                                onClick={handleUploadCertificates}
+                              >
+                                Upload References
+                              </Button>
+                            </div>
+                          </div>
+                          
+                          <div className="pt-4">
+                            <p className="text-sm text-gray-500">
+                              Having trouble uploading documents? Email them to <a href="mailto:chanuajohnson@gmail.com" className="text-primary hover:underline">chanuajohnson@gmail.com</a> or send via WhatsApp to <a href="https://wa.me/18687865357" className="text-primary hover:underline">+1 (868) 786-5357</a>.
+                            </p>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </TabsContent>
+                </Tabs>
+              </motion.div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <Dialog open={isAvailabilityModalOpen} onOpenChange={setIsAvailabilityModalOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Set Your Availability</DialogTitle>
+            <DialogDescription>
+              Choose when you're available to work. Select all that apply or add custom availability.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <ToggleGroup 
+                type="multiple" 
+                variant="outline"
+                className="flex flex-wrap gap-2"
+                value={selectedAvailability}
+                onValueChange={(value) => setSelectedAvailability(value)}
+              >
+                <ToggleGroupItem value="Weekdays" className="gap-1">
+                  <Briefcase className="h-3.5 w-3.5" />
+                  <span>Weekdays</span>
+                </ToggleGroupItem>
+                <ToggleGroupItem value="Weekends" className="gap-1">
+                  <Briefcase className="h-3.5 w-3.5" />
+                  <span>Weekends</span>
+                </ToggleGroupItem>
+                <ToggleGroupItem value="Mornings" className="gap-1">
+                  <Sun className="h-3.5 w-3.5" />
+                  <span>Mornings</span>
+                </ToggleGroupItem>
+                <ToggleGroupItem value="Evenings" className="gap-1">
+                  <Moon className="h-3.5 w-3.5" />
+                  <span>Evenings</span>
+                </ToggleGroupItem>
+                <ToggleGroupItem value="Overnight" className="gap-1">
+                  <Moon className="h-3.5 w-3.5" />
+                  <span>Overnight</span>
+                </ToggleGroupItem>
+                <ToggleGroupItem value="Full-time" className="gap-1">
+                  <Clock className="h-3.5 w-3.5" />
+                  <span>Full-time</span>
+                </ToggleGroupItem>
+                <ToggleGroupItem value="Part-time" className="gap-1">
+                  <Clock className="h-3.5 w-3.5" />
+                  <span>Part-time</span>
+                </ToggleGroupItem>
+              </ToggleGroup>
+            </div>
+            
+            <div className="grid gap-2">
+              <Label htmlFor="other-availability">Other availability (optional)</Label>
+              <input
+                id="other-availability"
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                placeholder="E.g., Only school holidays"
+                value={otherAvailability}
+                onChange={(e) => setOtherAvailability(e.target.value)}
+              />
+            </div>
+          </div>
+          
+          <div className="flex justify-end space-x-2">
+            <Button variant="outline" onClick={() => setIsAvailabilityModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={saveAvailability}>
+              Save Availability
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+};
+
+export default ProfessionalProfileHub;
