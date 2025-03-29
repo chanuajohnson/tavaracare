@@ -1,3 +1,4 @@
+
 import { motion } from "framer-motion";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -52,7 +53,7 @@ import { ProfessionalCalendar } from "@/components/professional/ProfessionalCale
 import { useCareShifts } from "@/hooks/useCareShifts";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { TrackableButton } from "@/components/tracking/TrackableButton";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
 const initialSteps = [
   { 
@@ -907,4 +908,304 @@ const ProfessionalProfileHub = () => {
                                   <span className="text-sm">{cert}</span>
                                 </div>
                               ))}
-                              {profileData
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="text-center py-4">
+                            <BookOpen className="h-12 w-12 text-gray-300 mx-auto mb-2" />
+                            <p className="text-gray-500 mb-4">No certifications uploaded yet</p>
+                            <Button
+                              onClick={handleUploadCertificates}
+                              className="w-full sm:w-auto"
+                            >
+                              Upload Certifications
+                            </Button>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  </TabsContent>
+                  
+                  <TabsContent value="care-plans" className="space-y-6">
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                          <ClipboardList className="h-5 w-5 text-primary" />
+                          Care Assignments
+                        </CardTitle>
+                        <CardDescription>
+                          Your current care assignments and client details
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        {loadingCarePlans ? (
+                          <div className="space-y-4">
+                            <Skeleton className="h-24 w-full" />
+                            <Skeleton className="h-24 w-full" />
+                          </div>
+                        ) : carePlans.length > 0 ? (
+                          <div className="space-y-4">
+                            {carePlans.map((assignment) => (
+                              <CareAssignmentCard 
+                                key={assignment.id} 
+                                assignment={assignment} 
+                                carePlan={assignment.care_plans} 
+                              />
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="text-center py-8">
+                            <ClipboardList className="h-12 w-12 text-gray-300 mx-auto mb-2" />
+                            <p className="text-gray-500 mb-2">No care assignments yet</p>
+                            <p className="text-sm text-gray-400 max-w-md mx-auto">
+                              When you're assigned to care for clients, they will appear here with all relevant details.
+                            </p>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                    
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                          <Calendar className="h-5 w-5 text-primary" />
+                          Upcoming Care Shifts
+                        </CardTitle>
+                        <CardDescription>
+                          Your scheduled care appointments
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        {loadingShifts ? (
+                          <div className="space-y-4">
+                            <Skeleton className="h-64 w-full" />
+                          </div>
+                        ) : (
+                          <div className="h-64">
+                            <ProfessionalCalendar shifts={shifts} />
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  </TabsContent>
+                  
+                  <TabsContent value="documents" className="space-y-6">
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                          <FileText className="h-5 w-5 text-primary" />
+                          Important Documents
+                        </CardTitle>
+                        <CardDescription>
+                          Access and download essential documents
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          <div className="border rounded-lg p-4 flex flex-col">
+                            <div className="flex items-center gap-2 mb-2">
+                              <FileText className="h-5 w-5 text-blue-500" />
+                              <h3 className="font-medium">Caregiver Handbook</h3>
+                            </div>
+                            <p className="text-sm text-gray-500 mb-4 flex-1">
+                              Complete guide to policies, procedures, and best practices.
+                            </p>
+                            <Button variant="outline" className="mt-auto w-full">
+                              Download PDF
+                            </Button>
+                          </div>
+                          
+                          <div className="border rounded-lg p-4 flex flex-col">
+                            <div className="flex items-center gap-2 mb-2">
+                              <FileText className="h-5 w-5 text-green-500" />
+                              <h3 className="font-medium">Employment Contract</h3>
+                            </div>
+                            <p className="text-sm text-gray-500 mb-4 flex-1">
+                              Review your employment terms and conditions.
+                            </p>
+                            <Button variant="outline" className="mt-auto w-full">
+                              View Document
+                            </Button>
+                          </div>
+                          
+                          <div className="border rounded-lg p-4 flex flex-col">
+                            <div className="flex items-center gap-2 mb-2">
+                              <FileText className="h-5 w-5 text-purple-500" />
+                              <h3 className="font-medium">Tax Forms</h3>
+                            </div>
+                            <p className="text-sm text-gray-500 mb-4 flex-1">
+                              Access your tax-related documentation.
+                            </p>
+                            <Button variant="outline" className="mt-auto w-full">
+                              Access Forms
+                            </Button>
+                          </div>
+                          
+                          <div className="border rounded-lg p-4 flex flex-col">
+                            <div className="flex items-center gap-2 mb-2">
+                              <FileText className="h-5 w-5 text-amber-500" />
+                              <h3 className="font-medium">Training Certificates</h3>
+                            </div>
+                            <p className="text-sm text-gray-500 mb-4 flex-1">
+                              Download copies of your completed training certificates.
+                            </p>
+                            <Button variant="outline" className="mt-auto w-full">
+                              View Certificates
+                            </Button>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </TabsContent>
+                  
+                  <TabsContent value="admin-assist" className="space-y-6">
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                          <FileSpreadsheet className="h-5 w-5 text-primary" />
+                          Admin Assistant
+                        </CardTitle>
+                        <CardDescription>
+                          Administrative support and document requests
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        <div className="border rounded-lg p-4 space-y-4">
+                          <div className="flex items-start gap-3">
+                            <div className="bg-blue-50 p-2 rounded-lg">
+                              <FileText className="h-6 w-6 text-blue-500" />
+                            </div>
+                            <div className="flex-1">
+                              <h3 className="text-lg font-medium mb-1">Request Job Letter</h3>
+                              <p className="text-sm text-gray-500 mb-3">
+                                Need a job letter for a visa, loan, or other purpose? Each qualified caregiver receives one free job letter every 6 months. Additional letters require a subscription.
+                              </p>
+                              <div className="space-y-2">
+                                <p className="text-xs text-gray-500">Request via:</p>
+                                <div className="flex flex-col sm:flex-row gap-2">
+                                  <Button 
+                                    onClick={() => trackJobLetterRequest('email')}
+                                    variant="outline" 
+                                    className="flex items-center gap-2"
+                                  >
+                                    <Mail className="h-4 w-4" />
+                                    <span>Email Request</span>
+                                  </Button>
+                                  <Button 
+                                    onClick={() => trackJobLetterRequest('whatsapp')}
+                                    variant="outline" 
+                                    className="flex items-center gap-2"
+                                  >
+                                    <Phone className="h-4 w-4" />
+                                    <span>WhatsApp Request</span>
+                                  </Button>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <div className="border border-dashed rounded-lg p-4 bg-gray-50 text-center">
+                          <HelpCircle className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+                          <h3 className="font-medium text-gray-700 mb-1">More Admin Features Coming Soon</h3>
+                          <p className="text-sm text-gray-500">
+                            We're working on additional administrative features to better support you.
+                          </p>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </TabsContent>
+                </Tabs>
+              </motion.div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <Dialog open={isAvailabilityModalOpen} onOpenChange={setIsAvailabilityModalOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Set Your Availability</DialogTitle>
+            <DialogDescription>
+              Choose the times when you're available to provide care.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <ToggleGroup 
+              type="multiple" 
+              className="justify-start flex-wrap"
+              value={selectedAvailability}
+              onValueChange={setSelectedAvailability}
+            >
+              <ToggleGroupItem value="Weekday Mornings" className="mb-2 mr-2">
+                <Sun className="h-4 w-4 mr-1" />
+                Weekday Mornings
+              </ToggleGroupItem>
+              <ToggleGroupItem value="Weekday Afternoons" className="mb-2 mr-2">
+                <Sun className="h-4 w-4 mr-1" />
+                Weekday Afternoons
+              </ToggleGroupItem>
+              <ToggleGroupItem value="Weekday Evenings" className="mb-2 mr-2">
+                <Moon className="h-4 w-4 mr-1" />
+                Weekday Evenings
+              </ToggleGroupItem>
+              <ToggleGroupItem value="Weekday Nights" className="mb-2 mr-2">
+                <Moon className="h-4 w-4 mr-1" />
+                Weekday Nights
+              </ToggleGroupItem>
+              <ToggleGroupItem value="Weekend Mornings" className="mb-2 mr-2">
+                <Sun className="h-4 w-4 mr-1" />
+                Weekend Mornings
+              </ToggleGroupItem>
+              <ToggleGroupItem value="Weekend Afternoons" className="mb-2 mr-2">
+                <Sun className="h-4 w-4 mr-1" />
+                Weekend Afternoons
+              </ToggleGroupItem>
+              <ToggleGroupItem value="Weekend Evenings" className="mb-2 mr-2">
+                <Moon className="h-4 w-4 mr-1" />
+                Weekend Evenings
+              </ToggleGroupItem>
+              <ToggleGroupItem value="Weekend Nights" className="mb-2 mr-2">
+                <Moon className="h-4 w-4 mr-1" />
+                Weekend Nights
+              </ToggleGroupItem>
+              <ToggleGroupItem value="24/7 On Call" className="mb-2 mr-2">
+                <Clock className="h-4 w-4 mr-1" />
+                24/7 On Call
+              </ToggleGroupItem>
+              <ToggleGroupItem value="Live-In" className="mb-2 mr-2">
+                <Home className="h-4 w-4 mr-1" />
+                Live-In
+              </ToggleGroupItem>
+            </ToggleGroup>
+            
+            <div className="space-y-2">
+              <Label htmlFor="other-availability">Other Availability</Label>
+              <textarea
+                id="other-availability"
+                placeholder="Describe any other availability patterns or specific hours"
+                className="w-full h-20 px-3 py-2 border rounded-md"
+                value={otherAvailability}
+                onChange={(e) => setOtherAvailability(e.target.value)}
+              />
+            </div>
+          </div>
+          <div className="flex justify-end gap-3">
+            <Button 
+              variant="outline" 
+              onClick={() => setIsAvailabilityModalOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button onClick={saveAvailability}>
+              Save Availability
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+};
+
+export default ProfessionalProfileHub;
+
