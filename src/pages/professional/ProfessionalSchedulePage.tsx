@@ -10,7 +10,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { CalendarIcon, Clock, MapPin, ArrowLeft, Users, ClipboardList } from "lucide-react";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useNavigate, Link } from "react-router-dom";
-import { supabase } from "@/lib/supabase";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useJourneyTracking } from "@/hooks/useJourneyTracking";
