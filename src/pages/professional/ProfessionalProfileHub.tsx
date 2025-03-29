@@ -1,3 +1,4 @@
+
 import { motion } from "framer-motion";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -22,7 +23,10 @@ import {
   Sun,
   Moon,
   Home,
-  AlertCircle
+  AlertCircle,
+  ChevronLeft,
+  ChevronDown,
+  ChevronUp
 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/components/providers/AuthProvider";
@@ -114,7 +118,7 @@ const ProfessionalProfileHub = () => {
   const [selectedAvailability, setSelectedAvailability] = useState<string[]>([]);
   const [otherAvailability, setOtherAvailability] = useState("");
 
-  const [shifts, loading: loadingShifts] = useCareShifts();
+  const { shifts, loading: loadingShifts } = useCareShifts();
 
   const breadcrumbItems = [
     {
@@ -985,21 +989,29 @@ const ProfessionalProfileHub = () => {
                         </CardDescription>
                       </CardHeader>
                       <CardContent>
-                        <div className="text-center py-8 space-y-4">
-                          <Calendar className="h-12 w-12 text-gray-300 mx-auto" />
-                          <div>
-                            <h3 className="text-lg font-medium">No upcoming shifts</h3>
-                            <p className="text-gray-500 mt-1">
-                              You'll see your care shifts here once they are scheduled
-                            </p>
+                        {loadingShifts ? (
+                          <div className="space-y-3">
+                            <Skeleton className="h-64 w-full" />
                           </div>
-                          <Button 
-                            variant="outline"
-                            onClick={() => navigate("/professional/schedule")}
-                          >
-                            View Schedule
-                          </Button>
-                        </div>
+                        ) : shifts.length > 0 ? (
+                          <ProfessionalCalendar shifts={shifts} />
+                        ) : (
+                          <div className="text-center py-8 space-y-4">
+                            <Calendar className="h-12 w-12 text-gray-300 mx-auto" />
+                            <div>
+                              <h3 className="text-lg font-medium">No upcoming shifts</h3>
+                              <p className="text-gray-500 mt-1">
+                                You'll see your care shifts here once they are scheduled
+                              </p>
+                            </div>
+                            <Button 
+                              variant="outline"
+                              onClick={() => navigate("/professional/schedule")}
+                            >
+                              View Schedule
+                            </Button>
+                          </div>
+                        )}
                       </CardContent>
                     </Card>
                   </TabsContent>
