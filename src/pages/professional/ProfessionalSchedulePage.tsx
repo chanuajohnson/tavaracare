@@ -112,23 +112,23 @@ const ProfessionalSchedulePage = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="container px-4 py-8">
+      <div className="container px-4 py-6 sm:py-8">
         <DashboardHeader breadcrumbItems={breadcrumbItems} />
         
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
-          className="space-y-2 mb-6"
+          className="space-y-2 mb-4 sm:mb-6"
         >
-          <h1 className="text-3xl font-bold">Professional Schedule</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold">Professional Schedule</h1>
           <p className="text-muted-foreground">
             View and manage your upcoming care assignments
           </p>
         </motion.div>
 
         <Tabs defaultValue="calendar" className="w-full">
-          <TabsList className="w-full justify-start mb-6">
+          <TabsList className="w-full justify-start mb-4 sm:mb-6 overflow-x-auto">
             <TabsTrigger value="calendar" className="flex items-center gap-1">
               <CalendarIcon className="h-4 w-4" />
               <span>Calendar View</span>
@@ -139,9 +139,9 @@ const ProfessionalSchedulePage = () => {
             </TabsTrigger>
           </TabsList>
           
-          <TabsContent value="calendar" className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <Card className="md:col-span-1">
+          <TabsContent value="calendar" className="space-y-4 sm:space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
+              <Card className="lg:col-span-1">
                 <CardHeader>
                   <CardTitle className="text-lg">Select Date</CardTitle>
                   <CardDescription>
@@ -169,7 +169,7 @@ const ProfessionalSchedulePage = () => {
                 </CardContent>
               </Card>
               
-              <Card className="md:col-span-2">
+              <Card className="lg:col-span-2">
                 <CardHeader>
                   <CardTitle className="text-lg">
                     {selectedDate ? (
@@ -193,7 +193,7 @@ const ProfessionalSchedulePage = () => {
                       {filteredShifts.map((shift) => (
                         <Card key={shift.id} className="overflow-hidden border-l-4 border-l-primary">
                           <CardContent className="p-4">
-                            <div className="flex justify-between items-start">
+                            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2">
                               <div>
                                 <h4 className="font-medium mb-1">{shift.title}</h4>
                                 <p className="text-sm text-gray-600 mb-2">
@@ -216,6 +216,7 @@ const ProfessionalSchedulePage = () => {
                               </div>
                               <Badge 
                                 className={`
+                                  self-start sm:self-auto
                                   ${shift.status === 'assigned' ? 'bg-green-100 text-green-800 border-green-200' : 
                                     shift.status === 'open' ? 'bg-blue-100 text-blue-800 border-blue-200' :
                                     shift.status === 'completed' ? 'bg-gray-100 text-gray-800 border-gray-200' :
@@ -230,16 +231,16 @@ const ProfessionalSchedulePage = () => {
                       ))}
                     </div>
                   ) : selectedDate ? (
-                    <div className="text-center py-12 border rounded-lg bg-gray-50">
-                      <Calendar className="h-12 w-12 text-gray-300 mx-auto" />
+                    <div className="text-center py-10 border rounded-lg bg-gray-50">
+                      <CalendarIcon className="h-12 w-12 text-gray-300 mx-auto" />
                       <h3 className="mt-4 text-lg font-medium">No shifts scheduled</h3>
                       <p className="mt-1 text-gray-500">
                         You have no care shifts scheduled for this date.
                       </p>
                     </div>
                   ) : (
-                    <div className="text-center py-12 border rounded-lg bg-gray-50">
-                      <Calendar className="h-12 w-12 text-gray-300 mx-auto" />
+                    <div className="text-center py-10 border rounded-lg bg-gray-50">
+                      <CalendarIcon className="h-12 w-12 text-gray-300 mx-auto" />
                       <h3 className="mt-4 text-lg font-medium">Select a date</h3>
                       <p className="mt-1 text-gray-500">
                         Choose a date from the calendar to view scheduled shifts.
@@ -251,7 +252,7 @@ const ProfessionalSchedulePage = () => {
             </div>
           </TabsContent>
           
-          <TabsContent value="list" className="space-y-6">
+          <TabsContent value="list" className="space-y-4 sm:space-y-6">
             <Card>
               <CardHeader>
                 <CardTitle>Upcoming Shifts</CardTitle>
@@ -267,20 +268,20 @@ const ProfessionalSchedulePage = () => {
                     <Skeleton className="h-24 w-full" />
                   </div>
                 ) : shifts.length > 0 ? (
-                  <div className="space-y-8">
+                  <div className="space-y-6 sm:space-y-8">
                     {getShiftsByDate().map(({ date, shifts }) => (
                       <div key={date}>
                         <div className="flex items-center gap-2 mb-3">
-                          <Calendar className="h-5 w-5 text-primary" />
+                          <CalendarIcon className="h-5 w-5 text-primary" />
                           <h3 className="font-medium">
                             {format(new Date(date), 'EEEE, MMMM d, yyyy')}
                           </h3>
                         </div>
-                        <div className="space-y-3 pl-7">
+                        <div className="space-y-3 pl-0 sm:pl-7">
                           {shifts.map((shift) => (
                             <Card key={shift.id} className="overflow-hidden">
                               <CardContent className="p-4">
-                                <div className="flex justify-between items-start">
+                                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2">
                                   <div>
                                     <h4 className="font-medium mb-1">{shift.title}</h4>
                                     <p className="text-sm text-gray-600 mb-2">
@@ -303,6 +304,7 @@ const ProfessionalSchedulePage = () => {
                                   </div>
                                   <Badge 
                                     className={`
+                                      self-start sm:self-auto
                                       ${shift.status === 'assigned' ? 'bg-green-100 text-green-800 border-green-200' : 
                                         shift.status === 'open' ? 'bg-blue-100 text-blue-800 border-blue-200' :
                                         shift.status === 'completed' ? 'bg-gray-100 text-gray-800 border-gray-200' :
@@ -320,8 +322,8 @@ const ProfessionalSchedulePage = () => {
                     ))}
                   </div>
                 ) : (
-                  <div className="text-center py-12 border rounded-lg bg-gray-50">
-                    <Calendar className="h-12 w-12 text-gray-300 mx-auto" />
+                  <div className="text-center py-10 border rounded-lg bg-gray-50">
+                    <CalendarIcon className="h-12 w-12 text-gray-300 mx-auto" />
                     <h3 className="mt-4 text-lg font-medium">No upcoming shifts</h3>
                     <p className="mt-1 text-gray-500">
                       You don't have any care shifts scheduled yet.
