@@ -55,6 +55,9 @@ export function ProfessionalCalendar({ shifts, loading = false }: ProfessionalCa
     return daysWithShifts;
   };
 
+  console.log("ProfessionalCalendar: Rendering with shifts:", shifts.length);
+  console.log("ProfessionalCalendar: Selected date shifts:", selectedDateShifts.length);
+
   return (
     <Card>
       <CardHeader>

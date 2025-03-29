@@ -37,7 +37,11 @@ interface CareAssignmentCardProps {
 }
 
 export function CareAssignmentCard({ assignment }: CareAssignmentCardProps) {
+  // Add debug logging
+  console.log("Rendering CareAssignmentCard with assignment:", assignment);
+
   if (!assignment.care_plans) {
+    console.warn("Assignment missing care_plans data:", assignment.id);
     return null;
   }
 

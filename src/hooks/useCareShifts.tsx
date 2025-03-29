@@ -25,6 +25,8 @@ export function useCareShifts() {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
         
+        console.log("Fetching care shifts for user:", user.id);
+        
         const { data, error: shiftsError } = await supabase
           .from('care_shifts')
           .select('*')
@@ -36,6 +38,7 @@ export function useCareShifts() {
           throw shiftsError;
         }
         
+        console.log("Care shifts fetched:", data?.length || 0, "shifts found");
         setShifts(data || []);
       } catch (err: any) {
         console.error("Error fetching care shifts:", err);

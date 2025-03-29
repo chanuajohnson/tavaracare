@@ -1,4 +1,3 @@
-
 import { motion } from "framer-motion";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -294,6 +293,8 @@ const ProfessionalProfileHub = () => {
       try {
         setLoadingCarePlans(true);
         
+        console.log("Fetching care plans for professional user:", user.id);
+        
         const { data, error: carePlansError } = await supabase
           .from('care_team_members')
           .select(`
@@ -329,6 +330,8 @@ const ProfessionalProfileHub = () => {
         console.log("Loaded care plans for professional:", data);
         
         const validCarePlans = data?.filter(plan => plan.care_plans) || [];
+        console.log("Valid care plans after filtering:", validCarePlans.length);
+        
         setCarePlans(validCarePlans);
         setLoadingCarePlans(false);
       } catch (err) {
@@ -972,6 +975,14 @@ const ProfessionalProfileHub = () => {
                               <p className="text-gray-500 mt-1">
                                 You'll see care plans here once families assign you to their care team
                               </p>
+                              <div className="mt-4 p-3 bg-blue-50 border border-blue-100 rounded-md text-sm text-blue-700">
+                                <p>If you believe you should have assignments, please check if:</p>
+                                <ul className="list-disc pl-5 mt-2 space-y-1">
+                                  <li>You've been invited to a care team</li>
+                                  <li>You've accepted any pending invitations</li>
+                                  <li>Your account ID matches the assigned caregiver ID</li>
+                                </ul>
+                              </div>
                             </div>
                           </div>
                         )}
