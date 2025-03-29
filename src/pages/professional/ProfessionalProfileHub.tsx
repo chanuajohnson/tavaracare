@@ -1,3 +1,4 @@
+
 import { motion } from "framer-motion";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -46,6 +47,7 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useTrainingProgress } from "@/hooks/useTrainingProgress";
 import { ensureUserProfile } from "@/lib/profile-utils";
+import { NextStepsPanel } from "@/components/professional/NextStepsPanel";
 
 const initialSteps = [
   { 
@@ -910,4 +912,425 @@ const ProfessionalProfileHub = () => {
                     </Card>
                   </TabsContent>
                   
-                  <TabsContent
+                  <TabsContent value="care-plans" className="space-y-6">
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                          <ClipboardList className="h-5 w-5 text-primary" />
+                          Your Care Assignments
+                        </CardTitle>
+                        <CardDescription>
+                          Current and upcoming care plans you're assigned to
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        {loadingCarePlans ? (
+                          <div className="space-y-4">
+                            <Skeleton className="h-24 w-full" />
+                            <Skeleton className="h-24 w-full" />
+                          </div>
+                        ) : carePlans.length > 0 ? (
+                          <div className="space-y-4">
+                            {carePlans.map((carePlan) => (
+                              <div 
+                                key={carePlan.id} 
+                                className="p-4 border rounded-lg hover:bg-gray-50 transition-colors"
+                              >
+                                <div className="flex justify-between items-start mb-2">
+                                  <h4 className="font-medium">
+                                    {carePlan.care_plans?.title || "Untitled Care Plan"}
+                                  </h4>
+                                  <Badge 
+                                    variant={carePlan.status === "active" ? "default" : "outline"}
+                                    className={carePlan.status === "active" 
+                                      ? "bg-green-100 text-green-800 hover:bg-green-200" 
+                                      : "bg-gray-100 text-gray-800 hover:bg-gray-200"
+                                    }
+                                  >
+                                    {carePlan.status === "active" ? "Active" : "Pending"}
+                                  </Badge>
+                                </div>
+                                <p className="text-sm text-gray-600 mb-3">
+                                  {carePlan.care_plans?.description || "No description provided"}
+                                </p>
+                                <div className="flex justify-between items-center">
+                                  <div className="text-sm text-gray-500">
+                                    Family: {carePlan.care_plans?.profiles?.full_name || "Unknown"}
+                                  </div>
+                                  <Link to={`/professional/care-plan/${carePlan.care_plan_id}`}>
+                                    <Button variant="outline" size="sm">
+                                      View Details
+                                    </Button>
+                                  </Link>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="text-center py-8 space-y-4">
+                            <ClipboardList className="h-12 w-12 text-gray-300 mx-auto" />
+                            <div>
+                              <p className="text-gray-600 font-medium">No care plans assigned yet</p>
+                              <p className="text-sm text-gray-500 mt-1">
+                                When you're assigned to care plans, they will appear here
+                              </p>
+                            </div>
+                            <Link to="/professional/matching">
+                              <Button>
+                                Browse Care Opportunities
+                              </Button>
+                            </Link>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  </TabsContent>
+                  
+                  <TabsContent value="documents" className="space-y-6">
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                          <FileText className="h-5 w-5 text-primary" />
+                          Required Documents
+                        </CardTitle>
+                        <CardDescription>
+                          Submit your professional documentation
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent className="space-y-6">
+                        <div className="space-y-4">
+                          <div className="flex items-start gap-3">
+                            <div className="mt-0.5">
+                              {profileData?.has_id_upload ? (
+                                <CheckCircle2 className="h-5 w-5 text-green-500" />
+                              ) : (
+                                <Circle className="h-5 w-5 text-gray-300" />
+                              )}
+                            </div>
+                            <div className="flex-1">
+                              <p className="font-medium">Government-Issued ID</p>
+                              <p className="text-sm text-gray-500">
+                                Provide a valid government-issued photo identification
+                              </p>
+                            </div>
+                            {!profileData?.has_id_upload && (
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={handleUploadCertificates}
+                              >
+                                Upload
+                              </Button>
+                            )}
+                          </div>
+                          
+                          <div className="flex items-start gap-3">
+                            <div className="mt-0.5">
+                              {profileData?.has_character_cert ? (
+                                <CheckCircle2 className="h-5 w-5 text-green-500" />
+                              ) : (
+                                <Circle className="h-5 w-5 text-gray-300" />
+                              )}
+                            </div>
+                            <div className="flex-1">
+                              <p className="font-medium">Certificate of Character</p>
+                              <p className="text-sm text-gray-500">
+                                Certificate of Good Character from the Trinidad & Tobago Police Service
+                              </p>
+                            </div>
+                            {!profileData?.has_character_cert && (
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={handleUploadCertificates}
+                              >
+                                Upload
+                              </Button>
+                            )}
+                          </div>
+                          
+                          <div className="flex items-start gap-3">
+                            <div className="mt-0.5">
+                              {(profileData?.certifications && profileData.certifications.length > 0) ? (
+                                <CheckCircle2 className="h-5 w-5 text-green-500" />
+                              ) : (
+                                <Circle className="h-5 w-5 text-gray-300" />
+                              )}
+                            </div>
+                            <div className="flex-1">
+                              <p className="font-medium">Professional Certifications</p>
+                              <p className="text-sm text-gray-500">
+                                Upload all professional certifications and qualifications
+                              </p>
+                            </div>
+                            {(!profileData?.certifications || profileData.certifications.length === 0) && (
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={handleUploadCertificates}
+                              >
+                                Upload
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                        
+                        <div className="p-4 bg-blue-50 rounded-md">
+                          <div className="flex items-start gap-3">
+                            <Mail className="h-5 w-5 text-blue-600 mt-1" />
+                            <div>
+                              <p className="font-medium text-blue-800">How to submit your documents</p>
+                              <p className="text-sm text-blue-700 mt-1">
+                                Please email your documents to <a href="mailto:chanuajohnson@gmail.com" className="underline">chanuajohnson@gmail.com</a> or
+                                send via WhatsApp to <a href="https://wa.me/18687865357" className="underline">+1 (868) 786-5357</a>
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <Button
+                          onClick={handleUploadCertificates}
+                          className="w-full"
+                        >
+                          Upload All Documents
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  </TabsContent>
+                </Tabs>
+              </motion.div>
+            </div>
+          </div>
+        </div>
+        
+        <Dialog open={isAvailabilityModalOpen} onOpenChange={setIsAvailabilityModalOpen}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Set Your Availability</DialogTitle>
+              <DialogDescription>
+                Let clients know when you're available for care shifts.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="py-4">
+              <div className="space-y-5">
+                <div>
+                  <h3 className="text-sm font-medium mb-2 flex items-center">
+                    <Calendar className="h-4 w-4 mr-2 text-primary" /> Standard Weekday Shifts
+                  </h3>
+                  <div className="space-y-3">
+                    <div className="flex items-center space-x-2">
+                      <Checkbox 
+                        id="weekday-standard" 
+                        checked={selectedAvailability.includes("Monday - Friday, 8 AM - 4 PM")}
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            setSelectedAvailability([...selectedAvailability, "Monday - Friday, 8 AM - 4 PM"]);
+                          } else {
+                            setSelectedAvailability(selectedAvailability.filter(a => a !== "Monday - Friday, 8 AM - 4 PM"));
+                          }
+                        }}
+                      />
+                      <Label htmlFor="weekday-standard" className="flex items-center">
+                        <Sun className="h-4 w-4 mr-2 text-amber-400" /> Monday - Friday, 8 AM - 4 PM (Standard daytime coverage)
+                      </Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox 
+                        id="weekday-extended" 
+                        checked={selectedAvailability.includes("Monday - Friday, 6 AM - 6 PM")}
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            setSelectedAvailability([...selectedAvailability, "Monday - Friday, 6 AM - 6 PM"]);
+                          } else {
+                            setSelectedAvailability(selectedAvailability.filter(a => a !== "Monday - Friday, 6 AM - 6 PM"));
+                          }
+                        }}
+                      />
+                      <Label htmlFor="weekday-extended" className="flex items-center">
+                        <Sun className="h-4 w-4 mr-2 text-amber-400" /> Monday - Friday, 6 AM - 6 PM (Extended daytime coverage)
+                      </Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox 
+                        id="weekday-night" 
+                        checked={selectedAvailability.includes("Monday - Friday, 6 PM - 8 AM")}
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            setSelectedAvailability([...selectedAvailability, "Monday - Friday, 6 PM - 8 AM"]);
+                          } else {
+                            setSelectedAvailability(selectedAvailability.filter(a => a !== "Monday - Friday, 6 PM - 8 AM"));
+                          }
+                        }}
+                      />
+                      <Label htmlFor="weekday-night" className="flex items-center">
+                        <Moon className="h-4 w-4 mr-2 text-indigo-400" /> Monday - Friday, 6 PM - 8 AM (Nighttime coverage)
+                      </Label>
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="text-sm font-medium mb-2 flex items-center">
+                    <Calendar className="h-4 w-4 mr-2 text-primary" /> Weekend Shifts
+                  </h3>
+                  <div className="space-y-3">
+                    <div className="flex items-center space-x-2">
+                      <Checkbox 
+                        id="weekend-day" 
+                        checked={selectedAvailability.includes("Saturday - Sunday, 6 AM - 6 PM")}
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            setSelectedAvailability([...selectedAvailability, "Saturday - Sunday, 6 AM - 6 PM"]);
+                          } else {
+                            setSelectedAvailability(selectedAvailability.filter(a => a !== "Saturday - Sunday, 6 AM - 6 PM"));
+                          }
+                        }}
+                      />
+                      <Label htmlFor="weekend-day" className="flex items-center">
+                        <Sun className="h-4 w-4 mr-2 text-amber-400" /> Saturday - Sunday, 6 AM - 6 PM (Daytime weekend coverage)
+                      </Label>
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="text-sm font-medium mb-2 flex items-center">
+                    <Calendar className="h-4 w-4 mr-2 text-primary" /> Evening & Overnight Shifts
+                  </h3>
+                  <div className="space-y-3">
+                    <div className="flex items-center space-x-2">
+                      <Checkbox 
+                        id="evening-1" 
+                        checked={selectedAvailability.includes("Weekday Evening Shift (4 PM - 6 AM)")}
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            setSelectedAvailability([...selectedAvailability, "Weekday Evening Shift (4 PM - 6 AM)"]);
+                          } else {
+                            setSelectedAvailability(selectedAvailability.filter(a => a !== "Weekday Evening Shift (4 PM - 6 AM)"));
+                          }
+                        }}
+                      />
+                      <Label htmlFor="evening-1" className="flex items-center">
+                        <Moon className="h-4 w-4 mr-2 text-indigo-400" /> Weekday Evening Shift (4 PM - 6 AM)
+                      </Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox 
+                        id="evening-2" 
+                        checked={selectedAvailability.includes("Weekday Evening Shift (4 PM - 8 AM)")}
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            setSelectedAvailability([...selectedAvailability, "Weekday Evening Shift (4 PM - 8 AM)"]);
+                          } else {
+                            setSelectedAvailability(selectedAvailability.filter(a => a !== "Weekday Evening Shift (4 PM - 8 AM)"));
+                          }
+                        }}
+                      />
+                      <Label htmlFor="evening-2" className="flex items-center">
+                        <Moon className="h-4 w-4 mr-2 text-indigo-400" /> Weekday Evening Shift (4 PM - 8 AM)
+                      </Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox 
+                        id="evening-3" 
+                        checked={selectedAvailability.includes("Weekday Evening Shift (6 PM - 6 AM)")}
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            setSelectedAvailability([...selectedAvailability, "Weekday Evening Shift (6 PM - 6 AM)"]);
+                          } else {
+                            setSelectedAvailability(selectedAvailability.filter(a => a !== "Weekday Evening Shift (6 PM - 6 AM)"));
+                          }
+                        }}
+                      />
+                      <Label htmlFor="evening-3" className="flex items-center">
+                        <Moon className="h-4 w-4 mr-2 text-indigo-400" /> Weekday Evening Shift (6 PM - 6 AM)
+                      </Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox 
+                        id="evening-4" 
+                        checked={selectedAvailability.includes("Weekday Evening Shift (6 PM - 8 AM)")}
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            setSelectedAvailability([...selectedAvailability, "Weekday Evening Shift (6 PM - 8 AM)"]);
+                          } else {
+                            setSelectedAvailability(selectedAvailability.filter(a => a !== "Weekday Evening Shift (6 PM - 8 AM)"));
+                          }
+                        }}
+                      />
+                      <Label htmlFor="evening-4" className="flex items-center">
+                        <Moon className="h-4 w-4 mr-2 text-indigo-400" /> Weekday Evening Shift (6 PM - 8 AM)
+                      </Label>
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="text-sm font-medium mb-2 flex items-center">
+                    <Calendar className="h-4 w-4 mr-2 text-primary" /> Other Options
+                  </h3>
+                  <div className="space-y-2">
+                    <div className="flex items-center space-x-2">
+                      <Checkbox 
+                        id="on-demand" 
+                        checked={selectedAvailability.includes("Flexible / On-Demand Availability")}
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            setSelectedAvailability([...selectedAvailability, "Flexible / On-Demand Availability"]);
+                          } else {
+                            setSelectedAvailability(selectedAvailability.filter(a => a !== "Flexible / On-Demand Availability"));
+                          }
+                        }}
+                      />
+                      <Label htmlFor="on-demand" className="flex items-center">
+                        <Clock className="h-4 w-4 mr-2 text-gray-600" /> Flexible / On-Demand Availability
+                      </Label>
+                    </div>
+                    <div className="space-y-1 pt-2">
+                      <Label htmlFor="other-availability" className="flex items-center mb-1">
+                        <Clock className="h-4 w-4 mr-2 text-gray-600" /> Other (Custom shift — specify your hours):
+                      </Label>
+                      <textarea
+                        id="other-availability"
+                        value={otherAvailability}
+                        onChange={(e) => setOtherAvailability(e.target.value)}
+                        className="w-full h-20 px-3 py-2 text-sm border rounded-md"
+                        placeholder="Please specify any other availability or special arrangements..."
+                      />
+                    </div>
+                    <div className="flex items-center space-x-2 mt-3">
+                      <Checkbox 
+                        id="live-in" 
+                        checked={selectedAvailability.includes("Live-In Care (Full-time in-home support)")}
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            setSelectedAvailability([...selectedAvailability, "Live-In Care (Full-time in-home support)"]);
+                          } else {
+                            setSelectedAvailability(selectedAvailability.filter(a => a !== "Live-In Care (Full-time in-home support)"));
+                          }
+                        }}
+                      />
+                      <Label htmlFor="live-in" className="flex items-center">
+                        <Home className="h-4 w-4 mr-2 text-green-600" /> Live-In Care (Full-time in-home support)
+                      </Label>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="flex justify-end space-x-2">
+              <Button variant="outline" onClick={() => setIsAvailabilityModalOpen(false)}>
+                Cancel
+              </Button>
+              <Button onClick={saveAvailability}>
+                Save Availability
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      </div>
+    </div>
+  );
+};
+
+export default ProfessionalProfileHub;
