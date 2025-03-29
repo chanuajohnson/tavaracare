@@ -20,8 +20,7 @@ const AdminDashboard = lazy(() => import("@/pages/admin/AdminDashboard"));
 const UserJourneyPage = lazy(() => import("@/pages/admin/UserJourneyPage"));
 const FamilyDashboard = lazy(() => import("@/pages/dashboards/FamilyDashboard"));
 const CommunityDashboard = lazy(() => import("@/pages/dashboards/CommunityDashboard"));
-// Fix the import path to use the correct file extension (.tsx)
-const ProfessionalDashboard = lazy(() => import("@/pages/dashboards/ProfessionalDashboard.tsx"));
+const ProfessionalDashboard = lazy(() => import("@/pages/dashboards/ProfessionalDashboard"));
 
 const FamilyRegistration = lazy(() => import("@/pages/registration/FamilyRegistration"));
 const ProfessionalRegistration = lazy(() => import("@/pages/registration/ProfessionalRegistration"));
