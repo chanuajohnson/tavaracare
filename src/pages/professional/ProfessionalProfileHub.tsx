@@ -1,3 +1,4 @@
+
 import { motion } from "framer-motion";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -908,3 +909,288 @@ const ProfessionalProfileHub = () => {
                               className="w-full"
                             >
                               Update Certifications
+                            </Button>
+                          </div>
+                        ) : (
+                          <div className="text-center py-6 space-y-4">
+                            <Award className="h-12 w-12 text-gray-300 mx-auto" />
+                            <p className="text-gray-500">No certifications uploaded yet</p>
+                            <Button
+                              onClick={handleUploadCertificates}
+                              className="w-full"
+                            >
+                              Upload Certifications
+                            </Button>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  </TabsContent>
+                  
+                  <TabsContent value="care-plans" className="space-y-6">
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                          <ClipboardList className="h-5 w-5 text-primary" />
+                          Your Care Assignments
+                        </CardTitle>
+                        <CardDescription>
+                          Care plans assigned to you by families
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        {loadingCarePlans ? (
+                          <div className="space-y-4">
+                            <Skeleton className="h-24 w-full" />
+                            <Skeleton className="h-24 w-full" />
+                          </div>
+                        ) : carePlans.length > 0 ? (
+                          <div className="space-y-4">
+                            {carePlans.map((assignment) => (
+                              <CareAssignmentCard 
+                                key={assignment.id}
+                                assignment={assignment}
+                                carePlan={assignment.care_plans}
+                              />
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="text-center py-8 space-y-3">
+                            <ClipboardList className="h-12 w-12 text-gray-300 mx-auto" />
+                            <p className="text-gray-700 font-medium">No care assignments yet</p>
+                            <p className="text-gray-500 text-sm max-w-md mx-auto">
+                              You'll see care plans here once families assign you to their care team
+                            </p>
+                            <div className="pt-2 text-sm text-gray-500">
+                              <p>If you believe you should have assignments, please check if:</p>
+                              <ul className="text-left list-disc pl-8 pt-2 space-y-1">
+                                <li>You've been invited to a care team</li>
+                                <li>You've accepted any pending invitations</li>
+                                <li>Your account ID matches the assigned caregiver ID</li>
+                              </ul>
+                            </div>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                    
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                          <Calendar className="h-5 w-5 text-primary" />
+                          Upcoming Care Shifts
+                        </CardTitle>
+                        <CardDescription>
+                          Your scheduled care assignments
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        {loadingShifts ? (
+                          <div className="space-y-4">
+                            <Skeleton className="h-24 w-full" />
+                            <Skeleton className="h-24 w-full" />
+                          </div>
+                        ) : shifts.length > 0 ? (
+                          <div className="space-y-4">
+                            <ProfessionalCalendar shifts={shifts} />
+                          </div>
+                        ) : (
+                          <div className="text-center py-8 space-y-3">
+                            <Calendar className="h-12 w-12 text-gray-300 mx-auto" />
+                            <p className="text-gray-700 font-medium">No upcoming shifts</p>
+                            <p className="text-gray-500 text-sm max-w-md mx-auto">
+                              You don't have any care shifts scheduled at the moment
+                            </p>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  </TabsContent>
+                  
+                  <TabsContent value="documents" className="space-y-6">
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                          <FileText className="h-5 w-5 text-primary" />
+                          Required Documents
+                        </CardTitle>
+                        <CardDescription>
+                          Essential documents for your professional role
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-4">
+                          <div className="grid grid-cols-1 gap-3">
+                            <div className="p-4 rounded-md border bg-gray-50">
+                              <div className="flex justify-between items-start">
+                                <div className="flex items-start gap-3">
+                                  <FileText className="h-5 w-5 text-primary mt-0.5" />
+                                  <div>
+                                    <h4 className="font-medium">Certificate of Character</h4>
+                                    <p className="text-sm text-gray-500 mt-1">
+                                      Police background check document
+                                    </p>
+                                  </div>
+                                </div>
+                                <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">
+                                  Required
+                                </Badge>
+                              </div>
+                            </div>
+                            
+                            <div className="p-4 rounded-md border bg-gray-50">
+                              <div className="flex justify-between items-start">
+                                <div className="flex items-start gap-3">
+                                  <FileText className="h-5 w-5 text-primary mt-0.5" />
+                                  <div>
+                                    <h4 className="font-medium">Government-Issued ID</h4>
+                                    <p className="text-sm text-gray-500 mt-1">
+                                      Valid national ID card, passport, or driver's license
+                                    </p>
+                                  </div>
+                                </div>
+                                <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">
+                                  Required
+                                </Badge>
+                              </div>
+                            </div>
+                            
+                            <div className="p-4 rounded-md border bg-gray-50">
+                              <div className="flex justify-between items-start">
+                                <div className="flex items-start gap-3">
+                                  <FileText className="h-5 w-5 text-primary mt-0.5" />
+                                  <div>
+                                    <h4 className="font-medium">Professional Certifications</h4>
+                                    <p className="text-sm text-gray-500 mt-1">
+                                      Any relevant caregiving or medical certifications
+                                    </p>
+                                  </div>
+                                </div>
+                                <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                                  Recommended
+                                </Badge>
+                              </div>
+                            </div>
+                          </div>
+                          
+                          <Separator />
+                          
+                          <div className="space-y-4">
+                            <h4 className="font-medium text-sm text-gray-700">Submit Your Documents</h4>
+                            <p className="text-sm text-gray-500">
+                              Please email your documents to our team or send them via WhatsApp for verification
+                            </p>
+                            
+                            <div className="flex flex-col space-y-2">
+                              <a 
+                                href="mailto:chanuajohnson@gmail.com" 
+                                className="text-sm flex items-center justify-between p-3 rounded-md border hover:bg-gray-50 transition-colors"
+                              >
+                                <div className="flex items-center gap-2">
+                                  <Mail className="h-4 w-4 text-primary" />
+                                  <span>chanuajohnson@gmail.com</span>
+                                </div>
+                                <ChevronRight className="h-4 w-4 text-gray-400" />
+                              </a>
+                              
+                              <a 
+                                href="https://wa.me/18687865357" 
+                                className="text-sm flex items-center justify-between p-3 rounded-md border hover:bg-gray-50 transition-colors"
+                              >
+                                <div className="flex items-center gap-2">
+                                  <Phone className="h-4 w-4 text-primary" />
+                                  <span>+1 (868) 786-5357</span>
+                                </div>
+                                <ChevronRight className="h-4 w-4 text-gray-400" />
+                              </a>
+                            </div>
+                            
+                            <Button
+                              onClick={handleUploadCertificates}
+                              className="w-full mt-4"
+                            >
+                              Mark Documents as Submitted
+                            </Button>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </TabsContent>
+                </Tabs>
+              </motion.div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <Dialog open={isAvailabilityModalOpen} onOpenChange={setIsAvailabilityModalOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Set Your Availability</DialogTitle>
+            <DialogDescription>
+              Let families know when you're available to provide care
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <h4 className="text-sm font-medium">Choose your available days and times</h4>
+              <ToggleGroup type="multiple" variant="outline" className="flex flex-wrap gap-2" value={selectedAvailability} onValueChange={setSelectedAvailability}>
+                <ToggleGroupItem value="Weekday Mornings" className="text-xs">
+                  <Sun className="h-3 w-3 mr-1" /> Weekday Mornings
+                </ToggleGroupItem>
+                <ToggleGroupItem value="Weekday Afternoons" className="text-xs">
+                  <Sun className="h-3 w-3 mr-1" /> Weekday Afternoons
+                </ToggleGroupItem>
+                <ToggleGroupItem value="Weekday Evenings" className="text-xs">
+                  <Moon className="h-3 w-3 mr-1" /> Weekday Evenings
+                </ToggleGroupItem>
+                <ToggleGroupItem value="Weekday Nights" className="text-xs">
+                  <Moon className="h-3 w-3 mr-1" /> Weekday Nights
+                </ToggleGroupItem>
+                <ToggleGroupItem value="Weekend Mornings" className="text-xs">
+                  <Sun className="h-3 w-3 mr-1" /> Weekend Mornings
+                </ToggleGroupItem>
+                <ToggleGroupItem value="Weekend Afternoons" className="text-xs">
+                  <Sun className="h-3 w-3 mr-1" /> Weekend Afternoons
+                </ToggleGroupItem>
+                <ToggleGroupItem value="Weekend Evenings" className="text-xs">
+                  <Moon className="h-3 w-3 mr-1" /> Weekend Evenings
+                </ToggleGroupItem>
+                <ToggleGroupItem value="Weekend Nights" className="text-xs">
+                  <Moon className="h-3 w-3 mr-1" /> Weekend Nights
+                </ToggleGroupItem>
+                <ToggleGroupItem value="24/7 On-Call" className="text-xs">
+                  <Clock className="h-3 w-3 mr-1" /> 24/7 On-Call
+                </ToggleGroupItem>
+              </ToggleGroup>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="otherAvailability">Other availability (optional)</Label>
+              <textarea
+                id="otherAvailability"
+                value={otherAvailability}
+                onChange={(e) => setOtherAvailability(e.target.value)}
+                placeholder="E.g., Every other weekend, specific hours, etc."
+                className="w-full rounded-md border border-gray-300 p-2 text-sm"
+                rows={2}
+              />
+            </div>
+          </div>
+          
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setIsAvailabilityModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={saveAvailability}>
+              Save Availability
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+};
+
+export default ProfessionalProfileHub;
