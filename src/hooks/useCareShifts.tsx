@@ -25,7 +25,11 @@ export function useCareShifts() {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
         
-        console.log("Fetching care shifts for user:", user.id);
+        console.log("🔄 Fetching care shifts:", {
+          userId: user.id,
+          environment: import.meta.env.VITE_ENV,
+          supabaseUrl: import.meta.env.VITE_SUPABASE_URL?.substring(0, 20) + '...'
+        });
         
         const { data, error: shiftsError } = await supabase
           .from('care_shifts')
@@ -38,10 +42,10 @@ export function useCareShifts() {
           throw shiftsError;
         }
         
-        console.log("Care shifts fetched:", data?.length || 0, "shifts found");
+        console.log(`✅ Care shifts fetched: ${data?.length || 0} shifts found for user ${user.id}`);
         setShifts(data || []);
       } catch (err: any) {
-        console.error("Error fetching care shifts:", err);
+        console.error("❌ Error fetching care shifts:", err);
         setError(err.message || "Failed to load care shifts");
         toast.error("Failed to load care shifts");
       } finally {
@@ -61,7 +65,8 @@ export function useCareShifts() {
           table: 'care_shifts',
           filter: `caregiver_id=eq.${user.id}`
         },
-        () => {
+        (payload) => {
+          console.log("🔄 Real-time update received for care shifts:", payload);
           // Reload shifts when there's a change
           fetchCareShifts();
         }

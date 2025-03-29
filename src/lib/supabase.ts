@@ -1,4 +1,3 @@
-
 import { createClient } from '@supabase/supabase-js';
 import { UserRole } from '@/types/database';
 
@@ -36,11 +35,9 @@ const isOfflineMode = () => {
   return false;
 };
 
-// Log environment information for debugging
-console.log(`Environment: ${currentEnvironment}`);
-console.log('Initializing Supabase client for:', currentEnvironment);
-console.log('Supabase URL configured:', !!supabaseUrl);
-console.log('API Key configured:', !!supabaseAnonKey);
+// Enhanced logging to clearly identify which environment we're using
+console.log(`🔌 Supabase Connection: Using ${currentEnvironment.toUpperCase()} environment`);
+console.log(`🌐 Connected to Supabase URL: ${supabaseUrl?.substring(0, 20)}...`);
 
 // Create and export the Supabase client
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
@@ -53,6 +50,7 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   global: {
     headers: {
       'x-client-info': `lovable-app-${currentEnvironment}`,
+      'x-environment': currentEnvironment, // Add environment header for debugging
       'Content-Type': 'application/json',
     },
   },
