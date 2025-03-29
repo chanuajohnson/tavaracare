@@ -349,33 +349,3 @@ export const deleteCareShift = async (shiftId: string): Promise<boolean> => {
     return false;
   }
 };
-
-export const fetchCareShiftsByCaregiver = async (caregiverId: string): Promise<CareShift[]> => {
-  try {
-    const { data, error } = await supabase
-      .from('care_shifts')
-      .select(`
-        *,
-        care_plans:care_plan_id (
-          id,
-          title,
-          description,
-          family_id,
-          status,
-          metadata
-        )
-      `)
-      .eq('caregiver_id', caregiverId)
-      .order('start_time', { ascending: true });
-
-    if (error) {
-      throw error;
-    }
-
-    return data || [];
-  } catch (error) {
-    console.error("Error fetching caregiver shifts:", error);
-    toast.error("Failed to load your care schedule");
-    return [];
-  }
-};

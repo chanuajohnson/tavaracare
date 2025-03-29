@@ -1,3 +1,4 @@
+
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -42,7 +43,6 @@ import CaregiverMatchingPage from "@/pages/caregiver/CaregiverMatchingPage";
 import CaregiverHealthPage from "@/pages/caregiver/CaregiverHealthPage";
 import FamilyMatchingPage from "@/pages/family/FamilyMatchingPage";
 import NotFound from "@/pages/NotFound";
-import ProfessionalSchedulePage from "@/pages/professional/ProfessionalSchedulePage";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -171,7 +171,6 @@ const AppContent = () => {
           <Route path="/professional/message-board" element={<MessageBoardPage />} />
           <Route path="/professional/training-resources" element={<TrainingResourcesPage />} />
           <Route path="/professional/profile" element={<ProfessionalProfileHub />} />
-          <Route path="/professional/schedule" element={<ProfessionalSchedulePage />} />
           
           <Route path="/professional/module/:moduleId" element={<ModuleViewerPage />} />
           <Route path="/professional/training-resources/module/:moduleId" element={<ModuleViewerPage />} />
