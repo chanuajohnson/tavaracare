@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { Button } from "@/components/ui/button";
@@ -147,6 +146,7 @@ const ProfessionalSchedulePage = () => {
     loadShifts();
   }, [user, navigate, selectedDate, currentView]);
   
+  // Fix for the map error - Convert to correct type
   // Format date for display
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);

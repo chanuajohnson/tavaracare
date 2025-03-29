@@ -8,6 +8,49 @@ import { useEffect, Suspense, lazy, useState } from "react";
 import { initializeSupabase, isSupabaseExperiencingIssues } from "@/lib/supabase";
 import { Fab } from "@/components/ui/fab";
 
+// Lazy loaded page components
+const Index = lazy(() => import("@/pages/Index"));
+const AuthPage = lazy(() => import("@/pages/auth/AuthPage"));
+const ResetPasswordPage = lazy(() => import("@/pages/auth/ResetPasswordPage"));
+const FeaturesPage = lazy(() => import("@/pages/features/FeaturesPage"));
+const AboutPage = lazy(() => import("@/pages/about/AboutPage"));
+const AdminDashboard = lazy(() => import("@/pages/admin/AdminDashboard"));
+const UserJourneyPage = lazy(() => import("@/pages/admin/UserJourneyPage"));
+const FamilyDashboard = lazy(() => import("@/pages/dashboards/FamilyDashboard"));
+const CommunityDashboard = lazy(() => import("@/pages/dashboards/CommunityDashboard"));
+const ProfessionalDashboard = lazy(() => import("@/pages/dashboards/ProfessionalDashboard"));
+
+const FamilyRegistration = lazy(() => import("@/pages/registration/FamilyRegistration"));
+const ProfessionalRegistration = lazy(() => import("@/pages/registration/ProfessionalRegistration"));
+const ProfessionalRegistrationFix = lazy(() => import("@/pages/registration/ProfessionalRegistrationFix"));
+const CommunityRegistration = lazy(() => import("@/pages/registration/CommunityRegistration"));
+
+const CommunityFeaturesOverview = lazy(() => import("@/pages/community/CommunityFeaturesOverview"));
+const ProfessionalFeaturesOverview = lazy(() => import("@/pages/professional/ProfessionalFeaturesOverview"));
+const MessageBoardPage = lazy(() => import("@/pages/professional/MessageBoardPage"));
+const TrainingResourcesPage = lazy(() => import("@/pages/professional/TrainingResourcesPage"));
+const ProfessionalProfileHub = lazy(() => import("@/pages/professional/ProfessionalProfileHub"));
+const ProfessionalAssignmentPage = lazy(() => import("@/pages/professional/ProfessionalAssignmentPage"));
+const ProfessionalSchedulePage = lazy(() => import("@/pages/professional/ProfessionalSchedulePage"));
+
+const ModuleViewerPage = lazy(() => import("@/pages/professional/ModuleViewerPage"));
+
+const FamilyFeaturesOverview = lazy(() => import("@/pages/family/FamilyFeaturesOverview"));
+const FamilyStoryPage = lazy(() => import("@/pages/family/FamilyStoryPage"));
+const CareManagementPage = lazy(() => import("@/pages/family/care-management/CareManagementPage"));
+const CreateCarePlanPage = lazy(() => import("@/pages/family/care-management/CreateCarePlanPage"));
+const CarePlanDetailPage = lazy(() => import("@/pages/family/care-management/CarePlanDetailPage"));
+const LegacyStoriesPage = lazy(() => import("@/pages/legacy/LegacyStoriesPage"));
+const FAQPage = lazy(() => import("@/pages/support/FAQPage"));
+const SubscriptionPage = lazy(() => import("@/pages/subscription/SubscriptionPage"));
+const SubscriptionFeaturesPage = lazy(() => import("@/pages/subscription/SubscriptionFeaturesPage"));
+
+const CaregiverMatchingPage = lazy(() => import("@/pages/caregiver/CaregiverMatchingPage"));
+const CaregiverHealthPage = lazy(() => import("@/pages/caregiver/CaregiverHealthPage"));
+const FamilyMatchingPage = lazy(() => import("@/pages/family/FamilyMatchingPage"));
+
+const NotFound = lazy(() => import("@/pages/NotFound"));
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
