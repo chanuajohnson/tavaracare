@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
-import { CalendarIcon, Clock, MapPin, ArrowLeft, Users, ClipboardList } from "lucide-react";
+import { CalendarIcon, Clock, MapPin, ArrowLeft, Users, ClipboardList, FileText } from "lucide-react";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -21,6 +21,8 @@ const ProfessionalSchedulePage = () => {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [loading, setLoading] = useState(true);
   const [shifts, setShifts] = useState<any[]>([]);
+  const [careAssignments, setCareAssignments] = useState<any[]>([]);
+  const [loadingAssignments, setLoadingAssignments] = useState(true);
   const [currentView, setCurrentView] = useState<'day' | 'week' | 'month'>('day');
   
   // Journey tracking
@@ -53,6 +55,56 @@ const ProfessionalSchedulePage = () => {
       nameParts[nameParts.length - 1].charAt(0).toUpperCase()
     );
   };
+  
+  // Load care assignments for the professional
+  useEffect(() => {
+    if (!user) return;
+    
+    const loadCareAssignments = async () => {
+      try {
+        setLoadingAssignments(true);
+        
+        // Get care team assignments where the professional is a member
+        const { data: teamMemberships, error: teamError } = await supabase
+          .from('care_team_members')
+          .select(`
+            id, 
+            status,
+            role,
+            care_plan_id,
+            family_id,
+            care_plans:care_plans(
+              id,
+              title,
+              description,
+              status,
+              profiles:profiles!care_plans_family_id_fkey(
+                id,
+                full_name,
+                avatar_url
+              )
+            )
+          `)
+          .eq('caregiver_id', user.id)
+          .order('created_at', { ascending: false });
+          
+        if (teamError) {
+          console.error("Error fetching care assignments:", teamError);
+          throw teamError;
+        }
+        
+        console.log("Care assignments loaded:", teamMemberships);
+        setCareAssignments(teamMemberships || []);
+      } catch (error) {
+        console.error("Failed to load care assignments:", error);
+        toast.error("Failed to load your care assignments");
+      } finally {
+        setLoadingAssignments(false);
+      }
+    };
+    
+    loadCareAssignments();
+  }, [user]);
   
   useEffect(() => {
     if (!user) {
@@ -221,6 +273,82 @@ const ProfessionalSchedulePage = () => {
               Month
             </Button>
           </div>
+        </div>
+        
+        {/* Care Assignments Section */}
+        <div className="mb-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <FileText className="h-5 w-5 text-primary" />
+                Your Care Assignments
+              </CardTitle>
+              <CardDescription>
+                Families and care plans you are assigned to
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {loadingAssignments ? (
+                <div className="space-y-4">
+                  <Skeleton className="h-16 w-full" />
+                  <Skeleton className="h-16 w-full" />
+                </div>
+              ) : careAssignments.length > 0 ? (
+                <div className="space-y-4">
+                  {careAssignments.map((assignment) => (
+                    <div 
+                      key={assignment.id} 
+                      className="border rounded-md p-4 hover:shadow-sm transition-shadow"
+                    >
+                      <div className="flex justify-between items-start">
+                        <div className="flex items-center gap-3">
+                          <Avatar className="h-10 w-10">
+                            <AvatarImage src={assignment.care_plans?.profiles?.avatar_url || ''} />
+                            <AvatarFallback className="bg-primary text-primary-foreground">
+                              {getInitials(assignment.care_plans?.profiles?.full_name)}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div>
+                            <h3 className="font-medium text-lg">{assignment.care_plans?.title || 'Unnamed Plan'}</h3>
+                            <p className="text-sm text-muted-foreground">
+                              {assignment.care_plans?.profiles?.full_name || 'Family'}
+                            </p>
+                          </div>
+                        </div>
+                        <Badge 
+                          className={
+                            assignment.status === 'active' ? 'bg-green-100 text-green-800' : 
+                            assignment.status === 'pending' ? 'bg-amber-100 text-amber-800' : 
+                            'bg-gray-100 text-gray-800'
+                          }
+                        >
+                          {assignment.status || 'Unknown'}
+                        </Badge>
+                      </div>
+                      {assignment.care_plans?.description && (
+                        <p className="text-sm mt-2 text-gray-600">{assignment.care_plans.description}</p>
+                      )}
+                      <div className="flex gap-2 mt-4">
+                        <Link to={`/professional/assignments/${assignment.care_plan_id}`}>
+                          <Button size="sm" variant="outline">
+                            View Plan Details
+                          </Button>
+                        </Link>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-12">
+                  <ClipboardList className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+                  <h3 className="text-lg font-medium mb-1">No care assignments yet</h3>
+                  <p className="text-gray-500 mb-6">
+                    You'll see care plans here once families assign you to their care team
+                  </p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </div>
         
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
