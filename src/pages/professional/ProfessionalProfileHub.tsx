@@ -45,6 +45,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useTrainingProgress } from "@/hooks/useTrainingProgress";
 import { CaregiverHealthCard } from "@/components/professional/CaregiverHealthCard";
 import { ensureUserProfile } from "@/lib/profile-utils";
+import { CareAssignmentCard } from "@/components/professional/CareAssignmentCard";
+import { ProfessionalCalendar } from "@/components/professional/ProfessionalCalendar";
+import { useCareShifts } from "@/hooks/useCareShifts";
 
 const initialSteps = [
   { 
@@ -110,6 +113,8 @@ const ProfessionalProfileHub = () => {
   const [isAvailabilityModalOpen, setIsAvailabilityModalOpen] = useState(false);
   const [selectedAvailability, setSelectedAvailability] = useState<string[]>([]);
   const [otherAvailability, setOtherAvailability] = useState("");
+
+  const [shifts, loading: loadingShifts] = useCareShifts();
 
   const breadcrumbItems = [
     {
@@ -949,77 +954,10 @@ const ProfessionalProfileHub = () => {
                         ) : carePlans.length > 0 ? (
                           <div className="space-y-4">
                             {carePlans.map((assignment) => (
-                              <Card key={assignment.id} className="overflow-hidden">
-                                <div className={`border-l-4 ${
-                                  assignment.status === 'active' ? 'border-l-green-500' : 
-                                  assignment.status === 'invited' ? 'border-l-amber-500' : 'border-l-blue-500'
-                                }`}>
-                                  <CardContent className="p-4">
-                                    <div className="flex justify-between items-start">
-                                      <div>
-                                        <h4 className="font-medium mb-1">{assignment.care_plans?.title || "Care Plan"}</h4>
-                                        <p className="text-sm text-gray-600 mb-2">
-                                          {assignment.care_plans?.description || "No description provided"}
-                                        </p>
-                                        <div className="flex flex-wrap items-center gap-2 mt-2">
-                                          <Badge variant="outline" className="bg-gray-50">
-                                            {assignment.role || "Caregiver"}
-                                          </Badge>
-                                          <Badge 
-                                            variant="outline" 
-                                            className={`
-                                              ${assignment.status === 'active' ? 'bg-green-50 text-green-700 border-green-200' : 
-                                                assignment.status === 'invited' ? 'bg-yellow-50 text-yellow-700 border-yellow-200' : 
-                                                'bg-gray-50 text-gray-700 border-gray-200'}
-                                            `}
-                                          >
-                                            {assignment.status === 'active' ? 'Active' :
-                                             assignment.status === 'invited' ? 'Invitation Pending' : 
-                                             assignment.status || "Pending"}
-                                          </Badge>
-                                          {assignment.care_plans?.status && (
-                                            <Badge variant="outline" className="bg-blue-50 text-blue-600 border-blue-200">
-                                              Plan: {assignment.care_plans.status}
-                                            </Badge>
-                                          )}
-                                        </div>
-                                      </div>
-                                      <div className="flex flex-col items-end">
-                                        <div className="flex items-center gap-2 mb-2">
-                                          <div className="flex flex-col items-end">
-                                            <Badge variant="outline" className="mb-1">
-                                              {assignment.care_plans?.profiles?.full_name || "Family"}
-                                            </Badge>
-                                            {assignment.created_at && (
-                                              <span className="text-xs text-gray-500">
-                                                Assigned: {new Date(assignment.created_at).toLocaleDateString()}
-                                              </span>
-                                            )}
-                                          </div>
-                                          <Avatar className="h-8 w-8">
-                                            <AvatarImage src={assignment.care_plans?.profiles?.avatar_url || ''} />
-                                            <AvatarFallback className="bg-primary text-white text-xs">
-                                              {assignment.care_plans?.profiles?.full_name ? getInitials(assignment.care_plans.profiles.full_name) : 'F'}
-                                            </AvatarFallback>
-                                          </Avatar>
-                                        </div>
-                                        <Link to={`/professional/assignments/${assignment.care_plan_id}`}>
-                                          <Button size="sm" variant="outline">
-                                            View Details
-                                          </Button>
-                                        </Link>
-                                      </div>
-                                    </div>
-                                    
-                                    {assignment.notes && (
-                                      <div className="mt-3 text-sm bg-gray-50 p-2 rounded border">
-                                        <span className="font-medium">Notes: </span>
-                                        {assignment.notes}
-                                      </div>
-                                    )}
-                                  </CardContent>
-                                </div>
-                              </Card>
+                              <CareAssignmentCard 
+                                key={assignment.id} 
+                                assignment={assignment} 
+                              />
                             ))}
                           </div>
                         ) : (
