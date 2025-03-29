@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { Button } from "@/components/ui/button";
@@ -168,14 +169,14 @@ const ProfessionalSchedulePage = () => {
   };
   
   // Group shifts by date for easier display
-  const groupedShifts = shifts.reduce((acc, shift) => {
+  const groupedShifts: Record<string, any[]> = shifts.reduce((acc: Record<string, any[]>, shift) => {
     const dateKey = new Date(shift.start_time).toDateString();
     if (!acc[dateKey]) {
       acc[dateKey] = [];
     }
     acc[dateKey].push(shift);
     return acc;
-  }, {} as Record<string, any[]>);
+  }, {});
   
   return (
     <div className="min-h-screen bg-background">
