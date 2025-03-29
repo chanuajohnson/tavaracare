@@ -1,3 +1,4 @@
+
 import { motion } from "framer-motion";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -56,15 +57,222 @@ import { TrackableButton } from "@/components/tracking/TrackableButton";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
 const ProfessionalProfileHub = () => {
-  // ... keep existing code (component implementation)
-
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState("overview");
+  const { trackAction } = useTracking();
+  
+  // User profile state
+  const [profileImage, setProfileImage] = useState<string | null>(null);
+  const [userName, setUserName] = useState<string>("");
+  const [email, setEmail] = useState<string>("");
+  const [phone, setPhone] = useState<string>("");
+  const [location, setLocation] = useState<string>("");
+  const [availability, setAvailability] = useState<string>("");
+  const [specialization, setSpecialization] = useState<string>("");
+  const [certifications, setCertifications] = useState<string[]>([]);
+  const [profileCompletionPercentage, setProfileCompletionPercentage] = useState(0);
+  
+  // Assignments state
+  const [assignments, setAssignments] = useState<any[]>([]);
+  const [isLoadingAssignments, setIsLoadingAssignments] = useState(true);
+  
+  // Letter requests state
+  const [letterRequests, setLetterRequests] = useState<any[]>([]);
+  const [isRequestingLetter, setIsRequestingLetter] = useState<string | false>(false);
+  
+  // Training state
+  const { trainingProgress, completedLessons, totalLessons, trainingModules, isLoading: isLoadingTraining } = useTrainingProgress();
+  
+  // Edit profile modal
+  const [isEditProfileModalOpen, setIsEditProfileModalOpen] = useState(false);
+  
+  // Care shifts
+  const { careShifts, isLoading: isLoadingCareShifts } = useCareShifts();
+  
+  // Certificates
+  const [certificates, setCertificates] = useState<{ name: string; date: string }[]>([]);
+  
+  // Today's stats
+  const [todayStats, setTodayStats] = useState({
+    assignments: 0,
+    hours: 0
+  });
+  
+  // Fetch user profile data
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      if (!user) return;
+      
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', user.id)
+          .single();
+        
+        if (error) {
+          throw error;
+        }
+        
+        if (data) {
+          setUserName(data.full_name || 'Professional');
+          setEmail(user.email || '');
+          setPhone(data.phone || 'Not provided');
+          setLocation(data.location || 'Not provided');
+          setAvailability(data.availability || 'Not provided');
+          setSpecialization(data.specialization || 'Healthcare Professional');
+          setCertifications(data.certifications || []);
+          
+          // Calculate profile completion
+          let completed = 0;
+          const totalFields = 6;
+          if (data.full_name) completed++;
+          if (data.phone) completed++;
+          if (data.location) completed++;
+          if (data.availability) completed++;
+          if (data.specialization) completed++;
+          if (data.certifications && data.certifications.length > 0) completed++;
+          
+          setProfileCompletionPercentage(Math.round((completed / totalFields) * 100));
+        }
+      } catch (error) {
+        console.error('Error fetching user profile:', error);
+      }
+    };
+    
+    fetchUserProfile();
+  }, [user]);
+  
+  // Fetch assignments
+  useEffect(() => {
+    const fetchAssignments = async () => {
+      if (!user) return;
+      
+      try {
+        const { data, error } = await supabase
+          .from('care_assignments')
+          .select('*')
+          .eq('professional_id', user.id)
+          .order('scheduled_time', { ascending: true });
+        
+        if (error) {
+          throw error;
+        }
+        
+        setAssignments(data || []);
+        
+        // Calculate today's stats
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        
+        const todayAssignments = data?.filter((assignment: any) => {
+          const assignmentDate = new Date(assignment.scheduled_time);
+          assignmentDate.setHours(0, 0, 0, 0);
+          return assignmentDate.getTime() === today.getTime();
+        }) || [];
+        
+        setTodayStats({
+          assignments: todayAssignments.length,
+          hours: todayAssignments.reduce((acc: number, curr: any) => acc + (curr.duration_hours || 0), 0)
+        });
+        
+      } catch (error) {
+        console.error('Error fetching assignments:', error);
+      } finally {
+        setIsLoadingAssignments(false);
+      }
+    };
+    
+    fetchAssignments();
+  }, [user]);
+  
+  // Fetch certificates
+  useEffect(() => {
+    const fetchCertificates = async () => {
+      if (!user) return;
+      
+      // This would be replaced with real API call
+      setCertificates([
+        { name: "Basic Life Support", date: "2023-07-15" },
+        { name: "Elder Care Specialist", date: "2023-09-22" },
+      ]);
+    };
+    
+    fetchCertificates();
+  }, [user]);
+  
+  // Fetch letter requests
+  useEffect(() => {
+    const fetchLetterRequests = async () => {
+      if (!user) return;
+      
+      // This would be replaced with real API call
+      setLetterRequests([
+        { id: 1, status: 'completed', requestDate: '2023-12-10', method: 'email' },
+        { id: 2, status: 'pending', requestDate: '2024-01-05', method: 'whatsapp' },
+      ]);
+    };
+    
+    fetchLetterRequests();
+  }, [user]);
+  
+  const handleEditProfile = () => {
+    trackAction("profile_edit_click", { source: "professional_profile_hub" });
+    setIsEditProfileModalOpen(true);
+  };
+  
+  const handleRequestLetter = async (method: string) => {
+    if (!user) {
+      toast.error("You must be logged in to request a letter");
+      return;
+    }
+    
+    setIsRequestingLetter(method);
+    
+    try {
+      // This would be replaced with real API call
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      // Add to letter requests
+      setLetterRequests([
+        ...letterRequests,
+        {
+          id: Date.now(),
+          status: 'pending',
+          requestDate: new Date().toISOString(),
+          method
+        }
+      ]);
+      
+      toast.success(`Letter request submitted via ${method}`);
+    } catch (error) {
+      console.error('Error requesting letter:', error);
+      toast.error('Failed to request letter. Please try again.');
+    } finally {
+      setIsRequestingLetter(false);
+    }
+  };
+  
   return (
     <div className="container py-6 max-w-6xl">
       <DashboardHeader 
-        title="Professional Profile Hub" 
-        description="Manage your professional profile, view assignments, and track your progress"
-        icon={<UserCircle className="h-6 w-6" />}
+        breadcrumbItems={[
+          { label: "Home", path: "/" },
+          { label: "Professional Dashboard", path: "/dashboard/professional" },
+          { label: "Profile Hub", path: "/professional/profile" }
+        ]} 
       />
+      
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h1 className="text-3xl font-bold">Professional Profile Hub</h1>
+          <p className="text-gray-500 mt-1">
+            Manage your professional profile, view assignments, and track your progress
+          </p>
+        </div>
+        <UserCircle className="h-8 w-8 text-primary hidden md:block" />
+      </div>
       
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
         <div className="md:col-span-1">
@@ -154,15 +362,13 @@ const ProfessionalProfileHub = () => {
                   </div>
                 </div>
 
-                <TrackableButton
+                <Button
                   variant="outline"
                   className="w-full"
-                  actionType="profile_edit_click"
-                  additionalData={{ source: "professional_profile_hub" }}
                   onClick={handleEditProfile}
                 >
                   Edit Profile
-                </TrackableButton>
+                </Button>
               </CardContent>
             </Card>
           </motion.div>
@@ -174,7 +380,7 @@ const ProfessionalProfileHub = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.1 }}
           >
-            <Tabs defaultValue="overview" className="w-full">
+            <Tabs defaultValue="overview" className="w-full" onValueChange={(value) => setActiveTab(value)}>
               <TabsList className="grid grid-cols-5 mb-4">
                 <TabsTrigger value="overview" className="flex items-center gap-1">
                   <Home className="h-4 w-4" />
@@ -377,7 +583,7 @@ const ProfessionalProfileHub = () => {
               </TabsContent>
               
               <TabsContent value="schedule" className="space-y-4">
-                <ProfessionalCalendar shifts={careShifts} loading={isLoadingCareShifts} />
+                <ProfessionalCalendar shifts={careShifts || []} loading={isLoadingCareShifts} />
               </TabsContent>
               
               <TabsContent value="training" className="space-y-4">
@@ -438,7 +644,7 @@ const ProfessionalProfileHub = () => {
                                     <h4 className="font-medium">{module.title}</h4>
                                     <p className="text-xs text-gray-500 mt-1">{module.lessons?.length || 0} lessons • {module.estimatedHours || 1} hours</p>
                                   </div>
-                                  <Badge variant={module.completed ? "success" : "outline"}>
+                                  <Badge variant={module.completed ? "secondary" : "outline"}>
                                     {module.completed ? "Completed" : `${module.progress || 0}%`}
                                   </Badge>
                                 </div>
@@ -513,7 +719,7 @@ const ProfessionalProfileHub = () => {
                           <Button 
                             onClick={() => handleRequestLetter('email')}
                             className="flex items-center gap-2"
-                            disabled={isRequestingLetter}
+                            disabled={!!isRequestingLetter}
                           >
                             <Mail className="h-4 w-4" />
                             Request via Email
@@ -526,7 +732,7 @@ const ProfessionalProfileHub = () => {
                             onClick={() => handleRequestLetter('whatsapp')}
                             variant="outline"
                             className="flex items-center gap-2"
-                            disabled={isRequestingLetter}
+                            disabled={!!isRequestingLetter}
                           >
                             <Phone className="h-4 w-4" />
                             Request via WhatsApp
@@ -548,7 +754,7 @@ const ProfessionalProfileHub = () => {
                                     <FileText className="h-4 w-4 text-primary" />
                                     <span>Job Verification Letter</span>
                                   </div>
-                                  <Badge variant={request.status === 'completed' ? 'success' : 'outline'}>
+                                  <Badge variant={request.status === 'completed' ? 'secondary' : 'outline'}>
                                     {request.status}
                                   </Badge>
                                 </div>
@@ -623,3 +829,4 @@ const ProfessionalProfileHub = () => {
 };
 
 export default ProfessionalProfileHub;
+
