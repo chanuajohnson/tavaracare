@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { v4 as uuidv4 } from "uuid";
@@ -45,10 +46,6 @@ export type TrackingActionType =
   | 'training_module_start'
   | 'training_module_complete'
   | 'lesson_complete'
-  
-  // Admin Assistant Actions
-  | 'job_letter_request_email'
-  | 'job_letter_request_whatsapp'
   
   // Navigation
   | 'navigation_click'
