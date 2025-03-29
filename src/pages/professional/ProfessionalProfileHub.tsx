@@ -43,7 +43,6 @@ import { useTracking } from "@/hooks/useTracking";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useTrainingProgress } from "@/hooks/useTrainingProgress";
-import { CaregiverHealthCard } from "@/components/professional/CaregiverHealthCard";
 import { ensureUserProfile } from "@/lib/profile-utils";
 
 const initialSteps = [
@@ -321,173 +320,6 @@ const ProfessionalProfileHub = () => {
     loadCarePlans();
   }, [user]);
 
-  const caregiverHealthRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (window.location.hash === '#caregiver-health' && caregiverHealthRef.current) {
-      caregiverHealthRef.current.scrollIntoView({ behavior: 'smooth' });
-    }
-  }, []);
-
-  const handleUploadCertificates = () => {
-    trackEngagement('upload_documents_click', { section: 'profile_hub' });
-    
-    const updatedSteps = [...steps];
-    const index = updatedSteps.findIndex(s => s.id === 2);
-    if (index >= 0 && !updatedSteps[index].completed) {
-      updatedSteps[index].completed = true;
-      setSteps(updatedSteps);
-      
-      if (user) {
-        const progressData = updatedSteps.reduce((acc, step) => {
-          acc[step.id] = step.completed;
-          return acc;
-        }, {} as Record<number, boolean>);
-        
-        supabase
-          .from('profiles')
-          .update({ onboarding_progress: progressData })
-          .eq('id', user.id)
-          .then(({ error }) => {
-            if (error) console.error("Error updating progress:", error);
-          });
-      }
-      
-      trackEngagement('onboarding_step_complete', { 
-        step: 'certificates',
-        progress_percent: Math.round(((completedSteps + 1) / steps.length) * 100)
-      });
-    }
-    
-    toast.info("📩 Submit Your Documents", {
-      description: "Please email or WhatsApp your documents, including certifications, ID, and Certificate of Character.",
-      action: {
-        label: "View Contact",
-        onClick: () => {
-          window.open("mailto:chanuajohnson@gmail.com", "_blank");
-        }
-      },
-      duration: 5000,
-    });
-  };
-
-  const saveAvailability = async () => {
-    if (selectedAvailability.length === 0 && !otherAvailability) {
-      toastHook({
-        title: "Please select at least one option",
-        description: "Choose when you're available to work",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    const finalAvailability = [...selectedAvailability];
-    if (otherAvailability) {
-      finalAvailability.push(`Other: ${otherAvailability}`);
-    }
-
-    setSelectedAvailability(finalAvailability);
-    
-    const updatedSteps = [...steps];
-    const index = updatedSteps.findIndex(s => s.id === 3);
-    if (index >= 0) {
-      updatedSteps[index].completed = true;
-      setSteps(updatedSteps);
-      
-      trackEngagement('onboarding_step_complete', { 
-        step: 'availability',
-        progress_percent: Math.round(((completedSteps + 1) / steps.length) * 100)
-      });
-    }
-
-    setIsAvailabilityModalOpen(false);
-    
-    if (user) {
-      const progressData = updatedSteps.reduce((acc, step) => {
-        acc[step.id] = step.completed;
-        return acc;
-      }, {} as Record<number, boolean>);
-      
-      const { error } = await supabase
-        .from('profiles')
-        .update({ 
-          onboarding_progress: progressData,
-          availability: finalAvailability
-        })
-        .eq('id', user.id);
-      
-      if (error) {
-        console.error("Error saving availability:", error);
-        toastHook({
-          title: "Error saving availability",
-          description: "Please try again later.",
-          variant: "destructive",
-        });
-        return;
-      }
-    }
-    
-    toast.success("Availability saved", {
-      description: "Your availability preferences have been saved.",
-    });
-  };
-
-  const getInitials = (name?: string) => {
-    if (!name) return "U";
-    return name.split(' ').map(n => n[0]).join('').toUpperCase();
-  };
-
-  const renderActionButton = (step: typeof initialSteps[0]) => {
-    if (step.completed) return null;
-    
-    switch (step.action) {
-      case "upload":
-        return (
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            className="p-0 h-6 text-primary hover:text-primary-600"
-            onClick={handleUploadCertificates}
-          >
-            Upload
-            <ChevronRight className="ml-1 h-3 w-3" />
-          </Button>
-        );
-      
-      case "availability":
-        return (
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            className="p-0 h-6 text-primary hover:text-primary-600"
-            onClick={() => setIsAvailabilityModalOpen(true)}
-          >
-            Set
-            <ChevronRight className="ml-1 h-3 w-3" />
-          </Button>
-        );
-      
-      case "orientation":
-        return null; // Admin controlled
-      
-      case "training":
-      case "complete":
-      default:
-        return (
-          <Link to={step.link}>
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              className="p-0 h-6 text-primary hover:text-primary-600"
-            >
-              Complete
-              <ChevronRight className="ml-1 h-3 w-3" />
-            </Button>
-          </Link>
-        );
-    }
-  };
-
   if (loading) {
     return (
       <div className="min-h-screen bg-background">
@@ -584,10 +416,6 @@ const ProfessionalProfileHub = () => {
             </p>
           </motion.div>
           
-          <div ref={caregiverHealthRef} id="caregiver-health">
-            <CaregiverHealthCard />
-          </div>
-            
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="md:col-span-1 space-y-6">
               <motion.div
