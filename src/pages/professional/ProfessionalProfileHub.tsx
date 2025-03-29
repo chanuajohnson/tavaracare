@@ -1,4 +1,3 @@
-
 import { motion } from "framer-motion";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -129,7 +128,6 @@ const ProfessionalProfileHub = () => {
     trackOnce: true
   });
 
-  // Check if user is logged in and redirect if not
   useEffect(() => {
     if (!user && !loading) {
       toast.info("Authentication Required", {
@@ -139,7 +137,6 @@ const ProfessionalProfileHub = () => {
     }
   }, [user, loading, navigate]);
 
-  // Handle data recovery for onboarding progress
   const recoverOnboardingProgress = async (userId: string) => {
     if (recoverAttempted) return false;
     
@@ -147,7 +144,6 @@ const ProfessionalProfileHub = () => {
       setRecoverAttempted(true);
       console.log("Attempting to recover onboarding progress for user:", userId);
       
-      // Create default onboarding progress if missing
       const progressData = initialSteps.reduce((acc, step) => {
         acc[step.id] = false;
         return acc;
@@ -171,7 +167,6 @@ const ProfessionalProfileHub = () => {
     }
   };
 
-  // Create profile if it doesn't exist
   const createProfileIfNeeded = async (userId: string) => {
     if (profileCreationAttempted) return false;
     
@@ -179,7 +174,6 @@ const ProfessionalProfileHub = () => {
       setProfileCreationAttempted(true);
       console.log("Attempting to create profile for user:", userId);
       
-      // Use the ensureUserProfile utility function with professional role
       const result = await ensureUserProfile(userId, 'professional');
       
       if (!result.success) {
@@ -208,10 +202,8 @@ const ProfessionalProfileHub = () => {
       try {
         setLoading(true);
         
-        // First, ensure the user has a profile
         await createProfileIfNeeded(user.id);
         
-        // Then fetch the profile data using maybeSingle instead of single
         const { data, error: profileError } = await supabase
           .from('profiles')
           .select('*')
@@ -232,7 +224,6 @@ const ProfessionalProfileHub = () => {
         
         setProfileData(data);
         
-        // Handle onboarding_progress properly with fallback
         if (data.onboarding_progress) {
           try {
             const updatedSteps = [...initialSteps];
@@ -245,14 +236,12 @@ const ProfessionalProfileHub = () => {
             setSteps(updatedSteps);
           } catch (parseError) {
             console.error("Error parsing onboarding progress:", parseError);
-            // If parsing fails, recover by initializing with default values
             const success = await recoverOnboardingProgress(user.id);
             if (!success) {
               setSteps(initialSteps);
             }
           }
         } else {
-          // If onboarding_progress is missing, initialize it
           const success = await recoverOnboardingProgress(user.id);
           if (!success) {
             setSteps(initialSteps);
@@ -267,14 +256,12 @@ const ProfessionalProfileHub = () => {
       } catch (err: any) {
         console.error("Error loading profile:", err);
         
-        // Attempt recovery for specific errors related to onboarding_progress
         if (err.message && (
             err.message.includes("onboarding_progress") || 
             err.message.includes("column") || 
             err.message.includes("does not exist"))) {
           
           if (user && await recoverOnboardingProgress(user.id)) {
-            // Try loading again after recovery
             loadProfileData();
             return;
           }
@@ -312,6 +299,7 @@ const ProfessionalProfileHub = () => {
               status,
               family_id,
               created_at,
+              metadata,
               profiles:family_id (
                 full_name
               )
@@ -321,6 +309,7 @@ const ProfessionalProfileHub = () => {
         
         if (carePlansError) throw carePlansError;
         
+        console.log("Loaded care plans for professional:", data);
         setCarePlans(data || []);
         setLoadingCarePlans(false);
       } catch (err) {
@@ -557,7 +546,6 @@ const ProfessionalProfileHub = () => {
     );
   }
 
-  // Handle case when user is not logged in
   if (!user) {
     return (
       <div className="min-h-screen bg-background">
@@ -979,9 +967,9 @@ const ProfessionalProfileHub = () => {
                                         <Badge variant="outline" className="mb-2">
                                           {plan.care_plans?.profiles?.full_name || "Family"}
                                         </Badge>
-                                        <Link to={`/family/care-management/${plan.care_plan_id}`}>
+                                        <Link to="/professional/schedule">
                                           <Button size="sm" variant="outline">
-                                            View Details
+                                            View Schedule
                                           </Button>
                                         </Link>
                                       </div>
@@ -1019,14 +1007,16 @@ const ProfessionalProfileHub = () => {
                         <div className="text-center py-8 space-y-4">
                           <Calendar className="h-12 w-12 text-gray-300 mx-auto" />
                           <div>
-                            <h3 className="text-lg font-medium">No upcoming shifts</h3>
+                            <h3 className="text-lg font-medium">Care Schedule</h3>
                             <p className="text-gray-500 mt-1">
-                              You'll see your care shifts here once they are scheduled
+                              View your complete care schedule with all assigned shifts
                             </p>
                           </div>
-                          <Button variant="outline">
-                            View Calendar
-                          </Button>
+                          <Link to="/professional/schedule">
+                            <Button>
+                              View Schedule Calendar
+                            </Button>
+                          </Link>
                         </div>
                       </CardContent>
                     </Card>
