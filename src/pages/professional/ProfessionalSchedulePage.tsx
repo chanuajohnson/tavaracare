@@ -16,7 +16,7 @@ import { motion } from "framer-motion";
 import { format } from "date-fns";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
-import { calendar, clock, user, file-text, edit } from "lucide-react";
+import { Calendar as CalendarIcon, Clock, User, FileText, Edit, MapPin } from "lucide-react";
 
 const ProfessionalSchedulePage = () => {
   const { user } = useAuth();
@@ -130,7 +130,7 @@ const ProfessionalSchedulePage = () => {
         <Tabs defaultValue="calendar" className="w-full">
           <TabsList className="w-full justify-start mb-6">
             <TabsTrigger value="calendar" className="flex items-center gap-1">
-              <Calendar className="h-4 w-4" />
+              <CalendarIcon className="h-4 w-4" />
               <span>Calendar View</span>
             </TabsTrigger>
             <TabsTrigger value="list" className="flex items-center gap-1">
