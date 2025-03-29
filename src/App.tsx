@@ -1,4 +1,3 @@
-
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -8,41 +7,6 @@ import { Navigation } from "@/components/layout/Navigation";
 import { useEffect, Suspense, lazy, useState } from "react";
 import { initializeSupabase, isSupabaseExperiencingIssues } from "@/lib/supabase";
 import { Fab } from "@/components/ui/fab";
-
-// Import all needed page components
-import Index from "@/pages/Index";
-import AuthPage from "@/pages/auth/AuthPage";
-import ResetPasswordPage from "@/pages/auth/ResetPasswordPage";
-import FeaturesPage from "@/pages/features/FeaturesPage";
-import AboutPage from "@/pages/about/AboutPage";
-import AdminDashboard from "@/pages/admin/AdminDashboard";
-import UserJourneyPage from "@/pages/admin/UserJourneyPage";
-import FamilyDashboard from "@/pages/dashboards/FamilyDashboard";
-import CommunityDashboard from "@/pages/dashboards/CommunityDashboard";
-import ProfessionalDashboard from "@/pages/dashboards/ProfessionalDashboard";
-import FamilyRegistration from "@/pages/registration/FamilyRegistration";
-import ProfessionalRegistration from "@/pages/registration/ProfessionalRegistration";
-import ProfessionalRegistrationFix from "@/pages/registration/ProfessionalRegistrationFix";
-import CommunityRegistration from "@/pages/registration/CommunityRegistration";
-import CommunityFeaturesOverview from "@/pages/community/CommunityFeaturesOverview";
-import ProfessionalFeaturesOverview from "@/pages/professional/ProfessionalFeaturesOverview";
-import MessageBoardPage from "@/pages/professional/MessageBoardPage";
-import TrainingResourcesPage from "@/pages/professional/TrainingResourcesPage";
-import ModuleViewerPage from "@/pages/professional/ModuleViewerPage";
-import ProfessionalProfileHub from "@/pages/professional/ProfessionalProfileHub";
-import FamilyFeaturesOverview from "@/pages/family/FamilyFeaturesOverview";
-import FamilyStoryPage from "@/pages/family/FamilyStoryPage";
-import CareManagementPage from "@/pages/family/care-management/CareManagementPage";
-import CreateCarePlanPage from "@/pages/family/care-management/CreateCarePlanPage";
-import CarePlanDetailPage from "@/pages/family/care-management/CarePlanDetailPage";
-import LegacyStoriesPage from "@/pages/legacy/LegacyStoriesPage";
-import FAQPage from "@/pages/support/FAQPage";
-import SubscriptionPage from "@/pages/subscription/SubscriptionPage";
-import SubscriptionFeaturesPage from "@/pages/subscription/SubscriptionFeaturesPage";
-import CaregiverMatchingPage from "@/pages/caregiver/CaregiverMatchingPage";
-import CaregiverHealthPage from "@/pages/caregiver/CaregiverHealthPage";
-import FamilyMatchingPage from "@/pages/family/FamilyMatchingPage";
-import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -55,20 +19,16 @@ const queryClient = new QueryClient({
   },
 });
 
-// Component to handle redirect from the 404.html page
 const RedirectHandler = () => {
   const navigate = useNavigate();
   const location = useLocation();
   
   useEffect(() => {
-    // Check if we have a route parameter in the URL (from 404.html redirect)
     const params = new URLSearchParams(location.search);
     const routeParam = params.get('route');
     
     if (routeParam) {
-      // Remove the route parameter from the URL and navigate to the actual route
       const newUrl = '/' + routeParam;
-      // Use replace to avoid adding to history stack
       navigate(newUrl, { replace: true });
     }
   }, [location, navigate]);
@@ -88,7 +48,6 @@ const AppWithProviders = () => {
         setSupabaseStatus('issues');
       });
     
-    // Add custom style to reposition Lovable badge to top-right
     const style = document.createElement('style');
     style.textContent = `
       .lovable-badge {
@@ -106,10 +65,9 @@ const AppWithProviders = () => {
     `;
     document.head.appendChild(style);
     
-    // Check Supabase status periodically
     const checkInterval = setInterval(() => {
       setSupabaseStatus(isSupabaseExperiencingIssues() ? 'issues' : 'available');
-    }, 30000); // Check every 30 seconds
+    }, 30000);
     
     return () => {
       clearInterval(checkInterval);
@@ -140,7 +98,6 @@ const AppContent = () => {
   const location = useLocation();
   const isIndexPage = location.pathname === "/";
   
-  // Add debugging logging for route changes
   useEffect(() => {
     console.log('[App] Route changed to:', location.pathname);
   }, [location.pathname]);
@@ -171,6 +128,9 @@ const AppContent = () => {
           <Route path="/professional/message-board" element={<MessageBoardPage />} />
           <Route path="/professional/training-resources" element={<TrainingResourcesPage />} />
           <Route path="/professional/profile" element={<ProfessionalProfileHub />} />
+          
+          <Route path="/professional/assignments/:planId" element={<ProfessionalAssignmentPage />} />
+          <Route path="/professional/schedule" element={<ProfessionalSchedulePage />} />
           
           <Route path="/professional/module/:moduleId" element={<ModuleViewerPage />} />
           <Route path="/professional/training-resources/module/:moduleId" element={<ModuleViewerPage />} />

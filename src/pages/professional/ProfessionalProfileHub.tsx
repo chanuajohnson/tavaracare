@@ -1,4 +1,3 @@
-
 import { motion } from "framer-motion";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -129,7 +128,6 @@ const ProfessionalProfileHub = () => {
     trackOnce: true
   });
 
-  // Check if user is logged in and redirect if not
   useEffect(() => {
     if (!user && !loading) {
       toast.info("Authentication Required", {
@@ -139,7 +137,6 @@ const ProfessionalProfileHub = () => {
     }
   }, [user, loading, navigate]);
 
-  // Handle data recovery for onboarding progress
   const recoverOnboardingProgress = async (userId: string) => {
     if (recoverAttempted) return false;
     
@@ -147,7 +144,6 @@ const ProfessionalProfileHub = () => {
       setRecoverAttempted(true);
       console.log("Attempting to recover onboarding progress for user:", userId);
       
-      // Create default onboarding progress if missing
       const progressData = initialSteps.reduce((acc, step) => {
         acc[step.id] = false;
         return acc;
@@ -171,7 +167,6 @@ const ProfessionalProfileHub = () => {
     }
   };
 
-  // Create profile if it doesn't exist
   const createProfileIfNeeded = async (userId: string) => {
     if (profileCreationAttempted) return false;
     
@@ -179,7 +174,6 @@ const ProfessionalProfileHub = () => {
       setProfileCreationAttempted(true);
       console.log("Attempting to create profile for user:", userId);
       
-      // Use the ensureUserProfile utility function with professional role
       const result = await ensureUserProfile(userId, 'professional');
       
       if (!result.success) {
@@ -208,10 +202,8 @@ const ProfessionalProfileHub = () => {
       try {
         setLoading(true);
         
-        // First, ensure the user has a profile
         await createProfileIfNeeded(user.id);
         
-        // Then fetch the profile data using maybeSingle instead of single
         const { data, error: profileError } = await supabase
           .from('profiles')
           .select('*')
@@ -232,7 +224,6 @@ const ProfessionalProfileHub = () => {
         
         setProfileData(data);
         
-        // Handle onboarding_progress properly with fallback
         if (data.onboarding_progress) {
           try {
             const updatedSteps = [...initialSteps];
@@ -245,14 +236,12 @@ const ProfessionalProfileHub = () => {
             setSteps(updatedSteps);
           } catch (parseError) {
             console.error("Error parsing onboarding progress:", parseError);
-            // If parsing fails, recover by initializing with default values
             const success = await recoverOnboardingProgress(user.id);
             if (!success) {
               setSteps(initialSteps);
             }
           }
         } else {
-          // If onboarding_progress is missing, initialize it
           const success = await recoverOnboardingProgress(user.id);
           if (!success) {
             setSteps(initialSteps);
@@ -267,14 +256,12 @@ const ProfessionalProfileHub = () => {
       } catch (err: any) {
         console.error("Error loading profile:", err);
         
-        // Attempt recovery for specific errors related to onboarding_progress
         if (err.message && (
             err.message.includes("onboarding_progress") || 
             err.message.includes("column") || 
             err.message.includes("does not exist"))) {
           
           if (user && await recoverOnboardingProgress(user.id)) {
-            // Try loading again after recovery
             loadProfileData();
             return;
           }
@@ -305,26 +292,39 @@ const ProfessionalProfileHub = () => {
             status,
             role,
             care_plan_id,
-            care_plans:care_plan_id (
+            notes,
+            created_at,
+            care_plans:care_plans(
               id,
               title,
               description,
               status,
               family_id,
               created_at,
-              profiles:family_id (
-                full_name
+              updated_at,
+              metadata,
+              profiles:profiles!care_plans_family_id_fkey(
+                full_name,
+                avatar_url,
+                phone_number
               )
             )
           `)
           .eq('caregiver_id', user.id);
         
-        if (carePlansError) throw carePlansError;
+        if (carePlansError) {
+          console.error("Error fetching care plans:", carePlansError);
+          throw carePlansError;
+        }
         
-        setCarePlans(data || []);
+        console.log("Loaded care plans for professional:", data);
+        
+        const validCarePlans = data?.filter(plan => plan.care_plans) || [];
+        setCarePlans(validCarePlans);
         setLoadingCarePlans(false);
       } catch (err) {
         console.error("Error loading care plans:", err);
+        toast.error("Failed to load care assignments");
         setLoadingCarePlans(false);
       }
     };
@@ -557,7 +557,6 @@ const ProfessionalProfileHub = () => {
     );
   }
 
-  // Handle case when user is not logged in
   if (!user) {
     return (
       <div className="min-h-screen bg-background">
@@ -949,43 +948,75 @@ const ProfessionalProfileHub = () => {
                           </div>
                         ) : carePlans.length > 0 ? (
                           <div className="space-y-4">
-                            {carePlans.map((plan) => (
-                              <Card key={plan.id} className="overflow-hidden">
-                                <div className="border-l-4 border-l-blue-500">
+                            {carePlans.map((assignment) => (
+                              <Card key={assignment.id} className="overflow-hidden">
+                                <div className={`border-l-4 ${
+                                  assignment.status === 'active' ? 'border-l-green-500' : 
+                                  assignment.status === 'invited' ? 'border-l-amber-500' : 'border-l-blue-500'
+                                }`}>
                                   <CardContent className="p-4">
                                     <div className="flex justify-between items-start">
                                       <div>
-                                        <h4 className="font-medium mb-1">{plan.care_plans?.title || "Care Plan"}</h4>
-                                        <p className="text-sm text-gray-600">
-                                          {plan.care_plans?.description || "No description provided"}
+                                        <h4 className="font-medium mb-1">{assignment.care_plans?.title || "Care Plan"}</h4>
+                                        <p className="text-sm text-gray-600 mb-2">
+                                          {assignment.care_plans?.description || "No description provided"}
                                         </p>
-                                        <div className="flex items-center gap-2 mt-2">
+                                        <div className="flex flex-wrap items-center gap-2 mt-2">
                                           <Badge variant="outline" className="bg-gray-50">
-                                            {plan.role || "Caregiver"}
+                                            {assignment.role || "Caregiver"}
                                           </Badge>
                                           <Badge 
                                             variant="outline" 
                                             className={`
-                                              ${plan.status === 'active' ? 'bg-green-50 text-green-700 border-green-200' : 
-                                                plan.status === 'pending' ? 'bg-yellow-50 text-yellow-700 border-yellow-200' : 
+                                              ${assignment.status === 'active' ? 'bg-green-50 text-green-700 border-green-200' : 
+                                                assignment.status === 'invited' ? 'bg-yellow-50 text-yellow-700 border-yellow-200' : 
                                                 'bg-gray-50 text-gray-700 border-gray-200'}
                                             `}
                                           >
-                                            {plan.status || "Pending"}
+                                            {assignment.status === 'active' ? 'Active' :
+                                             assignment.status === 'invited' ? 'Invitation Pending' : 
+                                             assignment.status || "Pending"}
                                           </Badge>
+                                          {assignment.care_plans?.status && (
+                                            <Badge variant="outline" className="bg-blue-50 text-blue-600 border-blue-200">
+                                              Plan: {assignment.care_plans.status}
+                                            </Badge>
+                                          )}
                                         </div>
                                       </div>
                                       <div className="flex flex-col items-end">
-                                        <Badge variant="outline" className="mb-2">
-                                          {plan.care_plans?.profiles?.full_name || "Family"}
-                                        </Badge>
-                                        <Link to={`/family/care-management/${plan.care_plan_id}`}>
+                                        <div className="flex items-center gap-2 mb-2">
+                                          <div className="flex flex-col items-end">
+                                            <Badge variant="outline" className="mb-1">
+                                              {assignment.care_plans?.profiles?.full_name || "Family"}
+                                            </Badge>
+                                            {assignment.created_at && (
+                                              <span className="text-xs text-gray-500">
+                                                Assigned: {new Date(assignment.created_at).toLocaleDateString()}
+                                              </span>
+                                            )}
+                                          </div>
+                                          <Avatar className="h-8 w-8">
+                                            <AvatarImage src={assignment.care_plans?.profiles?.avatar_url || ''} />
+                                            <AvatarFallback className="bg-primary text-white text-xs">
+                                              {assignment.care_plans?.profiles?.full_name ? getInitials(assignment.care_plans.profiles.full_name) : 'F'}
+                                            </AvatarFallback>
+                                          </Avatar>
+                                        </div>
+                                        <Link to={`/professional/assignments/${assignment.care_plan_id}`}>
                                           <Button size="sm" variant="outline">
                                             View Details
                                           </Button>
                                         </Link>
                                       </div>
                                     </div>
+                                    
+                                    {assignment.notes && (
+                                      <div className="mt-3 text-sm bg-gray-50 p-2 rounded border">
+                                        <span className="font-medium">Notes: </span>
+                                        {assignment.notes}
+                                      </div>
+                                    )}
                                   </CardContent>
                                 </div>
                               </Card>
@@ -1024,8 +1055,11 @@ const ProfessionalProfileHub = () => {
                               You'll see your care shifts here once they are scheduled
                             </p>
                           </div>
-                          <Button variant="outline">
-                            View Calendar
+                          <Button 
+                            variant="outline"
+                            onClick={() => navigate("/professional/schedule")}
+                          >
+                            View Schedule
                           </Button>
                         </div>
                       </CardContent>
