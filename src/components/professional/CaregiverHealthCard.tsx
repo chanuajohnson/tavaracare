@@ -27,7 +27,7 @@ export function CaregiverHealthCard({
                 <HandHeart className="h-5 w-5" />
               </div>
               <div>
-                <CardTitle className="text-xl text-primary-800">Unexpected Guardians</CardTitle>
+                <CardTitle className="text-xl text-primary-800">Caregiver Health</CardTitle>
                 <CardDescription className="text-primary-600">
                   Support your well-being while caring for others
                 </CardDescription>
