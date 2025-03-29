@@ -1,4 +1,3 @@
-
 import { motion } from "framer-motion";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -49,6 +48,7 @@ import { ensureUserProfile } from "@/lib/profile-utils";
 import { CareAssignmentCard } from "@/components/professional/CareAssignmentCard";
 import { ProfessionalCalendar } from "@/components/professional/ProfessionalCalendar";
 import { useCareShifts } from "@/hooks/useCareShifts";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 const initialSteps = [
   { 
@@ -797,6 +797,10 @@ const ProfessionalProfileHub = () => {
                       <FileText className="h-4 w-4" />
                       <span>Documents</span>
                     </TabsTrigger>
+                    <TabsTrigger value="admin-assist" className="flex items-center gap-1">
+                      <Briefcase className="h-4 w-4" />
+                      <span>Admin Assistant</span>
+                    </TabsTrigger>
                   </TabsList>
                   
                   <TabsContent value="next-steps" className="space-y-6">
@@ -1110,6 +1114,115 @@ const ProfessionalProfileHub = () => {
                             <p className="text-sm text-gray-500">
                               Having trouble uploading documents? Email them to <a href="mailto:chanuajohnson@gmail.com" className="text-primary hover:underline">chanuajohnson@gmail.com</a> or send via WhatsApp to <a href="https://wa.me/18687865357" className="text-primary hover:underline">+1 (868) 786-5357</a>.
                             </p>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </TabsContent>
+                  
+                  <TabsContent value="admin-assist" className="space-y-6">
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                          <Briefcase className="h-5 w-5 text-primary" />
+                          Request Job Letter
+                        </CardTitle>
+                        <CardDescription>
+                          Request an employment verification letter for your professional needs
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-4">
+                          <div className="bg-blue-50 border border-blue-200 rounded-md p-4 text-sm">
+                            <div className="flex gap-2">
+                              <div className="text-blue-600 flex-shrink-0">
+                                <AlertCircle className="h-5 w-5" />
+                              </div>
+                              <div>
+                                <h4 className="font-medium text-blue-800">Job Letter Policy</h4>
+                                <p className="mt-1 text-blue-700">
+                                  Qualified caregivers are eligible for one free job letter every 6 months.
+                                  To qualify, you must:
+                                </p>
+                                <ul className="mt-2 space-y-1 list-disc list-inside text-blue-700">
+                                  <li>Have a complete profile with verified documents</li>
+                                  <li>Have been actively working with at least one client</li>
+                                  <li>Have no pending complaints or issues</li>
+                                </ul>
+                              </div>
+                            </div>
+                          </div>
+                          
+                          <div className="bg-white p-4 rounded-md border">
+                            <h4 className="font-medium mb-3">Request a Job Letter</h4>
+                            <p className="text-sm text-gray-600 mb-4">
+                              Please contact us via email or WhatsApp to request your job letter. Include your full name
+                              and the specific purpose of the letter.
+                            </p>
+                            
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <div>
+                                      <a 
+                                        href="mailto:chanuajohnson@gmail.com?subject=Job%20Letter%20Request&body=Hello,%0D%0A%0D%0AI%20would%20like%20to%20request%20a%20job%20verification%20letter.%0D%0A%0D%0AFull%20Name:%20%0D%0APurpose%20of%20Letter:%20%0D%0A%0D%0AThank%20you."
+                                        onClick={() => trackEngagement('job_letter_request_email', { method: 'email' })}
+                                      >
+                                        <Button 
+                                          variant="outline"
+                                          className="w-full flex items-center gap-2"
+                                        >
+                                          <Mail className="h-4 w-4" />
+                                          Request via Email
+                                        </Button>
+                                      </a>
+                                    </div>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p className="text-xs">Opens your email client with pre-filled subject</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                              
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <div>
+                                      <a 
+                                        href="https://wa.me/18687865357?text=Hello%2C%20I%20would%20like%20to%20request%20a%20job%20verification%20letter.%0A%0AFull%20Name%3A%20%0APurpose%20of%20Letter%3A%20%0A%0AThank%20you."
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        onClick={() => trackEngagement('job_letter_request_whatsapp', { method: 'whatsapp' })}
+                                      >
+                                        <Button 
+                                          variant="outline"
+                                          className="w-full flex items-center gap-2"
+                                        >
+                                          <Phone className="h-4 w-4" />
+                                          Request via WhatsApp
+                                        </Button>
+                                      </a>
+                                    </div>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p className="text-xs">Opens WhatsApp with pre-filled message</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            </div>
+                          </div>
+                          
+                          <div className="bg-gray-50 p-4 rounded-md border">
+                            <h4 className="font-medium mb-2">Coming Soon</h4>
+                            <p className="text-sm text-gray-600">
+                              Additional administrative services will be available in the future:
+                            </p>
+                            <ul className="mt-2 text-sm text-gray-600 space-y-1 list-disc list-inside">
+                              <li>NIS Registration Assistance</li>
+                              <li>Document Verification</li>
+                              <li>Professional Recommendation Letters</li>
+                            </ul>
                           </div>
                         </div>
                       </CardContent>

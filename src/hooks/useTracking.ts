@@ -47,6 +47,10 @@ export type TrackingActionType =
   | 'training_module_complete'
   | 'lesson_complete'
   
+  // Admin Assistant Interactions
+  | 'job_letter_request_email'
+  | 'job_letter_request_whatsapp'
+  
   // Navigation
   | 'navigation_click'
   | 'breadcrumb_click'
