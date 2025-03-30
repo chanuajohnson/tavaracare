@@ -7,16 +7,22 @@ import { UpvoteFeatureButton } from "@/components/features/UpvoteFeatureButton";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { TechInnovatorsHub } from "@/components/features/TechInnovatorsHub";
+import { CommunityShortcutMenuBar } from "@/components/community/CommunityShortcutMenuBar";
+
 const CommunityDashboard = () => {
   const {
     user,
     isProfileComplete
   } = useAuth();
+  
   const breadcrumbItems = [{
     label: "Community",
     path: "/dashboard/community"
   }];
+  
   return <div className="min-h-screen bg-background">
+      {user && <CommunityShortcutMenuBar />}
+      
       <div className="container px-4 py-8">
         <DashboardHeader breadcrumbItems={breadcrumbItems} />
 
@@ -49,14 +55,6 @@ const CommunityDashboard = () => {
                   </Button>
                 </Link>
               </div>
-            </div> : !isProfileComplete ? <div className="bg-yellow-50 p-6 rounded-lg mb-8">
-              <h2 className="text-xl mb-2">Complete Your Profile</h2>
-              <p className="text-gray-600 mb-4">Please complete your profile to access all features.</p>
-              <Link to="/registration/community">
-                <Button variant="default" size="lg" className="float-right">
-                  Complete Profile
-                </Button>
-              </Link>
             </div> : null}
 
           <h1 className="text-3xl font-bold">Community Dashboard</h1>

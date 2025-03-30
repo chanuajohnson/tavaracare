@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useEffect, useState, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Session, User } from '@supabase/supabase-js';
@@ -129,7 +128,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-  const retryOperation = async <T,>(
+  const retryOperation = <T,>(
     operation: string, 
     fn: () => Promise<T>, 
     maxRetries: number = MAX_RETRY_ATTEMPTS
@@ -298,10 +297,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         return;
       }
 
-      // For professional users, always redirect to dashboard
-      // Fix the type error by ensuring effectiveRole is checked against a UserRole type
-      if (effectiveRole === 'professional' as UserRole) {
-        safeNavigate('/dashboard/professional', { skipCheck: true });
+      // For professional and community users, always redirect to dashboard
+      // without checking profile completion
+      if (effectiveRole === 'professional' as UserRole || effectiveRole === 'community' as UserRole) {
+        const dashboardPath = effectiveRole === 'professional' ? '/dashboard/professional' : '/dashboard/community';
+        safeNavigate(dashboardPath, { skipCheck: true });
         isRedirectingRef.current = false;
         return;
       }
@@ -341,8 +341,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       // For other roles, check profile completion
       const profileComplete = await checkProfileCompletion(user.id);
       
-      // For non-professional roles that are incomplete, redirect to registration
-      if (!profileComplete && effectiveRole && effectiveRole !== 'professional') {
+      // For non-professional/community roles that are incomplete, redirect to registration
+      if (!profileComplete && effectiveRole && effectiveRole !== 'professional' && effectiveRole !== 'community') {
         const registrationPath = `/registration/${effectiveRole.toLowerCase()}`;
         safeNavigate(registrationPath, { skipCheck: true });
         isRedirectingRef.current = false;
