@@ -4,6 +4,7 @@ import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 import { useForm } from 'react-hook-form';
 import { Loader2, Upload, Check, X, User } from 'lucide-react';
+import { useAuth } from '@/components/providers/AuthProvider';
 
 // UI Components
 import { Button } from '@/components/ui/button';
@@ -18,6 +19,7 @@ import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, For
 import { UserRole } from '@/types/database';
 import { updateUserProfile } from '@/lib/profile-utils';
 
+// Constants
 const COMMUNITY_ROLES = [
   { id: 'volunteer', label: '🤝 Community Volunteer' },
   { id: 'organizer', label: '📋 Community Organizer' },
@@ -79,6 +81,7 @@ const COMMUNICATION_CHANNELS = [
 
 export default function CommunityRegistration() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [profilePicture, setProfilePicture] = useState<File | null>(null);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -107,6 +110,24 @@ export default function CommunityRegistration() {
       enableCommunityNotifications: true
     }
   });
+
+  useEffect(() => {
+    if (user) {
+      const firstName = user.user_metadata?.first_name || '';
+      const lastName = user.user_metadata?.last_name || '';
+      const fullName = firstName && lastName ? `${firstName} ${lastName}` : '';
+      
+      form.setValue('email', user.email || '');
+      form.setValue('fullName', fullName);
+      
+      console.log('[CommunityRegistration] Pre-populated form with user data:', {
+        email: user.email,
+        fullName,
+        firstName,
+        lastName
+      });
+    }
+  }, [user, form]);
 
   useEffect(() => {
     const checkConnection = async () => {
