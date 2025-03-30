@@ -180,7 +180,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       
       let profileComplete = true;
       
-      if (profile?.role !== 'professional') {
+      if (profile?.role === 'professional' || profile?.role === 'community') {
+        profileComplete = !!(profile?.full_name || (profile?.first_name && profile?.last_name));
+      } else {
         profileComplete = !!(profile?.full_name || (profile?.first_name && profile?.last_name));
       }
       
@@ -334,7 +336,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       
       const profileComplete = await checkProfileCompletion(user.id);
       
-      if (!profileComplete && effectiveRole && effectiveRole !== 'professional' && effectiveRole !== 'community') {
+      if (!profileComplete && effectiveRole && 
+          effectiveRole !== 'family' && 
+          effectiveRole !== 'professional' && 
+          effectiveRole !== 'community') {
         const registrationPath = `/registration/${effectiveRole.toLowerCase()}`;
         safeNavigate(registrationPath, { skipCheck: true });
         isRedirectingRef.current = false;
