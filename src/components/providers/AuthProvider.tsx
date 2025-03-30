@@ -128,7 +128,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-  const retryOperation = <T,>(
+  const retryOperation = async <T,>(
     operation: string, 
     fn: () => Promise<T>, 
     maxRetries: number = MAX_RETRY_ATTEMPTS
@@ -178,11 +178,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setUserRole(profile.role);
       }
       
-      // Professional users are considered complete by default - we've changed this behavior
       let profileComplete = true;
       
       if (profile?.role !== 'professional') {
-        // Only check completion for non-professional roles
         profileComplete = !!(profile?.full_name || (profile?.first_name && profile?.last_name));
       }
       
@@ -289,7 +287,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setUserRole(user.user_metadata.role);
       }
 
-      // Handle special return paths first
       const locationState = location.state as { returnPath?: string; action?: string } | null;
       if (locationState?.returnPath === "/family/story" && locationState?.action === "tellStory") {
         safeNavigate('/family/story', { skipCheck: true });
@@ -297,8 +294,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         return;
       }
 
-      // For professional and community users, always redirect to dashboard
-      // without checking profile completion
       if (effectiveRole === 'professional' as UserRole || effectiveRole === 'community' as UserRole) {
         const dashboardPath = effectiveRole === 'professional' ? '/dashboard/professional' : '/dashboard/community';
         safeNavigate(dashboardPath, { skipCheck: true });
@@ -306,7 +301,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         return;
       }
 
-      // Check for pending actions only after determining profile is complete
       const pendingFeatureId = localStorage.getItem('pendingFeatureId') || localStorage.getItem('pendingFeatureUpvote');
       if (pendingFeatureId) {
         await checkPendingUpvote();
@@ -338,10 +332,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         return;
       }
       
-      // For other roles, check profile completion
       const profileComplete = await checkProfileCompletion(user.id);
       
-      // For non-professional/community roles that are incomplete, redirect to registration
       if (!profileComplete && effectiveRole && effectiveRole !== 'professional' && effectiveRole !== 'community') {
         const registrationPath = `/registration/${effectiveRole.toLowerCase()}`;
         safeNavigate(registrationPath, { skipCheck: true });
@@ -463,7 +455,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     
     console.log('[AuthProvider] User loaded. Handling redirection...');
     
-    // Only handle initial redirection and auth page redirections
     if (!initialRedirectionDoneRef.current || location.pathname === '/auth') {
       handlePostLoginRedirection();
       initialRedirectionDoneRef.current = true;
