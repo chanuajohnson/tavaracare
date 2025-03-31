@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { format, parseISO, differenceInDays } from "date-fns";
 import { toast } from "sonner";
@@ -33,7 +32,7 @@ export function OpenShiftsPanel() {
       
       if (currentTab === 'available') {
         const shifts = await fetchOpenShiftsForCaregiver(user.id);
-        setOpenShifts(shifts);
+        setOpenShifts(shifts as CareShift[]);
         
         // Get family details for the shifts
         await loadFamilyDetails(shifts.map(s => s.family_id));
@@ -46,7 +45,7 @@ export function OpenShiftsPanel() {
           .order('start_time', { ascending: true });
         
         if (error) throw error;
-        setAssignedShifts(data || []);
+        setAssignedShifts((data || []) as CareShift[]);
         
         // Get family details for the shifts
         await loadFamilyDetails(data?.map(s => s.family_id) || []);

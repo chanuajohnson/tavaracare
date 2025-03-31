@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { format, parseISO } from "date-fns";
 import { Button } from "@/components/ui/button";
@@ -30,6 +29,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { fetchCareShiftsFiltered, fetchCaregiverShifts, CareShift, updateCareShift, deleteCareShift } from "@/services/care-plan-service";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { ShiftCreationForm } from "./ShiftCreationForm";
+import { supabase } from "@/integrations/supabase/client";
 
 interface CareShiftManagerProps {
   carePlanId: string;
@@ -278,7 +278,6 @@ export function CareShiftManager({ carePlanId, onShiftUpdated }: CareShiftManage
   );
 }
 
-// Helper component to display caregiver information
 function CaregiverDisplay({ caregiverId }: { caregiverId: string }) {
   const [caregiverName, setCaregiverName] = useState<string>("");
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { format, addDays, addHours, setHours, setMinutes } from "date-fns";
 import { Calendar as CalendarIcon, Clock, CalendarCheck, User } from "lucide-react";
@@ -230,7 +229,7 @@ export function ShiftCreationForm({
         title: values.title,
         description: values.description,
         location: values.location,
-        status: values.leaveUnassigned ? 'open' : 'assigned',
+        status: values.leaveUnassigned ? 'open' as const : 'assigned' as const,
         start_time: startDateTime.toISOString(),
         end_time: endDateTime.toISOString(),
       };

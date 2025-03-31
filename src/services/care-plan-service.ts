@@ -1,5 +1,3 @@
-
-import { CareRecipientProfile } from "@/types/database";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -11,6 +9,7 @@ export interface CarePlan {
   status: 'active' | 'completed' | 'cancelled';
   created_at: string;
   updated_at: string;
+  metadata?: any;
 }
 
 export interface CareTask {
@@ -31,7 +30,7 @@ export interface CareTeamMember {
   family_id: string;
   caregiver_id: string;
   role: 'caregiver' | 'nurse' | 'therapist' | 'coordinator';
-  status: 'pending' | 'active' | 'inactive';
+  status: 'pending' | 'active' | 'inactive' | 'invited' | 'declined';
   notes?: string;
   created_at: string;
   updated_at: string;
@@ -51,6 +50,8 @@ export interface CareShift {
   recurring_pattern?: string;
   created_at: string;
   updated_at: string;
+  google_calendar_event_id?: string;
+  recurrence_rule?: string;
 }
 
 export interface NewCareShift {
@@ -66,7 +67,29 @@ export interface NewCareShift {
   recurring_pattern?: string;
 }
 
-// Care Plan Functions
+export interface CareRecipientProfile {
+  id: string;
+  user_id: string;
+  full_name: string;
+  birth_year: string;
+  personality_traits?: string[];
+  challenges?: string[];
+  hobbies_interests?: string[];
+  career_fields?: string[];
+  caregiver_personality?: string[];
+  life_story?: string;
+  daily_routines?: string;
+  specific_requests?: string;
+  family_social_info?: string;
+  notable_events?: string;
+  sensitivities?: string;
+  cultural_preferences?: string;
+  unique_facts?: string;
+  joyful_things?: string;
+  created_at: string;
+  last_updated: string;
+}
+
 export const createCarePlan = async (familyId: string, title: string, description?: string): Promise<CarePlan | null> => {
   try {
     const { data, error } = await supabase
@@ -152,7 +175,6 @@ export const deleteCarePlan = async (carePlanId: string): Promise<boolean> => {
   }
 };
 
-// Care Task Functions
 export const createCareTask = async (careTask: Partial<CareTask>): Promise<CareTask | null> => {
   try {
     const { data, error } = await supabase
@@ -217,7 +239,6 @@ export const deleteCareTask = async (taskId: string): Promise<boolean> => {
   }
 };
 
-// Care Team Functions
 export const inviteCareTeamMember = async (member: Omit<CareTeamMember, 'id' | 'created_at' | 'updated_at'>): Promise<CareTeamMember | null> => {
   try {
     const { data, error } = await supabase
@@ -264,21 +285,19 @@ export const removeCareTeamMember = async (memberId: string): Promise<boolean> =
   }
 };
 
-// Care Shift Functions
 export const createCareShift = async (shift: NewCareShift): Promise<CareShift | null> => {
   try {
     const { data, error } = await supabase
       .from('care_shifts')
       .insert({
         ...shift,
-        // If caregiver_id is not provided, the shift is unassigned (open)
         status: shift.caregiver_id ? 'assigned' : 'open'
       })
       .select('*')
       .single();
 
     if (error) throw error;
-    return data;
+    return data as unknown as CareShift;
   } catch (error) {
     console.error("Error creating care shift:", error);
     throw error;
@@ -294,7 +313,7 @@ export const fetchCareShifts = async (carePlanId: string): Promise<CareShift[]> 
       .order('start_time', { ascending: true });
 
     if (error) throw error;
-    return data || [];
+    return (data || []) as unknown as CareShift[];
   } catch (error) {
     console.error("Error fetching care shifts:", error);
     throw error;
@@ -319,7 +338,7 @@ export const fetchCareShiftsFiltered = async (carePlanId: string, filter: 'all' 
     const { data, error } = await query.order('start_time', { ascending: true });
 
     if (error) throw error;
-    return data || [];
+    return (data || []) as unknown as CareShift[];
   } catch (error) {
     console.error("Error fetching filtered care shifts:", error);
     throw error;
@@ -328,7 +347,6 @@ export const fetchCareShiftsFiltered = async (carePlanId: string, filter: 'all' 
 
 export const updateCareShift = async (shiftId: string, updates: Partial<CareShift>): Promise<CareShift | null> => {
   try {
-    // If we're assigning a caregiver to a previously unassigned shift, update the status
     if (updates.caregiver_id && !updates.status) {
       updates.status = 'assigned';
     }
@@ -341,7 +359,7 @@ export const updateCareShift = async (shiftId: string, updates: Partial<CareShif
       .single();
 
     if (error) throw error;
-    return data;
+    return data as unknown as CareShift;
   } catch (error) {
     console.error("Error updating care shift:", error);
     throw error;
@@ -365,7 +383,6 @@ export const deleteCareShift = async (shiftId: string): Promise<boolean> => {
 
 export const claimCareShift = async (shiftId: string, caregiverId: string): Promise<CareShift | null> => {
   try {
-    // First check if the shift is already claimed
     const { data: shiftData, error: checkError } = await supabase
       .from('care_shifts')
       .select('caregiver_id, status')
@@ -378,7 +395,6 @@ export const claimCareShift = async (shiftId: string, caregiverId: string): Prom
       throw new Error("This shift has already been claimed by another caregiver");
     }
     
-    // Now claim the shift
     const { data, error } = await supabase
       .from('care_shifts')
       .update({
@@ -391,26 +407,21 @@ export const claimCareShift = async (shiftId: string, caregiverId: string): Prom
 
     if (error) throw error;
     
-    // Notify the family that the shift has been claimed
     try {
-      // Here you would integrate with your notification system
       console.log(`Shift ${shiftId} has been claimed by caregiver ${caregiverId}`);
     } catch (notificationError) {
       console.error("Failed to send notification:", notificationError);
-      // Don't throw the error here, as the shift claim was successful
     }
     
-    return data;
+    return data as unknown as CareShift;
   } catch (error) {
     console.error("Error claiming care shift:", error);
     throw error;
   }
 };
 
-// Get open shifts available for a caregiver
 export const fetchOpenShiftsForCaregiver = async (caregiverId: string): Promise<CareShift[]> => {
   try {
-    // Get care plans this caregiver is a member of
     const { data: teamMemberships, error: teamError } = await supabase
       .from('care_team_members')
       .select('care_plan_id')
@@ -423,7 +434,6 @@ export const fetchOpenShiftsForCaregiver = async (caregiverId: string): Promise<
       return [];
     }
     
-    // Get open shifts for these care plans
     const carePlanIds = teamMemberships.map(tm => tm.care_plan_id);
     
     const { data, error } = await supabase
@@ -432,18 +442,17 @@ export const fetchOpenShiftsForCaregiver = async (caregiverId: string): Promise<
       .in('care_plan_id', carePlanIds)
       .is('caregiver_id', null)
       .eq('status', 'open')
-      .gt('start_time', new Date().toISOString()) // Only future shifts
+      .gt('start_time', new Date().toISOString())
       .order('start_time', { ascending: true });
     
     if (error) throw error;
-    return data || [];
+    return (data || []) as unknown as CareShift[];
   } catch (error) {
     console.error("Error fetching open shifts for caregiver:", error);
     throw error;
   }
 };
 
-// Get shifts assigned to a caregiver
 export const fetchCaregiverShifts = async (caregiverId: string): Promise<CareShift[]> => {
   try {
     const { data, error } = await supabase
@@ -453,14 +462,13 @@ export const fetchCaregiverShifts = async (caregiverId: string): Promise<CareShi
       .order('start_time', { ascending: true });
     
     if (error) throw error;
-    return data || [];
+    return (data || []) as unknown as CareShift[];
   } catch (error) {
     console.error("Error fetching caregiver shifts:", error);
     throw error;
   }
 };
 
-// Get care recipient profile
 export const fetchCareRecipientProfile = async (userId: string): Promise<CareRecipientProfile | null> => {
   try {
     const { data, error } = await supabase
@@ -470,7 +478,7 @@ export const fetchCareRecipientProfile = async (userId: string): Promise<CareRec
       .maybeSingle();
 
     if (error) throw error;
-    return data;
+    return data as unknown as CareRecipientProfile;
   } catch (error) {
     console.error("Error fetching care recipient profile:", error);
     throw error;
