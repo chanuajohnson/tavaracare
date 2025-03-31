@@ -20,8 +20,7 @@ export interface Profile {
   other_special_needs?: string;
   caregiver_type?: string;
   preferred_contact_method?: string;
-  care_schedule?: string | string[]; // Updated to handle both string and string[]
-  custom_schedule?: string; // Added field to match usage
+  care_schedule?: string;
   budget_preferences?: string;
   caregiver_preferences?: string;
   additional_notes?: string;
@@ -76,7 +75,6 @@ export interface CarePlan {
   description: string;
   family_id: string;
   status: 'active' | 'completed' | 'cancelled';
-  metadata?: any; // Added to match usage in care plan pages
 }
 
 export interface CareTask {
@@ -99,27 +97,4 @@ export interface Document {
   file_url: string;
   uploaded_by: string;
   type: 'medical' | 'care_plan' | 'other';
-}
-
-export interface CareRecipientProfile {
-  id: string;
-  user_id: string;
-  full_name: string;
-  birth_year: string;
-  personality_traits?: string[];
-  challenges?: string[];
-  hobbies_interests?: string[];
-  career_fields?: string[];
-  caregiver_personality?: string[];
-  life_story?: string;
-  daily_routines?: string;
-  specific_requests?: string;
-  family_social_info?: string;
-  notable_events?: string;
-  sensitivities?: string;
-  cultural_preferences?: string;
-  unique_facts?: string;
-  joyful_things?: string;
-  created_at: string;
-  last_updated: string;
 }

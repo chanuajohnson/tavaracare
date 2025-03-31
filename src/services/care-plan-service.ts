@@ -1,25 +1,37 @@
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 
 export interface CarePlan {
   id: string;
-  family_id: string;
   title: string;
-  description?: string;
+  description: string;
+  family_id: string;
   status: 'active' | 'completed' | 'cancelled';
   created_at: string;
   updated_at: string;
-  metadata?: any;
+  metadata?: CarePlanMetadata;
+}
+
+export interface CarePlanMetadata {
+  plan_type: 'scheduled' | 'on-demand' | 'both';
+  weekday_coverage?: '8am-4pm' | '6am-6pm' | '6pm-8am' | 'none';
+  weekend_coverage?: 'yes' | 'no';
+  additional_shifts?: {
+    weekdayEvening4pmTo6am?: boolean;
+    weekdayEvening4pmTo8am?: boolean;
+    weekdayEvening6pmTo6am?: boolean;
+    weekdayEvening6pmTo8am?: boolean;
+  };
 }
 
 export interface CareTask {
   id: string;
   care_plan_id: string;
+  assigned_to: string | null;
   title: string;
-  description?: string;
-  assigned_to?: string;
+  description: string | null;
+  due_date: string | null;
   status: 'pending' | 'in_progress' | 'completed';
-  due_date?: string;
   created_at: string;
   updated_at: string;
 }
@@ -29,8 +41,8 @@ export interface CareTeamMember {
   care_plan_id: string;
   family_id: string;
   caregiver_id: string;
-  role: 'caregiver' | 'nurse' | 'therapist' | 'coordinator';
-  status: 'pending' | 'active' | 'inactive' | 'invited' | 'declined';
+  role: 'caregiver' | 'nurse' | 'therapist' | 'doctor' | 'other';
+  status: 'invited' | 'active' | 'declined' | 'removed';
   notes?: string;
   created_at: string;
   updated_at: string;
@@ -38,7 +50,7 @@ export interface CareTeamMember {
 
 export interface CareShift {
   id: string;
-  care_plan_id?: string;
+  care_plan_id: string;
   family_id: string;
   caregiver_id?: string;
   title: string;
@@ -48,225 +60,185 @@ export interface CareShift {
   start_time: string;
   end_time: string;
   recurring_pattern?: string;
+  recurrence_rule?: string;
   created_at: string;
   updated_at: string;
   google_calendar_event_id?: string;
-  recurrence_rule?: string;
 }
 
-export interface NewCareShift {
-  care_plan_id?: string;
-  family_id: string;
-  caregiver_id?: string;
-  title: string;
-  description?: string;
-  location?: string;
-  status: 'open' | 'assigned' | 'completed' | 'cancelled';
-  start_time: string;
-  end_time: string;
-  recurring_pattern?: string;
-}
-
-export interface CareRecipientProfile {
-  id: string;
-  user_id: string;
-  full_name: string;
-  birth_year: string;
-  personality_traits?: string[];
-  challenges?: string[];
-  hobbies_interests?: string[];
-  career_fields?: string[];
-  caregiver_personality?: string[];
-  life_story?: string;
-  daily_routines?: string;
-  specific_requests?: string;
-  family_social_info?: string;
-  notable_events?: string;
-  sensitivities?: string;
-  cultural_preferences?: string;
-  unique_facts?: string;
-  joyful_things?: string;
-  created_at: string;
-  last_updated: string;
-}
-
-export const createCarePlan = async (familyId: string, title: string, description?: string): Promise<CarePlan | null> => {
-  try {
-    const { data, error } = await supabase
-      .from('care_plans')
-      .insert({
-        family_id: familyId,
-        title,
-        description,
-        status: 'active'
-      })
-      .select('*')
-      .single();
-
-    if (error) throw error;
-    return data;
-  } catch (error) {
-    console.error("Error creating care plan:", error);
-    throw error;
-  }
-};
-
-export const fetchCarePlans = async (familyId: string): Promise<CarePlan[]> => {
+export const fetchCarePlans = async (userId: string): Promise<CarePlan[]> => {
   try {
     const { data, error } = await supabase
       .from('care_plans')
       .select('*')
-      .eq('family_id', familyId)
-      .order('created_at', { ascending: false });
+      .eq('family_id', userId)
+      .order('updated_at', { ascending: false });
 
-    if (error) throw error;
+    if (error) {
+      throw error;
+    }
+
     return data || [];
   } catch (error) {
     console.error("Error fetching care plans:", error);
-    throw error;
+    toast.error("Failed to load care plans");
+    return [];
   }
 };
 
-export const fetchCarePlan = async (carePlanId: string): Promise<CarePlan | null> => {
+export const fetchCarePlan = async (planId: string): Promise<CarePlan | null> => {
   try {
     const { data, error } = await supabase
       .from('care_plans')
       .select('*')
-      .eq('id', carePlanId)
+      .eq('id', planId)
       .single();
 
-    if (error) throw error;
+    if (error) {
+      throw error;
+    }
+
     return data;
   } catch (error) {
     console.error("Error fetching care plan:", error);
-    throw error;
+    toast.error("Failed to load care plan details");
+    return null;
   }
 };
 
-export const updateCarePlan = async (carePlanId: string, updates: Partial<CarePlan>): Promise<CarePlan | null> => {
+export const createCarePlan = async (
+  plan: Omit<CarePlan, 'id' | 'created_at' | 'updated_at'>
+): Promise<CarePlan | null> => {
+  try {
+    const { data, error } = await supabase
+      .from('care_plans')
+      .insert(plan)
+      .select()
+      .single();
+
+    if (error) {
+      throw error;
+    }
+
+    toast.success("Care plan created successfully");
+    return data;
+  } catch (error) {
+    console.error("Error creating care plan:", error);
+    toast.error("Failed to create care plan");
+    return null;
+  }
+};
+
+export const updateCarePlan = async (
+  planId: string,
+  updates: Partial<Omit<CarePlan, 'id' | 'family_id' | 'created_at' | 'updated_at'>>
+): Promise<CarePlan | null> => {
   try {
     const { data, error } = await supabase
       .from('care_plans')
       .update(updates)
-      .eq('id', carePlanId)
-      .select('*')
+      .eq('id', planId)
+      .select()
       .single();
 
-    if (error) throw error;
+    if (error) {
+      throw error;
+    }
+
+    toast.success("Care plan updated successfully");
     return data;
   } catch (error) {
     console.error("Error updating care plan:", error);
-    throw error;
+    toast.error("Failed to update care plan");
+    return null;
   }
 };
 
-export const deleteCarePlan = async (carePlanId: string): Promise<boolean> => {
+export const deleteCarePlan = async (planId: string): Promise<boolean> => {
   try {
     const { error } = await supabase
       .from('care_plans')
       .delete()
-      .eq('id', carePlanId);
+      .eq('id', planId);
 
-    if (error) throw error;
+    if (error) {
+      throw error;
+    }
+
+    toast.success("Care plan deleted successfully");
     return true;
   } catch (error) {
     console.error("Error deleting care plan:", error);
-    throw error;
+    toast.error("Failed to delete care plan");
+    return false;
   }
 };
 
-export const createCareTask = async (careTask: Partial<CareTask>): Promise<CareTask | null> => {
+export const fetchCareTeamMembers = async (planId: string): Promise<CareTeamMember[]> => {
   try {
     const { data, error } = await supabase
-      .from('care_tasks')
-      .insert(careTask)
+      .from('care_team_members')
       .select('*')
-      .single();
+      .eq('care_plan_id', planId)
+      .order('created_at', { ascending: true });
 
-    if (error) throw error;
-    return data;
-  } catch (error) {
-    console.error("Error creating care task:", error);
-    throw error;
-  }
-};
+    if (error) {
+      throw error;
+    }
 
-export const fetchCareTasks = async (carePlanId: string): Promise<CareTask[]> => {
-  try {
-    const { data, error } = await supabase
-      .from('care_tasks')
-      .select('*')
-      .eq('care_plan_id', carePlanId)
-      .order('due_date', { ascending: true });
-
-    if (error) throw error;
     return data || [];
   } catch (error) {
-    console.error("Error fetching care tasks:", error);
-    throw error;
+    console.error("Error fetching care team members:", error);
+    toast.error("Failed to load care team members");
+    return [];
   }
 };
 
-export const updateCareTask = async (taskId: string, updates: Partial<CareTask>): Promise<CareTask | null> => {
-  try {
-    const { data, error } = await supabase
-      .from('care_tasks')
-      .update(updates)
-      .eq('id', taskId)
-      .select('*')
-      .single();
-
-    if (error) throw error;
-    return data;
-  } catch (error) {
-    console.error("Error updating care task:", error);
-    throw error;
-  }
-};
-
-export const deleteCareTask = async (taskId: string): Promise<boolean> => {
-  try {
-    const { error } = await supabase
-      .from('care_tasks')
-      .delete()
-      .eq('id', taskId);
-
-    if (error) throw error;
-    return true;
-  } catch (error) {
-    console.error("Error deleting care task:", error);
-    throw error;
-  }
-};
-
-export const inviteCareTeamMember = async (member: Omit<CareTeamMember, 'id' | 'created_at' | 'updated_at'>): Promise<CareTeamMember | null> => {
+export const inviteCareTeamMember = async (
+  member: Omit<CareTeamMember, 'id' | 'created_at' | 'updated_at'>
+): Promise<CareTeamMember | null> => {
   try {
     const { data, error } = await supabase
       .from('care_team_members')
       .insert(member)
-      .select('*')
+      .select()
       .single();
 
-    if (error) throw error;
+    if (error) {
+      throw error;
+    }
+
+    toast.success("Team member assigned successfully");
     return data;
   } catch (error) {
-    console.error("Error inviting care team member:", error);
-    throw error;
+    console.error("Error assigning team member:", error);
+    toast.error("Failed to assign team member");
+    return null;
   }
 };
 
-export const fetchCareTeamMembers = async (carePlanId: string): Promise<CareTeamMember[]> => {
+export const updateCareTeamMember = async (
+  memberId: string,
+  updates: Partial<Omit<CareTeamMember, 'id' | 'care_plan_id' | 'family_id' | 'caregiver_id' | 'created_at' | 'updated_at'>>
+): Promise<CareTeamMember | null> => {
   try {
     const { data, error } = await supabase
       .from('care_team_members')
-      .select('*')
-      .eq('care_plan_id', carePlanId);
+      .update(updates)
+      .eq('id', memberId)
+      .select()
+      .single();
 
-    if (error) throw error;
-    return data || [];
+    if (error) {
+      throw error;
+    }
+
+    toast.success("Team member updated successfully");
+    return data;
   } catch (error) {
-    console.error("Error fetching care team members:", error);
-    throw error;
+    console.error("Error updating team member:", error);
+    toast.error("Failed to update team member");
+    return null;
   }
 };
 
@@ -277,92 +249,84 @@ export const removeCareTeamMember = async (memberId: string): Promise<boolean> =
       .delete()
       .eq('id', memberId);
 
-    if (error) throw error;
+    if (error) {
+      throw error;
+    }
+
+    toast.success("Team member removed successfully");
     return true;
   } catch (error) {
-    console.error("Error removing care team member:", error);
-    throw error;
+    console.error("Error removing team member:", error);
+    toast.error("Failed to remove team member");
+    return false;
   }
 };
 
-export const createCareShift = async (shift: NewCareShift): Promise<CareShift | null> => {
-  try {
-    const { data, error } = await supabase
-      .from('care_shifts')
-      .insert({
-        ...shift,
-        status: shift.caregiver_id ? 'assigned' : 'open'
-      })
-      .select('*')
-      .single();
-
-    if (error) throw error;
-    return data as unknown as CareShift;
-  } catch (error) {
-    console.error("Error creating care shift:", error);
-    throw error;
-  }
-};
-
-export const fetchCareShifts = async (carePlanId: string): Promise<CareShift[]> => {
+export const fetchCareShifts = async (planId: string): Promise<CareShift[]> => {
   try {
     const { data, error } = await supabase
       .from('care_shifts')
       .select('*')
-      .eq('care_plan_id', carePlanId)
+      .eq('care_plan_id', planId)
       .order('start_time', { ascending: true });
 
-    if (error) throw error;
-    return (data || []) as unknown as CareShift[];
+    if (error) {
+      throw error;
+    }
+
+    return data || [];
   } catch (error) {
     console.error("Error fetching care shifts:", error);
-    throw error;
+    toast.error("Failed to load care schedule");
+    return [];
   }
 };
 
-export const fetchCareShiftsFiltered = async (carePlanId: string, filter: 'all' | 'assigned' | 'unassigned' | 'completed'): Promise<CareShift[]> => {
+export const createCareShift = async (
+  shift: Omit<CareShift, 'id' | 'created_at' | 'updated_at'>
+): Promise<CareShift | null> => {
   try {
-    let query = supabase
+    const { data, error } = await supabase
       .from('care_shifts')
-      .select('*')
-      .eq('care_plan_id', carePlanId);
-    
-    if (filter === 'assigned') {
-      query = query.not('caregiver_id', 'is', null).eq('status', 'assigned');
-    } else if (filter === 'unassigned') {
-      query = query.is('caregiver_id', null).eq('status', 'open');
-    } else if (filter === 'completed') {
-      query = query.eq('status', 'completed');
-    }
-    
-    const { data, error } = await query.order('start_time', { ascending: true });
+      .insert(shift)
+      .select()
+      .single();
 
-    if (error) throw error;
-    return (data || []) as unknown as CareShift[];
+    if (error) {
+      throw error;
+    }
+
+    toast.success("Care shift created successfully");
+    return data;
   } catch (error) {
-    console.error("Error fetching filtered care shifts:", error);
-    throw error;
+    console.error("Error creating care shift:", error);
+    toast.error("Failed to create care shift");
+    return null;
   }
 };
 
-export const updateCareShift = async (shiftId: string, updates: Partial<CareShift>): Promise<CareShift | null> => {
+export const updateCareShift = async (
+  shiftId: string,
+  updates: Partial<Omit<CareShift, 'id' | 'care_plan_id' | 'family_id' | 'created_at' | 'updated_at'>>
+): Promise<CareShift | null> => {
   try {
-    if (updates.caregiver_id && !updates.status) {
-      updates.status = 'assigned';
-    }
-    
     const { data, error } = await supabase
       .from('care_shifts')
       .update(updates)
       .eq('id', shiftId)
-      .select('*')
+      .select()
       .single();
 
-    if (error) throw error;
-    return data as unknown as CareShift;
+    if (error) {
+      throw error;
+    }
+
+    toast.success("Care shift updated successfully");
+    return data;
   } catch (error) {
     console.error("Error updating care shift:", error);
-    throw error;
+    toast.error("Failed to update care shift");
+    return null;
   }
 };
 
@@ -373,114 +337,15 @@ export const deleteCareShift = async (shiftId: string): Promise<boolean> => {
       .delete()
       .eq('id', shiftId);
 
-    if (error) throw error;
+    if (error) {
+      throw error;
+    }
+
+    toast.success("Care shift deleted successfully");
     return true;
   } catch (error) {
     console.error("Error deleting care shift:", error);
-    throw error;
-  }
-};
-
-export const claimCareShift = async (shiftId: string, caregiverId: string): Promise<CareShift | null> => {
-  try {
-    const { data: shiftData, error: checkError } = await supabase
-      .from('care_shifts')
-      .select('caregiver_id, status')
-      .eq('id', shiftId)
-      .single();
-    
-    if (checkError) throw checkError;
-    
-    if (shiftData.caregiver_id) {
-      throw new Error("This shift has already been claimed by another caregiver");
-    }
-    
-    const { data, error } = await supabase
-      .from('care_shifts')
-      .update({
-        caregiver_id: caregiverId,
-        status: 'assigned'
-      })
-      .eq('id', shiftId)
-      .select('*')
-      .single();
-
-    if (error) throw error;
-    
-    try {
-      console.log(`Shift ${shiftId} has been claimed by caregiver ${caregiverId}`);
-    } catch (notificationError) {
-      console.error("Failed to send notification:", notificationError);
-    }
-    
-    return data as unknown as CareShift;
-  } catch (error) {
-    console.error("Error claiming care shift:", error);
-    throw error;
-  }
-};
-
-export const fetchOpenShiftsForCaregiver = async (caregiverId: string): Promise<CareShift[]> => {
-  try {
-    const { data: teamMemberships, error: teamError } = await supabase
-      .from('care_team_members')
-      .select('care_plan_id')
-      .eq('caregiver_id', caregiverId)
-      .eq('status', 'active');
-    
-    if (teamError) throw teamError;
-    
-    if (!teamMemberships || teamMemberships.length === 0) {
-      return [];
-    }
-    
-    const carePlanIds = teamMemberships.map(tm => tm.care_plan_id);
-    
-    const { data, error } = await supabase
-      .from('care_shifts')
-      .select('*')
-      .in('care_plan_id', carePlanIds)
-      .is('caregiver_id', null)
-      .eq('status', 'open')
-      .gt('start_time', new Date().toISOString())
-      .order('start_time', { ascending: true });
-    
-    if (error) throw error;
-    return (data || []) as unknown as CareShift[];
-  } catch (error) {
-    console.error("Error fetching open shifts for caregiver:", error);
-    throw error;
-  }
-};
-
-export const fetchCaregiverShifts = async (caregiverId: string): Promise<CareShift[]> => {
-  try {
-    const { data, error } = await supabase
-      .from('care_shifts')
-      .select('*')
-      .eq('caregiver_id', caregiverId)
-      .order('start_time', { ascending: true });
-    
-    if (error) throw error;
-    return (data || []) as unknown as CareShift[];
-  } catch (error) {
-    console.error("Error fetching caregiver shifts:", error);
-    throw error;
-  }
-};
-
-export const fetchCareRecipientProfile = async (userId: string): Promise<CareRecipientProfile | null> => {
-  try {
-    const { data, error } = await supabase
-      .from('care_recipient_profiles')
-      .select('*')
-      .eq('user_id', userId)
-      .maybeSingle();
-
-    if (error) throw error;
-    return data as unknown as CareRecipientProfile;
-  } catch (error) {
-    console.error("Error fetching care recipient profile:", error);
-    throw error;
+    toast.error("Failed to delete care shift");
+    return false;
   }
 };

@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { v4 as uuidv4 } from 'uuid';
-import { supabase } from '@/integrations/supabase/client';
-import { ensureStorageBuckets, ensureAuthContext } from '@/lib/auth-utils';
+import { supabase, ensureStorageBuckets, ensureAuthContext } from '../../lib/supabase';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '../../components/ui/card';
 import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
@@ -314,7 +313,7 @@ const FamilyRegistration = () => {
         other_special_needs: otherSpecialNeeds || '',
         caregiver_type: caregiverType || '',
         preferred_contact_method: preferredContactMethod || '',
-        care_schedule: careSchedule ? careSchedule.join(', ') : '', 
+        care_schedule: careSchedule || [],
         custom_schedule: customSchedule || '',
         budget_preferences: budgetPreferences || '',
         caregiver_preferences: caregiverPreferences || '',

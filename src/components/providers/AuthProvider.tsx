@@ -178,7 +178,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setUserRole(profile.role);
       }
       
-      let profileComplete = false;
+      let profileComplete = true;
       
       if (profile?.role === 'professional' || profile?.role === 'community') {
         profileComplete = !!(profile?.full_name || (profile?.first_name && profile?.last_name));
