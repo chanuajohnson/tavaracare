@@ -1,12 +1,15 @@
-import { Fragment } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { ChevronRight, Home } from "lucide-react";
+import { ChevronRight, Home, Loader2 } from "lucide-react";
+import { supabase } from "@/lib/supabase";
 
 type BreadcrumbItem = {
   label: string;
   path: string;
+  isLoading?: boolean;
 };
 
+// Enhanced route mapping with more descriptive labels
 const routeMap: Record<string, string> = {
   features: "Features",
   auth: "Authentication",
@@ -15,6 +18,18 @@ const routeMap: Record<string, string> = {
   professional: "Professional",
   community: "Community",
   dashboard: "Dashboard",
+  "training-resources": "Training Resources",
+  module: "Module",
+  lesson: "Lesson",
+  "message-board": "Message Board",
+  subscription: "Subscription",
+  caregiver: "Professional Dashboard",
+  health: "Health & Support",
+};
+
+// Custom path overrides to handle special navigation paths
+const customPathMap: Record<string, string> = {
+  "/caregiver/health": "/dashboard/professional",
 };
 
 const getBreadcrumbItems = (pathname: string): BreadcrumbItem[] => {
@@ -22,25 +37,173 @@ const getBreadcrumbItems = (pathname: string): BreadcrumbItem[] => {
 
   const paths = pathname.split("/").filter(Boolean);
   let currentPath = "";
-
-  return paths.map((path) => {
+  const breadcrumbItems: BreadcrumbItem[] = [];
+  
+  // Process each path segment
+  paths.forEach((path, index) => {
     currentPath += `/${path}`;
-    if (path === "dashboard" && paths.length === 1) {
-      return {
-        label: "",
-        path: "/",
-      };
+    
+    // Check for custom path mapping
+    let itemPath = currentPath;
+    if (index < paths.length - 1 && customPathMap[`/${paths[0]}/${paths[1]}`]) {
+      // If this is part of a custom path mapping and not the last segment
+      if (path === "caregiver") {
+        itemPath = customPathMap[`/${paths[0]}/${paths[1]}`];
+      }
     }
-    return {
+    
+    // Handle module IDs - mark for later replacement with actual module titles
+    if (path === "module" && index < paths.length - 1) {
+      breadcrumbItems.push({
+        label: `Module ${paths[index + 1]}`,
+        path: currentPath,
+        isLoading: true,
+      });
+      return;
+    }
+    
+    // Handle lesson IDs
+    if (path === "lesson" && index < paths.length - 1) {
+      breadcrumbItems.push({
+        label: `Lesson ${paths[index + 1]}`,
+        path: currentPath,
+        isLoading: true,
+      });
+      return;
+    }
+    
+    // Normal path handling for other routes
+    breadcrumbItems.push({
       label: routeMap[path] || path.charAt(0).toUpperCase() + path.slice(1),
-      path: currentPath,
-    };
-  }).filter(item => item.label !== "");
+      path: itemPath,
+    });
+  });
+  
+  return breadcrumbItems;
 };
 
 export function Breadcrumb() {
   const location = useLocation();
-  const items = getBreadcrumbItems(location.pathname);
+  const [items, setItems] = useState<BreadcrumbItem[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [referrer, setReferrer] = useState<BreadcrumbItem | null>(null);
+
+  useEffect(() => {
+    // Check if we have referrer information in the location state (from subscription pages)
+    const hasReferrerInfo = location.state?.referringPagePath && location.state?.referringPageLabel;
+    
+    const initialItems = getBreadcrumbItems(location.pathname);
+    
+    // Add referrer to breadcrumb items if available
+    if (hasReferrerInfo && location.pathname.includes('/subscription')) {
+      const customItems = [...initialItems];
+      
+      // Insert the referrer as the second-to-last item
+      // (after Home, before the current page)
+      customItems.splice(customItems.length - 1, 0, {
+        label: location.state.referringPageLabel,
+        path: location.state.referringPagePath
+      });
+      
+      setItems(customItems);
+      setReferrer({
+        label: location.state.referringPageLabel,
+        path: location.state.referringPagePath
+      });
+    } else {
+      setItems(initialItems);
+      setReferrer(null);
+    }
+
+    // Check if we need to fetch module or lesson titles
+    const needsFetching = initialItems.some(item => item.isLoading);
+    
+    if (needsFetching) {
+      setIsLoading(true);
+      
+      const fetchModuleAndLessonTitles = async () => {
+        const updatedItems = [...initialItems];
+        const paths = location.pathname.split("/").filter(Boolean);
+        
+        // Find module ID and lesson ID in the path
+        let moduleId = null;
+        let lessonId = null;
+        
+        for (let i = 0; i < paths.length; i++) {
+          if (paths[i] === "module" && i + 1 < paths.length) {
+            moduleId = paths[i + 1];
+          }
+          if (paths[i] === "lesson" && i + 1 < paths.length) {
+            lessonId = paths[i + 1];
+          }
+        }
+        
+        // Fetch module title if needed
+        if (moduleId) {
+          try {
+            const { data: moduleData, error: moduleError } = await supabase
+              .from('training_modules')
+              .select('title')
+              .eq('id', moduleId)
+              .single();
+            
+            if (moduleData && !moduleError) {
+              // Update the module breadcrumb with actual title
+              for (let i = 0; i < updatedItems.length; i++) {
+                if (updatedItems[i].isLoading && updatedItems[i].path.includes(`/module/${moduleId}`)) {
+                  updatedItems[i] = {
+                    ...updatedItems[i],
+                    label: moduleData.title,
+                    isLoading: false
+                  };
+                  break;
+                }
+              }
+            }
+          } catch (error) {
+            console.error("Error fetching module title:", error);
+          }
+        }
+        
+        // Fetch lesson title if needed
+        if (lessonId) {
+          try {
+            const { data: lessonData, error: lessonError } = await supabase
+              .from('module_lessons')
+              .select('title')
+              .eq('id', lessonId)
+              .single();
+            
+            if (lessonData && !lessonError) {
+              // Update the lesson breadcrumb with actual title
+              for (let i = 0; i < updatedItems.length; i++) {
+                if (updatedItems[i].isLoading && updatedItems[i].path.includes(`/lesson/${lessonId}`)) {
+                  updatedItems[i] = {
+                    ...updatedItems[i],
+                    label: lessonData.title,
+                    isLoading: false
+                  };
+                  break;
+                }
+              }
+            }
+          } catch (error) {
+            console.error("Error fetching lesson title:", error);
+          }
+        }
+        
+        // Add referrer if we had one
+        if (referrer && location.pathname.includes('/subscription')) {
+          updatedItems.splice(updatedItems.length - 1, 0, referrer);
+        }
+        
+        setItems(updatedItems);
+        setIsLoading(false);
+      };
+      
+      fetchModuleAndLessonTitles();
+    }
+  }, [location.pathname, location.state]);
 
   if (items.length === 0) return null;
 
@@ -62,14 +225,28 @@ export function Breadcrumb() {
             <ChevronRight className="h-4 w-4 text-gray-400 mr-1" />
             {index === items.length - 1 ? (
               <span className="font-medium text-gray-900" aria-current="page">
-                {item.label}
+                {item.isLoading ? (
+                  <span className="flex items-center">
+                    <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                    Loading...
+                  </span>
+                ) : (
+                  item.label
+                )}
               </span>
             ) : (
               <Link
                 to={item.path}
                 className="hover:text-primary-600 transition-colors"
               >
-                {item.label}
+                {item.isLoading ? (
+                  <span className="flex items-center">
+                    <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                    Loading...
+                  </span>
+                ) : (
+                  item.label
+                )}
               </Link>
             )}
           </li>

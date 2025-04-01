@@ -1,7 +1,6 @@
-
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { HelpCircle, X, MessageSquare, FileQuestion, Phone } from "lucide-react";
+import { HelpCircle, X, MessageSquare, FileQuestion, Phone, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   DropdownMenu,
@@ -12,6 +11,7 @@ import {
 import { Link, useNavigate } from "react-router-dom";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
+import { supabase } from "@/lib/supabase";
 
 interface FabProps {
   icon?: React.ReactNode;
@@ -32,11 +32,13 @@ export const Fab = ({
 }: FabProps) => {
   const navigate = useNavigate();
   const [isContactFormOpen, setIsContactFormOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [contactFormData, setContactFormData] = useState({
     name: "",
     email: "",
     message: "",
   });
+  const [screenshotFile, setScreenshotFile] = useState<File | null>(null);
 
   const positionClasses = {
     "bottom-right": "bottom-6 right-6",
@@ -47,7 +49,7 @@ export const Fab = ({
 
   const handleOpenWhatsApp = () => {
     const phoneNumber = "+18687865357";
-    const message = encodeURIComponent("Hello, I need support with [brief issue].");
+    const message = encodeURIComponent("Hello, I need support with Tavara.care platform.");
     window.open(`https://wa.me/${phoneNumber}?text=${message}`, "_blank");
   };
 
@@ -55,13 +57,59 @@ export const Fab = ({
     navigate("/faq");
   };
 
-  const handleContactFormSubmit = (e: React.FormEvent) => {
+  const handleContactFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // In a real app, you would send this data to your backend
-    console.log("Contact form submitted:", contactFormData);
-    toast.success("Your support request has been submitted. We'll get back to you soon!");
-    setIsContactFormOpen(false);
-    setContactFormData({ name: "", email: "", message: "" });
+    
+    try {
+      setIsSubmitting(true);
+      
+      // Validate form
+      if (!contactFormData.name || !contactFormData.email || !contactFormData.message) {
+        toast.error("Please fill out all required fields");
+        setIsSubmitting(false);
+        return;
+      }
+      
+      // Prepare the data to send
+      const formData = { ...contactFormData };
+      
+      // Handle screenshot if provided
+      if (screenshotFile) {
+        // Convert screenshot to base64
+        const reader = new FileReader();
+        const base64Screenshot = await new Promise<string>((resolve) => {
+          reader.onloadend = () => {
+            resolve(reader.result as string);
+          };
+          reader.readAsDataURL(screenshotFile);
+        });
+        
+        // Add screenshot to form data
+        formData["screenshot"] = base64Screenshot;
+      }
+      
+      // Send form data to Edge Function
+      const { data, error } = await supabase.functions.invoke("send-contact-email", {
+        body: formData,
+      });
+      
+      if (error) {
+        throw new Error(error.message || "Failed to send support request");
+      }
+      
+      console.log("Contact form submitted successfully:", data);
+      toast.success("Your support request has been submitted. We'll get back to you soon!");
+      
+      // Reset form
+      setContactFormData({ name: "", email: "", message: "" });
+      setScreenshotFile(null);
+      setIsContactFormOpen(false);
+    } catch (error) {
+      console.error("Error submitting contact form:", error);
+      toast.error(error.message || "Failed to send support request. Please try again later.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleInputChange = (
@@ -69,6 +117,25 @@ export const Fab = ({
   ) => {
     const { name, value } = e.target;
     setContactFormData((prev) => ({ ...prev, [name]: value }));
+  };
+  
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      
+      // Validate file is an image and not too large (max 5MB)
+      if (!file.type.startsWith("image/")) {
+        toast.error("Please upload an image file");
+        return;
+      }
+      
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error("Screenshot must be less than 5MB");
+        return;
+      }
+      
+      setScreenshotFile(file);
+    }
   };
 
   if (!showMenu) {
@@ -138,6 +205,7 @@ export const Fab = ({
                 variant="ghost"
                 size="icon"
                 onClick={() => setIsContactFormOpen(false)}
+                disabled={isSubmitting}
               >
                 <X className="h-5 w-5" />
               </Button>
@@ -156,6 +224,7 @@ export const Fab = ({
                     value={contactFormData.name}
                     onChange={handleInputChange}
                     className="w-full p-2 border rounded"
+                    disabled={isSubmitting}
                   />
                 </div>
                 <div>
@@ -170,6 +239,7 @@ export const Fab = ({
                     value={contactFormData.email}
                     onChange={handleInputChange}
                     className="w-full p-2 border rounded"
+                    disabled={isSubmitting}
                   />
                 </div>
                 <div>
@@ -184,6 +254,7 @@ export const Fab = ({
                     onChange={handleInputChange}
                     className="w-full p-2 border rounded"
                     rows={4}
+                    disabled={isSubmitting}
                   />
                 </div>
                 <div>
@@ -196,7 +267,14 @@ export const Fab = ({
                     type="file"
                     accept="image/*"
                     className="w-full p-2 border rounded"
+                    onChange={handleFileChange}
+                    disabled={isSubmitting}
                   />
+                  {screenshotFile && (
+                    <p className="text-xs text-green-600 mt-1">
+                      Screenshot selected: {screenshotFile.name}
+                    </p>
+                  )}
                 </div>
               </div>
               <div className="mt-6 flex justify-end space-x-2">
@@ -204,10 +282,20 @@ export const Fab = ({
                   type="button"
                   variant="outline"
                   onClick={() => setIsContactFormOpen(false)}
+                  disabled={isSubmitting}
                 >
                   Cancel
                 </Button>
-                <Button type="submit">Submit</Button>
+                <Button type="submit" disabled={isSubmitting}>
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Sending...
+                    </>
+                  ) : (
+                    "Submit"
+                  )}
+                </Button>
               </div>
             </form>
           </div>

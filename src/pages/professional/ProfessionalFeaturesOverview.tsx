@@ -10,11 +10,11 @@ const ProfessionalFeaturesOverview = () => {
   const breadcrumbItems = [
     {
       label: "Professional",
-      href: "/dashboard/professional",
+      path: "/dashboard/professional",
     },
     {
       label: "Features Overview",
-      href: "/professional/features-overview",
+      path: "/professional/features-overview",
     },
   ];
 

@@ -8,6 +8,7 @@ import {
   LayoutDashboard,
   ChevronDown,
   Loader2,
+  BarChart,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -15,24 +16,52 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { toast } from 'sonner';
+import { resetAuthState } from '@/lib/supabase';
 
 export function Navigation() {
   const { user, signOut, isLoading, userRole } = useAuth();
   const location = useLocation();
 
-  // Log state for debugging purposes
-  console.log('Navigation render -', { user: !!user, isLoading, userRole, path: location.pathname });
+  console.log('Navigation render -', { 
+    user: !!user, 
+    isLoading, 
+    userRole, 
+    path: location.pathname,
+    userDetails: user ? {
+      id: user.id,
+      email: user.email,
+      hasMetadataRole: !!user.user_metadata?.role
+    } : null
+  });
 
   const handleSignOut = async (e: React.MouseEvent) => {
     e.preventDefault();
     try {
-      await signOut();
-    } catch (error) {
-      console.error('Error in Navigation signOut handler:', error);
+      toast.loading("Signing out...");
+      
+      try {
+        await signOut();
+      } catch (error) {
+        console.error('Error in Navigation signOut handler:', error);
+        
+        // Force reset auth state on any sign out error
+        console.log('Attempting to force reset auth state...');
+        await resetAuthState();
+        
+        // Refresh the page to ensure clean state
+        window.location.href = '/';
+      }
+    } catch (finalError) {
+      console.error('Critical error during sign out recovery:', finalError);
+      toast.dismiss();
+      toast.error('Error signing out. Please try refreshing the page.');
+    } finally {
+      toast.dismiss();
+      toast.success('You have been signed out successfully');
     }
   };
 
-  // Get dashboard path based on user role
   const getDashboardPath = () => {
     if (!userRole) return null;
     
@@ -51,21 +80,33 @@ export function Navigation() {
   };
 
   const dashboardPath = getDashboardPath();
+  const isSpecificUser = user?.id === '605540d7-ae87-4a7c-9bd0-5699937f0670';
 
   return (
     <nav className="bg-background border-b py-3 px-4 sm:px-6">
       <div className="container mx-auto flex justify-between items-center">
-        <div className="flex items-center">
-          <Link to="/" className="text-xl font-bold">Takes a Village</Link>
+        <div className="flex items-center flex-col sm:flex-row">
+          <Link to="/" className="text-xl font-bold">Tavara</Link>
+          <span className="text-xs text-gray-600 italic sm:ml-2">It takes a village to care</span>
         </div>
         
         <div className="flex items-center gap-4">
+          <Link to="/about" className="text-gray-700 hover:text-primary">
+            About
+          </Link>
+          
           <Link to="/features" className="text-gray-700 hover:text-primary">
             Features
           </Link>
           
+          {isSpecificUser && (
+            <Link to="/admin/user-journey" className="flex items-center gap-1 text-indigo-600 hover:text-indigo-700">
+              <BarChart className="h-4 w-4" />
+              <span className="hidden sm:inline">User Journey</span>
+            </Link>
+          )}
+          
           {user && dashboardPath ? (
-            // Show only user's specific dashboard when logged in
             <Link to={dashboardPath} className="flex items-center gap-1 text-gray-700 hover:text-primary">
               <LayoutDashboard className="h-4 w-4" />
               <span className="hidden sm:inline">
@@ -73,7 +114,6 @@ export function Navigation() {
               </span>
             </Link>
           ) : !user ? (
-            // Show all dashboards dropdown when not logged in
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="sm" className="flex items-center gap-1">
@@ -110,9 +150,8 @@ export function Navigation() {
           ) : user ? (
             <Button 
               onClick={handleSignOut}
-              variant="destructive"
               size="sm"
-              className="flex items-center gap-2"
+              className="flex items-center gap-2 bg-primary-600 text-white hover:bg-primary-700 transition-colors"
             >
               <LogOut className="h-4 w-4" />
               <span>Sign Out</span>
@@ -129,4 +168,4 @@ export function Navigation() {
       </div>
     </nav>
   );
-}
+};

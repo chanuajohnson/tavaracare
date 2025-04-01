@@ -1,9 +1,8 @@
-
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { EyeIcon, EyeOffIcon, Loader2 } from "lucide-react";
+import { EyeIcon, EyeOffIcon, Loader2, MailIcon } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { UserRole } from "@/types/database";
 import { toast } from "sonner";
@@ -22,6 +21,7 @@ export function SignupForm({ onSubmit, isLoading }: SignupFormProps) {
   const [role, setRole] = useState<UserRole>("family");
   const [showPassword, setShowPassword] = useState(false);
   const [formSubmitted, setFormSubmitted] = useState(false);
+  const [submissionStatus, setSubmissionStatus] = useState<"idle" | "submitting" | "success" | "error">("idle");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -38,10 +38,12 @@ export function SignupForm({ onSubmit, isLoading }: SignupFormProps) {
     
     try {
       setFormSubmitted(true);
+      setSubmissionStatus("submitting");
       console.log('SignupForm submitting with role:', role);
       
-      // Store the registration role in localStorage for redirect handling
+      // Store the registration role in localStorage for redirect handling after email verification
       localStorage.setItem('registeringAs', role);
+      localStorage.setItem('registrationRole', role);
       
       // Set up user metadata with role and name for profile creation
       const metadata = {
@@ -56,90 +58,63 @@ export function SignupForm({ onSubmit, isLoading }: SignupFormProps) {
       // Pass the registration to the parent component
       await onSubmit(email, password, firstName, lastName, role);
       
-      // After successful registration, explicitly update the profile to ensure the role is set
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        
-        // Only proceed if we have a valid session
-        if (session?.user) {
-          console.log('Got session after signup, user ID:', session.user.id);
-          
-          // Check if profile exists for this user
-          const { data: profile, error: profileError } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', session.user.id)
-            .maybeSingle();
-          
-          if (profileError) {
-            console.error('Error checking for existing profile:', profileError);
-          }
-          
-          // If profile doesn't exist or there was an error, create/update it
-          console.log('Existing profile:', profile);
-          
-          const profileData = {
-            id: session.user.id,
-            full_name: `${firstName} ${lastName}`.trim(),
-            role: role
-          };
-          
-          console.log('Updating profile with data:', profileData);
-          
-          // Use upsert to create or update the profile
-          const { error: insertError } = await supabase
-            .from('profiles')
-            .upsert(profileData);
-          
-          if (insertError) {
-            console.error('Failed to update profile after signup:', insertError);
-            toast.error(`Profile update failed: ${insertError.message}`);
-          } else {
-            console.log('Profile successfully updated after signup');
-          }
-          
-          // Double-check the profile was updated correctly
-          const { data: updatedProfile, error: checkError } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', session.user.id)
-            .maybeSingle();
-            
-          if (checkError) {
-            console.error('Error verifying profile update:', checkError);
-          } else {
-            console.log('Profile after update:', updatedProfile);
-            
-            // If role is still not set correctly, try one more update
-            if (updatedProfile && updatedProfile.role !== role) {
-              console.warn('Role mismatch! Expected:', role, 'Got:', updatedProfile.role);
-              
-              // Try one more explicit update
-              const { error: roleUpdateError } = await supabase
-                .from('profiles')
-                .update({ role: role })
-                .eq('id', session.user.id);
-                
-              if (roleUpdateError) {
-                console.error('Failed to fix role mismatch:', roleUpdateError);
-              } else {
-                console.log('Role mismatch corrected');
-              }
-            }
-          }
-        } else {
-          console.error('No session available after signup');
-        }
-      } catch (profileError) {
-        console.error('Error updating profile after signup:', profileError);
-        toast.error('Account created but profile setup had an error. Please try again later.');
-      }
+      // Show success message
+      toast.success("Account created successfully! Please check your email to confirm your account.");
+      setSubmissionStatus("success");
+      
     } catch (error: any) {
       console.error("Signup error:", error);
       toast.error(error.message || "Failed to create account. Please try again.");
       setFormSubmitted(false);
+      setSubmissionStatus("error");
     }
   };
+
+  // If signup was successful, show a confirmation page with next steps
+  if (submissionStatus === "success") {
+    return (
+      <div className="space-y-4 text-center py-8">
+        <div className="flex justify-center">
+          <div className="bg-primary-100 text-primary-800 p-4 rounded-md">
+            <h3 className="font-medium text-lg">Registration Started!</h3>
+            <div className="mt-2 space-y-4">
+              <p>
+                Your account has been created successfully. We've sent a confirmation email to <strong>{email}</strong>.
+              </p>
+              <div className="bg-amber-50 border border-amber-200 p-3 rounded-md text-amber-800 text-sm">
+                <h4 className="font-medium mb-1 flex items-center">
+                  <MailIcon className="h-4 w-4 mr-1" /> Next Steps:
+                </h4>
+                <ol className="list-decimal list-inside text-left space-y-1">
+                  <li>Check your email inbox for a confirmation link</li>
+                  <li>Click the confirmation link to verify your email</li>
+                  <li>You'll be redirected to complete your {role} profile</li>
+                </ol>
+              </div>
+              <p className="text-sm text-gray-600 mt-2">
+                If you don't see the email, please check your spam folder.
+              </p>
+            </div>
+          </div>
+        </div>
+        <Button 
+          className="mt-4" 
+          onClick={() => {
+            // Reset form state and tell the parent component to switch to login tab
+            setFormSubmitted(false);
+            setSubmissionStatus("idle");
+            const tabsList = document.querySelector('[role="tablist"]');
+            const loginTab = tabsList?.querySelector('[value="login"]') as HTMLButtonElement;
+            if (loginTab) {
+              loginTab.click();
+            }
+          }}
+        >
+          Go to Login
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
@@ -221,7 +196,7 @@ export function SignupForm({ onSubmit, isLoading }: SignupFormProps) {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="family">Family Member</SelectItem>
-            <SelectItem value="professional">Healthcare Professional</SelectItem>
+            <SelectItem value="professional">Care Professional</SelectItem>
             <SelectItem value="community">Community Member</SelectItem>
           </SelectContent>
         </Select>

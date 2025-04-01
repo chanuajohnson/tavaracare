@@ -1,4 +1,3 @@
-
 # Takes a Village - Changelog
 
 All notable changes to the Takes a Village care coordination platform will be documented in this file.
@@ -10,6 +9,14 @@ All notable changes to the Takes a Village care coordination platform will be do
 - Automated reminders for tasks and appointments
 - Advanced meal planning with dietary restrictions
 - Mobile app notifications
+
+## [0.1.1] - 2024-10-XX
+
+### Fixed
+- Resolved professional registration infinite loop issue
+- Fixed user management deletion for registered users
+- Improved authentication state handling during sign out
+- Enhanced error handling for user deletion process
 
 ## [0.1.0] - 2024-10-XX
 

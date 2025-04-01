@@ -162,7 +162,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       console.log('[AuthProvider] Checking profile completion for user:', userId);
       const { data: profile, error } = await supabase
         .from('profiles')
-        .select('full_name, avatar_url, role')
+        .select('full_name, avatar_url, role, professional_type, first_name, last_name')
         .eq('id', userId)
         .maybeSingle();
       
@@ -178,9 +178,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setUserRole(profile.role);
       }
       
-      const profileComplete = profile && !!profile.full_name;
-      setIsProfileComplete(profileComplete);
+      let profileComplete = true;
+      
+      if (profile?.role === 'professional' || profile?.role === 'community') {
+        profileComplete = !!(profile?.full_name || (profile?.first_name && profile?.last_name));
+      } else {
+        profileComplete = !!(profile?.full_name || (profile?.first_name && profile?.last_name));
+      }
+      
       console.log('[AuthProvider] Profile complete:', profileComplete);
+      setIsProfileComplete(profileComplete);
       return profileComplete;
     } catch (error) {
       console.error('[AuthProvider] Error checking profile completion:', error);
@@ -236,7 +243,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-  const safeNavigate = (path: string, options: { replace?: boolean, skipCheck?: boolean } = {}) => {
+  const safeNavigate = (path: string, options: { 
+    replace?: boolean, 
+    skipCheck?: boolean,
+    state?: Record<string, any>
+  } = {}) => {
     if (navigationInProgressRef.current && !options.skipCheck) {
       console.log(`[AuthProvider] Navigation already in progress, skipping navigation to: ${path}`);
       return;
@@ -253,9 +264,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     console.log(`[AuthProvider] Navigating to: ${path}`);
     
     if (options.replace) {
-      navigate(path, { replace: true });
+      navigate(path, { replace: true, state: options.state });
     } else {
-      navigate(path);
+      navigate(path, { state: options.state });
     }
     
     setTimeout(() => {
@@ -270,40 +281,28 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     
     try {
       console.log('[AuthProvider] Handling post-login redirection for user:', user.id);
-      console.log('[AuthProvider] Current user role:', userRole);
-      console.log('[AuthProvider] Current path:', location.pathname);
       
-      // Determine user role
       let effectiveRole = userRole;
       if (!effectiveRole && user.user_metadata?.role) {
         console.log('[AuthProvider] Setting user role from metadata:', user.user_metadata.role);
         effectiveRole = user.user_metadata.role;
         setUserRole(user.user_metadata.role);
       }
-      
-      // Check if profile is complete
-      const profileComplete = await checkProfileCompletion(user.id);
-      console.log('[AuthProvider] Profile complete:', profileComplete);
-      
-      // If profile is not complete, redirect to registration page
-      if (!profileComplete) {
-        let registrationPath = '/registration/family';
-        
-        if (effectiveRole) {
-          registrationPath = `/registration/${effectiveRole.toLowerCase()}`;
-        } else if (localStorage.getItem('registrationRole')) {
-          const intendedRole = localStorage.getItem('registrationRole');
-          registrationPath = `/registration/${intendedRole?.toLowerCase()}`;
-        }
-        
-        console.log('[AuthProvider] Redirecting to registration page:', registrationPath);
-        toast.info('Please complete your profile to continue');
-        safeNavigate(registrationPath, { skipCheck: true });
+
+      const locationState = location.state as { returnPath?: string; action?: string } | null;
+      if (locationState?.returnPath === "/family/story" && locationState?.action === "tellStory") {
+        safeNavigate('/family/story', { skipCheck: true });
         isRedirectingRef.current = false;
         return;
       }
-      
-      // Handle pending actions first if they exist
+
+      if (effectiveRole === 'professional' as UserRole || effectiveRole === 'community' as UserRole) {
+        const dashboardPath = effectiveRole === 'professional' ? '/dashboard/professional' : '/dashboard/community';
+        safeNavigate(dashboardPath, { skipCheck: true });
+        isRedirectingRef.current = false;
+        return;
+      }
+
       const pendingFeatureId = localStorage.getItem('pendingFeatureId') || localStorage.getItem('pendingFeatureUpvote');
       if (pendingFeatureId) {
         await checkPendingUpvote();
@@ -311,7 +310,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         return;
       }
       
-      // Other pending actions
       const pendingBooking = localStorage.getItem('pendingBooking');
       if (pendingBooking) {
         localStorage.removeItem('pendingBooking');
@@ -336,7 +334,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         return;
       }
       
-      // If no pending actions, redirect to role-specific dashboard
+      const profileComplete = await checkProfileCompletion(user.id);
+      
+      if (!profileComplete && effectiveRole && 
+          effectiveRole !== 'family' && 
+          effectiveRole !== 'professional' && 
+          effectiveRole !== 'community') {
+        const registrationPath = `/registration/${effectiveRole.toLowerCase()}`;
+        safeNavigate(registrationPath, { skipCheck: true });
+        isRedirectingRef.current = false;
+        return;
+      }
+      
       if (effectiveRole) {
         const dashboardRoutes: Record<UserRole, string> = {
           'family': '/dashboard/family',
@@ -345,14 +354,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           'admin': '/dashboard/admin'
         };
         
-        initialRedirectionDoneRef.current = true;
-        
-        console.log('[AuthProvider] Redirecting to dashboard for role:', effectiveRole);
         safeNavigate(dashboardRoutes[effectiveRole], { skipCheck: true });
-        toast.success(`Welcome to your ${effectiveRole} dashboard!`);
-        clearLastAction();
       } else {
-        console.log('[AuthProvider] No role detected, redirecting to home');
         safeNavigate('/', { skipCheck: true });
       }
     } catch (error) {
@@ -382,7 +385,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
     
     toast.error('Please sign in to ' + action);
-    safeNavigate('/auth', { skipCheck: true });
+    safeNavigate('/auth', { 
+      skipCheck: true,
+      state: {
+        returnPath: redirectPath,
+        action: action === 'tell their story' ? 'tellStory' : null
+      }
+    });
     return false;
   };
 
@@ -451,11 +460,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     
     console.log('[AuthProvider] User loaded. Handling redirection...');
     
-    // Redirect to appropriate dashboard only if on auth page or if initial redirection hasn't happened
     if (!initialRedirectionDoneRef.current || location.pathname === '/auth') {
       handlePostLoginRedirection();
+      initialRedirectionDoneRef.current = true;
     }
-  }, [isLoading, user, userRole]);
+  }, [isLoading, user, userRole, location.pathname]);
 
   useEffect(() => {
     const clearStaleState = async () => {
@@ -590,11 +599,24 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       localStorage.removeItem('registrationRole');
       localStorage.removeItem('registeringAs');
       localStorage.removeItem('lastAuthState');
+      localStorage.removeItem('lastAction');
+      localStorage.removeItem('lastPath');
       
-      const { error } = await supabase.auth.signOut();
-      if (error) {
-        console.error('[AuthProvider] Sign out error:', error);
-        throw error;
+      try {
+        const { error } = await supabase.auth.signOut({ scope: 'local' });
+        if (error) {
+          console.error('[AuthProvider] Supabase sign out error:', error);
+          
+          if (error.message && 
+              (error.message.includes('Auth session missing') || 
+               error.message.includes('JWT expired'))) {
+            console.log('[AuthProvider] Ignoring expected auth session error during sign out');
+          } else {
+            throw error;
+          }
+        }
+      } catch (supabaseError) {
+        console.error('[AuthProvider] Exception during Supabase signOut:', supabaseError);
       }
       
       safeNavigate('/', { skipCheck: true, replace: true });
@@ -603,8 +625,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setLoadingWithTimeout(false, 'sign-out-complete');
       isSigningOutRef.current = false;
     } catch (error) {
-      console.error('[AuthProvider] Error signing out:', error);
-      toast.error('Failed to sign out');
+      console.error('[AuthProvider] Error in signOut outer try/catch:', error);
       
       setSession(null);
       setUser(null);
@@ -614,6 +635,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       
       localStorage.setItem('authStateError', 'true');
       safeNavigate('/', { skipCheck: true });
+      toast.success('You have been signed out successfully');
     }
   };
 

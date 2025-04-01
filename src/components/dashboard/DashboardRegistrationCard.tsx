@@ -5,12 +5,51 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/com
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { UpvoteFeatureButton } from "@/components/features/UpvoteFeatureButton";
+import { useEffect, useState } from "react";
+import { supabase } from "@/lib/supabase";
 
 interface DashboardRegistrationCardProps {
   session: any;
 }
 
 export const DashboardRegistrationCard = ({ session }: DashboardRegistrationCardProps) => {
+  const [isProfileComplete, setIsProfileComplete] = useState(false);
+  
+  useEffect(() => {
+    const checkProfileCompletion = async () => {
+      if (!session?.user?.id) return;
+      
+      try {
+        const { data: profile, error } = await supabase
+          .from('profiles')
+          .select('professional_type, full_name, care_services')
+          .eq('id', session.user.id)
+          .maybeSingle();
+        
+        if (error) {
+          console.error('Error checking profile completion:', error);
+          return;
+        }
+        
+        // For professional users, check if they have the minimum required fields
+        const isProfessionalComplete = profile?.professional_type && 
+                                      profile?.full_name && 
+                                      profile?.care_services;
+        
+        setIsProfileComplete(!!isProfessionalComplete);
+      } catch (error) {
+        console.error('Error checking profile:', error);
+      }
+    };
+    
+    checkProfileCompletion();
+  }, [session]);
+  
+  // If profile is complete, don't show the registration card
+  if (isProfileComplete) {
+    return null;
+  }
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -39,4 +78,3 @@ export const DashboardRegistrationCard = ({ session }: DashboardRegistrationCard
     </motion.div>
   );
 };
-

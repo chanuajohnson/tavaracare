@@ -1,19 +1,30 @@
+
 import { motion } from "framer-motion";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, FileText, UserCog, BookOpen, Building } from "lucide-react";
+import { ArrowRight, FileText, UserCog, BookOpen, Building, Users, Briefcase, CheckCircle2, List } from "lucide-react";
 import { UpvoteFeatureButton } from "@/components/features/UpvoteFeatureButton";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/components/providers/AuthProvider";
+import { NextStepsPanel } from "@/components/professional/NextStepsPanel";
+import { TrainingProgressTracker } from "@/components/professional/TrainingProgressTracker";
+import { JobListings } from "@/components/professional/JobListings";
+import { MessageBoard } from "@/components/professional/MessageBoard";
+import { TrainingProgramSection } from "@/components/professional/TrainingProgramSection";
+import { TrainingModulesSection } from "@/components/professional/TrainingModulesSection";
+import { DashboardFamilyMatches } from "@/components/professional/DashboardFamilyMatches";
+import { CaregiverMatchingCard } from "@/components/professional/CaregiverMatchingCard";
+import { ProfessionalShortcutMenuBar } from "@/components/professional/ProfessionalShortcutMenuBar";
+import { CaregiverHealthCard } from "@/components/professional/CaregiverHealthCard";
 
 const ProfessionalDashboard = () => {
   const { user } = useAuth();
   
   const breadcrumbItems = [
     {
-      label: "Professional",
-      href: "/dashboard/professional",
+      label: "Professional Dashboard",
+      path: "/dashboard/professional",
     },
   ];
 
@@ -34,6 +45,9 @@ const ProfessionalDashboard = () => {
           </p>
         </motion.div>
 
+        {/* Quick Access Menu Bar - Only show when user is logged in */}
+        {user && <ProfessionalShortcutMenuBar />}
+
         {!user ? (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -43,7 +57,7 @@ const ProfessionalDashboard = () => {
           >
             <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 rounded-lg border border-blue-100">
               <CardContent className="p-0">
-                <h2 className="text-2xl font-bold">Welcome to Takes a Village! 🚀 Your Care Coordination Hub.</h2>
+                <h2 className="text-2xl font-bold">Welcome to Tavara! 🚀 Your Care Coordination Hub.</h2>
                 <p className="mt-2 text-gray-600">
                   We're building this platform with you in mind. Explore features, connect with clients, and help shape the future of care by voting on features!
                 </p>
@@ -70,7 +84,16 @@ const ProfessionalDashboard = () => {
           </motion.div>
         ) : null}
 
+        {/* Caregiver Health Card - Show for all users */}
+        <div className="mt-8">
+          <CaregiverHealthCard />
+        </div>
+
+        {/* Next Steps and Profile Management - side by side */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
+          <NextStepsPanel />
+          
+          {/* Profile Management Card */}
           <Card className="bg-white shadow-sm">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -88,12 +111,12 @@ const ProfessionalDashboard = () => {
                 <p className="text-sm text-gray-600">Update Skills & Experience</p>
                 <p className="text-sm text-gray-600">Set Availability & Preferences</p>
               </div>
-              <Link to="/registration/professional">
+              <Link to="/professional/profile">
                 <Button 
                   variant="default"
                   className="w-full bg-primary hover:bg-primary-600 text-white"
                 >
-                  Manage Profile
+                  View Profile Hub
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </Link>
@@ -105,42 +128,64 @@ const ProfessionalDashboard = () => {
               </div>
             </CardContent>
           </Card>
+        </div>
 
-          <Card className="bg-white shadow-sm">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <FileText className="h-5 w-5" />
-                Admin Assistant
-              </CardTitle>
-              <CardDescription>
-                Streamline your administrative tasks
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2 mb-4 text-left">
-                <p className="text-sm text-gray-600">Get Job Letters</p>
-                <p className="text-sm text-gray-600">NIS Registration Assistance</p>
-                <p className="text-sm text-gray-600">Document Management</p>
-                <p className="text-sm text-gray-600">Administrative Support</p>
-              </div>
-              <Link to="/professional/features-overview">
-                <Button 
-                  variant="default"
-                  className="w-full bg-primary hover:bg-primary-600 text-white"
-                >
-                  Access Tools
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
-              </Link>
-              <div className="pt-4">
-                <UpvoteFeatureButton
-                  featureTitle="Admin Assistant Tools"
-                  buttonText="Upvote this Feature"
-                />
-              </div>
-            </CardContent>
-          </Card>
+        <CaregiverMatchingCard />
 
+        {/* Family Matches Section */}
+        <div className="mt-8">
+          <DashboardFamilyMatches />
+        </div>
+        
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <TrainingProgressTracker />
+            <JobListings />
+          </div>
+              
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <MessageBoard />
+            
+            {/* Admin Assistant */}
+            <Card className="bg-white shadow-sm">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <FileText className="h-5 w-5" />
+                  Admin Assistant
+                </CardTitle>
+                <CardDescription>
+                  Streamline your administrative tasks
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2 mb-4 text-left">
+                  <p className="text-sm text-gray-600">Get Job Letters</p>
+                  <p className="text-sm text-gray-600">NIS Registration Assistance</p>
+                  <p className="text-sm text-gray-600">Document Management</p>
+                  <p className="text-sm text-gray-600">Administrative Support</p>
+                </div>
+                <Link to="/professional/features-overview">
+                  <Button 
+                    variant="default"
+                    className="w-full bg-primary hover:bg-primary-600 text-white"
+                  >
+                    Access Tools
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
+                </Link>
+                <div className="pt-4">
+                  <UpvoteFeatureButton
+                    featureTitle="Admin Assistant Tools"
+                    buttonText="Upvote this Feature"
+                  />
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+
+        {/* Training Resources - single column, full width */}
+        <div className="mt-8">
           <Card className="bg-white shadow-sm">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -158,7 +203,7 @@ const ProfessionalDashboard = () => {
                 <p className="text-sm text-gray-600">Best Practices Guides</p>
                 <p className="text-sm text-gray-600">Specialized Care Training</p>
               </div>
-              <Link to="/professional/features-overview">
+              <Link to="/professional/training-resources">
                 <Button 
                   variant="default"
                   className="w-full bg-primary hover:bg-primary-600 text-white"
@@ -175,7 +220,16 @@ const ProfessionalDashboard = () => {
               </div>
             </CardContent>
           </Card>
+        </div>
 
+        {/* Training Program Section */}
+        <TrainingProgramSection />
+
+        {/* Training Modules Section */}
+        <TrainingModulesSection />
+
+        {/* Professional Agency - single column, full width */}
+        <div className="mt-8">
           <Card className="bg-white shadow-sm">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">

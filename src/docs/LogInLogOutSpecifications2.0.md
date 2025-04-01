@@ -1,4 +1,3 @@
-
 # Login/Logout System Specifications 2.0
 
 ## Version 1.0 (Current Implementation)
@@ -72,6 +71,57 @@ The authentication system in Takes a Village implements a complete login/logout 
 7. Profile completeness check:
    - Verifies minimum required profile data exists
    - Determines if registration process is needed
+
+#### 3.2.1 Password Reset Flow
+
+1. **Password Reset Initiation**:
+   - User clicks "Forgot Password" link on the login form
+   - System displays password reset request form (`ResetPasswordForm` component)
+   - User enters email address for account recovery
+   - System sends password reset link via email using Supabase (`supabase.auth.resetPasswordForEmail()`)
+   - Confirmation message displayed to user
+
+2. **Password Reset Link Processing**:
+   - User clicks email recovery link which directs to `/auth/reset-password` page
+   - URL contains recovery token as a query parameter or hash fragment
+   - System validates token via `supabase.auth.exchangeCodeForSession()`
+   - **Current Issue**: After successful token validation, user is automatically logged in and cannot enter a new password
+   - The reset password form briefly appears but then disappears as the automatic login redirects the user
+
+3. **Password Update Process (Current Implementation)**:
+   ```typescript
+   // From ResetPasswordPage.tsx
+   // Token validation code
+   const { data, error } = await supabase.auth.exchangeCodeForSession(queryParams.get("code") || "");
+   
+   if (data?.user) {
+     console.log("[ResetPasswordPage] Valid reset token for user:", data.user.email);
+     setEmail(data.user.email || null);
+     setMode("reset");
+     setError(null);
+     setTokenValidated(true);
+     
+     // This automatic login notification happens, but user cannot set new password
+     toast.info("You've been automatically logged in. Please set a new password you'll remember.", { duration: 6000 });
+   }
+   ```
+
+4. **Required Fix**:
+   - The `ResetPasswordPage` component needs modification to ensure users can enter a new password after token validation
+   - Prevent automatic navigation after login until user explicitly submits new password
+   - Ensure `tokenValidated` state is properly used to control the display of the password reset form
+   - Only display success screen after user has successfully set a new password
+
+5. **Successful Password Reset**:
+   - After password update is complete, show success confirmation
+   - User should be able to navigate to their dashboard from success screen
+   - System should maintain login session with new credentials
+
+6. **Error Handling**:
+   - Invalid tokens show appropriate error messages
+   - Expired tokens prompt user to request a new reset link
+   - Network errors during reset are reported to user with retry options
+   - Rate limiting for password reset requests (enforced by Supabase)
 
 #### 3.3 Registration Process
 

@@ -1,3 +1,4 @@
+
 import { Toaster as Sonner } from "sonner"
 import { cn } from "@/lib/utils"
 import type { ComponentProps } from "react"
@@ -18,6 +19,10 @@ const Toaster = ({ ...props }: ToasterProps) => {
             "group-[.toast]:bg-primary group-[.toast]:text-primary-foreground",
           cancelButton:
             "group-[.toast]:bg-muted group-[.toast]:text-muted-foreground",
+          success: "group-[.toast]:border-l-4 group-[.toast]:border-l-green-500",
+          error: "group-[.toast]:border-l-4 group-[.toast]:border-l-red-500",
+          warning: "group-[.toast]:border-l-4 group-[.toast]:border-l-yellow-500",
+          info: "group-[.toast]:border-l-4 group-[.toast]:border-l-blue-500",
         },
       }}
       {...props}

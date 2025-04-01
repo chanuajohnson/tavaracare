@@ -9,9 +9,10 @@ import { toast } from "sonner";
 interface LoginFormProps {
   onSubmit: (email: string, password: string) => Promise<any>;
   isLoading: boolean;
+  onForgotPassword: (email: string) => void;
 }
 
-export function LoginForm({ onSubmit, isLoading }: LoginFormProps) {
+export function LoginForm({ onSubmit, isLoading, onForgotPassword }: LoginFormProps) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -36,6 +37,14 @@ export function LoginForm({ onSubmit, isLoading }: LoginFormProps) {
     } finally {
       setLocalLoading(false);
     }
+  };
+
+  const handleForgotPassword = () => {
+    if (!email) {
+      toast.error("Please enter your email address");
+      return;
+    }
+    onForgotPassword(email);
   };
 
   // Use either the passed in loading state or our local one
@@ -80,6 +89,17 @@ export function LoginForm({ onSubmit, isLoading }: LoginFormProps) {
             {showPassword ? <EyeOffIcon className="h-4 w-4" /> : <EyeIcon className="h-4 w-4" />}
           </Button>
         </div>
+      </div>
+      <div className="flex justify-end">
+        <Button 
+          type="button" 
+          variant="link" 
+          className="p-0 h-auto text-sm text-muted-foreground"
+          onClick={handleForgotPassword}
+          disabled={showLoading}
+        >
+          Forgot password?
+        </Button>
       </div>
       <Button 
         type="submit" 
