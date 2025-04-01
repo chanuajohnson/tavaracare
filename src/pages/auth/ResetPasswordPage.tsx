@@ -18,7 +18,7 @@ export default function ResetPasswordPage() {
   const [validatingToken, setValidatingToken] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [email, setEmail] = useState<string | null>(null);
-  const [mode, setMode] = useState<"request" | "reset">("reset");
+  const [mode, setMode] = useState<"request" | "reset">("request"); // Default to request mode
   const [resetComplete, setResetComplete] = useState(false);
   const [tokenValidated, setTokenValidated] = useState(false);
   
@@ -29,7 +29,7 @@ export default function ResetPasswordPage() {
     const validateResetToken = async () => {
       try {
         setValidatingToken(true);
-        console.log("[ResetPasswordPage] Validating reset token...");
+        console.log("[ResetPasswordPage] Starting token validation");
         
         const currentUrl = window.location.href;
         console.log("[ResetPasswordPage] Current URL:", currentUrl);
@@ -38,63 +38,80 @@ export default function ResetPasswordPage() {
         const hashParams = new URLSearchParams(location.hash.substring(1));
         
         // Parse URL parameters for type and token
-        const urlParams = new URLSearchParams(location.search);
-        const type = urlParams.get("type");
-        const accessToken = urlParams.get("access_token");
-        const refreshToken = urlParams.get("refresh_token");
+        const queryParams = new URLSearchParams(location.search);
+        
+        const type = queryParams.get("type");
+        const code = queryParams.get("code");
+        const queryAccessToken = queryParams.get("access_token");
         const hashAccessToken = hashParams.get("access_token");
-        const code = urlParams.get("code");
         
         console.log("[ResetPasswordPage] URL params:", { 
           type,
-          hasAccessToken: !!accessToken,
-          hasRefreshToken: !!refreshToken,
-          hasHashAccessToken: !!hashAccessToken,
-          hasCode: !!code
+          code,
+          queryAccessToken,
+          hashAccessToken,
+          hasCode: !!code,
+          hasQueryAccessToken: !!queryAccessToken,
+          hasHashAccessToken: !!hashAccessToken
         });
         
-        // Check if we have a recovery token in any form
-        if (code || accessToken || hashAccessToken || type === "recovery") {
-          // Don't exchange code for session yet - this would automatically sign the user in
-          // Instead, just validate that the token exists and store email if possible
-          
-          console.log("[ResetPasswordPage] Recovery token found, validating...");
-          
-          if (code) {
-            try {
-              // Instead of exchanging for session, use a special method to just get the user email
-              // This avoids creating a session and logging the user in automatically
-              const { data, error } = await supabase.auth.getUser();
-              
-              if (error) {
-                console.error("[ResetPasswordPage] Error getting user data:", error);
-                // Still allow password reset since we have a recovery token
-                console.log("[ResetPasswordPage] Will still proceed with token-based reset");
-              } else if (data?.user) {
-                setEmail(data.user.email);
-                console.log("[ResetPasswordPage] Found email from user data:", data.user.email);
+        const token = code || queryAccessToken || hashAccessToken;
+        
+        // First sign out to clear any existing sessions
+        // This prevents auto-login during the reset process
+        await supabase.auth.signOut({ scope: 'local' });
+        
+        if ((type === "recovery" && token) || hashAccessToken) {
+          try {
+            console.log("[ResetPasswordPage] Recovery token found, validating...");
+            
+            if (token) {
+              try {
+                // Verify the OTP token instead of exchanging for session
+                const { data, error } = await supabase.auth.verifyOtp({
+                  token_hash: token,
+                  type: 'recovery'
+                });
+                
+                if (error) {
+                  console.error("[ResetPasswordPage] Token validation error:", error);
+                  throw error;
+                }
+                
+                if (data?.user?.email) {
+                  setEmail(data.user.email);
+                  console.log("[ResetPasswordPage] Found email from token validation:", data.user.email);
+                }
+              } catch (tokenError) {
+                console.error("[ResetPasswordPage] Error validating token:", tokenError);
+                throw tokenError;
               }
-            } catch (codeError) {
-              console.error("[ResetPasswordPage] Error validating code:", codeError);
-              // Continue anyway since we have a valid token
             }
+            
+            console.log("[ResetPasswordPage] Successfully validated recovery token");
+            setTokenValidated(true);
+            setMode("reset"); // Explicitly set mode to reset when token is valid
+            setError(null);
+            
+            toast.info("Please set a new password you'll remember.", { duration: 6000 });
+          } catch (error: any) {
+            console.error("[ResetPasswordPage] Error validating recovery token:", error);
+            setError("Invalid or expired reset link. Please request a new one.");
+            setMode("request");
+            setTokenValidated(false);
           }
-          
-          console.log("[ResetPasswordPage] Successfully validated recovery token");
-          setTokenValidated(true);
-          setError(null);
-          
-          toast.info("Please set a new password you'll remember.", { duration: 6000 });
         } else {
           // No recovery token found in URL
-          console.log("[ResetPasswordPage] No recovery token found in URL");
+          console.log("[ResetPasswordPage] No valid recovery token found in URL");
           setError("No valid reset token found. Please request a password reset link.");
           setMode("request");
+          setTokenValidated(false);
         }
       } catch (error: any) {
         console.error("[ResetPasswordPage] Token validation error:", error);
-        setError(error.message || "Invalid or expired reset link. Please request a new one.");
+        setError("Invalid or expired reset link. Please request a new one.");
         setMode("request");
+        setTokenValidated(false);
       } finally {
         setValidatingToken(false);
       }
@@ -126,34 +143,27 @@ export default function ResetPasswordPage() {
       console.log("[ResetPasswordPage] Updating password...");
       
       // Get the reset code from URL
-      const urlParams = new URLSearchParams(location.search);
-      const code = urlParams.get("code");
+      const queryParams = new URLSearchParams(location.search);
+      const hashParams = new URLSearchParams(location.hash.substring(1));
       
-      // Use the correct method to reset password with the recovery token
-      if (!code) {
-        throw new Error("Reset code is missing. Please request a new password reset link.");
+      const code = queryParams.get("code");
+      const queryAccessToken = queryParams.get("access_token");
+      const hashAccessToken = hashParams.get("access_token");
+      
+      const token = code || queryAccessToken || hashAccessToken;
+      
+      if (!token) {
+        throw new Error("Reset token is missing. Please request a new password reset link.");
       }
       
-      // Exchange the code for a session and update the password in one step
-      const { data, error } = await supabase.auth.exchangeCodeForSession(code);
-      
-      if (error) {
-        console.error("[ResetPasswordPage] Error with code exchange:", error);
-        throw error;
-      }
-      
-      if (!data.session) {
-        throw new Error("Failed to create session with reset token");
-      }
-      
-      // Now update the user's password
-      const { error: updateError } = await supabase.auth.updateUser({ 
+      // Update the user's password directly without creating a session
+      const { error } = await supabase.auth.updateUser({ 
         password 
       });
       
-      if (updateError) {
-        console.error("[ResetPasswordPage] Error updating password:", updateError);
-        throw updateError;
+      if (error) {
+        console.error("[ResetPasswordPage] Error updating password:", error);
+        throw error;
       }
       
       toast.success("Password has been reset successfully");
@@ -237,15 +247,15 @@ export default function ResetPasswordPage() {
             <div className="bg-green-50 border border-green-200 text-green-700 p-4 rounded-md mb-4">
               <p className="font-medium">Success!</p>
               <p className="text-sm mt-2">
-                Your password has been updated. You're now logged in with your new password.
+                Your password has been updated. You can now log in with your new password.
               </p>
             </div>
             <div className="mt-6">
               <Button 
-                onClick={() => navigate("/dashboard/family")} 
+                onClick={() => navigate("/auth")} 
                 className="w-full"
               >
-                Continue to Dashboard
+                Go to Login
               </Button>
             </div>
           </CardContent>
