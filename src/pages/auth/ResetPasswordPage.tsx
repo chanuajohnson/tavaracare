@@ -53,65 +53,52 @@ export default function ResetPasswordPage() {
           hasCode: !!code
         });
         
-        // Try to get the session from the token in the URL
-        if (accessToken || hashAccessToken || code) {
-          console.log("[ResetPasswordPage] Found token in URL parameters");
+        // Check if we have a recovery token in any form
+        if (code || accessToken || hashAccessToken || type === "recovery") {
+          let sessionData = null;
           
-          // If we have a code, we need to exchange it for a session
+          // If we have a code, exchange it for a session
           if (code) {
             console.log("[ResetPasswordPage] Exchanging code for session");
-            const { data, error } = await supabase.auth.exchangeCodeForSession(code);
-            
-            if (error) {
-              console.error("[ResetPasswordPage] Code exchange error:", error);
-              setError("Invalid or expired password reset link. Please request a new one.");
-              setMode("request");
-            } else if (data?.user) {
-              console.log("[ResetPasswordPage] Valid reset code for user:", data.user.email);
-              setEmail(data.user.email);
-              setTokenValidated(true);
-              setError(null);
+            try {
+              const { data, error } = await supabase.auth.exchangeCodeForSession(code);
               
-              toast.info("Please set a new password you'll remember.", { duration: 6000 });
-            }
-          } else {
-            // Try to get user data directly from the session
-            const { data: { user }, error: userError } = await supabase.auth.getUser();
-            
-            if (userError || !user) {
-              console.error("[ResetPasswordPage] Error getting user from token:", userError);
-              setError("Invalid or expired password reset link. Please request a new one.");
-              setMode("request");
-            } else {
-              console.log("[ResetPasswordPage] User found from token:", user.email);
-              setEmail(user.email);
-              setTokenValidated(true);
-              setError(null);
+              if (error) {
+                console.error("[ResetPasswordPage] Code exchange error:", error);
+                throw new Error("Invalid or expired password reset link. Please request a new one.");
+              }
               
-              toast.info("Please set a new password you'll remember.", { duration: 6000 });
+              sessionData = data;
+            } catch (codeError) {
+              console.error("[ResetPasswordPage] Error exchanging code:", codeError);
+              throw new Error("Could not validate your reset token. Please request a new link.");
             }
           }
-        } else {
-          // No token in URL, check for existing session
-          console.log("[ResetPasswordPage] No token parameters found, checking for existing session");
-          const { data: { user }, error: userError } = await supabase.auth.getUser();
           
-          if (userError || !user) {
-            console.log("[ResetPasswordPage] No existing session found");
-            setError("No valid reset token found. Please request a password reset link.");
-            setMode("request");
-          } else {
-            console.log("[ResetPasswordPage] User found in existing session:", user.email);
-            setEmail(user.email);
-            setTokenValidated(true);
-            setError(null);
-            
-            toast.info("Please set a new password you'll remember.", { duration: 6000 });
+          // Get the user data either from the exchanged session or current session
+          const { data: userData, error: userError } = sessionData || 
+            await supabase.auth.getUser();
+          
+          if (userError || !userData?.user) {
+            console.error("[ResetPasswordPage] Error getting user data:", userError);
+            throw new Error("Invalid or expired password reset link. Please request a new one.");
           }
+          
+          console.log("[ResetPasswordPage] Successfully validated recovery token for user:", userData.user.email);
+          setEmail(userData.user.email);
+          setTokenValidated(true);
+          setError(null);
+          
+          toast.info("Please set a new password you'll remember.", { duration: 6000 });
+        } else {
+          // No recovery token found in URL
+          console.log("[ResetPasswordPage] No recovery token found in URL");
+          setError("No valid reset token found. Please request a password reset link.");
+          setMode("request");
         }
       } catch (error: any) {
-        console.error("[ResetPasswordPage] Error during token validation:", error);
-        setError("An error occurred while validating your reset token. Please try again.");
+        console.error("[ResetPasswordPage] Token validation error:", error);
+        setError(error.message || "Invalid or expired reset link. Please request a new one.");
         setMode("request");
       } finally {
         setValidatingToken(false);
@@ -167,14 +154,11 @@ export default function ResetPasswordPage() {
       console.log("[ResetPasswordPage] Requesting password reset for:", email);
       
       // Get the main domain (not preview domain)
-      // This ensures we use the actual production URL and not the preview URL
       const currentDomain = window.location.hostname;
-      // Extract the base domain by removing any preview subdomain
       const baseDomain = currentDomain.includes('preview--') 
         ? currentDomain.replace('preview--', '') 
         : currentDomain;
       
-      // Construct the site URL using either https://domain or http://localhost for development
       const protocol = window.location.protocol;
       const port = window.location.port ? `:${window.location.port}` : '';
       const baseUrl = `${protocol}//${baseDomain}${port}`;
@@ -239,7 +223,7 @@ export default function ResetPasswordPage() {
             </div>
             <div className="mt-6">
               <Button 
-                onClick={() => navigate("/")} 
+                onClick={() => navigate("/dashboard/family")} 
                 className="w-full"
               >
                 Continue to Dashboard

@@ -905,6 +905,7 @@ export type Database = {
           contribution_interests: string[] | null
           created_at: string | null
           custom_availability_alerts: string | null
+          custom_schedule: string | null
           emergency_contact: string | null
           enable_community_notifications: boolean | null
           enable_job_alerts: boolean | null
@@ -978,6 +979,7 @@ export type Database = {
           contribution_interests?: string[] | null
           created_at?: string | null
           custom_availability_alerts?: string | null
+          custom_schedule?: string | null
           emergency_contact?: string | null
           enable_community_notifications?: boolean | null
           enable_job_alerts?: boolean | null
@@ -1051,6 +1053,7 @@ export type Database = {
           contribution_interests?: string[] | null
           created_at?: string | null
           custom_availability_alerts?: string | null
+          custom_schedule?: string | null
           emergency_contact?: string | null
           enable_community_notifications?: boolean | null
           enable_job_alerts?: boolean | null
