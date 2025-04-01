@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -55,28 +54,32 @@ export default function ResetPasswordPage() {
         
         // Check if we have a recovery token in any form
         if (code || accessToken || hashAccessToken || type === "recovery") {
-          // Don't exchange code for session yet - this would automatically sign the user in
-          // Instead, just validate that the token exists and store email if possible
-          
+          // IMPORTANT: Don't exchange code for session here - this would automatically sign the user in
           console.log("[ResetPasswordPage] Recovery token found, validating...");
           
+          // Store the recovery code for later use when resetting password
           if (code) {
             try {
-              // Instead of exchanging for session, use a special method to just get the user email
-              // This avoids creating a session and logging the user in automatically
-              const { data, error } = await supabase.auth.getUser();
+              // Just validate the token without creating a session
+              const { data, error } = await supabase.auth.verifyOtp({
+                token_hash: code,
+                type: 'recovery'
+              });
               
               if (error) {
-                console.error("[ResetPasswordPage] Error getting user data:", error);
-                // Still allow password reset since we have a recovery token
-                console.log("[ResetPasswordPage] Will still proceed with token-based reset");
-              } else if (data?.user) {
+                console.error("[ResetPasswordPage] Error validating recovery token:", error);
+                throw error;
+              }
+              
+              // Try to get email from user metadata if possible
+              if (data && data.user && data.user.email) {
                 setEmail(data.user.email);
-                console.log("[ResetPasswordPage] Found email from user data:", data.user.email);
+                console.log("[ResetPasswordPage] Found email from token validation:", data.user.email);
               }
             } catch (codeError) {
               console.error("[ResetPasswordPage] Error validating code:", codeError);
-              // Continue anyway since we have a valid token
+              // Continue anyway if we have a valid token
+              // The token will be validated again when resetting the password
             }
           }
           
@@ -129,34 +132,26 @@ export default function ResetPasswordPage() {
       const urlParams = new URLSearchParams(location.search);
       const code = urlParams.get("code");
       
-      // Use the correct method to reset password with the recovery token
       if (!code) {
         throw new Error("Reset code is missing. Please request a new password reset link.");
       }
       
-      // Exchange the code for a session and update the password in one step
-      const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+      // Instead of exchanging the code for a session (which logs the user in),
+      // use the updateUserWithOtp method which doesn't create a session
+      const { data, error } = await supabase.auth.verifyOtp({
+        token_hash: code,
+        type: 'recovery',
+        options: {
+          password: password
+        }
+      });
       
       if (error) {
-        console.error("[ResetPasswordPage] Error with code exchange:", error);
+        console.error("[ResetPasswordPage] Error updating password:", error);
         throw error;
       }
       
-      if (!data.session) {
-        throw new Error("Failed to create session with reset token");
-      }
-      
-      // Now update the user's password
-      const { error: updateError } = await supabase.auth.updateUser({ 
-        password 
-      });
-      
-      if (updateError) {
-        console.error("[ResetPasswordPage] Error updating password:", updateError);
-        throw updateError;
-      }
-      
-      toast.success("Password has been reset successfully");
+      toast.success("Password has been reset successfully. Please log in with your new password.");
       setResetComplete(true);
     } catch (error: any) {
       console.error("[ResetPasswordPage] Error:", error);
@@ -237,15 +232,15 @@ export default function ResetPasswordPage() {
             <div className="bg-green-50 border border-green-200 text-green-700 p-4 rounded-md mb-4">
               <p className="font-medium">Success!</p>
               <p className="text-sm mt-2">
-                Your password has been updated. You're now logged in with your new password.
+                Your password has been updated. You can now log in with your new password.
               </p>
             </div>
             <div className="mt-6">
               <Button 
-                onClick={() => navigate("/dashboard/family")} 
+                onClick={() => navigate("/auth")} 
                 className="w-full"
               >
-                Continue to Dashboard
+                Continue to Login
               </Button>
             </div>
           </CardContent>
