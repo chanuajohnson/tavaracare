@@ -128,7 +128,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-  const retryOperation = <T,>(
+  const retryOperation = async <T,>(
     operation: string, 
     fn: () => Promise<T>, 
     maxRetries: number = MAX_RETRY_ATTEMPTS
