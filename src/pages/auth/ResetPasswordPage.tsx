@@ -33,10 +33,8 @@ export default function ResetPasswordPage() {
         const currentUrl = window.location.href;
         console.log("[ResetPasswordPage] Current URL:", currentUrl);
         
-        // Get hash parameters if present (Supabase sometimes sends them in the hash)
         const hashParams = new URLSearchParams(location.hash.substring(1));
         
-        // Parse URL parameters for type and token
         const urlParams = new URLSearchParams(location.search);
         const type = urlParams.get("type");
         const accessToken = urlParams.get("access_token");
@@ -52,15 +50,11 @@ export default function ResetPasswordPage() {
           hasCode: !!code
         });
         
-        // Check if we have a recovery token in any form
         if (code || accessToken || hashAccessToken || type === "recovery") {
-          // IMPORTANT: Don't exchange code for session here - this would automatically sign the user in
           console.log("[ResetPasswordPage] Recovery token found, validating...");
           
-          // Store the recovery code for later use when resetting password
           if (code) {
             try {
-              // Just validate the token without creating a session
               const { data, error } = await supabase.auth.verifyOtp({
                 token_hash: code,
                 type: 'recovery'
@@ -71,15 +65,12 @@ export default function ResetPasswordPage() {
                 throw error;
               }
               
-              // Try to get email from user metadata if possible
               if (data && data.user && data.user.email) {
                 setEmail(data.user.email);
                 console.log("[ResetPasswordPage] Found email from token validation:", data.user.email);
               }
             } catch (codeError) {
               console.error("[ResetPasswordPage] Error validating code:", codeError);
-              // Continue anyway if we have a valid token
-              // The token will be validated again when resetting the password
             }
           }
           
@@ -89,7 +80,6 @@ export default function ResetPasswordPage() {
           
           toast.info("Please set a new password you'll remember.", { duration: 6000 });
         } else {
-          // No recovery token found in URL
           console.log("[ResetPasswordPage] No recovery token found in URL");
           setError("No valid reset token found. Please request a password reset link.");
           setMode("request");
@@ -128,7 +118,6 @@ export default function ResetPasswordPage() {
       setIsLoading(true);
       console.log("[ResetPasswordPage] Updating password...");
       
-      // Get the reset code from URL
       const urlParams = new URLSearchParams(location.search);
       const code = urlParams.get("code");
       
@@ -136,20 +125,26 @@ export default function ResetPasswordPage() {
         throw new Error("Reset code is missing. Please request a new password reset link.");
       }
       
-      // Instead of exchanging the code for a session (which logs the user in),
-      // use the updateUserWithOtp method which doesn't create a session
-      const { data, error } = await supabase.auth.verifyOtp({
+      const { data: verifyData, error: verifyError } = await supabase.auth.verifyOtp({
         token_hash: code,
         type: 'recovery',
-        options: {
-          password: password
-        }
       });
       
-      if (error) {
-        console.error("[ResetPasswordPage] Error updating password:", error);
-        throw error;
+      if (verifyError) {
+        console.error("[ResetPasswordPage] Error verifying token:", verifyError);
+        throw verifyError;
       }
+      
+      const { error: updateError } = await supabase.auth.updateUser({
+        password: password
+      });
+      
+      if (updateError) {
+        console.error("[ResetPasswordPage] Error updating password:", updateError);
+        throw updateError;
+      }
+      
+      await supabase.auth.signOut();
       
       toast.success("Password has been reset successfully. Please log in with your new password.");
       setResetComplete(true);
@@ -167,7 +162,6 @@ export default function ResetPasswordPage() {
       setIsLoading(true);
       console.log("[ResetPasswordPage] Requesting password reset for:", email);
       
-      // Get the main domain (not preview domain)
       const currentDomain = window.location.hostname;
       const baseDomain = currentDomain.includes('preview--') 
         ? currentDomain.replace('preview--', '') 
