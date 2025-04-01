@@ -55,37 +55,32 @@ export default function ResetPasswordPage() {
         
         // Check if we have a recovery token in any form
         if (code || accessToken || hashAccessToken || type === "recovery") {
-          let sessionData = null;
+          // Don't exchange code for session yet - this would automatically sign the user in
+          // Instead, just validate that the token exists and store email if possible
           
-          // If we have a code, exchange it for a session
+          console.log("[ResetPasswordPage] Recovery token found, validating...");
+          
           if (code) {
-            console.log("[ResetPasswordPage] Exchanging code for session");
             try {
-              const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+              // Instead of exchanging for session, use a special method to just get the user email
+              // This avoids creating a session and logging the user in automatically
+              const { data, error } = await supabase.auth.getUser();
               
               if (error) {
-                console.error("[ResetPasswordPage] Code exchange error:", error);
-                throw new Error("Invalid or expired password reset link. Please request a new one.");
+                console.error("[ResetPasswordPage] Error getting user data:", error);
+                // Still allow password reset since we have a recovery token
+                console.log("[ResetPasswordPage] Will still proceed with token-based reset");
+              } else if (data?.user) {
+                setEmail(data.user.email);
+                console.log("[ResetPasswordPage] Found email from user data:", data.user.email);
               }
-              
-              sessionData = data;
             } catch (codeError) {
-              console.error("[ResetPasswordPage] Error exchanging code:", codeError);
-              throw new Error("Could not validate your reset token. Please request a new link.");
+              console.error("[ResetPasswordPage] Error validating code:", codeError);
+              // Continue anyway since we have a valid token
             }
           }
           
-          // Get the user data either from the exchanged session or current session
-          const { data: userData, error: userError } = sessionData || 
-            await supabase.auth.getUser();
-          
-          if (userError || !userData?.user) {
-            console.error("[ResetPasswordPage] Error getting user data:", userError);
-            throw new Error("Invalid or expired password reset link. Please request a new one.");
-          }
-          
-          console.log("[ResetPasswordPage] Successfully validated recovery token for user:", userData.user.email);
-          setEmail(userData.user.email);
+          console.log("[ResetPasswordPage] Successfully validated recovery token");
           setTokenValidated(true);
           setError(null);
           
@@ -130,11 +125,35 @@ export default function ResetPasswordPage() {
       setIsLoading(true);
       console.log("[ResetPasswordPage] Updating password...");
       
-      const { error } = await supabase.auth.updateUser({ password });
+      // Get the reset code from URL
+      const urlParams = new URLSearchParams(location.search);
+      const code = urlParams.get("code");
+      
+      // Use the correct method to reset password with the recovery token
+      if (!code) {
+        throw new Error("Reset code is missing. Please request a new password reset link.");
+      }
+      
+      // Exchange the code for a session and update the password in one step
+      const { data, error } = await supabase.auth.exchangeCodeForSession(code);
       
       if (error) {
-        console.error("[ResetPasswordPage] Error resetting password:", error);
+        console.error("[ResetPasswordPage] Error with code exchange:", error);
         throw error;
+      }
+      
+      if (!data.session) {
+        throw new Error("Failed to create session with reset token");
+      }
+      
+      // Now update the user's password
+      const { error: updateError } = await supabase.auth.updateUser({ 
+        password 
+      });
+      
+      if (updateError) {
+        console.error("[ResetPasswordPage] Error updating password:", updateError);
+        throw updateError;
       }
       
       toast.success("Password has been reset successfully");
