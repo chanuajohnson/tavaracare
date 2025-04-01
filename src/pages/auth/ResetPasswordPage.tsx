@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -36,35 +35,38 @@ export default function ResetPasswordPage() {
     const validateResetToken = async () => {
       try {
         setValidatingToken(true);
-        console.log("[ResetPasswordPage] Validating reset token...");
+        console.log("[ResetPasswordPage] Starting token validation");
         
         const currentUrl = window.location.href;
         console.log("[ResetPasswordPage] Current URL:", currentUrl);
         
         const hashParams = new URLSearchParams(location.hash.substring(1));
+        const queryParams = new URLSearchParams(location.search);
         
-        const urlParams = new URLSearchParams(location.search);
-        const type = urlParams.get("type");
-        const accessToken = urlParams.get("access_token");
-        const refreshToken = urlParams.get("refresh_token");
+        const type = queryParams.get("type");
+        const code = queryParams.get("code");
+        const queryAccessToken = queryParams.get("access_token");
         const hashAccessToken = hashParams.get("access_token");
-        const code = urlParams.get("code");
         
         console.log("[ResetPasswordPage] URL params:", { 
           type,
-          hasAccessToken: !!accessToken,
-          hasRefreshToken: !!refreshToken,
-          hasHashAccessToken: !!hashAccessToken,
-          hasCode: !!code
+          code,
+          queryAccessToken,
+          hashAccessToken,
+          hasCode: !!code,
+          hasQueryAccessToken: !!queryAccessToken,
+          hasHashAccessToken: !!hashAccessToken
         });
         
-        if (code || accessToken || hashAccessToken || type === "recovery") {
+        const token = code || queryAccessToken || hashAccessToken;
+        
+        if ((type === "recovery" && token) || hashAccessToken) {
           console.log("[ResetPasswordPage] Recovery token found, validating...");
           
-          if (code) {
+          if (token) {
             try {
               const { data, error } = await supabase.auth.verifyOtp({
-                token_hash: code,
+                token_hash: token,
                 type: 'recovery'
               });
               
@@ -77,13 +79,15 @@ export default function ResetPasswordPage() {
                 setEmail(data.user.email);
                 console.log("[ResetPasswordPage] Found email from token validation:", data.user.email);
               }
-            } catch (codeError) {
-              console.error("[ResetPasswordPage] Error validating code:", codeError);
+            } catch (tokenError) {
+              console.error("[ResetPasswordPage] Error validating token:", tokenError);
+              // Continue anyway as we might still be able to use the token for password reset
             }
           }
           
           console.log("[ResetPasswordPage] Successfully validated recovery token");
           setTokenValidated(true);
+          setMode("reset");
           setError(null);
           
           toast.info("Please set a new password you'll remember.", { duration: 6000 });
