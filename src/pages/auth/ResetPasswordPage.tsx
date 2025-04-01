@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -23,6 +24,13 @@ export default function ResetPasswordPage() {
   
   const navigate = useNavigate();
   const location = useLocation();
+
+  // Force logout immediately on mount to avoid Supabase auto-login from token
+  useEffect(() => {
+    supabase.auth.signOut().catch(err => 
+      console.error("[ResetPasswordPage] Silent logout before reset:", err)
+    );
+  }, []);
 
   useEffect(() => {
     const validateResetToken = async () => {
@@ -93,7 +101,12 @@ export default function ResetPasswordPage() {
       }
     };
 
-    validateResetToken();
+    // Add a small delay to let the signOut complete first
+    const timeout = setTimeout(() => {
+      validateResetToken();
+    }, 200);
+
+    return () => clearTimeout(timeout);
   }, [location]);
 
   const handleResetPassword = async (e: React.FormEvent) => {

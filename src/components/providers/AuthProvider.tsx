@@ -128,7 +128,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-  const retryOperation = async <T,>(
+  const retryOperation = <T,>(
     operation: string, 
     fn: () => Promise<T>, 
     maxRetries: number = MAX_RETRY_ATTEMPTS
@@ -457,6 +457,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   useEffect(() => {
     if (isLoading || !user) return; // Wait until auth is loaded and we have a user
+    
+    const skipRedirectionPaths = ['/auth/reset-password'];
+
+    if (skipRedirectionPaths.includes(location.pathname)) {
+      console.log('[AuthProvider] Skipping redirection on reset-password page');
+      return;
+    }
     
     console.log('[AuthProvider] User loaded. Handling redirection...');
     
