@@ -26,22 +26,30 @@ export default function ResetPasswordPage() {
   const location = useLocation();
 
   useEffect(() => {
+    // Set this page to ignore redirections in AuthProvider
+    sessionStorage.setItem('ignoreRedirect', 'true');
+
     const validateResetToken = async () => {
       try {
         setValidatingToken(true);
         console.log("[ResetPasswordPage] Starting token validation");
         
+        // First sign out to clear any existing sessions
+        // This is critical to prevent auto-login during the reset process
+        await supabase.auth.signOut({ scope: 'global' });
+        
         const currentUrl = window.location.href;
         console.log("[ResetPasswordPage] Current URL:", currentUrl);
         
-        // Get hash parameters if present (Supabase sometimes sends them in the hash)
+        // Check all possible token locations
+        // 1. Hash parameters (Supabase sometimes sends them in the hash)
         const hashParams = new URLSearchParams(location.hash.substring(1));
         
-        // Parse URL parameters for type and token
+        // 2. URL search parameters
         const queryParams = new URLSearchParams(location.search);
         
         const type = queryParams.get("type");
-        const code = queryParams.get("code");
+        const code = queryParams.get("code") || queryParams.get("token");
         const queryAccessToken = queryParams.get("access_token");
         const hashAccessToken = hashParams.get("access_token");
         
@@ -55,12 +63,10 @@ export default function ResetPasswordPage() {
           hasHashAccessToken: !!hashAccessToken
         });
         
+        // Determine which token to use
         const token = code || queryAccessToken || hashAccessToken;
         
-        // First sign out to clear any existing sessions
-        // This prevents auto-login during the reset process
-        await supabase.auth.signOut({ scope: 'local' });
-        
+        // If we have a recovery token/type or access token, attempt to validate it
         if ((type === "recovery" && token) || hashAccessToken) {
           try {
             console.log("[ResetPasswordPage] Recovery token found, validating...");
@@ -68,6 +74,7 @@ export default function ResetPasswordPage() {
             if (token) {
               try {
                 // Verify the OTP token instead of exchanging for session
+                // This validates the token but doesn't create a session
                 const { data, error } = await supabase.auth.verifyOtp({
                   token_hash: token,
                   type: 'recovery'
@@ -118,6 +125,11 @@ export default function ResetPasswordPage() {
     };
 
     validateResetToken();
+
+    // Cleanup function to remove the ignoreRedirect flag
+    return () => {
+      sessionStorage.removeItem('ignoreRedirect');
+    };
   }, [location]);
 
   const handleResetPassword = async (e: React.FormEvent) => {
@@ -142,20 +154,6 @@ export default function ResetPasswordPage() {
       setIsLoading(true);
       console.log("[ResetPasswordPage] Updating password...");
       
-      // Get the reset code from URL
-      const queryParams = new URLSearchParams(location.search);
-      const hashParams = new URLSearchParams(location.hash.substring(1));
-      
-      const code = queryParams.get("code");
-      const queryAccessToken = queryParams.get("access_token");
-      const hashAccessToken = hashParams.get("access_token");
-      
-      const token = code || queryAccessToken || hashAccessToken;
-      
-      if (!token) {
-        throw new Error("Reset token is missing. Please request a new password reset link.");
-      }
-      
       // Update the user's password directly without creating a session
       const { error } = await supabase.auth.updateUser({ 
         password 
@@ -165,6 +163,9 @@ export default function ResetPasswordPage() {
         console.error("[ResetPasswordPage] Error updating password:", error);
         throw error;
       }
+      
+      // Sign out again after password reset to ensure a clean state
+      await supabase.auth.signOut({ scope: 'global' });
       
       toast.success("Password has been reset successfully");
       setResetComplete(true);
@@ -182,16 +183,13 @@ export default function ResetPasswordPage() {
       setIsLoading(true);
       console.log("[ResetPasswordPage] Requesting password reset for:", email);
       
-      // Get the main domain (not preview domain)
+      // Get the proper domain for reset URL
       const currentDomain = window.location.hostname;
-      const baseDomain = currentDomain.includes('preview--') 
-        ? currentDomain.replace('preview--', '') 
-        : currentDomain;
-      
       const protocol = window.location.protocol;
       const port = window.location.port ? `:${window.location.port}` : '';
-      const baseUrl = `${protocol}//${baseDomain}${port}`;
       
+      // Use the current domain for the reset URL
+      const baseUrl = `${protocol}//${currentDomain}${port}`;
       const resetPath = "/auth/reset-password";
       const resetPasswordUrl = `${baseUrl}${resetPath}`;
       
