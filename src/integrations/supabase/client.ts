@@ -8,15 +8,29 @@ const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
 const CURRENT_ENV = import.meta.env.VITE_ENV || 'development';
 
+// Improved error handling and logging for initialization
+if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
+  console.error(`
+    ⚠️ Missing Supabase credentials ⚠️
+    
+    Required environment variables not found:
+    ${!SUPABASE_URL ? '- VITE_SUPABASE_URL' : ''}
+    ${!SUPABASE_PUBLISHABLE_KEY ? '- VITE_SUPABASE_ANON_KEY' : ''}
+    
+    For local development:
+    1. Copy .env.development.example to .env.development
+    2. Copy .env.production.example to .env.production.local
+    3. Fill in your Supabase values
+    
+    For deployment:
+    Ensure GitHub Secrets are correctly configured.
+  `);
+}
+
 // Better logging for environment detection
 console.log(`Supabase Client Initialization (${CURRENT_ENV})`);
 console.log(`Supabase URL: ${SUPABASE_URL?.substring(0, 16)}...`);
 console.log(`Environment: ${CURRENT_ENV}`);
-
-// Fallback only for local development without env variables
-if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
-  console.warn('Supabase credentials not found in environment variables!');
-}
 
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
