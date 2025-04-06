@@ -1,4 +1,3 @@
-
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import { Json } from "@/integrations/supabase/types";
@@ -68,7 +67,6 @@ export interface CareShift {
   google_calendar_event_id?: string;
 }
 
-// Helper function to validate and convert metadata from Json to CarePlanMetadata
 function isValidCarePlanMetadata(data: any): data is CarePlanMetadata {
   return (
     data &&
@@ -78,16 +76,13 @@ function isValidCarePlanMetadata(data: any): data is CarePlanMetadata {
   );
 }
 
-// Helper function to safely convert Json to CarePlanMetadata
 function convertToCarePlanMetadata(data: Json | null): CarePlanMetadata | undefined {
   if (!data) return undefined;
   
-  // If data is already an object with the right shape, return it
   if (isValidCarePlanMetadata(data)) {
     return data as CarePlanMetadata;
   }
   
-  // If it's a JSON string, try to parse it
   if (typeof data === 'string') {
     try {
       const parsed = JSON.parse(data);
@@ -99,12 +94,10 @@ function convertToCarePlanMetadata(data: Json | null): CarePlanMetadata | undefi
     }
   }
   
-  // If we can't confirm it's a valid CarePlanMetadata, return undefined
   console.warn("Invalid care plan metadata format:", data);
   return undefined;
 }
 
-// Create a default metadata object for new care plans
 function createDefaultMetadata(): CarePlanMetadata {
   return {
     plan_type: 'scheduled',
@@ -128,7 +121,6 @@ export const fetchCarePlans = async (userId: string): Promise<CarePlan[]> => {
       throw error;
     }
 
-    // Transform the data to match our interface
     return (data || []).map(plan => ({
       ...plan,
       status: plan.status as 'active' | 'completed' | 'cancelled',
@@ -153,7 +145,6 @@ export const fetchCarePlan = async (planId: string): Promise<CarePlan | null> =>
       throw error;
     }
 
-    // Transform to ensure it matches our interface
     return data ? {
       ...data,
       status: data.status as 'active' | 'completed' | 'cancelled',
@@ -170,19 +161,20 @@ export const createCarePlan = async (
   plan: Omit<CarePlan, 'id' | 'created_at' | 'updated_at'>
 ): Promise<CarePlan | null> => {
   try {
-    // Ensure metadata is in the correct format for the database
     const planData = {
       title: plan.title,
       description: plan.description,
       family_id: plan.family_id,
       status: plan.status,
-      // Convert structured metadata to JSON-compatible format
       metadata: plan.metadata || createDefaultMetadata(),
     };
     
     const { data, error } = await supabase
       .from('care_plans')
-      .insert(planData)
+      .insert({
+        ...planData,
+        metadata: planData.metadata as unknown as Json
+      })
       .select()
       .single();
 
@@ -192,7 +184,6 @@ export const createCarePlan = async (
 
     toast.success("Care plan created successfully");
     
-    // Transform to ensure it matches our interface
     return data ? {
       ...data,
       status: data.status as 'active' | 'completed' | 'cancelled',
@@ -210,12 +201,10 @@ export const updateCarePlan = async (
   updates: Partial<Omit<CarePlan, 'id' | 'family_id' | 'created_at' | 'updated_at'>>
 ): Promise<CarePlan | null> => {
   try {
-    // Prepare updates for database
     const updateData: any = { ...updates };
     
-    // If metadata is provided, ensure it's in the correct format
     if (updates.metadata) {
-      updateData.metadata = updates.metadata;
+      updateData.metadata = updates.metadata as unknown as Json;
     }
     
     const { data, error } = await supabase
@@ -231,7 +220,6 @@ export const updateCarePlan = async (
 
     toast.success("Care plan updated successfully");
     
-    // Transform to ensure it matches our interface
     return data ? {
       ...data,
       status: data.status as 'active' | 'completed' | 'cancelled',
@@ -276,7 +264,6 @@ export const fetchCareTeamMembers = async (planId: string): Promise<CareTeamMemb
       throw error;
     }
 
-    // Cast each member's role to ensure it matches our interface
     return (data || []).map(member => ({
       ...member,
       role: member.role as 'caregiver' | 'nurse' | 'therapist' | 'doctor' | 'other',
@@ -305,7 +292,6 @@ export const inviteCareTeamMember = async (
 
     toast.success("Team member assigned successfully");
     
-    // Cast the role to ensure it matches our interface
     return data ? {
       ...data,
       role: data.role as 'caregiver' | 'nurse' | 'therapist' | 'doctor' | 'other',
@@ -336,7 +322,6 @@ export const updateCareTeamMember = async (
 
     toast.success("Team member updated successfully");
     
-    // Cast the role to ensure it matches our interface
     return data ? {
       ...data,
       role: data.role as 'caregiver' | 'nurse' | 'therapist' | 'doctor' | 'other',
@@ -381,7 +366,6 @@ export const fetchCareShifts = async (planId: string): Promise<CareShift[]> => {
       throw error;
     }
 
-    // Cast each shift's status to ensure it matches our interface
     return (data || []).map(shift => ({
       ...shift,
       status: shift.status as 'open' | 'assigned' | 'completed' | 'cancelled',
@@ -409,7 +393,6 @@ export const createCareShift = async (
 
     toast.success("Care shift created successfully");
     
-    // Cast the status to ensure it matches our interface
     return data ? {
       ...data,
       status: data.status as 'open' | 'assigned' | 'completed' | 'cancelled',
@@ -439,7 +422,6 @@ export const updateCareShift = async (
 
     toast.success("Care shift updated successfully");
     
-    // Cast the status to ensure it matches our interface
     return data ? {
       ...data,
       status: data.status as 'open' | 'assigned' | 'completed' | 'cancelled',
