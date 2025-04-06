@@ -29,15 +29,39 @@ if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
 
 // Better logging for environment detection
 console.log(`Supabase Client Initialization (${CURRENT_ENV})`);
-console.log(`Supabase URL: ${SUPABASE_URL?.substring(0, 16)}...`);
+console.log(`Supabase URL: ${SUPABASE_URL?.substring(0, 16) || 'UNDEFINED'}...`);
 console.log(`Environment: ${CURRENT_ENV}`);
 
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 
+// Fallback values for development only - NOT FOR PRODUCTION
+// This helps developers get started but won't work with authentication
+const developmentFallbackUrl = 'https://jvvdcnfmttpclxgaqeay.supabase.co';
+const developmentFallbackKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp2dmRjbmZtdHRwY2x4Z2FxZWF5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDMwODI2NzIsImV4cCI6MjA1ODY1ODY3Mn0.UHuUbuDtjAPRba_QlDN5QaxVbAmzTN3jXOqXHNJRTpY';
+
+// Use the provided values or fallback to development values in development mode only
+const finalSupabaseUrl = SUPABASE_URL || (CURRENT_ENV === 'development' ? developmentFallbackUrl : '');
+const finalSupabaseKey = SUPABASE_PUBLISHABLE_KEY || (CURRENT_ENV === 'development' ? developmentFallbackKey : '');
+
+// If we still don't have values, log a more specific error
+if (!finalSupabaseUrl || !finalSupabaseKey) {
+  console.error(`
+    ⚠️ Supabase initialization failed ⚠️
+    
+    Could not determine Supabase credentials even after applying fallbacks.
+    This is likely a configuration issue that needs to be resolved.
+    
+    Current values:
+    - URL: ${finalSupabaseUrl ? '[MASKED]' : 'UNDEFINED'}
+    - Key: ${finalSupabaseKey ? '[PRESENT]' : 'UNDEFINED'}
+    - Environment: ${CURRENT_ENV}
+  `);
+}
+
 export const supabase = createClient<Database>(
-  SUPABASE_URL,
-  SUPABASE_PUBLISHABLE_KEY, 
+  finalSupabaseUrl,
+  finalSupabaseKey, 
   {
     auth: {
       persistSession: true,
@@ -65,7 +89,7 @@ export const getCurrentEnvironment = (): 'development' | 'preview' | 'production
 
 // Log the active environment and URL for debugging
 console.log(`Active environment: ${getCurrentEnvironment()}`);
-console.log(`Using Supabase project: ${SUPABASE_URL}`);
+console.log(`Using Supabase project: ${finalSupabaseUrl || 'UNDEFINED'}`);
 
 // Helper to detect development vs production environment
 export const isDevelopment = (): boolean => {
@@ -80,14 +104,15 @@ export const isProduction = (): boolean => {
 export const getEnvironmentInfo = () => {
   return {
     environment: getCurrentEnvironment(),
-    supabaseUrl: SUPABASE_URL,
+    supabaseUrl: finalSupabaseUrl ? `${finalSupabaseUrl.substring(0, 16)}...` : 'NOT SET',
     isDev: isDevelopment(),
     isProd: isProduction(),
-    projectId: SUPABASE_URL?.split('.')[0]?.split('//')[1] || 'unknown',
+    projectId: finalSupabaseUrl?.split('.')[0]?.split('//')[1] || 'unknown',
     clientHeaders: {
       'x-client-env': CURRENT_ENV,
       'x-app-version': '1.0',
-    }
+    },
+    usingFallbacks: !SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY,
   };
 };
 
@@ -110,19 +135,24 @@ export const verifySchemaCompatibility = async (): Promise<{
     
     // Check if tables and columns exist
     for (const { table, column } of requiredColumns) {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select(column)
-        .limit(1);
-      
-      if (error) {
-        if (error.message.includes('column') && error.message.includes('does not exist')) {
-          missingColumns.push(`${table}.${column}`);
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select(column)
+          .limit(1);
+        
+        if (error) {
+          if (error.message.includes('column') && error.message.includes('does not exist')) {
+            missingColumns.push(`${table}.${column}`);
+          }
+        } else {
+          if (!tables.includes(table)) {
+            tables.push(table);
+          }
         }
-      } else {
-        if (!tables.includes(table)) {
-          tables.push(table);
-        }
+      } catch (e) {
+        console.error(`Error checking ${table}.${column}:`, e);
+        missingColumns.push(`${table}.${column}`);
       }
     }
     
@@ -137,6 +167,57 @@ export const verifySchemaCompatibility = async (): Promise<{
       compatible: false,
       missingColumns: ['Error checking compatibility'],
       tables: []
+    };
+  }
+};
+
+// Helper to reset the auth state in case of issues
+export const resetAuthState = async (): Promise<boolean> => {
+  try {
+    await supabase.auth.signOut({ scope: 'global' });
+    return true;
+  } catch (err) {
+    console.error('Error resetting auth state:', err);
+    return false;
+  }
+};
+
+// Create a debugging component to help identify Supabase connection issues
+export const debugSupabaseConnection = async (): Promise<{
+  connected: boolean;
+  message: string;
+  details: any;
+}> => {
+  try {
+    const { data, error } = await supabase.from('profiles').select('count').limit(1);
+    
+    if (error) {
+      return {
+        connected: false,
+        message: `Connection error: ${error.message}`,
+        details: {
+          error,
+          environmentInfo: getEnvironmentInfo(),
+        }
+      };
+    }
+    
+    return {
+      connected: true,
+      message: "Successfully connected to Supabase",
+      details: {
+        data,
+        environmentInfo: getEnvironmentInfo(),
+      }
+    };
+  } catch (err) {
+    return {
+      connected: false,
+      message: `Unexpected error: ${err instanceof Error ? err.message : String(err)}`,
+      details: {
+        error: err,
+        environmentInfo: getEnvironmentInfo(),
+      }
     };
   }
 };
