@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import {
   Card,
@@ -81,14 +82,26 @@ export function AdminUserManagement() {
       const result = await deleteUserWithCleanup(userId);
       
       if (result.success) {
-        toast.success("User deleted successfully");
+        toast({
+          title: "Success",
+          description: "User deleted successfully",
+          variant: "success",
+        });
         // Refresh user list or other actions
       } else {
         const errorMessage = result.error || "Unknown error occurred";
-        toast.error(`Failed to delete user: ${errorMessage}`);
+        toast({
+          title: "Error",
+          description: `Failed to delete user: ${errorMessage}`,
+          variant: "destructive",
+        });
       }
     } catch (err: any) {
-      toast.error(`Error: ${err.message || "Unknown error"}`);
+      toast({
+        title: "Error",
+        description: `Error: ${err.message || "Unknown error"}`,
+        variant: "destructive",
+      });
     }
   };
 

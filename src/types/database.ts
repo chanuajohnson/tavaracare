@@ -50,7 +50,7 @@ export interface Profile {
   job_notification_method?: string;
   job_matching_criteria?: string[];
   custom_availability_alerts?: string;
-  has_training?: boolean; // Added has_training field
+  has_training?: boolean; // This field is needed
   
   // Community-specific fields
   location?: string;
@@ -76,6 +76,19 @@ export interface CarePlan {
   description: string;
   family_id: string;
   status: 'active' | 'completed' | 'cancelled';
+  metadata?: CarePlanMetadata | any; // Added 'any' as a fallback for JSON data
+}
+
+export interface CarePlanMetadata {
+  plan_type: 'scheduled' | 'on-demand' | 'both';
+  weekday_coverage?: '8am-4pm' | '6am-6pm' | '6pm-8am' | 'none';
+  weekend_coverage?: 'yes' | 'no';
+  additional_shifts?: {
+    weekdayEvening4pmTo6am?: boolean;
+    weekdayEvening4pmTo8am?: boolean;
+    weekdayEvening6pmTo6am?: boolean;
+    weekdayEvening6pmTo8am?: boolean;
+  };
 }
 
 export interface CareTask {

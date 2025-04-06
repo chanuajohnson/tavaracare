@@ -40,7 +40,7 @@ const TrainingResourcesPage = () => {
             {
               user_id: user.id,
               module_id: modules.length > 0 ? modules[0].id : null,
-              status: 'requested',
+              status: 'not_started',
               last_accessed: new Date().toISOString()
             }
           ]);
@@ -67,9 +67,17 @@ const TrainingResourcesPage = () => {
       
       if (error) throw error;
       
-      toast.success("Module access requested successfully");
+      toast({
+        title: "Success",
+        description: "Module access requested successfully",
+        variant: "success"
+      });
     } catch (err: any) {
-      toast.error(`Error requesting module: ${err.message}`);
+      toast({
+        title: "Error",
+        description: `Error requesting module: ${err.message}`,
+        variant: "destructive"
+      });
     }
   };
 

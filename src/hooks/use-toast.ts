@@ -42,6 +42,23 @@ function toast(options: ToastOptions) {
   });
 }
 
+// Helper methods to maintain a more fluent API
+toast.success = (message: string) => {
+  return sonnerToast.success(message);
+};
+
+toast.error = (message: string) => {
+  return sonnerToast.error(message);
+};
+
+toast.warning = (message: string) => {
+  return sonnerToast.warning(message);
+};
+
+toast.info = (message: string) => {
+  return sonnerToast.info(message);
+};
+
 // Simple dismiss function for backward compatibility
 const dismiss = () => {
   sonnerToast.dismiss();

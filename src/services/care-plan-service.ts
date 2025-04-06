@@ -79,10 +79,11 @@ export const fetchCarePlans = async (userId: string): Promise<CarePlan[]> => {
       throw error;
     }
 
-    // Type cast the response to ensure it matches our interface
+    // Transform the data to match our interface
     return (data || []).map(plan => ({
       ...plan,
       status: plan.status as 'active' | 'completed' | 'cancelled',
+      metadata: plan.metadata as CarePlanMetadata,
     }));
   } catch (error) {
     console.error("Error fetching care plans:", error);
@@ -103,10 +104,11 @@ export const fetchCarePlan = async (planId: string): Promise<CarePlan | null> =>
       throw error;
     }
 
-    // Type cast to ensure it matches our interface
+    // Transform to ensure it matches our interface
     return data ? {
       ...data,
-      status: data.status as 'active' | 'completed' | 'cancelled'
+      status: data.status as 'active' | 'completed' | 'cancelled',
+      metadata: data.metadata as CarePlanMetadata
     } : null;
   } catch (error) {
     console.error("Error fetching care plan:", error);
@@ -119,10 +121,10 @@ export const createCarePlan = async (
   plan: Omit<CarePlan, 'id' | 'created_at' | 'updated_at'>
 ): Promise<CarePlan | null> => {
   try {
-    // Prepare the data for insertion by converting metadata to JSON
+    // Prepare the data for insertion
     const planData = {
       ...plan,
-      metadata: plan.metadata as any, // Convert CarePlanMetadata to JSON for Supabase
+      metadata: plan.metadata, // Will be serialized to JSON automatically
     };
     
     const { data, error } = await supabase
@@ -137,10 +139,11 @@ export const createCarePlan = async (
 
     toast.success("Care plan created successfully");
     
-    // Type cast the response to match our interface
+    // Transform to ensure it matches our interface
     return data ? {
       ...data,
       status: data.status as 'active' | 'completed' | 'cancelled',
+      metadata: data.metadata as CarePlanMetadata
     } : null;
   } catch (error) {
     console.error("Error creating care plan:", error);
@@ -154,10 +157,10 @@ export const updateCarePlan = async (
   updates: Partial<Omit<CarePlan, 'id' | 'family_id' | 'created_at' | 'updated_at'>>
 ): Promise<CarePlan | null> => {
   try {
-    // Prepare the updates by converting metadata to JSON
+    // Prepare updates for database
     const updateData = {
       ...updates,
-      metadata: updates.metadata as any, // Convert CarePlanMetadata to JSON for Supabase
+      metadata: updates.metadata, // Will be serialized to JSON automatically
     };
     
     const { data, error } = await supabase
@@ -173,10 +176,11 @@ export const updateCarePlan = async (
 
     toast.success("Care plan updated successfully");
     
-    // Type cast the response to match our interface
+    // Transform to ensure it matches our interface
     return data ? {
       ...data,
       status: data.status as 'active' | 'completed' | 'cancelled',
+      metadata: data.metadata as CarePlanMetadata
     } : null;
   } catch (error) {
     console.error("Error updating care plan:", error);
