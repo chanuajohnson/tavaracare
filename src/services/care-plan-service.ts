@@ -1,6 +1,7 @@
 
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
+import { Json } from "@/integrations/supabase/types";
 
 export interface CarePlan {
   id: string;
@@ -67,6 +68,54 @@ export interface CareShift {
   google_calendar_event_id?: string;
 }
 
+// Helper function to validate and convert metadata from Json to CarePlanMetadata
+function isValidCarePlanMetadata(data: any): data is CarePlanMetadata {
+  return (
+    data &&
+    typeof data === 'object' &&
+    'plan_type' in data &&
+    (data.plan_type === 'scheduled' || data.plan_type === 'on-demand' || data.plan_type === 'both')
+  );
+}
+
+// Helper function to safely convert Json to CarePlanMetadata
+function convertToCarePlanMetadata(data: Json | null): CarePlanMetadata | undefined {
+  if (!data) return undefined;
+  
+  // If data is already an object with the right shape, return it
+  if (isValidCarePlanMetadata(data)) {
+    return data as CarePlanMetadata;
+  }
+  
+  // If it's a JSON string, try to parse it
+  if (typeof data === 'string') {
+    try {
+      const parsed = JSON.parse(data);
+      if (isValidCarePlanMetadata(parsed)) {
+        return parsed;
+      }
+    } catch (e) {
+      console.error("Failed to parse metadata JSON string:", e);
+    }
+  }
+  
+  // If we can't confirm it's a valid CarePlanMetadata, return undefined
+  console.warn("Invalid care plan metadata format:", data);
+  return undefined;
+}
+
+// Create a default metadata object for new care plans
+function createDefaultMetadata(): CarePlanMetadata {
+  return {
+    plan_type: 'scheduled',
+    weekday_coverage: '8am-4pm',
+    weekend_coverage: 'no',
+    additional_shifts: {
+      weekdayEvening4pmTo6am: false,
+    }
+  };
+}
+
 export const fetchCarePlans = async (userId: string): Promise<CarePlan[]> => {
   try {
     const { data, error } = await supabase
@@ -83,7 +132,7 @@ export const fetchCarePlans = async (userId: string): Promise<CarePlan[]> => {
     return (data || []).map(plan => ({
       ...plan,
       status: plan.status as 'active' | 'completed' | 'cancelled',
-      metadata: plan.metadata as CarePlanMetadata,
+      metadata: convertToCarePlanMetadata(plan.metadata),
     }));
   } catch (error) {
     console.error("Error fetching care plans:", error);
@@ -108,7 +157,7 @@ export const fetchCarePlan = async (planId: string): Promise<CarePlan | null> =>
     return data ? {
       ...data,
       status: data.status as 'active' | 'completed' | 'cancelled',
-      metadata: data.metadata as CarePlanMetadata
+      metadata: convertToCarePlanMetadata(data.metadata)
     } : null;
   } catch (error) {
     console.error("Error fetching care plan:", error);
@@ -121,10 +170,14 @@ export const createCarePlan = async (
   plan: Omit<CarePlan, 'id' | 'created_at' | 'updated_at'>
 ): Promise<CarePlan | null> => {
   try {
-    // Prepare the data for insertion
+    // Ensure metadata is in the correct format for the database
     const planData = {
-      ...plan,
-      metadata: plan.metadata, // Will be serialized to JSON automatically
+      title: plan.title,
+      description: plan.description,
+      family_id: plan.family_id,
+      status: plan.status,
+      // Convert structured metadata to JSON-compatible format
+      metadata: plan.metadata || createDefaultMetadata(),
     };
     
     const { data, error } = await supabase
@@ -143,7 +196,7 @@ export const createCarePlan = async (
     return data ? {
       ...data,
       status: data.status as 'active' | 'completed' | 'cancelled',
-      metadata: data.metadata as CarePlanMetadata
+      metadata: convertToCarePlanMetadata(data.metadata)
     } : null;
   } catch (error) {
     console.error("Error creating care plan:", error);
@@ -158,10 +211,12 @@ export const updateCarePlan = async (
 ): Promise<CarePlan | null> => {
   try {
     // Prepare updates for database
-    const updateData = {
-      ...updates,
-      metadata: updates.metadata, // Will be serialized to JSON automatically
-    };
+    const updateData: any = { ...updates };
+    
+    // If metadata is provided, ensure it's in the correct format
+    if (updates.metadata) {
+      updateData.metadata = updates.metadata;
+    }
     
     const { data, error } = await supabase
       .from('care_plans')
@@ -180,7 +235,7 @@ export const updateCarePlan = async (
     return data ? {
       ...data,
       status: data.status as 'active' | 'completed' | 'cancelled',
-      metadata: data.metadata as CarePlanMetadata
+      metadata: convertToCarePlanMetadata(data.metadata)
     } : null;
   } catch (error) {
     console.error("Error updating care plan:", error);

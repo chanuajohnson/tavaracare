@@ -27,7 +27,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { MoreHorizontal, Edit, Trash2 } from "lucide-react";
-import { useToast } from "@/components/ui/use-toast"
+import { toast } from "@/hooks/use-toast"
 import { deleteUserWithCleanup, supabase } from "@/lib/supabase";
 
 interface User {
@@ -41,7 +41,6 @@ interface User {
 export function AdminUserManagement() {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
-  const { toast } = useToast();
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -54,54 +53,34 @@ export function AdminUserManagement() {
 
         if (error) {
           console.error("Error fetching users:", error);
-          toast({
-            title: "Error",
-            description: "Failed to fetch users.",
-            variant: "destructive",
-          });
+          toast.error("Failed to fetch users.");
         } else {
           setUsers(data || []);
         }
       } catch (error) {
         console.error("Unexpected error fetching users:", error);
-        toast({
-          title: "Error",
-          description: "An unexpected error occurred while fetching users.",
-          variant: "destructive",
-        });
+        toast.error("An unexpected error occurred while fetching users.");
       } finally {
         setLoading(false);
       }
     };
 
     fetchUsers();
-  }, [toast]);
+  }, []);
 
   const handleDeleteUser = async (userId: string) => {
     try {
       const result = await deleteUserWithCleanup(userId);
       
       if (result.success) {
-        toast({
-          title: "Success",
-          description: "User deleted successfully",
-          variant: "success",
-        });
+        toast.success("User deleted successfully");
         // Refresh user list or other actions
       } else {
         const errorMessage = result.error || "Unknown error occurred";
-        toast({
-          title: "Error",
-          description: `Failed to delete user: ${errorMessage}`,
-          variant: "destructive",
-        });
+        toast.error(`Failed to delete user: ${errorMessage}`);
       }
     } catch (err: any) {
-      toast({
-        title: "Error",
-        description: `Error: ${err.message || "Unknown error"}`,
-        variant: "destructive",
-      });
+      toast.error(`Error: ${err.message || "Unknown error"}`);
     }
   };
 
