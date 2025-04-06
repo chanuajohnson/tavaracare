@@ -8,7 +8,7 @@ import {
   debugSupabaseConnection, 
   getEnvironmentInfo, 
   supabase 
-} from "@/integrations/supabase/client";
+} from "@/lib/supabase";
 import { AlertCircle, Check, Database, RefreshCw, X } from "lucide-react";
 
 export function SupabaseDebugger() {
@@ -56,7 +56,8 @@ export function SupabaseDebugger() {
             <Database className="h-4 w-4" />
             Supabase Connection Diagnostics
           </CardTitle>
-          <Badge variant={connectionStatus === 'connected' ? "success" : connectionStatus === 'checking' ? "outline" : "destructive"}>
+          <Badge variant={connectionStatus === 'connected' ? "default" : connectionStatus === 'checking' ? "outline" : "destructive"} 
+                 className={connectionStatus === 'connected' ? "bg-green-500 hover:bg-green-600" : ""}>
             {connectionStatus === 'connected' ? 'Connected' : 
              connectionStatus === 'checking' ? 'Checking...' : 'Error'}
           </Badge>
@@ -83,7 +84,7 @@ export function SupabaseDebugger() {
                 <span className="font-medium">Using Fallbacks:</span>
                 <span className="col-span-2">
                   {envInfo.usingFallbacks ? (
-                    <Badge variant="warning" className="text-xs">Yes - Not Recommended</Badge>
+                    <Badge variant="outline" className="text-xs bg-yellow-50 text-yellow-700 border-yellow-200">Yes - Not Recommended</Badge>
                   ) : (
                     <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200">No</Badge>
                   )}
