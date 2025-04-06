@@ -20,7 +20,7 @@ export interface Profile {
   other_special_needs?: string;
   caregiver_type?: string;
   preferred_contact_method?: string;
-  care_schedule?: string;
+  care_schedule?: string | string[]; // Updated to accept both string and string[]
   budget_preferences?: string;
   caregiver_preferences?: string;
   additional_notes?: string;
@@ -50,6 +50,7 @@ export interface Profile {
   job_notification_method?: string;
   job_matching_criteria?: string[];
   custom_availability_alerts?: string;
+  has_training?: boolean; // Added has_training field
   
   // Community-specific fields
   location?: string;

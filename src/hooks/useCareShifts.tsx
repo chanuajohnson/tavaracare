@@ -43,7 +43,14 @@ export function useCareShifts() {
         }
         
         console.log(`✅ Care shifts fetched: ${data?.length || 0} shifts found for user ${user.id}`);
-        setShifts(data || []);
+        
+        // Cast the returned data to match our CareShift type
+        const typedShifts: CareShift[] = data ? data.map(shift => ({
+          ...shift,
+          status: shift.status as 'open' | 'assigned' | 'completed' | 'cancelled',
+        })) : [];
+        
+        setShifts(typedShifts);
       } catch (err: any) {
         console.error("❌ Error fetching care shifts:", err);
         setError(err.message || "Failed to load care shifts");

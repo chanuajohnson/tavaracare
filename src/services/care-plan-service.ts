@@ -1,3 +1,4 @@
+
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 
@@ -78,7 +79,11 @@ export const fetchCarePlans = async (userId: string): Promise<CarePlan[]> => {
       throw error;
     }
 
-    return data || [];
+    // Type cast the response to ensure it matches our interface
+    return (data || []).map(plan => ({
+      ...plan,
+      status: plan.status as 'active' | 'completed' | 'cancelled',
+    }));
   } catch (error) {
     console.error("Error fetching care plans:", error);
     toast.error("Failed to load care plans");
@@ -98,7 +103,11 @@ export const fetchCarePlan = async (planId: string): Promise<CarePlan | null> =>
       throw error;
     }
 
-    return data;
+    // Type cast to ensure it matches our interface
+    return data ? {
+      ...data,
+      status: data.status as 'active' | 'completed' | 'cancelled'
+    } : null;
   } catch (error) {
     console.error("Error fetching care plan:", error);
     toast.error("Failed to load care plan details");
@@ -110,9 +119,15 @@ export const createCarePlan = async (
   plan: Omit<CarePlan, 'id' | 'created_at' | 'updated_at'>
 ): Promise<CarePlan | null> => {
   try {
+    // Prepare the data for insertion by converting metadata to JSON
+    const planData = {
+      ...plan,
+      metadata: plan.metadata as any, // Convert CarePlanMetadata to JSON for Supabase
+    };
+    
     const { data, error } = await supabase
       .from('care_plans')
-      .insert(plan)
+      .insert(planData)
       .select()
       .single();
 
@@ -121,7 +136,12 @@ export const createCarePlan = async (
     }
 
     toast.success("Care plan created successfully");
-    return data;
+    
+    // Type cast the response to match our interface
+    return data ? {
+      ...data,
+      status: data.status as 'active' | 'completed' | 'cancelled',
+    } : null;
   } catch (error) {
     console.error("Error creating care plan:", error);
     toast.error("Failed to create care plan");
@@ -134,9 +154,15 @@ export const updateCarePlan = async (
   updates: Partial<Omit<CarePlan, 'id' | 'family_id' | 'created_at' | 'updated_at'>>
 ): Promise<CarePlan | null> => {
   try {
+    // Prepare the updates by converting metadata to JSON
+    const updateData = {
+      ...updates,
+      metadata: updates.metadata as any, // Convert CarePlanMetadata to JSON for Supabase
+    };
+    
     const { data, error } = await supabase
       .from('care_plans')
-      .update(updates)
+      .update(updateData)
       .eq('id', planId)
       .select()
       .single();
@@ -146,7 +172,12 @@ export const updateCarePlan = async (
     }
 
     toast.success("Care plan updated successfully");
-    return data;
+    
+    // Type cast the response to match our interface
+    return data ? {
+      ...data,
+      status: data.status as 'active' | 'completed' | 'cancelled',
+    } : null;
   } catch (error) {
     console.error("Error updating care plan:", error);
     toast.error("Failed to update care plan");
@@ -186,7 +217,12 @@ export const fetchCareTeamMembers = async (planId: string): Promise<CareTeamMemb
       throw error;
     }
 
-    return data || [];
+    // Cast each member's role to ensure it matches our interface
+    return (data || []).map(member => ({
+      ...member,
+      role: member.role as 'caregiver' | 'nurse' | 'therapist' | 'doctor' | 'other',
+      status: member.status as 'invited' | 'active' | 'declined' | 'removed',
+    }));
   } catch (error) {
     console.error("Error fetching care team members:", error);
     toast.error("Failed to load care team members");
@@ -209,7 +245,13 @@ export const inviteCareTeamMember = async (
     }
 
     toast.success("Team member assigned successfully");
-    return data;
+    
+    // Cast the role to ensure it matches our interface
+    return data ? {
+      ...data,
+      role: data.role as 'caregiver' | 'nurse' | 'therapist' | 'doctor' | 'other',
+      status: data.status as 'invited' | 'active' | 'declined' | 'removed',
+    } : null;
   } catch (error) {
     console.error("Error assigning team member:", error);
     toast.error("Failed to assign team member");
@@ -234,7 +276,13 @@ export const updateCareTeamMember = async (
     }
 
     toast.success("Team member updated successfully");
-    return data;
+    
+    // Cast the role to ensure it matches our interface
+    return data ? {
+      ...data,
+      role: data.role as 'caregiver' | 'nurse' | 'therapist' | 'doctor' | 'other',
+      status: data.status as 'invited' | 'active' | 'declined' | 'removed',
+    } : null;
   } catch (error) {
     console.error("Error updating team member:", error);
     toast.error("Failed to update team member");
@@ -274,7 +322,11 @@ export const fetchCareShifts = async (planId: string): Promise<CareShift[]> => {
       throw error;
     }
 
-    return data || [];
+    // Cast each shift's status to ensure it matches our interface
+    return (data || []).map(shift => ({
+      ...shift,
+      status: shift.status as 'open' | 'assigned' | 'completed' | 'cancelled',
+    }));
   } catch (error) {
     console.error("Error fetching care shifts:", error);
     toast.error("Failed to load care schedule");
@@ -297,7 +349,12 @@ export const createCareShift = async (
     }
 
     toast.success("Care shift created successfully");
-    return data;
+    
+    // Cast the status to ensure it matches our interface
+    return data ? {
+      ...data,
+      status: data.status as 'open' | 'assigned' | 'completed' | 'cancelled',
+    } : null;
   } catch (error) {
     console.error("Error creating care shift:", error);
     toast.error("Failed to create care shift");
@@ -322,7 +379,12 @@ export const updateCareShift = async (
     }
 
     toast.success("Care shift updated successfully");
-    return data;
+    
+    // Cast the status to ensure it matches our interface
+    return data ? {
+      ...data,
+      status: data.status as 'open' | 'assigned' | 'completed' | 'cancelled',
+    } : null;
   } catch (error) {
     console.error("Error updating care shift:", error);
     toast.error("Failed to update care shift");

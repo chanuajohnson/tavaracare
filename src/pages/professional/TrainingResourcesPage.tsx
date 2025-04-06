@@ -1,4 +1,3 @@
-
 import { motion } from "framer-motion";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { Button } from "@/components/ui/button";
@@ -52,6 +51,25 @@ const TrainingResourcesPage = () => {
       } catch (err) {
         console.error("Failed to record training request:", err);
       }
+    }
+  };
+
+  const handleRequestModule = async (moduleId: string) => {
+    try {
+      const { error } = await supabase
+        .from('user_module_progress')
+        .insert({
+          user_id: user.id,
+          module_id: moduleId,
+          status: "not_started",
+          last_accessed: new Date().toISOString()
+        });
+      
+      if (error) throw error;
+      
+      toast.success("Module access requested successfully");
+    } catch (err: any) {
+      toast.error(`Error requesting module: ${err.message}`);
     }
   };
 

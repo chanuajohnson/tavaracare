@@ -1,4 +1,3 @@
-
 // This file is a compatibility layer that forwards to our standardized implementation
 // Import the supabase client from the standard location
 import { 
@@ -56,7 +55,7 @@ export const ensureStorageBuckets = async () => {
 };
 
 // Function to delete a user with cleanup
-export const deleteUserWithCleanup = async (userId) => {
+export const deleteUserWithCleanup = async (userId: string): Promise<{ success: boolean; error?: string }> => {
   try {
     // This would normally call the admin function
     const { error } = await supabase.rpc('admin_delete_user', {
@@ -65,7 +64,7 @@ export const deleteUserWithCleanup = async (userId) => {
     
     if (error) throw error;
     return { success: true };
-  } catch (err) {
+  } catch (err: any) {
     console.error('[deleteUserWithCleanup] Error:', err);
     return { success: false, error: err.message };
   }

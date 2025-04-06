@@ -86,6 +86,38 @@ const MOCK_CAREGIVERS: Caregiver[] = [
   }
 ];
 
+const processProfilesIntoCaregivers = (professionals) => {
+  return professionals.map(prof => {
+    const matchScore = Math.floor(Math.random() * (99 - 65) + 65);
+    const distance = parseFloat((Math.random() * 19 + 1).toFixed(1));
+    const fullName = prof.full_name || 'Professional Caregiver';
+    const firstName = fullName.split(' ')[0];
+    
+    const hasPlatformTraining = Boolean(
+      prof.has_training || // If has_training exists, use it
+      (prof.certifications && prof.certifications.length > 0) // Otherwise check certifications
+    );
+    
+    return {
+      id: prof.id,
+      full_name: fullName,
+      first_name: firstName,
+      avatar_url: prof.avatar_url,
+      hourly_rate: prof.hourly_rate || '$15-25',
+      location: prof.location || 'Port of Spain',
+      years_of_experience: prof.years_of_experience || '1+',
+      care_types: prof.care_types || ['Elderly Care'],
+      specialized_care: prof.specialized_care || [],
+      availability: prof.availability || ['Weekdays'],
+      match_score: matchScore,
+      is_premium: false,
+      has_training: hasPlatformTraining,
+      certifications: prof.certifications || [],
+      distance: distance
+    };
+  });
+};
+
 export const DashboardCaregiverMatches = () => {
   const { user, isProfileComplete } = useAuth();
   const navigate = useNavigate();
@@ -197,30 +229,7 @@ export const DashboardCaregiverMatches = () => {
           return; // We already set MOCK_CAREGIVERS above
         }
         
-        const realCaregivers: Caregiver[] = professionalUsers.map(prof => {
-          const matchScore = Math.floor(Math.random() * (99 - 65) + 65);
-          const distance = parseFloat((Math.random() * 19 + 1).toFixed(1));
-          const fullName = prof.full_name || 'Professional Caregiver';
-          const firstName = fullName.split(' ')[0];
-          
-          return {
-            id: prof.id,
-            full_name: fullName,
-            first_name: firstName,
-            avatar_url: prof.avatar_url,
-            hourly_rate: prof.hourly_rate || '$15-25',
-            location: prof.location || 'Port of Spain',
-            years_of_experience: prof.years_of_experience || '1+',
-            care_types: prof.care_types || ['Elderly Care'],
-            specialized_care: prof.specialized_care || [],
-            availability: prof.availability || ['Weekdays'],
-            match_score: matchScore,
-            is_premium: false,
-            has_training: Boolean(prof.has_training || prof.certifications?.length > 0),
-            certifications: prof.certifications || [],
-            distance: distance
-          };
-        });
+        const realCaregivers = processProfilesIntoCaregivers(professionalUsers);
         
         console.log("Processed real caregivers:", realCaregivers.length);
         

@@ -237,6 +237,30 @@ const FamilyRegistration = () => {
     }
   };
 
+  const updateProfile = async (profileData) => {
+    try {
+      // Convert care_schedule from string[] to string if needed
+      const updatedProfileData = {
+        ...profileData,
+        // If care_schedule is an array, join it into a string
+        care_schedule: Array.isArray(profileData.care_schedule) 
+          ? profileData.care_schedule.join(', ')
+          : profileData.care_schedule
+      };
+      
+      const { error } = await supabase
+        .from('profiles')
+        .update(updatedProfileData)
+        .eq('id', user.id);
+      
+      if (error) throw error;
+      
+      // Success handling
+    } catch (err) {
+      // Error handling
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -323,17 +347,8 @@ const FamilyRegistration = () => {
 
       console.log('Updating profile with data:', updates);
       
-      const { error } = await supabase
-        .from('profiles')
-        .upsert(updates, { 
-          onConflict: 'id'
-        });
+      await updateProfile(updates);
       
-      if (error) {
-        console.error('Error updating profile:', error);
-        throw error;
-      }
-
       toast.success('Registration Complete! Your family caregiver profile has been updated.');
       
       navigate('/dashboard/family');
