@@ -92,7 +92,7 @@ export const chatbotMessageSchema = z.object({
     z.literal('suggestion'),
     z.literal('action')
   ]).optional(),
-  contextData: z.record(z.unknown()).optional()
+  contextData: z.record(z.unknown()).nullable().optional()
 });
 
 // Specific adapters for our main entities
@@ -104,10 +104,10 @@ export function adaptChatbotMessage(dbMessage: DbChatbotMessage): ChatbotMessage
   const validatedMessage: ChatbotMessage = {
     id: adapted.id || crypto.randomUUID(),
     message: adapted.message || '',
-    senderType: adapted.senderType || 'system',
+    senderType: adapted.senderType as SenderType || 'system',
     timestamp: adapted.timestamp || new Date().toISOString(),
-    messageType: adapted.messageType,
-    contextData: adapted.contextData
+    messageType: adapted.messageType as MessageType | undefined,
+    contextData: adapted.contextData ? adapted.contextData as Record<string, any> : undefined
   };
   
   // Run validation to ensure the adapted message meets our schema
@@ -163,28 +163,38 @@ export function adaptChatbotConversation(dbConversation: DbChatbotConversation):
         return {
           id: msg.id || crypto.randomUUID(),
           message: msg.message || '',
-          senderType: msg.sender_type || 'system',
+          senderType: msg.sender_type as SenderType || 'system',
           timestamp: msg.timestamp || new Date().toISOString(),
-          messageType: msg.message_type,
-          contextData: msg.context_data
+          messageType: msg.message_type as MessageType | undefined,
+          contextData: msg.context_data ? msg.context_data as Record<string, any> : undefined
         };
       } catch (e) {
         console.error('Invalid message format in conversation data:', msg, e);
         // Provide a fallback with required fields
         return {
-          id: msg.id || crypto.randomUUID(),
-          message: msg.message || 'Invalid message format',
-          senderType: 'system',
-          timestamp: msg.timestamp || new Date().toISOString()
+          id: crypto.randomUUID(),
+          message: 'Invalid message format',
+          senderType: 'system' as SenderType,
+          timestamp: new Date().toISOString()
         };
       }
     });
   }
   
   return {
-    ...adapted,
-    conversationData
-  } as ChatbotConversation;
+    id: adapted.id,
+    userId: adapted.userId,
+    sessionId: adapted.sessionId,
+    conversationData: conversationData,
+    careNeeds: adapted.careNeeds as Record<string, any> | null,
+    qualificationStatus: adapted.qualificationStatus,
+    leadScore: adapted.leadScore,
+    createdAt: adapted.createdAt || new Date().toISOString(),
+    updatedAt: adapted.updatedAt || new Date().toISOString(),
+    convertedToRegistration: adapted.convertedToRegistration || false,
+    contactInfo: adapted.contactInfo as Record<string, any> | null,
+    handoffRequested: adapted.handoffRequested || false
+  };
 }
 
 export function adaptChatbotConversationToDb(conversation: Partial<ChatbotConversation>): Partial<DbChatbotConversation> {
@@ -199,6 +209,11 @@ export function adaptChatbotConversationToDb(conversation: Partial<ChatbotConver
     message_type: msg.messageType,
     context_data: msg.contextData
   })) || [];
+  
+  // Ensure session_id is provided since it's required
+  if (!conversation.sessionId) {
+    console.error('Required field sessionId is missing in conversation');
+  }
   
   return {
     id: conversation.id,

@@ -191,6 +191,10 @@ export const enhancedSupabaseClient = () => {
             dbData.session_id = sessionId;
           }
           
+          if (!dbData.session_id) {
+            throw new Error('Session ID is required for chatbot conversations');
+          }
+          
           return await supabase.from('chatbot_conversations').insert(dbData);
         },
         

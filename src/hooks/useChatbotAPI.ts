@@ -1,9 +1,10 @@
 
 import { enhancedSupabaseClient } from '@/lib/supabase';
-import { ChatbotMessage, ChatbotConversation } from '@/types/chatbot';
-import { ChatbotAPIResponse, ChatbotAPISuccessResponse, DbChatbotMessage, DbChatbotConversation } from './types/chatbotTypes';
+import { ChatbotMessage, ChatbotConversation, SenderType, MessageType } from '@/types/chatbot';
+import { ChatbotAPIResponse, ChatbotAPISuccessResponse } from './types/chatbotTypes';
 import { v4 as uuidv4 } from 'uuid';
 import { Json } from '@/integrations/supabase/types';
+import { adaptChatbotMessage, adaptChatbotMessageToDb, adaptChatbotConversation, adaptChatbotConversationToDb } from '@/lib/supabase-adapter';
 
 /**
  * Hook for handling all Supabase API operations related to the chatbot
@@ -30,29 +31,9 @@ export const useChatbotAPI = () => {
       if (error) throw error;
       
       // Convert database results to our frontend model
-      const conversations: ChatbotConversation[] = data?.map(item => ({
-        id: item.id,
-        userId: item.user_id,
-        sessionId: item.session_id,
-        conversationData: Array.isArray(item.conversation_data) 
-          ? item.conversation_data.map((msg: any) => ({
-              id: msg.id || uuidv4(),
-              message: msg.message || '',
-              senderType: msg.sender_type || 'system',
-              timestamp: msg.timestamp || new Date().toISOString(),
-              messageType: msg.message_type,
-              contextData: msg.context_data
-            }))
-          : [],
-        careNeeds: item.care_needs,
-        qualificationStatus: item.qualification_status,
-        leadScore: item.lead_score || 0,
-        createdAt: item.created_at,
-        updatedAt: item.updated_at,
-        convertedToRegistration: item.converted_to_registration || false,
-        contactInfo: item.contact_info,
-        handoffRequested: item.handoff_requested || false
-      })) || [];
+      const conversations: ChatbotConversation[] = data?.map(item => 
+        adaptChatbotConversation(item)
+      ) || [];
       
       return {
         data: conversations,
@@ -77,14 +58,9 @@ export const useChatbotAPI = () => {
       if (error) throw error;
       
       // Convert database results to our frontend model
-      const messages: ChatbotMessage[] = data?.map(item => ({
-        id: item.id,
-        message: item.message,
-        senderType: item.sender_type as any,
-        timestamp: item.timestamp,
-        messageType: item.message_type as any,
-        contextData: item.context_data
-      })) || [];
+      const messages: ChatbotMessage[] = data?.map(item => 
+        adaptChatbotMessage(item)
+      ) || [];
       
       return {
         data: messages,
@@ -109,14 +85,7 @@ export const useChatbotAPI = () => {
       
       // Format initial message for database storage if provided
       const conversationData = initialMessage 
-        ? [{
-            id: initialMessage.id,
-            message: initialMessage.message,
-            sender_type: initialMessage.senderType,
-            timestamp: initialMessage.timestamp,
-            message_type: initialMessage.messageType,
-            context_data: initialMessage.contextData
-          }] 
+        ? [adaptChatbotMessageToDb(initialMessage)] 
         : [];
       
       // Insert with proper types
@@ -161,15 +130,19 @@ export const useChatbotAPI = () => {
   const saveMessage = async (message: ChatbotMessage, conversationId: string): Promise<ChatbotAPISuccessResponse> => {
     try {
       // Convert our frontend message to database format
-      const dbMessage: DbChatbotMessage = {
-        id: message.id,
-        conversation_id: conversationId,
-        message: message.message,
-        sender_type: message.senderType,
-        timestamp: message.timestamp,
-        message_type: message.messageType,
-        context_data: message.contextData as unknown as Json
-      };
+      const dbMessage = adaptChatbotMessageToDb({
+        ...message,
+        conversation_id: conversationId
+      });
+      
+      // Ensure required fields are present
+      if (!dbMessage.message) {
+        throw new Error("Message content is required");
+      }
+      
+      if (!dbMessage.sender_type) {
+        throw new Error("Sender type is required");
+      }
       
       // Save message to chatbot_messages table
       const { error: messageError } = await enhancedSupabaseClient().client
@@ -194,7 +167,7 @@ export const useChatbotAPI = () => {
   ): Promise<ChatbotAPISuccessResponse> => {
     try {
       // Convert our frontend model to database format
-      const dbUpdates: Partial<DbChatbotConversation> = {};
+      const dbUpdates: Record<string, any> = {};
       
       if (updates.leadScore !== undefined) dbUpdates.lead_score = updates.leadScore;
       if (updates.convertedToRegistration !== undefined) dbUpdates.converted_to_registration = updates.convertedToRegistration;

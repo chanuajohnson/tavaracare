@@ -8,7 +8,7 @@ export interface ChatbotMessage {
   senderType: SenderType;
   timestamp: string;
   messageType?: MessageType;
-  contextData?: Record<string, any>;
+  contextData?: Record<string, any> | null;
 }
 
 export interface ChatbotConversation {
@@ -16,13 +16,13 @@ export interface ChatbotConversation {
   userId?: string;
   sessionId: string;
   conversationData: ChatbotMessage[];
-  careNeeds?: Record<string, any>;
+  careNeeds?: Record<string, any> | null;
   qualificationStatus?: string;
   leadScore?: number;
   createdAt: string;
   updatedAt: string;
   convertedToRegistration: boolean;
-  contactInfo?: Record<string, any>;
+  contactInfo?: Record<string, any> | null;
   handoffRequested: boolean;
 }
 
