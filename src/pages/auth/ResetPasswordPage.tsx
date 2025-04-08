@@ -105,27 +105,27 @@ export default function ResetPasswordPage() {
                 if (error) {
                   console.error("[ResetPasswordPage] Token validation with token_hash failed:", error);
                   
-                  // Try again with just token parameter if token_hash fails
-                  const secondAttempt = await supabase.auth.verifyOtp({
-                    token: tokenValue,
-                    type: 'recovery'
-                  });
-                  
-                  if (secondAttempt.error) {
-                    console.error("[ResetPasswordPage] Token validation with token also failed:", secondAttempt.error);
-                    throw secondAttempt.error;
+                  // If we already have an email, try with email + token combination
+                  if (email) {
+                    const secondAttempt = await supabase.auth.verifyOtp({
+                      email: email,
+                      token: tokenValue,
+                      type: 'recovery'
+                    });
+                    
+                    if (secondAttempt.error) {
+                      console.error("[ResetPasswordPage] Token validation with email+token also failed:", secondAttempt.error);
+                      throw secondAttempt.error;
+                    }
+                  } else {
+                    // If we don't have an email, just throw the original error
+                    throw error;
                   }
-                  
-                  if (secondAttempt.data?.user?.email) {
-                    setEmail(secondAttempt.data.user.email);
-                    console.log("[ResetPasswordPage] Found email from token validation (second attempt):", 
-                      secondAttempt.data.user.email);
-                  }
-                } else {
-                  if (data?.user?.email) {
-                    setEmail(data.user.email);
-                    console.log("[ResetPasswordPage] Found email from token validation:", data.user.email);
-                  }
+                }
+                
+                if (data?.user?.email) {
+                  setEmail(data.user.email);
+                  console.log("[ResetPasswordPage] Found email from token validation:", data.user.email);
                 }
               } catch (tokenError) {
                 console.error("[ResetPasswordPage] Error validating token:", tokenError);
@@ -171,7 +171,7 @@ export default function ResetPasswordPage() {
     }, 300);
 
     return () => clearTimeout(timeout);
-  }, [location]);
+  }, [location, email]);
 
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
