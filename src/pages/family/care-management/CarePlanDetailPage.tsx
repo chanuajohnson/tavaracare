@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "@/components/providers/AuthProvider";
@@ -10,18 +11,19 @@ import {
   Trash2, MoreHorizontal, UserMinus, CalendarRange, ChevronDown
 } from "lucide-react";
 import { 
-  fetchCarePlan, 
+  fetchCarePlanById, 
   fetchCareTeamMembers, 
   inviteCareTeamMember,
   removeCareTeamMember,
-  CareTeamMember, 
-  CareTeamMemberWithProfile,
+  CareTeamMember,
   CarePlan,
   fetchCareShifts,
   createCareShift,
   updateCareShift,
   deleteCareShift,
-  CareShift
+  CareShift,
+  CareTeamMemberInput,
+  CareShiftInput
 } from "@/services/care-plans";
 import { 
   format, addDays, startOfWeek, parse, isSameDay, parseISO, addWeeks, 
@@ -56,7 +58,8 @@ interface Professional {
   avatar_url: string | null;
 }
 
-interface CareTeamMemberWithProfile extends CareTeamMember {
+// Extended interface for care team members with additional profile data
+interface ExtendedCareTeamMember extends CareTeamMember {
   professionalDetails?: Professional;
 }
 
@@ -85,7 +88,7 @@ const CarePlanDetailPage = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [carePlan, setCarePlan] = useState<CarePlan | null>(null);
-  const [careTeamMembers, setCareTeamMembers] = useState<CareTeamMemberWithProfile[]>([]);
+  const [careTeamMembers, setCareTeamMembers] = useState<ExtendedCareTeamMember[]>([]);
   const [careShifts, setCareShifts] = useState<CareShift[]>([]);
   const [loading, setLoading] = useState(true);
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
@@ -114,7 +117,7 @@ const CarePlanDetailPage = () => {
   });
   const [editingShift, setEditingShift] = useState<CareShift | null>(null);
   const [confirmRemoveDialogOpen, setConfirmRemoveDialogOpen] = useState(false);
-  const [memberToRemove, setMemberToRemove] = useState<CareTeamMemberWithProfile | null>(null);
+  const [memberToRemove, setMemberToRemove] = useState<ExtendedCareTeamMember | null>(null);
   const [isRangeSelection, setIsRangeSelection] = useState(false);
 
   useEffect(() => {
@@ -133,7 +136,7 @@ const CarePlanDetailPage = () => {
 
     try {
       setLoading(true);
-      const plan = await fetchCarePlan(id);
+      const plan = await fetchCarePlanById(id);
       if (plan) {
         setCarePlan(plan);
       } else {
@@ -164,7 +167,7 @@ const CarePlanDetailPage = () => {
         return {
           ...member,
           professionalDetails: error ? undefined : data
-        } as CareTeamMemberWithProfile;
+        } as ExtendedCareTeamMember;
       }));
       
       setCareTeamMembers(membersWithDetails);
@@ -213,14 +216,16 @@ const CarePlanDetailPage = () => {
         return;
       }
 
-      await inviteCareTeamMember({
-        care_plan_id: id,
-        family_id: user.id,
-        caregiver_id: newTeamMember.caregiverId,
+      const teamMemberInput: CareTeamMemberInput = {
+        carePlanId: id,
+        familyId: user.id,
+        caregiverId: newTeamMember.caregiverId,
         role: newTeamMember.role,
         status: 'active',
         notes: newTeamMember.notes
-      });
+      };
+
+      await inviteCareTeamMember(teamMemberInput);
 
       toast.success("Team member assigned successfully");
       setInviteDialogOpen(false);
@@ -298,17 +303,17 @@ const CarePlanDetailPage = () => {
         }
         endTime.setHours(endHour, endMinute, 0);
 
-        const shiftData = {
-          care_plan_id: id,
-          family_id: user.id,
-          caregiver_id: newShift.caregiverId !== "unassigned" ? newShift.caregiverId : undefined,
+        const shiftData: CareShiftInput = {
+          carePlanId: id,
+          familyId: user.id,
+          caregiverId: newShift.caregiverId !== "unassigned" ? newShift.caregiverId : undefined,
           title: shiftTitle,
           description: selectedShiftType.description,
           location: "Patient's home",
           status: "open" as "open" | "assigned" | "completed" | "cancelled",
-          start_time: startTime.toISOString(),
-          end_time: endTime.toISOString(),
-          recurring_pattern: undefined
+          startTime: startTime.toISOString(),
+          endTime: endTime.toISOString(),
+          recurringPattern: undefined
         };
 
         if (editingShift && !isRangeSelection) {
@@ -358,7 +363,7 @@ const CarePlanDetailPage = () => {
   };
 
   const handleEditShift = (shift: CareShift) => {
-    const shiftDate = new Date(shift.start_time);
+    const shiftDate = new Date(shift.startTime);
     
     const matchingShiftType = SHIFT_TITLE_OPTIONS.find(option => 
       option.label === shift.title
@@ -366,7 +371,7 @@ const CarePlanDetailPage = () => {
     
     setSelectedDay(shiftDate);
     setNewShift({
-      caregiverId: shift.caregiver_id || "",
+      caregiverId: shift.caregiverId || "",
       title: shift.title,
       selectedShiftType: matchingShiftType.id,
       description: shift.description || "",
@@ -408,7 +413,7 @@ const CarePlanDetailPage = () => {
 
   const getShiftsForDay = (day: Date) => {
     return careShifts.filter(shift => {
-      const shiftDate = new Date(shift.start_time);
+      const shiftDate = new Date(shift.startTime);
       return isSameDay(shiftDate, day);
     });
   };
@@ -426,9 +431,9 @@ const CarePlanDetailPage = () => {
   };
 
   const getPlanTypeDisplay = (plan: CarePlan) => {
-    if (!plan.metadata?.plan_type) return "Not specified";
+    if (!plan.metadata?.planType) return "Not specified";
     
-    switch (plan.metadata.plan_type) {
+    switch (plan.metadata.planType) {
       case 'scheduled':
         return "Scheduled Care";
       case 'on-demand':
@@ -537,45 +542,45 @@ const CarePlanDetailPage = () => {
                     <p className="font-medium">{getPlanTypeDisplay(carePlan)}</p>
                   </div>
                   
-                  {carePlan.metadata?.plan_type !== 'on-demand' && (
+                  {carePlan.metadata?.planType !== 'on-demand' && (
                     <div>
                       <h3 className="text-sm font-medium text-muted-foreground mb-2">Weekday Coverage</h3>
-                      <p className="font-medium">{carePlan.metadata?.weekday_coverage || "None"}</p>
+                      <p className="font-medium">{carePlan.metadata?.weekdayCoverage || "None"}</p>
                     </div>
                   )}
                   
-                  {carePlan.metadata?.plan_type !== 'on-demand' && (
+                  {carePlan.metadata?.planType !== 'on-demand' && (
                     <div>
                       <h3 className="text-sm font-medium text-muted-foreground mb-2">Weekend Coverage</h3>
-                      <p className="font-medium">{carePlan.metadata?.weekend_coverage === 'yes' ? "6AM-6PM" : "None"}</p>
+                      <p className="font-medium">{carePlan.metadata?.weekendCoverage === 'yes' ? "6AM-6PM" : "None"}</p>
                     </div>
                   )}
                   
                   <div>
                     <h3 className="text-sm font-medium text-muted-foreground mb-2">Created On</h3>
-                    <p className="font-medium">{new Date(carePlan.created_at).toLocaleDateString()}</p>
+                    <p className="font-medium">{new Date(carePlan.createdAt).toLocaleDateString()}</p>
                   </div>
                   
                   <div>
                     <h3 className="text-sm font-medium text-muted-foreground mb-2">Last Updated</h3>
-                    <p className="font-medium">{new Date(carePlan.updated_at).toLocaleDateString()}</p>
+                    <p className="font-medium">{new Date(carePlan.updatedAt).toLocaleDateString()}</p>
                   </div>
                 </div>
                 
-                {carePlan.metadata?.additional_shifts && (
+                {carePlan.metadata?.additionalShifts && (
                   <div className="mt-6">
                     <h3 className="text-sm font-medium text-muted-foreground mb-2">Additional Shifts</h3>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                      {carePlan.metadata.additional_shifts.weekdayEvening4pmTo6am && (
+                      {carePlan.metadata.additionalShifts.weekdayEvening4pmTo6am && (
                         <Badge variant="outline" className="justify-start">Weekday Evening (4PM-6AM)</Badge>
                       )}
-                      {carePlan.metadata.additional_shifts.weekdayEvening4pmTo8am && (
+                      {carePlan.metadata.additionalShifts.weekdayEvening4pmTo8am && (
                         <Badge variant="outline" className="justify-start">Weekday Evening (4PM-8AM)</Badge>
                       )}
-                      {carePlan.metadata.additional_shifts.weekdayEvening6pmTo6am && (
+                      {carePlan.metadata.additionalShifts.weekdayEvening6pmTo6am && (
                         <Badge variant="outline" className="justify-start">Weekday Evening (6PM-6AM)</Badge>
                       )}
-                      {carePlan.metadata.additional_shifts.weekdayEvening6pmTo8am && (
+                      {carePlan.metadata.additionalShifts.weekdayEvening6pmTo8am && (
                         <Badge variant="outline" className="justify-start">Weekday Evening (6PM-8AM)</Badge>
                       )}
                     </div>
@@ -728,7 +733,7 @@ const CarePlanDetailPage = () => {
                       <CardFooter className="border-t pt-4">
                         <div className="flex items-center text-xs text-muted-foreground">
                           <Clock className="h-3 w-3 mr-1" />
-                          Added {new Date(member.created_at).toLocaleDateString()}
+                          Added {new Date(member.createdAt).toLocaleDateString()}
                         </div>
                       </CardFooter>
                     </Card>
@@ -989,7 +994,7 @@ const CarePlanDetailPage = () => {
                                   >
                                     <div className="font-medium truncate">{shift.title}</div>
                                     <div className="text-muted-foreground truncate">
-                                      {getTimeDisplay(shift.start_time)} - {getTimeDisplay(shift.end_time)}
+                                      {getTimeDisplay(shift.startTime)} - {getTimeDisplay(shift.endTime)}
                                     </div>
                                     <div className={`truncate mt-1 ${
                                       shift.caregiverId ? 'text-green-700' : 'text-orange-700'
