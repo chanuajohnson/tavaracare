@@ -12,7 +12,19 @@ import {
   debugSupabaseConnection
 } from '@/integrations/supabase/client';
 import { getOrCreateSessionId } from '@/utils/sessionHelper';
-import { ExtendedDatabase } from '@/types/supabase-adapter';
+import { 
+  adaptChatbotMessage, 
+  adaptChatbotMessageToDb, 
+  adaptChatbotConversation, 
+  adaptChatbotConversationToDb,
+  adaptRegistrationProgress,
+  adaptRegistrationProgressToDb,
+  DbChatbotConversation,
+  DbChatbotMessage,
+  DbRegistrationProgress
+} from '@/lib/supabase-adapter';
+import { ChatbotMessage, ChatbotConversation } from '@/types/chatbot';
+import { RegistrationProgress } from '@/types/registration';
 
 // Create a function to get user role from the profiles table
 export const getUserRole = async () => {
@@ -107,19 +119,78 @@ export const enhancedSupabaseClient = () => {
   
   // Return the supabase client with the session ID set in the headers
   return {
-    // Fixed: Use properly typed methods that return the Supabase client methods
+    // Type-safe registration progress table accessor
     registrationProgress: () => {
-      return supabase.from('registration_progress');
+      return {
+        ...supabase.from('registration_progress'),
+        async insert(data: Partial<RegistrationProgress>) {
+          const dbData = adaptRegistrationProgressToDb(data);
+          const response = await supabase.from('registration_progress').insert(dbData);
+          return response;
+        },
+        async update(data: Partial<RegistrationProgress>) {
+          const dbData = adaptRegistrationProgressToDb(data);
+          const response = await supabase.from('registration_progress').update(dbData);
+          return response;
+        },
+        async select(query: string) {
+          const response = await supabase.from('registration_progress').select(query);
+          if (response.data) {
+            response.data = response.data.map(item => adaptRegistrationProgress(item as DbRegistrationProgress));
+          }
+          return response;
+        }
+      };
     },
     
-    // Chat conversations table accessor
+    // Type-safe chatbot conversations table accessor
     chatbotConversations: () => {
-      return supabase.from('chatbot_conversations');
+      return {
+        ...supabase.from('chatbot_conversations'),
+        async insert(data: Partial<ChatbotConversation>) {
+          const dbData = adaptChatbotConversationToDb(data as ChatbotConversation);
+          const response = await supabase.from('chatbot_conversations').insert(dbData);
+          return response;
+        },
+        async update(data: Partial<ChatbotConversation>) {
+          const dbData = adaptChatbotConversationToDb(data as ChatbotConversation);
+          const response = await supabase.from('chatbot_conversations').update(dbData);
+          return response;
+        },
+        async select(query: string) {
+          const response = await supabase.from('chatbot_conversations').select(query);
+          if (response.data) {
+            response.data = response.data.map(item => 
+              adaptChatbotConversation(item as DbChatbotConversation));
+          }
+          return response;
+        }
+      };
     },
     
-    // Chat messages table accessor
+    // Type-safe chatbot messages table accessor
     chatbotMessages: () => {
-      return supabase.from('chatbot_messages');
+      return {
+        ...supabase.from('chatbot_messages'),
+        async insert(data: Partial<ChatbotMessage>) {
+          const dbData = adaptChatbotMessageToDb(data as ChatbotMessage);
+          const response = await supabase.from('chatbot_messages').insert(dbData);
+          return response;
+        },
+        async update(data: Partial<ChatbotMessage>) {
+          const dbData = adaptChatbotMessageToDb(data as ChatbotMessage);
+          const response = await supabase.from('chatbot_messages').update(dbData);
+          return response;
+        },
+        async select(query: string) {
+          const response = await supabase.from('chatbot_messages').select(query);
+          if (response.data) {
+            response.data = response.data.map(item => 
+              adaptChatbotMessage(item as DbChatbotMessage));
+          }
+          return response;
+        }
+      };
     },
     
     // Return the standard client for other tables

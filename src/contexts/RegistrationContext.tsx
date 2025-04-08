@@ -6,7 +6,6 @@ import { RegistrationProgress, RegistrationStep } from '@/types/registration';
 import { getOrCreateSessionId, getDeviceInfo, detectExitIntent } from '@/utils/sessionHelper';
 import { toast } from '@/hooks/use-toast';
 import { v4 as uuidv4 } from 'uuid';
-import { camelToSnake, snakeToCamel } from '@/types/supabase-adapter';
 
 interface RegistrationContextType {
   registrationData: Record<string, any>;
@@ -96,7 +95,7 @@ export const RegistrationProvider: React.FC<RegistrationProviderProps> = ({
         if (error) throw error;
 
         if (data && data.length > 0) {
-          const registration = snakeToCamel<RegistrationProgress>(data[0]);
+          const registration = data[0];
           
           setRegistrationRecord(registration);
           setRegistrationId(registration.id);
@@ -115,21 +114,20 @@ export const RegistrationProvider: React.FC<RegistrationProviderProps> = ({
         } else {
           const newRegistrationId = uuidv4();
           
-          // Fix: Explicitly provide all the required fields
           const { error: createError } = await enhancedSupabaseClient()
             .registrationProgress()
             .insert({
               id: newRegistrationId,
-              user_id: userId,
-              session_id: sessionId,
-              current_step: steps[0].id,
-              registration_data: initialData,
+              userId: userId || undefined,
+              sessionId: sessionId,
+              currentStep: steps[0].id,
+              registrationData: initialData,
               status: 'started',
-              total_steps: filteredSteps.length,
-              device_info: getDeviceInfo(),
-              completed_steps: {},
-              last_active_at: new Date().toISOString()
-            });
+              totalSteps: filteredSteps.length,
+              deviceInfo: getDeviceInfo(),
+              completedSteps: {},
+              lastActiveAt: new Date().toISOString()
+            } as Partial<RegistrationProgress>);
             
           if (createError) throw createError;
           
@@ -178,20 +176,18 @@ export const RegistrationProvider: React.FC<RegistrationProviderProps> = ({
         [filteredSteps[currentStepIndex].id]: true,
       };
 
-      // Fix: Explicitly provide typed data for the update
-      const { error } = await enhancedSupabaseClient()
+      await enhancedSupabaseClient()
         .registrationProgress()
         .update({
-          registration_data: registrationData,
-          current_step: filteredSteps[currentStepIndex].id,
+          id: registrationId,
+          registrationData: registrationData,
+          currentStep: filteredSteps[currentStepIndex].id,
           status: 'in_progress',
-          last_active_at: new Date().toISOString(),
-          completed_steps: updatedCompletedSteps,
-          completed_step_count: Object.values(updatedCompletedSteps).filter(Boolean).length,
-        })
+          lastActiveAt: new Date().toISOString(),
+          completedSteps: updatedCompletedSteps,
+          completedStepCount: Object.values(updatedCompletedSteps).filter(Boolean).length,
+        } as Partial<RegistrationProgress>)
         .eq('id', registrationId);
-
-      if (error) throw error;
     } catch (err) {
       console.error('Failed to save progress:', err);
     }
@@ -246,18 +242,16 @@ export const RegistrationProvider: React.FC<RegistrationProviderProps> = ({
     setIsSubmitting(true);
     
     try {
-      // Fix: Explicitly provide typed data for the update
-      const { error } = await enhancedSupabaseClient()
+      await enhancedSupabaseClient()
         .registrationProgress()
         .update({
-          registration_data: registrationData,
+          id: registrationId,
+          registrationData: registrationData,
           status: 'completed',
-          completed_step_count: filteredSteps.length,
-        })
+          completedStepCount: filteredSteps.length,
+        } as Partial<RegistrationProgress>)
         .eq('id', registrationId);
 
-      if (error) throw error;
-      
       if (onComplete) {
         onComplete(registrationData);
       }
@@ -273,49 +267,6 @@ export const RegistrationProvider: React.FC<RegistrationProviderProps> = ({
       setIsSubmitting(false);
     }
   }, [registrationId, registrationData, filteredSteps.length, onComplete, navigate, registrationFlowType]);
-
-  const updateData = useCallback((newData: Record<string, any>) => {
-    setRegistrationData(prev => ({
-      ...prev,
-      ...newData,
-    }));
-  }, []);
-
-  const isStepValid = useCallback((stepIndex?: number) => {
-    const step = filteredSteps[stepIndex !== undefined ? stepIndex : currentStepIndex];
-    
-    if (!step.validateStep) return true;
-    
-    const result = step.validateStep(registrationData);
-    return typeof result === 'object' ? result.valid : result;
-  }, [filteredSteps, currentStepIndex, registrationData]);
-
-  const goToNextStep = useCallback(async () => {
-    if (!isStepValid()) {
-      toast.warning('Please complete all required fields before continuing.');
-      return;
-    }
-
-    await saveProgress();
-
-    if (currentStepIndex < filteredSteps.length - 1) {
-      setCurrentStepIndex(prev => prev + 1);
-    } else {
-      await submitRegistration();
-    }
-  }, [currentStepIndex, filteredSteps.length, isStepValid, saveProgress, submitRegistration]);
-
-  const goToPreviousStep = useCallback(() => {
-    if (currentStepIndex > 0) {
-      setCurrentStepIndex(prev => prev - 1);
-    }
-  }, [currentStepIndex]);
-
-  const goToStep = useCallback((stepIndex: number) => {
-    if (stepIndex >= 0 && stepIndex < filteredSteps.length) {
-      setCurrentStepIndex(stepIndex);
-    }
-  }, [filteredSteps.length]);
 
   const value = {
     registrationData,
