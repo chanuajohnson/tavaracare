@@ -1,20 +1,35 @@
 
-import { DatabaseService } from "./databaseService";
+import { supabase } from "@/lib/supabase";
 import { JobOpportunity } from "../types/jobOpportunity";
 import { DbJobOpportunity, DbJobOpportunityInsert } from "../types/jobOpportunity";
 import { adaptJobOpportunityFromDb, adaptJobOpportunityToDb } from "../adapters/jobOpportunityAdapter";
-import { supabase } from "@/lib/supabase";
 
-export class JobOpportunityService extends DatabaseService<JobOpportunity, DbJobOpportunityInsert, 'job_opportunities'> {
-  constructor() {
-    super('job_opportunities', adaptJobOpportunityFromDb);
-  }
+/**
+ * Service for managing job opportunities
+ */
+export class JobOpportunityService {
   
   /**
    * Get a job opportunity by ID
    */
   async getJobOpportunity(id: string): Promise<JobOpportunity | null> {
-    return this.getSingle(id);
+    try {
+      const { data, error } = await supabase
+        .from('job_opportunities')
+        .select('*')
+        .eq('id', id)
+        .maybeSingle();
+        
+      if (error) {
+        console.error("[JobOpportunityService] getJobOpportunity error:", error);
+        throw error;
+      }
+      
+      return data ? adaptJobOpportunityFromDb(data) : null;
+    } catch (error) {
+      console.error("[JobOpportunityService] getJobOpportunity exception:", error);
+      throw error;
+    }
   }
   
   /**

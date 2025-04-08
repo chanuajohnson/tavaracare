@@ -1,21 +1,36 @@
 
-import { DatabaseService } from "./databaseService";
+import { supabase } from "@/lib/supabase";
 import { Profile } from "../types/profile";
 import { DbProfile, DbProfileInsert } from "../types/profile";
 import { adaptProfileFromDb, adaptProfileToDb } from "../adapters/profileAdapter";
-import { supabase } from "@/lib/supabase";
-import { UserRole } from "../types/profile";
+import { UserRole } from "../utils/supabaseTypes";
 
-export class ProfileService extends DatabaseService<Profile, DbProfileInsert, 'profiles'> {
-  constructor() {
-    super('profiles', adaptProfileFromDb);
-  }
+/**
+ * Service for managing user profiles
+ */
+export class ProfileService {
   
   /**
    * Get a profile by ID
    */
   async getProfile(id: string): Promise<Profile | null> {
-    return this.getSingle(id);
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', id)
+        .maybeSingle();
+      
+      if (error) {
+        console.error("[ProfileService] getProfile error:", error);
+        throw error;
+      }
+      
+      return data ? adaptProfileFromDb(data) : null;
+    } catch (error) {
+      console.error("[ProfileService] getProfile exception:", error);
+      throw error;
+    }
   }
   
   /**
@@ -56,13 +71,68 @@ export class ProfileService extends DatabaseService<Profile, DbProfileInsert, 'p
         
       if (data) {
         // Update existing profile
-        return this.update(profile.id, dbProfile);
+        return this.updateProfile(profile.id, dbProfile);
       } else {
         // Create new profile
-        return this.insert(dbProfile);
+        return this.insertProfile(dbProfile);
       }
     } catch (error) {
       console.error("[ProfileService] saveProfile error:", error);
+      throw error;
+    }
+  }
+  
+  /**
+   * Insert a new profile
+   */
+  private async insertProfile(profile: DbProfileInsert): Promise<Profile> {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .insert([profile])
+        .select()
+        .single();
+      
+      if (error) {
+        console.error("[ProfileService] insertProfile error:", error);
+        throw error;
+      }
+      
+      if (!data) {
+        throw new Error(`Inserted profile with ID ${profile.id} not found`);
+      }
+      
+      return adaptProfileFromDb(data);
+    } catch (error) {
+      console.error("[ProfileService] insertProfile exception:", error);
+      throw error;
+    }
+  }
+  
+  /**
+   * Update an existing profile
+   */
+  private async updateProfile(id: string, updates: Partial<DbProfileInsert>): Promise<Profile> {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single();
+      
+      if (error) {
+        console.error("[ProfileService] updateProfile error:", error);
+        throw error;
+      }
+      
+      if (!data) {
+        throw new Error(`Updated profile with ID ${id} not found`);
+      }
+      
+      return adaptProfileFromDb(data);
+    } catch (error) {
+      console.error("[ProfileService] updateProfile exception:", error);
       throw error;
     }
   }
