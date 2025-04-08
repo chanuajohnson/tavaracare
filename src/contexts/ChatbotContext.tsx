@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { enhancedSupabaseClient } from '@/lib/supabase';
 import { ChatbotConversation, ChatbotMessage } from '@/types/chatbot';
@@ -94,28 +95,32 @@ export const ChatbotProvider: React.FC<ChatbotProviderProps> = ({ children }) =>
             messageType: 'greeting',
           };
           
+          // Fix: Cast to specific type with required fields
           const { error: createError } = await enhancedSupabaseClient()
             .chatbotConversations()
-            .insert(camelToSnake({
+            .insert({
               id: newConversationId,
-              userId: userId || null,
-              sessionId: sessionId,
-              conversationData: [initialMessage],
-              leadScore: 0,
-            }));
+              user_id: userId || null,
+              session_id: sessionId,
+              conversation_data: [initialMessage],
+              lead_score: 0,
+              converted_to_registration: false,
+              handoff_requested: false,
+            });
             
           if (createError) throw createError;
           
+          // Fix: Cast to specific type with required fields
           const { error: messageError } = await enhancedSupabaseClient()
             .chatbotMessages()
-            .insert(camelToSnake({
+            .insert({
               id: initialMessage.id,
-              conversationId: newConversationId,
+              conversation_id: newConversationId,
               message: initialMessage.message,
-              senderType: initialMessage.senderType,
+              sender_type: initialMessage.senderType,
               timestamp: initialMessage.timestamp,
-              messageType: initialMessage.messageType,
-            }));
+              message_type: initialMessage.messageType,
+            });
             
           if (messageError) throw messageError;
           
@@ -163,22 +168,24 @@ export const ChatbotProvider: React.FC<ChatbotProviderProps> = ({ children }) =>
     if (!conversation) return;
     
     try {
-      await enhancedSupabaseClient().chatbotMessages().insert(camelToSnake({
+      // Fix: Explicitly convert object to snake_case with proper types
+      await enhancedSupabaseClient().chatbotMessages().insert({
         id: message.id,
-        conversationId: conversation.id,
+        conversation_id: conversation.id,
         message: message.message,
-        senderType: message.senderType,
+        sender_type: message.senderType,
         timestamp: message.timestamp,
-        messageType: message.messageType,
-        contextData: message.contextData,
-      }));
+        message_type: message.messageType,
+        context_data: message.contextData || {},
+      });
       
+      // Fix: Explicitly update with snake_case properties
       await enhancedSupabaseClient()
         .chatbotConversations()
-        .update(camelToSnake({
-          updatedAt: new Date().toISOString(),
-          conversationData: [...messages, message],
-        }))
+        .update({
+          updated_at: new Date().toISOString(),
+          conversation_data: [...messages, message],
+        })
         .eq('id', conversation.id);
         
     } catch (err) {
@@ -332,12 +339,13 @@ export const ChatbotProvider: React.FC<ChatbotProviderProps> = ({ children }) =>
     if (!conversation) return;
     
     try {
+      // Fix: Explicitly update with snake_case properties
       await enhancedSupabaseClient()
         .chatbotConversations()
-        .update(camelToSnake({
-          handoffRequested: true,
-          updatedAt: new Date().toISOString(),
-        }))
+        .update({
+          handoff_requested: true,
+          updated_at: new Date().toISOString(),
+        })
         .eq('id', conversation.id);
         
       setConversation(prev => prev ? {
@@ -367,12 +375,13 @@ export const ChatbotProvider: React.FC<ChatbotProviderProps> = ({ children }) =>
   const startRegistration = useCallback((role: 'family' | 'professional' | 'community') => {
     if (!conversation) return;
     
+    // Fix: Use proper Promise chaining with catch handler
     enhancedSupabaseClient()
       .chatbotConversations()
-      .update(camelToSnake({
-        convertedToRegistration: true,
-        updatedAt: new Date().toISOString(),
-      }))
+      .update({
+        converted_to_registration: true,
+        updated_at: new Date().toISOString(),
+      })
       .eq('id', conversation.id)
       .then(() => {
         navigate(`/registration/${role.toLowerCase()}`);
@@ -382,6 +391,126 @@ export const ChatbotProvider: React.FC<ChatbotProviderProps> = ({ children }) =>
         navigate(`/registration/${role.toLowerCase()}`);
       });
   }, [conversation, navigate]);
+
+  // Add processBotResponse function back in
+  const processBotResponse = async (userMessage: string): Promise<ChatbotMessage> => {
+    try {
+      setIsTyping(true);
+      
+      let botResponse = '';
+      let messageType: 'response' | 'question' = 'response';
+      let contextData = {};
+      let updatedLeadScore = conversation?.leadScore || 0;
+      
+      const lowerCaseMessage = userMessage.toLowerCase();
+      
+      if (lowerCaseMessage.includes('hello') || lowerCaseMessage.includes('hi')) {
+        botResponse = "Hello! How can I help you today? Are you looking for care services or interested in becoming a caregiver?";
+        messageType = 'question';
+        contextData = { topic: 'greeting' };
+      } 
+      else if (lowerCaseMessage.includes('care') || lowerCaseMessage.includes('help') || lowerCaseMessage.includes('service')) {
+        botResponse = "We offer a variety of care services for families. What type of care are you looking for? (Elder care, post-surgery recovery, special needs, etc.)";
+        messageType = 'question';
+        contextData = { topic: 'care_type', leadQualification: true };
+        updatedLeadScore += 20;
+      }
+      else if (lowerCaseMessage.includes('elder') || lowerCaseMessage.includes('senior') || lowerCaseMessage.includes('old')) {
+        botResponse = "We have many qualified caregivers specialized in elder care. When do you need this care to start?";
+        messageType = 'question';
+        contextData = { topic: 'elder_care', careType: 'elder', leadQualification: true };
+        updatedLeadScore += 15;
+      }
+      else if (lowerCaseMessage.includes('caregiver') || lowerCaseMessage.includes('job') || lowerCaseMessage.includes('work')) {
+        botResponse = "Great! We're always looking for qualified healthcare professionals. Do you have experience as a caregiver or nurse?";
+        messageType = 'question';
+        contextData = { topic: 'caregiver_inquiry', userType: 'professional' };
+      }
+      else if (lowerCaseMessage.includes('price') || lowerCaseMessage.includes('cost') || lowerCaseMessage.includes('fee')) {
+        botResponse = "Our care services are personalized to your specific needs. Pricing depends on the level of care required, frequency, and duration. Would you like to provide some details about your care needs so I can give you a better estimate?";
+        messageType = 'question';
+        contextData = { topic: 'pricing', leadQualification: true };
+        updatedLeadScore += 25;
+      }
+      else if (lowerCaseMessage.includes('register') || lowerCaseMessage.includes('sign up') || lowerCaseMessage.includes('account')) {
+        botResponse = "I'd be happy to help you register! Are you looking to register as a family in need of care services, or as a healthcare professional looking for opportunities?";
+        messageType = 'question';
+        contextData = { topic: 'registration', leadQualification: true };
+        updatedLeadScore += 30;
+      }
+      else if (lowerCaseMessage.includes('urgent') || lowerCaseMessage.includes('emergency') || lowerCaseMessage.includes('asap')) {
+        botResponse = "I understand you need care urgently. We can expedite the matching process. Can I collect your contact information to have our care coordinator reach out to you immediately?";
+        messageType = 'question';
+        contextData = { topic: 'urgent_care', priority: 'high', leadQualification: true };
+        updatedLeadScore += 40;
+      }
+      else if (lowerCaseMessage.includes('contact') || lowerCaseMessage.includes('phone') || lowerCaseMessage.includes('call me')) {
+        botResponse = "I'd be happy to have someone contact you directly. Could you please provide your name and the best phone number to reach you?";
+        messageType = 'question';
+        contextData = { topic: 'contact_request', leadQualification: true };
+        updatedLeadScore += 35;
+      }
+      else if (lowerCaseMessage.includes('thank')) {
+        botResponse = "You're welcome! Is there anything else I can help you with today?";
+        messageType = 'question';
+        contextData = { topic: 'gratitude' };
+      }
+      else {
+        botResponse = "Thank you for your message. To better assist you, could you share what type of care services you're interested in, or if you'd like to learn about becoming a caregiver with us?";
+        messageType = 'question';
+        contextData = { topic: 'general_inquiry' };
+      }
+      
+      await new Promise(resolve => setTimeout(resolve, Math.random() * 1000 + 1000));
+      
+      if (conversation && updatedLeadScore !== conversation.leadScore) {
+        await enhancedSupabaseClient()
+          .chatbotConversations()
+          .update({
+            lead_score: updatedLeadScore,
+          })
+          .eq('id', conversation.id);
+          
+        setConversation(prev => prev ? {
+          ...prev,
+          leadScore: updatedLeadScore
+        } : null);
+      }
+      
+      return {
+        id: uuidv4(),
+        message: botResponse,
+        senderType: 'bot',
+        timestamp: new Date().toISOString(),
+        messageType,
+        contextData
+      };
+    } catch (error) {
+      console.error('Error processing bot response:', error);
+      return {
+        id: uuidv4(),
+        message: "I apologize, but I'm having trouble connecting right now. Please try again or contact our support team for immediate assistance.",
+        senderType: 'bot',
+        timestamp: new Date().toISOString(),
+        messageType: 'response',
+        contextData: { error: true }
+      };
+    } finally {
+      setIsTyping(false);
+    }
+  };
+
+  const toggleChatbot = useCallback(() => {
+    setIsOpen(prev => !prev);
+  }, []);
+
+  const openChatbot = useCallback(() => {
+    setIsOpen(true);
+  }, []);
+
+  const closeChatbot = useCallback(() => {
+    setIsOpen(false);
+  }, []);
 
   const value = {
     conversation,

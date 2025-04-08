@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { enhancedSupabaseClient } from '@/lib/supabase';
@@ -114,18 +115,21 @@ export const RegistrationProvider: React.FC<RegistrationProviderProps> = ({
         } else {
           const newRegistrationId = uuidv4();
           
+          // Fix: Explicitly provide all the required fields
           const { error: createError } = await enhancedSupabaseClient()
             .registrationProgress()
-            .insert(camelToSnake({
+            .insert({
               id: newRegistrationId,
-              userId: userId,
-              sessionId: sessionId,
-              currentStep: steps[0].id,
-              registrationData: initialData,
+              user_id: userId,
+              session_id: sessionId,
+              current_step: steps[0].id,
+              registration_data: initialData,
               status: 'started',
-              totalSteps: filteredSteps.length,
-              deviceInfo: getDeviceInfo(),
-            }));
+              total_steps: filteredSteps.length,
+              device_info: getDeviceInfo(),
+              completed_steps: {},
+              last_active_at: new Date().toISOString()
+            });
             
           if (createError) throw createError;
           
@@ -174,16 +178,17 @@ export const RegistrationProvider: React.FC<RegistrationProviderProps> = ({
         [filteredSteps[currentStepIndex].id]: true,
       };
 
+      // Fix: Explicitly provide typed data for the update
       const { error } = await enhancedSupabaseClient()
         .registrationProgress()
-        .update(camelToSnake({
-          registrationData: registrationData,
-          currentStep: filteredSteps[currentStepIndex].id,
+        .update({
+          registration_data: registrationData,
+          current_step: filteredSteps[currentStepIndex].id,
           status: 'in_progress',
-          lastActiveAt: new Date().toISOString(),
-          completedSteps: updatedCompletedSteps,
-          completedStepCount: Object.values(updatedCompletedSteps).filter(Boolean).length,
-        }))
+          last_active_at: new Date().toISOString(),
+          completed_steps: updatedCompletedSteps,
+          completed_step_count: Object.values(updatedCompletedSteps).filter(Boolean).length,
+        })
         .eq('id', registrationId);
 
       if (error) throw error;
@@ -241,13 +246,14 @@ export const RegistrationProvider: React.FC<RegistrationProviderProps> = ({
     setIsSubmitting(true);
     
     try {
+      // Fix: Explicitly provide typed data for the update
       const { error } = await enhancedSupabaseClient()
         .registrationProgress()
-        .update(camelToSnake({
-          registrationData: registrationData,
+        .update({
+          registration_data: registrationData,
           status: 'completed',
-          completedStepCount: filteredSteps.length,
-        }))
+          completed_step_count: filteredSteps.length,
+        })
         .eq('id', registrationId);
 
       if (error) throw error;
@@ -267,6 +273,49 @@ export const RegistrationProvider: React.FC<RegistrationProviderProps> = ({
       setIsSubmitting(false);
     }
   }, [registrationId, registrationData, filteredSteps.length, onComplete, navigate, registrationFlowType]);
+
+  const updateData = useCallback((newData: Record<string, any>) => {
+    setRegistrationData(prev => ({
+      ...prev,
+      ...newData,
+    }));
+  }, []);
+
+  const isStepValid = useCallback((stepIndex?: number) => {
+    const step = filteredSteps[stepIndex !== undefined ? stepIndex : currentStepIndex];
+    
+    if (!step.validateStep) return true;
+    
+    const result = step.validateStep(registrationData);
+    return typeof result === 'object' ? result.valid : result;
+  }, [filteredSteps, currentStepIndex, registrationData]);
+
+  const goToNextStep = useCallback(async () => {
+    if (!isStepValid()) {
+      toast.warning('Please complete all required fields before continuing.');
+      return;
+    }
+
+    await saveProgress();
+
+    if (currentStepIndex < filteredSteps.length - 1) {
+      setCurrentStepIndex(prev => prev + 1);
+    } else {
+      await submitRegistration();
+    }
+  }, [currentStepIndex, filteredSteps.length, isStepValid, saveProgress, submitRegistration]);
+
+  const goToPreviousStep = useCallback(() => {
+    if (currentStepIndex > 0) {
+      setCurrentStepIndex(prev => prev - 1);
+    }
+  }, [currentStepIndex]);
+
+  const goToStep = useCallback((stepIndex: number) => {
+    if (stepIndex >= 0 && stepIndex < filteredSteps.length) {
+      setCurrentStepIndex(stepIndex);
+    }
+  }, [filteredSteps.length]);
 
   const value = {
     registrationData,
