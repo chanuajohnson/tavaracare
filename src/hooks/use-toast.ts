@@ -42,39 +42,21 @@ function toast(options: ToastOptions) {
   });
 }
 
-// Enhanced helper methods with more consistent API
-toast.success = (message: string, options?: Omit<ToastOptions, 'variant'>) => {
-  return toast({
-    title: message,
-    variant: "success",
-    ...options
-  });
+// Helper methods to maintain a more fluent API
+toast.success = (message: string) => {
+  return sonnerToast.success(message);
 };
 
-toast.error = (message: string, options?: Omit<ToastOptions, 'variant'>) => {
-  return toast({
-    title: message,
-    variant: "destructive",
-    ...options
-  });
+toast.error = (message: string) => {
+  return sonnerToast.error(message);
 };
 
-toast.warning = (message: string, options?: Omit<ToastOptions, 'variant'>) => {
-  return toast({
-    title: message,
-    variant: "warning",
-    ...options
-  });
+toast.warning = (message: string) => {
+  return sonnerToast.warning(message);
 };
 
-toast.info = (message: string, options?: Omit<ToastOptions, 'variant'>) => {
-  return toast({
-    title: message,
-    description: options?.description,
-    duration: options?.duration || DEFAULT_TOAST_DURATION,
-    variant: "info",
-    action: options?.action,
-  });
+toast.info = (message: string) => {
+  return sonnerToast.info(message);
 };
 
 // Simple dismiss function for backward compatibility
