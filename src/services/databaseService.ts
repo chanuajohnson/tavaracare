@@ -24,11 +24,11 @@ export class DatabaseService<T, TInsert, TTable extends keyof Database['public']
     selectColumns: string = '*'
   ): Promise<T | null> {
     try {
-      // Explicitly tell TypeScript we're querying a specific table
+      // Use type assertion to handle complex typing
       const query = supabase
         .from(this.tableName)
         .select(selectColumns)
-        .eq('id', id)
+        .eq('id' as any, id)
         .limit(1)
         .maybeSingle();
       
@@ -104,7 +104,7 @@ export class DatabaseService<T, TInsert, TTable extends keyof Database['public']
       const selectQuery = supabase
         .from(this.tableName)
         .select(selectColumns)
-        .eq('id', id)
+        .eq('id' as any, id)
         .limit(1)
         .maybeSingle();
       
@@ -139,7 +139,7 @@ export class DatabaseService<T, TInsert, TTable extends keyof Database['public']
       const updateQuery = supabase
         .from(this.tableName)
         .update(updates as any)
-        .eq('id', id);
+        .eq('id' as any, id);
       
       const { error: updateError } = await updateQuery;
       
@@ -152,7 +152,7 @@ export class DatabaseService<T, TInsert, TTable extends keyof Database['public']
       const selectQuery = supabase
         .from(this.tableName)
         .select(selectColumns)
-        .eq('id', id)
+        .eq('id' as any, id)
         .limit(1)
         .maybeSingle();
       
@@ -182,7 +182,7 @@ export class DatabaseService<T, TInsert, TTable extends keyof Database['public']
       const query = supabase
         .from(this.tableName)
         .delete()
-        .eq('id', id);
+        .eq('id' as any, id);
       
       const { error } = await query;
       
