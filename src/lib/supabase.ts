@@ -107,19 +107,19 @@ export const enhancedSupabaseClient = () => {
   
   // Return the supabase client with the session ID set in the headers
   return {
-    // Use registration_progress table through type casting
+    // Fixed: Use properly typed methods that return the Supabase client methods
     registrationProgress: () => {
-      return supabase.from('registration_progress') as unknown as ReturnType<typeof supabase.from<ExtendedDatabase['public']['Tables']['registration_progress']['Row']>>;
+      return supabase.from('registration_progress');
     },
     
     // Chat conversations table accessor
     chatbotConversations: () => {
-      return supabase.from('chatbot_conversations') as unknown as ReturnType<typeof supabase.from<ExtendedDatabase['public']['Tables']['chatbot_conversations']['Row']>>;
+      return supabase.from('chatbot_conversations');
     },
     
     // Chat messages table accessor
     chatbotMessages: () => {
-      return supabase.from('chatbot_messages') as unknown as ReturnType<typeof supabase.from<ExtendedDatabase['public']['Tables']['chatbot_messages']['Row']>>;
+      return supabase.from('chatbot_messages');
     },
     
     // Return the standard client for other tables
