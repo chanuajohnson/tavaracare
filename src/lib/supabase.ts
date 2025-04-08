@@ -1,3 +1,4 @@
+
 // This file is a compatibility layer that forwards to our standardized implementation
 // Import the supabase client from the standard location
 import { 
@@ -31,6 +32,7 @@ import {
 } from '@/lib/type-validation';
 import { ChatbotMessage, ChatbotConversation } from '@/types/chatbot';
 import { RegistrationProgress } from '@/types/registration';
+import { Json } from '@/integrations/supabase/types';
 import { PostgrestFilterBuilder, PostgrestQueryBuilder } from '@supabase/postgrest-js';
 
 // Create a function to get user role from the profiles table
@@ -135,6 +137,10 @@ export const enhancedSupabaseClient = () => {
         // Enhanced insert
         async insert(data: Partial<RegistrationProgress>) {
           const dbData = adaptRegistrationProgressToDb(data);
+          // Make sure required fields are present
+          if (!dbData.session_id && sessionId) {
+            dbData.session_id = sessionId;
+          }
           return await supabase.from('registration_progress').insert(dbData);
         },
         
@@ -179,6 +185,12 @@ export const enhancedSupabaseClient = () => {
         // Enhanced insert
         async insert(data: Partial<ChatbotConversation>) {
           const dbData = adaptChatbotConversationToDb(data);
+          
+          // Make sure required fields are present
+          if (!dbData.session_id && sessionId) {
+            dbData.session_id = sessionId;
+          }
+          
           return await supabase.from('chatbot_conversations').insert(dbData);
         },
         
@@ -223,6 +235,16 @@ export const enhancedSupabaseClient = () => {
         // Enhanced insert
         async insert(data: Partial<ChatbotMessage>) {
           const dbData = adaptChatbotMessageToDb(data);
+          
+          // Ensure required fields are present
+          if (!dbData.message) {
+            throw new Error("Message content is required");
+          }
+          
+          if (!dbData.sender_type) {
+            throw new Error("Sender type is required");
+          }
+          
           return await supabase.from('chatbot_messages').insert(dbData);
         },
         

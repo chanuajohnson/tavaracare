@@ -97,7 +97,8 @@ export const chatbotMessageSchema = z.object({
 
 // Specific adapters for our main entities
 export function adaptChatbotMessage(dbMessage: DbChatbotMessage): ChatbotMessage {
-  const adapted = adaptFromDb<any>(dbMessage);
+  // First convert keys from snake_case to camelCase
+  const adapted = adaptFromDb<Record<string, any>>(dbMessage);
   
   // Ensure required fields are present with default values if needed
   const validatedMessage: ChatbotMessage = {
@@ -121,30 +122,33 @@ export function adaptChatbotMessage(dbMessage: DbChatbotMessage): ChatbotMessage
 
 export function adaptChatbotMessageToDb(message: Partial<ChatbotMessage>): Partial<DbChatbotMessage> {
   // Ensure we have required fields before converting
-  if (!message.id) {
-    message.id = crypto.randomUUID();
+  const validated: Partial<ChatbotMessage> = { ...message };
+  
+  if (!validated.id) {
+    validated.id = crypto.randomUUID();
   }
   
-  if (!message.message) {
-    message.message = '';
+  if (!validated.message) {
+    validated.message = '';
   }
   
-  if (!message.senderType) {
-    message.senderType = 'system';
+  if (!validated.senderType) {
+    validated.senderType = 'system';
   }
   
-  if (!message.timestamp) {
-    message.timestamp = new Date().toISOString();
+  if (!validated.timestamp) {
+    validated.timestamp = new Date().toISOString();
   }
   
-  return adaptToDb<DbChatbotMessage>({
-    id: message.id,
-    message: message.message,
-    sender_type: message.senderType,
-    timestamp: message.timestamp,
-    message_type: message.messageType,
-    context_data: message.contextData || {}
-  });
+  // Convert camelCase to snake_case
+  return {
+    id: validated.id,
+    message: validated.message,
+    sender_type: validated.senderType,
+    timestamp: validated.timestamp,
+    message_type: validated.messageType,
+    context_data: validated.contextData as unknown as Json
+  };
 }
 
 export function adaptChatbotConversation(dbConversation: DbChatbotConversation): ChatbotConversation {
@@ -154,16 +158,15 @@ export function adaptChatbotConversation(dbConversation: DbChatbotConversation):
   let conversationData: ChatbotMessage[] = [];
   
   if (Array.isArray(dbConversation.conversation_data)) {
-    conversationData = dbConversation.conversation_data.map((msg: any) => {
+    conversationData = (dbConversation.conversation_data as any[]).map(msg => {
       try {
-        const adaptedMsg = adaptFromDb(msg);
         return {
-          id: adaptedMsg.id || crypto.randomUUID(),
-          message: adaptedMsg.message || '',
-          senderType: adaptedMsg.senderType || 'system',
-          timestamp: adaptedMsg.timestamp || new Date().toISOString(),
-          messageType: adaptedMsg.messageType,
-          contextData: adaptedMsg.contextData
+          id: msg.id || crypto.randomUUID(),
+          message: msg.message || '',
+          senderType: msg.sender_type || 'system',
+          timestamp: msg.timestamp || new Date().toISOString(),
+          messageType: msg.message_type,
+          contextData: msg.context_data
         };
       } catch (e) {
         console.error('Invalid message format in conversation data:', msg, e);
