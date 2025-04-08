@@ -97,19 +97,46 @@ export const chatbotMessageSchema = z.object({
 
 // Specific adapters for our main entities
 export function adaptChatbotMessage(dbMessage: DbChatbotMessage): ChatbotMessage {
-  const adapted = adaptFromDb<ChatbotMessage>(dbMessage);
-  // Ensure required fields are present
-  return {
-    id: adapted.id || '',
+  const adapted = adaptFromDb<any>(dbMessage);
+  
+  // Ensure required fields are present with default values if needed
+  const validatedMessage: ChatbotMessage = {
+    id: adapted.id || crypto.randomUUID(),
     message: adapted.message || '',
     senderType: adapted.senderType || 'system',
     timestamp: adapted.timestamp || new Date().toISOString(),
     messageType: adapted.messageType,
     contextData: adapted.contextData
   };
+  
+  // Run validation to ensure the adapted message meets our schema
+  try {
+    chatbotMessageSchema.parse(validatedMessage);
+  } catch (e) {
+    console.error('Invalid message format:', e);
+  }
+  
+  return validatedMessage;
 }
 
-export function adaptChatbotMessageToDb(message: ChatbotMessage): DbChatbotMessage {
+export function adaptChatbotMessageToDb(message: Partial<ChatbotMessage>): Partial<DbChatbotMessage> {
+  // Ensure we have required fields before converting
+  if (!message.id) {
+    message.id = crypto.randomUUID();
+  }
+  
+  if (!message.message) {
+    message.message = '';
+  }
+  
+  if (!message.senderType) {
+    message.senderType = 'system';
+  }
+  
+  if (!message.timestamp) {
+    message.timestamp = new Date().toISOString();
+  }
+  
   return adaptToDb<DbChatbotMessage>({
     id: message.id,
     message: message.message,
@@ -124,22 +151,32 @@ export function adaptChatbotConversation(dbConversation: DbChatbotConversation):
   const adapted = adaptFromDb<any>(dbConversation);
   
   // Handle the conversation_data field explicitly to ensure proper typing
-  const conversationData = Array.isArray(dbConversation.conversation_data) 
-    ? dbConversation.conversation_data.map((msg: any) => {
-        try {
-          return chatbotMessageSchema.parse(adaptFromDb(msg));
-        } catch (e) {
-          console.error('Invalid message format in conversation data:', msg, e);
-          // Provide a fallback with required fields
-          return {
-            id: msg.id || 'invalid-id',
-            message: msg.message || 'Invalid message format',
-            senderType: 'system',
-            timestamp: msg.timestamp || new Date().toISOString()
-          };
-        }
-      })
-    : [];
+  let conversationData: ChatbotMessage[] = [];
+  
+  if (Array.isArray(dbConversation.conversation_data)) {
+    conversationData = dbConversation.conversation_data.map((msg: any) => {
+      try {
+        const adaptedMsg = adaptFromDb(msg);
+        return {
+          id: adaptedMsg.id || crypto.randomUUID(),
+          message: adaptedMsg.message || '',
+          senderType: adaptedMsg.senderType || 'system',
+          timestamp: adaptedMsg.timestamp || new Date().toISOString(),
+          messageType: adaptedMsg.messageType,
+          contextData: adaptedMsg.contextData
+        };
+      } catch (e) {
+        console.error('Invalid message format in conversation data:', msg, e);
+        // Provide a fallback with required fields
+        return {
+          id: msg.id || crypto.randomUUID(),
+          message: msg.message || 'Invalid message format',
+          senderType: 'system',
+          timestamp: msg.timestamp || new Date().toISOString()
+        };
+      }
+    });
+  }
   
   return {
     ...adapted,
@@ -147,7 +184,9 @@ export function adaptChatbotConversation(dbConversation: DbChatbotConversation):
   } as ChatbotConversation;
 }
 
-export function adaptChatbotConversationToDb(conversation: ChatbotConversation): Omit<DbChatbotConversation, 'created_at' | 'updated_at'> {
+export function adaptChatbotConversationToDb(conversation: Partial<ChatbotConversation>): Partial<DbChatbotConversation> {
+  if (!conversation) return {};
+  
   // Handle the special case of conversationData
   const conversationData = conversation.conversationData?.map(msg => ({
     id: msg.id,

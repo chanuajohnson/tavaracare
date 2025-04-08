@@ -60,7 +60,7 @@ export const ChatbotProvider: React.FC<ChatbotProviderProps> = ({ children }) =>
         
         const { data: existingConversations, error: fetchError } = await enhancedSupabaseClient()
           .chatbotConversations()
-          .select('*')
+          .select('*');
 
         if (fetchError) throw fetchError;
         
@@ -70,7 +70,7 @@ export const ChatbotProvider: React.FC<ChatbotProviderProps> = ({ children }) =>
           
           const { data: messageData, error: messageError } = await enhancedSupabaseClient()
             .chatbotMessages()
-            .select('*')
+            .select('*');
             
           if (messageError) throw messageError;
           
@@ -98,7 +98,7 @@ export const ChatbotProvider: React.FC<ChatbotProviderProps> = ({ children }) =>
               leadScore: 0,
               convertedToRegistration: false,
               handoffRequested: false,
-            } as Partial<ChatbotConversation>);
+            });
             
           if (createError) throw createError;
           
@@ -111,7 +111,7 @@ export const ChatbotProvider: React.FC<ChatbotProviderProps> = ({ children }) =>
               senderType: initialMessage.senderType,
               timestamp: initialMessage.timestamp,
               messageType: initialMessage.messageType,
-            } as Partial<ChatbotMessage>);
+            });
             
           if (messageError) throw messageError;
           
@@ -159,7 +159,8 @@ export const ChatbotProvider: React.FC<ChatbotProviderProps> = ({ children }) =>
     if (!conversation) return;
     
     try {
-      await enhancedSupabaseClient().chatbotMessages()
+      await enhancedSupabaseClient()
+        .chatbotMessages()
         .insert(message);
       
       await enhancedSupabaseClient()
@@ -168,7 +169,7 @@ export const ChatbotProvider: React.FC<ChatbotProviderProps> = ({ children }) =>
           id: conversation.id,
           updatedAt: new Date().toISOString(),
           conversationData: [...messages, message]
-        } as Partial<ChatbotConversation>)
+        });
       
     } catch (err) {
       console.error('Error saving chatbot message:', err);
@@ -251,7 +252,7 @@ export const ChatbotProvider: React.FC<ChatbotProviderProps> = ({ children }) =>
           .update({
             id: conversation.id,
             leadScore: updatedLeadScore,
-          } as Partial<ChatbotConversation>)
+          });
           
         setConversation(prev => prev ? {
           ...prev,
@@ -261,7 +262,7 @@ export const ChatbotProvider: React.FC<ChatbotProviderProps> = ({ children }) =>
       
       return {
         id: uuidv4(),
-        message: botResponse,
+        message: botResponse || "I'm not sure how to respond to that. Can you provide more details about what you need?",
         senderType: 'bot',
         timestamp: new Date().toISOString(),
         messageType,
@@ -327,7 +328,7 @@ export const ChatbotProvider: React.FC<ChatbotProviderProps> = ({ children }) =>
           id: conversation.id,
           handoffRequested: true,
           updatedAt: new Date().toISOString(),
-        } as Partial<ChatbotConversation>)
+        });
         
       setConversation(prev => prev ? {
         ...prev,
@@ -362,7 +363,7 @@ export const ChatbotProvider: React.FC<ChatbotProviderProps> = ({ children }) =>
         id: conversation.id,
         convertedToRegistration: true,
         updatedAt: new Date().toISOString(),
-      } as Partial<ChatbotConversation>)
+      })
       .then(() => {
         navigate(`/registration/${role.toLowerCase()}`);
       })
@@ -372,7 +373,6 @@ export const ChatbotProvider: React.FC<ChatbotProviderProps> = ({ children }) =>
       });
   }, [conversation, navigate]);
 
-  // Re-implement the processBotResponse function with the logic specific to different message types
   if (process.env.NODE_ENV === 'development') {
     (window as any).debugChatbot = {
       conversation,

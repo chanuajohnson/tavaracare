@@ -85,9 +85,10 @@ export const RegistrationProvider: React.FC<RegistrationProviderProps> = ({
         const { data: authData } = await enhancedSupabaseClient().client.auth.getUser();
         const userId = authData.user?.id;
 
+        // Fix: Use enhanced client properly
         const { data, error } = await enhancedSupabaseClient()
           .registrationProgress()
-          .select('*')
+          .select('*');
         
         if (error) throw error;
 
@@ -111,6 +112,7 @@ export const RegistrationProvider: React.FC<RegistrationProviderProps> = ({
         } else {
           const newRegistrationId = uuidv4();
           
+          // Fix: Use enhanced client properly
           const { error: createError } = await enhancedSupabaseClient()
             .registrationProgress()
             .insert({
@@ -124,7 +126,7 @@ export const RegistrationProvider: React.FC<RegistrationProviderProps> = ({
               deviceInfo: getDeviceInfo(),
               completedSteps: {},
               lastActiveAt: new Date().toISOString()
-            } as Partial<RegistrationProgress>);
+            });
             
           if (createError) throw createError;
           
@@ -173,6 +175,7 @@ export const RegistrationProvider: React.FC<RegistrationProviderProps> = ({
         [filteredSteps[currentStepIndex].id]: true,
       };
 
+      // Fix: Use enhanced client properly
       await enhancedSupabaseClient()
         .registrationProgress()
         .update({
@@ -183,7 +186,7 @@ export const RegistrationProvider: React.FC<RegistrationProviderProps> = ({
           lastActiveAt: new Date().toISOString(),
           completedSteps: updatedCompletedSteps,
           completedStepCount: Object.values(updatedCompletedSteps).filter(Boolean).length,
-        } as Partial<RegistrationProgress>)
+        });
       
     } catch (err) {
       console.error('Failed to save progress:', err);
@@ -239,6 +242,7 @@ export const RegistrationProvider: React.FC<RegistrationProviderProps> = ({
     setIsSubmitting(true);
     
     try {
+      // Fix: Use enhanced client properly
       await enhancedSupabaseClient()
         .registrationProgress()
         .update({
@@ -246,7 +250,7 @@ export const RegistrationProvider: React.FC<RegistrationProviderProps> = ({
           registrationData: registrationData,
           status: 'completed',
           completedStepCount: filteredSteps.length,
-        } as Partial<RegistrationProgress>)
+        });
 
       if (onComplete) {
         onComplete(registrationData);

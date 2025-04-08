@@ -1,6 +1,8 @@
 
 import { z } from 'zod';
 import { chatbotMessageSchema } from './supabase-adapter';
+import { ChatbotMessage, ChatbotConversation } from '@/types/chatbot';
+import { RegistrationProgress } from '@/types/registration';
 
 /**
  * Helper function to ensure data conforms to expected shape at runtime
@@ -19,13 +21,13 @@ export function validateChatbotMessage(data: unknown): boolean {
 /**
  * Safety wrapper to ensure data conforms to expected shape and fallback if not
  */
-export function safeChatbotMessage(data: unknown): any {
+export function safeChatbotMessage(data: unknown): ChatbotMessage {
   try {
-    return chatbotMessageSchema.parse(data);
+    return chatbotMessageSchema.parse(data) as ChatbotMessage;
   } catch (error) {
     console.error('Invalid ChatbotMessage, using fallback:', error);
     return {
-      id: 'invalid-id',
+      id: crypto.randomUUID(),
       message: 'Invalid message format',
       senderType: 'system',
       timestamp: new Date().toISOString()
@@ -36,7 +38,7 @@ export function safeChatbotMessage(data: unknown): any {
 /**
  * Type guard function to check if something is a ChatbotMessage
  */
-export function isChatbotMessage(data: unknown): boolean {
+export function isChatbotMessage(data: unknown): data is ChatbotMessage {
   return (
     typeof data === 'object' &&
     data !== null &&
@@ -44,6 +46,33 @@ export function isChatbotMessage(data: unknown): boolean {
     'message' in data &&
     'senderType' in data &&
     'timestamp' in data
+  );
+}
+
+/**
+ * Type guard for ChatbotConversation
+ */
+export function isChatbotConversation(data: unknown): data is ChatbotConversation {
+  return (
+    typeof data === 'object' &&
+    data !== null &&
+    'id' in data &&
+    'sessionId' in data &&
+    'conversationData' in data &&
+    Array.isArray((data as any).conversationData)
+  );
+}
+
+/**
+ * Type guard for RegistrationProgress
+ */
+export function isRegistrationProgress(data: unknown): data is RegistrationProgress {
+  return (
+    typeof data === 'object' &&
+    data !== null &&
+    'id' in data &&
+    'currentStep' in data &&
+    'registrationData' in data
   );
 }
 
@@ -69,5 +98,50 @@ export function validateJsonField<T>(
       return { valid: false, value: null, errors: error };
     }
     return { valid: false, value: null };
+  }
+}
+
+/**
+ * Ensure array has the expected shape and items
+ */
+export function validateArray<T>(
+  data: unknown,
+  itemSchema: z.ZodType<T>
+): T[] {
+  if (!Array.isArray(data)) {
+    return [];
+  }
+  
+  return data
+    .map(item => {
+      try {
+        return itemSchema.parse(item);
+      } catch (e) {
+        console.error('Invalid array item:', e);
+        return null;
+      }
+    })
+    .filter((item): item is T => item !== null);
+}
+
+/**
+ * Safe casting helper for Supabase data
+ */
+export function safelyAdaptFromDb<T>(
+  data: unknown | null | undefined,
+  validator: (item: unknown) => boolean,
+  adapter: (item: any) => T,
+  fallback: T
+): T {
+  if (!data) return fallback;
+  
+  try {
+    if (validator(data)) {
+      return adapter(data);
+    }
+    return fallback;
+  } catch (e) {
+    console.error('Error adapting data:', e);
+    return fallback;
   }
 }

@@ -1,4 +1,3 @@
-
 // This file is a compatibility layer that forwards to our standardized implementation
 // Import the supabase client from the standard location
 import { 
@@ -23,6 +22,13 @@ import {
   DbChatbotMessage,
   DbRegistrationProgress
 } from '@/lib/supabase-adapter';
+import {
+  validateChatbotMessage,
+  isChatbotMessage,
+  isChatbotConversation,
+  isRegistrationProgress,
+  safeChatbotMessage
+} from '@/lib/type-validation';
 import { ChatbotMessage, ChatbotConversation } from '@/types/chatbot';
 import { RegistrationProgress } from '@/types/registration';
 import { PostgrestFilterBuilder, PostgrestQueryBuilder } from '@supabase/postgrest-js';
@@ -113,9 +119,6 @@ export const isSupabaseExperiencingIssues = () => {
   return false;
 };
 
-// Type definitions for our enhanced client builders
-type EnhancedFilterBuilder<T> = PostgrestFilterBuilder<any, any, T>;
-
 // Create enhanced client with session ID for anonymous users
 export const enhancedSupabaseClient = () => {
   // Get the session ID for the current user
@@ -126,27 +129,43 @@ export const enhancedSupabaseClient = () => {
     // Type-safe registration progress table accessor
     registrationProgress: () => {
       return {
+        // Keep standard query methods
         ...supabase.from('registration_progress'),
+        
+        // Enhanced insert
         async insert(data: Partial<RegistrationProgress>) {
           const dbData = adaptRegistrationProgressToDb(data);
-          return supabase.from('registration_progress').insert(dbData);
+          return await supabase.from('registration_progress').insert(dbData);
         },
+        
+        // Enhanced update
         async update(data: Partial<RegistrationProgress>) {
           const dbData = adaptRegistrationProgressToDb(data);
-          return supabase.from('registration_progress').update(dbData);
+          return await supabase.from('registration_progress').update(dbData);
         },
-        async select(query: string): Promise<{
-          data: RegistrationProgress[] | null;
-          error: any;
-        }> {
-          const response = await supabase.from('registration_progress').select(query);
-          if (response.data) {
-            const typedData = response.data.map(item => 
-              adaptRegistrationProgress(item as unknown as DbRegistrationProgress)
-            );
-            return { data: typedData, error: response.error };
+        
+        // Enhanced select with proper typing
+        async select(query: string) {
+          const response = await supabase
+            .from('registration_progress')
+            .select(query);
+            
+          if (response.error) {
+            return { data: null, error: response.error };
           }
-          return { data: null, error: response.error };
+          
+          if (!response.data) {
+            return { data: null, error: null };
+          }
+          
+          const typedData = response.data.map(item => 
+            adaptRegistrationProgress(item as unknown as DbRegistrationProgress)
+          );
+          
+          return { 
+            data: typedData, 
+            error: null 
+          };
         }
       };
     },
@@ -154,27 +173,43 @@ export const enhancedSupabaseClient = () => {
     // Type-safe chatbot conversations table accessor
     chatbotConversations: () => {
       return {
+        // Keep standard query methods
         ...supabase.from('chatbot_conversations'),
+        
+        // Enhanced insert
         async insert(data: Partial<ChatbotConversation>) {
-          const dbData = adaptChatbotConversationToDb(data as ChatbotConversation);
-          return supabase.from('chatbot_conversations').insert(dbData);
+          const dbData = adaptChatbotConversationToDb(data);
+          return await supabase.from('chatbot_conversations').insert(dbData);
         },
+        
+        // Enhanced update
         async update(data: Partial<ChatbotConversation>) {
-          const dbData = adaptChatbotConversationToDb(data as ChatbotConversation);
-          return supabase.from('chatbot_conversations').update(dbData);
+          const dbData = adaptChatbotConversationToDb(data);
+          return await supabase.from('chatbot_conversations').update(dbData);
         },
-        async select(query: string): Promise<{
-          data: ChatbotConversation[] | null;
-          error: any;
-        }> {
-          const response = await supabase.from('chatbot_conversations').select(query);
-          if (response.data) {
-            const typedData = response.data.map(item => 
-              adaptChatbotConversation(item as unknown as DbChatbotConversation)
-            );
-            return { data: typedData, error: response.error };
+        
+        // Enhanced select with proper typing
+        async select(query: string) {
+          const response = await supabase
+            .from('chatbot_conversations')
+            .select(query);
+            
+          if (response.error) {
+            return { data: null, error: response.error };
           }
-          return { data: null, error: response.error };
+          
+          if (!response.data) {
+            return { data: null, error: null };
+          }
+          
+          const typedData = response.data.map(item => 
+            adaptChatbotConversation(item as unknown as DbChatbotConversation)
+          );
+          
+          return { 
+            data: typedData, 
+            error: null 
+          };
         }
       };
     },
@@ -182,27 +217,43 @@ export const enhancedSupabaseClient = () => {
     // Type-safe chatbot messages table accessor
     chatbotMessages: () => {
       return {
+        // Keep standard query methods
         ...supabase.from('chatbot_messages'),
+        
+        // Enhanced insert
         async insert(data: Partial<ChatbotMessage>) {
-          const dbData = adaptChatbotMessageToDb(data as ChatbotMessage);
-          return supabase.from('chatbot_messages').insert(dbData);
+          const dbData = adaptChatbotMessageToDb(data);
+          return await supabase.from('chatbot_messages').insert(dbData);
         },
+        
+        // Enhanced update
         async update(data: Partial<ChatbotMessage>) {
-          const dbData = adaptChatbotMessageToDb(data as ChatbotMessage);
-          return supabase.from('chatbot_messages').update(dbData);
+          const dbData = adaptChatbotMessageToDb(data);
+          return await supabase.from('chatbot_messages').update(dbData);
         },
-        async select(query: string): Promise<{
-          data: ChatbotMessage[] | null;
-          error: any;
-        }> {
-          const response = await supabase.from('chatbot_messages').select(query);
-          if (response.data) {
-            const typedData = response.data.map(item => 
-              adaptChatbotMessage(item as unknown as DbChatbotMessage)
-            );
-            return { data: typedData, error: response.error };
+        
+        // Enhanced select with proper typing
+        async select(query: string) {
+          const response = await supabase
+            .from('chatbot_messages')
+            .select(query);
+            
+          if (response.error) {
+            return { data: null, error: response.error };
           }
-          return { data: null, error: response.error };
+          
+          if (!response.data) {
+            return { data: null, error: null };
+          }
+          
+          const typedData = response.data.map(item => 
+            adaptChatbotMessage(item as unknown as DbChatbotMessage)
+          );
+          
+          return { 
+            data: typedData, 
+            error: null 
+          };
         }
       };
     },
