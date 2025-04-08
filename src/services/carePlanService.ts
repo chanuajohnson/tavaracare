@@ -33,7 +33,7 @@ export class CarePlanService extends DatabaseService<CarePlan, DbCarePlanInsert,
         throw error;
       }
       
-      return (data || []).map(adaptCarePlanFromDb);
+      return (data || []).map(item => adaptCarePlanFromDb(item));
     } catch (error) {
       console.error("[CarePlanService] getCarePlansForFamily exception:", error);
       throw error;

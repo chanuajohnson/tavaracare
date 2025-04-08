@@ -1,10 +1,16 @@
 
-import { Json } from "@/types/database";
-
 /**
  * Safely converts a value to a JSON-compatible format for storage in Supabase JSONB columns.
  * Returns null if serialization fails.
  */
+export type Json =
+  | string
+  | number
+  | boolean
+  | null
+  | { [key: string]: Json | undefined }
+  | Json[];
+
 export function toJson<T>(value: T): Json {
   try {
     return JSON.parse(JSON.stringify(value)) as Json;

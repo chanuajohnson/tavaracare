@@ -1,12 +1,15 @@
 
 import { supabase } from '@/lib/supabase';
 import { PostgrestError } from '@supabase/supabase-js';
+import { Database } from '@/integrations/supabase/types';
+
+type TableNames = keyof Database['public']['Tables'];
 
 /**
  * Base service class with common Supabase operations that avoids type inference issues
  * by breaking up chained operations and using proper type assertions
  */
-export class DatabaseService<T, TInsert, TTable extends string> {
+export class DatabaseService<T, TInsert, TTable extends TableNames> {
   protected tableName: TTable;
   protected adapter: (dbData: any) => T;
   
@@ -60,7 +63,7 @@ export class DatabaseService<T, TInsert, TTable extends string> {
         throw error;
       }
       
-      return (data || []).map(this.adapter);
+      return (data || []).map((item) => this.adapter(item));
     } catch (error) {
       console.error(`[${this.tableName}] getMultiple exception:`, error);
       throw error;

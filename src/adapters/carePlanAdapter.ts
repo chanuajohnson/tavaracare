@@ -1,6 +1,6 @@
 
 import { CarePlan, CarePlanMetadata, DbCarePlan, DbCarePlanInsert, DbCarePlanMetadata } from "../types/carePlan";
-import { fromJson, toJson } from "../utils/json";
+import { fromJson, toJson, Json } from "../utils/json";
 
 /**
  * Adapts a care plan metadata from frontend to database format
@@ -53,10 +53,13 @@ export function adaptCarePlanToDb(carePlan: Partial<CarePlan>): DbCarePlanInsert
 /**
  * Adapts a database care plan to a frontend-ready object
  */
-export function adaptCarePlanFromDb(dbCarePlan: DbCarePlan): CarePlan {
-  const metadata = dbCarePlan.metadata ? 
-    adaptCarePlanMetadataFromDb(fromJson(dbCarePlan.metadata, {} as DbCarePlanMetadata)) : 
-    undefined;
+export function adaptCarePlanFromDb(dbCarePlan: any): CarePlan {
+  let metadata: CarePlanMetadata | undefined = undefined;
+  
+  if (dbCarePlan.metadata) {
+    const parsedMetadata = fromJson(dbCarePlan.metadata, {} as DbCarePlanMetadata);
+    metadata = adaptCarePlanMetadataFromDb(parsedMetadata);
+  }
 
   return {
     id: dbCarePlan.id,

@@ -4,6 +4,7 @@ import { Profile } from "../types/profile";
 import { DbProfile, DbProfileInsert } from "../types/profile";
 import { adaptProfileFromDb, adaptProfileToDb } from "../adapters/profileAdapter";
 import { supabase } from "@/lib/supabase";
+import { UserRole } from "@/integrations/supabase/types";
 
 export class ProfileService extends DatabaseService<Profile, DbProfileInsert, 'profiles'> {
   constructor() {
@@ -69,7 +70,7 @@ export class ProfileService extends DatabaseService<Profile, DbProfileInsert, 'p
   /**
    * Get profiles by role
    */
-  async getProfilesByRole(role: string, limit: number = 50): Promise<Profile[]> {
+  async getProfilesByRole(role: UserRole, limit: number = 50): Promise<Profile[]> {
     try {
       const { data, error } = await supabase
         .from('profiles')
@@ -82,7 +83,7 @@ export class ProfileService extends DatabaseService<Profile, DbProfileInsert, 'p
         throw error;
       }
       
-      return (data || []).map(adaptProfileFromDb);
+      return (data || []).map(item => adaptProfileFromDb(item));
     } catch (error) {
       console.error("[ProfileService] getProfilesByRole exception:", error);
       throw error;

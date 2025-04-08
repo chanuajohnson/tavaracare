@@ -1,4 +1,6 @@
 
+import { Json } from '../utils/json';
+
 /**
  * Frontend model for care plans (camelCase)
  */
@@ -39,13 +41,22 @@ export interface DbCarePlanInsert {
   description: string;
   family_id: string;
   status?: 'active' | 'completed' | 'cancelled';
-  metadata?: Record<string, any>;
+  metadata?: Json;
 }
 
 /**
  * Database model for care plans (snake_case)
  */
-export type DbCarePlan = Required<Pick<DbCarePlanInsert, "id" | "created_at" | "updated_at" | "title" | "description" | "family_id">> & Omit<DbCarePlanInsert, "id" | "created_at" | "updated_at" | "title" | "description" | "family_id">;
+export interface DbCarePlan {
+  id: string;
+  created_at: string;
+  updated_at: string;
+  title: string;
+  description: string;
+  family_id: string;
+  status: 'active' | 'completed' | 'cancelled';
+  metadata?: Json;
+}
 
 /**
  * Database model for care plan metadata (snake_case)
