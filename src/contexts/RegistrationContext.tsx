@@ -91,7 +91,7 @@ export const RegistrationProvider: React.FC<RegistrationProviderProps> = ({
         const userId = authData.user?.id;
 
         // Look for an existing registration progress for this user/session
-        const { data, error } = await supabase
+        const { data, error } = await (supabase as any)
           .from('registration_progress')
           .select('*')
           .eq('status', 'in_progress')
@@ -125,7 +125,7 @@ export const RegistrationProvider: React.FC<RegistrationProviderProps> = ({
           const newRegistrationId = uuidv4();
           
           // Create initial registration record
-          const { error: createError } = await supabase
+          const { error: createError } = await (supabase as any)
             .from('registration_progress')
             .insert({
               id: newRegistrationId,
@@ -190,7 +190,7 @@ export const RegistrationProvider: React.FC<RegistrationProviderProps> = ({
         [filteredSteps[currentStepIndex].id]: true,
       };
 
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('registration_progress')
         .update({
           registration_data: registrationData,
@@ -260,7 +260,7 @@ export const RegistrationProvider: React.FC<RegistrationProviderProps> = ({
     
     try {
       // Final save with completed status
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('registration_progress')
         .update({
           registration_data: registrationData,

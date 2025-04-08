@@ -40,3 +40,69 @@ export interface ChatbotAction {
   action: () => void;
   icon?: React.ReactNode;
 }
+
+// Database table types for Supabase
+export interface ChatbotConversationsTable {
+  id: string;
+  user_id?: string;
+  session_id: string;
+  conversation_data: any;
+  care_needs?: any;
+  qualification_status?: string;
+  lead_score?: number;
+  created_at: string;
+  updated_at: string;
+  converted_to_registration: boolean;
+  contact_info?: any;
+  handoff_requested: boolean;
+}
+
+export interface ChatbotMessagesTable {
+  id: string;
+  conversation_id?: string;
+  message: string;
+  sender_type: string;
+  timestamp: string;
+  message_type?: string;
+  context_data?: any;
+}
+
+export interface RegistrationProgressTable {
+  id: string;
+  user_id?: string;
+  session_id?: string;
+  email?: string;
+  current_step: string;
+  registration_data: any;
+  status: string;
+  care_type?: string[];
+  urgency?: string;
+  created_at: string;
+  updated_at: string;
+  last_active_at: string;
+  completed_steps: any;
+  total_steps?: number;
+  completed_step_count?: number;
+  referral_source?: string;
+  device_info?: any;
+}
+
+// Type guard function for type safety
+export function isChatbotConversationsTable(obj: any): obj is ChatbotConversationsTable {
+  return obj 
+    && typeof obj.id === 'string'
+    && typeof obj.session_id === 'string';
+}
+
+export function isChatbotMessagesTable(obj: any): obj is ChatbotMessagesTable {
+  return obj 
+    && typeof obj.id === 'string'
+    && typeof obj.message === 'string'
+    && typeof obj.sender_type === 'string';
+}
+
+export function isRegistrationProgressTable(obj: any): obj is RegistrationProgressTable {
+  return obj 
+    && typeof obj.id === 'string'
+    && typeof obj.current_step === 'string';
+}

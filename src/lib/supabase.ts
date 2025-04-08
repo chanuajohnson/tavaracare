@@ -105,7 +105,7 @@ export const enhancedSupabaseClient = () => {
   const sessionId = getOrCreateSessionId();
   
   // Return the supabase client with the session ID set in the headers
-  return supabase.from('registration_progress').select('*');
+  return (supabase as any).from('registration_progress').select('*');
 };
 
 // Create a function to set the session ID in request headers

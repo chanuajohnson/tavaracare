@@ -63,7 +63,7 @@ export const ChatbotProvider: React.FC<ChatbotProviderProps> = ({ children }) =>
         const userId = authData.user?.id;
         
         // Look for an existing conversation for this session
-        const { data: existingConversations, error: fetchError } = await supabase
+        const { data: existingConversations, error: fetchError } = await (supabase as any)
           .from('chatbot_conversations')
           .select('*')
           .eq('session_id', sessionId)
@@ -78,7 +78,7 @@ export const ChatbotProvider: React.FC<ChatbotProviderProps> = ({ children }) =>
           setConversation(existingConversation);
           
           // Load the messages for this conversation
-          const { data: messageData, error: messageError } = await supabase
+          const { data: messageData, error: messageError } = await (supabase as any)
             .from('chatbot_messages')
             .select('*')
             .eq('conversation_id', existingConversation.id)
@@ -103,7 +103,7 @@ export const ChatbotProvider: React.FC<ChatbotProviderProps> = ({ children }) =>
           };
           
           // Insert new conversation record
-          const { error: createError } = await supabase
+          const { error: createError } = await (supabase as any)
             .from('chatbot_conversations')
             .insert({
               id: newConversationId,
@@ -116,7 +116,7 @@ export const ChatbotProvider: React.FC<ChatbotProviderProps> = ({ children }) =>
           if (createError) throw createError;
           
           // Insert initial greeting message
-          const { error: messageError } = await supabase
+          const { error: messageError } = await (supabase as any)
             .from('chatbot_messages')
             .insert({
               id: initialMessage.id,
@@ -177,7 +177,7 @@ export const ChatbotProvider: React.FC<ChatbotProviderProps> = ({ children }) =>
     
     try {
       // Save message to database
-      await supabase.from('chatbot_messages').insert({
+      await (supabase as any).from('chatbot_messages').insert({
         id: message.id,
         conversation_id: conversation.id,
         message: message.message,
@@ -188,7 +188,7 @@ export const ChatbotProvider: React.FC<ChatbotProviderProps> = ({ children }) =>
       });
       
       // Update the conversation record with latest activity
-      await supabase
+      await (supabase as any)
         .from('chatbot_conversations')
         .update({
           updated_at: new Date().toISOString(),
@@ -278,7 +278,7 @@ export const ChatbotProvider: React.FC<ChatbotProviderProps> = ({ children }) =>
       
       // Update lead score in database if it changed
       if (conversation && updatedLeadScore !== conversation.leadScore) {
-        await supabase
+        await (supabase as any)
           .from('chatbot_conversations')
           .update({ lead_score: updatedLeadScore })
           .eq('id', conversation.id);
@@ -360,7 +360,7 @@ export const ChatbotProvider: React.FC<ChatbotProviderProps> = ({ children }) =>
     
     try {
       // Update conversation to request handoff
-      await supabase
+      await (supabase as any)
         .from('chatbot_conversations')
         .update({
           handoff_requested: true,
@@ -400,7 +400,7 @@ export const ChatbotProvider: React.FC<ChatbotProviderProps> = ({ children }) =>
     if (!conversation) return;
     
     // Update conversation to mark conversion
-    supabase
+    (supabase as any)
       .from('chatbot_conversations')
       .update({
         converted_to_registration: true,
@@ -411,7 +411,7 @@ export const ChatbotProvider: React.FC<ChatbotProviderProps> = ({ children }) =>
         // Navigate to appropriate registration page
         navigate(`/registration/${role.toLowerCase()}`);
       })
-      .catch(err => {
+      .catch((err: any) => {
         console.error('Error starting registration:', err);
         // Navigate anyway even if tracking fails
         navigate(`/registration/${role.toLowerCase()}`);
