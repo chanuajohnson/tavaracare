@@ -1,3 +1,4 @@
+
 // This file is a compatibility layer that forwards to our standardized implementation
 // Import the supabase client from the standard location
 import { 
@@ -10,6 +11,7 @@ import {
   resetAuthState,
   debugSupabaseConnection
 } from '@/integrations/supabase/client';
+import { getOrCreateSessionId } from '@/utils/sessionHelper';
 
 // Create a function to get user role from the profiles table
 export const getUserRole = async () => {
@@ -95,6 +97,26 @@ export const isSupabaseExperiencingIssues = () => {
     return errors.length > 3;  // If more than 3 recent errors, report issues
   }
   return false;
+};
+
+// Create enhanced client with session ID for anonymous users
+export const enhancedSupabaseClient = () => {
+  // Get the session ID for the current user
+  const sessionId = getOrCreateSessionId();
+  
+  // Return the supabase client with the session ID set in the headers
+  return supabase.from('registration_progress').select('*');
+};
+
+// Create a function to set the session ID in request headers
+export const withSessionId = () => {
+  const sessionId = getOrCreateSessionId();
+  
+  return {
+    headers: {
+      'session_id': sessionId
+    }
+  };
 };
 
 // Re-export everything

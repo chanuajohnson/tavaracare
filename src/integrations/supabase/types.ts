@@ -348,6 +348,89 @@ export type Database = {
           },
         ]
       }
+      chatbot_conversations: {
+        Row: {
+          care_needs: Json | null
+          contact_info: Json | null
+          conversation_data: Json
+          converted_to_registration: boolean | null
+          created_at: string
+          handoff_requested: boolean | null
+          id: string
+          lead_score: number | null
+          qualification_status: string | null
+          session_id: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          care_needs?: Json | null
+          contact_info?: Json | null
+          conversation_data?: Json
+          converted_to_registration?: boolean | null
+          created_at?: string
+          handoff_requested?: boolean | null
+          id?: string
+          lead_score?: number | null
+          qualification_status?: string | null
+          session_id: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          care_needs?: Json | null
+          contact_info?: Json | null
+          conversation_data?: Json
+          converted_to_registration?: boolean | null
+          created_at?: string
+          handoff_requested?: boolean | null
+          id?: string
+          lead_score?: number | null
+          qualification_status?: string | null
+          session_id?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      chatbot_messages: {
+        Row: {
+          context_data: Json | null
+          conversation_id: string | null
+          id: string
+          message: string
+          message_type: string | null
+          sender_type: string
+          timestamp: string
+        }
+        Insert: {
+          context_data?: Json | null
+          conversation_id?: string | null
+          id?: string
+          message: string
+          message_type?: string | null
+          sender_type: string
+          timestamp?: string
+        }
+        Update: {
+          context_data?: Json | null
+          conversation_id?: string | null
+          id?: string
+          message?: string
+          message_type?: string | null
+          sender_type?: string
+          timestamp?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chatbot_messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "chatbot_conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cta_engagement_tracking: {
         Row: {
           action_type: string
@@ -1140,6 +1223,66 @@ export type Database = {
         }
         Relationships: []
       }
+      registration_progress: {
+        Row: {
+          care_type: string[] | null
+          completed_step_count: number | null
+          completed_steps: Json
+          created_at: string
+          current_step: string
+          device_info: Json | null
+          email: string | null
+          id: string
+          last_active_at: string
+          referral_source: string | null
+          registration_data: Json
+          session_id: string | null
+          status: Database["public"]["Enums"]["registration_status"]
+          total_steps: number | null
+          updated_at: string
+          urgency: Database["public"]["Enums"]["care_urgency"] | null
+          user_id: string | null
+        }
+        Insert: {
+          care_type?: string[] | null
+          completed_step_count?: number | null
+          completed_steps?: Json
+          created_at?: string
+          current_step?: string
+          device_info?: Json | null
+          email?: string | null
+          id?: string
+          last_active_at?: string
+          referral_source?: string | null
+          registration_data?: Json
+          session_id?: string | null
+          status?: Database["public"]["Enums"]["registration_status"]
+          total_steps?: number | null
+          updated_at?: string
+          urgency?: Database["public"]["Enums"]["care_urgency"] | null
+          user_id?: string | null
+        }
+        Update: {
+          care_type?: string[] | null
+          completed_step_count?: number | null
+          completed_steps?: Json
+          created_at?: string
+          current_step?: string
+          device_info?: Json | null
+          email?: string | null
+          id?: string
+          last_active_at?: string
+          referral_source?: string | null
+          registration_data?: Json
+          session_id?: string | null
+          status?: Database["public"]["Enums"]["registration_status"]
+          total_steps?: number | null
+          updated_at?: string
+          urgency?: Database["public"]["Enums"]["care_urgency"] | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       subscription_plans: {
         Row: {
           created_at: string | null
@@ -1470,6 +1613,11 @@ export type Database = {
       }
     }
     Enums: {
+      care_urgency:
+        | "immediate"
+        | "within_week"
+        | "within_month"
+        | "planning_ahead"
       content_type: "text" | "image" | "video"
       feature_status:
         | "planned"
@@ -1484,6 +1632,7 @@ export type Database = {
         | "afternoon_snack"
         | "dinner"
       module_status: "not_started" | "in_progress" | "completed"
+      registration_status: "started" | "in_progress" | "completed" | "abandoned"
       user_role: "family" | "professional" | "community" | "admin"
     }
     CompositeTypes: {
@@ -1600,6 +1749,12 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      care_urgency: [
+        "immediate",
+        "within_week",
+        "within_month",
+        "planning_ahead",
+      ],
       content_type: ["text", "image", "video"],
       feature_status: [
         "planned",
@@ -1616,6 +1771,7 @@ export const Constants = {
         "dinner",
       ],
       module_status: ["not_started", "in_progress", "completed"],
+      registration_status: ["started", "in_progress", "completed", "abandoned"],
       user_role: ["family", "professional", "community", "admin"],
     },
   },
