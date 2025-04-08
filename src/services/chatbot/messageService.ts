@@ -2,8 +2,9 @@
 import { enhancedSupabaseClient } from '@/lib/supabase';
 import { ChatbotMessage } from '@/types/chatbot';
 import { ChatbotAPIResponse, ChatbotAPISuccessResponse } from '@/hooks/types/chatbotTypes';
-import { adaptChatbotMessage, adaptChatbotMessageToDb } from '@/lib/supabase-adapter';
+import { adaptChatbotMessage, adaptChatbotMessageToDb } from '@/lib/adapters';
 import { v4 as uuidv4 } from 'uuid';
+import { SenderType, MessageType } from '@/types/chatbot';
 
 /**
  * Fetches messages for a conversation
@@ -47,6 +48,7 @@ export const saveMessage = async (message: ChatbotMessage, conversationId: strin
     const dbMessage = adaptChatbotMessageToDb(completeMessage);
     
     // Save message to chatbot_messages table
+    // Make sure to pass as an array since Supabase expects it
     const { error: messageError } = await enhancedSupabaseClient().client
       .from('chatbot_messages')
       .insert([dbMessage]);
@@ -65,8 +67,8 @@ export const saveMessage = async (message: ChatbotMessage, conversationId: strin
  */
 export const createMessage = (
   message: string, 
-  senderType: string, 
-  messageType?: string, 
+  senderType: SenderType, 
+  messageType?: MessageType, 
   contextData?: Record<string, any>
 ): ChatbotMessage => {
   return {

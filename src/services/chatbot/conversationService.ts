@@ -5,9 +5,9 @@ import { ChatbotAPIResponse, ChatbotAPISuccessResponse } from '@/hooks/types/cha
 import { 
   adaptChatbotConversation, 
   adaptChatbotConversationToDb 
-} from '@/lib/supabase-adapter';
+} from '@/lib/adapters';
 import { v4 as uuidv4 } from 'uuid';
-import { toJson } from '@/types/chatbot';
+import { toJson } from '@/lib/adapters';
 
 /**
  * Fetches existing conversation for a user or session
@@ -71,7 +71,7 @@ export const createConversation = async (
     // Convert to database format
     const dbConversation = adaptChatbotConversationToDb(newConversation);
     
-    // Insert into database
+    // Insert into database - ensure it's wrapped in an array
     const { error } = await enhancedSupabaseClient().client
       .from('chatbot_conversations')
       .insert([dbConversation]);

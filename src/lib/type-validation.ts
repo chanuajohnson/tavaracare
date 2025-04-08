@@ -1,6 +1,6 @@
 
 import { z } from 'zod';
-import { chatbotMessageSchema } from './supabase-adapter';
+import { chatbotMessageSchema } from './adapters/chatbot-message-adapter';
 import { ChatbotMessage, ChatbotConversation } from '@/types/chatbot';
 import { RegistrationProgress } from '@/types/registration';
 

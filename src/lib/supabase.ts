@@ -21,7 +21,7 @@ import {
   DbChatbotConversation,
   DbChatbotMessage,
   DbRegistrationProgress
-} from '@/lib/supabase-adapter';
+} from '@/lib/adapters';
 import {
   validateChatbotMessage,
   isChatbotMessage,
@@ -140,7 +140,8 @@ export const enhancedSupabaseClient = () => {
           if (!dbData.session_id && sessionId) {
             dbData.session_id = sessionId;
           }
-          return await supabase.from('registration_progress').insert(dbData);
+          // Ensure we're passing an array to insert
+          return await supabase.from('registration_progress').insert([dbData]);
         },
         
         // Enhanced update
