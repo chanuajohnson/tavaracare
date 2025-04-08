@@ -1,11 +1,11 @@
-
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { supabase } from '@/lib/supabase';
+import { enhancedSupabaseClient } from '@/lib/supabase';
 import { ChatbotConversation, ChatbotMessage } from '@/types/chatbot';
 import { getOrCreateSessionId } from '@/utils/sessionHelper';
 import { v4 as uuidv4 } from 'uuid';
 import { toast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
+import { snakeToCamel, camelToSnake } from '@/types/supabase-adapter';
 
 interface ChatbotContextType {
   conversation: ChatbotConversation | null;
@@ -34,7 +34,6 @@ export const useChatbot = () => {
   return context;
 };
 
-// Initial greeting message from the bot
 const INITIAL_GREETING = "Hi there! I'm Tavara's virtual assistant. I can help you find the right care for your loved one or explore opportunities as a caregiver. How can I assist you today?";
 
 interface ChatbotProviderProps {
@@ -55,16 +54,13 @@ export const ChatbotProvider: React.FC<ChatbotProviderProps> = ({ children }) =>
       try {
         setLoading(true);
         
-        // Get session ID for tracking
         const sessionId = getOrCreateSessionId();
         
-        // Check if user is authenticated
-        const { data: authData } = await supabase.auth.getUser();
+        const { data: authData } = await enhancedSupabaseClient().client.auth.getUser();
         const userId = authData.user?.id;
         
-        // Look for an existing conversation for this session
-        const { data: existingConversations, error: fetchError } = await (supabase as any)
-          .from('chatbot_conversations')
+        const { data: existingConversations, error: fetchError } = await enhancedSupabaseClient()
+          .chatbotConversations()
           .select('*')
           .eq('session_id', sessionId)
           .order('created_at', { ascending: false })
@@ -73,13 +69,11 @@ export const ChatbotProvider: React.FC<ChatbotProviderProps> = ({ children }) =>
         if (fetchError) throw fetchError;
         
         if (existingConversations && existingConversations.length > 0) {
-          // We found an existing conversation
-          const existingConversation = existingConversations[0] as unknown as ChatbotConversation;
+          const existingConversation = snakeToCamel<ChatbotConversation>(existingConversations[0]);
           setConversation(existingConversation);
           
-          // Load the messages for this conversation
-          const { data: messageData, error: messageError } = await (supabase as any)
-            .from('chatbot_messages')
+          const { data: messageData, error: messageError } = await enhancedSupabaseClient()
+            .chatbotMessages()
             .select('*')
             .eq('conversation_id', existingConversation.id)
             .order('timestamp', { ascending: true });
@@ -87,13 +81,11 @@ export const ChatbotProvider: React.FC<ChatbotProviderProps> = ({ children }) =>
           if (messageError) throw messageError;
           
           if (messageData) {
-            setMessages(messageData as unknown as ChatbotMessage[]);
+            setMessages(snakeToCamel<ChatbotMessage[]>(messageData));
           }
         } else {
-          // Create a new conversation
           const newConversationId = uuidv4();
           
-          // Create initial welcome message
           const initialMessage: ChatbotMessage = {
             id: uuidv4(),
             message: INITIAL_GREETING,
@@ -102,34 +94,31 @@ export const ChatbotProvider: React.FC<ChatbotProviderProps> = ({ children }) =>
             messageType: 'greeting',
           };
           
-          // Insert new conversation record
-          const { error: createError } = await (supabase as any)
-            .from('chatbot_conversations')
-            .insert({
+          const { error: createError } = await enhancedSupabaseClient()
+            .chatbotConversations()
+            .insert(camelToSnake({
               id: newConversationId,
-              user_id: userId || null,
-              session_id: sessionId,
-              conversation_data: [initialMessage],
-              lead_score: 0,
-            });
+              userId: userId || null,
+              sessionId: sessionId,
+              conversationData: [initialMessage],
+              leadScore: 0,
+            }));
             
           if (createError) throw createError;
           
-          // Insert initial greeting message
-          const { error: messageError } = await (supabase as any)
-            .from('chatbot_messages')
-            .insert({
+          const { error: messageError } = await enhancedSupabaseClient()
+            .chatbotMessages()
+            .insert(camelToSnake({
               id: initialMessage.id,
-              conversation_id: newConversationId,
+              conversationId: newConversationId,
               message: initialMessage.message,
-              sender_type: initialMessage.senderType,
+              senderType: initialMessage.senderType,
               timestamp: initialMessage.timestamp,
-              message_type: initialMessage.messageType,
-            });
+              messageType: initialMessage.messageType,
+            }));
             
           if (messageError) throw messageError;
           
-          // Set state with new conversation and message
           setConversation({
             id: newConversationId,
             userId: userId || undefined,
@@ -144,7 +133,6 @@ export const ChatbotProvider: React.FC<ChatbotProviderProps> = ({ children }) =>
           
           setMessages([initialMessage]);
           
-          // Show the chatbot after 5 seconds on homepage if it's a new conversation
           const currentPath = window.location.pathname;
           if (currentPath === '/' || currentPath === '/home' || currentPath === '/index.html') {
             setTimeout(() => {
@@ -154,7 +142,6 @@ export const ChatbotProvider: React.FC<ChatbotProviderProps> = ({ children }) =>
         }
       } catch (err) {
         console.error('Error initializing chatbot:', err);
-        // Create default local-only conversation fallback
         const fallbackMessage: ChatbotMessage = {
           id: uuidv4(),
           message: INITIAL_GREETING,
@@ -176,24 +163,22 @@ export const ChatbotProvider: React.FC<ChatbotProviderProps> = ({ children }) =>
     if (!conversation) return;
     
     try {
-      // Save message to database
-      await (supabase as any).from('chatbot_messages').insert({
+      await enhancedSupabaseClient().chatbotMessages().insert(camelToSnake({
         id: message.id,
-        conversation_id: conversation.id,
+        conversationId: conversation.id,
         message: message.message,
-        sender_type: message.senderType,
+        senderType: message.senderType,
         timestamp: message.timestamp,
-        message_type: message.messageType,
-        context_data: message.contextData,
-      });
+        messageType: message.messageType,
+        contextData: message.contextData,
+      }));
       
-      // Update the conversation record with latest activity
-      await (supabase as any)
-        .from('chatbot_conversations')
-        .update({
-          updated_at: new Date().toISOString(),
-          conversation_data: [...messages, message],
-        })
+      await enhancedSupabaseClient()
+        .chatbotConversations()
+        .update(camelToSnake({
+          updatedAt: new Date().toISOString(),
+          conversationData: [...messages, message],
+        }))
         .eq('id', conversation.id);
         
     } catch (err) {
@@ -203,16 +188,13 @@ export const ChatbotProvider: React.FC<ChatbotProviderProps> = ({ children }) =>
 
   const processBotResponse = async (userMessage: string): Promise<ChatbotMessage> => {
     try {
-      // Show typing indicator
       setIsTyping(true);
       
-      // Here we would normally call an AI service, but for now we'll use a simple rule-based system
       let botResponse = '';
       let messageType: 'response' | 'question' = 'response';
       let contextData = {};
       let updatedLeadScore = conversation?.leadScore || 0;
       
-      // Simple keyword-based responses
       const lowerCaseMessage = userMessage.toLowerCase();
       
       if (lowerCaseMessage.includes('hello') || lowerCaseMessage.includes('hi')) {
@@ -224,13 +206,13 @@ export const ChatbotProvider: React.FC<ChatbotProviderProps> = ({ children }) =>
         botResponse = "We offer a variety of care services for families. What type of care are you looking for? (Elder care, post-surgery recovery, special needs, etc.)";
         messageType = 'question';
         contextData = { topic: 'care_type', leadQualification: true };
-        updatedLeadScore += 20; // Interested in care services
+        updatedLeadScore += 20;
       }
       else if (lowerCaseMessage.includes('elder') || lowerCaseMessage.includes('senior') || lowerCaseMessage.includes('old')) {
         botResponse = "We have many qualified caregivers specialized in elder care. When do you need this care to start?";
         messageType = 'question';
         contextData = { topic: 'elder_care', careType: 'elder', leadQualification: true };
-        updatedLeadScore += 15; // Specific care need identified
+        updatedLeadScore += 15;
       }
       else if (lowerCaseMessage.includes('caregiver') || lowerCaseMessage.includes('job') || lowerCaseMessage.includes('work')) {
         botResponse = "Great! We're always looking for qualified healthcare professionals. Do you have experience as a caregiver or nurse?";
@@ -241,25 +223,25 @@ export const ChatbotProvider: React.FC<ChatbotProviderProps> = ({ children }) =>
         botResponse = "Our care services are personalized to your specific needs. Pricing depends on the level of care required, frequency, and duration. Would you like to provide some details about your care needs so I can give you a better estimate?";
         messageType = 'question';
         contextData = { topic: 'pricing', leadQualification: true };
-        updatedLeadScore += 25; // Price-sensitive, likely serious
+        updatedLeadScore += 25;
       }
       else if (lowerCaseMessage.includes('register') || lowerCaseMessage.includes('sign up') || lowerCaseMessage.includes('account')) {
         botResponse = "I'd be happy to help you register! Are you looking to register as a family in need of care services, or as a healthcare professional looking for opportunities?";
         messageType = 'question';
         contextData = { topic: 'registration', leadQualification: true };
-        updatedLeadScore += 30; // Ready to register
+        updatedLeadScore += 30;
       }
       else if (lowerCaseMessage.includes('urgent') || lowerCaseMessage.includes('emergency') || lowerCaseMessage.includes('asap')) {
         botResponse = "I understand you need care urgently. We can expedite the matching process. Can I collect your contact information to have our care coordinator reach out to you immediately?";
         messageType = 'question';
         contextData = { topic: 'urgent_care', priority: 'high', leadQualification: true };
-        updatedLeadScore += 40; // Urgent need, very hot lead
+        updatedLeadScore += 40;
       }
       else if (lowerCaseMessage.includes('contact') || lowerCaseMessage.includes('phone') || lowerCaseMessage.includes('call me')) {
         botResponse = "I'd be happy to have someone contact you directly. Could you please provide your name and the best phone number to reach you?";
         messageType = 'question';
         contextData = { topic: 'contact_request', leadQualification: true };
-        updatedLeadScore += 35; // Ready for personal contact
+        updatedLeadScore += 35;
       }
       else if (lowerCaseMessage.includes('thank')) {
         botResponse = "You're welcome! Is there anything else I can help you with today?";
@@ -267,23 +249,21 @@ export const ChatbotProvider: React.FC<ChatbotProviderProps> = ({ children }) =>
         contextData = { topic: 'gratitude' };
       }
       else {
-        // Default response
         botResponse = "Thank you for your message. To better assist you, could you share what type of care services you're interested in, or if you'd like to learn about becoming a caregiver with us?";
         messageType = 'question';
         contextData = { topic: 'general_inquiry' };
       }
       
-      // Simulate a delay for more natural conversation (1-2 seconds)
       await new Promise(resolve => setTimeout(resolve, Math.random() * 1000 + 1000));
       
-      // Update lead score in database if it changed
       if (conversation && updatedLeadScore !== conversation.leadScore) {
-        await (supabase as any)
-          .from('chatbot_conversations')
-          .update({ lead_score: updatedLeadScore })
+        await enhancedSupabaseClient()
+          .chatbotConversations()
+          .update(camelToSnake({
+            lead_score: updatedLeadScore,
+          }))
           .eq('id', conversation.id);
           
-        // Update local state
         setConversation(prev => prev ? {
           ...prev,
           leadScore: updatedLeadScore
@@ -316,7 +296,6 @@ export const ChatbotProvider: React.FC<ChatbotProviderProps> = ({ children }) =>
   const sendMessage = useCallback(async (message: string) => {
     if (!message.trim() || !conversation) return;
     
-    // Create user message object
     const userMessage: ChatbotMessage = {
       id: uuidv4(),
       message,
@@ -324,22 +303,16 @@ export const ChatbotProvider: React.FC<ChatbotProviderProps> = ({ children }) =>
       timestamp: new Date().toISOString(),
     };
     
-    // Add to UI immediately
     setMessages(prev => [...prev, userMessage]);
     
-    // Save user message to database
     await saveMessage(userMessage);
     
-    // Process and generate bot response
     const botResponse = await processBotResponse(message);
     
-    // Add bot response to UI
     setMessages(prev => [...prev, botResponse]);
     
-    // Save bot response to database
     await saveMessage(botResponse);
     
-    // Clear current message input
     setCurrentMessage('');
   }, [conversation, messages]);
 
@@ -359,22 +332,19 @@ export const ChatbotProvider: React.FC<ChatbotProviderProps> = ({ children }) =>
     if (!conversation) return;
     
     try {
-      // Update conversation to request handoff
-      await (supabase as any)
-        .from('chatbot_conversations')
-        .update({
-          handoff_requested: true,
-          updated_at: new Date().toISOString(),
-        })
+      await enhancedSupabaseClient()
+        .chatbotConversations()
+        .update(camelToSnake({
+          handoffRequested: true,
+          updatedAt: new Date().toISOString(),
+        }))
         .eq('id', conversation.id);
         
-      // Update local state
       setConversation(prev => prev ? {
         ...prev,
         handoffRequested: true
       } : null);
       
-      // Add system message
       const systemMessage: ChatbotMessage = {
         id: uuidv4(),
         message: "Your conversation has been queued for a human support agent. Someone will reach out to you soon.",
@@ -383,10 +353,8 @@ export const ChatbotProvider: React.FC<ChatbotProviderProps> = ({ children }) =>
         messageType: 'action',
       };
       
-      // Add to UI
       setMessages(prev => [...prev, systemMessage]);
       
-      // Save to database
       await saveMessage(systemMessage);
       
       toast.success("Support request received. Our team will contact you soon.");
@@ -399,21 +367,18 @@ export const ChatbotProvider: React.FC<ChatbotProviderProps> = ({ children }) =>
   const startRegistration = useCallback((role: 'family' | 'professional' | 'community') => {
     if (!conversation) return;
     
-    // Update conversation to mark conversion
-    (supabase as any)
-      .from('chatbot_conversations')
-      .update({
-        converted_to_registration: true,
-        updated_at: new Date().toISOString(),
-      })
+    enhancedSupabaseClient()
+      .chatbotConversations()
+      .update(camelToSnake({
+        convertedToRegistration: true,
+        updatedAt: new Date().toISOString(),
+      }))
       .eq('id', conversation.id)
       .then(() => {
-        // Navigate to appropriate registration page
         navigate(`/registration/${role.toLowerCase()}`);
       })
       .catch((error: any) => {
         console.error('Error starting registration:', error);
-        // Navigate anyway even if tracking fails
         navigate(`/registration/${role.toLowerCase()}`);
       });
   }, [conversation, navigate]);

@@ -12,6 +12,7 @@ import {
   debugSupabaseConnection
 } from '@/integrations/supabase/client';
 import { getOrCreateSessionId } from '@/utils/sessionHelper';
+import { ExtendedDatabase } from '@/types/supabase-adapter';
 
 // Create a function to get user role from the profiles table
 export const getUserRole = async () => {
@@ -108,17 +109,17 @@ export const enhancedSupabaseClient = () => {
   return {
     // Use registration_progress table through type casting
     registrationProgress: () => {
-      return (supabase as any).from('registration_progress');
+      return supabase.from('registration_progress') as unknown as ReturnType<typeof supabase.from<ExtendedDatabase['public']['Tables']['registration_progress']['Row']>>;
     },
     
     // Chat conversations table accessor
     chatbotConversations: () => {
-      return (supabase as any).from('chatbot_conversations');
+      return supabase.from('chatbot_conversations') as unknown as ReturnType<typeof supabase.from<ExtendedDatabase['public']['Tables']['chatbot_conversations']['Row']>>;
     },
     
     // Chat messages table accessor
     chatbotMessages: () => {
-      return (supabase as any).from('chatbot_messages');
+      return supabase.from('chatbot_messages') as unknown as ReturnType<typeof supabase.from<ExtendedDatabase['public']['Tables']['chatbot_messages']['Row']>>;
     },
     
     // Return the standard client for other tables

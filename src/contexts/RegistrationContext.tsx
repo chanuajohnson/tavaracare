@@ -1,11 +1,11 @@
-
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '@/lib/supabase';
+import { enhancedSupabaseClient } from '@/lib/supabase';
 import { RegistrationProgress, RegistrationStep } from '@/types/registration';
 import { getOrCreateSessionId, getDeviceInfo, detectExitIntent } from '@/utils/sessionHelper';
 import { toast } from '@/hooks/use-toast';
 import { v4 as uuidv4 } from 'uuid';
+import { camelToSnake, snakeToCamel } from '@/types/supabase-adapter';
 
 interface RegistrationContextType {
   registrationData: Record<string, any>;
@@ -64,15 +64,12 @@ export const RegistrationProvider: React.FC<RegistrationProviderProps> = ({
   const [registrationRecord, setRegistrationRecord] = useState<RegistrationProgress | null>(null);
   const [exitIntentShown, setExitIntentShown] = useState(false);
 
-  // Calculate total estimated time from all steps
   const totalEstimatedTime = steps.reduce((total, step) => total + step.estimatedTimeSeconds, 0);
   
-  // Calculate estimated time remaining based on current progress
   const estimatedTimeRemaining = Math.round(
     totalEstimatedTime * (1 - (currentStepIndex / steps.length))
   );
 
-  // Filter steps based on conditional logic
   const filteredSteps = steps.filter(step => {
     if (!step.condition) return true;
     return step.condition(registrationData);
@@ -83,16 +80,13 @@ export const RegistrationProvider: React.FC<RegistrationProviderProps> = ({
       try {
         setLoading(true);
         
-        // Get the current session ID
         const sessionId = getOrCreateSessionId();
         
-        // Check if user is authenticated
-        const { data: authData } = await supabase.auth.getUser();
+        const { data: authData } = await enhancedSupabaseClient().client.auth.getUser();
         const userId = authData.user?.id;
 
-        // Look for an existing registration progress for this user/session
-        const { data, error } = await (supabase as any)
-          .from('registration_progress')
+        const { data, error } = await enhancedSupabaseClient()
+          .registrationProgress()
           .select('*')
           .eq('status', 'in_progress')
           .order('updated_at', { ascending: false })
@@ -101,42 +95,37 @@ export const RegistrationProvider: React.FC<RegistrationProviderProps> = ({
         if (error) throw error;
 
         if (data && data.length > 0) {
-          // We found an existing registration
-          const registration = data[0] as unknown as RegistrationProgress;
+          const registration = snakeToCamel<RegistrationProgress>(data[0]);
           
           setRegistrationRecord(registration);
           setRegistrationId(registration.id);
           setRegistrationData(registration.registrationData || {});
           
-          // Find the current step index
           const stepIndex = steps.findIndex(s => s.id === registration.currentStep);
           if (stepIndex >= 0) {
             setCurrentStepIndex(stepIndex);
           }
           
-          // Update progress based on completed steps
           const completed = Object.values(registration.completedSteps || {}).filter(Boolean).length;
           const totalStepCount = steps.length;
           setProgress(Math.round((completed / totalStepCount) * 100));
           
           toast.info("Welcome back! We've restored your progress.");
         } else {
-          // No existing registration, start a new one
           const newRegistrationId = uuidv4();
           
-          // Create initial registration record
-          const { error: createError } = await (supabase as any)
-            .from('registration_progress')
-            .insert({
+          const { error: createError } = await enhancedSupabaseClient()
+            .registrationProgress()
+            .insert(camelToSnake({
               id: newRegistrationId,
-              user_id: userId,
-              session_id: sessionId,
-              current_step: steps[0].id,
-              registration_data: initialData,
+              userId: userId,
+              sessionId: sessionId,
+              currentStep: steps[0].id,
+              registrationData: initialData,
               status: 'started',
-              total_steps: filteredSteps.length,
-              device_info: getDeviceInfo(),
-            });
+              totalSteps: filteredSteps.length,
+              deviceInfo: getDeviceInfo(),
+            }));
             
           if (createError) throw createError;
           
@@ -154,13 +143,10 @@ export const RegistrationProvider: React.FC<RegistrationProviderProps> = ({
 
     loadExistingRegistration();
 
-    // Set up exit intent detection
     const clearExitIntent = detectExitIntent(() => {
-      // Only show exit intent modal once
       if (!exitIntentShown && currentStepIndex > 0) {
         setExitIntentShown(true);
         saveProgress();
-        // Show modal asking user if they want to save progress
         toast.info(
           "Don't leave just yet!", 
           { 
@@ -174,7 +160,6 @@ export const RegistrationProvider: React.FC<RegistrationProviderProps> = ({
     return clearExitIntent;
   }, []);
 
-  // Update progress when step changes
   useEffect(() => {
     const newProgress = Math.round(((currentStepIndex + 1) / filteredSteps.length) * 100);
     setProgress(Math.min(newProgress, 100));
@@ -184,28 +169,26 @@ export const RegistrationProvider: React.FC<RegistrationProviderProps> = ({
     if (!registrationId) return;
 
     try {
-      // Mark the current step as completed
       const updatedCompletedSteps = {
         ...(registrationRecord?.completedSteps || {}),
         [filteredSteps[currentStepIndex].id]: true,
       };
 
-      const { error } = await (supabase as any)
-        .from('registration_progress')
-        .update({
-          registration_data: registrationData,
-          current_step: filteredSteps[currentStepIndex].id,
+      const { error } = await enhancedSupabaseClient()
+        .registrationProgress()
+        .update(camelToSnake({
+          registrationData: registrationData,
+          currentStep: filteredSteps[currentStepIndex].id,
           status: 'in_progress',
-          last_active_at: new Date().toISOString(),
-          completed_steps: updatedCompletedSteps,
-          completed_step_count: Object.values(updatedCompletedSteps).filter(Boolean).length,
-        })
+          lastActiveAt: new Date().toISOString(),
+          completedSteps: updatedCompletedSteps,
+          completedStepCount: Object.values(updatedCompletedSteps).filter(Boolean).length,
+        }))
         .eq('id', registrationId);
 
       if (error) throw error;
     } catch (err) {
       console.error('Failed to save progress:', err);
-      // Non-blocking error - don't show to user
     }
   }, [registrationId, currentStepIndex, registrationData, filteredSteps, registrationRecord]);
 
@@ -236,7 +219,6 @@ export const RegistrationProvider: React.FC<RegistrationProviderProps> = ({
     if (currentStepIndex < filteredSteps.length - 1) {
       setCurrentStepIndex(prev => prev + 1);
     } else {
-      // We've reached the end, submit the registration
       await submitRegistration();
     }
   }, [currentStepIndex, filteredSteps.length, isStepValid, saveProgress]);
@@ -259,26 +241,23 @@ export const RegistrationProvider: React.FC<RegistrationProviderProps> = ({
     setIsSubmitting(true);
     
     try {
-      // Final save with completed status
-      const { error } = await (supabase as any)
-        .from('registration_progress')
-        .update({
-          registration_data: registrationData,
+      const { error } = await enhancedSupabaseClient()
+        .registrationProgress()
+        .update(camelToSnake({
+          registrationData: registrationData,
           status: 'completed',
-          completed_step_count: filteredSteps.length,
-        })
+          completedStepCount: filteredSteps.length,
+        }))
         .eq('id', registrationId);
 
       if (error) throw error;
       
-      // Call onComplete callback if provided
       if (onComplete) {
         onComplete(registrationData);
       }
       
       toast.success('Registration completed successfully!');
       
-      // Navigate to the appropriate dashboard based on role
       navigate(`/dashboards/${registrationFlowType.toLowerCase()}`);
     } catch (err: any) {
       console.error('Error submitting registration:', err);
