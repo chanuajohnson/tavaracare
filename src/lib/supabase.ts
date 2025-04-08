@@ -25,6 +25,7 @@ import {
 } from '@/lib/supabase-adapter';
 import { ChatbotMessage, ChatbotConversation } from '@/types/chatbot';
 import { RegistrationProgress } from '@/types/registration';
+import { PostgrestFilterBuilder, PostgrestQueryBuilder } from '@supabase/postgrest-js';
 
 // Create a function to get user role from the profiles table
 export const getUserRole = async () => {
@@ -112,6 +113,9 @@ export const isSupabaseExperiencingIssues = () => {
   return false;
 };
 
+// Type definitions for our enhanced client builders
+type EnhancedFilterBuilder<T> = PostgrestFilterBuilder<any, any, T>;
+
 // Create enhanced client with session ID for anonymous users
 export const enhancedSupabaseClient = () => {
   // Get the session ID for the current user
@@ -125,20 +129,24 @@ export const enhancedSupabaseClient = () => {
         ...supabase.from('registration_progress'),
         async insert(data: Partial<RegistrationProgress>) {
           const dbData = adaptRegistrationProgressToDb(data);
-          const response = await supabase.from('registration_progress').insert(dbData);
-          return response;
+          return supabase.from('registration_progress').insert(dbData);
         },
         async update(data: Partial<RegistrationProgress>) {
           const dbData = adaptRegistrationProgressToDb(data);
-          const response = await supabase.from('registration_progress').update(dbData);
-          return response;
+          return supabase.from('registration_progress').update(dbData);
         },
-        async select(query: string) {
+        async select(query: string): Promise<{
+          data: RegistrationProgress[] | null;
+          error: any;
+        }> {
           const response = await supabase.from('registration_progress').select(query);
           if (response.data) {
-            response.data = response.data.map(item => adaptRegistrationProgress(item as DbRegistrationProgress));
+            const typedData = response.data.map(item => 
+              adaptRegistrationProgress(item as unknown as DbRegistrationProgress)
+            );
+            return { data: typedData, error: response.error };
           }
-          return response;
+          return { data: null, error: response.error };
         }
       };
     },
@@ -149,21 +157,24 @@ export const enhancedSupabaseClient = () => {
         ...supabase.from('chatbot_conversations'),
         async insert(data: Partial<ChatbotConversation>) {
           const dbData = adaptChatbotConversationToDb(data as ChatbotConversation);
-          const response = await supabase.from('chatbot_conversations').insert(dbData);
-          return response;
+          return supabase.from('chatbot_conversations').insert(dbData);
         },
         async update(data: Partial<ChatbotConversation>) {
           const dbData = adaptChatbotConversationToDb(data as ChatbotConversation);
-          const response = await supabase.from('chatbot_conversations').update(dbData);
-          return response;
+          return supabase.from('chatbot_conversations').update(dbData);
         },
-        async select(query: string) {
+        async select(query: string): Promise<{
+          data: ChatbotConversation[] | null;
+          error: any;
+        }> {
           const response = await supabase.from('chatbot_conversations').select(query);
           if (response.data) {
-            response.data = response.data.map(item => 
-              adaptChatbotConversation(item as DbChatbotConversation));
+            const typedData = response.data.map(item => 
+              adaptChatbotConversation(item as unknown as DbChatbotConversation)
+            );
+            return { data: typedData, error: response.error };
           }
-          return response;
+          return { data: null, error: response.error };
         }
       };
     },
@@ -174,21 +185,24 @@ export const enhancedSupabaseClient = () => {
         ...supabase.from('chatbot_messages'),
         async insert(data: Partial<ChatbotMessage>) {
           const dbData = adaptChatbotMessageToDb(data as ChatbotMessage);
-          const response = await supabase.from('chatbot_messages').insert(dbData);
-          return response;
+          return supabase.from('chatbot_messages').insert(dbData);
         },
         async update(data: Partial<ChatbotMessage>) {
           const dbData = adaptChatbotMessageToDb(data as ChatbotMessage);
-          const response = await supabase.from('chatbot_messages').update(dbData);
-          return response;
+          return supabase.from('chatbot_messages').update(dbData);
         },
-        async select(query: string) {
+        async select(query: string): Promise<{
+          data: ChatbotMessage[] | null;
+          error: any;
+        }> {
           const response = await supabase.from('chatbot_messages').select(query);
           if (response.data) {
-            response.data = response.data.map(item => 
-              adaptChatbotMessage(item as DbChatbotMessage));
+            const typedData = response.data.map(item => 
+              adaptChatbotMessage(item as unknown as DbChatbotMessage)
+            );
+            return { data: typedData, error: response.error };
           }
-          return response;
+          return { data: null, error: response.error };
         }
       };
     },

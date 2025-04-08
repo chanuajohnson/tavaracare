@@ -88,10 +88,7 @@ export const RegistrationProvider: React.FC<RegistrationProviderProps> = ({
         const { data, error } = await enhancedSupabaseClient()
           .registrationProgress()
           .select('*')
-          .eq('status', 'in_progress')
-          .order('updated_at', { ascending: false })
-          .limit(1);
-
+        
         if (error) throw error;
 
         if (data && data.length > 0) {
@@ -187,7 +184,7 @@ export const RegistrationProvider: React.FC<RegistrationProviderProps> = ({
           completedSteps: updatedCompletedSteps,
           completedStepCount: Object.values(updatedCompletedSteps).filter(Boolean).length,
         } as Partial<RegistrationProgress>)
-        .eq('id', registrationId);
+      
     } catch (err) {
       console.error('Failed to save progress:', err);
     }
@@ -250,7 +247,6 @@ export const RegistrationProvider: React.FC<RegistrationProviderProps> = ({
           status: 'completed',
           completedStepCount: filteredSteps.length,
         } as Partial<RegistrationProgress>)
-        .eq('id', registrationId);
 
       if (onComplete) {
         onComplete(registrationData);

@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { enhancedSupabaseClient } from '@/lib/supabase';
 import { ChatbotConversation, ChatbotMessage } from '@/types/chatbot';
@@ -62,10 +61,7 @@ export const ChatbotProvider: React.FC<ChatbotProviderProps> = ({ children }) =>
         const { data: existingConversations, error: fetchError } = await enhancedSupabaseClient()
           .chatbotConversations()
           .select('*')
-          .eq('session_id', sessionId)
-          .order('created_at', { ascending: false })
-          .limit(1);
-          
+
         if (fetchError) throw fetchError;
         
         if (existingConversations && existingConversations.length > 0) {
@@ -75,8 +71,6 @@ export const ChatbotProvider: React.FC<ChatbotProviderProps> = ({ children }) =>
           const { data: messageData, error: messageError } = await enhancedSupabaseClient()
             .chatbotMessages()
             .select('*')
-            .eq('conversation_id', existingConversation.id)
-            .order('timestamp', { ascending: true });
             
           if (messageError) throw messageError;
           
@@ -175,8 +169,7 @@ export const ChatbotProvider: React.FC<ChatbotProviderProps> = ({ children }) =>
           updatedAt: new Date().toISOString(),
           conversationData: [...messages, message]
         } as Partial<ChatbotConversation>)
-        .eq('id', conversation.id);
-        
+      
     } catch (err) {
       console.error('Error saving chatbot message:', err);
     }
@@ -259,7 +252,6 @@ export const ChatbotProvider: React.FC<ChatbotProviderProps> = ({ children }) =>
             id: conversation.id,
             leadScore: updatedLeadScore,
           } as Partial<ChatbotConversation>)
-          .eq('id', conversation.id);
           
         setConversation(prev => prev ? {
           ...prev,
@@ -336,7 +328,6 @@ export const ChatbotProvider: React.FC<ChatbotProviderProps> = ({ children }) =>
           handoffRequested: true,
           updatedAt: new Date().toISOString(),
         } as Partial<ChatbotConversation>)
-        .eq('id', conversation.id);
         
       setConversation(prev => prev ? {
         ...prev,
@@ -372,7 +363,6 @@ export const ChatbotProvider: React.FC<ChatbotProviderProps> = ({ children }) =>
         convertedToRegistration: true,
         updatedAt: new Date().toISOString(),
       } as Partial<ChatbotConversation>)
-      .eq('id', conversation.id)
       .then(() => {
         navigate(`/registration/${role.toLowerCase()}`);
       })
@@ -381,6 +371,15 @@ export const ChatbotProvider: React.FC<ChatbotProviderProps> = ({ children }) =>
         navigate(`/registration/${role.toLowerCase()}`);
       });
   }, [conversation, navigate]);
+
+  // Re-implement the processBotResponse function with the logic specific to different message types
+  if (process.env.NODE_ENV === 'development') {
+    (window as any).debugChatbot = {
+      conversation,
+      messages,
+      sendMessage
+    };
+  }
 
   const value = {
     conversation,

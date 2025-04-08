@@ -98,7 +98,15 @@ export const chatbotMessageSchema = z.object({
 // Specific adapters for our main entities
 export function adaptChatbotMessage(dbMessage: DbChatbotMessage): ChatbotMessage {
   const adapted = adaptFromDb<ChatbotMessage>(dbMessage);
-  return chatbotMessageSchema.parse(adapted);
+  // Ensure required fields are present
+  return {
+    id: adapted.id || '',
+    message: adapted.message || '',
+    senderType: adapted.senderType || 'system',
+    timestamp: adapted.timestamp || new Date().toISOString(),
+    messageType: adapted.messageType,
+    contextData: adapted.contextData
+  };
 }
 
 export function adaptChatbotMessageToDb(message: ChatbotMessage): DbChatbotMessage {
