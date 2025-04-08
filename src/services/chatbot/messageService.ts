@@ -1,6 +1,6 @@
 
 import { supabase } from "@/integrations/supabase/client";
-import { ChatbotMessage } from "@/types/chatbot";
+import { ChatbotMessage, DbChatbotMessage, SupabaseGenericResponse } from "@/types/chatbot";
 import { adaptMessageFromDb, adaptMessageToDb } from "@/adapters/chatbot-adapters";
 import { toast } from "@/hooks/use-toast";
 
@@ -14,7 +14,7 @@ export const messageService = {
   async getMessagesByConversationId(conversationId: string): Promise<ChatbotMessage[]> {
     try {
       const { data, error } = await supabase
-        .from("chatbot_messages")
+        .from("chatbot_messages" as any)
         .select("*")
         .eq("conversation_id", conversationId)
         .order("timestamp", { ascending: true });
@@ -25,7 +25,7 @@ export const messageService = {
         return [];
       }
 
-      return data.map(message => adaptMessageFromDb(message));
+      return (data as DbChatbotMessage[]).map(message => adaptMessageFromDb(message));
     } catch (err) {
       console.error("Unexpected error fetching messages:", err);
       toast.error("An unexpected error occurred");
@@ -50,11 +50,13 @@ export const messageService = {
       const dbMessage = adaptMessageToDb(message);
 
       // Note: Properly wrapped in array for .insert()
-      const { data, error } = await supabase
-        .from("chatbot_messages")
+      const response = await supabase
+        .from("chatbot_messages" as any)
         .insert([dbMessage])
         .select()
         .single();
+
+      const { data, error } = response as SupabaseGenericResponse<DbChatbotMessage>;
 
       if (error) {
         console.error("Error creating message:", error);
@@ -62,7 +64,7 @@ export const messageService = {
         return null;
       }
 
-      return adaptMessageFromDb(data);
+      return adaptMessageFromDb(data as DbChatbotMessage);
     } catch (err) {
       console.error("Unexpected error creating message:", err);
       toast.error("An unexpected error occurred");
@@ -85,12 +87,14 @@ export const messageService = {
       // Convert to DB format with adapter
       const dbMessage = adaptMessageToDb(message);
 
-      const { data, error } = await supabase
-        .from("chatbot_messages")
+      const response = await supabase
+        .from("chatbot_messages" as any)
         .update(dbMessage)
         .eq("id", message.id)
         .select()
         .single();
+        
+      const { data, error } = response as SupabaseGenericResponse<DbChatbotMessage>;
 
       if (error) {
         console.error("Error updating message:", error);
@@ -98,7 +102,7 @@ export const messageService = {
         return null;
       }
 
-      return adaptMessageFromDb(data);
+      return adaptMessageFromDb(data as DbChatbotMessage);
     } catch (err) {
       console.error("Unexpected error updating message:", err);
       toast.error("An unexpected error occurred");
@@ -112,7 +116,7 @@ export const messageService = {
   async deleteMessage(messageId: string): Promise<boolean> {
     try {
       const { error } = await supabase
-        .from("chatbot_messages")
+        .from("chatbot_messages" as any)
         .delete()
         .eq("id", messageId);
 

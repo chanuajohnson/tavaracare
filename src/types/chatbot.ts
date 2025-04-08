@@ -1,5 +1,6 @@
 
 import { Json } from "@/integrations/supabase/types";
+import { Database } from "@/integrations/supabase/types";
 
 // Frontend Models (camelCase)
 export interface ChatbotMessage {
@@ -52,3 +53,10 @@ export interface DbChatbotConversation {
   created_at?: string;
   updated_at?: string;
 }
+
+// Type-safe service layer helpers to work around Supabase type issues
+export type PostgresTable = keyof Database['public']['Tables'];
+export type SupabaseGenericResponse<T> = {
+  data: T | null;
+  error: Error | null;
+};

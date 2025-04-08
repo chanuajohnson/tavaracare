@@ -1,6 +1,6 @@
 
 import { supabase } from "@/integrations/supabase/client";
-import { ChatbotConversation } from "@/types/chatbot";
+import { ChatbotConversation, DbChatbotConversation, SupabaseGenericResponse } from "@/types/chatbot";
 import { adaptConversationFromDb, adaptConversationToDb } from "@/adapters/chatbot-adapters";
 import { toast } from "@/hooks/use-toast";
 import { v4 as uuidv4 } from "uuid";
@@ -14,11 +14,13 @@ export const conversationService = {
    */
   async getConversationById(id: string): Promise<ChatbotConversation | null> {
     try {
-      const { data, error } = await supabase
-        .from("chatbot_conversations")
+      const response = await supabase
+        .from("chatbot_conversations" as any)
         .select()
         .eq("id", id)
         .maybeSingle();
+
+      const { data, error } = response as SupabaseGenericResponse<DbChatbotConversation>;
 
       if (error) {
         console.error("Error fetching conversation:", error);
@@ -40,11 +42,13 @@ export const conversationService = {
    */
   async getConversationBySessionId(sessionId: string): Promise<ChatbotConversation | null> {
     try {
-      const { data, error } = await supabase
-        .from("chatbot_conversations")
+      const response = await supabase
+        .from("chatbot_conversations" as any)
         .select()
         .eq("session_id", sessionId)
         .maybeSingle();
+
+      const { data, error } = response as SupabaseGenericResponse<DbChatbotConversation>;
 
       if (error) {
         console.error("Error fetching conversation by session ID:", error);
@@ -76,11 +80,13 @@ export const conversationService = {
       const dbConversation = adaptConversationToDb(conversation);
 
       // Note: Properly wrapped in array for .insert()
-      const { data, error } = await supabase
-        .from("chatbot_conversations")
+      const response = await supabase
+        .from("chatbot_conversations" as any)
         .insert([dbConversation])
         .select()
         .single();
+
+      const { data, error } = response as SupabaseGenericResponse<DbChatbotConversation>;
 
       if (error) {
         console.error("Error creating conversation:", error);
@@ -111,12 +117,14 @@ export const conversationService = {
       // Convert to DB format with adapter
       const dbConversation = adaptConversationToDb(conversation);
 
-      const { data, error } = await supabase
-        .from("chatbot_conversations")
+      const response = await supabase
+        .from("chatbot_conversations" as any)
         .update(dbConversation)
         .eq("id", conversation.id)
         .select()
         .single();
+
+      const { data, error } = response as SupabaseGenericResponse<DbChatbotConversation>;
 
       if (error) {
         console.error("Error updating conversation:", error);
