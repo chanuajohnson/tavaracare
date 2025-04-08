@@ -2,7 +2,21 @@
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 
+// Domain model for care team members (camelCase)
 export interface CareTeamMember {
+  id: string;
+  carePlanId: string;
+  familyId: string;
+  caregiverId: string;
+  role: 'caregiver' | 'nurse' | 'therapist' | 'doctor' | 'other';
+  status: 'invited' | 'active' | 'declined' | 'removed';
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Database model for care team members (snake_case)
+interface DbCareTeamMember {
   id: string;
   care_plan_id: string;
   family_id: string;
@@ -13,6 +27,28 @@ export interface CareTeamMember {
   created_at: string;
   updated_at: string;
 }
+
+// Adapters for converting between domain and database models
+const adaptCareTeamMemberFromDb = (dbMember: DbCareTeamMember): CareTeamMember => ({
+  id: dbMember.id,
+  carePlanId: dbMember.care_plan_id,
+  familyId: dbMember.family_id,
+  caregiverId: dbMember.caregiver_id,
+  role: dbMember.role,
+  status: dbMember.status,
+  notes: dbMember.notes,
+  createdAt: dbMember.created_at,
+  updatedAt: dbMember.updated_at
+});
+
+const adaptCareTeamMemberToDb = (member: Partial<CareTeamMember>): Partial<DbCareTeamMember> => ({
+  care_plan_id: member.carePlanId,
+  family_id: member.familyId,
+  caregiver_id: member.caregiverId,
+  role: member.role,
+  status: member.status,
+  notes: member.notes
+});
 
 export const fetchCareTeamMembers = async (planId: string): Promise<CareTeamMember[]> => {
   try {
@@ -26,11 +62,7 @@ export const fetchCareTeamMembers = async (planId: string): Promise<CareTeamMemb
       throw error;
     }
 
-    return (data || []).map(member => ({
-      ...member,
-      role: member.role as 'caregiver' | 'nurse' | 'therapist' | 'doctor' | 'other',
-      status: member.status as 'invited' | 'active' | 'declined' | 'removed',
-    }));
+    return (data || []).map(member => adaptCareTeamMemberFromDb(member as DbCareTeamMember));
   } catch (error) {
     console.error("Error fetching care team members:", error);
     toast.error("Failed to load care team members");
@@ -39,12 +71,13 @@ export const fetchCareTeamMembers = async (planId: string): Promise<CareTeamMemb
 };
 
 export const inviteCareTeamMember = async (
-  member: Omit<CareTeamMember, 'id' | 'created_at' | 'updated_at'>
+  member: Omit<CareTeamMember, 'id' | 'createdAt' | 'updatedAt'>
 ): Promise<CareTeamMember | null> => {
   try {
+    const dbMember = adaptCareTeamMemberToDb(member);
     const { data, error } = await supabase
       .from('care_team_members')
-      .insert(member)
+      .insert(dbMember)
       .select()
       .single();
 
@@ -54,11 +87,7 @@ export const inviteCareTeamMember = async (
 
     toast.success("Team member assigned successfully");
     
-    return data ? {
-      ...data,
-      role: data.role as 'caregiver' | 'nurse' | 'therapist' | 'doctor' | 'other',
-      status: data.status as 'invited' | 'active' | 'declined' | 'removed',
-    } : null;
+    return data ? adaptCareTeamMemberFromDb(data as DbCareTeamMember) : null;
   } catch (error) {
     console.error("Error assigning team member:", error);
     toast.error("Failed to assign team member");
@@ -68,12 +97,13 @@ export const inviteCareTeamMember = async (
 
 export const updateCareTeamMember = async (
   memberId: string,
-  updates: Partial<Omit<CareTeamMember, 'id' | 'care_plan_id' | 'family_id' | 'caregiver_id' | 'created_at' | 'updated_at'>>
+  updates: Partial<Omit<CareTeamMember, 'id' | 'carePlanId' | 'familyId' | 'caregiverId' | 'createdAt' | 'updatedAt'>>
 ): Promise<CareTeamMember | null> => {
   try {
+    const dbUpdates = adaptCareTeamMemberToDb(updates);
     const { data, error } = await supabase
       .from('care_team_members')
-      .update(updates)
+      .update(dbUpdates)
       .eq('id', memberId)
       .select()
       .single();
@@ -84,11 +114,7 @@ export const updateCareTeamMember = async (
 
     toast.success("Team member updated successfully");
     
-    return data ? {
-      ...data,
-      role: data.role as 'caregiver' | 'nurse' | 'therapist' | 'doctor' | 'other',
-      status: data.status as 'invited' | 'active' | 'declined' | 'removed',
-    } : null;
+    return data ? adaptCareTeamMemberFromDb(data as DbCareTeamMember) : null;
   } catch (error) {
     console.error("Error updating team member:", error);
     toast.error("Failed to update team member");

@@ -8,15 +8,21 @@ export * from './careTeamService';
 // For backward compatibility
 export { 
   fetchCarePlans, fetchCarePlanById, createCarePlan, 
-  updateCarePlan, deleteCarePlan, CarePlan, CarePlanMetadata
+  updateCarePlan, deleteCarePlan 
 } from './carePlanService';
+
+export type { CarePlan, CarePlanMetadata } from './carePlanService';
 
 export {
   fetchCareShifts, createCareShift, 
-  updateCareShift, deleteCareShift, CareShift
+  updateCareShift, deleteCareShift
 } from './careShiftService';
+
+export type { CareShift } from './careShiftService';
 
 export {
   fetchCareTeamMembers, inviteCareTeamMember, updateCareTeamMember, 
-  removeCareTeamMember, CareTeamMember
+  removeCareTeamMember
 } from './careTeamService';
+
+export type { CareTeamMember } from './careTeamService';

@@ -1,8 +1,11 @@
 
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
+import { adaptCarePlanFromDb, adaptCarePlanToDb } from "@/adapters/carePlanAdapter";
+import { CarePlan, CarePlanMetadata } from "@/types/carePlan";
 
-export interface CarePlan {
+// Database model for care plans
+export interface DbCarePlan {
   id: string;
   family_id: string;
   title: string;
@@ -11,18 +14,6 @@ export interface CarePlan {
   created_at: string;
   updated_at: string;
   metadata?: any;
-}
-
-export interface CarePlanMetadata {
-  plan_type: 'scheduled' | 'on-demand' | 'both';
-  weekday_coverage?: '8am-4pm' | '6am-6pm' | '6pm-8am' | 'none';
-  weekend_coverage?: 'yes' | 'no';
-  additional_shifts?: {
-    weekdayEvening4pmTo6am?: boolean;
-    weekdayEvening4pmTo8am?: boolean;
-    weekdayEvening6pmTo6am?: boolean;
-    weekdayEvening6pmTo8am?: boolean;
-  };
 }
 
 export const fetchCarePlans = async (familyId: string): Promise<CarePlan[]> => {
@@ -37,7 +28,7 @@ export const fetchCarePlans = async (familyId: string): Promise<CarePlan[]> => {
       throw error;
     }
 
-    return data as CarePlan[];
+    return (data || []).map(plan => adaptCarePlanFromDb(plan));
   } catch (error) {
     console.error("Error fetching care plans:", error);
     toast.error("Failed to load care plans");
@@ -57,7 +48,7 @@ export const fetchCarePlanById = async (planId: string): Promise<CarePlan | null
       throw error;
     }
 
-    return data as CarePlan | null;
+    return data ? adaptCarePlanFromDb(data) : null;
   } catch (error) {
     console.error("Error fetching care plan:", error);
     toast.error("Failed to load care plan");
@@ -65,11 +56,12 @@ export const fetchCarePlanById = async (planId: string): Promise<CarePlan | null
   }
 };
 
-export const createCarePlan = async (plan: Omit<CarePlan, 'id' | 'created_at' | 'updated_at'>): Promise<CarePlan | null> => {
+export const createCarePlan = async (plan: Omit<CarePlan, 'id' | 'createdAt' | 'updatedAt'>): Promise<CarePlan | null> => {
   try {
+    const dbPlan = adaptCarePlanToDb(plan);
     const { data, error } = await supabase
       .from('care_plans')
-      .insert([plan])
+      .insert([dbPlan])
       .select()
       .single();
 
@@ -78,7 +70,7 @@ export const createCarePlan = async (plan: Omit<CarePlan, 'id' | 'created_at' | 
     }
 
     toast.success("Care plan created successfully");
-    return data as CarePlan;
+    return data ? adaptCarePlanFromDb(data) : null;
   } catch (error) {
     console.error("Error creating care plan:", error);
     toast.error("Failed to create care plan");
@@ -86,11 +78,15 @@ export const createCarePlan = async (plan: Omit<CarePlan, 'id' | 'created_at' | 
   }
 };
 
-export const updateCarePlan = async (planId: string, updates: Partial<Omit<CarePlan, 'id' | 'created_at' | 'updated_at'>>): Promise<CarePlan | null> => {
+export const updateCarePlan = async (
+  planId: string, 
+  updates: Partial<Omit<CarePlan, 'id' | 'createdAt' | 'updatedAt'>>
+): Promise<CarePlan | null> => {
   try {
+    const dbUpdates = adaptCarePlanToDb(updates);
     const { data, error } = await supabase
       .from('care_plans')
-      .update(updates)
+      .update(dbUpdates)
       .eq('id', planId)
       .select()
       .single();
@@ -100,7 +96,7 @@ export const updateCarePlan = async (planId: string, updates: Partial<Omit<CareP
     }
 
     toast.success("Care plan updated successfully");
-    return data as CarePlan;
+    return data ? adaptCarePlanFromDb(data) : null;
   } catch (error) {
     console.error("Error updating care plan:", error);
     toast.error("Failed to update care plan");

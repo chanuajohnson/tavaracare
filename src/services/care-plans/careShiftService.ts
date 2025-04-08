@@ -2,7 +2,27 @@
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 
+// Domain model for care shifts (camelCase)
 export interface CareShift {
+  id: string;
+  carePlanId: string;
+  familyId: string;
+  caregiverId?: string;
+  title: string;
+  description?: string;
+  location?: string;
+  status: 'open' | 'assigned' | 'completed' | 'cancelled';
+  startTime: string;
+  endTime: string;
+  recurringPattern?: string;
+  recurrenceRule?: string;
+  createdAt: string;
+  updatedAt: string;
+  googleCalendarEventId?: string;
+}
+
+// Database model for care shifts (snake_case)
+interface DbCareShift {
   id: string;
   care_plan_id: string;
   family_id: string;
@@ -20,6 +40,40 @@ export interface CareShift {
   google_calendar_event_id?: string;
 }
 
+// Adapters for converting between domain and database models
+const adaptCareShiftFromDb = (dbShift: DbCareShift): CareShift => ({
+  id: dbShift.id,
+  carePlanId: dbShift.care_plan_id,
+  familyId: dbShift.family_id,
+  caregiverId: dbShift.caregiver_id,
+  title: dbShift.title,
+  description: dbShift.description,
+  location: dbShift.location,
+  status: dbShift.status,
+  startTime: dbShift.start_time,
+  endTime: dbShift.end_time,
+  recurringPattern: dbShift.recurring_pattern,
+  recurrenceRule: dbShift.recurrence_rule,
+  createdAt: dbShift.created_at,
+  updatedAt: dbShift.updated_at,
+  googleCalendarEventId: dbShift.google_calendar_event_id
+});
+
+const adaptCareShiftToDb = (shift: Partial<CareShift>): Partial<DbCareShift> => ({
+  care_plan_id: shift.carePlanId,
+  family_id: shift.familyId,
+  caregiver_id: shift.caregiverId,
+  title: shift.title,
+  description: shift.description,
+  location: shift.location,
+  status: shift.status,
+  start_time: shift.startTime,
+  end_time: shift.endTime,
+  recurring_pattern: shift.recurringPattern,
+  recurrence_rule: shift.recurrenceRule,
+  google_calendar_event_id: shift.googleCalendarEventId
+});
+
 export const fetchCareShifts = async (planId: string): Promise<CareShift[]> => {
   try {
     const { data, error } = await supabase
@@ -32,10 +86,7 @@ export const fetchCareShifts = async (planId: string): Promise<CareShift[]> => {
       throw error;
     }
 
-    return (data || []).map(shift => ({
-      ...shift,
-      status: shift.status as 'open' | 'assigned' | 'completed' | 'cancelled',
-    }));
+    return (data || []).map(shift => adaptCareShiftFromDb(shift as DbCareShift));
   } catch (error) {
     console.error("Error fetching care shifts:", error);
     toast.error("Failed to load care schedule");
@@ -44,12 +95,13 @@ export const fetchCareShifts = async (planId: string): Promise<CareShift[]> => {
 };
 
 export const createCareShift = async (
-  shift: Omit<CareShift, 'id' | 'created_at' | 'updated_at'>
+  shift: Omit<CareShift, 'id' | 'createdAt' | 'updatedAt'>
 ): Promise<CareShift | null> => {
   try {
+    const dbShift = adaptCareShiftToDb(shift);
     const { data, error } = await supabase
       .from('care_shifts')
-      .insert(shift)
+      .insert(dbShift)
       .select()
       .single();
 
@@ -59,10 +111,7 @@ export const createCareShift = async (
 
     toast.success("Care shift created successfully");
     
-    return data ? {
-      ...data,
-      status: data.status as 'open' | 'assigned' | 'completed' | 'cancelled',
-    } : null;
+    return data ? adaptCareShiftFromDb(data as DbCareShift) : null;
   } catch (error) {
     console.error("Error creating care shift:", error);
     toast.error("Failed to create care shift");
@@ -72,12 +121,13 @@ export const createCareShift = async (
 
 export const updateCareShift = async (
   shiftId: string,
-  updates: Partial<Omit<CareShift, 'id' | 'care_plan_id' | 'family_id' | 'created_at' | 'updated_at'>>
+  updates: Partial<Omit<CareShift, 'id' | 'carePlanId' | 'familyId' | 'createdAt' | 'updatedAt'>>
 ): Promise<CareShift | null> => {
   try {
+    const dbUpdates = adaptCareShiftToDb(updates);
     const { data, error } = await supabase
       .from('care_shifts')
-      .update(updates)
+      .update(dbUpdates)
       .eq('id', shiftId)
       .select()
       .single();
@@ -88,10 +138,7 @@ export const updateCareShift = async (
 
     toast.success("Care shift updated successfully");
     
-    return data ? {
-      ...data,
-      status: data.status as 'open' | 'assigned' | 'completed' | 'cancelled',
-    } : null;
+    return data ? adaptCareShiftFromDb(data as DbCareShift) : null;
   } catch (error) {
     console.error("Error updating care shift:", error);
     toast.error("Failed to update care shift");

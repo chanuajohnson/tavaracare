@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ChevronDown, ChevronUp, Clock, Calendar as CalendarIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { CareShift } from "@/services/care-plan-service";
+import { CareShift } from "@/services/care-plans/careShiftService";
 
 interface ProfessionalCalendarProps {
   shifts: CareShift[];
@@ -24,7 +24,7 @@ export function ProfessionalCalendar({ shifts, loading = false }: ProfessionalCa
     const dateString = date.toISOString().split('T')[0];
     
     return shifts.filter(shift => {
-      const shiftStartDate = new Date(shift.start_time).toISOString().split('T')[0];
+      const shiftStartDate = new Date(shift.startTime).toISOString().split('T')[0];
       return shiftStartDate === dateString;
     });
   };
@@ -45,7 +45,7 @@ export function ProfessionalCalendar({ shifts, loading = false }: ProfessionalCa
     if (!shifts.length) return {};
     
     const daysWithShifts = shifts.reduce((acc: Record<string, { shift: CareShift }>, shift) => {
-      const date = new Date(shift.start_time).toISOString().split('T')[0];
+      const date = new Date(shift.startTime).toISOString().split('T')[0];
       if (!acc[date]) {
         acc[date] = { shift };
       }
@@ -134,7 +134,7 @@ export function ProfessionalCalendar({ shifts, loading = false }: ProfessionalCa
                         <div className="flex justify-between">
                           <h4 className="font-medium">{shift.title}</h4>
                           <Badge variant="outline" className="bg-white">
-                            {formatTime(shift.start_time)} - {formatTime(shift.end_time)}
+                            {formatTime(shift.startTime)} - {formatTime(shift.endTime)}
                           </Badge>
                         </div>
                         {shift.description && (
