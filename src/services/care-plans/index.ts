@@ -17,5 +17,6 @@ export type {
   CareTeamMember,
   CareTeamMemberDto,
   CareTeamMemberInput,
-  CareTeamMemberWithProfile 
+  CareTeamMemberWithProfile,
+  ProfessionalDetails
 } from '@/types/careTypes';

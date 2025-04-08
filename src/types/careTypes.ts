@@ -58,8 +58,16 @@ export interface CareTeamMember {
   updatedAt: string;
 }
 
+// Professional details from profiles
+export interface ProfessionalDetails {
+  full_name?: string | null;
+  professional_type?: string | null;
+  avatar_url?: string | null;
+}
+
 // Care Team Member with associated profile information
 export interface CareTeamMemberWithProfile extends CareTeamMember {
+  professionalDetails?: ProfessionalDetails;
   profile?: {
     fullName: string;
     avatarUrl?: string;

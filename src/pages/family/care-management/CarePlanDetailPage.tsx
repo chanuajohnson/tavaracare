@@ -19,6 +19,7 @@ import {
   CarePlan,
   CareTeamMemberWithProfile,
   CareShift,
+  ProfessionalDetails
 } from "@/services/care-plans";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
@@ -93,7 +94,7 @@ const CarePlanDetailPage = () => {
         
         return {
           ...member,
-          professionalDetails: error ? undefined : data
+          professionalDetails: error ? undefined : (data as ProfessionalDetails)
         } as CareTeamMemberWithProfile;
       }));
       
@@ -235,7 +236,7 @@ const CarePlanDetailPage = () => {
           </TabsList>
           
           <TabsContent value="details">
-            <PlanDetailsTab carePlan={carePlan} />
+            <PlanDetailsTab carePlan={carePlan!} />
           </TabsContent>
           
           <TabsContent value="team">
