@@ -7,7 +7,13 @@ export * from './registration-adapter';
 
 // Additional type exports for convenience
 export type {
-  DbChatbotMessage,
-  DbChatbotConversation,
-  DbRegistrationProgress
+  DbChatbotMessage
 } from '@/lib/adapters/chatbot-message-adapter';
+
+export type {
+  DbChatbotConversation
+} from '@/lib/adapters/chatbot-conversation-adapter';
+
+export type {
+  DbRegistrationProgress
+} from '@/lib/adapters/registration-adapter';

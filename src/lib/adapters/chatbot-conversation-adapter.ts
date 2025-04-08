@@ -1,8 +1,8 @@
 
 import { Database } from '@/integrations/supabase/types';
 import { Json } from '@/integrations/supabase/types';
-import { ChatbotMessage, ChatbotConversation, SenderType, MessageType, toJson } from '@/types/chatbot';
-import { adaptFromDb } from './adapter-utils';
+import { ChatbotMessage, ChatbotConversation, SenderType, MessageType } from '@/types/chatbot';
+import { adaptFromDb, toJson } from './adapter-utils';
 
 // Type definition for database table
 export type DbChatbotConversation = Database['public']['Tables']['chatbot_conversations']['Row'];
@@ -63,7 +63,11 @@ export function adaptChatbotConversationToDb(conversation: Partial<ChatbotConver
   if (!conversation) return {};
   
   // Verify required fields
-  if (!conversation.sessionId) {
+  if (conversation.id && !conversation.sessionId) {
+    // If we have an id but no sessionId, this is likely an update operation
+    // For updates, sessionId might not be required
+    console.log('No sessionId provided for conversation update');
+  } else if (!conversation.sessionId) {
     throw new Error("Session ID is required for chatbot conversations");
   }
   
