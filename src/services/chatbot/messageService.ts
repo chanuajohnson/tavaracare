@@ -1,6 +1,6 @@
 
 import { supabase } from "@/integrations/supabase/client";
-import { ChatbotMessage, DbChatbotMessage, SupabaseGenericResponse } from "@/types/chatbot";
+import { ChatbotMessage, DbChatbotMessage, SupabaseGenericResponse, CustomTable } from "@/types/chatbot";
 import { adaptMessageFromDb, adaptMessageToDb } from "@/adapters/chatbot-adapters";
 import { toast } from "@/hooks/use-toast";
 
@@ -13,8 +13,9 @@ export const messageService = {
    */
   async getMessagesByConversationId(conversationId: string): Promise<ChatbotMessage[]> {
     try {
+      // Cast as any for the table name since our Database type doesn't know about our custom tables
       const { data, error } = await supabase
-        .from("chatbot_messages" as any)
+        .from("chatbot_messages" as CustomTable)
         .select("*")
         .eq("conversation_id", conversationId)
         .order("timestamp", { ascending: true });
@@ -25,7 +26,8 @@ export const messageService = {
         return [];
       }
 
-      return (data as DbChatbotMessage[]).map(message => adaptMessageFromDb(message));
+      // Explicitly cast the response to our known type
+      return (data as unknown as DbChatbotMessage[]).map(message => adaptMessageFromDb(message));
     } catch (err) {
       console.error("Unexpected error fetching messages:", err);
       toast.error("An unexpected error occurred");
@@ -51,12 +53,12 @@ export const messageService = {
 
       // Note: Properly wrapped in array for .insert()
       const response = await supabase
-        .from("chatbot_messages" as any)
+        .from("chatbot_messages" as CustomTable)
         .insert([dbMessage])
         .select()
         .single();
 
-      const { data, error } = response as SupabaseGenericResponse<DbChatbotMessage>;
+      const { data, error } = response as SupabaseGenericResponse<unknown>;
 
       if (error) {
         console.error("Error creating message:", error);
@@ -88,13 +90,13 @@ export const messageService = {
       const dbMessage = adaptMessageToDb(message);
 
       const response = await supabase
-        .from("chatbot_messages" as any)
+        .from("chatbot_messages" as CustomTable)
         .update(dbMessage)
         .eq("id", message.id)
         .select()
         .single();
         
-      const { data, error } = response as SupabaseGenericResponse<DbChatbotMessage>;
+      const { data, error } = response as SupabaseGenericResponse<unknown>;
 
       if (error) {
         console.error("Error updating message:", error);
@@ -116,7 +118,7 @@ export const messageService = {
   async deleteMessage(messageId: string): Promise<boolean> {
     try {
       const { error } = await supabase
-        .from("chatbot_messages" as any)
+        .from("chatbot_messages" as CustomTable)
         .delete()
         .eq("id", messageId);
 

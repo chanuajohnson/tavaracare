@@ -60,3 +60,6 @@ export type SupabaseGenericResponse<T> = {
   data: T | null;
   error: Error | null;
 };
+
+// Adding this custom table type to handle type cast for Supabase
+export type CustomTable = "chatbot_messages" | "chatbot_conversations";

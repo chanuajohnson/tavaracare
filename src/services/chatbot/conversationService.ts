@@ -1,6 +1,6 @@
 
 import { supabase } from "@/integrations/supabase/client";
-import { ChatbotConversation, DbChatbotConversation, SupabaseGenericResponse } from "@/types/chatbot";
+import { ChatbotConversation, DbChatbotConversation, SupabaseGenericResponse, CustomTable } from "@/types/chatbot";
 import { adaptConversationFromDb, adaptConversationToDb } from "@/adapters/chatbot-adapters";
 import { toast } from "@/hooks/use-toast";
 import { v4 as uuidv4 } from "uuid";
@@ -15,12 +15,12 @@ export const conversationService = {
   async getConversationById(id: string): Promise<ChatbotConversation | null> {
     try {
       const response = await supabase
-        .from("chatbot_conversations" as any)
+        .from("chatbot_conversations" as CustomTable)
         .select()
         .eq("id", id)
         .maybeSingle();
 
-      const { data, error } = response as SupabaseGenericResponse<DbChatbotConversation>;
+      const { data, error } = response as SupabaseGenericResponse<unknown>;
 
       if (error) {
         console.error("Error fetching conversation:", error);
@@ -29,7 +29,7 @@ export const conversationService = {
       }
 
       if (!data) return null;
-      return adaptConversationFromDb(data);
+      return adaptConversationFromDb(data as DbChatbotConversation);
     } catch (err) {
       console.error("Unexpected error fetching conversation:", err);
       toast.error("An unexpected error occurred");
@@ -43,12 +43,12 @@ export const conversationService = {
   async getConversationBySessionId(sessionId: string): Promise<ChatbotConversation | null> {
     try {
       const response = await supabase
-        .from("chatbot_conversations" as any)
+        .from("chatbot_conversations" as CustomTable)
         .select()
         .eq("session_id", sessionId)
         .maybeSingle();
 
-      const { data, error } = response as SupabaseGenericResponse<DbChatbotConversation>;
+      const { data, error } = response as SupabaseGenericResponse<unknown>;
 
       if (error) {
         console.error("Error fetching conversation by session ID:", error);
@@ -57,7 +57,7 @@ export const conversationService = {
       }
 
       if (!data) return null;
-      return adaptConversationFromDb(data);
+      return adaptConversationFromDb(data as DbChatbotConversation);
     } catch (err) {
       console.error("Unexpected error fetching conversation by session:", err);
       toast.error("An unexpected error occurred");
@@ -81,12 +81,12 @@ export const conversationService = {
 
       // Note: Properly wrapped in array for .insert()
       const response = await supabase
-        .from("chatbot_conversations" as any)
+        .from("chatbot_conversations" as CustomTable)
         .insert([dbConversation])
         .select()
         .single();
 
-      const { data, error } = response as SupabaseGenericResponse<DbChatbotConversation>;
+      const { data, error } = response as SupabaseGenericResponse<unknown>;
 
       if (error) {
         console.error("Error creating conversation:", error);
@@ -94,7 +94,7 @@ export const conversationService = {
         return null;
       }
 
-      return adaptConversationFromDb(data);
+      return adaptConversationFromDb(data as DbChatbotConversation);
     } catch (err) {
       console.error("Unexpected error creating conversation:", err);
       toast.error("An unexpected error occurred");
@@ -118,13 +118,13 @@ export const conversationService = {
       const dbConversation = adaptConversationToDb(conversation);
 
       const response = await supabase
-        .from("chatbot_conversations" as any)
+        .from("chatbot_conversations" as CustomTable)
         .update(dbConversation)
         .eq("id", conversation.id)
         .select()
         .single();
 
-      const { data, error } = response as SupabaseGenericResponse<DbChatbotConversation>;
+      const { data, error } = response as SupabaseGenericResponse<unknown>;
 
       if (error) {
         console.error("Error updating conversation:", error);
@@ -132,7 +132,7 @@ export const conversationService = {
         return null;
       }
 
-      return adaptConversationFromDb(data);
+      return adaptConversationFromDb(data as DbChatbotConversation);
     } catch (err) {
       console.error("Unexpected error updating conversation:", err);
       toast.error("An unexpected error occurred");
