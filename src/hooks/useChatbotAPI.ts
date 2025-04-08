@@ -1,3 +1,4 @@
+
 import { enhancedSupabaseClient } from '@/lib/supabase';
 import { ChatbotMessage, ChatbotConversation, SenderType, MessageType, toJson } from '@/types/chatbot';
 import { ChatbotAPIResponse, ChatbotAPISuccessResponse } from './types/chatbotTypes';
@@ -103,7 +104,7 @@ export const useChatbotAPI = () => {
       // Convert to database format
       const dbConversation = adaptChatbotConversationToDb(newConversation);
       
-      // Insert into database
+      // Insert into database - importantly, wrap in array
       const { error } = await enhancedSupabaseClient().client
         .from('chatbot_conversations')
         .insert([dbConversation]);
@@ -134,16 +135,7 @@ export const useChatbotAPI = () => {
       // Convert our frontend message to database format
       const dbMessage = adaptChatbotMessageToDb(completeMessage);
       
-      // Ensure required fields are present
-      if (!dbMessage.message) {
-        throw new Error("Message content is required");
-      }
-      
-      if (!dbMessage.sender_type) {
-        throw new Error("Sender type is required");
-      }
-      
-      // Save message to chatbot_messages table
+      // Save message to chatbot_messages table - wrap in array
       const { error: messageError } = await enhancedSupabaseClient().client
         .from('chatbot_messages')
         .insert([dbMessage]);
@@ -166,7 +158,10 @@ export const useChatbotAPI = () => {
   ): Promise<ChatbotAPISuccessResponse> => {
     try {
       // Convert our frontend model to database format
-      const dbUpdates = adaptChatbotConversationToDb(updates);
+      const dbUpdates = adaptChatbotConversationToDb({
+        ...updates,
+        id: conversationId // Ensure ID is included for the update
+      });
       
       // Always update the timestamp
       dbUpdates.updated_at = new Date().toISOString();
@@ -200,7 +195,7 @@ export const useChatbotAPI = () => {
         sender_type: msg.senderType,
         timestamp: msg.timestamp,
         message_type: msg.messageType,
-        context_data: toJson(msg.contextData)
+        context_data: msg.contextData ? toJson(msg.contextData) : null
       }));
       
       const { error } = await enhancedSupabaseClient().client

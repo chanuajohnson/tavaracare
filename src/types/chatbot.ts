@@ -1,4 +1,3 @@
-
 export type SenderType = 'bot' | 'user' | 'system';
 export type MessageType = 'greeting' | 'question' | 'response' | 'suggestion' | 'action';
 
@@ -9,7 +8,7 @@ export interface ChatbotMessage {
   timestamp: string;
   messageType?: MessageType;
   contextData?: Record<string, any> | null;
-  conversationId?: string; // Adding this for mapping to conversation_id in DB
+  conversationId?: string; // This maps to conversation_id in DB
 }
 
 export interface ChatbotConversation {
@@ -110,5 +109,16 @@ export function isRegistrationProgressTable(obj: any): obj is RegistrationProgre
 
 // Helper utility for safe JSON conversion
 export const toJson = <T>(value: T): any => {
-  return value === undefined ? null : JSON.parse(JSON.stringify(value));
+  if (value === undefined) return null;
+  
+  try {
+    // Handle special cases
+    if (value === null) return null;
+    
+    // Use a more robust approach for deeply nested objects
+    return JSON.parse(JSON.stringify(value));
+  } catch (e) {
+    console.error('Error converting to JSON:', e);
+    return null;
+  }
 };

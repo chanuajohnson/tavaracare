@@ -1,3 +1,4 @@
+
 import { Database } from '@/integrations/supabase/types';
 import { Json } from '@/integrations/supabase/types';
 import { 
@@ -139,11 +140,20 @@ export function adaptChatbotMessageToDb(message: Partial<ChatbotMessage>): Recor
     validated.timestamp = new Date().toISOString();
   }
   
-  // Convert camelCase to snake_case
+  // Verify required fields are present
+  if (!validated.message) {
+    throw new Error("Message content is required");
+  }
+  
+  if (!validated.senderType) {
+    throw new Error("Sender type is required");
+  }
+  
+  // Convert to DB format with exact field names expected by Supabase
   return {
     id: validated.id,
-    message: validated.message || '',
-    sender_type: validated.senderType || 'system',
+    message: validated.message,
+    sender_type: validated.senderType,
     timestamp: validated.timestamp,
     message_type: validated.messageType,
     context_data: validated.contextData ? toJson(validated.contextData) : null,
@@ -200,6 +210,11 @@ export function adaptChatbotConversation(dbConversation: DbChatbotConversation):
 export function adaptChatbotConversationToDb(conversation: Partial<ChatbotConversation>): Record<string, any> {
   if (!conversation) return {};
   
+  // Verify required fields
+  if (!conversation.sessionId) {
+    throw new Error("Session ID is required for chatbot conversations");
+  }
+  
   // Handle the special case of conversationData
   const conversationData = conversation.conversationData?.map(msg => ({
     id: msg.id,
@@ -207,9 +222,10 @@ export function adaptChatbotConversationToDb(conversation: Partial<ChatbotConver
     sender_type: msg.senderType,
     timestamp: msg.timestamp,
     message_type: msg.messageType,
-    context_data: toJson(msg.contextData)
+    context_data: msg.contextData ? toJson(msg.contextData) : null
   })) || [];
   
+  // Return object with exact field names expected by Supabase
   return {
     id: conversation.id,
     user_id: conversation.userId,
@@ -220,7 +236,9 @@ export function adaptChatbotConversationToDb(conversation: Partial<ChatbotConver
     lead_score: conversation.leadScore,
     handoff_requested: conversation.handoffRequested,
     converted_to_registration: conversation.convertedToRegistration,
-    contact_info: conversation.contactInfo ? toJson(conversation.contactInfo) : null
+    contact_info: conversation.contactInfo ? toJson(conversation.contactInfo) : null,
+    created_at: conversation.createdAt,
+    updated_at: conversation.updatedAt
   };
 }
 

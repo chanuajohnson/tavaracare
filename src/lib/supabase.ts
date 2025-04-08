@@ -181,26 +181,37 @@ export const enhancedSupabaseClient = () => {
         // Keep standard query methods
         ...supabase.from('chatbot_conversations'),
         
-        // Enhanced insert
+        // Enhanced insert with improved type safety
         async insert(data: Partial<ChatbotConversation>) {
-          const dbData = adaptChatbotConversationToDb(data);
-          
-          // Make sure required fields are present
-          if (!dbData.session_id && sessionId) {
-            dbData.session_id = sessionId;
+          try {
+            const dbData = adaptChatbotConversationToDb(data);
+            
+            // Make sure required fields are present
+            if (!dbData.session_id && sessionId) {
+              dbData.session_id = sessionId;
+            }
+            
+            if (!dbData.session_id) {
+              throw new Error('Session ID is required for chatbot conversations');
+            }
+            
+            // Always pass as an array for Supabase
+            return await supabase.from('chatbot_conversations').insert([dbData]);
+          } catch (err) {
+            console.error('Error in chatbotConversations.insert:', err);
+            throw err;
           }
-          
-          if (!dbData.session_id) {
-            throw new Error('Session ID is required for chatbot conversations');
-          }
-          
-          return await supabase.from('chatbot_conversations').insert([dbData]);
         },
         
         // Enhanced update
         async update(data: Partial<ChatbotConversation>) {
-          const dbData = adaptChatbotConversationToDb(data);
-          return await supabase.from('chatbot_conversations').update(dbData);
+          try {
+            const dbData = adaptChatbotConversationToDb(data);
+            return await supabase.from('chatbot_conversations').update(dbData);
+          } catch (err) {
+            console.error('Error in chatbotConversations.update:', err);
+            throw err;
+          }
         },
         
         // Enhanced select with proper typing
@@ -235,26 +246,37 @@ export const enhancedSupabaseClient = () => {
         // Keep standard query methods
         ...supabase.from('chatbot_messages'),
         
-        // Enhanced insert
+        // Enhanced insert with improved type safety
         async insert(data: Partial<ChatbotMessage>) {
-          const dbData = adaptChatbotMessageToDb(data);
-          
-          // Ensure required fields are present
-          if (!dbData.message) {
-            throw new Error("Message content is required");
+          try {
+            const dbData = adaptChatbotMessageToDb(data);
+            
+            // Ensure required fields are present
+            if (!dbData.message) {
+              throw new Error("Message content is required");
+            }
+            
+            if (!dbData.sender_type) {
+              throw new Error("Sender type is required");
+            }
+            
+            // Always pass as an array for Supabase
+            return await supabase.from('chatbot_messages').insert([dbData]);
+          } catch (err) {
+            console.error('Error in chatbotMessages.insert:', err);
+            throw err;
           }
-          
-          if (!dbData.sender_type) {
-            throw new Error("Sender type is required");
-          }
-          
-          return await supabase.from('chatbot_messages').insert([dbData]);
         },
         
         // Enhanced update
         async update(data: Partial<ChatbotMessage>) {
-          const dbData = adaptChatbotMessageToDb(data);
-          return await supabase.from('chatbot_messages').update(dbData);
+          try {
+            const dbData = adaptChatbotMessageToDb(data);
+            return await supabase.from('chatbot_messages').update(dbData);
+          } catch (err) {
+            console.error('Error in chatbotMessages.update:', err);
+            throw err;
+          }
         },
         
         // Enhanced select with proper typing
