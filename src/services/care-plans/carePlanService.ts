@@ -1,17 +1,16 @@
 
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
-import { Json } from "@/utils/json";
 
 export interface CarePlan {
   id: string;
+  family_id: string;
   title: string;
   description: string;
-  family_id: string;
   status: 'active' | 'completed' | 'cancelled';
   created_at: string;
   updated_at: string;
-  metadata?: CarePlanMetadata;
+  metadata?: any;
 }
 
 export interface CarePlanMetadata {
@@ -26,65 +25,19 @@ export interface CarePlanMetadata {
   };
 }
 
-function isValidCarePlanMetadata(data: any): data is CarePlanMetadata {
-  return (
-    data &&
-    typeof data === 'object' &&
-    'plan_type' in data &&
-    (data.plan_type === 'scheduled' || data.plan_type === 'on-demand' || data.plan_type === 'both')
-  );
-}
-
-function convertToCarePlanMetadata(data: Json | null): CarePlanMetadata | undefined {
-  if (!data) return undefined;
-  
-  if (isValidCarePlanMetadata(data)) {
-    return data as CarePlanMetadata;
-  }
-  
-  if (typeof data === 'string') {
-    try {
-      const parsed = JSON.parse(data);
-      if (isValidCarePlanMetadata(parsed)) {
-        return parsed;
-      }
-    } catch (e) {
-      console.error("Failed to parse metadata JSON string:", e);
-    }
-  }
-  
-  console.warn("Invalid care plan metadata format:", data);
-  return undefined;
-}
-
-function createDefaultMetadata(): CarePlanMetadata {
-  return {
-    plan_type: 'scheduled',
-    weekday_coverage: '8am-4pm',
-    weekend_coverage: 'no',
-    additional_shifts: {
-      weekdayEvening4pmTo6am: false,
-    }
-  };
-}
-
-export const fetchCarePlans = async (userId: string): Promise<CarePlan[]> => {
+export const fetchCarePlans = async (familyId: string): Promise<CarePlan[]> => {
   try {
     const { data, error } = await supabase
       .from('care_plans')
       .select('*')
-      .eq('family_id', userId)
-      .order('updated_at', { ascending: false });
+      .eq('family_id', familyId)
+      .order('created_at', { ascending: false });
 
     if (error) {
       throw error;
     }
 
-    return (data || []).map(plan => ({
-      ...plan,
-      status: plan.status as 'active' | 'completed' | 'cancelled',
-      metadata: convertToCarePlanMetadata(plan.metadata),
-    }));
+    return data as CarePlan[];
   } catch (error) {
     console.error("Error fetching care plans:", error);
     toast.error("Failed to load care plans");
@@ -92,48 +45,31 @@ export const fetchCarePlans = async (userId: string): Promise<CarePlan[]> => {
   }
 };
 
-export const fetchCarePlan = async (planId: string): Promise<CarePlan | null> => {
+export const fetchCarePlanById = async (planId: string): Promise<CarePlan | null> => {
   try {
     const { data, error } = await supabase
       .from('care_plans')
       .select('*')
       .eq('id', planId)
-      .single();
+      .maybeSingle();
 
     if (error) {
       throw error;
     }
 
-    return data ? {
-      ...data,
-      status: data.status as 'active' | 'completed' | 'cancelled',
-      metadata: convertToCarePlanMetadata(data.metadata)
-    } : null;
+    return data as CarePlan | null;
   } catch (error) {
     console.error("Error fetching care plan:", error);
-    toast.error("Failed to load care plan details");
+    toast.error("Failed to load care plan");
     return null;
   }
 };
 
-export const createCarePlan = async (
-  plan: Omit<CarePlan, 'id' | 'created_at' | 'updated_at'>
-): Promise<CarePlan | null> => {
+export const createCarePlan = async (plan: Omit<CarePlan, 'id' | 'created_at' | 'updated_at'>): Promise<CarePlan | null> => {
   try {
-    const planData = {
-      title: plan.title,
-      description: plan.description,
-      family_id: plan.family_id,
-      status: plan.status,
-      metadata: plan.metadata || createDefaultMetadata(),
-    };
-    
     const { data, error } = await supabase
       .from('care_plans')
-      .insert({
-        ...planData,
-        metadata: planData.metadata as unknown as Json
-      })
+      .insert([plan])
       .select()
       .single();
 
@@ -142,12 +78,7 @@ export const createCarePlan = async (
     }
 
     toast.success("Care plan created successfully");
-    
-    return data ? {
-      ...data,
-      status: data.status as 'active' | 'completed' | 'cancelled',
-      metadata: convertToCarePlanMetadata(data.metadata)
-    } : null;
+    return data as CarePlan;
   } catch (error) {
     console.error("Error creating care plan:", error);
     toast.error("Failed to create care plan");
@@ -155,20 +86,11 @@ export const createCarePlan = async (
   }
 };
 
-export const updateCarePlan = async (
-  planId: string,
-  updates: Partial<Omit<CarePlan, 'id' | 'family_id' | 'created_at' | 'updated_at'>>
-): Promise<CarePlan | null> => {
+export const updateCarePlan = async (planId: string, updates: Partial<Omit<CarePlan, 'id' | 'created_at' | 'updated_at'>>): Promise<CarePlan | null> => {
   try {
-    const updateData: any = { ...updates };
-    
-    if (updates.metadata) {
-      updateData.metadata = updates.metadata as unknown as Json;
-    }
-    
     const { data, error } = await supabase
       .from('care_plans')
-      .update(updateData)
+      .update(updates)
       .eq('id', planId)
       .select()
       .single();
@@ -178,12 +100,7 @@ export const updateCarePlan = async (
     }
 
     toast.success("Care plan updated successfully");
-    
-    return data ? {
-      ...data,
-      status: data.status as 'active' | 'completed' | 'cancelled',
-      metadata: convertToCarePlanMetadata(data.metadata)
-    } : null;
+    return data as CarePlan;
   } catch (error) {
     console.error("Error updating care plan:", error);
     toast.error("Failed to update care plan");
