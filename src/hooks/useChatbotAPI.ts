@@ -1,4 +1,3 @@
-
 import { enhancedSupabaseClient } from '@/lib/supabase';
 import { ChatbotMessage, ChatbotConversation, SenderType, MessageType, toJson } from '@/types/chatbot';
 import { ChatbotAPIResponse, ChatbotAPISuccessResponse } from './types/chatbotTypes';
@@ -88,39 +87,31 @@ export const useChatbotAPI = () => {
     try {
       const newConversationId = uuidv4();
       
-      // Format initial message for database storage if provided
-      const conversationData = initialMessage 
-        ? [adaptChatbotMessageToDb(initialMessage)] 
-        : [];
+      // Create new conversation object with all required fields
+      const newConversation: ChatbotConversation = {
+        id: newConversationId,
+        userId: userId,
+        sessionId: sessionId,
+        conversationData: initialMessage ? [initialMessage] : [],
+        leadScore: 0,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        convertedToRegistration: false,
+        handoffRequested: false,
+      };
       
-      // Insert with proper types
+      // Convert to database format
+      const dbConversation = adaptChatbotConversationToDb(newConversation);
+      
+      // Insert into database
       const { error } = await enhancedSupabaseClient().client
         .from('chatbot_conversations')
-        .insert([{
-          id: newConversationId,
-          user_id: userId || null,
-          session_id: sessionId,
-          conversation_data: toJson(conversationData),
-          lead_score: 0,
-          converted_to_registration: false,
-          handoff_requested: false,
-        }]);
+        .insert([dbConversation]);
       
       if (error) throw error;
       
-      // Return the created conversation in our frontend model format
       return {
-        data: {
-          id: newConversationId,
-          userId: userId,
-          sessionId,
-          conversationData: initialMessage ? [initialMessage] : [],
-          leadScore: 0,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-          convertedToRegistration: false,
-          handoffRequested: false,
-        },
+        data: newConversation,
         error: null
       };
     } catch (err) {
@@ -134,11 +125,14 @@ export const useChatbotAPI = () => {
    */
   const saveMessage = async (message: ChatbotMessage, conversationId: string): Promise<ChatbotAPISuccessResponse> => {
     try {
-      // Convert our frontend message to database format
-      const dbMessage = adaptChatbotMessageToDb({
+      // Ensure conversationId is set
+      const completeMessage: ChatbotMessage = {
         ...message,
         conversationId: conversationId
-      });
+      };
+      
+      // Convert our frontend message to database format
+      const dbMessage = adaptChatbotMessageToDb(completeMessage);
       
       // Ensure required fields are present
       if (!dbMessage.message) {
