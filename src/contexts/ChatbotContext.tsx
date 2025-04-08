@@ -411,8 +411,8 @@ export const ChatbotProvider: React.FC<ChatbotProviderProps> = ({ children }) =>
         // Navigate to appropriate registration page
         navigate(`/registration/${role.toLowerCase()}`);
       })
-      .catch((err: any) => {
-        console.error('Error starting registration:', err);
+      .catch((error: any) => {
+        console.error('Error starting registration:', error);
         // Navigate anyway even if tracking fails
         navigate(`/registration/${role.toLowerCase()}`);
       });

@@ -105,7 +105,25 @@ export const enhancedSupabaseClient = () => {
   const sessionId = getOrCreateSessionId();
   
   // Return the supabase client with the session ID set in the headers
-  return (supabase as any).from('registration_progress').select('*');
+  return {
+    // Use registration_progress table through type casting
+    registrationProgress: () => {
+      return (supabase as any).from('registration_progress');
+    },
+    
+    // Chat conversations table accessor
+    chatbotConversations: () => {
+      return (supabase as any).from('chatbot_conversations');
+    },
+    
+    // Chat messages table accessor
+    chatbotMessages: () => {
+      return (supabase as any).from('chatbot_messages');
+    },
+    
+    // Return the standard client for other tables
+    client: supabase
+  };
 };
 
 // Create a function to set the session ID in request headers
