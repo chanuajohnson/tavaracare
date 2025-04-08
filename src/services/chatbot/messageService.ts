@@ -13,21 +13,22 @@ export const messageService = {
    */
   async getMessagesByConversationId(conversationId: string): Promise<ChatbotMessage[]> {
     try {
-      // Cast as any for the table name since our Database type doesn't know about our custom tables
-      const { data, error } = await supabase
+      // Cast table name and perform the query
+      const result = await supabase
         .from("chatbot_messages" as CustomTable)
         .select("*")
         .eq("conversation_id", conversationId)
         .order("timestamp", { ascending: true });
 
-      if (error) {
-        console.error("Error fetching messages:", error);
+      if (result.error) {
+        console.error("Error fetching messages:", result.error);
         toast.error("Failed to load messages");
         return [];
       }
 
-      // Explicitly cast the response to our known type
-      return (data as unknown as DbChatbotMessage[]).map(message => adaptMessageFromDb(message));
+      // Explicitly cast the response data to our known type
+      const messages = result.data as unknown as DbChatbotMessage[];
+      return messages.map(message => adaptMessageFromDb(message));
     } catch (err) {
       console.error("Unexpected error fetching messages:", err);
       toast.error("An unexpected error occurred");
@@ -51,22 +52,28 @@ export const messageService = {
       // Convert to DB format with adapter
       const dbMessage = adaptMessageToDb(message);
 
-      // Note: Properly wrapped in array for .insert()
-      const response = await supabase
+      // Break up the chained operations
+      const insertResult = await supabase
         .from("chatbot_messages" as CustomTable)
         .insert([dbMessage])
-        .select()
-        .single();
+        .select();
 
-      const { data, error } = response as SupabaseGenericResponse<unknown>;
-
-      if (error) {
-        console.error("Error creating message:", error);
+      if (insertResult.error) {
+        console.error("Error creating message:", insertResult.error);
         toast.error("Failed to send message");
         return null;
       }
 
-      return adaptMessageFromDb(data as DbChatbotMessage);
+      // Extract first result from the array and cast
+      const insertedMessage = insertResult.data?.[0] as unknown as DbChatbotMessage;
+      
+      if (!insertedMessage) {
+        console.error("No message returned after insert");
+        toast.error("Failed to send message");
+        return null;
+      }
+
+      return adaptMessageFromDb(insertedMessage);
     } catch (err) {
       console.error("Unexpected error creating message:", err);
       toast.error("An unexpected error occurred");
@@ -89,22 +96,29 @@ export const messageService = {
       // Convert to DB format with adapter
       const dbMessage = adaptMessageToDb(message);
 
-      const response = await supabase
+      // Break up the chained operations
+      const updateResult = await supabase
         .from("chatbot_messages" as CustomTable)
         .update(dbMessage)
         .eq("id", message.id)
-        .select()
-        .single();
+        .select();
         
-      const { data, error } = response as SupabaseGenericResponse<unknown>;
-
-      if (error) {
-        console.error("Error updating message:", error);
+      if (updateResult.error) {
+        console.error("Error updating message:", updateResult.error);
         toast.error("Failed to update message");
         return null;
       }
 
-      return adaptMessageFromDb(data as DbChatbotMessage);
+      // Extract first result from the array and cast
+      const updatedMessage = updateResult.data?.[0] as unknown as DbChatbotMessage;
+      
+      if (!updatedMessage) {
+        console.error("No message returned after update");
+        toast.error("Failed to update message");
+        return null;
+      }
+
+      return adaptMessageFromDb(updatedMessage);
     } catch (err) {
       console.error("Unexpected error updating message:", err);
       toast.error("An unexpected error occurred");
