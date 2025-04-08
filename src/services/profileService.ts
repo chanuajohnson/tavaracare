@@ -4,7 +4,7 @@ import { Profile } from "../types/profile";
 import { DbProfile, DbProfileInsert } from "../types/profile";
 import { adaptProfileFromDb, adaptProfileToDb } from "../adapters/profileAdapter";
 import { supabase } from "@/lib/supabase";
-import { UserRole } from "@/integrations/supabase/types";
+import { UserRole } from "../types/profile";
 
 export class ProfileService extends DatabaseService<Profile, DbProfileInsert, 'profiles'> {
   constructor() {

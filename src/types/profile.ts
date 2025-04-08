@@ -1,4 +1,3 @@
-
 import { Json } from '../utils/json';
 
 export type UserRole = 'family' | 'professional' | 'community' | 'admin';

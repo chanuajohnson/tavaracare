@@ -3,13 +3,11 @@ import { supabase } from '@/lib/supabase';
 import { PostgrestError } from '@supabase/supabase-js';
 import { Database } from '@/integrations/supabase/types';
 
-type TableNames = keyof Database['public']['Tables'];
-
 /**
  * Base service class with common Supabase operations that avoids type inference issues
  * by breaking up chained operations and using proper type assertions
  */
-export class DatabaseService<T, TInsert, TTable extends TableNames> {
+export class DatabaseService<T, TInsert, TTable extends keyof Database['public']['Tables']> {
   protected tableName: TTable;
   protected adapter: (dbData: any) => T;
   
@@ -26,12 +24,15 @@ export class DatabaseService<T, TInsert, TTable extends TableNames> {
     selectColumns: string = '*'
   ): Promise<T | null> {
     try {
-      const { data, error } = await supabase
+      // Explicitly tell TypeScript we're querying a specific table
+      const query = supabase
         .from(this.tableName)
         .select(selectColumns)
         .eq('id', id)
         .limit(1)
         .maybeSingle();
+      
+      const { data, error } = await query;
       
       if (error) {
         console.error(`[${this.tableName}] getSingle error:`, error);
@@ -53,10 +54,12 @@ export class DatabaseService<T, TInsert, TTable extends TableNames> {
     limit: number = 50
   ): Promise<T[]> {
     try {
-      const { data, error } = await supabase
+      const query = supabase
         .from(this.tableName)
         .select(selectColumns)
         .limit(limit);
+      
+      const { data, error } = await query;
       
       if (error) {
         console.error(`[${this.tableName}] getMultiple error:`, error);
@@ -78,10 +81,12 @@ export class DatabaseService<T, TInsert, TTable extends TableNames> {
     selectColumns: string = '*'
   ): Promise<T> {
     try {
-      // First insert
-      const { error: insertError } = await supabase
+      // First insert - use type assertion to help TypeScript understand
+      const query = supabase
         .from(this.tableName)
-        .insert([item]);
+        .insert([item as any]);
+      
+      const { error: insertError } = await query;
       
       if (insertError) {
         console.error(`[${this.tableName}] insert error:`, insertError);
@@ -96,12 +101,14 @@ export class DatabaseService<T, TInsert, TTable extends TableNames> {
       }
       
       // Fetch the inserted record
-      const { data, error: selectError } = await supabase
+      const selectQuery = supabase
         .from(this.tableName)
         .select(selectColumns)
         .eq('id', id)
         .limit(1)
         .maybeSingle();
+      
+      const { data, error: selectError } = await selectQuery;
       
       if (selectError) {
         console.error(`[${this.tableName}] insert select error:`, selectError);
@@ -129,10 +136,12 @@ export class DatabaseService<T, TInsert, TTable extends TableNames> {
   ): Promise<T> {
     try {
       // First update
-      const { error: updateError } = await supabase
+      const updateQuery = supabase
         .from(this.tableName)
-        .update(updates)
+        .update(updates as any)
         .eq('id', id);
+      
+      const { error: updateError } = await updateQuery;
       
       if (updateError) {
         console.error(`[${this.tableName}] update error:`, updateError);
@@ -140,12 +149,14 @@ export class DatabaseService<T, TInsert, TTable extends TableNames> {
       }
       
       // Then fetch the updated record
-      const { data, error: selectError } = await supabase
+      const selectQuery = supabase
         .from(this.tableName)
         .select(selectColumns)
         .eq('id', id)
         .limit(1)
         .maybeSingle();
+      
+      const { data, error: selectError } = await selectQuery;
       
       if (selectError) {
         console.error(`[${this.tableName}] update select error:`, selectError);
@@ -168,10 +179,12 @@ export class DatabaseService<T, TInsert, TTable extends TableNames> {
    */
   protected async delete(id: string): Promise<boolean> {
     try {
-      const { error } = await supabase
+      const query = supabase
         .from(this.tableName)
         .delete()
         .eq('id', id);
+      
+      const { error } = await query;
       
       if (error) {
         console.error(`[${this.tableName}] delete error:`, error);
