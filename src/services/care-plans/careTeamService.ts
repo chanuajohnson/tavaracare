@@ -1,19 +1,7 @@
 
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
-
-// Domain model for care team members (camelCase)
-export interface CareTeamMember {
-  id: string;
-  carePlanId: string;
-  familyId: string;
-  caregiverId: string;
-  role: 'caregiver' | 'nurse' | 'therapist' | 'doctor' | 'other';
-  status: 'invited' | 'active' | 'declined' | 'removed';
-  notes?: string;
-  createdAt: string;
-  updatedAt: string;
-}
+import { CareTeamMember, CareTeamMemberWithProfile } from "@/types/careTypes";
 
 // Database model for care team members (snake_case)
 interface DbCareTeamMember {
@@ -42,6 +30,7 @@ const adaptCareTeamMemberFromDb = (dbMember: DbCareTeamMember): CareTeamMember =
 });
 
 const adaptCareTeamMemberToDb = (member: Partial<CareTeamMember>): Partial<DbCareTeamMember> => ({
+  id: member.id,
   care_plan_id: member.carePlanId,
   family_id: member.familyId,
   caregiver_id: member.caregiverId,
@@ -70,14 +59,22 @@ export const fetchCareTeamMembers = async (planId: string): Promise<CareTeamMemb
   }
 };
 
+interface CareTeamMemberInput {
+  care_plan_id: string;
+  family_id: string;
+  caregiver_id: string;
+  role: 'caregiver' | 'nurse' | 'therapist' | 'doctor' | 'other';
+  status: 'invited' | 'active' | 'declined' | 'removed';
+  notes?: string;
+}
+
 export const inviteCareTeamMember = async (
-  member: Omit<CareTeamMember, 'id' | 'createdAt' | 'updatedAt'>
+  member: CareTeamMemberInput
 ): Promise<CareTeamMember | null> => {
   try {
-    const dbMember = adaptCareTeamMemberToDb(member);
     const { data, error } = await supabase
       .from('care_team_members')
-      .insert(dbMember)
+      .insert(member)
       .select()
       .single();
 

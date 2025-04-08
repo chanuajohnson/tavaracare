@@ -1,8 +1,7 @@
 
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
-import { adaptCarePlanFromDb, adaptCarePlanToDb } from "@/adapters/carePlanAdapter";
-import { CarePlan, CarePlanMetadata } from "@/types/carePlan";
+import { CarePlan, CarePlanMetadata } from "@/types/careTypes";
 
 // Database model for care plans
 export interface DbCarePlan {
@@ -16,6 +15,27 @@ export interface DbCarePlan {
   metadata?: any;
 }
 
+// Adapters for converting between domain and database models
+export const adaptCarePlanFromDb = (dbPlan: DbCarePlan): CarePlan => ({
+  id: dbPlan.id,
+  familyId: dbPlan.family_id,
+  title: dbPlan.title,
+  description: dbPlan.description,
+  status: dbPlan.status,
+  createdAt: dbPlan.created_at,
+  updatedAt: dbPlan.updated_at,
+  metadata: dbPlan.metadata as CarePlanMetadata
+});
+
+export const adaptCarePlanToDb = (plan: Partial<CarePlan>): Partial<DbCarePlan> => ({
+  id: plan.id,
+  family_id: plan.familyId,
+  title: plan.title,
+  description: plan.description,
+  status: plan.status,
+  metadata: plan.metadata
+});
+
 export const fetchCarePlans = async (familyId: string): Promise<CarePlan[]> => {
   try {
     const { data, error } = await supabase
@@ -28,7 +48,7 @@ export const fetchCarePlans = async (familyId: string): Promise<CarePlan[]> => {
       throw error;
     }
 
-    return (data || []).map(plan => adaptCarePlanFromDb(plan));
+    return (data || []).map(plan => adaptCarePlanFromDb(plan as DbCarePlan));
   } catch (error) {
     console.error("Error fetching care plans:", error);
     toast.error("Failed to load care plans");
@@ -48,7 +68,7 @@ export const fetchCarePlanById = async (planId: string): Promise<CarePlan | null
       throw error;
     }
 
-    return data ? adaptCarePlanFromDb(data) : null;
+    return data ? adaptCarePlanFromDb(data as DbCarePlan) : null;
   } catch (error) {
     console.error("Error fetching care plan:", error);
     toast.error("Failed to load care plan");
@@ -70,7 +90,7 @@ export const createCarePlan = async (plan: Omit<CarePlan, 'id' | 'createdAt' | '
     }
 
     toast.success("Care plan created successfully");
-    return data ? adaptCarePlanFromDb(data) : null;
+    return data ? adaptCarePlanFromDb(data as DbCarePlan) : null;
   } catch (error) {
     console.error("Error creating care plan:", error);
     toast.error("Failed to create care plan");
@@ -96,7 +116,7 @@ export const updateCarePlan = async (
     }
 
     toast.success("Care plan updated successfully");
-    return data ? adaptCarePlanFromDb(data) : null;
+    return data ? adaptCarePlanFromDb(data as DbCarePlan) : null;
   } catch (error) {
     console.error("Error updating care plan:", error);
     toast.error("Failed to update care plan");

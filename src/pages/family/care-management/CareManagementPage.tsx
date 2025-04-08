@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/components/providers/AuthProvider";
@@ -6,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Container } from "@/components/ui/container";
 import { PageViewTracker } from "@/components/tracking/PageViewTracker";
 import { FileText, Plus, Users, Calendar, ArrowLeft, Clock } from "lucide-react";
-import { fetchCarePlans, CarePlan } from "@/services/care-plan-service";
+import { fetchCarePlans, CarePlan } from "@/services/care-plans";
 import { toast } from "sonner";
 
 const CareManagementPage = () => {

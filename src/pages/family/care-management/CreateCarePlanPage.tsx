@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "@/components/providers/AuthProvider";
@@ -11,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ArrowLeft } from "lucide-react";
-import { createCarePlan, fetchCarePlan, updateCarePlan } from "@/services/care-plan-service";
+import { createCarePlan, fetchCarePlanById, updateCarePlan } from "@/services/care-plans";
 import { toast } from "sonner";
 
 type PlanType = 'scheduled' | 'on-demand' | 'both';
@@ -50,7 +49,7 @@ const CreateCarePlanPage = () => {
   const loadCarePlan = async () => {
     try {
       setIsLoading(true);
-      const plan = await fetchCarePlan(planId!);
+      const plan = await fetchCarePlanById(planId!);
       
       if (plan) {
         setTitle(plan.title);

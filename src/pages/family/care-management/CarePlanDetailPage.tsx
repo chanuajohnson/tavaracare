@@ -15,13 +15,14 @@ import {
   inviteCareTeamMember,
   removeCareTeamMember,
   CareTeamMember, 
+  CareTeamMemberWithProfile,
   CarePlan,
   fetchCareShifts,
   createCareShift,
   updateCareShift,
   deleteCareShift,
   CareShift
-} from "@/services/care-plan-service";
+} from "@/services/care-plans";
 import { 
   format, addDays, startOfWeek, parse, isSameDay, parseISO, addWeeks, 
   isWithinInterval, endOfDay, startOfDay, subWeeks
@@ -151,19 +152,19 @@ const CarePlanDetailPage = () => {
     if (!id) return;
 
     try {
-      const members = await fetchCareTeamMembers(id);
+      let members = await fetchCareTeamMembers(id);
       
       const membersWithDetails = await Promise.all(members.map(async (member) => {
         const { data, error } = await supabase
           .from('profiles')
           .select('id, full_name, professional_type, avatar_url')
-          .eq('id', member.caregiver_id)
+          .eq('id', member.caregiverId)
           .single();
         
         return {
           ...member,
           professionalDetails: error ? undefined : data
-        };
+        } as CareTeamMemberWithProfile;
       }));
       
       setCareTeamMembers(membersWithDetails);
@@ -415,7 +416,7 @@ const CarePlanDetailPage = () => {
   const getCaregiverName = (caregiverId?: string) => {
     if (!caregiverId) return "Unassigned";
     
-    const member = careTeamMembers.find(m => m.caregiver_id === caregiverId);
+    const member = careTeamMembers.find(m => m.caregiverId === caregiverId);
     return member?.professionalDetails?.full_name || "Unknown";
   };
 
@@ -664,8 +665,8 @@ const CarePlanDetailPage = () => {
             {careTeamMembers.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {careTeamMembers.map((member) => {
-                  const initials = getInitials(member.professionalDetails?.full_name, member.caregiver_id);
-                  const displayName = member.professionalDetails?.full_name || member.caregiver_id;
+                  const initials = getInitials(member.professionalDetails?.full_name, member.caregiverId);
+                  const displayName = member.professionalDetails?.full_name || member.caregiverId;
                   const profType = member.professionalDetails?.professional_type;
                   
                   return (
@@ -911,7 +912,7 @@ const CarePlanDetailPage = () => {
                               <SelectContent>
                                 <SelectItem value="unassigned">Unassigned</SelectItem>
                                 {careTeamMembers.map((member) => (
-                                  <SelectItem key={member.caregiver_id} value={member.caregiver_id}>
+                                  <SelectItem key={member.caregiverId} value={member.caregiverId}>
                                     {member.professionalDetails?.full_name || "Unknown Professional"}
                                   </SelectItem>
                                 ))}
@@ -991,9 +992,9 @@ const CarePlanDetailPage = () => {
                                       {getTimeDisplay(shift.start_time)} - {getTimeDisplay(shift.end_time)}
                                     </div>
                                     <div className={`truncate mt-1 ${
-                                      shift.caregiver_id ? 'text-green-700' : 'text-orange-700'
+                                      shift.caregiverId ? 'text-green-700' : 'text-orange-700'
                                     }`}>
-                                      {getCaregiverName(shift.caregiver_id)}
+                                      {getCaregiverName(shift.caregiverId)}
                                     </div>
                                     <div className="flex justify-end gap-1 mt-1">
                                       <Button 
@@ -1063,7 +1064,7 @@ const CarePlanDetailPage = () => {
           <DialogHeader>
             <DialogTitle>Remove Team Member</DialogTitle>
             <DialogDescription>
-              Are you sure you want to remove {memberToRemove?.professionalDetails?.full_name || memberToRemove?.caregiver_id} from the care team?
+              Are you sure you want to remove {memberToRemove?.professionalDetails?.full_name || memberToRemove?.caregiverId} from the care team?
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="sm:justify-between">
@@ -1081,4 +1082,3 @@ const CarePlanDetailPage = () => {
 };
 
 export default CarePlanDetailPage;
-

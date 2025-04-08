@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
-import { CareShift } from "@/services/care-plans/careShiftService";
+import { CareShift } from "@/types/careTypes";
 import { useAuth } from "@/components/providers/AuthProvider";
 
 // Adapter for converting database shifts to domain model

@@ -1,25 +1,7 @@
 
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
-
-// Domain model for care shifts (camelCase)
-export interface CareShift {
-  id: string;
-  carePlanId: string;
-  familyId: string;
-  caregiverId?: string;
-  title: string;
-  description?: string;
-  location?: string;
-  status: 'open' | 'assigned' | 'completed' | 'cancelled';
-  startTime: string;
-  endTime: string;
-  recurringPattern?: string;
-  recurrenceRule?: string;
-  createdAt: string;
-  updatedAt: string;
-  googleCalendarEventId?: string;
-}
+import { CareShift } from "@/types/careTypes";
 
 // Database model for care shifts (snake_case)
 interface DbCareShift {
@@ -60,6 +42,7 @@ const adaptCareShiftFromDb = (dbShift: DbCareShift): CareShift => ({
 });
 
 const adaptCareShiftToDb = (shift: Partial<CareShift>): Partial<DbCareShift> => ({
+  id: shift.id,
   care_plan_id: shift.carePlanId,
   family_id: shift.familyId,
   caregiver_id: shift.caregiverId,
@@ -94,14 +77,29 @@ export const fetchCareShifts = async (planId: string): Promise<CareShift[]> => {
   }
 };
 
+// Define a type that ensures required fields are present
+interface CareShiftInput {
+  care_plan_id: string;
+  family_id: string;
+  caregiver_id?: string;
+  title: string;
+  description?: string;
+  location?: string;
+  status: 'open' | 'assigned' | 'completed' | 'cancelled';
+  start_time: string;
+  end_time: string;
+  recurring_pattern?: string;
+  recurrence_rule?: string;
+  google_calendar_event_id?: string;
+}
+
 export const createCareShift = async (
-  shift: Omit<CareShift, 'id' | 'createdAt' | 'updatedAt'>
+  shift: CareShiftInput
 ): Promise<CareShift | null> => {
   try {
-    const dbShift = adaptCareShiftToDb(shift);
     const { data, error } = await supabase
       .from('care_shifts')
-      .insert(dbShift)
+      .insert(shift)
       .select()
       .single();
 
@@ -121,13 +119,12 @@ export const createCareShift = async (
 
 export const updateCareShift = async (
   shiftId: string,
-  updates: Partial<Omit<CareShift, 'id' | 'carePlanId' | 'familyId' | 'createdAt' | 'updatedAt'>>
+  updates: Partial<CareShiftInput>
 ): Promise<CareShift | null> => {
   try {
-    const dbUpdates = adaptCareShiftToDb(updates);
     const { data, error } = await supabase
       .from('care_shifts')
-      .update(dbUpdates)
+      .update(updates)
       .eq('id', shiftId)
       .select()
       .single();
