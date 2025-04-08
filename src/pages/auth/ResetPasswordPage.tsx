@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { EyeIcon, EyeOffIcon, Loader2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
-import { toast } from "sonner";
+import { toast } from "@/hooks/use-toast";
 import { ResetPasswordForm } from "@/components/auth/ResetPasswordForm";
 
 export default function ResetPasswordPage() {
@@ -21,38 +21,57 @@ export default function ResetPasswordPage() {
   const [mode, setMode] = useState<"request" | "reset">("request"); // Default to request mode
   const [resetComplete, setResetComplete] = useState(false);
   const [tokenValidated, setTokenValidated] = useState(false);
+  const [token, setToken] = useState<string | null>(null);
   
   const navigate = useNavigate();
   const location = useLocation();
 
+  // Force logout immediately on mount to avoid session conflicts
   useEffect(() => {
+    const clearSession = async () => {
+      try {
+        // Sign out with global scope to clear all sessions
+        await supabase.auth.signOut({ scope: 'global' });
+        console.log("[ResetPasswordPage] Successfully cleared existing sessions");
+      } catch (err) {
+        console.error("[ResetPasswordPage] Error during initial signout:", err);
+      }
+    };
+    
+    clearSession();
+    
     // Set this page to ignore redirections in AuthProvider
     sessionStorage.setItem('ignoreRedirect', 'true');
+    
+    // Cleanup function
+    return () => {
+      sessionStorage.removeItem('ignoreRedirect');
+    };
+  }, []);
 
+  useEffect(() => {
     const validateResetToken = async () => {
       try {
         setValidatingToken(true);
         console.log("[ResetPasswordPage] Starting token validation");
         
-        // First sign out to clear any existing sessions
-        // This is critical to prevent auto-login during the reset process
-        await supabase.auth.signOut({ scope: 'global' });
-        
+        // Parse URL parameters from different possible locations
         const currentUrl = window.location.href;
         console.log("[ResetPasswordPage] Current URL:", currentUrl);
         
-        // Check all possible token locations
-        // 1. Hash parameters (Supabase sometimes sends them in the hash)
+        // Check hash parameters (Supabase sometimes sends tokens in hash)
         const hashParams = new URLSearchParams(location.hash.substring(1));
         
-        // 2. URL search parameters
+        // Check query parameters
         const queryParams = new URLSearchParams(location.search);
         
+        // Extract all possible token formats
         const type = queryParams.get("type");
         const code = queryParams.get("code") || queryParams.get("token");
         const queryAccessToken = queryParams.get("access_token");
         const hashAccessToken = hashParams.get("access_token");
         
+        // Log all parameters for debugging
         console.log("[ResetPasswordPage] URL params:", { 
           type,
           code,
@@ -60,34 +79,53 @@ export default function ResetPasswordPage() {
           hashAccessToken,
           hasCode: !!code,
           hasQueryAccessToken: !!queryAccessToken,
-          hasHashAccessToken: !!hashAccessToken
+          hasHashAccessToken: !!hashAccessToken,
+          hash: location.hash,
+          search: location.search
         });
         
-        // Determine which token to use
-        const token = code || queryAccessToken || hashAccessToken;
+        // Determine which token to use based on priority
+        const tokenValue = code || queryAccessToken || hashAccessToken;
+        setToken(tokenValue);
         
-        // If we have a recovery token/type or access token, attempt to validate it
-        if ((type === "recovery" && token) || hashAccessToken) {
+        // Handle recovery token validation
+        if ((type === "recovery" && tokenValue) || hashAccessToken) {
           try {
-            console.log("[ResetPasswordPage] Recovery token found, validating...");
+            console.log("[ResetPasswordPage] Recovery token found, validating with token:", 
+              tokenValue ? `${tokenValue.substring(0, 5)}...` : 'undefined');
             
-            if (token) {
+            if (tokenValue) {
               try {
-                // Verify the OTP token instead of exchanging for session
-                // This validates the token but doesn't create a session
+                // First try with token_hash parameter
                 const { data, error } = await supabase.auth.verifyOtp({
-                  token_hash: token,
+                  token_hash: tokenValue,
                   type: 'recovery'
                 });
                 
                 if (error) {
-                  console.error("[ResetPasswordPage] Token validation error:", error);
-                  throw error;
-                }
-                
-                if (data?.user?.email) {
-                  setEmail(data.user.email);
-                  console.log("[ResetPasswordPage] Found email from token validation:", data.user.email);
+                  console.error("[ResetPasswordPage] Token validation with token_hash failed:", error);
+                  
+                  // Try again with just token parameter if token_hash fails
+                  const secondAttempt = await supabase.auth.verifyOtp({
+                    token: tokenValue,
+                    type: 'recovery'
+                  });
+                  
+                  if (secondAttempt.error) {
+                    console.error("[ResetPasswordPage] Token validation with token also failed:", secondAttempt.error);
+                    throw secondAttempt.error;
+                  }
+                  
+                  if (secondAttempt.data?.user?.email) {
+                    setEmail(secondAttempt.data.user.email);
+                    console.log("[ResetPasswordPage] Found email from token validation (second attempt):", 
+                      secondAttempt.data.user.email);
+                  }
+                } else {
+                  if (data?.user?.email) {
+                    setEmail(data.user.email);
+                    console.log("[ResetPasswordPage] Found email from token validation:", data.user.email);
+                  }
                 }
               } catch (tokenError) {
                 console.error("[ResetPasswordPage] Error validating token:", tokenError);
@@ -100,7 +138,10 @@ export default function ResetPasswordPage() {
             setMode("reset"); // Explicitly set mode to reset when token is valid
             setError(null);
             
-            toast.info("Please set a new password you'll remember.", { duration: 6000 });
+            toast.info("Please set a new password you'll remember", {
+              description: "Create a strong password with at least 6 characters",
+              duration: 6000
+            });
           } catch (error: any) {
             console.error("[ResetPasswordPage] Error validating recovery token:", error);
             setError("Invalid or expired reset link. Please request a new one.");
@@ -124,12 +165,12 @@ export default function ResetPasswordPage() {
       }
     };
 
-    validateResetToken();
+    // Short delay to ensure signOut completes first
+    const timeout = setTimeout(() => {
+      validateResetToken();
+    }, 300);
 
-    // Cleanup function to remove the ignoreRedirect flag
-    return () => {
-      sessionStorage.removeItem('ignoreRedirect');
-    };
+    return () => clearTimeout(timeout);
   }, [location]);
 
   const handleResetPassword = async (e: React.FormEvent) => {
@@ -154,14 +195,41 @@ export default function ResetPasswordPage() {
       setIsLoading(true);
       console.log("[ResetPasswordPage] Updating password...");
       
-      // Update the user's password directly without creating a session
+      // Try to update user password directly
       const { error } = await supabase.auth.updateUser({ 
         password 
       });
       
       if (error) {
         console.error("[ResetPasswordPage] Error updating password:", error);
-        throw error;
+        
+        // If direct update fails, try with the token we saved earlier
+        if (token) {
+          console.log("[ResetPasswordPage] Trying password update with explicit token verification");
+          
+          // Try to verify OTP again to ensure token is still valid
+          const { error: verifyError } = await supabase.auth.verifyOtp({
+            token_hash: token,
+            type: 'recovery',
+          });
+          
+          if (verifyError) {
+            console.error("[ResetPasswordPage] Error reverifying token:", verifyError);
+            throw verifyError;
+          }
+          
+          // Try password update again after verification
+          const { error: secondUpdateError } = await supabase.auth.updateUser({
+            password: password
+          });
+          
+          if (secondUpdateError) {
+            console.error("[ResetPasswordPage] Error in second password update attempt:", secondUpdateError);
+            throw secondUpdateError;
+          }
+        } else {
+          throw error;
+        }
       }
       
       // Sign out again after password reset to ensure a clean state
@@ -183,18 +251,19 @@ export default function ResetPasswordPage() {
       setIsLoading(true);
       console.log("[ResetPasswordPage] Requesting password reset for:", email);
       
-      // Get the proper domain for reset URL
+      // Get the absolute base URL for the reset link
       const currentDomain = window.location.hostname;
       const protocol = window.location.protocol;
       const port = window.location.port ? `:${window.location.port}` : '';
       
-      // Use the current domain for the reset URL
+      // Construct the full URL for password reset
       const baseUrl = `${protocol}//${currentDomain}${port}`;
       const resetPath = "/auth/reset-password";
       const resetPasswordUrl = `${baseUrl}${resetPath}`;
       
       console.log("[ResetPasswordPage] Using reset password redirect URL:", resetPasswordUrl);
       
+      // Send password reset request with the redirect URL
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: resetPasswordUrl,
       });
@@ -202,7 +271,10 @@ export default function ResetPasswordPage() {
       if (error) throw error;
       
       console.log("[ResetPasswordPage] Password reset email sent successfully");
-      toast.success("Password reset email sent. Please check your inbox.");
+      toast.success("Password reset email sent", {
+        description: "Please check your inbox and spam folder",
+        duration: 8000
+      });
       return true;
     } catch (error: any) {
       console.error("[ResetPasswordPage] Error requesting reset:", error);
@@ -213,6 +285,7 @@ export default function ResetPasswordPage() {
     }
   };
   
+  // Render loading state
   if (validatingToken) {
     return (
       <div className="container flex items-center justify-center py-20">
@@ -231,6 +304,7 @@ export default function ResetPasswordPage() {
     );
   }
   
+  // Render success state
   if (resetComplete) {
     return (
       <div className="container flex items-center justify-center py-20">
@@ -253,7 +327,7 @@ export default function ResetPasswordPage() {
                 onClick={() => navigate("/auth")} 
                 className="w-full"
               >
-                Go to Login
+                Continue to Login
               </Button>
             </div>
           </CardContent>
@@ -265,6 +339,7 @@ export default function ResetPasswordPage() {
     );
   }
   
+  // Render main form (either request or reset password mode)
   return (
     <div className="container flex items-center justify-center py-20">
       <Card className="w-full max-w-md">
@@ -276,6 +351,7 @@ export default function ResetPasswordPage() {
         </CardHeader>
         <CardContent>
           {mode === "request" ? (
+            // Request mode shows the email form
             <ResetPasswordForm 
               onSubmit={handleRequestReset}
               onBack={() => navigate("/auth")}
@@ -283,6 +359,7 @@ export default function ResetPasswordPage() {
               isLoading={isLoading}
             />
           ) : error ? (
+            // Error state shows error message and options
             <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-md mb-4">
               {error}
               <div className="mt-4">
@@ -302,6 +379,7 @@ export default function ResetPasswordPage() {
               </div>
             </div>
           ) : tokenValidated ? (
+            // Password reset form when token is validated
             <form onSubmit={handleResetPassword} className="space-y-4">
               {email && (
                 <div className="bg-blue-50 border border-blue-200 text-blue-700 p-4 rounded-md mb-4">
@@ -369,6 +447,7 @@ export default function ResetPasswordPage() {
               </Button>
             </form>
           ) : (
+            // Fallback state when token validation failed
             <div className="bg-yellow-50 border border-yellow-200 text-yellow-700 p-4 rounded-md mb-4">
               <p className="font-medium">Something went wrong with your reset link</p>
               <p className="text-sm mt-2">
