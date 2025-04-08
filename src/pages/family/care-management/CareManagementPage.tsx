@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/components/providers/AuthProvider";
@@ -46,9 +45,9 @@ const CareManagementPage = () => {
   };
 
   const getPlanTypeDisplay = (plan: CarePlan) => {
-    if (!plan.metadata?.plan_type) return "Not specified";
+    if (!plan.metadata?.planType) return "Not specified";
     
-    switch (plan.metadata.plan_type) {
+    switch (plan.metadata.planType) {
       case 'scheduled':
         return "Scheduled Care";
       case 'on-demand':
@@ -61,9 +60,9 @@ const CareManagementPage = () => {
   };
 
   const getWeekdayCoverageDisplay = (plan: CarePlan) => {
-    if (!plan.metadata?.weekday_coverage) return "None";
+    if (!plan.metadata?.weekdayCoverage) return "None";
     
-    return plan.metadata.weekday_coverage;
+    return plan.metadata.weekdayCoverage;
   };
 
   return (
@@ -125,7 +124,7 @@ const CareManagementPage = () => {
                       <span className="ml-2 font-medium">{getPlanTypeDisplay(plan)}</span>
                     </div>
                     
-                    {plan.metadata?.plan_type !== 'on-demand' && (
+                    {plan.metadata?.planType !== 'on-demand' && (
                       <div className="flex items-center text-sm">
                         <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
                         <span className="text-muted-foreground">Weekday Coverage: </span>
@@ -137,7 +136,7 @@ const CareManagementPage = () => {
                       <div>Status: <span className={`font-medium ${plan.status === 'active' ? 'text-green-600' : plan.status === 'completed' ? 'text-blue-600' : 'text-orange-600'}`}>
                         {plan.status.charAt(0).toUpperCase() + plan.status.slice(1)}
                       </span></div>
-                      <div>Updated: {new Date(plan.updated_at).toLocaleDateString()}</div>
+                      <div>Updated: {new Date(plan.updatedAt).toLocaleDateString()}</div>
                     </div>
                   </div>
                 </CardContent>

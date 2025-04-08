@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ArrowLeft } from "lucide-react";
-import { createCarePlan, fetchCarePlanById, updateCarePlan } from "@/services/care-plans";
+import { createCarePlan, fetchCarePlanById, updateCarePlan, CarePlan, CarePlanInput } from "@/services/care-plans";
 import { toast } from "sonner";
 
 type PlanType = 'scheduled' | 'on-demand' | 'both';
@@ -56,16 +56,16 @@ const CreateCarePlanPage = () => {
         setDescription(plan.description || "");
         
         if (plan.metadata) {
-          setPlanType(plan.metadata.plan_type || "scheduled");
-          setWeekdayOption(plan.metadata.weekday_coverage || "8am-4pm");
-          setWeekendOption(plan.metadata.weekend_coverage || "yes");
+          setPlanType(plan.metadata.planType || "scheduled");
+          setWeekdayOption(plan.metadata.weekdayCoverage || "8am-4pm");
+          setWeekendOption(plan.metadata.weekendCoverage || "yes");
           
-          if (plan.metadata.additional_shifts) {
+          if (plan.metadata.additionalShifts) {
             setShifts({
-              weekdayEvening4pmTo6am: !!plan.metadata.additional_shifts.weekdayEvening4pmTo6am,
-              weekdayEvening4pmTo8am: !!plan.metadata.additional_shifts.weekdayEvening4pmTo8am,
-              weekdayEvening6pmTo6am: !!plan.metadata.additional_shifts.weekdayEvening6pmTo6am,
-              weekdayEvening6pmTo8am: !!plan.metadata.additional_shifts.weekdayEvening6pmTo8am,
+              weekdayEvening4pmTo6am: !!plan.metadata.additionalShifts.weekdayEvening4pmTo6am,
+              weekdayEvening4pmTo8am: !!plan.metadata.additionalShifts.weekdayEvening4pmTo8am,
+              weekdayEvening6pmTo6am: !!plan.metadata.additionalShifts.weekdayEvening6pmTo6am,
+              weekdayEvening6pmTo8am: !!plan.metadata.additionalShifts.weekdayEvening6pmTo8am,
             });
           }
         }
@@ -105,16 +105,16 @@ const CreateCarePlanPage = () => {
       setIsSubmitting(true);
       
       // Prepare plan details based on selections
-      const planDetails = {
+      const planDetails: CarePlanInput = {
         title,
         description,
-        family_id: user.id,
-        status: 'active' as const,
+        familyId: user.id,
+        status: 'active',
         metadata: {
-          plan_type: planType,
-          weekday_coverage: weekdayOption,
-          weekend_coverage: weekendOption,
-          additional_shifts: shifts
+          planType: planType,
+          weekdayCoverage: weekdayOption,
+          weekendCoverage: weekendOption,
+          additionalShifts: shifts
         }
       };
       

@@ -1,35 +1,22 @@
 
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
-import { CareTeamMember, CareTeamMemberWithProfile } from "@/types/careTypes";
-
-// Database model for care team members (snake_case)
-interface DbCareTeamMember {
-  id: string;
-  care_plan_id: string;
-  family_id: string;
-  caregiver_id: string;
-  role: 'caregiver' | 'nurse' | 'therapist' | 'doctor' | 'other';
-  status: 'invited' | 'active' | 'declined' | 'removed';
-  notes?: string;
-  created_at: string;
-  updated_at: string;
-}
+import { CareTeamMember, CareTeamMemberWithProfile, CareTeamMemberDto, CareTeamMemberInput } from "@/types/careTypes";
 
 // Adapters for converting between domain and database models
-const adaptCareTeamMemberFromDb = (dbMember: DbCareTeamMember): CareTeamMember => ({
-  id: dbMember.id,
+const adaptCareTeamMemberFromDb = (dbMember: CareTeamMemberDto): CareTeamMember => ({
+  id: dbMember.id!,
   carePlanId: dbMember.care_plan_id,
   familyId: dbMember.family_id,
   caregiverId: dbMember.caregiver_id,
-  role: dbMember.role,
-  status: dbMember.status,
+  role: dbMember.role || 'caregiver',
+  status: dbMember.status || 'invited',
   notes: dbMember.notes,
-  createdAt: dbMember.created_at,
-  updatedAt: dbMember.updated_at
+  createdAt: dbMember.created_at || new Date().toISOString(),
+  updatedAt: dbMember.updated_at || new Date().toISOString()
 });
 
-const adaptCareTeamMemberToDb = (member: Partial<CareTeamMember>): Partial<DbCareTeamMember> => ({
+const adaptCareTeamMemberToDb = (member: Partial<CareTeamMember>): Partial<CareTeamMemberDto> => ({
   id: member.id,
   care_plan_id: member.carePlanId,
   family_id: member.familyId,
@@ -51,7 +38,7 @@ export const fetchCareTeamMembers = async (planId: string): Promise<CareTeamMemb
       throw error;
     }
 
-    return (data || []).map(member => adaptCareTeamMemberFromDb(member as DbCareTeamMember));
+    return (data || []).map(member => adaptCareTeamMemberFromDb(member as CareTeamMemberDto));
   } catch (error) {
     console.error("Error fetching care team members:", error);
     toast.error("Failed to load care team members");
@@ -59,22 +46,23 @@ export const fetchCareTeamMembers = async (planId: string): Promise<CareTeamMemb
   }
 };
 
-interface CareTeamMemberInput {
-  care_plan_id: string;
-  family_id: string;
-  caregiver_id: string;
-  role: 'caregiver' | 'nurse' | 'therapist' | 'doctor' | 'other';
-  status: 'invited' | 'active' | 'declined' | 'removed';
-  notes?: string;
-}
-
 export const inviteCareTeamMember = async (
   member: CareTeamMemberInput
 ): Promise<CareTeamMember | null> => {
   try {
+    // Convert from domain model input to database model
+    const dbMember: CareTeamMemberDto = {
+      care_plan_id: member.carePlanId,
+      family_id: member.familyId,
+      caregiver_id: member.caregiverId,
+      role: member.role,
+      status: member.status || 'invited',
+      notes: member.notes
+    };
+
     const { data, error } = await supabase
       .from('care_team_members')
-      .insert(member)
+      .insert([dbMember])
       .select()
       .single();
 
@@ -84,7 +72,7 @@ export const inviteCareTeamMember = async (
 
     toast.success("Team member assigned successfully");
     
-    return data ? adaptCareTeamMemberFromDb(data as DbCareTeamMember) : null;
+    return data ? adaptCareTeamMemberFromDb(data as CareTeamMemberDto) : null;
   } catch (error) {
     console.error("Error assigning team member:", error);
     toast.error("Failed to assign team member");
@@ -94,10 +82,21 @@ export const inviteCareTeamMember = async (
 
 export const updateCareTeamMember = async (
   memberId: string,
-  updates: Partial<Omit<CareTeamMember, 'id' | 'carePlanId' | 'familyId' | 'caregiverId' | 'createdAt' | 'updatedAt'>>
+  updates: Partial<Omit<CareTeamMemberInput, 'carePlanId' | 'familyId' | 'caregiverId'>>
 ): Promise<CareTeamMember | null> => {
   try {
-    const dbUpdates = adaptCareTeamMemberToDb(updates);
+    // Convert from domain model input to database model
+    const dbUpdates: Partial<CareTeamMemberDto> = {
+      role: updates.role,
+      status: updates.status,
+      notes: updates.notes
+    };
+
+    // Remove undefined properties
+    Object.keys(dbUpdates).forEach(key => 
+      dbUpdates[key as keyof Partial<CareTeamMemberDto>] === undefined && delete dbUpdates[key as keyof Partial<CareTeamMemberDto>]
+    );
+
     const { data, error } = await supabase
       .from('care_team_members')
       .update(dbUpdates)
@@ -111,7 +110,7 @@ export const updateCareTeamMember = async (
 
     toast.success("Team member updated successfully");
     
-    return data ? adaptCareTeamMemberFromDb(data as DbCareTeamMember) : null;
+    return data ? adaptCareTeamMemberFromDb(data as CareTeamMemberDto) : null;
   } catch (error) {
     console.error("Error updating team member:", error);
     toast.error("Failed to update team member");

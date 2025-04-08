@@ -5,27 +5,17 @@ export * from './carePlanService';
 export * from './careShiftService';
 export * from './careTeamService';
 
-// Re-export the types from the types/careTypes.ts file
+// Re-export all types from careTypes
 export type { 
   CarePlan, 
   CarePlanMetadata, 
+  CarePlanDto,
+  CarePlanInput,
   CareShift, 
+  CareShiftDto,
+  CareShiftInput,
   CareTeamMember,
+  CareTeamMemberDto,
+  CareTeamMemberInput,
   CareTeamMemberWithProfile 
 } from '@/types/careTypes';
-
-// For backward compatibility
-export { 
-  fetchCarePlans, fetchCarePlanById, createCarePlan, 
-  updateCarePlan, deleteCarePlan 
-} from './carePlanService';
-
-export {
-  fetchCareShifts, createCareShift, 
-  updateCareShift, deleteCareShift
-} from './careShiftService';
-
-export {
-  fetchCareTeamMembers, inviteCareTeamMember, updateCareTeamMember, 
-  removeCareTeamMember
-} from './careTeamService';

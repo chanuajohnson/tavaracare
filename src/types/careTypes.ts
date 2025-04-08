@@ -68,3 +68,84 @@ export interface CareTeamMemberWithProfile extends CareTeamMember {
     certifications?: string[];
   };
 }
+
+// DTOs for database interaction
+
+// Care Plan database model
+export interface CarePlanDto {
+  id?: string;
+  family_id: string;
+  title: string;
+  description?: string;
+  status?: 'active' | 'completed' | 'cancelled';
+  created_at?: string;
+  updated_at?: string;
+  metadata?: any;
+}
+
+// Care Plan Input for create/update operations
+export interface CarePlanInput {
+  title: string;
+  description: string;
+  familyId: string;
+  status?: 'active' | 'completed' | 'cancelled';
+  metadata?: CarePlanMetadata;
+}
+
+// Care Shift database model
+export interface CareShiftDto {
+  id?: string;
+  care_plan_id: string;
+  family_id: string;
+  caregiver_id?: string;
+  title: string;
+  description?: string;
+  location?: string;
+  status?: 'open' | 'assigned' | 'completed' | 'cancelled';
+  start_time: string;
+  end_time: string;
+  recurring_pattern?: string;
+  recurrence_rule?: string;
+  created_at?: string;
+  updated_at?: string;
+  google_calendar_event_id?: string;
+}
+
+// Care Shift Input for create/update operations
+export interface CareShiftInput {
+  carePlanId: string;
+  familyId: string;
+  caregiverId?: string;
+  title: string;
+  description?: string;
+  location?: string;
+  status?: 'open' | 'assigned' | 'completed' | 'cancelled';
+  startTime: string;
+  endTime: string;
+  recurringPattern?: string;
+  recurrenceRule?: string;
+  googleCalendarEventId?: string;
+}
+
+// Care Team Member database model
+export interface CareTeamMemberDto {
+  id?: string;
+  care_plan_id: string;
+  family_id: string;
+  caregiver_id: string;
+  role?: 'caregiver' | 'nurse' | 'therapist' | 'doctor' | 'other';
+  status?: 'invited' | 'active' | 'declined' | 'removed';
+  notes?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+// Care Team Member Input for create/update operations
+export interface CareTeamMemberInput {
+  carePlanId: string;
+  familyId: string;
+  caregiverId: string;
+  role?: 'caregiver' | 'nurse' | 'therapist' | 'doctor' | 'other';
+  status?: 'invited' | 'active' | 'declined' | 'removed';
+  notes?: string;
+}

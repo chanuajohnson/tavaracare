@@ -1,33 +1,22 @@
 
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
-import { CarePlan, CarePlanMetadata } from "@/types/careTypes";
-
-// Database model for care plans
-export interface DbCarePlan {
-  id: string;
-  family_id: string;
-  title: string;
-  description: string;
-  status: 'active' | 'completed' | 'cancelled';
-  created_at: string;
-  updated_at: string;
-  metadata?: any;
-}
+import { CarePlan, CarePlanMetadata, CarePlanDto, CarePlanInput } from "@/types/careTypes";
+import { Json } from "@/utils/json";
 
 // Adapters for converting between domain and database models
-export const adaptCarePlanFromDb = (dbPlan: DbCarePlan): CarePlan => ({
-  id: dbPlan.id,
+export const adaptCarePlanFromDb = (dbPlan: CarePlanDto): CarePlan => ({
+  id: dbPlan.id!,
   familyId: dbPlan.family_id,
   title: dbPlan.title,
-  description: dbPlan.description,
-  status: dbPlan.status,
-  createdAt: dbPlan.created_at,
-  updatedAt: dbPlan.updated_at,
+  description: dbPlan.description || "",
+  status: dbPlan.status || 'active',
+  createdAt: dbPlan.created_at || new Date().toISOString(),
+  updatedAt: dbPlan.updated_at || new Date().toISOString(),
   metadata: dbPlan.metadata as CarePlanMetadata
 });
 
-export const adaptCarePlanToDb = (plan: Partial<CarePlan>): Partial<DbCarePlan> => ({
+export const adaptCarePlanToDb = (plan: Partial<CarePlan>): Partial<CarePlanDto> => ({
   id: plan.id,
   family_id: plan.familyId,
   title: plan.title,
@@ -48,7 +37,7 @@ export const fetchCarePlans = async (familyId: string): Promise<CarePlan[]> => {
       throw error;
     }
 
-    return (data || []).map(plan => adaptCarePlanFromDb(plan as DbCarePlan));
+    return (data || []).map(plan => adaptCarePlanFromDb(plan as CarePlanDto));
   } catch (error) {
     console.error("Error fetching care plans:", error);
     toast.error("Failed to load care plans");
@@ -68,7 +57,7 @@ export const fetchCarePlanById = async (planId: string): Promise<CarePlan | null
       throw error;
     }
 
-    return data ? adaptCarePlanFromDb(data as DbCarePlan) : null;
+    return data ? adaptCarePlanFromDb(data as CarePlanDto) : null;
   } catch (error) {
     console.error("Error fetching care plan:", error);
     toast.error("Failed to load care plan");
@@ -76,9 +65,17 @@ export const fetchCarePlanById = async (planId: string): Promise<CarePlan | null
   }
 };
 
-export const createCarePlan = async (plan: Omit<CarePlan, 'id' | 'createdAt' | 'updatedAt'>): Promise<CarePlan | null> => {
+export const createCarePlan = async (plan: CarePlanInput): Promise<CarePlan | null> => {
   try {
-    const dbPlan = adaptCarePlanToDb(plan);
+    // Convert from domain model input to database model
+    const dbPlan: CarePlanDto = {
+      family_id: plan.familyId,
+      title: plan.title,
+      description: plan.description,
+      status: plan.status || 'active',
+      metadata: plan.metadata
+    };
+
     const { data, error } = await supabase
       .from('care_plans')
       .insert([dbPlan])
@@ -90,7 +87,7 @@ export const createCarePlan = async (plan: Omit<CarePlan, 'id' | 'createdAt' | '
     }
 
     toast.success("Care plan created successfully");
-    return data ? adaptCarePlanFromDb(data as DbCarePlan) : null;
+    return data ? adaptCarePlanFromDb(data as CarePlanDto) : null;
   } catch (error) {
     console.error("Error creating care plan:", error);
     toast.error("Failed to create care plan");
@@ -100,10 +97,23 @@ export const createCarePlan = async (plan: Omit<CarePlan, 'id' | 'createdAt' | '
 
 export const updateCarePlan = async (
   planId: string, 
-  updates: Partial<Omit<CarePlan, 'id' | 'createdAt' | 'updatedAt'>>
+  updates: Partial<CarePlanInput>
 ): Promise<CarePlan | null> => {
   try {
-    const dbUpdates = adaptCarePlanToDb(updates);
+    // Convert from domain model input to database model
+    const dbUpdates: Partial<CarePlanDto> = {
+      title: updates.title,
+      description: updates.description,
+      status: updates.status,
+      family_id: updates.familyId,
+      metadata: updates.metadata
+    };
+    
+    // Remove undefined properties
+    Object.keys(dbUpdates).forEach(key => 
+      dbUpdates[key as keyof Partial<CarePlanDto>] === undefined && delete dbUpdates[key as keyof Partial<CarePlanDto>]
+    );
+
     const { data, error } = await supabase
       .from('care_plans')
       .update(dbUpdates)
@@ -116,7 +126,7 @@ export const updateCarePlan = async (
     }
 
     toast.success("Care plan updated successfully");
-    return data ? adaptCarePlanFromDb(data as DbCarePlan) : null;
+    return data ? adaptCarePlanFromDb(data as CarePlanDto) : null;
   } catch (error) {
     console.error("Error updating care plan:", error);
     toast.error("Failed to update care plan");

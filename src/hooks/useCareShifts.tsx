@@ -2,12 +2,12 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
-import { CareShift } from "@/types/careTypes";
+import { CareShift, CareShiftDto } from "@/types/careTypes";
 import { useAuth } from "@/components/providers/AuthProvider";
 
 // Adapter for converting database shifts to domain model
-const adaptDbShiftToCareShift = (dbShift: any): CareShift => ({
-  id: dbShift.id,
+const adaptDbShiftToCareShift = (dbShift: CareShiftDto): CareShift => ({
+  id: dbShift.id!,
   carePlanId: dbShift.care_plan_id,
   familyId: dbShift.family_id,
   caregiverId: dbShift.caregiver_id,
@@ -19,8 +19,8 @@ const adaptDbShiftToCareShift = (dbShift: any): CareShift => ({
   endTime: dbShift.end_time,
   recurringPattern: dbShift.recurring_pattern,
   recurrenceRule: dbShift.recurrence_rule,
-  createdAt: dbShift.created_at,
-  updatedAt: dbShift.updated_at,
+  createdAt: dbShift.created_at || new Date().toISOString(),
+  updatedAt: dbShift.updated_at || new Date().toISOString(),
   googleCalendarEventId: dbShift.google_calendar_event_id
 });
 
@@ -64,7 +64,7 @@ export function useCareShifts() {
         console.log(`✅ Care shifts fetched: ${data?.length || 0} shifts found for user ${user.id}`);
         
         // Convert database format to domain model
-        const typedShifts: CareShift[] = data ? data.map(shift => adaptDbShiftToCareShift(shift)) : [];
+        const typedShifts: CareShift[] = data ? data.map(shift => adaptDbShiftToCareShift(shift as CareShiftDto)) : [];
         
         setShifts(typedShifts);
       } catch (err: any) {
