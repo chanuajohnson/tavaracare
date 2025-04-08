@@ -1,10 +1,15 @@
 
 import { enhancedSupabaseClient } from '@/lib/supabase';
-import { ChatbotMessage, ChatbotConversation, SenderType, MessageType } from '@/types/chatbot';
+import { ChatbotMessage, ChatbotConversation, SenderType, MessageType, toJson } from '@/types/chatbot';
 import { ChatbotAPIResponse, ChatbotAPISuccessResponse } from './types/chatbotTypes';
 import { v4 as uuidv4 } from 'uuid';
 import { Json } from '@/integrations/supabase/types';
-import { adaptChatbotMessage, adaptChatbotMessageToDb, adaptChatbotConversation, adaptChatbotConversationToDb } from '@/lib/supabase-adapter';
+import { 
+  adaptChatbotMessage, 
+  adaptChatbotMessageToDb, 
+  adaptChatbotConversation, 
+  adaptChatbotConversationToDb 
+} from '@/lib/supabase-adapter';
 
 /**
  * Hook for handling all Supabase API operations related to the chatbot
@@ -91,15 +96,15 @@ export const useChatbotAPI = () => {
       // Insert with proper types
       const { error } = await enhancedSupabaseClient().client
         .from('chatbot_conversations')
-        .insert({
+        .insert([{
           id: newConversationId,
           user_id: userId || null,
           session_id: sessionId,
-          conversation_data: conversationData as unknown as Json,
+          conversation_data: toJson(conversationData),
           lead_score: 0,
           converted_to_registration: false,
           handoff_requested: false,
-        });
+        }]);
       
       if (error) throw error;
       
@@ -132,7 +137,7 @@ export const useChatbotAPI = () => {
       // Convert our frontend message to database format
       const dbMessage = adaptChatbotMessageToDb({
         ...message,
-        conversation_id: conversationId
+        conversationId: conversationId
       });
       
       // Ensure required fields are present
@@ -147,7 +152,7 @@ export const useChatbotAPI = () => {
       // Save message to chatbot_messages table
       const { error: messageError } = await enhancedSupabaseClient().client
         .from('chatbot_messages')
-        .insert(dbMessage);
+        .insert([dbMessage]);
       
       if (messageError) throw messageError;
       
@@ -167,14 +172,7 @@ export const useChatbotAPI = () => {
   ): Promise<ChatbotAPISuccessResponse> => {
     try {
       // Convert our frontend model to database format
-      const dbUpdates: Record<string, any> = {};
-      
-      if (updates.leadScore !== undefined) dbUpdates.lead_score = updates.leadScore;
-      if (updates.convertedToRegistration !== undefined) dbUpdates.converted_to_registration = updates.convertedToRegistration;
-      if (updates.handoffRequested !== undefined) dbUpdates.handoff_requested = updates.handoffRequested;
-      if (updates.qualificationStatus !== undefined) dbUpdates.qualification_status = updates.qualificationStatus;
-      if (updates.careNeeds !== undefined) dbUpdates.care_needs = updates.careNeeds as unknown as Json;
-      if (updates.contactInfo !== undefined) dbUpdates.contact_info = updates.contactInfo as unknown as Json;
+      const dbUpdates = adaptChatbotConversationToDb(updates);
       
       // Always update the timestamp
       dbUpdates.updated_at = new Date().toISOString();
@@ -208,13 +206,13 @@ export const useChatbotAPI = () => {
         sender_type: msg.senderType,
         timestamp: msg.timestamp,
         message_type: msg.messageType,
-        context_data: msg.contextData
+        context_data: toJson(msg.contextData)
       }));
       
       const { error } = await enhancedSupabaseClient().client
         .from('chatbot_conversations')
         .update({
-          conversation_data: dbMessages as unknown as Json,
+          conversation_data: toJson(dbMessages),
           updated_at: new Date().toISOString(),
         })
         .eq('id', conversationId);

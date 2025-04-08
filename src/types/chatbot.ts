@@ -9,6 +9,7 @@ export interface ChatbotMessage {
   timestamp: string;
   messageType?: MessageType;
   contextData?: Record<string, any> | null;
+  conversationId?: string; // Adding this for mapping to conversation_id in DB
 }
 
 export interface ChatbotConversation {
@@ -106,3 +107,8 @@ export function isRegistrationProgressTable(obj: any): obj is RegistrationProgre
     && typeof obj.id === 'string'
     && typeof obj.current_step === 'string';
 }
+
+// Helper utility for safe JSON conversion
+export const toJson = <T>(value: T): any => {
+  return value === undefined ? null : JSON.parse(JSON.stringify(value));
+};

@@ -1,4 +1,3 @@
-
 // This file is a compatibility layer that forwards to our standardized implementation
 // Import the supabase client from the standard location
 import { 
@@ -30,7 +29,7 @@ import {
   isRegistrationProgress,
   safeChatbotMessage
 } from '@/lib/type-validation';
-import { ChatbotMessage, ChatbotConversation } from '@/types/chatbot';
+import { ChatbotMessage, ChatbotConversation, toJson } from '@/types/chatbot';
 import { RegistrationProgress } from '@/types/registration';
 import { Json } from '@/integrations/supabase/types';
 import { PostgrestFilterBuilder, PostgrestQueryBuilder } from '@supabase/postgrest-js';
@@ -195,7 +194,7 @@ export const enhancedSupabaseClient = () => {
             throw new Error('Session ID is required for chatbot conversations');
           }
           
-          return await supabase.from('chatbot_conversations').insert(dbData);
+          return await supabase.from('chatbot_conversations').insert([dbData]);
         },
         
         // Enhanced update
@@ -249,7 +248,7 @@ export const enhancedSupabaseClient = () => {
             throw new Error("Sender type is required");
           }
           
-          return await supabase.from('chatbot_messages').insert(dbData);
+          return await supabase.from('chatbot_messages').insert([dbData]);
         },
         
         // Enhanced update

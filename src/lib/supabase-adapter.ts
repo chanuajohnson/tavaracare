@@ -1,7 +1,13 @@
 
 import { Database } from '@/integrations/supabase/types';
 import { Json } from '@/integrations/supabase/types';
-import { ChatbotMessage, ChatbotConversation } from '@/types/chatbot';
+import { 
+  ChatbotMessage, 
+  ChatbotConversation, 
+  SenderType, 
+  MessageType,
+  toJson
+} from '@/types/chatbot';
 import { RegistrationProgress } from '@/types/registration';
 import { z } from 'zod';
 
@@ -92,7 +98,8 @@ export const chatbotMessageSchema = z.object({
     z.literal('suggestion'),
     z.literal('action')
   ]).optional(),
-  contextData: z.record(z.unknown()).nullable().optional()
+  contextData: z.record(z.unknown()).nullable().optional(),
+  conversationId: z.string().optional()
 });
 
 // Specific adapters for our main entities
@@ -104,10 +111,11 @@ export function adaptChatbotMessage(dbMessage: DbChatbotMessage): ChatbotMessage
   const validatedMessage: ChatbotMessage = {
     id: adapted.id || crypto.randomUUID(),
     message: adapted.message || '',
-    senderType: adapted.senderType as SenderType || 'system',
+    senderType: (adapted.senderType as SenderType) || 'system',
     timestamp: adapted.timestamp || new Date().toISOString(),
     messageType: adapted.messageType as MessageType | undefined,
-    contextData: adapted.contextData ? adapted.contextData as Record<string, any> : undefined
+    contextData: adapted.contextData ? adapted.contextData as Record<string, any> : undefined,
+    conversationId: dbMessage.conversation_id
   };
   
   // Run validation to ensure the adapted message meets our schema
@@ -120,20 +128,12 @@ export function adaptChatbotMessage(dbMessage: DbChatbotMessage): ChatbotMessage
   return validatedMessage;
 }
 
-export function adaptChatbotMessageToDb(message: Partial<ChatbotMessage>): Partial<DbChatbotMessage> {
+export function adaptChatbotMessageToDb(message: Partial<ChatbotMessage>): Record<string, any> {
   // Ensure we have required fields before converting
   const validated: Partial<ChatbotMessage> = { ...message };
   
   if (!validated.id) {
     validated.id = crypto.randomUUID();
-  }
-  
-  if (!validated.message) {
-    validated.message = '';
-  }
-  
-  if (!validated.senderType) {
-    validated.senderType = 'system';
   }
   
   if (!validated.timestamp) {
@@ -143,11 +143,12 @@ export function adaptChatbotMessageToDb(message: Partial<ChatbotMessage>): Parti
   // Convert camelCase to snake_case
   return {
     id: validated.id,
-    message: validated.message,
-    sender_type: validated.senderType,
+    message: validated.message || '',
+    sender_type: validated.senderType || 'system',
     timestamp: validated.timestamp,
     message_type: validated.messageType,
-    context_data: validated.contextData as unknown as Json
+    context_data: validated.contextData ? toJson(validated.contextData) : null,
+    conversation_id: validated.conversationId
   };
 }
 
@@ -197,7 +198,7 @@ export function adaptChatbotConversation(dbConversation: DbChatbotConversation):
   };
 }
 
-export function adaptChatbotConversationToDb(conversation: Partial<ChatbotConversation>): Partial<DbChatbotConversation> {
+export function adaptChatbotConversationToDb(conversation: Partial<ChatbotConversation>): Record<string, any> {
   if (!conversation) return {};
   
   // Handle the special case of conversationData
@@ -207,25 +208,20 @@ export function adaptChatbotConversationToDb(conversation: Partial<ChatbotConver
     sender_type: msg.senderType,
     timestamp: msg.timestamp,
     message_type: msg.messageType,
-    context_data: msg.contextData
+    context_data: toJson(msg.contextData)
   })) || [];
-  
-  // Ensure session_id is provided since it's required
-  if (!conversation.sessionId) {
-    console.error('Required field sessionId is missing in conversation');
-  }
   
   return {
     id: conversation.id,
     user_id: conversation.userId,
     session_id: conversation.sessionId,
-    conversation_data: conversationData as unknown as Json,
-    care_needs: conversation.careNeeds as unknown as Json,
+    conversation_data: toJson(conversationData),
+    care_needs: conversation.careNeeds ? toJson(conversation.careNeeds) : null,
     qualification_status: conversation.qualificationStatus,
     lead_score: conversation.leadScore,
     handoff_requested: conversation.handoffRequested,
     converted_to_registration: conversation.convertedToRegistration,
-    contact_info: conversation.contactInfo as unknown as Json
+    contact_info: conversation.contactInfo ? toJson(conversation.contactInfo) : null
   };
 }
 
