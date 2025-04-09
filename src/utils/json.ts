@@ -13,10 +13,6 @@ export type Json =
 
 export function toJson<T>(value: T): Json {
   try {
-    // Handle undefined values by converting them to null
-    if (value === undefined) {
-      return null;
-    }
     return JSON.parse(JSON.stringify(value)) as Json;
   } catch (e) {
     console.warn('[toJson] Could not serialize:', e);
