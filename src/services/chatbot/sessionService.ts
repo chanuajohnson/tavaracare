@@ -2,7 +2,7 @@
 import { v4 as uuidv4 } from 'uuid';
 import { supabase } from '@/lib/supabase';
 import { ChatbotConversation } from '@/types/chatbotTypes';
-import { adaptChatbotConversationFromDb, adaptChatbotConversationToDb, adaptContactInfoToDb, adaptCareNeedsToDb } from '@/adapters/chatbotAdapter';
+import { adaptChatbotConversationFromDb, adaptChatbotConversationToDb } from '@/adapters/chatbotAdapter';
 
 // Generate a unique session ID
 export function generateSessionId(): string {
@@ -27,7 +27,7 @@ export async function getOrCreateSessionId(): Promise<string> {
 export async function initializeConversation(sessionId: string): Promise<ChatbotConversation | null> {
   try {
     // Check if there's an existing active conversation for this session
-    // Use explicit typing to avoid deep nesting issues
+    // Use explicit type annotation to avoid deep nesting issues
     const { data: existingConversation, error: fetchError } = await supabase
       .from('chatbot_conversations')
       .select('*')
@@ -136,6 +136,9 @@ export async function updateConversation(
   updates: Partial<ChatbotConversation>
 ): Promise<ChatbotConversation | null> {
   try {
+    // Import needed adapter functions to prevent circular dependencies
+    const { adaptContactInfoToDb, adaptCareNeedsToDb } = require('@/adapters/chatbotAdapter');
+    
     // Convert the partial updates to the correct DB format
     const conversationForDb: Record<string, any> = {
       ...(updates.status !== undefined && { status: updates.status }),
@@ -146,13 +149,13 @@ export async function updateConversation(
       ...(updates.userRole !== undefined && { user_role: updates.userRole })
     };
 
-    // Ensure we're using the imported adaptContactInfoToDb function
+    // Process contactInfo if it exists
     if (updates.contactInfo) {
       const contactInfoDb = adaptContactInfoToDb(updates.contactInfo);
       conversationForDb.contact_info = JSON.stringify(contactInfoDb);
     }
 
-    // Ensure we're using the imported adaptCareNeedsToDb function
+    // Process careNeeds if it exists
     if (updates.careNeeds) {
       const careNeedsDb = adaptCareNeedsToDb(updates.careNeeds);
       conversationForDb.care_needs = JSON.stringify(careNeedsDb);

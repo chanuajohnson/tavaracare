@@ -78,9 +78,18 @@ export function adaptChatbotMessageToDb(message: ChatbotMessage): DbChatbotMessa
 
 // Convert chatbot message from DB format
 export function adaptChatbotMessageFromDb(dbMessage: any): ChatbotMessage {
-  const contextData = dbMessage.context_data ? 
-    fromJson(dbMessage.context_data, {}) : 
-    {};
+  let contextData = {};
+  let options = undefined;
+  
+  // Parse context_data if it exists
+  if (dbMessage.context_data) {
+    contextData = fromJson(dbMessage.context_data, {});
+    
+    // Extract options if they exist in context_data
+    if (typeof contextData === 'object' && contextData !== null && 'options' in contextData) {
+      options = contextData.options;
+    }
+  }
   
   return {
     id: dbMessage.id,
@@ -89,7 +98,7 @@ export function adaptChatbotMessageFromDb(dbMessage: any): ChatbotMessage {
     message: dbMessage.message,
     messageType: dbMessage.message_type,
     timestamp: dbMessage.timestamp,
-    options: contextData.options,
+    options: options,
     contextData: contextData
   };
 }
