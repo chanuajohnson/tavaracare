@@ -1,6 +1,7 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
+import { User, Bot } from 'lucide-react';
 
 interface MessageProps {
   content: string;
@@ -15,6 +16,11 @@ export const MessageBubble: React.FC<MessageProps> = ({ content, isUser, timesta
       animate={{ opacity: 1, y: 0 }}
       className={`flex ${isUser ? "justify-end" : "justify-start"} mb-3`}
     >
+      {!isUser && (
+        <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center mr-2 flex-shrink-0 self-end">
+          <Bot size={16} className="text-primary" />
+        </div>
+      )}
       <div
         className={`rounded-lg px-4 py-2 max-w-[80%] ${
           isUser
@@ -30,6 +36,11 @@ export const MessageBubble: React.FC<MessageProps> = ({ content, isUser, timesta
           })}
         </div>
       </div>
+      {isUser && (
+        <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center ml-2 flex-shrink-0 self-end">
+          <User size={16} className="text-primary" />
+        </div>
+      )}
     </motion.div>
   );
 };

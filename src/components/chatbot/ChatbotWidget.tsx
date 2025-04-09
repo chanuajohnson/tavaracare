@@ -1,13 +1,13 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Send } from "lucide-react";
+import { Send, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { useChatMessages } from "@/hooks/chat/useChatMessages";
 import { useChatSession } from "@/hooks/chat/useChatSession";
-import { getIntroMessage, ChatOption } from "@/data/chatIntroMessage";
+import { getIntroMessage, getRoleOptions, getRoleFollowupMessage } from "@/data/chatIntroMessage";
 import { generatePrefillJson } from "@/utils/chat/prefillGenerator";
 import { MessageBubble } from "./MessageBubble";
 import { OptionCard } from "./OptionCard";
@@ -75,7 +75,7 @@ const TypingIndicator: React.FC<TypingIndicatorProps> = () => {
 
 // Options renderer component
 const OptionsRenderer: React.FC<{
-  options: ChatOption[];
+  options: { id: string; label: string; subtext?: string }[];
   onSelect: (id: string) => void;
 }> = ({ options, onSelect }) => {
   return (
@@ -105,6 +105,8 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({
   const [selectedRole, setSelectedRole] = useState<string | null>(null);
   const [isTyping, setIsTyping] = useState(false);
   const [questionIndex, setQuestionIndex] = useState(0);
+  const [showOptions, setShowOptions] = useState(true);
+  const [conversationStage, setConversationStage] = useState<"intro" | "questions" | "completion">("intro");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
   const { sessionId } = useChatSession();
@@ -123,7 +125,7 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({
     }
   }, [messages.length]);
 
-  const simulateBotTyping = async (message: string) => {
+  const simulateBotTyping = async (message: string, options?: { id: string; label: string; subtext?: string }[]) => {
     setIsTyping(true);
     
     // Simulate bot typing with delay based on message length
@@ -137,15 +139,7 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({
       content: message,
       isUser: false,
       timestamp: Date.now(),
-      options: !selectedRole ? [
-        { id: "family", label: "👪 I'm looking for care for a loved one" },
-        { id: "professional", label: "👩‍⚕️ I'm a professional caregiver" },
-        { 
-          id: "community", 
-          label: "🤝 I want to help or get involved",
-          subtext: "Includes volunteers, educators, and tech innovators" 
-        },
-      ] : undefined
+      options: options
     });
     
     setIsTyping(false);
@@ -153,23 +147,46 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({
 
   const handleRoleSelection = async (roleId: string) => {
     setSelectedRole(roleId);
+    setShowOptions(false);
+    setConversationStage("questions");
     
     // Add user message indicating their role selection
+    const selectedOption = getRoleOptions().find(o => o.id === roleId);
     addMessage({
-      content: messages.find(m => m.options)?.options?.find(o => o.id === roleId)?.label || roleId,
+      content: selectedOption?.label || roleId,
       isUser: true,
       timestamp: Date.now()
     });
     
-    // Based on selected role, ask first question
+    // Send a follow-up message based on the selected role
+    const followupMessage = getRoleFollowupMessage(roleId);
+    await simulateBotTyping(followupMessage);
+    
+    // Ask first question based on selected role
     await simulateBotTyping(getNextQuestion(roleId, 0));
     setQuestionIndex(1);
+  };
+
+  const handleOptionSelection = async (optionId: string) => {
+    // Generic handler for any option selection that isn't role selection
+    addMessage({
+      content: optionId,
+      isUser: true,
+      timestamp: Date.now()
+    });
+    
+    // Here you could add specific logic for different option types
+    // For now we'll just continue with the next question
+    if (selectedRole) {
+      await simulateBotTyping(getNextQuestion(selectedRole, questionIndex));
+      setQuestionIndex(prev => prev + 1);
+    }
   };
 
   const handleSendMessage = async (e?: React.FormEvent) => {
     e?.preventDefault();
     
-    if (!input.trim() && !selectedRole) return;
+    if (!input.trim()) return;
     
     // Add user message
     addMessage({
@@ -183,12 +200,13 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({
     if (selectedRole) {
       // Generate prefill data based on collected answers
       if (questionIndex >= getRoleQuestions(selectedRole).length) {
+        setConversationStage("completion");
         const prefillJson = generatePrefillJson(selectedRole, messages);
         console.log("Generated prefill JSON:", prefillJson);
         
+        // Show completion message with prefill data
         await simulateBotTyping(
-          "Thanks for providing this information! In the future, I'll direct you to the appropriate registration form with this data pre-filled. For now, here's what I've collected:\n\n" + 
-          JSON.stringify(prefillJson, null, 2)
+          `Thanks for providing this information! Based on your answers, we recommend completing your ${selectedRole} registration. In the future, we'll direct you to the registration form with this data pre-filled.`
         );
         return;
       }
@@ -211,23 +229,25 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({
         return [
           "What's your name?",
           "Who do you need care for? (name and your relationship to them)",
-          "What kind of care do they need?",
-          "How often do you need care?"
+          "What kind of care do they need? (e.g., medical, household, memory)",
+          "Are there any special needs or conditions we should know about?",
+          "When do you need care? (weekdays, weekends, specific times)"
         ];
       case "professional":
         return [
           "What's your name?",
-          "What kind of professional are you?",
-          "How many years experience do you have?",
-          "Where are you located?",
-          "What's your contact info?"
+          "What's your professional role? (e.g., CNA, Nurse, Therapist)",
+          "How many years of experience do you have in caregiving?",
+          "What services do you offer? (e.g., medical, mobility assistance)",
+          "When are you available to work? (full-time, part-time, flexible)"
         ];
       case "community":
         return [
           "What's your name?",
-          "What kind of roles are you interested in?",
-          "What are your contribution areas?",
-          "Are you interested in tech, caregiving, education, or something else?"
+          "How would you like to contribute? (volunteer, mentor, tech)",
+          "What's your background or expertise?",
+          "How much time are you able to commit?",
+          "What aspects of caregiving are you most interested in?"
         ];
       default:
         return ["Could you tell me more?"];
@@ -239,11 +259,28 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({
     setSelectedRole(null);
     setQuestionIndex(0);
     setInput("");
+    setShowOptions(true);
+    setConversationStage("intro");
     
     // Restart chat with intro message
     const introMessage = getIntroMessage();
-    simulateBotTyping(introMessage);
+    simulateBotTyping(introMessage, getRoleOptions());
   };
+
+  // Handle the first message to show role options
+  useEffect(() => {
+    if (messages.length === 1 && messages[0].isUser === false && showOptions) {
+      // Only add options to the first bot message if they don't exist yet
+      if (!messages[0].options || messages[0].options.length === 0) {
+        addMessage({
+          content: messages[0].content,
+          isUser: false,
+          timestamp: messages[0].timestamp,
+          options: getRoleOptions()
+        });
+      }
+    }
+  }, [messages, showOptions, addMessage]);
 
   return (
     <div 
@@ -279,6 +316,17 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({
               <path d="M3 3v5h5" />
             </svg>
           </Button>
+          {onClose && (
+            <Button
+              size="icon"
+              variant="ghost"
+              onClick={onClose}
+              title="Close chat"
+              className="h-7 w-7"
+            >
+              <X size={16} />
+            </Button>
+          )}
         </div>
       </div>
 
@@ -291,10 +339,10 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({
               isUser={message.isUser}
               timestamp={message.timestamp}
             />
-            {message.options && (
+            {!message.isUser && message.options && (index === messages.length - 1 || message.isUser) && (
               <OptionsRenderer 
                 options={message.options} 
-                onSelect={handleRoleSelection} 
+                onSelect={conversationStage === "intro" ? handleRoleSelection : handleOptionSelection} 
               />
             )}
           </React.Fragment>
@@ -310,12 +358,12 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({
           value={input}
           onChange={(e) => setInput(e.target.value)}
           className="flex-1"
-          disabled={isTyping}
+          disabled={isTyping || conversationStage === "intro"}
         />
         <Button
           type="submit"
           size="icon"
-          disabled={!input.trim() || isTyping}
+          disabled={!input.trim() || isTyping || conversationStage === "intro"}
           title="Send message"
         >
           <Send size={18} />
