@@ -1,3 +1,4 @@
+
 import { useReducer, useEffect, useCallback } from 'react';
 import {
   ChatFlowState,
@@ -9,7 +10,7 @@ import {
   ContactInfo,
   CareNeeds,
 } from '@/types/chatbotTypes';
-import * as chatbotService from '@/services/chatbotService';
+import * as chatbotService from '@/services/chatbot';
 
 const initialState: ChatFlowState = {
   currentStep: ChatStepType.WELCOME,

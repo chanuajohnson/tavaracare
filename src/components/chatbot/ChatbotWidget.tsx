@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useChatFlowEngine } from '@/hooks/useChatFlowEngine';
@@ -95,7 +96,7 @@ export function ChatbotWidget() {
           { label: "Care Professional", value: "professional" },
           { label: "Community Member", value: "community" }
         ],
-        { step, suggestedRole }
+        { suggestedRole }
       );
     } 
     else if (state.currentStep === ChatStepType.REGISTRATION_CTA) {
@@ -115,14 +116,14 @@ export function ChatbotWidget() {
         [
           { label: "Yes, register now", value: "register" },
           { label: "Maybe later", value: "later" }
-        ],
-        { step }
+        ]
       );
     }
   }, [state.currentStep, addUserMessage, addBotMessage, updateCareNeeds]);
 
   const handleStepChange = useCallback(async (step: ChatStepType) => {
     setStep(step);
+    const currentStep = step; // Create a variable to use in the contextData
     
     switch (step) {
       case ChatStepType.WELCOME:
@@ -132,7 +133,7 @@ export function ChatbotWidget() {
             { label: "Yes, I am", value: "yes" },
             { label: "Just browsing", value: "no" }
           ],
-          { step }
+          { step: currentStep }
         );
         break;
         
@@ -145,7 +146,7 @@ export function ChatbotWidget() {
             { label: "I'm a caregiver", value: "caregiver" },
             { label: "Other", value: "other" }
           ],
-          { step }
+          { step: currentStep }
         );
         break;
         
@@ -158,7 +159,7 @@ export function ChatbotWidget() {
             { label: "Special Needs", value: "special_needs" },
             { label: "Temporary Care", value: "temporary" }
           ],
-          { step }
+          { step: currentStep }
         );
         break;
         
@@ -171,7 +172,7 @@ export function ChatbotWidget() {
             { label: "Occasional", value: "occasional" },
             { label: "Not sure yet", value: "unsure" }
           ],
-          { step }
+          { step: currentStep }
         );
         break;
         
@@ -181,7 +182,7 @@ export function ChatbotWidget() {
           [
             { label: "Skip for now", value: "skip" }
           ],
-          { step }
+          { step: currentStep }
         );
         break;
         
@@ -198,7 +199,7 @@ export function ChatbotWidget() {
             { label: "Care Professional", value: "professional" },
             { label: "Community Member", value: "community" }
           ],
-          { step, suggestedRole }
+          { step: currentStep, suggestedRole }
         );
         break;
         
@@ -220,7 +221,7 @@ export function ChatbotWidget() {
             { label: "Yes, register now", value: "register" },
             { label: "Maybe later", value: "later" }
           ],
-          { step }
+          { step: currentStep }
         );
         break;
         
@@ -231,11 +232,11 @@ export function ChatbotWidget() {
             { label: "See features", value: "features" },
             { label: "Close chat", value: "close" }
           ],
-          { step }
+          { step: currentStep }
         );
         break;
     }
-  }, [setStep, addBotMessage]);
+  }, [setStep, addBotMessage, state.conversation.careNeeds]);
 
   const handleSendMessage = useCallback(async (text: string) => {
     await addUserMessage(text);
