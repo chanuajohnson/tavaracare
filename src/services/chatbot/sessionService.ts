@@ -27,22 +27,23 @@ export async function getOrCreateSessionId(): Promise<string> {
 export async function initializeConversation(sessionId: string): Promise<ChatbotConversation | null> {
   try {
     // Check if there's an existing active conversation for this session
-    // Use explicit type annotation to avoid deep nesting issues
-    const { data: existingConversation, error: fetchError } = await supabase
+    // Use explicit type casting to avoid deep nesting issues
+    const { data, error: fetchError } = await supabase
       .from('chatbot_conversations')
       .select('*')
       .eq('session_id', sessionId)
       .eq('status', 'active')
       .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
+      .limit(1);
+      
+    // Handle potential errors
     if (fetchError) {
       console.error('Error fetching existing conversation:', fetchError);
       return null;
     }
 
     // If an active conversation exists, return it
+    const existingConversation = data && data.length > 0 ? data[0] : null;
     if (existingConversation) {
       return adaptChatbotConversationFromDb(existingConversation);
     }
@@ -58,18 +59,19 @@ export async function initializeConversation(sessionId: string): Promise<Chatbot
 
     const dbConversation = adaptChatbotConversationToDb(newConversation);
     
-    const { data: createdConversation, error: createError } = await supabase
+    const { data: createdData, error: createError } = await supabase
       .from('chatbot_conversations')
       .insert([dbConversation])
-      .select()
-      .single();
+      .select();
 
     if (createError) {
       console.error('Error creating conversation:', createError);
       return null;
     }
 
-    return adaptChatbotConversationFromDb(createdConversation);
+    return createdData && createdData.length > 0 
+      ? adaptChatbotConversationFromDb(createdData[0]) 
+      : null;
   } catch (error) {
     console.error('Error in initializeConversation:', error);
     return null;
@@ -165,19 +167,20 @@ export async function updateConversation(
       conversationForDb.conversation_data = JSON.stringify(updates.conversationData);
     }
 
-    const { data: updatedConversation, error } = await supabase
+    const { data, error } = await supabase
       .from('chatbot_conversations')
       .update(conversationForDb)
       .eq('id', conversationId)
-      .select()
-      .single();
+      .select();
 
     if (error) {
       console.error('Error updating conversation:', error);
       return null;
     }
 
-    return adaptChatbotConversationFromDb(updatedConversation);
+    return data && data.length > 0 
+      ? adaptChatbotConversationFromDb(data[0]) 
+      : null;
   } catch (error) {
     console.error('Error in updateConversation:', error);
     return null;
