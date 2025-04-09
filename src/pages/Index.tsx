@@ -6,8 +6,6 @@ import { toast } from "sonner";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Fab } from "@/components/ui/fab";
-import ChatbotWidget from "@/components/chatbot/ChatbotWidget";
-
 const roles = [{
   id: "family",
   title: "Family",
@@ -27,7 +25,6 @@ const roles = [{
   cta: "Get Hired as a Skilled Care Professional",
   features: ["Showcase qualifications", "Find care opportunities", "Manage client relationships", "Track care delivery", "Access training resources", "Professional development"]
 }];
-
 const communityRole = {
   id: "community",
   title: "Community",
@@ -38,12 +35,10 @@ const communityRole = {
   cta: "Join the Village",
   features: ["Join care circles", "Share local resources", "Participate in community events", "Offer support services", "Connect with families", "Track community impact"]
 };
-
 const Index = () => {
   const [selectedRole, setSelectedRole] = useState<string | null>(null);
   const navigate = useNavigate();
   const comparisonRef = useRef<HTMLDivElement>(null);
-
   const handleRoleSelect = (roleId: string) => {
     if (roleId === "community") {
       const role = communityRole;
@@ -59,19 +54,15 @@ const Index = () => {
       }
     }
   };
-
   const handleGetStarted = () => {
     comparisonRef.current?.scrollIntoView({
       behavior: "smooth"
     });
   };
-
   const goToFeatures = () => {
     navigate('/features');
   };
-
-  return (
-    <div className="min-h-screen w-full bg-gradient-to-b from-white to-primary-100">
+  return <div className="min-h-screen w-full bg-gradient-to-b from-white to-primary-100">
       <div className="container px-4 py-12 mx-auto">
         <motion.div initial={{
         opacity: 0,
@@ -300,10 +291,7 @@ const Index = () => {
         </div>
       </div>
       
-      <ChatbotWidget delay={5000} />
-      <Fab icon={<HelpCircle />} position="bottom-right" />
-    </div>
-  );
+      <Fab icon={<HelpCircle className="h-5 w-5" />} className="bg-primary-500 hover:bg-primary-600 text-white" showMenu={true} label="Support options" />
+    </div>;
 };
-
 export default Index;

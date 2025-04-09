@@ -362,7 +362,6 @@ export type Database = {
           session_id: string
           updated_at: string
           user_id: string | null
-          user_role: string | null
         }
         Insert: {
           care_needs?: Json | null
@@ -377,7 +376,6 @@ export type Database = {
           session_id: string
           updated_at?: string
           user_id?: string | null
-          user_role?: string | null
         }
         Update: {
           care_needs?: Json | null
@@ -392,7 +390,6 @@ export type Database = {
           session_id?: string
           updated_at?: string
           user_id?: string | null
-          user_role?: string | null
         }
         Relationships: []
       }
@@ -1621,16 +1618,12 @@ export type Database = {
         | "within_week"
         | "within_month"
         | "planning_ahead"
-      chatbot_message_type: "text" | "option" | "handoff" | "form"
-      chatbot_sender_type: "user" | "bot" | "human_agent"
-      chatbot_status: "active" | "completed" | "abandoned"
       content_type: "text" | "image" | "video"
       feature_status:
         | "planned"
         | "in_development"
         | "ready_for_demo"
         | "launched"
-      lead_quality: "high" | "medium" | "low" | "unqualified"
       meal_type:
         | "morning_drink"
         | "breakfast"
@@ -1762,9 +1755,6 @@ export const Constants = {
         "within_month",
         "planning_ahead",
       ],
-      chatbot_message_type: ["text", "option", "handoff", "form"],
-      chatbot_sender_type: ["user", "bot", "human_agent"],
-      chatbot_status: ["active", "completed", "abandoned"],
       content_type: ["text", "image", "video"],
       feature_status: [
         "planned",
@@ -1772,7 +1762,6 @@ export const Constants = {
         "ready_for_demo",
         "launched",
       ],
-      lead_quality: ["high", "medium", "low", "unqualified"],
       meal_type: [
         "morning_drink",
         "breakfast",
