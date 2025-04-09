@@ -70,7 +70,8 @@ const Index = () => {
     navigate('/features');
   };
 
-  return <div className="min-h-screen w-full bg-gradient-to-b from-white to-primary-100">
+  return (
+    <div className="min-h-screen w-full bg-gradient-to-b from-white to-primary-100">
       <div className="container px-4 py-12 mx-auto">
         <motion.div initial={{
         opacity: 0,
@@ -299,9 +300,10 @@ const Index = () => {
         </div>
       </div>
       
-      <Fab icon={<HelpCircle className="h-5 w-5" />} className="bg-primary-500 hover:bg-primary-600 text-white" showMenu={true} label="Support options" />
       <ChatbotWidget delay={5000} />
-    </div>;
+      <Fab icon={<HelpCircle />} position="bottom-right" />
+    </div>
+  );
 };
 
 export default Index;
