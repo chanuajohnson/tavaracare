@@ -25,14 +25,15 @@ const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({ delay = 5000 }) => {
   const inputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
   
-  const { sessionId, conversation, loading: sessionLoading } = useChatSession();
+  const { sessionId, conversation, loading: sessionLoading, error: sessionError } = useChatSession();
   
   const { 
     messages, 
     loading: messagesLoading, 
     addUserMessage, 
     addBotMessage,
-    setMessages 
+    setMessages,
+    error: messagesError
   } = useChatMessages(conversation?.id);
   
   const { 
@@ -58,7 +59,7 @@ const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({ delay = 5000 }) => {
         ChatIntroMessage.messageType as ChatbotMessageType,
         ChatIntroMessage.options
       );
-    } else if (!sessionLoading && !error && !conversation) {
+    } else if (!sessionLoading && !sessionError && !conversation) {
       // Handle the case where there's no conversation but we're not loading
       setMessages([{
         senderType: 'bot',
@@ -67,7 +68,7 @@ const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({ delay = 5000 }) => {
         timestamp: new Date().toISOString()
       }]);
     }
-  }, [sessionLoading, messagesLoading, messages, conversation, addBotMessage]);
+  }, [sessionLoading, messagesLoading, messages, conversation, addBotMessage, setMessages, sessionError]);
   
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });

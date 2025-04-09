@@ -31,3 +31,8 @@ export function toJson(value: any): string | undefined {
     return undefined;
   }
 }
+
+/**
+ * Type definition for JSON values
+ */
+export type Json = string | number | boolean | null | { [key: string]: Json } | Json[];

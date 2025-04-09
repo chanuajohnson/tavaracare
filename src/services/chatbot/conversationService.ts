@@ -1,31 +1,30 @@
 
-import { supabase } from '@/lib/supabase';
 import { ChatbotConversation } from '@/types/chatbotTypes';
 import { adaptChatbotConversationFromDb, adaptChatbotConversationToDb } from '@/adapters/chatbotAdapter';
-import { ChatbotConversationRow } from './types';
+import { 
+  queryTable, 
+  getByField,
+  insertRecord,
+  updateRecord
+} from '@/utils/supabase/query-helpers';
+import { ChatbotConversationRow } from '@/utils/supabase/types';
 
 // Initialize a conversation with Supabase
 export async function initializeConversation(sessionId: string): Promise<ChatbotConversation | null> {
   try {
     // Check if there's an existing active conversation for this session
-    const { data, error } = await supabase
-      .from('chatbot_conversations')
-      .select('*')
-      .eq('session_id', sessionId)
-      .eq('status', 'active')
-      .order('created_at', { ascending: false })
-      .limit(1);
-      
-    // Handle potential errors
-    if (error) {
-      console.error('Error fetching existing conversation:', error);
-      return null;
-    }
-
+    const conversations = await getByField<ChatbotConversationRow>(
+      'chatbot_conversations',
+      'session_id',
+      sessionId,
+      '*'
+    );
+    
+    const activeConversations = conversations.filter(conv => conv.status === 'active');
+    
     // If an active conversation exists, return it
-    if (data && data.length > 0) {
-      // Cast to our flat type to avoid deep inference issues
-      const conversationRow = data[0] as unknown as ChatbotConversationRow;
+    if (activeConversations.length > 0) {
+      const conversationRow = activeConversations[0];
       return adaptChatbotConversationFromDb(conversationRow);
     }
 
@@ -40,31 +39,18 @@ export async function initializeConversation(sessionId: string): Promise<Chatbot
 
     const dbConversation = adaptChatbotConversationToDb(newConversation);
     
-    // Split insert and select into separate operations
-    const { error: insertError } = await supabase
-      .from('chatbot_conversations')
-      .insert([dbConversation]);
-
-    if (insertError) {
-      console.error('Error creating conversation:', insertError);
+    // Insert the new conversation
+    const createdConversation = await insertRecord<ChatbotConversationRow>(
+      'chatbot_conversations',
+      dbConversation,
+      { returnFields: '*' }
+    );
+    
+    if (!createdConversation) {
+      console.error('Failed to create and retrieve conversation');
       return null;
     }
     
-    // Fetch the newly created conversation in a separate query
-    const { data: createdData, error: selectError } = await supabase
-      .from('chatbot_conversations')
-      .select('*')
-      .eq('session_id', sessionId)
-      .order('created_at', { ascending: false })
-      .limit(1);
-    
-    if (selectError || !createdData || createdData.length === 0) {
-      console.error('Error retrieving created conversation:', selectError);
-      return null;
-    }
-    
-    // Cast to our flat type to avoid deep inference issues
-    const createdConversation = createdData[0] as unknown as ChatbotConversationRow;
     return adaptChatbotConversationFromDb(createdConversation);
   } catch (error) {
     console.error('Error in initializeConversation:', error);
@@ -75,15 +61,16 @@ export async function initializeConversation(sessionId: string): Promise<Chatbot
 // Complete a conversation
 export async function completeConversation(conversationId: string): Promise<boolean> {
   try {
-    const { error } = await supabase
-      .from('chatbot_conversations')
-      .update({ 
+    const updated = await updateRecord<ChatbotConversationRow>(
+      'chatbot_conversations',
+      conversationId,
+      { 
         status: 'completed',
         updated_at: new Date().toISOString()
-      })
-      .eq('id', conversationId);
+      }
+    );
 
-    return !error;
+    return !!updated;
   } catch (error) {
     console.error('Error completing conversation:', error);
     return false;
