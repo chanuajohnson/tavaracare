@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
@@ -9,10 +10,12 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Textarea } from '@/components/ui/textarea';
 import { getConversation } from '@/services/chatbot';
 import { useChatbotPrefill } from '@/hooks/useChatbotPrefill';
+import { CommunityRegistrationFormData } from '@/types/formTypes';
+import { UserRole } from '@/types/userRoles';
 
 const CommunityRegistration = () => {
   const navigate = useNavigate();
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<CommunityRegistrationFormData>({
     communityName: '',
     contactName: '',
     email: '',
@@ -25,7 +28,7 @@ const CommunityRegistration = () => {
     additionalNotes: '',
     termsAndConditions: false,
   });
-  const [errors, setErrors] = useState({});
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(false);
 
   // Use the hook to prefill data from chatbot
@@ -48,7 +51,7 @@ const CommunityRegistration = () => {
   }, [contactInfo]);
 
   const validate = () => {
-    let tempErrors = {};
+    let tempErrors: Record<string, string> = {};
 
     tempErrors.communityName = formData.communityName ? "" : "Community Name is required";
     tempErrors.contactName = formData.contactName ? "" : "Contact Name is required";
@@ -91,7 +94,8 @@ const CommunityRegistration = () => {
           social_media_links: formData.socialMediaLinks,
           additional_notes: formData.additionalNotes,
           terms_and_conditions: formData.termsAndConditions,
-          updated_at: new Date(),
+          role: 'community' as UserRole,
+          updated_at: new Date().toISOString(),
         };
 
         const { error } = await supabase
@@ -114,7 +118,9 @@ const CommunityRegistration = () => {
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value, type, checked } = e.target;
+    const { name, value } = e.target;
+    const type = (e.target as HTMLInputElement).type;
+    const checked = (e.target as HTMLInputElement).checked;
     
     setFormData(prev => ({
       ...prev,
@@ -122,7 +128,7 @@ const CommunityRegistration = () => {
     }));
   };
 
-  const handleServicesChange = (e: any) => {
+  const handleServicesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { value, checked } = e.target;
     
     setFormData(prev => {
@@ -305,7 +311,9 @@ const CommunityRegistration = () => {
                 id="termsAndConditions"
                 name="termsAndConditions"
                 checked={formData.termsAndConditions}
-                onChange={handleInputChange}
+                onCheckedChange={(checked) => 
+                  setFormData(prev => ({ ...prev, termsAndConditions: !!checked }))
+                }
                 className="mr-2"
               />
               <span>I agree to the terms and conditions</span>

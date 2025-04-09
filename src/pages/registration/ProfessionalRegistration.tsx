@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
@@ -9,22 +10,26 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Textarea } from '@/components/ui/textarea';
 import { getConversation } from '@/services/chatbot';
 import { useChatbotPrefill } from '@/hooks/useChatbotPrefill';
+import { ProfessionalRegistrationFormData } from '@/types/formTypes';
+import { UserRole } from '@/types/userRoles';
 
 const ProfessionalRegistration = () => {
   const navigate = useNavigate();
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
-  const [email, setEmail] = useState('');
-  const [phone, setPhone] = useState('');
-  const [location, setLocation] = useState('');
-  const [experience, setExperience] = useState('');
-  const [availability, setAvailability] = useState('');
-  const [hourlyRate, setHourlyRate] = useState('');
-  const [specializations, setSpecializations] = useState<string[]>([]);
-  const [certifications, setCertifications] = useState('');
-  const [backgroundCheck, setBackgroundCheck] = useState(false);
-  const [additionalNotes, setAdditionalNotes] = useState('');
-	const [userId, setUserId] = useState<string | null>(null);
+  const [formData, setFormData] = useState<ProfessionalRegistrationFormData>({
+    firstName: '',
+    lastName: '',
+    email: '',
+    phone: '',
+    location: '',
+    experience: '',
+    availability: '',
+    hourlyRate: '',
+    specializations: [],
+    certifications: '',
+    backgroundCheck: false,
+    additionalNotes: '',
+  });
+  const [userId, setUserId] = useState<string | null>(null);
 
   const { 
     isLoading, 
@@ -35,17 +40,20 @@ const ProfessionalRegistration = () => {
 
   useEffect(() => {
     if (contactInfo) {
-      setFirstName(contactInfo.firstName || '');
-      setLastName(contactInfo.lastName || '');
-      setEmail(contactInfo.email || '');
+      setFormData(prev => ({
+        ...prev,
+        firstName: contactInfo.firstName || '',
+        lastName: contactInfo.lastName || '',
+        email: contactInfo.email || '',
+      }));
     }
   }, [contactInfo]);
 
-	useEffect(() => {
-		supabase.auth.getUser().then((response) => {
-			setUserId(response?.data?.user?.id || null);
-		});
-	}, []);
+  useEffect(() => {
+    supabase.auth.getUser().then((response) => {
+      setUserId(response?.data?.user?.id || null);
+    });
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -56,25 +64,26 @@ const ProfessionalRegistration = () => {
         return;
       }
 
+      // Note: Use profiles table instead of professional_profiles which may not exist
       const { data, error } = await supabase
-        .from('professional_profiles')
-        .insert([
-          {
-            user_id: userId,
-            first_name: firstName,
-            last_name: lastName,
-            email: email,
-            phone: phone,
-            location: location,
-            experience: experience,
-            availability: availability,
-            hourly_rate: hourlyRate,
-            specializations: specializations,
-            certifications: certifications,
-            background_check: backgroundCheck,
-            additional_notes: additionalNotes,
-          },
-        ]);
+        .from('profiles')
+        .upsert({
+          id: userId,
+          first_name: formData.firstName,
+          last_name: formData.lastName,
+          email: formData.email,
+          phone: formData.phone,
+          location: formData.location,
+          years_of_experience: formData.experience,
+          availability: [formData.availability], // Convert to array as per schema
+          hourly_rate: formData.hourlyRate,
+          specializations: formData.specializations,
+          certifications: [formData.certifications], // Convert to array as per schema
+          background_check: formData.backgroundCheck,
+          additional_notes: formData.additionalNotes,
+          role: 'professional' as UserRole,
+          updated_at: new Date().toISOString(),
+        });
 
       if (error) {
         console.error('Error creating professional profile:', error);
@@ -92,11 +101,29 @@ const ProfessionalRegistration = () => {
   };
 
   const toggleSpecialization = (spec: string) => {
-    if (specializations.includes(spec)) {
-      setSpecializations(specializations.filter((s) => s !== spec));
-    } else {
-      setSpecializations([...specializations, spec]);
-    }
+    setFormData(prev => {
+      if (prev.specializations.includes(spec)) {
+        return {
+          ...prev,
+          specializations: prev.specializations.filter(s => s !== spec)
+        };
+      } else {
+        return {
+          ...prev, 
+          specializations: [...prev.specializations, spec]
+        };
+      }
+    });
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, checked } = e.target;
+    setFormData(prev => ({ ...prev, [name]: checked }));
   };
 
   return (
@@ -111,8 +138,9 @@ const ProfessionalRegistration = () => {
             <Input
               type="text"
               id="firstName"
-              value={firstName}
-              onChange={(e) => setFirstName(e.target.value)}
+              name="firstName"
+              value={formData.firstName}
+              onChange={handleInputChange}
               required
             />
           </div>
@@ -121,8 +149,9 @@ const ProfessionalRegistration = () => {
             <Input
               type="text"
               id="lastName"
-              value={lastName}
-              onChange={(e) => setLastName(e.target.value)}
+              name="lastName"
+              value={formData.lastName}
+              onChange={handleInputChange}
               required
             />
           </div>
@@ -131,8 +160,9 @@ const ProfessionalRegistration = () => {
             <Input
               type="email"
               id="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              name="email"
+              value={formData.email}
+              onChange={handleInputChange}
               required
             />
           </div>
@@ -141,8 +171,9 @@ const ProfessionalRegistration = () => {
             <Input
               type="tel"
               id="phone"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
+              name="phone"
+              value={formData.phone}
+              onChange={handleInputChange}
             />
           </div>
           <div className="mb-4">
@@ -150,8 +181,9 @@ const ProfessionalRegistration = () => {
             <Input
               type="text"
               id="location"
-              value={location}
-              onChange={(e) => setLocation(e.target.value)}
+              name="location"
+              value={formData.location}
+              onChange={handleInputChange}
             />
           </div>
           <div className="mb-4">
@@ -159,16 +191,18 @@ const ProfessionalRegistration = () => {
             <Input
               type="number"
               id="experience"
-              value={experience}
-              onChange={(e) => setExperience(e.target.value)}
+              name="experience"
+              value={formData.experience}
+              onChange={handleInputChange}
             />
           </div>
           <div className="mb-4">
             <Label htmlFor="availability">Availability</Label>
             <Textarea
               id="availability"
-              value={availability}
-              onChange={(e) => setAvailability(e.target.value)}
+              name="availability"
+              value={formData.availability}
+              onChange={handleInputChange}
             />
           </div>
           <div className="mb-4">
@@ -176,35 +210,38 @@ const ProfessionalRegistration = () => {
             <Input
               type="number"
               id="hourlyRate"
-              value={hourlyRate}
-              onChange={(e) => setHourlyRate(e.target.value)}
+              name="hourlyRate"
+              value={formData.hourlyRate}
+              onChange={handleInputChange}
             />
           </div>
           <div className="mb-4">
             <Label>Specializations</Label>
             <div>
-              <Checkbox
-                id="seniorCare"
-                checked={specializations.includes('seniorCare')}
-                onCheckedChange={() => toggleSpecialization('seniorCare')}
-              />
-              <Label htmlFor="seniorCare" className="ml-2">Senior Care</Label>
-            </div>
-            <div>
-              <Checkbox
-                id="childCare"
-                checked={specializations.includes('childCare')}
-                onCheckedChange={() => toggleSpecialization('childCare')}
-              />
-              <Label htmlFor="childCare" className="ml-2">Child Care</Label>
-            </div>
-            <div>
-              <Checkbox
-                id="specialNeeds"
-                checked={specializations.includes('specialNeeds')}
-                onCheckedChange={() => toggleSpecialization('specialNeeds')}
-              />
-              <Label htmlFor="specialNeeds" className="ml-2">Special Needs</Label>
+              <div className="flex items-center space-x-2 mb-2">
+                <Checkbox
+                  id="seniorCare"
+                  checked={formData.specializations.includes('seniorCare')}
+                  onCheckedChange={() => toggleSpecialization('seniorCare')}
+                />
+                <Label htmlFor="seniorCare">Senior Care</Label>
+              </div>
+              <div className="flex items-center space-x-2 mb-2">
+                <Checkbox
+                  id="childCare"
+                  checked={formData.specializations.includes('childCare')}
+                  onCheckedChange={() => toggleSpecialization('childCare')}
+                />
+                <Label htmlFor="childCare">Child Care</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="specialNeeds"
+                  checked={formData.specializations.includes('specialNeeds')}
+                  onCheckedChange={() => toggleSpecialization('specialNeeds')}
+                />
+                <Label htmlFor="specialNeeds">Special Needs</Label>
+              </div>
             </div>
           </div>
           <div className="mb-4">
@@ -212,15 +249,19 @@ const ProfessionalRegistration = () => {
             <Input
               type="text"
               id="certifications"
-              value={certifications}
-              onChange={(e) => setCertifications(e.target.value)}
+              name="certifications"
+              value={formData.certifications}
+              onChange={handleInputChange}
             />
           </div>
           <div className="mb-4 flex items-center space-x-2">
             <Checkbox
               id="backgroundCheck"
-              checked={backgroundCheck}
-              onCheckedChange={(checked) => setBackgroundCheck(!!checked)}
+              name="backgroundCheck"
+              checked={formData.backgroundCheck}
+              onCheckedChange={(checked) => 
+                setFormData(prev => ({ ...prev, backgroundCheck: !!checked }))
+              }
             />
             <Label htmlFor="backgroundCheck">Background Check Completed</Label>
           </div>
@@ -228,8 +269,9 @@ const ProfessionalRegistration = () => {
             <Label htmlFor="additionalNotes">Additional Notes</Label>
             <Textarea
               id="additionalNotes"
-              value={additionalNotes}
-              onChange={(e) => setAdditionalNotes(e.target.value)}
+              name="additionalNotes"
+              value={formData.additionalNotes}
+              onChange={handleInputChange}
             />
           </div>
           <Button type="submit">Register</Button>

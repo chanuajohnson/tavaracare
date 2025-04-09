@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
@@ -9,16 +10,20 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Textarea } from '@/components/ui/textarea';
 import { getConversation } from '@/services/chatbot';
 import { useChatbotPrefill } from '@/hooks/useChatbotPrefill';
+import { FamilyRegistrationFormData } from '@/types/formTypes';
+import { UserRole } from '@/types/userRoles';
 
 export default function FamilyRegistration() {
   const navigate = useNavigate();
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
-  const [email, setEmail] = useState('');
-  const [phone, setPhone] = useState('');
-  const [location, setLocation] = useState('');
-  const [about, setAbout] = useState('');
-  const [terms, setTerms] = useState(false);
+  const [formData, setFormData] = useState<FamilyRegistrationFormData>({
+    firstName: '',
+    lastName: '',
+    email: '',
+    phone: '',
+    location: '',
+    about: '',
+    terms: false,
+  });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -32,11 +37,14 @@ export default function FamilyRegistration() {
 
   useEffect(() => {
     if (contactInfo) {
-      setFirstName(contactInfo.firstName || '');
-      setLastName(contactInfo.lastName || '');
-      setEmail(contactInfo.email || '');
-      setPhone(contactInfo.phone || '');
-      setLocation(contactInfo.location || '');
+      setFormData(prev => ({
+        ...prev,
+        firstName: contactInfo.firstName || '',
+        lastName: contactInfo.lastName || '',
+        email: contactInfo.email || '',
+        phone: contactInfo.phone || '',
+        location: contactInfo.location || '',
+      }));
     }
   }, [contactInfo]);
 
@@ -45,7 +53,7 @@ export default function FamilyRegistration() {
     setLoading(true);
     setError(null);
 
-    if (!terms) {
+    if (!formData.terms) {
       setError('Please accept the terms and conditions.');
       setLoading(false);
       return;
@@ -62,14 +70,14 @@ export default function FamilyRegistration() {
 
       const updates = {
         id: user.id,
-        first_name: firstName,
-        last_name: lastName,
-        email: email,
-        phone: phone,
-        location: location,
-        about: about,
-        role: 'family',
-        updated_at: new Date(),
+        first_name: formData.firstName,
+        last_name: formData.lastName,
+        email: formData.email,
+        phone: formData.phone,
+        location: formData.location,
+        about: formData.about,
+        role: 'family' as UserRole,
+        updated_at: new Date().toISOString(),
       };
 
       let { error } = await supabase
@@ -100,6 +108,15 @@ export default function FamilyRegistration() {
     }
   };
 
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleCheckboxChange = (checked: boolean) => {
+    setFormData(prev => ({ ...prev, terms: checked }));
+  };
+
   return (
     <div className="container mx-auto p-4">
       <h1 className="text-2xl font-bold mb-4">Family Profile Registration</h1>
@@ -115,8 +132,9 @@ export default function FamilyRegistration() {
               <Input
                 type="text"
                 id="firstName"
-                value={firstName}
-                onChange={(e) => setFirstName(e.target.value)}
+                name="firstName"
+                value={formData.firstName}
+                onChange={handleInputChange}
                 required
               />
             </div>
@@ -125,8 +143,9 @@ export default function FamilyRegistration() {
               <Input
                 type="text"
                 id="lastName"
-                value={lastName}
-                onChange={(e) => setLastName(e.target.value)}
+                name="lastName"
+                value={formData.lastName}
+                onChange={handleInputChange}
                 required
               />
             </div>
@@ -135,8 +154,9 @@ export default function FamilyRegistration() {
               <Input
                 type="email"
                 id="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                name="email"
+                value={formData.email}
+                onChange={handleInputChange}
                 required
               />
             </div>
@@ -145,8 +165,9 @@ export default function FamilyRegistration() {
               <Input
                 type="tel"
                 id="phone"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
+                name="phone"
+                value={formData.phone}
+                onChange={handleInputChange}
               />
             </div>
             <div>
@@ -154,24 +175,26 @@ export default function FamilyRegistration() {
               <Input
                 type="text"
                 id="location"
-                value={location}
-                onChange={(e) => setLocation(e.target.value)}
+                name="location"
+                value={formData.location}
+                onChange={handleInputChange}
               />
             </div>
             <div>
               <Label htmlFor="about">About You</Label>
               <Textarea
                 id="about"
-                value={about}
-                onChange={(e) => setAbout(e.target.value)}
+                name="about"
+                value={formData.about}
+                onChange={handleInputChange}
                 placeholder="Tell us about your family and care needs"
               />
             </div>
             <div className="flex items-center space-x-2">
               <Checkbox
                 id="terms"
-                checked={terms}
-                onCheckedChange={(checked) => setTerms(!!checked)}
+                checked={formData.terms}
+                onCheckedChange={(checked) => handleCheckboxChange(!!checked)}
               />
               <Label htmlFor="terms">
                 I agree to the <a href="/terms" className="text-blue-500">terms and conditions</a>
