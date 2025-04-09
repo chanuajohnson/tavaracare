@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { MessageCircle, X, Send, ChevronDown, ChevronUp } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -11,7 +10,7 @@ import { useChatSession } from '@/hooks/useChatSession';
 import { useChatMessages } from '@/hooks/useChatMessages';
 import { useChatFlowEngine } from '@/hooks/useChatFlowEngine';
 import { ChatIntroMessage } from '@/data/chatIntroMessage';
-import { ChatbotMessage } from '@/types/chatbotTypes';
+import { ChatbotMessage, ChatbotMessageType } from '@/types/chatbotTypes';
 
 interface ChatbotWidgetProps {
   delay?: number; // Delay in ms before showing the chatbot
@@ -26,10 +25,8 @@ const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({ delay = 5000 }) => {
   const inputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
   
-  // Get session and conversation data
   const { sessionId, conversation, loading: sessionLoading } = useChatSession();
   
-  // Get messages for this conversation
   const { 
     messages, 
     loading: messagesLoading, 
@@ -38,7 +35,6 @@ const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({ delay = 5000 }) => {
     setMessages 
   } = useChatMessages(conversation?.id);
   
-  // Initialize chat flow engine
   const { 
     processUserResponse,
     getOptionsForCurrentStep,
@@ -47,7 +43,6 @@ const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({ delay = 5000 }) => {
     generatePrefillData
   } = useChatFlowEngine(conversation);
   
-  // Auto open chat after delay
   useEffect(() => {
     const timer = setTimeout(() => {
       setIsChatOpen(true);
@@ -56,22 +51,15 @@ const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({ delay = 5000 }) => {
     return () => clearTimeout(timer);
   }, [delay, setIsChatOpen]);
   
-  // Initialize with welcome message if no messages exist
   useEffect(() => {
     if (!sessionLoading && !messagesLoading && messages.length === 0 && conversation) {
-      // Add intro message to display
       addBotMessage(
         ChatIntroMessage.message, 
-        'option', 
+        ChatIntroMessage.messageType as ChatbotMessageType,
         ChatIntroMessage.options
       );
     }
   }, [sessionLoading, messagesLoading, messages, conversation, addBotMessage]);
-  
-  // Scroll to bottom when messages update
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
   
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -80,7 +68,6 @@ const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({ delay = 5000 }) => {
   const toggleMinimize = () => {
     setIsMinimized(!isMinimized);
     if (isMinimized) {
-      // Focus the input when opening
       setTimeout(() => {
         inputRef.current?.focus();
       }, 300);
@@ -100,32 +87,25 @@ const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({ delay = 5000 }) => {
     
     if (!inputText.trim() || !conversation) return;
     
-    // Add user message to state and database
     await addUserMessage(inputText);
     setInputText('');
     
-    // Process the user response and get the bot's reply
     setIsTyping(true);
     
-    // Simulate typing time
     setTimeout(async () => {
       setIsTyping(false);
       
-      // Get next bot response
       const botResponse = await processUserResponse(inputText, currentStep);
       
-      // Add bot message to state and database
       await addBotMessage(
         botResponse.message, 
-        botResponse.messageType, 
+        botResponse.messageType as ChatbotMessageType,
         botResponse.options
       );
       
-      // Handle navigation if options include a URL redirect
       if (botResponse.options && botResponse.options[0]?.value?.startsWith('/')) {
         const redirectUrl = botResponse.options[0].value;
         
-        // If redirecting to a registration form, add prefill data
         if (redirectUrl.includes('/registration/') && conversation && userRole) {
           const prefillData = generatePrefillData();
           if (prefillData) {
@@ -141,31 +121,24 @@ const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({ delay = 5000 }) => {
   };
   
   const handleOptionSelect = async (option: { label: string; value: string }) => {
-    // Add user selection as a message
     await addUserMessage(option.label);
     
-    // Process the selected option
     setIsTyping(true);
     
-    // Simulate typing time
     setTimeout(async () => {
       setIsTyping(false);
       
-      // Get next bot response
       const botResponse = await processUserResponse(option.value, currentStep);
       
-      // Add bot message to state and database
       await addBotMessage(
         botResponse.message, 
-        botResponse.messageType, 
+        botResponse.messageType as ChatbotMessageType,
         botResponse.options
       );
       
-      // Handle navigation if options include a URL redirect
       if (botResponse.options && botResponse.options[0]?.value?.startsWith('/')) {
         const redirectUrl = botResponse.options[0].value;
         
-        // If redirecting to a registration form, add prefill data
         if (redirectUrl.includes('/registration/') && conversation && userRole) {
           const prefillData = generatePrefillData();
           if (prefillData) {
@@ -192,7 +165,6 @@ const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({ delay = 5000 }) => {
         className="fixed bottom-20 right-4 z-40"
       >
         <Card className="w-80 md:w-96 shadow-lg border-primary-100">
-          {/* Header */}
           <div className="bg-primary-500 text-white p-3 rounded-t-lg flex justify-between items-center">
             <div className="flex items-center gap-2">
               <MessageCircle size={20} />
@@ -216,7 +188,6 @@ const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({ delay = 5000 }) => {
             </div>
           </div>
           
-          {/* Chat area */}
           <AnimatePresence>
             {!isMinimized && (
               <motion.div
@@ -226,7 +197,6 @@ const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({ delay = 5000 }) => {
                 transition={{ duration: 0.2 }}
               >
                 <CardContent className="p-0">
-                  {/* Messages container */}
                   <div className="h-80 overflow-y-auto p-4 space-y-4 bg-gray-50">
                     {sessionLoading || messagesLoading ? (
                       <div className="flex justify-center items-center h-full">
@@ -245,7 +215,6 @@ const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({ delay = 5000 }) => {
                           >
                             <div>{msg.message}</div>
                             
-                            {/* Render options if available */}
                             {msg.options && msg.options.length > 0 && (
                               <div className="mt-2 space-y-2">
                                 {msg.options.map((option, i) => (
@@ -266,7 +235,6 @@ const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({ delay = 5000 }) => {
                           </div>
                         ))}
                         
-                        {/* Typing indicator */}
                         {isTyping && (
                           <div className="max-w-[80%] mr-auto p-3 rounded-lg bg-white shadow-sm border border-gray-100 rounded-bl-none flex items-center space-x-1">
                             <motion.div
@@ -287,13 +255,11 @@ const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({ delay = 5000 }) => {
                           </div>
                         )}
                         
-                        {/* Scroll anchor */}
                         <div ref={messagesEndRef} />
                       </>
                     )}
                   </div>
                   
-                  {/* Input area */}
                   <form onSubmit={handleSubmit} className="p-4 border-t border-gray-100 flex gap-2">
                     <Input
                       ref={inputRef}

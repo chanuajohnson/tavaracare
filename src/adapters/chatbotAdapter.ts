@@ -53,10 +53,17 @@ export function adaptCareNeedsFromDb(dbCareNeeds: DbCareNeeds): CareNeeds {
 
 // Convert chatbot message to DB format
 export function adaptChatbotMessageToDb(message: ChatbotMessage): DbChatbotMessage {
-  const contextData = {
-    ...(message.contextData || {}),
-    options: message.options
-  };
+  const contextData: Record<string, any> = {};
+  
+  // Copy existing contextData if present
+  if (message.contextData) {
+    Object.assign(contextData, message.contextData);
+  }
+  
+  // Add options to contextData if they exist
+  if (message.options && message.options.length > 0) {
+    contextData.options = message.options;
+  }
 
   return {
     id: message.id,

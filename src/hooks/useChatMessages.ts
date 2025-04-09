@@ -1,7 +1,7 @@
 
 import { useEffect, useState } from 'react';
 import { getMessagesByConversationId, sendUserMessage, sendBotMessage } from '@/services/chatbot/messageService';
-import { ChatbotMessage, ChatOption } from '@/types/chatbotTypes';
+import { ChatbotMessage, ChatOption, ChatbotMessageType } from '@/types/chatbotTypes';
 
 export function useChatMessages(conversationId: string | undefined) {
   const [messages, setMessages] = useState<ChatbotMessage[]>([]);
@@ -49,7 +49,7 @@ export function useChatMessages(conversationId: string | undefined) {
   // Function to send a bot message
   const addBotMessage = async (
     message: string,
-    messageType: 'text' | 'option' = 'text',
+    messageType: ChatbotMessageType = 'text',
     options?: ChatOption[]
   ): Promise<ChatbotMessage | null> => {
     if (!conversationId) return null;

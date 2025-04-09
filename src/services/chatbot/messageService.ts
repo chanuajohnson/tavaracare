@@ -1,6 +1,6 @@
 
 import { supabase } from '@/lib/supabase';
-import { ChatbotMessage, ChatOption } from '@/types/chatbotTypes';
+import { ChatbotMessage, ChatOption, ChatbotMessageType } from '@/types/chatbotTypes';
 import { adaptChatbotMessageFromDb, adaptChatbotMessageToDb } from '@/adapters/chatbotAdapter';
 
 // Get all messages for a conversation
@@ -64,7 +64,7 @@ export async function sendUserMessage(
 export async function sendBotMessage(
   conversationId: string,
   message: string,
-  messageType: 'text' | 'option' = 'text',
+  messageType: ChatbotMessageType = 'text',
   options?: ChatOption[]
 ): Promise<ChatbotMessage | null> {
   try {
@@ -74,7 +74,8 @@ export async function sendBotMessage(
       message,
       messageType,
       timestamp: new Date().toISOString(),
-      options
+      options,
+      contextData: options ? { options } : undefined
     };
     
     const dbMessage = adaptChatbotMessageToDb(newMessage);
