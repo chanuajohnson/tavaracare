@@ -1,6 +1,6 @@
 
 import React from 'react';
-import Navigation from '@/components/layout/Navigation';
+import { Navigation } from '@/components/layout/Navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import ChatbotWidget from '@/components/chatbot/ChatbotWidget';
