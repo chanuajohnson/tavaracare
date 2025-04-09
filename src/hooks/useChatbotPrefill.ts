@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
-import { getConversation } from '@/services/chatbotService';
+import { getConversation } from '@/services/chatbot';
 import { ChatbotConversation, ContactInfo, CareNeeds } from '@/types/chatbotTypes';
 
 // Type for the hook return value

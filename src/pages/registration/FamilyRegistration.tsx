@@ -1,281 +1,189 @@
-
-import React, { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { useForm } from "react-hook-form";
-import { useNavigate } from "react-router-dom";
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
-import { Loader2 } from "lucide-react";
-import { toast } from "sonner";
-import { useChatbotPrefill } from "@/hooks/useChatbotPrefill";
-import { updateConversionStatus } from "@/services/chatbotService";
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Textarea } from '@/components/ui/textarea';
+import { getConversation } from '@/services/chatbot';
+import { useChatbotPrefill } from '@/hooks/useChatbotPrefill';
 
-interface RegistrationFormData {
-  firstName: string;
-  lastName: string;
-  email: string;
-  password: string;
-  confirmPassword: string;
-  relationship?: string;
-  careType?: string;
-  careSchedule?: string;
-  location?: string;
-  additionalNotes?: string;
-}
-
-const FamilyRegistration = () => {
-  const [isSubmitting, setIsSubmitting] = useState(false);
+export default function FamilyRegistration() {
   const navigate = useNavigate();
-  const { register, handleSubmit, setValue, formState: { errors }, watch } = useForm<RegistrationFormData>();
-  const { contactInfo, careNeeds, conversationId } = useChatbotPrefill();
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
+  const [location, setLocation] = useState('');
+  const [about, setAbout] = useState('');
+  const [terms, setTerms] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  // Prefill form with chatbot data
+  // Prefill from chatbot
+  const { 
+    isLoading: isPrefillLoading,
+    contactInfo,
+    careNeeds,
+    conversationId,
+  } = useChatbotPrefill();
+
   useEffect(() => {
     if (contactInfo) {
-      if (contactInfo.firstName) setValue('firstName', contactInfo.firstName);
-      if (contactInfo.lastName) setValue('lastName', contactInfo.lastName);
-      if (contactInfo.email) setValue('email', contactInfo.email);
-      if (contactInfo.location) setValue('location', contactInfo.location);
+      setFirstName(contactInfo.firstName || '');
+      setLastName(contactInfo.lastName || '');
+      setEmail(contactInfo.email || '');
+      setPhone(contactInfo.phone || '');
+      setLocation(contactInfo.location || '');
     }
-    
-    if (careNeeds) {
-      if (careNeeds.relationship) setValue('relationship', careNeeds.relationship);
-      if (careNeeds.careType && careNeeds.careType.length > 0) {
-        setValue('careType', careNeeds.careType[0]);
-      }
-      if (careNeeds.schedule) setValue('careSchedule', careNeeds.schedule);
-    }
-  }, [contactInfo, careNeeds, setValue]);
+  }, [contactInfo]);
 
-  const onSubmit = async (data: RegistrationFormData) => {
-    if (data.password !== data.confirmPassword) {
-      toast.error("Passwords do not match");
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setLoading(true);
+    setError(null);
+
+    if (!terms) {
+      setError('Please accept the terms and conditions.');
+      setLoading(false);
       return;
     }
 
-    setIsSubmitting(true);
-
     try {
-      // Register user with Supabase
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: data.email,
-        password: data.password,
-        options: {
-          data: {
-            first_name: data.firstName,
-            last_name: data.lastName,
-            role: 'family'
-          }
-        }
-      });
+      const { data: { user } } = await supabase.auth.getUser();
 
-      if (authError) {
-        toast.error(authError.message);
-        setIsSubmitting(false);
+      if (!user) {
+        setError('No user session found. Please sign in.');
+        setLoading(false);
         return;
       }
 
-      // Update profile with additional info
-      if (authData?.user) {
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .update({
-            first_name: data.firstName,
-            last_name: data.lastName,
-            relationship: data.relationship,
-            care_services: data.careType ? [data.careType] : undefined,
-            care_schedule: data.careSchedule,
-            location: data.location,
-            additional_notes: data.additionalNotes
-          })
-          .eq('id', authData.user.id);
+      const updates = {
+        id: user.id,
+        first_name: firstName,
+        last_name: lastName,
+        email: email,
+        phone: phone,
+        location: location,
+        about: about,
+        role: 'family',
+        updated_at: new Date(),
+      };
 
-        if (profileError) {
-          toast.error("Error updating profile: " + profileError.message);
+      let { error } = await supabase
+        .from('profiles')
+        .upsert(updates, { returning: 'minimal' });
+
+      if (error) {
+        throw error;
+      }
+      
+      if (conversationId) {
+        // Update conversation with registration status
+        const { error: conversationError } = await supabase
+          .from('chatbot_conversations')
+          .update({ converted_to_registration: true })
+          .eq('id', conversationId);
+        
+        if (conversationError) {
+          console.error('Error updating conversation:', conversationError);
         }
       }
 
-      // If we came from chatbot, update conversion status
-      if (conversationId) {
-        await updateConversionStatus(conversationId, true);
-      }
-
-      toast.success("Registration successful! Welcome to Tavara Care.");
-      navigate("/dashboard/family");
-
+      navigate('/dashboard/family');
     } catch (error: any) {
-      toast.error("Registration failed: " + error.message);
+      setError(error.message || 'An error occurred during registration.');
     } finally {
-      setIsSubmitting(false);
+      setLoading(false);
     }
   };
 
   return (
-    <div className="container max-w-md mx-auto px-4 py-8">
-      <Card className="w-full">
-        <CardHeader>
-          <CardTitle>Family Registration</CardTitle>
-          <CardDescription>
-            Create your family account to connect with caregivers
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="firstName">First Name</Label>
-                <Input
-                  id="firstName"
-                  placeholder="John"
-                  {...register("firstName", { required: "First name is required" })}
-                />
-                {errors.firstName && (
-                  <p className="text-sm text-red-500">{errors.firstName.message}</p>
-                )}
-              </div>
+    <div className="container mx-auto p-4">
+      <h1 className="text-2xl font-bold mb-4">Family Profile Registration</h1>
+      {isPrefillLoading ? (
+        <p>Loading data from chat...</p>
+      ) : (
+        <form onSubmit={handleSubmit} className="max-w-md mx-auto">
+          {error && <div className="text-red-500 mb-4">{error}</div>}
 
-              <div className="space-y-2">
-                <Label htmlFor="lastName">Last Name</Label>
-                <Input
-                  id="lastName"
-                  placeholder="Doe"
-                  {...register("lastName", { required: "Last name is required" })}
-                />
-                {errors.lastName && (
-                  <p className="text-sm text-red-500">{errors.lastName.message}</p>
-                )}
-              </div>
+          <div className="grid gap-4">
+            <div>
+              <Label htmlFor="firstName">First Name</Label>
+              <Input
+                type="text"
+                id="firstName"
+                value={firstName}
+                onChange={(e) => setFirstName(e.target.value)}
+                required
+              />
             </div>
-
-            <div className="space-y-2">
+            <div>
+              <Label htmlFor="lastName">Last Name</Label>
+              <Input
+                type="text"
+                id="lastName"
+                value={lastName}
+                onChange={(e) => setLastName(e.target.value)}
+                required
+              />
+            </div>
+            <div>
               <Label htmlFor="email">Email</Label>
               <Input
-                id="email"
                 type="email"
-                placeholder="john.doe@example.com"
-                {...register("email", { required: "Email is required" })}
+                id="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
               />
-              {errors.email && (
-                <p className="text-sm text-red-500">{errors.email.message}</p>
-              )}
             </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  {...register("password", { 
-                    required: "Password is required",
-                    minLength: {
-                      value: 6,
-                      message: "Password must be at least 6 characters"
-                    }
-                  })}
-                />
-                {errors.password && (
-                  <p className="text-sm text-red-500">{errors.password.message}</p>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="confirmPassword">Confirm Password</Label>
-                <Input
-                  id="confirmPassword"
-                  type="password"
-                  {...register("confirmPassword", {
-                    required: "Please confirm your password",
-                    validate: value => value === watch('password') || "Passwords do not match"
-                  })}
-                />
-                {errors.confirmPassword && (
-                  <p className="text-sm text-red-500">{errors.confirmPassword.message}</p>
-                )}
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="relationship">Relationship to Care Recipient</Label>
+            <div>
+              <Label htmlFor="phone">Phone</Label>
               <Input
-                id="relationship"
-                placeholder="e.g. Son, Daughter, Spouse"
-                {...register("relationship")}
+                type="tel"
+                id="phone"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
               />
             </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="careType">Type of Care Needed</Label>
-                <Input
-                  id="careType"
-                  placeholder="e.g. Senior Care"
-                  {...register("careType")}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="careSchedule">Care Schedule</Label>
-                <Input
-                  id="careSchedule"
-                  placeholder="e.g. Daily, Weekly"
-                  {...register("careSchedule")}
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
+            <div>
               <Label htmlFor="location">Location</Label>
               <Input
+                type="text"
                 id="location"
-                placeholder="City, Country"
-                {...register("location")}
+                value={location}
+                onChange={(e) => setLocation(e.target.value)}
               />
             </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="additionalNotes">Additional Notes (Optional)</Label>
+            <div>
+              <Label htmlFor="about">About You</Label>
               <Textarea
-                id="additionalNotes"
-                placeholder="Tell us more about your care needs..."
-                {...register("additionalNotes")}
+                id="about"
+                value={about}
+                onChange={(e) => setAbout(e.target.value)}
+                placeholder="Tell us about your family and care needs"
               />
             </div>
-
-            <Button
-              type="submit"
-              className="w-full"
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Registering...
-                </>
-              ) : (
-                "Register"
-              )}
-            </Button>
-          </form>
-
-          <div className="mt-4 text-center text-sm">
-            <p>
-              Already have an account?{" "}
-              <a
-                href="/auth"
-                className="text-primary-500 hover:underline"
-              >
-                Log in
-              </a>
-            </p>
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="terms"
+                checked={terms}
+                onCheckedChange={(checked) => setTerms(!!checked)}
+              />
+              <Label htmlFor="terms">
+                I agree to the <a href="/terms" className="text-blue-500">terms and conditions</a>
+              </Label>
+            </div>
           </div>
-        </CardContent>
-      </Card>
+
+          <Button type="submit" disabled={loading} className="w-full mt-6">
+            {loading ? 'Registering...' : 'Register'}
+          </Button>
+        </form>
+      )}
     </div>
   );
-};
-
-export default FamilyRegistration;
+}

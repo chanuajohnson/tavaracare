@@ -1,253 +1,323 @@
-
-import React, { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Checkbox } from "@/components/ui/checkbox";
-import { useForm } from "react-hook-form";
-import { useNavigate } from "react-router-dom";
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
-import { Loader2 } from "lucide-react";
-import { toast } from "sonner";
-import { useChatbotPrefill } from "@/hooks/useChatbotPrefill";
-import { updateConversionStatus } from "@/services/chatbotService";
-
-interface CommunityRegistrationFormData {
-  firstName: string;
-  lastName: string;
-  email: string;
-  password: string;
-  confirmPassword: string;
-  location?: string;
-  motivation?: string;
-  enableNotifications?: boolean;
-}
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Textarea } from '@/components/ui/textarea';
+import { getConversation } from '@/services/chatbot';
+import { useChatbotPrefill } from '@/hooks/useChatbotPrefill';
 
 const CommunityRegistration = () => {
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
-  const { register, handleSubmit, setValue, formState: { errors }, watch } = useForm<CommunityRegistrationFormData>({
-    defaultValues: {
-      enableNotifications: true,
-    }
+  const [formData, setFormData] = useState({
+    communityName: '',
+    contactName: '',
+    email: '',
+    phone: '',
+    address: '',
+    missionStatement: '',
+    servicesOffered: [],
+    website: '',
+    socialMediaLinks: '',
+    additionalNotes: '',
+    termsAndConditions: false,
   });
-  const { contactInfo, conversationId } = useChatbotPrefill();
+  const [errors, setErrors] = useState({});
+  const [isLoading, setIsLoading] = useState(false);
 
-  // Prefill form with chatbot data
+  // Use the hook to prefill data from chatbot
+  const { 
+    isLoading: isPrefillLoading,
+    conversationId,
+    contactInfo,
+    careNeeds,
+    conversation
+  } = useChatbotPrefill();
+
   useEffect(() => {
     if (contactInfo) {
-      if (contactInfo.firstName) setValue('firstName', contactInfo.firstName);
-      if (contactInfo.lastName) setValue('lastName', contactInfo.lastName);
-      if (contactInfo.email) setValue('email', contactInfo.email);
-      if (contactInfo.location) setValue('location', contactInfo.location);
+      setFormData(prev => ({
+        ...prev,
+        contactName: `${contactInfo.firstName || ''} ${contactInfo.lastName || ''}`.trim(),
+        email: contactInfo.email || '',
+      }));
     }
-  }, [contactInfo, setValue]);
+  }, [contactInfo]);
 
-  const onSubmit = async (data: CommunityRegistrationFormData) => {
-    if (data.password !== data.confirmPassword) {
-      toast.error("Passwords do not match");
-      return;
-    }
+  const validate = () => {
+    let tempErrors = {};
 
-    setIsSubmitting(true);
+    tempErrors.communityName = formData.communityName ? "" : "Community Name is required";
+    tempErrors.contactName = formData.contactName ? "" : "Contact Name is required";
+    tempErrors.email = formData.email ? "" : "Email is required";
+    tempErrors.phone = formData.phone ? "" : "Phone is required";
+    tempErrors.address = formData.address ? "" : "Address is required";
+    tempErrors.missionStatement = formData.missionStatement ? "" : "Mission Statement is required";
+    tempErrors.termsAndConditions = formData.termsAndConditions ? "" : "Accept Terms & Conditions is required";
 
-    try {
-      // Register user with Supabase
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: data.email,
-        password: data.password,
-        options: {
-          data: {
-            first_name: data.firstName,
-            last_name: data.lastName,
-            role: 'community'
-          }
+    setErrors({ ...tempErrors });
+
+    return Object.values(tempErrors).every(x => x === "");
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (validate()) {
+      setIsLoading(true);
+
+      try {
+        const { data: user, error: userError } = await supabase.auth.getUser();
+
+        if (userError) {
+          console.error("Error getting user:", userError);
+          alert("Failed to get user. Please try again.");
+          return;
         }
-      });
 
-      if (authError) {
-        toast.error(authError.message);
-        setIsSubmitting(false);
-        return;
-      }
+        const updates = {
+          id: user.user.id,
+          community_name: formData.communityName,
+          contact_name: formData.contactName,
+          email: formData.email,
+          phone: formData.phone,
+          address: formData.address,
+          mission_statement: formData.missionStatement,
+          services_offered: formData.servicesOffered,
+          website: formData.website,
+          social_media_links: formData.socialMediaLinks,
+          additional_notes: formData.additionalNotes,
+          terms_and_conditions: formData.termsAndConditions,
+          updated_at: new Date(),
+        };
 
-      // Update profile with additional info
-      if (authData?.user) {
-        const { error: profileError } = await supabase
+        const { error } = await supabase
           .from('profiles')
-          .update({
-            first_name: data.firstName,
-            last_name: data.lastName,
-            location: data.location,
-            community_motivation: data.motivation,
-            enable_community_notifications: data.enableNotifications
-          })
-          .eq('id', authData.user.id);
-
-        if (profileError) {
-          toast.error("Error updating profile: " + profileError.message);
+          .upsert(updates);
+        
+        if (error) {
+          throw error;
         }
+
+        alert('Successfully updated community profile!');
+        navigate('/dashboard/community');
+      } catch (error) {
+        console.error("Error creating profile:", error);
+        alert("Failed to update profile. Please try again.");
+      } finally {
+        setIsLoading(false);
       }
-
-      // If we came from chatbot, update conversion status
-      if (conversationId) {
-        await updateConversionStatus(conversationId, true);
-      }
-
-      toast.success("Registration successful! Welcome to Tavara Care Community.");
-      navigate("/dashboard/community");
-
-    } catch (error: any) {
-      toast.error("Registration failed: " + error.message);
-    } finally {
-      setIsSubmitting(false);
     }
   };
 
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value, type, checked } = e.target;
+    
+    setFormData(prev => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : value,
+    }));
+  };
+
+  const handleServicesChange = (e: any) => {
+    const { value, checked } = e.target;
+    
+    setFormData(prev => {
+      let updatedServices = [...prev.servicesOffered];
+      
+      if (checked) {
+        updatedServices.push(value);
+      } else {
+        updatedServices = updatedServices.filter(item => item !== value);
+      }
+      
+      return { ...prev, servicesOffered: updatedServices };
+    });
+  };
+
   return (
-    <div className="container max-w-md mx-auto px-4 py-8">
-      <Card className="w-full">
-        <CardHeader>
-          <CardTitle>Community Registration</CardTitle>
-          <CardDescription>
-            Join our community to support local care networks
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="firstName">First Name</Label>
-                <Input
-                  id="firstName"
-                  placeholder="John"
-                  {...register("firstName", { required: "First name is required" })}
-                />
-                {errors.firstName && (
-                  <p className="text-sm text-red-500">{errors.firstName.message}</p>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="lastName">Last Name</Label>
-                <Input
-                  id="lastName"
-                  placeholder="Doe"
-                  {...register("lastName", { required: "Last name is required" })}
-                />
-                {errors.lastName && (
-                  <p className="text-sm text-red-500">{errors.lastName.message}</p>
-                )}
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="john.doe@example.com"
-                {...register("email", { required: "Email is required" })}
-              />
-              {errors.email && (
-                <p className="text-sm text-red-500">{errors.email.message}</p>
-              )}
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  {...register("password", { 
-                    required: "Password is required",
-                    minLength: {
-                      value: 6,
-                      message: "Password must be at least 6 characters"
-                    }
-                  })}
-                />
-                {errors.password && (
-                  <p className="text-sm text-red-500">{errors.password.message}</p>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="confirmPassword">Confirm Password</Label>
-                <Input
-                  id="confirmPassword"
-                  type="password"
-                  {...register("confirmPassword", {
-                    required: "Please confirm your password",
-                    validate: value => value === watch('password') || "Passwords do not match"
-                  })}
-                />
-                {errors.confirmPassword && (
-                  <p className="text-sm text-red-500">{errors.confirmPassword.message}</p>
-                )}
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="location">Location</Label>
-              <Input
-                id="location"
-                placeholder="City, Country"
-                {...register("location")}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="motivation">Why do you want to join our community?</Label>
-              <Textarea
-                id="motivation"
-                placeholder="Tell us about your motivation to support care in your community..."
-                {...register("motivation")}
-              />
-            </div>
-
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="enableNotifications"
-                {...register("enableNotifications")}
-              />
-              <Label htmlFor="enableNotifications">
-                Receive community notifications about local care needs
-              </Label>
-            </div>
-
-            <Button
-              type="submit"
-              className="w-full"
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Registering...
-                </>
-              ) : (
-                "Join Community"
-              )}
-            </Button>
-          </form>
-
-          <div className="mt-4 text-center text-sm">
-            <p>
-              Already have an account?{" "}
-              <a
-                href="/auth"
-                className="text-primary-500 hover:underline"
-              >
-                Log in
-              </a>
-            </p>
+    <div className="container mx-auto mt-10">
+      <h1 className="text-2xl font-bold mb-4">Community Registration</h1>
+      {isPrefillLoading ? (
+        <p>Loading prefill data...</p>
+      ) : (
+        <form onSubmit={handleSubmit} className="max-w-lg">
+          <div className="mb-4">
+            <Label htmlFor="communityName">Community Name</Label>
+            <Input
+              type="text"
+              id="communityName"
+              name="communityName"
+              value={formData.communityName}
+              onChange={handleInputChange}
+              className="mt-1"
+            />
+            {errors.communityName && <p className="text-red-500">{errors.communityName}</p>}
           </div>
-        </CardContent>
-      </Card>
+
+          <div className="mb-4">
+            <Label htmlFor="contactName">Contact Name</Label>
+            <Input
+              type="text"
+              id="contactName"
+              name="contactName"
+              value={formData.contactName}
+              onChange={handleInputChange}
+              className="mt-1"
+            />
+            {errors.contactName && <p className="text-red-500">{errors.contactName}</p>}
+          </div>
+
+          <div className="mb-4">
+            <Label htmlFor="email">Email</Label>
+            <Input
+              type="email"
+              id="email"
+              name="email"
+              value={formData.email}
+              onChange={handleInputChange}
+              className="mt-1"
+            />
+            {errors.email && <p className="text-red-500">{errors.email}</p>}
+          </div>
+
+          <div className="mb-4">
+            <Label htmlFor="phone">Phone</Label>
+            <Input
+              type="tel"
+              id="phone"
+              name="phone"
+              value={formData.phone}
+              onChange={handleInputChange}
+              className="mt-1"
+            />
+            {errors.phone && <p className="text-red-500">{errors.phone}</p>}
+          </div>
+
+          <div className="mb-4">
+            <Label htmlFor="address">Address</Label>
+            <Input
+              type="text"
+              id="address"
+              name="address"
+              value={formData.address}
+              onChange={handleInputChange}
+              className="mt-1"
+            />
+            {errors.address && <p className="text-red-500">{errors.address}</p>}
+          </div>
+
+          <div className="mb-4">
+            <Label htmlFor="missionStatement">Mission Statement</Label>
+            <Textarea
+              id="missionStatement"
+              name="missionStatement"
+              value={formData.missionStatement}
+              onChange={handleInputChange}
+              className="mt-1"
+            />
+            {errors.missionStatement && <p className="text-red-500">{errors.missionStatement}</p>}
+          </div>
+
+          <div className="mb-4">
+            <Label>Services Offered</Label>
+            <div className="flex flex-col space-y-2">
+              <label className="inline-flex items-center">
+                <Checkbox
+                  value="counseling"
+                  checked={formData.servicesOffered.includes('counseling')}
+                  onChange={handleServicesChange}
+                  className="mr-2"
+                />
+                <span>Counseling</span>
+              </label>
+              <label className="inline-flex items-center">
+                <Checkbox
+                  value="support_groups"
+                  checked={formData.servicesOffered.includes('support_groups')}
+                  onChange={handleServicesChange}
+                  className="mr-2"
+                />
+                <span>Support Groups</span>
+              </label>
+              <label className="inline-flex items-center">
+                <Checkbox
+                  value="educational_programs"
+                  checked={formData.servicesOffered.includes('educational_programs')}
+                  onChange={handleServicesChange}
+                  className="mr-2"
+                />
+                <span>Educational Programs</span>
+              </label>
+              <label className="inline-flex items-center">
+                <Checkbox
+                  value="community_events"
+                  checked={formData.servicesOffered.includes('community_events')}
+                  onChange={handleServicesChange}
+                  className="mr-2"
+                />
+                <span>Community Events</span>
+              </label>
+            </div>
+          </div>
+
+          <div className="mb-4">
+            <Label htmlFor="website">Website</Label>
+            <Input
+              type="url"
+              id="website"
+              name="website"
+              value={formData.website}
+              onChange={handleInputChange}
+              className="mt-1"
+            />
+          </div>
+
+          <div className="mb-4">
+            <Label htmlFor="socialMediaLinks">Social Media Links</Label>
+            <Input
+              type="text"
+              id="socialMediaLinks"
+              name="socialMediaLinks"
+              value={formData.socialMediaLinks}
+              onChange={handleInputChange}
+              className="mt-1"
+            />
+          </div>
+
+          <div className="mb-4">
+            <Label htmlFor="additionalNotes">Additional Notes</Label>
+            <Textarea
+              id="additionalNotes"
+              name="additionalNotes"
+              value={formData.additionalNotes}
+              onChange={handleInputChange}
+              className="mt-1"
+            />
+          </div>
+
+          <div className="mb-4">
+            <label className="inline-flex items-center">
+              <Checkbox
+                id="termsAndConditions"
+                name="termsAndConditions"
+                checked={formData.termsAndConditions}
+                onChange={handleInputChange}
+                className="mr-2"
+              />
+              <span>I agree to the terms and conditions</span>
+            </label>
+            {errors.termsAndConditions && <p className="text-red-500">{errors.termsAndConditions}</p>}
+          </div>
+
+          <Button type="submit" disabled={isLoading}>
+            {isLoading ? 'Submitting...' : 'Submit'}
+          </Button>
+        </form>
+      )}
     </div>
   );
 };
