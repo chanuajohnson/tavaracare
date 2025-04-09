@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { HelpCircle, X, MessageSquare, FileQuestion, Phone, Loader2 } from "lucide-react";
@@ -12,6 +13,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
+import { useChatUI } from "@/components/providers/ChatUIProvider";
 
 interface FabProps {
   icon?: React.ReactNode;
@@ -31,6 +33,7 @@ export const Fab = ({
   showMenu = true,
 }: FabProps) => {
   const navigate = useNavigate();
+  const { isChatOpen } = useChatUI();
   const [isContactFormOpen, setIsContactFormOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [contactFormData, setContactFormData] = useState({
@@ -41,7 +44,7 @@ export const Fab = ({
   const [screenshotFile, setScreenshotFile] = useState<File | null>(null);
 
   const positionClasses = {
-    "bottom-right": "bottom-6 right-6",
+    "bottom-right": `bottom-6 ${isChatOpen ? "right-24" : "right-6"}`,
     "bottom-left": "bottom-6 left-6",
     "top-right": "top-6 right-6",
     "top-left": "top-6 left-6",
