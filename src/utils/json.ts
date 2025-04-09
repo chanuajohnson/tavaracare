@@ -1,71 +1,33 @@
 
 /**
- * Safely converts a value to a JSON-compatible format for storage in Supabase JSONB columns.
- * Returns null if serialization fails.
+ * Safely parse a JSON string into an object
+ * @param jsonString The JSON string to parse
+ * @param defaultValue The default value to return if parsing fails
+ * @returns The parsed object or the default value
  */
-export type Json =
-  | string
-  | number
-  | boolean
-  | null
-  | { [key: string]: Json | undefined }
-  | Json[];
-
-export function toJson<T>(value: T): Json {
+export function fromJson<T>(jsonString: string | null | undefined, defaultValue: T): T {
+  if (!jsonString) return defaultValue;
+  
   try {
-    return JSON.parse(JSON.stringify(value)) as Json;
-  } catch (e) {
-    console.warn('[toJson] Could not serialize:', e);
-    return null;
+    return JSON.parse(jsonString) as T;
+  } catch (error) {
+    console.error('Error parsing JSON:', error);
+    return defaultValue;
   }
 }
 
 /**
- * Safely parses JSON data from Supabase with proper type casting.
- * Returns provided fallback value if parsing fails.
+ * Safely convert an object to a JSON string
+ * @param value The value to convert to JSON
+ * @returns The JSON string or undefined if conversion fails
  */
-export function fromJson<T>(json: unknown, fallback: T): T {
+export function toJson(value: any): string | undefined {
+  if (value === undefined || value === null) return undefined;
+  
   try {
-    if (json === null || json === undefined) {
-      return fallback;
-    }
-    
-    if (typeof json === 'string') {
-      return JSON.parse(json) as T;
-    }
-    
-    return json as T;
-  } catch (e) {
-    console.warn('[fromJson] Failed to parse JSON:', e);
-    return fallback;
-  }
-}
-
-/**
- * Safely accesses a nested property in an object with proper type casting.
- * Returns provided fallback if any part of the path is undefined.
- */
-export function getNestedValue<T>(
-  obj: Record<string, any> | null | undefined, 
-  path: string, 
-  fallback: T
-): T {
-  try {
-    if (!obj) return fallback;
-    
-    const parts = path.split('.');
-    let result: any = obj;
-    
-    for (const part of parts) {
-      if (result === undefined || result === null) {
-        return fallback;
-      }
-      result = result[part];
-    }
-    
-    return (result === undefined || result === null) ? fallback : result as T;
-  } catch (e) {
-    console.warn(`[getNestedValue] Failed to get path ${path}:`, e);
-    return fallback;
+    return JSON.stringify(value);
+  } catch (error) {
+    console.error('Error converting to JSON:', error);
+    return undefined;
   }
 }

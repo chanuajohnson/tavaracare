@@ -1,6 +1,7 @@
 
 import { useEffect, useState } from 'react';
-import { getOrCreateSessionId, initializeConversation } from '@/services/chatbot/sessionService';
+import { getOrCreateSessionId } from '@/services/chatbot/sessionIdService';
+import { initializeConversation } from '@/services/chatbot/conversationService';
 import { ChatbotConversation } from '@/types/chatbotTypes';
 
 export function useChatSession() {
@@ -17,9 +18,14 @@ export function useChatSession() {
         setSessionId(id);
         
         if (id) {
-          const conv = await initializeConversation(id);
-          if (conv) {
-            setConversation(conv);
+          try {
+            const conv = await initializeConversation(id);
+            if (conv) {
+              setConversation(conv);
+            }
+          } catch (convError) {
+            console.warn('Could not initialize conversation. Database tables may not exist yet:', convError);
+            // Don't set an error state here - we'll just show the chat without conversation history
           }
         }
       } catch (e) {

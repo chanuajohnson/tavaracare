@@ -58,6 +58,14 @@ const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({ delay = 5000 }) => {
         ChatIntroMessage.messageType as ChatbotMessageType,
         ChatIntroMessage.options
       );
+    } else if (!sessionLoading && !error && !conversation) {
+      // Handle the case where there's no conversation but we're not loading
+      setMessages([{
+        senderType: 'bot',
+        message: "Welcome! I'm the Tavara Care Assistant. How can I help you today?",
+        messageType: 'text',
+        timestamp: new Date().toISOString()
+      }]);
     }
   }, [sessionLoading, messagesLoading, messages, conversation, addBotMessage]);
   
