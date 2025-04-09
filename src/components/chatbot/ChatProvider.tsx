@@ -12,10 +12,14 @@ const ChatContext = createContext<ChatContextType | undefined>(undefined);
 
 interface ChatProviderProps {
   children: ReactNode;
+  initialOpen?: boolean;
 }
 
-export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
-  const [isOpen, setIsOpen] = useState(false);
+export const ChatProvider: React.FC<ChatProviderProps> = ({ 
+  children,
+  initialOpen = false
+}) => {
+  const [isOpen, setIsOpen] = useState(initialOpen);
 
   // Allow toggling the chat state
   const toggleChat = () => {

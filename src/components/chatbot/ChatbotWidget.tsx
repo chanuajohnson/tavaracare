@@ -1,10 +1,10 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Send, X, MessageSquare } from "lucide-react";
+import { Send, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 import { useChatMessages } from "@/hooks/chat/useChatMessages";
 import { useChatSession } from "@/hooks/chat/useChatSession";
 import { getIntroMessage, ChatOption } from "@/data/chatIntroMessage";
@@ -19,6 +19,12 @@ interface MessageProps {
 interface OptionCardProps {
   option: ChatOption;
   onClick: (id: string) => void;
+}
+
+interface ChatbotWidgetProps {
+  className?: string;
+  width?: string;
+  onClose?: () => void;
 }
 
 // Separate component for option cards with styling
@@ -139,8 +145,11 @@ const TypingIndicator: React.FC = () => {
 };
 
 // Main ChatbotWidget component
-export const ChatbotWidget: React.FC = () => {
-  const [isOpen, setIsOpen] = useState(false);
+export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({ 
+  className,
+  width = "320px",
+  onClose
+}) => {
   const [input, setInput] = useState("");
   const [selectedRole, setSelectedRole] = useState<string | null>(null);
   const [isTyping, setIsTyping] = useState(false);
@@ -157,11 +166,11 @@ export const ChatbotWidget: React.FC = () => {
 
   useEffect(() => {
     // Initialize chat with intro message if no messages exist
-    if (messages.length === 0 && isOpen) {
+    if (messages.length === 0) {
       const introMessage = getIntroMessage();
       simulateBotTyping(introMessage);
     }
-  }, [messages.length, isOpen]);
+  }, [messages.length]);
 
   const simulateBotTyping = async (message: string) => {
     setIsTyping(true);
@@ -274,10 +283,6 @@ export const ChatbotWidget: React.FC = () => {
     }
   };
 
-  const toggleChat = () => {
-    setIsOpen(prev => !prev);
-  };
-
   const resetChat = () => {
     clearMessages();
     setSelectedRole(null);
@@ -290,108 +295,92 @@ export const ChatbotWidget: React.FC = () => {
   };
 
   return (
-    <>
-      {/* Floating Action Button */}
-      <div className="fixed bottom-6 right-6 z-50">
-        <Button
-          onClick={toggleChat}
-          size="icon"
-          className="h-12 w-12 rounded-full shadow-lg"
-        >
-          {isOpen ? <X size={24} /> : <MessageSquare size={24} />}
-        </Button>
+    <div 
+      className={cn(
+        "bg-background border rounded-lg shadow-xl flex flex-col z-40 h-[500px]",
+        className
+      )}
+      style={{ width }}
+    >
+      {/* Chat header */}
+      <div className="flex items-center justify-between border-b p-3">
+        <h3 className="font-medium">Tavara Assistant</h3>
+        <div className="flex gap-2">
+          <Button
+            size="icon"
+            variant="ghost"
+            onClick={resetChat}
+            title="Start over"
+            className="h-7 w-7"
+          >
+            <svg 
+              xmlns="http://www.w3.org/2000/svg" 
+              width="16" 
+              height="16" 
+              viewBox="0 0 24 24" 
+              fill="none" 
+              stroke="currentColor" 
+              strokeWidth="2" 
+              strokeLinecap="round" 
+              strokeLinejoin="round"
+            >
+              <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+              <path d="M3 3v5h5" />
+            </svg>
+          </Button>
+          {onClose && (
+            <Button
+              size="icon"
+              variant="ghost"
+              onClick={onClose}
+              title="Close chat"
+              className="h-7 w-7"
+            >
+              <X size={16} />
+            </Button>
+          )}
+        </div>
       </div>
 
-      {/* Chat window */}
-      <AnimatePresence>
-        {isOpen && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 20 }}
-            transition={{ duration: 0.2 }}
-            className="fixed bottom-24 right-6 w-80 sm:w-96 h-[500px] bg-background border rounded-lg shadow-xl flex flex-col z-40"
-          >
-            {/* Chat header */}
-            <div className="flex items-center justify-between border-b p-3">
-              <h3 className="font-medium">Tavara Assistant</h3>
-              <div className="flex gap-2">
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  onClick={resetChat}
-                  title="Start over"
-                  className="h-7 w-7"
-                >
-                  <svg 
-                    xmlns="http://www.w3.org/2000/svg" 
-                    width="16" 
-                    height="16" 
-                    viewBox="0 0 24 24" 
-                    fill="none" 
-                    stroke="currentColor" 
-                    strokeWidth="2" 
-                    strokeLinecap="round" 
-                    strokeLinejoin="round"
-                  >
-                    <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
-                    <path d="M3 3v5h5" />
-                  </svg>
-                </Button>
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  onClick={() => setIsOpen(false)}
-                  title="Close chat"
-                  className="h-7 w-7"
-                >
-                  <X size={16} />
-                </Button>
-              </div>
-            </div>
-
-            {/* Messages container */}
-            <div className="flex-1 p-4 overflow-y-auto">
-              {messages.map((message, index) => (
-                <React.Fragment key={index}>
-                  <MessageBubble
-                    content={message.content}
-                    isUser={message.isUser}
-                    timestamp={message.timestamp}
-                  />
-                  {message.options && (
-                    <OptionsRenderer 
-                      options={message.options} 
-                      onSelect={handleRoleSelection} 
-                    />
-                  )}
-                </React.Fragment>
-              ))}
-              {isTyping && <TypingIndicator />}
-              <div ref={messagesEndRef} />
-            </div>
-
-            {/* Input area */}
-            <form onSubmit={handleSendMessage} className="border-t p-3 flex gap-2">
-              <Input
-                placeholder="Type a message..."
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                className="flex-1"
-                disabled={isTyping}
+      {/* Messages container */}
+      <div className="flex-1 p-4 overflow-y-auto">
+        {messages.map((message, index) => (
+          <React.Fragment key={index}>
+            <MessageBubble
+              content={message.content}
+              isUser={message.isUser}
+              timestamp={message.timestamp}
+            />
+            {message.options && (
+              <OptionsRenderer 
+                options={message.options} 
+                onSelect={handleRoleSelection} 
               />
-              <Button
-                type="submit"
-                size="icon"
-                disabled={!input.trim() || isTyping}
-                title="Send message"
-              >
-                <Send size={18} />
-              </Button>
-            </form>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </>
+            )}
+          </React.Fragment>
+        ))}
+        {isTyping && <TypingIndicator />}
+        <div ref={messagesEndRef} />
+      </div>
+
+      {/* Input area */}
+      <form onSubmit={handleSendMessage} className="border-t p-3 flex gap-2">
+        <Input
+          placeholder="Type a message..."
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          className="flex-1"
+          disabled={isTyping}
+        />
+        <Button
+          type="submit"
+          size="icon"
+          disabled={!input.trim() || isTyping}
+          title="Send message"
+        >
+          <Send size={18} />
+        </Button>
+      </form>
+    </div>
   );
 };
