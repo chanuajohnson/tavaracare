@@ -9,6 +9,7 @@ import { useEffect, Suspense, lazy, useState } from "react";
 import { initializeSupabase, isSupabaseExperiencingIssues } from "@/lib/supabase";
 import { Fab } from "@/components/ui/fab";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ChatbotWidget } from "@/components/chatbot/ChatbotWidget";
 
 // Lazy loaded page components
 const Index = lazy(() => import("@/pages/Index"));
@@ -219,6 +220,9 @@ const AppContent = () => {
           </Routes>
         </Suspense>
       </main>
+      
+      {/* Chatbot Widget */}
+      <ChatbotWidget />
       
       {!isIndexPage && <GlobalFAB />}
     </div>

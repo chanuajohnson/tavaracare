@@ -11,6 +11,23 @@ All notable changes to the Takes a Village care coordination platform will be do
 - Advanced meal planning with dietary restrictions
 - Mobile app notifications
 
+## [0.1.6] - 2025-04-09
+
+### Added
+- [2025-04-09 10:30] Implemented conversational AI chatbot to guide visitors through registration
+- [2025-04-09 10:45] Added chat message history and user preference tracking
+- [2025-04-09 11:15] Created prefill functionality for registration forms based on chatbot data
+- [2025-04-09 12:00] Implemented responsive chat interface with animation and typing indicators
+
+### Changed
+- [2025-04-09 13:00] Enhanced registration flow with prefilled form data from chatbot conversations
+- [2025-04-09 13:30] Optimized chatbot for mobile devices and improved positioning
+
+### Technical
+- [2025-04-09 09:00] Created proper database schema for chatbot conversations and messages using enumerations
+- [2025-04-09 09:15] Implemented row-level security policies for chatbot data access
+- [2025-04-09 09:45] Added type-safe adapters and services for chatbot functionality
+
 ## [0.1.5] - 2025-04-08
 
 ### Added
