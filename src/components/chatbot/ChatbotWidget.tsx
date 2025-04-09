@@ -6,11 +6,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { useChatUI } from '@/components/providers/ChatUIProvider';
-import { useChatSession } from '@/hooks/useChatSession';
-import { useChatMessages } from '@/hooks/useChatMessages';
-import { useChatFlowEngine } from '@/hooks/useChatFlowEngine';
-import { ChatIntroMessage } from '@/data/chatIntroMessage';
-import { ChatbotMessage, ChatbotMessageType } from '@/types/chatbotTypes';
+import { useLocalChatSession } from '@/hooks/useLocalChatSession';
+import { useLocalChatMessages } from '@/hooks/useLocalChatMessages';
+import { ChatbotMessageType } from '@/types/chatbotTypes';
 
 interface ChatbotWidgetProps {
   delay?: number; // Delay in ms before showing the chatbot
@@ -25,24 +23,15 @@ const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({ delay = 5000 }) => {
   const inputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
   
-  const { sessionId, conversation, loading: sessionLoading, error: sessionError } = useChatSession();
+  const { sessionId, loading: sessionLoading, error: sessionError } = useLocalChatSession();
   
   const { 
     messages, 
     loading: messagesLoading, 
     addUserMessage, 
-    addBotMessage,
-    setMessages,
+    processMessage,
     error: messagesError
-  } = useChatMessages(conversation?.id);
-  
-  const { 
-    processUserResponse,
-    getOptionsForCurrentStep,
-    currentStep,
-    userRole,
-    generatePrefillData
-  } = useChatFlowEngine(conversation);
+  } = useLocalChatMessages();
   
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -53,22 +42,18 @@ const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({ delay = 5000 }) => {
   }, [delay, setIsChatOpen]);
   
   useEffect(() => {
-    if (!sessionLoading && !messagesLoading && messages.length === 0 && conversation) {
-      addBotMessage(
-        ChatIntroMessage.message, 
-        ChatIntroMessage.messageType as ChatbotMessageType,
-        ChatIntroMessage.options
-      );
-    } else if (!sessionLoading && !sessionError && !conversation) {
-      // Handle the case where there's no conversation but we're not loading
-      setMessages([{
-        senderType: 'bot',
-        message: "Welcome! I'm the Tavara Care Assistant. How can I help you today?",
-        messageType: 'text',
-        timestamp: new Date().toISOString()
-      }]);
+    if (!sessionLoading && !messagesLoading && messages.length === 0) {
+      addBotWelcomeMessage();
     }
-  }, [sessionLoading, messagesLoading, messages, conversation, addBotMessage, setMessages, sessionError]);
+  }, [sessionLoading, messagesLoading, messages]);
+  
+  const addBotWelcomeMessage = async () => {
+    await processMessage("welcome");
+  };
+  
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages, isTyping]);
   
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -94,7 +79,7 @@ const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({ delay = 5000 }) => {
   const handleSubmit = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     
-    if (!inputText.trim() || !conversation) return;
+    if (!inputText.trim()) return;
     
     await addUserMessage(inputText);
     setInputText('');
@@ -104,26 +89,12 @@ const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({ delay = 5000 }) => {
     setTimeout(async () => {
       setIsTyping(false);
       
-      const botResponse = await processUserResponse(inputText, currentStep);
+      const botResponse = await processMessage(inputText);
       
-      await addBotMessage(
-        botResponse.message, 
-        botResponse.messageType as ChatbotMessageType,
-        botResponse.options
-      );
-      
-      if (botResponse.options && botResponse.options[0]?.value?.startsWith('/')) {
-        const redirectUrl = botResponse.options[0].value;
-        
-        if (redirectUrl.includes('/registration/') && conversation && userRole) {
-          const prefillData = generatePrefillData();
-          if (prefillData) {
-            navigate(`${redirectUrl}?prefill=${encodeURIComponent(JSON.stringify(prefillData))}`);
-          } else {
-            navigate(redirectUrl);
-          }
-        } else {
-          navigate(redirectUrl);
+      if (botResponse?.options && botResponse.options.some(opt => opt.value?.startsWith('/'))) {
+        const redirectOption = botResponse.options.find(opt => opt.value?.startsWith('/'));
+        if (redirectOption) {
+          navigate(redirectOption.value);
         }
       }
     }, 1500);
@@ -137,27 +108,10 @@ const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({ delay = 5000 }) => {
     setTimeout(async () => {
       setIsTyping(false);
       
-      const botResponse = await processUserResponse(option.value, currentStep);
-      
-      await addBotMessage(
-        botResponse.message, 
-        botResponse.messageType as ChatbotMessageType,
-        botResponse.options
-      );
-      
-      if (botResponse.options && botResponse.options[0]?.value?.startsWith('/')) {
-        const redirectUrl = botResponse.options[0].value;
-        
-        if (redirectUrl.includes('/registration/') && conversation && userRole) {
-          const prefillData = generatePrefillData();
-          if (prefillData) {
-            navigate(`${redirectUrl}?prefill=${encodeURIComponent(JSON.stringify(prefillData))}`);
-          } else {
-            navigate(redirectUrl);
-          }
-        } else {
-          navigate(redirectUrl);
-        }
+      if (option.value.startsWith('/')) {
+        navigate(option.value);
+      } else {
+        await processMessage(option.value);
       }
     }, 1500);
   };

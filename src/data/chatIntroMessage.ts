@@ -1,13 +1,12 @@
 
-import { ChatbotMessage } from '@/types/chatbotTypes';
+import { ChatbotMessageType } from '@/types/chatbotTypes';
 
-export const ChatIntroMessage: ChatbotMessage = {
-  senderType: 'bot',
-  message: "Hi there 👋 Looking for care support or wanting to get involved? What brings you here today?",
-  messageType: 'option',
+export const ChatIntroMessage = {
+  message: "Hi there! I'm the Tavara Care Assistant. How can I help you today?",
+  messageType: 'text' as ChatbotMessageType,
   options: [
-    { label: "🏠 I'm looking for care for a loved one", value: 'family' },
-    { label: "👩‍⚕️ I'm a care professional", value: 'professional' },
-    { label: "🫂 I want to help or contribute to the community", value: 'community' },
+    { label: "I need care for a loved one", value: "need_care" },
+    { label: "I'm a caregiver looking for work", value: "offer_care" },
+    { label: "I want to support my community", value: "community" }
   ]
 };
