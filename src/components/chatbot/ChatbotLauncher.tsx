@@ -6,6 +6,7 @@ import { MessageSquare } from 'lucide-react';
 import { useChat } from './ChatProvider';
 import { ChatbotWidget } from './ChatbotWidget';
 import { cn } from '@/lib/utils';
+import { Fab } from '@/components/ui/fab';
 
 interface ChatbotLauncherProps {
   position?: 'left-of-fab' | 'bottom-right' | 'bottom-left';

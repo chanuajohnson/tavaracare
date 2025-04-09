@@ -2,6 +2,8 @@
 import React from 'react';
 import { ChatProvider } from './ChatProvider';
 import { ChatbotLauncher } from './ChatbotLauncher';
+import { Fab } from '@/components/ui/fab';
+import { HelpCircle } from 'lucide-react';
 
 export const ChatbotDemo: React.FC = () => {
   return (
@@ -13,28 +15,36 @@ export const ChatbotDemo: React.FC = () => {
         </p>
         <div className="flex gap-4">
           <div className="p-4 border rounded-lg">
-            <h2 className="text-lg font-medium mb-2">Default Position</h2>
+            <h2 className="text-lg font-medium mb-2">Side-by-Side Layout</h2>
             <p className="text-sm text-gray-600">
-              Standard bottom-right positioning
+              Chatbot positioned to the left of FAB
             </p>
           </div>
           <div className="p-4 border rounded-lg">
-            <h2 className="text-lg font-medium mb-2">Left of FAB</h2>
+            <h2 className="text-lg font-medium mb-2">No Overlap</h2>
             <p className="text-sm text-gray-600">
-              Positioned to the left of a Floating Action Button
+              Components have appropriate spacing between them
             </p>
           </div>
           <div className="p-4 border rounded-lg">
-            <h2 className="text-lg font-medium mb-2">Custom Width</h2>
+            <h2 className="text-lg font-medium mb-2">Responsive Design</h2>
             <p className="text-sm text-gray-600">
-              Adjustable widget width for different screen sizes
+              Works on all screen sizes with proper spacing
             </p>
           </div>
         </div>
       </div>
+      
+      {/* Place both the ChatbotLauncher and FAB */}
       <ChatbotLauncher 
-        position="left-of-fab" 
+        position="left-of-fab"
         className="bg-primary-500 hover:bg-primary-600 text-white" 
+      />
+      
+      <Fab
+        position="bottom-right"
+        icon={<HelpCircle className="h-5 w-5" />}
+        className="bg-primary-500 hover:bg-primary-600 text-white"
       />
     </ChatProvider>
   );

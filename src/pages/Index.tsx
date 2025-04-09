@@ -1,3 +1,4 @@
+
 import { useState, useRef } from "react";
 import { motion } from "framer-motion";
 import { Users, UserCog, Heart, ArrowRight, Check, Vote, HelpCircle } from "lucide-react";
@@ -302,9 +303,16 @@ const Index = () => {
           </div>
         </div>
         
+        {/* Place both the ChatbotLauncher and FAB */}
         <ChatbotLauncher 
           position="left-of-fab" 
           spacing={24}
+          className="bg-primary-500 hover:bg-primary-600 text-white"
+        />
+        
+        <Fab
+          position="bottom-right"
+          icon={<HelpCircle className="h-5 w-5" />}
           className="bg-primary-500 hover:bg-primary-600 text-white"
         />
       </div>
