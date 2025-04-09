@@ -29,7 +29,7 @@ export async function createConversation(
   try {
     const newConversation: ChatbotConversation = {
       sessionId,
-      conversationData: [],
+      conversationData: [], // Ensure this is always defined
     };
 
     const { data, error } = await supabase
@@ -112,9 +112,15 @@ export async function updateConversation(
       return null;
     }
 
+    // Ensure conversationData is always defined if we're updating it
+    const completeUpdates = {
+      ...updates,
+      conversationData: updates.conversationData || []
+    };
+
     const { data, error } = await supabase
       .from('chatbot_conversations')
-      .update(toConversationDto({ ...updates, id, sessionId: updates.sessionId || '' }))
+      .update(toConversationDto({ ...completeUpdates, id, sessionId: updates.sessionId || '' }))
       .eq('id', id)
       .select('*')
       .single();

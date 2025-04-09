@@ -42,7 +42,7 @@ export function ChatMessage({ message, onOptionSelect }: ChatMessageProps) {
         
         {hasOptions && (
           <ChatOptions 
-            options={message.contextData.options} 
+            options={message.contextData?.options || []}
             onSelect={onOptionSelect} 
           />
         )}

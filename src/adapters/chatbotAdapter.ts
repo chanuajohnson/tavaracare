@@ -36,19 +36,22 @@ export type ChatbotMessageDto = {
 };
 
 // Function to convert from frontend model to database model for a conversation
-export function toConversationDto(conversation: ChatbotConversation): ChatbotConversationDto {
+export function toConversationDto(conversation: Partial<ChatbotConversation>): ChatbotConversationDto {
+  // Ensure conversationData is always defined
+  const conversationData = conversation.conversationData || [];
+  
   return {
     id: conversation.id,
-    session_id: conversation.sessionId,
+    session_id: conversation.sessionId || '',
     user_id: conversation.userId,
     created_at: conversation.createdAt,
     updated_at: conversation.updatedAt,
     status: conversation.status as 'active' | 'completed' | 'abandoned',
     lead_score: conversation.leadScore,
     qualification_status: conversation.qualificationStatus,
-    conversation_data: toJson(conversation.conversationData),
-    contact_info: toJson(conversation.contactInfo),
-    care_needs: toJson(conversation.careNeeds),
+    conversation_data: toJson(conversationData),
+    contact_info: toJson(conversation.contactInfo || {}),
+    care_needs: toJson(conversation.careNeeds || {}),
     handoff_requested: conversation.handoffRequested,
     converted_to_registration: conversation.convertedToRegistration,
   };
@@ -82,7 +85,7 @@ export function toMessageDto(message: ChatbotMessage): ChatbotMessageDto {
     message: message.message,
     message_type: message.messageType as 'text' | 'option' | 'handoff' | 'form',
     timestamp: message.timestamp,
-    context_data: toJson(message.contextData),
+    context_data: toJson(message.contextData || {}),
   };
 }
 

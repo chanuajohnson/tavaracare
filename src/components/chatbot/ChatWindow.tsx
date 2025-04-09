@@ -17,7 +17,7 @@ interface ChatWindowProps {
 }
 
 export function ChatWindow({
-  messages,
+  messages = [], // Provide default empty array
   isLoading,
   isMinimized,
   onSendMessage,

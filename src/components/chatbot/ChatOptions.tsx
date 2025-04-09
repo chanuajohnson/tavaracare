@@ -9,7 +9,12 @@ interface ChatOptionsProps {
   onSelect?: (value: string) => void;
 }
 
-export function ChatOptions({ options, onSelect }: ChatOptionsProps) {
+export function ChatOptions({ options = [], onSelect }: ChatOptionsProps) {
+  // Handle potential undefined options
+  if (!options || options.length === 0) {
+    return null;
+  }
+  
   return (
     <motion.div
       initial={{ opacity: 0, y: 5 }}

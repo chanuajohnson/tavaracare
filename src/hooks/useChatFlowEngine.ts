@@ -1,4 +1,3 @@
-
 import { useReducer, useEffect, useCallback } from 'react';
 import {
   ChatFlowState,
@@ -40,10 +39,15 @@ function chatFlowReducer(state: ChatFlowState, action: ChatFlowAction): ChatFlow
         },
       };
     case 'SET_CONVERSATION':
+      const conversation = action.payload;
+      if (!conversation.conversationData) {
+        conversation.conversationData = [];
+      }
+      
       return {
         ...state,
-        conversation: action.payload,
-        sessionId: action.payload.sessionId,
+        conversation,
+        sessionId: conversation.sessionId,
       };
     case 'UPDATE_CONTACT_INFO':
       return {
@@ -51,7 +55,7 @@ function chatFlowReducer(state: ChatFlowState, action: ChatFlowAction): ChatFlow
         conversation: {
           ...state.conversation,
           contactInfo: {
-            ...state.conversation.contactInfo,
+            ...state.conversation.contactInfo || {},
             ...action.payload,
           },
         },
@@ -62,7 +66,7 @@ function chatFlowReducer(state: ChatFlowState, action: ChatFlowAction): ChatFlow
         conversation: {
           ...state.conversation,
           careNeeds: {
-            ...state.conversation.careNeeds,
+            ...state.conversation.careNeeds || {},
             ...action.payload,
           },
         },
@@ -93,12 +97,13 @@ function chatFlowReducer(state: ChatFlowState, action: ChatFlowAction): ChatFlow
 }
 
 export function useChatFlowEngine() {
+  const sessionId = chatbotService.getOrCreateSessionId();
+  
   const [state, dispatch] = useReducer(chatFlowReducer, {
     ...initialState,
-    sessionId: chatbotService.getOrCreateSessionId(),
+    sessionId,
   });
 
-  // Initialize the conversation when the component mounts
   useEffect(() => {
     const initializeChat = async () => {
       dispatch({ type: 'SET_LOADING', payload: true });
@@ -109,12 +114,11 @@ export function useChatFlowEngine() {
         if (conversation) {
           dispatch({ type: 'SET_CONVERSATION', payload: conversation });
           
-          // Determine the current step based on conversation data
-          if (conversation.conversationData.length === 0) {
+          if (conversation.conversationData && conversation.conversationData.length === 0) {
             dispatch({ type: 'SET_STEP', payload: ChatStepType.WELCOME });
           } else {
-            // Find the last message with step information
-            const lastStepMessage = [...conversation.conversationData]
+            const messages = conversation.conversationData || [];
+            const lastStepMessage = [...messages]
               .reverse()
               .find(msg => msg.contextData?.step);
             
@@ -136,7 +140,6 @@ export function useChatFlowEngine() {
     initializeChat();
   }, []);
 
-  // Method to add a user message
   const addUserMessage = useCallback(async (
     message: string, 
     contextData?: any
@@ -167,7 +170,6 @@ export function useChatFlowEngine() {
     }
   }, [state.conversation.id, state.currentStep]);
 
-  // Method to add a bot message
   const addBotMessage = useCallback(async (
     message: string, 
     options?: any,
@@ -201,7 +203,6 @@ export function useChatFlowEngine() {
     }
   }, [state.conversation.id, state.currentStep]);
 
-  // Method to update contact info
   const updateContactInfo = useCallback(async (
     contactInfo: Partial<ContactInfo>
   ): Promise<boolean> => {
@@ -225,7 +226,6 @@ export function useChatFlowEngine() {
     }
   }, [state.conversation.id, state.conversation.contactInfo]);
 
-  // Method to update care needs
   const updateCareNeeds = useCallback(async (
     careNeeds: Partial<CareNeeds>
   ): Promise<boolean> => {
@@ -249,12 +249,10 @@ export function useChatFlowEngine() {
     }
   }, [state.conversation.id, state.conversation.careNeeds]);
 
-  // Method to calculate lead score based on conversation data
   const calculateLeadScore = useCallback((): number => {
     let score = 0;
     const { contactInfo, careNeeds } = state.conversation;
 
-    // Score contact completeness
     if (contactInfo) {
       if (contactInfo.firstName) score += 5;
       if (contactInfo.lastName) score += 5;
@@ -263,7 +261,6 @@ export function useChatFlowEngine() {
       if (contactInfo.location) score += 10;
     }
 
-    // Score care needs completeness
     if (careNeeds) {
       if (careNeeds.relationship) score += 10;
       if (careNeeds.careType && careNeeds.careType.length > 0) score += 15;
@@ -276,7 +273,6 @@ export function useChatFlowEngine() {
     return score;
   }, [state.conversation]);
 
-  // Method to update conversion status
   const updateConversionStatus = useCallback(async (
     converted: boolean
   ): Promise<boolean> => {
@@ -302,27 +298,22 @@ export function useChatFlowEngine() {
     }
   }, [state.conversation.id]);
 
-  // Method to set the current step
   const setStep = useCallback((step: ChatStepType) => {
     dispatch({ type: 'SET_STEP', payload: step });
   }, []);
 
-  // Method to toggle the chatbot visibility
   const toggleOpen = useCallback(() => {
     dispatch({ type: 'SET_OPEN', payload: !state.isOpen });
     
-    // If opening, ensure it's not minimized
     if (!state.isOpen) {
       dispatch({ type: 'SET_MINIMIZED', payload: false });
     }
   }, [state.isOpen]);
 
-  // Method to toggle the chatbot minimized state
   const toggleMinimized = useCallback(() => {
     dispatch({ type: 'SET_MINIMIZED', payload: !state.isMinimized });
   }, [state.isMinimized]);
 
-  // Method to navigate to registration with prefill
   const navigateToRegistration = useCallback(() => {
     if (!state.conversation.id || !state.conversation.careNeeds?.role) {
       console.error('Cannot navigate: missing conversation ID or role');
@@ -332,7 +323,6 @@ export function useChatFlowEngine() {
     const role = state.conversation.careNeeds.role;
     window.location.href = `/registration/${role}?prefill=${state.conversation.id}`;
     
-    // Mark as converted
     updateConversionStatus(true);
   }, [state.conversation.id, state.conversation.careNeeds?.role, updateConversionStatus]);
 

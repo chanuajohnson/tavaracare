@@ -1,10 +1,9 @@
-
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useChatFlowEngine } from '@/hooks/useChatFlowEngine';
 import { ChatbotLauncher } from './ChatbotLauncher';
 import { ChatWindow } from './ChatWindow';
-import { ChatStepType, ChatSenderType } from '@/types/chatbotTypes';
+import { ChatStepType } from '@/types/chatbotTypes';
 import { useLocation } from 'react-router-dom';
 
 /**
@@ -14,6 +13,8 @@ export function ChatbotWidget() {
   const location = useLocation();
   const [autoOpenTimeout, setAutoOpenTimeout] = useState<NodeJS.Timeout | null>(null);
   const [expanded, setExpanded] = useState(false);
+  const [shouldShowWidget, setShouldShowWidget] = useState(true);
+  
   const {
     state,
     addUserMessage,
@@ -26,33 +27,34 @@ export function ChatbotWidget() {
     navigateToRegistration,
   } = useChatFlowEngine();
 
-  // Tracks when we should auto-open the chatbot (only on root page)
   useEffect(() => {
-    // Only auto-open on homepage and not if chatbot is already open
+    const isHiddenRoute = 
+      location.pathname.startsWith('/dashboard') || 
+      location.pathname.startsWith('/registration');
+    
+    setShouldShowWidget(!isHiddenRoute);
+  }, [location.pathname]);
+
+  useEffect(() => {
     if (location.pathname === '/' && !state.isOpen && !localStorage.getItem('chatbot_closed')) {
       const timeout = setTimeout(() => {
         toggleOpen();
-        // Welcome message
         handleStepChange(ChatStepType.WELCOME);
       }, 5000); // 5 seconds delay
       
       setAutoOpenTimeout(timeout);
     }
     
-    // Cleanup timeout on unmount or route change
     return () => {
       if (autoOpenTimeout) {
         clearTimeout(autoOpenTimeout);
       }
     };
-  }, [location.pathname, state.isOpen]);
+  }, [location.pathname, state.isOpen, toggleOpen]);
 
-  // Handle chat option selection
-  const handleOptionSelect = async (value: string) => {
-    // First add the user's selection as a message
+  const handleOptionSelect = useCallback(async (value: string) => {
     await addUserMessage(value);
     
-    // Process different option values based on step
     if (state.currentStep === ChatStepType.WELCOME) {
       if (value === 'yes') {
         handleStepChange(ChatStepType.RELATIONSHIP);
@@ -64,48 +66,64 @@ export function ChatbotWidget() {
       }
     } 
     else if (state.currentStep === ChatStepType.RELATIONSHIP) {
-      // Store relationship value
       await updateCareNeeds({ relationship: value });
       handleStepChange(ChatStepType.CARE_TYPE);
     } 
     else if (state.currentStep === ChatStepType.CARE_TYPE) {
-      // Store care type
       await updateCareNeeds({ careType: [value] });
       handleStepChange(ChatStepType.CARE_SCHEDULE);
     } 
     else if (state.currentStep === ChatStepType.CARE_SCHEDULE) {
-      // Store schedule preference
       await updateCareNeeds({ schedule: value });
       handleStepChange(ChatStepType.CONTACT_INFO);
     } 
     else if (state.currentStep === ChatStepType.CONTACT_INFO) {
-      // This would be handled differently - form input
       if (value === 'skip') {
         handleStepChange(ChatStepType.ROLE_IDENTIFICATION);
       }
     } 
     else if (state.currentStep === ChatStepType.ROLE_IDENTIFICATION) {
-      // Store user role
-      await updateCareNeeds({ 
-        role: value as 'family' | 'professional' | 'community' 
-      });
-      handleStepChange(ChatStepType.REGISTRATION_CTA);
+      let suggestedRole = 'family';
+      if (state.conversation.careNeeds?.relationship === 'caregiver') {
+        suggestedRole = 'professional';
+      }
+      
+      await addBotMessage(
+        "Based on what you've shared, which role best describes you?",
+        [
+          { label: "Family Member", value: "family" },
+          { label: "Care Professional", value: "professional" },
+          { label: "Community Member", value: "community" }
+        ],
+        { step, suggestedRole }
+      );
     } 
     else if (state.currentStep === ChatStepType.REGISTRATION_CTA) {
-      if (value === 'register') {
-        // Navigate to registration
-        navigateToRegistration();
-      } else if (value === 'later') {
-        handleStepChange(ChatStepType.FAREWELL);
+      const role = state.conversation.careNeeds?.role || 'family';
+      let roleMessage = "";
+      
+      if (role === 'family') {
+        roleMessage = "You can now create a family profile to find qualified caregivers quickly.";
+      } else if (role === 'professional') {
+        roleMessage = "You can now create a professional profile to connect with families needing your expertise.";
+      } else {
+        roleMessage = "You can now create a community profile to support care networks in your area.";
       }
+      
+      await addBotMessage(
+        `Perfect! ${roleMessage} Would you like to complete your registration now?`,
+        [
+          { label: "Yes, register now", value: "register" },
+          { label: "Maybe later", value: "later" }
+        ],
+        { step }
+      );
     }
-  };
+  }, [state.currentStep, addUserMessage, addBotMessage, updateCareNeeds]);
 
-  // Handle step changes in the conversation flow
-  const handleStepChange = async (step: ChatStepType) => {
+  const handleStepChange = useCallback(async (step: ChatStepType) => {
     setStep(step);
     
-    // Different messages based on the step
     switch (step) {
       case ChatStepType.WELCOME:
         await addBotMessage(
@@ -168,7 +186,6 @@ export function ChatbotWidget() {
         break;
         
       case ChatStepType.ROLE_IDENTIFICATION:
-        // Determine most likely role based on previous answers
         let suggestedRole = 'family';
         if (state.conversation.careNeeds?.relationship === 'caregiver') {
           suggestedRole = 'professional';
@@ -218,15 +235,12 @@ export function ChatbotWidget() {
         );
         break;
     }
-  };
+  }, [setStep, addBotMessage]);
 
-  // Process user text input
-  const handleSendMessage = async (text: string) => {
+  const handleSendMessage = useCallback(async (text: string) => {
     await addUserMessage(text);
     
-    // Extract information from the message
     if (state.currentStep === ChatStepType.CONTACT_INFO) {
-      // Simple email extraction (basic validation)
       const emailRegex = /[\w.-]+@[\w.-]+\.\w+/;
       const emailMatch = text.match(emailRegex);
       
@@ -234,7 +248,6 @@ export function ChatbotWidget() {
         await updateContactInfo({ email: emailMatch[0] });
       }
       
-      // Extract name (simple heuristic)
       const words = text.split(' ').filter(w => w.length > 1);
       if (words.length >= 2) {
         await updateContactInfo({ 
@@ -245,14 +258,12 @@ export function ChatbotWidget() {
         await updateContactInfo({ firstName: words[0] });
       }
       
-      // Acknowledge and move to next step
       await addBotMessage(
         `Thanks${state.conversation.contactInfo?.firstName ? `, ${state.conversation.contactInfo.firstName}` : ''}! I've saved your contact information.`
       );
       
       handleStepChange(ChatStepType.ROLE_IDENTIFICATION);
     } else {
-      // For other steps, provide a generic response and continue the flow
       await addBotMessage(
         "I appreciate your message. To help you best, please select one of the options below.",
         state.currentStep !== ChatStepType.FAREWELL ? [
@@ -261,7 +272,6 @@ export function ChatbotWidget() {
       );
       
       if (text.toLowerCase().includes("continue")) {
-        // Determine the next step based on current step
         const stepMap = {
           [ChatStepType.WELCOME]: ChatStepType.RELATIONSHIP,
           [ChatStepType.RELATIONSHIP]: ChatStepType.CARE_TYPE,
@@ -277,30 +287,20 @@ export function ChatbotWidget() {
         }
       }
     }
-  };
+  }, [state.currentStep, addUserMessage, addBotMessage, updateContactInfo]);
 
-  // Handle the chatbot close action
-  const handleClose = () => {
+  const handleClose = useCallback(() => {
     toggleOpen();
     localStorage.setItem('chatbot_closed', 'true');
-  };
+  }, [toggleOpen]);
 
-  // Expand the launcher button on hover
-  const handleLauncherHover = () => {
+  const handleLauncherHover = useCallback(() => {
     setExpanded(true);
-  };
+  }, []);
 
-  // Collapse the launcher button when not hovering
-  const handleLauncherLeave = () => {
+  const handleLauncherLeave = useCallback(() => {
     setExpanded(false);
-  };
-
-  // Determine if we should show the widget based on route
-  // Don't show on registration or dashboard pages
-  const shouldShowWidget = !(
-    location.pathname.startsWith('/dashboard') || 
-    location.pathname.startsWith('/registration')
-  );
+  }, []);
 
   if (!shouldShowWidget) {
     return null;
@@ -318,7 +318,7 @@ export function ChatbotWidget() {
             className="mb-4"
           >
             <ChatWindow
-              messages={state.conversation.conversationData}
+              messages={state.conversation.conversationData || []}
               isLoading={state.isLoading}
               isMinimized={state.isMinimized}
               onSendMessage={handleSendMessage}
