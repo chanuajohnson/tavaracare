@@ -3,7 +3,7 @@ import { useReducer, useCallback } from 'react';
 import { chatFlowReducer } from './chatFlowReducer';
 import { initialChatFlowState, ChatStepType, ChatbotMessage, ChatSenderType, ChatMessageType } from './chatFlowTypes';
 import { useUIControls } from './useUIControls';
-import { createConversation, getConversationBySessionId, sendMessage } from '@/services/chatbot';
+import { createConversation, getConversation, sendUserMessage, sendBotMessage } from '@/services/chatbot';
 import { v4 as uuidv4 } from 'uuid';
 
 export function useChatFlowEngine() {
@@ -34,15 +34,15 @@ export function useChatFlowEngine() {
     const message: ChatbotMessage = {
       id: uuidv4(),
       message: messageText,
-      sender: ChatSenderType.USER,
+      senderType: ChatSenderType.USER,
       timestamp: new Date().toISOString(),
-      type: ChatMessageType.TEXT,
+      messageType: ChatMessageType.TEXT,
     };
     
     dispatch({ type: 'ADD_MESSAGE', payload: message });
     
     try {
-      await sendMessage(state.conversation.id || sessionId, messageText, ChatSenderType.USER);
+      await sendUserMessage(state.conversation.id || sessionId, messageText);
     } catch (error) {
       console.error('Error sending user message:', error);
     }
@@ -61,20 +61,22 @@ export function useChatFlowEngine() {
     const message: ChatbotMessage = {
       id: uuidv4(),
       message: messageText,
-      sender: ChatSenderType.BOT,
+      senderType: ChatSenderType.BOT,
       timestamp: new Date().toISOString(),
-      type: options ? ChatMessageType.OPTIONS : ChatMessageType.TEXT,
-      options,
-      contextData,
+      messageType: options ? ChatMessageType.OPTION : ChatMessageType.TEXT,
+      contextData: {
+        ...contextData,
+        options
+      }
     };
     
     dispatch({ type: 'ADD_MESSAGE', payload: message });
     
     try {
-      await sendMessage(
+      await sendBotMessage(
         state.conversation.id || sessionId, 
-        messageText, 
-        ChatSenderType.BOT
+        messageText,
+        options
       );
     } catch (error) {
       console.error('Error sending bot message:', error);

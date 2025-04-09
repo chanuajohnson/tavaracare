@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
@@ -31,7 +30,6 @@ const CommunityRegistration = () => {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(false);
 
-  // Use the hook to prefill data from chatbot
   const { 
     isLoading: isPrefillLoading,
     conversationId,
@@ -231,42 +229,73 @@ const CommunityRegistration = () => {
           <div className="mb-4">
             <Label>Services Offered</Label>
             <div className="flex flex-col space-y-2">
-              <label className="inline-flex items-center">
+              <div className="flex items-center space-x-2">
                 <Checkbox
+                  id="counseling"
                   value="counseling"
                   checked={formData.servicesOffered.includes('counseling')}
-                  onChange={handleServicesChange}
-                  className="mr-2"
+                  onCheckedChange={() => {
+                    setFormData(prev => {
+                      const newServices = prev.servicesOffered.includes('counseling') 
+                        ? prev.servicesOffered.filter(s => s !== 'counseling')
+                        : [...prev.servicesOffered, 'counseling'];
+                      return { ...prev, servicesOffered: newServices };
+                    });
+                  }}
                 />
-                <span>Counseling</span>
-              </label>
-              <label className="inline-flex items-center">
+                <Label htmlFor="counseling">Counseling</Label>
+              </div>
+              
+              <div className="flex items-center space-x-2">
                 <Checkbox
+                  id="support_groups"
                   value="support_groups"
                   checked={formData.servicesOffered.includes('support_groups')}
-                  onChange={handleServicesChange}
-                  className="mr-2"
+                  onCheckedChange={() => {
+                    setFormData(prev => {
+                      const newServices = prev.servicesOffered.includes('support_groups') 
+                        ? prev.servicesOffered.filter(s => s !== 'support_groups')
+                        : [...prev.servicesOffered, 'support_groups'];
+                      return { ...prev, servicesOffered: newServices };
+                    });
+                  }}
                 />
-                <span>Support Groups</span>
-              </label>
-              <label className="inline-flex items-center">
+                <Label htmlFor="support_groups">Support Groups</Label>
+              </div>
+              
+              <div className="flex items-center space-x-2">
                 <Checkbox
+                  id="educational_programs"
                   value="educational_programs"
                   checked={formData.servicesOffered.includes('educational_programs')}
-                  onChange={handleServicesChange}
-                  className="mr-2"
+                  onCheckedChange={() => {
+                    setFormData(prev => {
+                      const newServices = prev.servicesOffered.includes('educational_programs') 
+                        ? prev.servicesOffered.filter(s => s !== 'educational_programs')
+                        : [...prev.servicesOffered, 'educational_programs'];
+                      return { ...prev, servicesOffered: newServices };
+                    });
+                  }}
                 />
-                <span>Educational Programs</span>
-              </label>
-              <label className="inline-flex items-center">
+                <Label htmlFor="educational_programs">Educational Programs</Label>
+              </div>
+              
+              <div className="flex items-center space-x-2">
                 <Checkbox
+                  id="community_events"
                   value="community_events"
                   checked={formData.servicesOffered.includes('community_events')}
-                  onChange={handleServicesChange}
-                  className="mr-2"
+                  onCheckedChange={() => {
+                    setFormData(prev => {
+                      const newServices = prev.servicesOffered.includes('community_events') 
+                        ? prev.servicesOffered.filter(s => s !== 'community_events')
+                        : [...prev.servicesOffered, 'community_events'];
+                      return { ...prev, servicesOffered: newServices };
+                    });
+                  }}
                 />
-                <span>Community Events</span>
-              </label>
+                <Label htmlFor="community_events">Community Events</Label>
+              </div>
             </div>
           </div>
 
@@ -306,18 +335,16 @@ const CommunityRegistration = () => {
           </div>
 
           <div className="mb-4">
-            <label className="inline-flex items-center">
+            <div className="flex items-center space-x-2">
               <Checkbox
                 id="termsAndConditions"
-                name="termsAndConditions"
                 checked={formData.termsAndConditions}
                 onCheckedChange={(checked) => 
                   setFormData(prev => ({ ...prev, termsAndConditions: !!checked }))
                 }
-                className="mr-2"
               />
-              <span>I agree to the terms and conditions</span>
-            </label>
+              <Label htmlFor="termsAndConditions">I agree to the terms and conditions</Label>
+            </div>
             {errors.termsAndConditions && <p className="text-red-500">{errors.termsAndConditions}</p>}
           </div>
 

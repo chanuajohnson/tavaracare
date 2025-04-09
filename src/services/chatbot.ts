@@ -1,17 +1,23 @@
 
 // Compiling all chatbot services into a single export file for backwards compatibility
-import { createConversation, getConversation, getConversationBySessionId } from './chatbot/conversationService';
-import { sendMessage } from './chatbot/messageService';
-import { createSession, getSession } from './chatbot/sessionService';
+import { createConversation, getConversation, updateConversation, updateContactInfo, updateCareNeeds, updateConversionStatus } from './chatbot/conversationService';
+import { addMessage, getMessages, sendUserMessage, sendBotMessage } from './chatbot/messageService';
+import { getOrCreateSessionId, initializeConversation } from './chatbot/sessionService';
 
 // Re-export all the functions
 export { 
   createConversation, 
-  getConversation, 
-  getConversationBySessionId,
-  sendMessage,
-  createSession,
-  getSession
+  getConversation,
+  updateConversation,
+  updateContactInfo,
+  updateCareNeeds,
+  updateConversionStatus,
+  addMessage,
+  getMessages,
+  sendUserMessage,
+  sendBotMessage,
+  getOrCreateSessionId,
+  initializeConversation
 };
 
 // Re-export types

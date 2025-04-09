@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
@@ -82,7 +81,7 @@ export default function FamilyRegistration() {
 
       let { error } = await supabase
         .from('profiles')
-        .upsert(updates, { returning: 'minimal' });
+        .upsert(updates);
 
       if (error) {
         throw error;
