@@ -1,4 +1,3 @@
-
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -9,6 +8,7 @@ import { useEffect, Suspense, lazy, useState } from "react";
 import { initializeSupabase, isSupabaseExperiencingIssues } from "@/lib/supabase";
 import { Fab } from "@/components/ui/fab";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ChatProvider } from "@/components/chatbot/ChatProvider";
 
 // Lazy loaded page components
 const Index = lazy(() => import("@/pages/Index"));
@@ -140,18 +140,20 @@ const AppWithProviders = () => {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <Sonner />
-        {supabaseStatus === 'issues' && (
-          <div className="bg-yellow-100 text-yellow-800 px-4 py-2 fixed top-0 left-0 right-0 z-50 text-center">
-            Supabase is currently experiencing issues. Some features may not work properly.
-          </div>
-        )}
-        <BrowserRouter>
-          <RedirectHandler />
-          <AuthProvider>
-            <AppContent />
-          </AuthProvider>
-        </BrowserRouter>
+        <ChatProvider>
+          <Sonner />
+          {supabaseStatus === 'issues' && (
+            <div className="bg-yellow-100 text-yellow-800 px-4 py-2 fixed top-0 left-0 right-0 z-50 text-center">
+              Supabase is currently experiencing issues. Some features may not work properly.
+            </div>
+          )}
+          <BrowserRouter>
+            <RedirectHandler />
+            <AuthProvider>
+              <AppContent />
+            </AuthProvider>
+          </BrowserRouter>
+        </ChatProvider>
       </TooltipProvider>
     </QueryClientProvider>
   );

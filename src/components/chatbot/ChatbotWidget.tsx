@@ -1,7 +1,7 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Send, X } from "lucide-react";
+import { Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -9,17 +9,10 @@ import { useChatMessages } from "@/hooks/chat/useChatMessages";
 import { useChatSession } from "@/hooks/chat/useChatSession";
 import { getIntroMessage, ChatOption } from "@/data/chatIntroMessage";
 import { generatePrefillJson } from "@/utils/chat/prefillGenerator";
+import { MessageBubble } from "./MessageBubble";
+import { OptionCard } from "./OptionCard";
 
-interface MessageProps {
-  content: string;
-  isUser: boolean;
-  timestamp: number;
-}
-
-interface OptionCardProps {
-  option: ChatOption;
-  onClick: (id: string) => void;
-}
+interface TypingIndicatorProps {}
 
 interface ChatbotWidgetProps {
   className?: string;
@@ -27,72 +20,8 @@ interface ChatbotWidgetProps {
   onClose?: () => void;
 }
 
-// Separate component for option cards with styling
-const OptionCard: React.FC<OptionCardProps> = ({ option, onClick }) => {
-  return (
-    <div 
-      className="flex flex-col p-3 rounded-md bg-white border border-gray-200 shadow-sm hover:shadow-md transition-shadow cursor-pointer mb-2"
-      onClick={() => onClick(option.id)}
-    >
-      <div className="font-medium">{option.label}</div>
-      {option.subtext && (
-        <div className="text-sm text-gray-500 mt-1">{option.subtext}</div>
-      )}
-    </div>
-  );
-};
-
-// Message bubble component with styling based on sender
-const MessageBubble: React.FC<MessageProps> = ({ content, isUser, timestamp }) => {
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      className={`flex ${isUser ? "justify-end" : "justify-start"} mb-3`}
-    >
-      <div
-        className={`rounded-lg px-4 py-2 max-w-[80%] ${
-          isUser
-            ? "bg-primary text-primary-foreground"
-            : "bg-muted text-foreground"
-        }`}
-      >
-        <div className="whitespace-pre-wrap break-words">{content}</div>
-        <div className={`text-xs mt-1 ${isUser ? "text-primary-foreground/80" : "text-muted-foreground"}`}>
-          {new Date(timestamp).toLocaleTimeString([], { 
-            hour: '2-digit', 
-            minute: '2-digit' 
-          })}
-        </div>
-      </div>
-    </motion.div>
-  );
-};
-
-// Options renderer component
-const OptionsRenderer: React.FC<{
-  options: ChatOption[];
-  onSelect: (id: string) => void;
-}> = ({ options, onSelect }) => {
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="flex flex-col space-y-2 my-2"
-    >
-      {options.map((option) => (
-        <OptionCard
-          key={option.id}
-          option={option}
-          onClick={onSelect}
-        />
-      ))}
-    </motion.div>
-  );
-};
-
 // Bot is typing indicator
-const TypingIndicator: React.FC = () => {
+const TypingIndicator: React.FC<TypingIndicatorProps> = () => {
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -140,6 +69,28 @@ const TypingIndicator: React.FC = () => {
           times: [0, 0.5, 1],
         }}
       />
+    </motion.div>
+  );
+};
+
+// Options renderer component
+const OptionsRenderer: React.FC<{
+  options: ChatOption[];
+  onSelect: (id: string) => void;
+}> = ({ options, onSelect }) => {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="flex flex-col space-y-2 my-2"
+    >
+      {options.map((option) => (
+        <OptionCard
+          key={option.id}
+          option={option}
+          onClick={onSelect}
+        />
+      ))}
     </motion.div>
   );
 };
@@ -328,17 +279,6 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({
               <path d="M3 3v5h5" />
             </svg>
           </Button>
-          {onClose && (
-            <Button
-              size="icon"
-              variant="ghost"
-              onClick={onClose}
-              title="Close chat"
-              className="h-7 w-7"
-            >
-              <X size={16} />
-            </Button>
-          )}
         </div>
       </div>
 
