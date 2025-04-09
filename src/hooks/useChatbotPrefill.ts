@@ -28,7 +28,19 @@ export function useChatbotPrefill(): ChatbotPrefillResult {
     const prefillParam = searchParams.get('prefill');
     
     if (prefillParam) {
-      setConversationId(prefillParam);
+      try {
+        // Check if it's a JSON string
+        const prefillData = JSON.parse(prefillParam);
+        setConversation({
+          sessionId: '',
+          conversationData: [],
+          contactInfo: prefillData,
+          careNeeds: prefillData
+        });
+      } catch (e) {
+        // If not JSON, treat as conversation ID
+        setConversationId(prefillParam);
+      }
     }
   }, [location]);
 
