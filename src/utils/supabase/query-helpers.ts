@@ -15,7 +15,8 @@ export async function queryTable<T>(
   }
 ): Promise<T[]> {
   try {
-    let query = supabase.from(table).select(fields);
+    // Use type assertion to tell TypeScript we're handling the table name validation
+    let query = supabase.from(table as any).select(fields);
 
     // Apply conditions (where clauses)
     if (conditions) {
@@ -59,7 +60,7 @@ export async function getById<T>(
 ): Promise<T | null> {
   try {
     const { data, error } = await supabase
-      .from(table)
+      .from(table as any)
       .select(fields)
       .eq('id', id)
       .limit(1);
@@ -69,7 +70,7 @@ export async function getById<T>(
       return null;
     }
 
-    return (data?.[0] as unknown) as T || null;
+    return data?.[0] as T || null;
   } catch (err) {
     console.error(`Exception getting ${table} by ID:`, err);
     return null;
@@ -87,7 +88,7 @@ export async function getByField<T>(
 ): Promise<T[]> {
   try {
     const { data, error } = await supabase
-      .from(table)
+      .from(table as any)
       .select(fields)
       .eq(field, value);
 
@@ -116,7 +117,7 @@ export async function insertRecord<T, U = Partial<T>>(
   try {
     // First insert without select to avoid deep type instantiation
     const { error } = await supabase
-      .from(table)
+      .from(table as any)
       .insert(data);
 
     if (error) {
@@ -141,7 +142,7 @@ export async function insertRecord<T, U = Partial<T>>(
       return result[0] || null;
     }
 
-    return (data as unknown) as T;
+    return data as unknown as T;
   } catch (err) {
     console.error(`Exception inserting into ${table}:`, err);
     return null;
@@ -162,7 +163,7 @@ export async function updateRecord<T>(
   try {
     // First update without select to avoid deep type instantiation
     const { error } = await supabase
-      .from(table)
+      .from(table as any)
       .update(data)
       .eq('id', id);
 
@@ -192,7 +193,7 @@ export async function deleteRecord(
 ): Promise<boolean> {
   try {
     const { error } = await supabase
-      .from(table)
+      .from(table as any)
       .delete()
       .eq('id', id);
 
@@ -227,7 +228,7 @@ export async function paginatedQuery<T>(
 }> {
   try {
     // Get total count first
-    const countQuery = supabase.from(table).select('id', { count: 'exact' });
+    const countQuery = supabase.from(table as any).select('id', { count: 'exact' });
     
     if (conditions) {
       Object.entries(conditions).forEach(([key, value]) => {
@@ -247,7 +248,7 @@ export async function paginatedQuery<T>(
     const end = start + pageSize - 1;
     
     let query = supabase
-      .from(table)
+      .from(table as any)
       .select(fields)
       .range(start, end);
     
@@ -280,5 +281,28 @@ export async function paginatedQuery<T>(
   } catch (err) {
     console.error(`Exception in paginated query for ${table}:`, err);
     return { data: [], count: 0, totalPages: 0, currentPage: page };
+  }
+}
+
+/**
+ * Checks if a table exists in the database
+ */
+export async function tableExists(tableName: string): Promise<boolean> {
+  try {
+    // Try to get a single record from the table
+    const { error } = await supabase
+      .from(tableName as any)
+      .select('*')
+      .limit(1);
+    
+    // If there's no error or the error is not related to table existence
+    if (!error || !error.message.includes('does not exist')) {
+      return true;
+    }
+    
+    return false;
+  } catch (err) {
+    console.error(`Error checking if table ${tableName} exists:`, err);
+    return false;
   }
 }

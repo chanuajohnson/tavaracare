@@ -36,3 +36,35 @@ export function toJson(value: any): string | undefined {
  * Type definition for JSON values
  */
 export type Json = string | number | boolean | null | { [key: string]: Json } | Json[];
+
+/**
+ * Check if a value is a valid JSON object
+ * @param value The value to check
+ * @returns True if the value is a valid JSON object
+ */
+export function isValidJson(value: string): boolean {
+  if (!value) return false;
+  
+  try {
+    JSON.parse(value);
+    return true;
+  } catch (error) {
+    return false;
+  }
+}
+
+/**
+ * Safely stringify a value with pretty printing
+ * @param value The value to convert to JSON
+ * @returns The pretty-printed JSON string or undefined if conversion fails
+ */
+export function toPrettyJson(value: any): string | undefined {
+  if (value === undefined || value === null) return undefined;
+  
+  try {
+    return JSON.stringify(value, null, 2);
+  } catch (error) {
+    console.error('Error converting to pretty JSON:', error);
+    return undefined;
+  }
+}
