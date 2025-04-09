@@ -4,6 +4,24 @@ import { supabase } from '@/lib/supabase';
 import { ChatbotConversation } from '@/types/chatbotTypes';
 import { adaptChatbotConversationFromDb, adaptChatbotConversationToDb } from '@/adapters/chatbotAdapter';
 
+// Define a flat type to avoid deep inference issues
+type ChatbotConversationRow = {
+  id: string;
+  session_id: string;
+  user_id?: string;
+  status: string;
+  created_at: string;
+  updated_at: string;
+  user_role?: string;
+  contact_info?: any;
+  care_needs?: any;
+  conversation_data?: any;
+  handoff_requested?: boolean;
+  converted_to_registration?: boolean;
+  lead_score?: number;
+  qualification_status?: string;
+};
+
 // Generate a unique session ID
 export function generateSessionId(): string {
   return uuidv4();
@@ -27,7 +45,6 @@ export async function getOrCreateSessionId(): Promise<string> {
 export async function initializeConversation(sessionId: string): Promise<ChatbotConversation | null> {
   try {
     // Check if there's an existing active conversation for this session
-    // Use a simpler query structure with explicit typing to avoid deep nesting issues
     const { data, error } = await supabase
       .from('chatbot_conversations')
       .select('*')
@@ -44,8 +61,9 @@ export async function initializeConversation(sessionId: string): Promise<Chatbot
 
     // If an active conversation exists, return it
     if (data && data.length > 0) {
-      // Use type assertion to avoid deep type inference
-      return adaptChatbotConversationFromDb(data[0] as Record<string, any>);
+      // Cast to our flat type to avoid deep inference issues
+      const conversationRow = data[0] as unknown as ChatbotConversationRow;
+      return adaptChatbotConversationFromDb(conversationRow);
     }
 
     // No active conversation found, create a new one
@@ -59,7 +77,8 @@ export async function initializeConversation(sessionId: string): Promise<Chatbot
 
     const dbConversation = adaptChatbotConversationToDb(newConversation);
     
-    const { data: insertData, error: insertError } = await supabase
+    // Split insert and select into separate operations
+    const { error: insertError } = await supabase
       .from('chatbot_conversations')
       .insert([dbConversation]);
 
@@ -68,7 +87,7 @@ export async function initializeConversation(sessionId: string): Promise<Chatbot
       return null;
     }
     
-    // Fetch the newly created conversation
+    // Fetch the newly created conversation in a separate query
     const { data: createdData, error: selectError } = await supabase
       .from('chatbot_conversations')
       .select('*')
@@ -81,8 +100,9 @@ export async function initializeConversation(sessionId: string): Promise<Chatbot
       return null;
     }
     
-    // Use type assertion to avoid deep type inference
-    return adaptChatbotConversationFromDb(createdData[0] as Record<string, any>);
+    // Cast to our flat type to avoid deep inference issues
+    const createdConversation = createdData[0] as unknown as ChatbotConversationRow;
+    return adaptChatbotConversationFromDb(createdConversation);
   } catch (error) {
     console.error('Error in initializeConversation:', error);
     return null;
@@ -178,7 +198,7 @@ export async function updateConversation(
       conversationForDb.conversation_data = JSON.stringify(updates.conversationData);
     }
 
-    // Split the update and select operations to avoid TypeScript inference issues
+    // Split update and select operations to avoid TypeScript inference issues
     const { error: updateError } = await supabase
       .from('chatbot_conversations')
       .update(conversationForDb)
@@ -201,8 +221,9 @@ export async function updateConversation(
       return null;
     }
     
-    // Use type assertion to avoid deep type inference
-    return adaptChatbotConversationFromDb(data[0] as Record<string, any>);
+    // Cast to our flat type to avoid deep inference issues
+    const updatedConversation = data[0] as unknown as ChatbotConversationRow;
+    return adaptChatbotConversationFromDb(updatedConversation);
   } catch (error) {
     console.error('Error in updateConversation:', error);
     return null;
