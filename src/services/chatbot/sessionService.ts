@@ -28,7 +28,7 @@ export async function initializeConversation(sessionId: string): Promise<Chatbot
   try {
     // Check if there's an existing active conversation for this session
     // Use a simpler query structure with explicit typing to avoid deep nesting issues
-    const result = await supabase
+    const { data, error } = await supabase
       .from('chatbot_conversations')
       .select('*')
       .eq('session_id', sessionId)
@@ -37,15 +37,15 @@ export async function initializeConversation(sessionId: string): Promise<Chatbot
       .limit(1);
       
     // Handle potential errors
-    if (result.error) {
-      console.error('Error fetching existing conversation:', result.error);
+    if (error) {
+      console.error('Error fetching existing conversation:', error);
       return null;
     }
 
     // If an active conversation exists, return it
-    if (result.data && result.data.length > 0) {
+    if (data && data.length > 0) {
       // Use type assertion to avoid deep type inference
-      return adaptChatbotConversationFromDb(result.data[0] as Record<string, any>);
+      return adaptChatbotConversationFromDb(data[0] as Record<string, any>);
     }
 
     // No active conversation found, create a new one
@@ -59,22 +59,30 @@ export async function initializeConversation(sessionId: string): Promise<Chatbot
 
     const dbConversation = adaptChatbotConversationToDb(newConversation);
     
-    const insertResult = await supabase
+    const { data: insertData, error: insertError } = await supabase
       .from('chatbot_conversations')
-      .insert([dbConversation])
-      .select();
+      .insert([dbConversation]);
 
-    if (insertResult.error) {
-      console.error('Error creating conversation:', insertResult.error);
+    if (insertError) {
+      console.error('Error creating conversation:', insertError);
       return null;
     }
-
-    if (insertResult.data && insertResult.data.length > 0) {
-      // Use type assertion to avoid deep type inference
-      return adaptChatbotConversationFromDb(insertResult.data[0] as Record<string, any>);
+    
+    // Fetch the newly created conversation
+    const { data: createdData, error: selectError } = await supabase
+      .from('chatbot_conversations')
+      .select('*')
+      .eq('session_id', sessionId)
+      .order('created_at', { ascending: false })
+      .limit(1);
+    
+    if (selectError || !createdData || createdData.length === 0) {
+      console.error('Error retrieving created conversation:', selectError);
+      return null;
     }
     
-    return null;
+    // Use type assertion to avoid deep type inference
+    return adaptChatbotConversationFromDb(createdData[0] as Record<string, any>);
   } catch (error) {
     console.error('Error in initializeConversation:', error);
     return null;
@@ -170,23 +178,31 @@ export async function updateConversation(
       conversationForDb.conversation_data = JSON.stringify(updates.conversationData);
     }
 
-    const updateResult = await supabase
+    // Split the update and select operations to avoid TypeScript inference issues
+    const { error: updateError } = await supabase
       .from('chatbot_conversations')
       .update(conversationForDb)
-      .eq('id', conversationId)
-      .select();
+      .eq('id', conversationId);
 
-    if (updateResult.error) {
-      console.error('Error updating conversation:', updateResult.error);
+    if (updateError) {
+      console.error('Error updating conversation:', updateError);
       return null;
     }
-
-    if (updateResult.data && updateResult.data.length > 0) {
-      // Use type assertion to avoid deep type inference
-      return adaptChatbotConversationFromDb(updateResult.data[0] as Record<string, any>);
+    
+    // Fetch the updated conversation in a separate query
+    const { data, error: selectError } = await supabase
+      .from('chatbot_conversations')
+      .select('*')
+      .eq('id', conversationId)
+      .limit(1);
+      
+    if (selectError || !data || data.length === 0) {
+      console.error('Error retrieving updated conversation:', selectError);
+      return null;
     }
     
-    return null;
+    // Use type assertion to avoid deep type inference
+    return adaptChatbotConversationFromDb(data[0] as Record<string, any>);
   } catch (error) {
     console.error('Error in updateConversation:', error);
     return null;
