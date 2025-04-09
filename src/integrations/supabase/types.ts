@@ -362,6 +362,7 @@ export type Database = {
           session_id: string
           updated_at: string
           user_id: string | null
+          user_role: string | null
         }
         Insert: {
           care_needs?: Json | null
@@ -376,6 +377,7 @@ export type Database = {
           session_id: string
           updated_at?: string
           user_id?: string | null
+          user_role?: string | null
         }
         Update: {
           care_needs?: Json | null
@@ -390,6 +392,7 @@ export type Database = {
           session_id?: string
           updated_at?: string
           user_id?: string | null
+          user_role?: string | null
         }
         Relationships: []
       }

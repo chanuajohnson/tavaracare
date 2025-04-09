@@ -55,7 +55,7 @@ export async function initializeConversation(sessionId: string): Promise<Chatbot
       conversationData: []
     };
 
-    const dbConversation: DbChatbotConversationInsert = adaptChatbotConversationToDb(newConversation);
+    const dbConversation = adaptChatbotConversationToDb(newConversation);
     
     const { data: createdConversation, error: createError } = await supabase
       .from('chatbot_conversations')
@@ -135,15 +135,33 @@ export async function updateConversation(
   updates: Partial<ChatbotConversation>
 ): Promise<ChatbotConversation | null> {
   try {
-    const dbUpdates = adaptChatbotConversationToDb({
-      ...updates,
-      id: conversationId,
-      sessionId: updates.sessionId || ''
-    });
+    // Convert the partial updates to the correct DB format
+    const conversationForDb: any = {
+      ...(updates.status !== undefined && { status: updates.status }),
+      ...(updates.leadScore !== undefined && { lead_score: updates.leadScore }),
+      ...(updates.handoffRequested !== undefined && { handoff_requested: updates.handoffRequested }),
+      ...(updates.convertedToRegistration !== undefined && { converted_to_registration: updates.convertedToRegistration }),
+      ...(updates.qualificationStatus !== undefined && { qualification_status: updates.qualificationStatus }),
+      ...(updates.userRole !== undefined && { user_role: updates.userRole })
+    };
+
+    if (updates.contactInfo) {
+      const contactInfoDb = adaptContactInfoToDb(updates.contactInfo);
+      conversationForDb.contact_info = JSON.stringify(contactInfoDb);
+    }
+
+    if (updates.careNeeds) {
+      const careNeedsDb = adaptCareNeedsToDb(updates.careNeeds);
+      conversationForDb.care_needs = JSON.stringify(careNeedsDb);
+    }
+
+    if (updates.conversationData) {
+      conversationForDb.conversation_data = JSON.stringify(updates.conversationData);
+    }
 
     const { data: updatedConversation, error } = await supabase
       .from('chatbot_conversations')
-      .update(dbUpdates)
+      .update(conversationForDb)
       .eq('id', conversationId)
       .select()
       .single();

@@ -20,7 +20,10 @@ export interface ChatbotMessage {
   messageType?: ChatbotMessageType;
   timestamp?: string;
   options?: ChatOption[];
-  contextData?: any;
+  contextData?: {
+    options?: ChatOption[];
+    [key: string]: any;
+  };
 }
 
 export interface ContactInfo {

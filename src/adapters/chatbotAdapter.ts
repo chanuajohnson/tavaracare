@@ -53,6 +53,11 @@ export function adaptCareNeedsFromDb(dbCareNeeds: DbCareNeeds): CareNeeds {
 
 // Convert chatbot message to DB format
 export function adaptChatbotMessageToDb(message: ChatbotMessage): DbChatbotMessage {
+  const contextData = {
+    ...(message.contextData || {}),
+    options: message.options
+  };
+
   return {
     id: message.id,
     conversation_id: message.conversationId || '',
@@ -60,9 +65,7 @@ export function adaptChatbotMessageToDb(message: ChatbotMessage): DbChatbotMessa
     message: message.message,
     message_type: message.messageType,
     timestamp: message.timestamp,
-    context_data: message.options || message.contextData ? 
-      toJson({ options: message.options, ...message.contextData }) : 
-      undefined
+    context_data: Object.keys(contextData).length > 0 ? toJson(contextData) : undefined
   };
 }
 
