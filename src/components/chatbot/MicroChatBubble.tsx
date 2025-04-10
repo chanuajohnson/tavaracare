@@ -121,19 +121,22 @@ export const MicroChatBubble: React.FC<MicroChatBubbleProps> = ({
         >
           <MessageCircle size={20} />
           
-          {/* Text label that appears on desktop hover */}
-          <AnimatePresence>
-            {isVisible && !isMobile && (
-              <motion.div 
-                initial={{ opacity: 0, x: 10 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: 10 }}
-                className="absolute left-full ml-2 whitespace-nowrap bg-white text-primary-900 text-sm py-1 px-2 rounded shadow-sm"
-              >
-                {greeting.prompt}
-              </motion.div>
-            )}
-          </AnimatePresence>
+          {/* Render text label using portal to appear on top of everything */}
+          {isVisible && !isMobile && createPortal(
+            <motion.div 
+              initial={{ opacity: 0, x: 10 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 10 }}
+              className="fixed whitespace-nowrap bg-white text-primary-900 text-sm py-1 px-2 rounded shadow-sm z-[1000]"
+              style={{
+                top: bubbleRect ? bubbleRect.top + bubbleRect.height/2 - 10 : 0,
+                left: bubbleRect ? bubbleRect.right + 10 : 0,
+              }}
+            >
+              {greeting.prompt}
+            </motion.div>,
+            document.body
+          )}
         </motion.div>
       </div>
 
