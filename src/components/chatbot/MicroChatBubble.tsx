@@ -7,32 +7,13 @@ import { useChat } from './ChatProvider';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { createPortal } from 'react-dom';
+import { roleGreetings } from '@/data/chatIntroMessage';
 
 interface MicroChatBubbleProps {
   role: 'family' | 'professional' | 'community';
   className?: string;
   position?: 'top' | 'bottom' | 'left' | 'right';
 }
-
-// Role-specific greeting messages with Trinidad & Tobago flavor
-const roleGreetings: Record<string, { message: string, prompt: string }> = {
-  family: {
-    message: "You're looking for the right caregiver, aren't you? Let me get a few details so we can match you with Tavara.care caregivers who meet your needs.",
-    prompt: "Let's get you that care you need"
-  },
-  professional: {
-    message: "So you're a care pro? Let me help you register with Tavara. We have families looking for your skills right now!",
-    prompt: "Let's get you hired"
-  },
-  community: {
-    message: "Welcome! Discover how you can support your community with Tavara. Ready to sign up?",
-    prompt: "Here to support or for Tech?"
-  },
-  default: {
-    message: "Good day! How can Tavara help you today?",
-    prompt: "Let's chat"
-  }
-};
 
 export const MicroChatBubble: React.FC<MicroChatBubbleProps> = ({
   role,
@@ -152,6 +133,7 @@ export const MicroChatBubble: React.FC<MicroChatBubbleProps> = ({
               ...getPopupPosition(),
               position: 'fixed'
             }}
+            onClick={handleStartChat}
           >
             <Button
               size="icon"
@@ -162,16 +144,7 @@ export const MicroChatBubble: React.FC<MicroChatBubbleProps> = ({
               <X size={14} />
             </Button>
             <p className="text-sm">{greeting.message}</p>
-            <div className="mt-2 text-right">
-              <Button
-                size="sm"
-                variant="link"
-                className="text-primary p-0"
-                onClick={handleStartChat}
-              >
-                Continue →
-              </Button>
-            </div>
+            {/* Removed the Continue button and arrow */}
           </motion.div>
         </AnimatePresence>,
         document.body

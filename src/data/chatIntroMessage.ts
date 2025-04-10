@@ -61,4 +61,26 @@ export const getCommunityOptions = (): ChatOption[] => {
   ];
 };
 
+/**
+ * Returns role-specific greeting messages with Trinidad & Tobago flavor
+ */
+export const roleGreetings: Record<string, { message: string, prompt: string }> = {
+  family: {
+    message: "Not sure if you're leaning toward family care or professional caregiver services?",
+    prompt: "Let's chat and figure things out"
+  },
+  professional: {
+    message: "So you're a care pro? Let me help you register with Tavara. We have families looking for your skills right now!",
+    prompt: "Let's get you hired"
+  },
+  community: {
+    message: "Welcome! Discover how you can support your community with Tavara. Ready to sign up?",
+    prompt: "Here to support or for Tech?"
+  },
+  default: {
+    message: "Good day! How can Tavara help you today?",
+    prompt: "Let's chat"
+  }
+};
+
 export type { ChatOption } from "@/types/chatTypes";
