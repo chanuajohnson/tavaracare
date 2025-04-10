@@ -1,4 +1,3 @@
-
 import { useState, useRef } from "react";
 import { motion } from "framer-motion";
 import { Users, UserCog, Heart, ArrowRight, Check, Vote, HelpCircle } from "lucide-react";
@@ -7,8 +6,8 @@ import { toast } from "sonner";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Fab } from "@/components/ui/fab";
-import { ChatbotLauncher } from "@/components/chatbot/ChatbotLauncher";
 import { MicroChatBubble } from "@/components/chatbot/MicroChatBubble";
+import { ChatbotSystem } from "@/components/chatbot/ChatbotSystem";
 
 const roles = [{
   id: "family",
@@ -327,7 +326,7 @@ const Index = () => {
         </div>
       </div>
       
-      <ChatbotLauncher 
+      <ChatbotSystem
         position="left-of-fab" 
         spacing={24}
         className="bg-primary-500 hover:bg-primary-600 text-white"

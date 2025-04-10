@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { MessageSquare } from 'lucide-react';
@@ -15,10 +15,9 @@ interface ChatbotLauncherProps {
 }
 
 // Create a wrapper component that handles the case when no ChatProvider exists
-const ChatbotLauncherWithErrorHandling: React.FC<ChatbotLauncherProps> = (props) => {
+export const ChatbotLauncher: React.FC<ChatbotLauncherProps> = (props) => {
   try {
-    // This will throw an error if no ChatProvider exists in the tree
-    return <ChatbotLauncher {...props} />;
+    return <ChatbotLauncherInner {...props} />;
   } catch (error) {
     console.error("ChatbotLauncher error:", error);
     // Return null or a fallback UI when ChatProvider is missing
@@ -27,13 +26,18 @@ const ChatbotLauncherWithErrorHandling: React.FC<ChatbotLauncherProps> = (props)
 };
 
 // Main component implementation that uses the hook
-const ChatbotLauncher: React.FC<ChatbotLauncherProps> = ({ 
+const ChatbotLauncherInner: React.FC<ChatbotLauncherProps> = ({ 
   position = 'above-fab',
-  spacing = 24, // Default spacing of 24px (6rem)
+  spacing = 24, // Default spacing of 24px
   width = '320px',
   className
 }) => {
-  const { isOpen, toggleChat, closeChat } = useChat();
+  const { isOpen, toggleChat, closeChat, isFullScreen } = useChat();
+
+  // Don't render the floating chat if we're in full-screen mode
+  if (isFullScreen) {
+    return null;
+  }
 
   // Calculate positions based on the selected layout
   const fabPositionClasses = {
@@ -50,10 +54,8 @@ const ChatbotLauncher: React.FC<ChatbotLauncherProps> = ({
     
     switch(position) {
       case 'left-of-fab':
-        // Position to the left of the FAB with the specified spacing
         return `fixed bottom-6 right-[calc(${fabWidth}px+${spacing}px)]`;
       case 'above-fab':
-        // Position above the FAB with the specified spacing
         return `fixed bottom-[calc(${fabHeight}px+${spacing}px+56px)] right-6`;
       case 'bottom-right':
         return 'fixed bottom-6 right-6';
@@ -85,7 +87,7 @@ const ChatbotLauncher: React.FC<ChatbotLauncherProps> = ({
       )}
       
       {/* Chatbot Widget */}
-      {isOpen && (
+      {isOpen && !isFullScreen && (
         <div className={cn(getChatbotPositionClasses(), "z-40")}>
           <ChatbotWidget 
             width={width}
@@ -96,6 +98,3 @@ const ChatbotLauncher: React.FC<ChatbotLauncherProps> = ({
     </>
   );
 };
-
-// Export the error-handling wrapper instead of the direct component
-export { ChatbotLauncherWithErrorHandling as ChatbotLauncher };

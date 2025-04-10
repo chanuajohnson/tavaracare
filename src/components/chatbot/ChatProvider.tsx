@@ -10,6 +10,9 @@ interface ChatContextType {
   setInitialRole: (role: string | null) => void;
   skipIntro: boolean;
   setSkipIntro: (skip: boolean) => void;
+  isFullScreen: boolean;
+  openFullScreenChat: () => void;
+  closeFullScreenChat: () => void;
 }
 
 const ChatContext = createContext<ChatContextType | undefined>(undefined);
@@ -26,6 +29,7 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({
   const [isOpen, setIsOpen] = useState(initialOpen);
   const [initialRole, setInitialRole] = useState<string | null>(null);
   const [skipIntro, setSkipIntro] = useState(false);
+  const [isFullScreen, setIsFullScreen] = useState(false);
 
   // Allow toggling the chat state
   const toggleChat = () => {
@@ -40,6 +44,17 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({
   // Explicitly close the chat
   const closeChat = () => {
     setIsOpen(false);
+  };
+
+  // Open in full-screen mode
+  const openFullScreenChat = () => {
+    openChat(); // Make sure chat is open first
+    setIsFullScreen(true);
+  };
+
+  // Close full-screen mode
+  const closeFullScreenChat = () => {
+    setIsFullScreen(false);
   };
 
   // Store chat state in local storage
@@ -70,7 +85,10 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({
       initialRole,
       setInitialRole,
       skipIntro,
-      setSkipIntro
+      setSkipIntro,
+      isFullScreen,
+      openFullScreenChat,
+      closeFullScreenChat
     }}>
       {children}
     </ChatContext.Provider>
