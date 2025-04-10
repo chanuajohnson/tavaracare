@@ -9,6 +9,7 @@ import { Fab } from "@/components/ui/fab";
 import { MicroChatBubble } from "@/components/chatbot/MicroChatBubble";
 import { ChatbotSystem } from "@/components/chatbot/ChatbotSystem";
 import { ChatProvider } from "@/components/chatbot/ChatProvider";
+import { FullScreenChatDialog } from "@/components/chatbot/FullScreenChatDialog";
 
 const roles = [{
   id: "family",
