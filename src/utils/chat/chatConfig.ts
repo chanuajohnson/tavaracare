@@ -11,7 +11,7 @@ export const loadChatConfig = (): ChatConfig => {
   try {
     const storedConfig = localStorage.getItem(CHAT_CONFIG_KEY);
     if (storedConfig) {
-      return JSON.parse(storedConfig);
+      return { ...defaultChatConfig, ...JSON.parse(storedConfig) };
     }
   } catch (error) {
     console.error('Error loading chat config:', error);
@@ -47,4 +47,20 @@ export const updateChatConfig = (updates: Partial<ChatConfig>): ChatConfig => {
 export const resetChatConfig = (): ChatConfig => {
   saveChatConfig(defaultChatConfig);
   return defaultChatConfig;
+};
+
+/**
+ * Gets a reading-friendly name for the chat mode
+ */
+export const getChatModeName = (mode: ChatConfig['mode']): string => {
+  switch (mode) {
+    case 'ai':
+      return 'AI Only';
+    case 'scripted':
+      return 'Scripted Only';
+    case 'hybrid':
+      return 'Hybrid (AI with Scripted Fallback)';
+    default:
+      return 'Unknown Mode';
+  }
 };

@@ -6,12 +6,12 @@ export const phrasings = {
   // Common greetings and salutations
   greetings: [
     "Hiya",
-    "How yuh goin'?",
-    "Allyuh good?",
+    "How are you going?",
+    "Hello there",
     "Wha' happening?",
-    "Aye! How yuh going?",
+    "Aye! How are you?",
     "Salutations",
-    "Greetings nah",
+    "Greetings",
   ],
   
   // Expressions of acknowledgment
@@ -21,59 +21,59 @@ export const phrasings = {
     "Bless up",
     "Respect",
     "Thanks for that",
-    "Tanks eh",
+    "Thanks eh",
     "Well nice",
   ],
   
   // Common expressions and phrases
   expressions: [
     "Eh heh!",
-    "Fuh true",
+    "For true",
     "Look trouble!",
     "Steups",
-    "Oui papa!",
-    "Meh chile",
+    "Oh gosh",
+    "My goodness",
     "Well yes!",
-    "Bess believe",
+    "Best believe",
     "For so!",
     "Oh gorm",
   ],
   
   // Encouraging phrases
   encouragement: [
-    "Leh we go!",
-    "You could do it",
+    "Let's go!",
+    "You can do it",
     "Press on",
-    "Don't fret yuhself",
+    "Don't worry yourself",
     "No pressure, no diamonds",
-    "Yuh got this, yes",
+    "You got this",
   ],
   
   // Ways to express agreement
   agreement: [
     "Correct!",
-    "Fuh true",
-    "Iz so",
-    "Yuh right",
+    "For true",
+    "Is so",
+    "You right",
     "Exactly so",
   ],
   
   // Ways to ask questions
   questions: [
-    "Ah wondering...",
-    "Tell me nah...",
+    "I'm wondering...",
+    "Tell me...",
     "I curious about...",
     "Share with me...",
-    "Wha' yuh think about...",
+    "What you think about...",
   ],
   
   // Ways to introduce suggestions
   suggestions: [
     "Maybe try...",
-    "Yuh could...",
+    "You could...",
     "How about...",
-    "Leh me suggest...",
-    "Yuh ever think about...",
+    "Let me suggest...",
+    "Ever think about...",
   ],
   
   // Family-related terms
@@ -82,8 +82,8 @@ export const phrasings = {
     "family",
     "people",
     "relative",
-    "mammy",
-    "pappy",
+    "mother",
+    "father",
     "granny",
   ],
   

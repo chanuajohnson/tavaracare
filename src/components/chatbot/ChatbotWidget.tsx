@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Send, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -34,6 +34,7 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({
   const [showOptions, setShowOptions] = useState(true);
   const [conversationStage, setConversationStage] = useState<"intro" | "questions" | "completion">("intro");
   const [isResuming, setIsResuming] = useState(false);
+  const chatInitializedRef = useRef(false);
   
   const { sessionId } = useChatSession();
   const { messages, addMessage, clearMessages } = useChatMessages(sessionId);
@@ -44,7 +45,10 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({
   const [config] = useState(() => loadChatConfig());
   
   useEffect(() => {
-    if (messages.length === 0) {
+    // Prevent initializing multiple times by using a ref
+    if (messages.length === 0 && !chatInitializedRef.current) {
+      chatInitializedRef.current = true;
+      
       if (initialRole) {
         handleInitialRoleSelection(initialRole);
       } else if (skipIntro && progress.role) {
@@ -58,7 +62,7 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({
 
   useEffect(() => {
     const partialProgress = localStorage.getItem(`tavara_chat_progress_${sessionId}`);
-    if (partialProgress && messages.length > 1 && !skipIntro) {
+    if (partialProgress && messages.length > 1 && !skipIntro && !isResuming) {
       setIsResuming(true);
       addMessage({
         content: "Welcome back! Would you like to continue where you left off?",
@@ -70,7 +74,7 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({
         ]
       });
     }
-  }, [sessionId, skipIntro]);
+  }, [sessionId, skipIntro, messages.length]);
   
   const handleInitialRoleSelection = async (roleId: string) => {
     updateProgress({
@@ -146,7 +150,7 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({
     }
     
     if (roleId === "restart") {
-      resetChat();
+      resetChat(true); // Pass true to indicate a manual reset
       return;
     }
     
@@ -290,15 +294,20 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({
     }
   };
 
-  const resetChat = () => {
+  const resetChat = (manual = false) => {
+    chatInitializedRef.current = false; // Reset the initialization flag
     clearMessages();
     clearProgress();
     setInput("");
     setShowOptions(true);
     setConversationStage("intro");
     
-    const introMessage = getIntroMessage();
-    simulateBotTyping(introMessage);
+    // Only trigger intro message for manual resets
+    if (manual) {
+      const introMessage = getIntroMessage();
+      simulateBotTyping(introMessage);
+      chatInitializedRef.current = true; // Mark as initialized since we're manually starting
+    }
   };
 
   return (
@@ -316,7 +325,7 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({
             <Button
               size="icon"
               variant="ghost"
-              onClick={resetChat}
+              onClick={() => resetChat(true)}
               title="Start over"
               className="h-7 w-7"
             >

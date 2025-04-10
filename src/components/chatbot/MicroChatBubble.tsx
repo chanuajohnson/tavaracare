@@ -31,11 +31,13 @@ export const MicroChatBubble: React.FC<MicroChatBubbleProps> = ({
   // Try to get chat context, if it fails, provide fallback behavior
   let openChat: () => void;
   let openFullScreenChat: () => void;
+  let setInitialRole: (role: string | null) => void;
   
   try {
     const chatContext = useChat();
     openChat = chatContext.openChat;
     openFullScreenChat = chatContext.openFullScreenChat;
+    setInitialRole = chatContext.setInitialRole;
   } catch (error) {
     // Fallback behavior if not within a ChatProvider
     console.error('MicroChatBubble: No ChatProvider found in context', error);
@@ -44,6 +46,7 @@ export const MicroChatBubble: React.FC<MicroChatBubbleProps> = ({
       alert('Chat functionality is not available. Please refresh the page or contact support.');
     };
     openFullScreenChat = openChat;
+    setInitialRole = () => {};
   }
   
   // Don't show if user has dismissed
@@ -60,8 +63,9 @@ export const MicroChatBubble: React.FC<MicroChatBubbleProps> = ({
     
     console.log('MicroChatBubble: handleStartChat called', { role, useFullScreen });
     
-    // Store the selected role in localStorage for the main chat to pick up
+    // Store the selected role using both methods to ensure it's available
     localStorage.setItem('tavara_chat_initial_role', role);
+    setInitialRole(role);
     
     if (useFullScreen) {
       console.log('MicroChatBubble: Opening full screen chat');

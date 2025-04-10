@@ -2,10 +2,30 @@
 import { ChatOption } from "@/types/chatTypes";
 
 /**
- * Returns the introductory message for the chat
+ * Returns a random introductory message for the chat from a predefined list
  */
 export const getIntroMessage = (): string => {
-  return "Good day! I'm here to help you get started with Tavara. Tell me, how would you like to engage with us today?";
+  const introMessages = [
+    "Welcome to Tavara! Are you here to find care for someone, or are you a caregiver looking for opportunities?",
+    "Hi there, happy to have you here. Can you tell me if you're looking for care—or looking to provide it?",
+    "Good day and welcome! Are you hoping to connect with a caregiver, or interested in joining our team?",
+    "Hello and welcome to Tavara. Just to get started—are you here as someone seeking care or as a professional caregiver?",
+    "Warm welcome! Can I help you find trusted care for a loved one, or are you looking to offer your caregiving services?",
+    "Nice to meet you! Are you looking for support at home or hoping to offer support as a caregiver?",
+    "Welcome! Are you hoping to match with a caregiver, or are you looking for work as one?",
+    "Hi there! Are you looking for care for someone in your life, or are you hoping to join Tavara as a caregiver?",
+    "Good day! Would you like help finding a caregiver—or are you here to explore caregiving jobs?",
+    "Hello and thanks for visiting Tavara. Are you here to request care or offer it?",
+    "Welcome to Tavara! Just to get you started—are you looking to hire a caregiver or to find caregiving work?",
+    "Hi! Are you here today as someone looking for support, or as someone ready to provide it?",
+    "Good to see you here. Are you hoping to find reliable care or to join Tavara as a caregiver?",
+    "Hello and welcome! May I ask—are you here to arrange care for someone or to apply as a caregiver?",
+    "Thanks for stopping by! Are you looking for care for a loved one, or are you a caregiver seeking new opportunities?",
+  ];
+  
+  // Get a random message from the list
+  const randomIndex = Math.floor(Math.random() * introMessages.length);
+  return introMessages[randomIndex];
 };
 
 /**
@@ -37,13 +57,13 @@ export const getRoleOptions = (): ChatOption[] => {
 export const getRoleFollowupMessage = (role: string): string => {
   switch (role) {
     case "family":
-      return "I understand you're looking for care for a loved one. Let's collect some information to help match you with the right professional. Doh worry, we'll make this quick!";
+      return "I understand you're looking for care for a loved one. Let's collect some information to help match you with the right professional.";
     
     case "professional":
-      return "Welcome, professional caregiver! I'll ask you a few questions to understand your expertise and help connect you with families who need your skills. Leh we get started!";
+      return "Welcome, professional caregiver! I'll ask you a few questions to understand your expertise and help connect you with families who need your skills.";
     
     case "community":
-      return "Thank you for your interest in helping! I'll ask a few questions to understand how you'd like to contribute to our caregiving community. You're doing a good thing, yuh know!";
+      return "Thank you for your interest in helping! I'll ask a few questions to understand how you'd like to contribute to our caregiving community.";
     
     default:
       return "Thank you for reaching out. Let me guide you through the next steps.";

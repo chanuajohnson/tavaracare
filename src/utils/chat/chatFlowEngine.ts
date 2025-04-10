@@ -1,4 +1,3 @@
-
 import { getChatCompletion, convertToOpenAIMessages } from '@/services/aiService';
 import { getIntroMessage, getRoleFollowupMessage, getRoleOptions } from '@/data/chatIntroMessage';
 import { ChatMessage, ChatOption } from '@/types/chatTypes';
@@ -39,6 +38,9 @@ const resetRetryState = (sessionId: string): void => {
   retryStates.set(sessionId, { count: 0, lastError: null });
 };
 
+// Keep track of the last message sent to avoid repetition
+const lastMessages = new Map<string, string>();
+
 /**
  * Processes the conversation and generates the next message
  */
@@ -51,7 +53,7 @@ export const processConversation = async (
 ): Promise<{ message: string; options?: ChatOption[] }> => {
   // If we're in scripted mode, or we're in the intro stage, use scripted messages
   if (config.mode === 'scripted' || messages.length === 0) {
-    return handleScriptedFlow(messages, userRole, questionIndex);
+    return handleScriptedFlow(messages, userRole, sessionId, questionIndex);
   }
 
   // For AI or hybrid modes, try the AI flow first
@@ -74,7 +76,7 @@ export const processConversation = async (
       // If hybrid mode and exceeded fallback threshold, fall back to scripted
       if (config.mode === 'hybrid' && retryState.count > (config.fallbackThreshold || 2)) {
         console.log(`Falling back to scripted mode after ${retryState.count} failed AI attempts`);
-        return handleScriptedFlow(messages, userRole, questionIndex);
+        return handleScriptedFlow(messages, userRole, sessionId, questionIndex);
       }
       
       // Otherwise, return an error message
@@ -87,7 +89,7 @@ export const processConversation = async (
   }
 
   // Default fallback
-  return handleScriptedFlow(messages, userRole, questionIndex);
+  return handleScriptedFlow(messages, userRole, sessionId, questionIndex);
 };
 
 /**
@@ -105,7 +107,7 @@ const handleAIFlow = async (
   // Add role context to help the AI generate better responses
   let systemPrompt = `You are Tavara, a friendly assistant for Tavara.care, a platform connecting families with caregivers in Trinidad & Tobago.
     
-Use warm, conversational language with occasional local phrases from Trinidad & Tobago like "${phrasings.greetings.join('", "')}" or "${phrasings.acknowledgments.join('", "')}" or expressions like "${phrasings.expressions.join('", "')}" to sound authentic.
+Use warm, conversational language with occasional local phrases from Trinidad & Tobago like "${phrasings.greetings.join('", "')}" or "${phrasings.acknowledgments.join('", "')}" or expressions like "${phrasings.expressions.join('", "')}" to sound authentic but not overdone.
 
 ${userRole ? `The user has indicated they are a ${userRole}.` : ''}
 ${userRole === 'family' ? "Help them find caregiving support for their loved ones." : ''}
@@ -114,7 +116,10 @@ ${userRole === 'community' ? "Help them find ways to contribute to our caregivin
 
 You are currently helping them through the registration process. We are at question ${questionIndex + 1}.
 Keep your responses concise (1-3 sentences), friendly, and focused on gathering relevant information.
-Do NOT list multiple questions at once. Focus on ONE question at a time.`;
+Do NOT list multiple questions at once. Focus on ONE question at a time.
+
+Keep your responses natural and conversational, do not use artificial phrases like "how would you like to engage with us today." 
+Use direct, warm language that reflects how real people speak.`;
 
   // Special instructions for first interaction
   if (!userRole && messages.length <= 3) {
@@ -146,6 +151,15 @@ Do NOT list multiple questions at once. Focus on ONE question at a time.`;
   // Apply T&T cultural transformations
   message = applyTrinidadianStyle(message);
   
+  // Check for repetition and fix if necessary
+  if (lastMessages.has(sessionId) && lastMessages.get(sessionId) === message) {
+    // If the message is repeating, slightly modify it
+    message = avoidRepetition(message);
+  }
+  
+  // Store this message for repetition detection
+  lastMessages.set(sessionId, message);
+  
   return { message };
 };
 
@@ -155,20 +169,24 @@ Do NOT list multiple questions at once. Focus on ONE question at a time.`;
 const handleScriptedFlow = (
   messages: ChatMessage[],
   userRole: string | null,
+  sessionId: string,
   questionIndex: number
 ): { message: string; options?: ChatOption[] } => {
   // Intro stage - no messages yet or only 1-2 messages
   if (messages.length <= 2) {
+    // Get a random intro message that won't be the same as the last one
+    const introMessage = getRandomIntroMessage(sessionId);
     return {
-      message: applyTrinidadianStyle(getIntroMessage()),
+      message: applyTrinidadianStyle(introMessage),
       options: getRoleOptions()
     };
   }
 
   // Role selection followup
   if (messages.length <= 4 && userRole) {
+    const followupMessage = getRoleFollowupMessage(userRole);
     return {
-      message: applyTrinidadianStyle(getRoleFollowupMessage(userRole))
+      message: applyTrinidadianStyle(followupMessage)
     };
   }
 
@@ -229,6 +247,43 @@ const handleScriptedFlow = (
 };
 
 /**
+ * Get a random intro message that won't repeat the last one
+ */
+const getRandomIntroMessage = (sessionId: string): string => {
+  const introMessage = getIntroMessage();
+  
+  // Check if this message is the same as the last one
+  if (lastMessages.has(sessionId) && lastMessages.get(sessionId) === introMessage) {
+    // Try again to get a different message
+    return getRandomIntroMessage(sessionId);
+  }
+  
+  // Store this message and return it
+  lastMessages.set(sessionId, introMessage);
+  return introMessage;
+};
+
+/**
+ * Slightly modify a message to avoid exact repetition
+ */
+const avoidRepetition = (message: string): string => {
+  // List of prefixes to add variety
+  const prefixes = [
+    "Just to confirm, ",
+    "To be clear, ",
+    "In other words, ",
+    "Let me rephrase that, ",
+    "What I meant was, ",
+  ];
+  
+  // Choose a random prefix
+  const prefix = prefixes[Math.floor(Math.random() * prefixes.length)];
+  
+  // Add the prefix to the message
+  return prefix + message.toLowerCase();
+};
+
+/**
  * Applies Trinidad & Tobago cultural style to messages
  */
 export const applyTrinidadianStyle = (message: string): string => {
@@ -236,7 +291,7 @@ export const applyTrinidadianStyle = (message: string): string => {
   if (!message) return message;
 
   // Random chance of applying each transformation for variety
-  const shouldApplyGreeting = Math.random() < 0.3 && message.includes('hello') || message.includes('hi');
+  const shouldApplyGreeting = Math.random() < 0.3 && (message.includes('hello') || message.includes('hi'));
   const shouldApplyAcknowledgment = Math.random() < 0.4 && (message.includes('thank') || message.includes('great'));
   const shouldApplyExpression = Math.random() < 0.2;
 

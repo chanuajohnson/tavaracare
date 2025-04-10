@@ -1,6 +1,5 @@
 
 import React, { useState } from 'react';
-import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -9,7 +8,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
@@ -17,44 +16,47 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Slider } from "@/components/ui/slider";
+import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { ChatConfig } from "@/utils/chat/chatFlowEngine";
+import { Slider } from "@/components/ui/slider";
 import { loadChatConfig, saveChatConfig } from "@/utils/chat/chatConfig";
-import { toast } from "sonner";
+import { ChatConfig } from '@/utils/chat/chatFlowEngine';
+import { toast } from 'sonner';
 
 interface ChatSettingsProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
-export const ChatSettings: React.FC<ChatSettingsProps> = ({ 
+export const ChatSettings: React.FC<ChatSettingsProps> = ({
   open,
-  onOpenChange
+  onOpenChange,
 }) => {
-  const [config, setConfig] = useState<ChatConfig>(loadChatConfig());
-  
+  // Load config from localStorage
+  const [config, setConfig] = useState<ChatConfig>(() => loadChatConfig());
+
   const handleSave = () => {
     saveChatConfig(config);
-    toast.success("Chat settings saved");
     onOpenChange(false);
+    toast.success("Chat settings saved");
   };
-  
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Chat Settings</DialogTitle>
           <DialogDescription>
-            Configure how the Tavara chat assistant behaves.
+            Configure how the chat assistant behaves
           </DialogDescription>
         </DialogHeader>
+        
         <div className="grid gap-4 py-4">
           <div className="grid gap-2">
             <Label htmlFor="mode">Chat Mode</Label>
             <Select
               value={config.mode}
-              onValueChange={(value) => setConfig({...config, mode: value as 'ai' | 'scripted' | 'hybrid'})}
+              onValueChange={(value) => setConfig({ ...config, mode: value as 'ai' | 'scripted' | 'hybrid' })}
             >
               <SelectTrigger id="mode">
                 <SelectValue placeholder="Select mode" />
@@ -62,64 +64,66 @@ export const ChatSettings: React.FC<ChatSettingsProps> = ({
               <SelectContent>
                 <SelectItem value="ai">AI Only</SelectItem>
                 <SelectItem value="scripted">Scripted Only</SelectItem>
-                <SelectItem value="hybrid">Hybrid (AI with fallback)</SelectItem>
+                <SelectItem value="hybrid">Hybrid (AI with Scripted Fallback)</SelectItem>
               </SelectContent>
             </Select>
             <p className="text-sm text-muted-foreground">
-              {config.mode === 'ai' && "Uses only AI responses for all messages."}
-              {config.mode === 'scripted' && "Uses only pre-defined scripted messages."}
-              {config.mode === 'hybrid' && "Uses AI with fallback to scripted if AI fails."}
+              {config.mode === 'ai' 
+                ? "AI mode uses generative AI for more natural conversations"
+                : config.mode === 'scripted'
+                ? "Scripted mode uses pre-defined messages for consistent responses"
+                : "Hybrid mode tries AI first, but falls back to scripted if needed"}
             </p>
           </div>
-          
+
           {config.mode !== 'scripted' && (
             <div className="grid gap-2">
-              <Label htmlFor="temperature">Temperature: {config.temperature}</Label>
+              <Label htmlFor="temperature">AI Temperature ({config.temperature})</Label>
               <Slider
                 id="temperature"
-                min={0}
-                max={1}
+                min={0.1}
+                max={1.0}
                 step={0.1}
-                value={[config.temperature || 0.7]}
-                onValueChange={(values) => setConfig({...config, temperature: values[0]})}
+                defaultValue={[config.temperature || 0.7]}
+                onValueChange={(value) => setConfig({ ...config, temperature: value[0] })}
               />
               <p className="text-sm text-muted-foreground">
-                Lower values make responses more focused and deterministic. Higher values make responses more creative and varied.
+                Lower values make responses more predictable, higher values more creative
               </p>
             </div>
           )}
-          
+
           {config.mode === 'hybrid' && (
             <div className="grid gap-2">
-              <Label htmlFor="fallbackThreshold">Fallback Threshold: {config.fallbackThreshold}</Label>
-              <Slider
-                id="fallbackThreshold"
-                min={1}
-                max={5}
-                step={1}
-                value={[config.fallbackThreshold || 2]}
-                onValueChange={(values) => setConfig({...config, fallbackThreshold: values[0]})}
-              />
+              <Label htmlFor="fallbackThreshold">Fallback Threshold</Label>
+              <Select
+                value={config.fallbackThreshold?.toString() || "2"}
+                onValueChange={(value) => setConfig({ ...config, fallbackThreshold: parseInt(value) })}
+              >
+                <SelectTrigger id="fallbackThreshold">
+                  <SelectValue placeholder="Select threshold" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="1">1 (Quick Fallback)</SelectItem>
+                  <SelectItem value="2">2 (Default)</SelectItem>
+                  <SelectItem value="3">3 (More AI Attempts)</SelectItem>
+                  <SelectItem value="5">5 (Maximum AI Attempts)</SelectItem>
+                </SelectContent>
+              </Select>
               <p className="text-sm text-muted-foreground">
-                Number of AI failures before falling back to scripted messages.
+                How many AI failures before falling back to scripted responses
               </p>
             </div>
           )}
-          
-          <div className="flex items-center justify-between">
-            <Label htmlFor="trinidadian-style">Trinidad & Tobago Style</Label>
-            <Switch 
-              id="trinidadian-style" 
-              checked={true}
-              disabled={true}
-            />
-          </div>
         </div>
+
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+          <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button onClick={handleSave}>Save Changes</Button>
+          <Button type="button" onClick={handleSave}>
+            Save Changes
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
