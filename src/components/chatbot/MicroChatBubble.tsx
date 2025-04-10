@@ -16,19 +16,19 @@ interface MicroChatBubbleProps {
 const roleGreetings: Record<string, { message: string, prompt: string }> = {
   family: {
     message: "Good day, friend! Yuh looking for family care, right? Let's get some quick info to connect yuh with the right care providers.",
-    prompt: "Looking after a loved one? I can help—click here!"
+    prompt: "Let's get you that care you need"
   },
   professional: {
     message: "So you're a care pro? Let me help you register with Tavara. We have families looking for your skills right now!",
-    prompt: "A care professional, eh? Let's get you hired—click here!"
+    prompt: "Let's get you hired"
   },
   community: {
     message: "Welcome! Discover how you can support your community with Tavara. Ready to sign up?",
-    prompt: "Join the village and support your community—click here!"
+    prompt: "Here to support or for Tech?"
   },
   default: {
     message: "Good day! How can Tavara help you today?",
-    prompt: "Ready to begin? Let's pick your role!"
+    prompt: "Let's chat"
   }
 };
 
