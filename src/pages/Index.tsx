@@ -1,3 +1,4 @@
+
 import { useState, useRef } from "react";
 import { motion } from "framer-motion";
 import { Users, UserCog, Heart, ArrowRight, Check, Vote, HelpCircle } from "lucide-react";
@@ -135,13 +136,13 @@ const Index = () => {
           duration: 0.5,
           delay: 0.6
         }} className="text-center mt-16">
-          <div className="relative inline-block">
+          <div className="relative inline-flex items-center">
             <button onClick={handleGetStarted} className="inline-flex items-center justify-center h-11 px-8 font-medium text-white bg-primary-500 rounded-full transition-colors duration-300 hover:bg-primary-600">
               Get Started
             </button>
             
-            <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-3">
-              <MicroChatBubble role="family" position="top" />
+            <div className="ml-3">
+              <MicroChatBubble role="family" position="right" />
             </div>
           </div>
         </motion.div>
