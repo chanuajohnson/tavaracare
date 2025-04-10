@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { useChat } from './ChatProvider';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { createPortal } from 'react-dom';
 
 interface MicroChatBubbleProps {
   role: 'family' | 'professional' | 'community';
@@ -42,6 +43,8 @@ export const MicroChatBubble: React.FC<MicroChatBubbleProps> = ({
   const [isDismissed, setIsDismissed] = useState(false);
   const { openChat } = useChat();
   const isMobile = useIsMobile();
+  const [bubbleRect, setBubbleRect] = useState<DOMRect | null>(null);
+  const bubbleRef = React.useRef<HTMLDivElement>(null);
   
   // Don't show if user has dismissed
   if (isDismissed) {
@@ -49,13 +52,6 @@ export const MicroChatBubble: React.FC<MicroChatBubbleProps> = ({
   }
   
   const greeting = roleGreetings[role] || roleGreetings.default;
-  
-  const positionClasses = {
-    top: 'bottom-full mb-2',
-    bottom: 'top-full mt-2',
-    left: 'right-full mr-2',
-    right: 'left-full ml-2',
-  };
   
   const handleStartChat = () => {
     // Store the selected role in localStorage for the main chat to pick up
@@ -72,52 +68,51 @@ export const MicroChatBubble: React.FC<MicroChatBubbleProps> = ({
 
   // Adjust interactions for mobile vs desktop
   const handleInteraction = isMobile 
-    ? { onClick: handleStartChat } 
+    ? { 
+        onClick: handleStartChat,
+        ref: bubbleRef 
+      } 
     : { 
-        onMouseEnter: () => setIsVisible(true),
+        onMouseEnter: () => {
+          setBubbleRect(bubbleRef.current?.getBoundingClientRect() || null);
+          setIsVisible(true);
+        },
         onMouseLeave: () => setIsVisible(false),
-        onClick: handleStartChat
+        onClick: handleStartChat,
+        ref: bubbleRef
       };
+
+  // Calculate popup position based on the bubble's position and selected position type
+  const getPopupPosition = () => {
+    if (!bubbleRect) return {};
+    
+    const positions = {
+      top: {
+        bottom: window.innerHeight - bubbleRect.top + 5,
+        left: bubbleRect.left + bubbleRect.width/2 - 128, // center the 256px popup
+      },
+      bottom: {
+        top: bubbleRect.bottom + 5,
+        left: bubbleRect.left + bubbleRect.width/2 - 128,
+      },
+      left: {
+        top: bubbleRect.top,
+        right: window.innerWidth - bubbleRect.left + 5,
+      },
+      right: {
+        top: bubbleRect.top,
+        left: bubbleRect.right + 5,
+      }
+    };
+    
+    return positions[position];
+  };
   
   return (
     <div 
       className={cn("relative cursor-pointer", className)}
       {...handleInteraction}
     >
-      <AnimatePresence>
-        {isVisible && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.8 }}
-            className={cn(
-              "absolute z-50 w-64 bg-white rounded-lg shadow-lg p-3 border border-gray-200",
-              positionClasses[position]
-            )}
-          >
-            <Button
-              size="icon"
-              variant="ghost"
-              className="absolute top-1 right-1 h-6 w-6 text-gray-500 hover:bg-gray-100 rounded-full"
-              onClick={handleDismiss}
-            >
-              <X size={14} />
-            </Button>
-            <p className="text-sm">{greeting.message}</p>
-            <div className="mt-2 text-right">
-              <Button
-                size="sm"
-                variant="link"
-                className="text-primary p-0"
-                onClick={handleStartChat}
-              >
-                Continue →
-              </Button>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-      
       <div className="flex items-center justify-center">
         <motion.div
           whileHover={{ scale: 1.05 }}
@@ -141,6 +136,43 @@ export const MicroChatBubble: React.FC<MicroChatBubbleProps> = ({
           </AnimatePresence>
         </motion.div>
       </div>
+
+      {/* Render popup in a portal to avoid stacking context issues */}
+      {isVisible && bubbleRect && createPortal(
+        <AnimatePresence>
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.8 }}
+            className="fixed z-[1000] w-64 bg-white rounded-lg shadow-lg p-3 border border-gray-200"
+            style={{
+              ...getPopupPosition(),
+              position: 'fixed'
+            }}
+          >
+            <Button
+              size="icon"
+              variant="ghost"
+              className="absolute top-1 right-1 h-6 w-6 text-gray-500 hover:bg-gray-100 rounded-full"
+              onClick={handleDismiss}
+            >
+              <X size={14} />
+            </Button>
+            <p className="text-sm">{greeting.message}</p>
+            <div className="mt-2 text-right">
+              <Button
+                size="sm"
+                variant="link"
+                className="text-primary p-0"
+                onClick={handleStartChat}
+              >
+                Continue →
+              </Button>
+            </div>
+          </motion.div>
+        </AnimatePresence>,
+        document.body
+      )}
     </div>
   );
 };
