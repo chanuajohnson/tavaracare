@@ -1,5 +1,5 @@
 import { getChatCompletion, convertToOpenAIMessages } from '@/services/aiService';
-import { getIntroMessage, getRoleFollowupMessage, getNextQuestion } from '@/data/chatIntroMessage';
+import { getIntroMessage, getRoleFollowupMessage, getRoleOptions } from '@/data/chatIntroMessage';
 import { ChatMessage, ChatOption } from '@/types/chatTypes';
 import { phrasings } from '@/utils/chat/phrasings';
 
@@ -160,11 +160,7 @@ const handleScriptedFlow = (
   if (messages.length <= 2) {
     return {
       message: applyTrinidadianStyle(getIntroMessage()),
-      options: [
-        { id: 'family', label: 'I need care for someone' },
-        { id: 'professional', label: 'I provide care services' },
-        { id: 'community', label: 'I want to support the community' }
-      ]
+      options: getRoleOptions()
     };
   }
 
@@ -175,10 +171,53 @@ const handleScriptedFlow = (
     };
   }
 
-  // Subsequent questions based on selected role
+  // Generate questions based on the role and question index
   if (userRole) {
+    // For this implementation, we'll create some sample questions
+    const questions = {
+      family: [
+        "Who are you seeking care for? A parent, spouse, child, or someone else?",
+        "What type of care assistance do you need?",
+        "How often do you need care? Daily, weekly, or on specific days?",
+        "When would you like to start receiving care?",
+        "Do you have any specific requirements for your caregiver?"
+      ],
+      professional: [
+        "What type of caregiving do you provide?",
+        "How many years of experience do you have in caregiving?",
+        "What certifications or qualifications do you have?",
+        "What areas of Trinidad & Tobago are you available to work in?",
+        "What are your weekly availability and preferred hours?"
+      ],
+      community: [
+        "How would you like to support our caregiving community?",
+        "Do you have specific skills or resources you'd like to contribute?",
+        "How much time can you commit to volunteer activities?",
+        "What motivated you to get involved with caregiving support?",
+        "Have you been involved with similar initiatives before?"
+      ]
+    };
+    
+    let questionList: string[];
+    if (userRole === 'family') {
+      questionList = questions.family;
+    } else if (userRole === 'professional') {
+      questionList = questions.professional;
+    } else if (userRole === 'community') {
+      questionList = questions.community;
+    } else {
+      questionList = [];
+    }
+    
+    if (questionIndex < questionList.length) {
+      return {
+        message: applyTrinidadianStyle(questionList[questionIndex])
+      };
+    }
+    
+    // If we've gone through all the questions
     return {
-      message: applyTrinidadianStyle(getNextQuestion(userRole, questionIndex))
+      message: applyTrinidadianStyle("Thank you for sharing that information! It will help us understand your needs better. Would you like to continue with registration?")
     };
   }
 

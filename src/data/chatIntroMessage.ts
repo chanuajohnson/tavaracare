@@ -51,6 +51,58 @@ export const getRoleFollowupMessage = (role: string): string => {
 };
 
 /**
+ * Returns questions for the next step based on user role and current question index
+ */
+export const getNextQuestion = (role: string, questionIndex: number): string => {
+  const familyQuestions = [
+    "Who are you seeking care for? A parent, spouse, child, or someone else?",
+    "What type of care assistance do you need? For example, daily activities, medical care, companionship?",
+    "How often do you need care? Daily, weekly, or for specific hours?",
+    "When would you like to start receiving care?",
+    "Do you have any specific requirements or preferences for your caregiver?"
+  ];
+  
+  const professionalQuestions = [
+    "What type of caregiving do you specialize in?",
+    "How many years of experience do you have in caregiving?",
+    "Do you have any certifications or special training?",
+    "What areas of Trinidad & Tobago are you available to work in?",
+    "What is your typical availability? (Days, evenings, weekends)"
+  ];
+  
+  const communityQuestions = [
+    "What skills or resources can you contribute to our caregiving community?",
+    "Are you interested in volunteering, mentoring, or some other form of support?",
+    "How much time can you commit to community support activities?",
+    "Do you have previous experience in community or caregiving initiatives?",
+    "What motivated you to get involved with our caregiving community?"
+  ];
+  
+  let questions: string[];
+  
+  switch (role) {
+    case "family":
+      questions = familyQuestions;
+      break;
+    case "professional":
+      questions = professionalQuestions;
+      break;
+    case "community":
+      questions = communityQuestions;
+      break;
+    default:
+      return "What else would you like to know about our services?";
+  }
+  
+  // Return the appropriate question based on the index, or a final message if we've gone through all questions
+  if (questionIndex < questions.length) {
+    return questions[questionIndex];
+  } else {
+    return "Thank you for sharing all this information! It will help us better assist you with your needs.";
+  }
+};
+
+/**
  * Returns community contribution options
  */
 export const getCommunityOptions = (): ChatOption[] => {

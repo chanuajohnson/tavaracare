@@ -121,6 +121,9 @@ export const syncMessagesToSupabase = async (
       .eq('session_id', sessionId)
       .maybeSingle();
 
+    // Convert messages to a proper JSON format compatible with Supabase
+    const jsonMessages = JSON.stringify(messages);
+
     if (!conversation) {
       // Create a new conversation
       await supabase
@@ -128,14 +131,14 @@ export const syncMessagesToSupabase = async (
         .insert({
           session_id: sessionId,
           user_role: userRole,
-          conversation_data: messages
+          conversation_data: JSON.parse(jsonMessages)
         });
     } else {
       // Update the existing conversation data
       await supabase
         .from('chatbot_conversations')
         .update({
-          conversation_data: messages,
+          conversation_data: JSON.parse(jsonMessages),
           updated_at: new Date().toISOString()
         })
         .eq('session_id', sessionId);
