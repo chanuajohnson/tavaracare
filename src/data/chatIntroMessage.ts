@@ -5,7 +5,7 @@ import { ChatOption } from "@/types/chatTypes";
  * Returns the introductory message for the chat
  */
 export const getIntroMessage = (): string => {
-  return "Hi there 👋 I'm here to help you get started. Can you tell me how you'd like to engage with Tavara today?";
+  return "Good day! I'm here to help you get started with Tavara. Tell me, how would you like to engage with us today?";
 };
 
 /**
@@ -37,13 +37,13 @@ export const getRoleOptions = (): ChatOption[] => {
 export const getRoleFollowupMessage = (role: string): string => {
   switch (role) {
     case "family":
-      return "I understand you're looking for care for a loved one. Let's collect some information to help match you with the right professional.";
+      return "I understand you're looking for care for a loved one. Let's collect some information to help match you with the right professional. Doh worry, we'll make this quick!";
     
     case "professional":
-      return "Welcome, professional caregiver! I'll ask you a few questions to understand your expertise and help connect you with families who need your skills.";
+      return "Welcome, professional caregiver! I'll ask you a few questions to understand your expertise and help connect you with families who need your skills. Leh we get started!";
     
     case "community":
-      return "Thank you for your interest in helping! I'll ask a few questions to understand how you'd like to contribute to our caregiving community.";
+      return "Thank you for your interest in helping! I'll ask a few questions to understand how you'd like to contribute to our caregiving community. You're doing a good thing, yuh know!";
     
     default:
       return "Thank you for reaching out. Let me guide you through the next steps.";

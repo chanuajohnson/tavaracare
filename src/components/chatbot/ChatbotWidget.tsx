@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Send, X } from "lucide-react";
@@ -7,10 +6,11 @@ import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { useChatMessages } from "@/hooks/chat/useChatMessages";
 import { useChatSession } from "@/hooks/chat/useChatSession";
-import { getIntroMessage, getRoleOptions, getRoleFollowupMessage } from "@/data/chatIntroMessage";
+import { getIntroMessage, getRoleOptions, getRoleFollowupMessage, getCommunityOptions } from "@/data/chatIntroMessage";
 import { generatePrefillJson } from "@/utils/chat/prefillGenerator";
 import { MessageBubble } from "./MessageBubble";
 import { OptionCard } from "./OptionCard";
+import { useChat } from "./ChatProvider";
 
 interface TypingIndicatorProps {}
 
@@ -107,28 +107,83 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({
   const [questionIndex, setQuestionIndex] = useState(0);
   const [showOptions, setShowOptions] = useState(true);
   const [conversationStage, setConversationStage] = useState<"intro" | "questions" | "completion">("intro");
+  const [isResuming, setIsResuming] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
   const { sessionId } = useChatSession();
   const { messages, addMessage, clearMessages } = useChatMessages(sessionId);
+  const { initialRole, setInitialRole } = useChat();
   
   useEffect(() => {
-    // Scroll to bottom when messages change
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
   useEffect(() => {
-    // Initialize chat with intro message if no messages exist
     if (messages.length === 0) {
-      const introMessage = getIntroMessage();
-      simulateBotTyping(introMessage);
+      if (initialRole) {
+        handleInitialRoleSelection(initialRole);
+      } else {
+        const introMessage = getIntroMessage();
+        simulateBotTyping(introMessage);
+      }
     }
-  }, [messages.length]);
+  }, [messages.length, initialRole]);
+
+  useEffect(() => {
+    const partialProgress = localStorage.getItem(`tavara_chat_progress_${sessionId}`);
+    if (partialProgress && messages.length > 1) {
+      setIsResuming(true);
+      addMessage({
+        content: "Welcome back! Would you like to continue where you left off?",
+        isUser: false,
+        timestamp: Date.now(),
+        options: [
+          { id: "resume", label: "Yes, continue" },
+          { id: "restart", label: "No, start over" }
+        ]
+      });
+    }
+  }, [sessionId]);
+  
+  const handleInitialRoleSelection = async (roleId: string) => {
+    setSelectedRole(roleId);
+    setShowOptions(false);
+    setConversationStage("questions");
+    
+    setInitialRole(null);
+    localStorage.removeItem('tavara_chat_initial_role');
+    
+    let greeting = "";
+    switch(roleId) {
+      case "family":
+        greeting = "Good day, friend! Yuh looking for family care, right? Let's get some quick info to connect yuh with the right care providers.";
+        break;
+      case "professional":
+        greeting = "So you're a care pro? Let me help you register with Tavara. We have families looking for your skills right now!";
+        break;
+      case "community":
+        greeting = "Welcome! Discover how you can support your community with Tavara. Ready to sign up?";
+        break;
+      default:
+        greeting = "Good day! How can Tavara help you today?";
+    }
+    
+    await simulateBotTyping(greeting);
+    
+    const selectedOption = getRoleOptions().find(o => o.id === roleId);
+    addMessage({
+      content: selectedOption?.label || roleId,
+      isUser: true,
+      timestamp: Date.now()
+    });
+    
+    await simulateBotTyping(getNextQuestion(roleId, 0));
+    setQuestionIndex(1);
+  };
 
   const simulateBotTyping = async (message: string, options?: { id: string; label: string; subtext?: string }[]) => {
     setIsTyping(true);
     
-    // Simulate bot typing with delay based on message length
     const baseDelay = 500;
     const perCharDelay = 15;
     const delay = Math.min(baseDelay + message.length * perCharDelay, 2000);
@@ -146,11 +201,32 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({
   };
 
   const handleRoleSelection = async (roleId: string) => {
+    if (roleId === "resume") {
+      setIsResuming(false);
+      const partialProgress = JSON.parse(localStorage.getItem(`tavara_chat_progress_${sessionId}`) || "{}");
+      if (partialProgress.role) {
+        setSelectedRole(partialProgress.role);
+        setQuestionIndex(partialProgress.questionIndex || 0);
+        setConversationStage("questions");
+        await simulateBotTyping("Great! Let's continue where we left off. " + getNextQuestion(partialProgress.role, partialProgress.questionIndex || 0));
+      }
+      return;
+    }
+    
+    if (roleId === "restart") {
+      resetChat();
+      return;
+    }
+    
     setSelectedRole(roleId);
     setShowOptions(false);
     setConversationStage("questions");
     
-    // Add user message indicating their role selection
+    localStorage.setItem(`tavara_chat_progress_${sessionId}`, JSON.stringify({
+      role: roleId,
+      questionIndex: 0
+    }));
+    
     const selectedOption = getRoleOptions().find(o => o.id === roleId);
     addMessage({
       content: selectedOption?.label || roleId,
@@ -158,26 +234,26 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({
       timestamp: Date.now()
     });
     
-    // Send a follow-up message based on the selected role
     const followupMessage = getRoleFollowupMessage(roleId);
     await simulateBotTyping(followupMessage);
     
-    // Ask first question based on selected role
     await simulateBotTyping(getNextQuestion(roleId, 0));
     setQuestionIndex(1);
   };
 
   const handleOptionSelection = async (optionId: string) => {
-    // Generic handler for any option selection that isn't role selection
     addMessage({
       content: optionId,
       isUser: true,
       timestamp: Date.now()
     });
     
-    // Here you could add specific logic for different option types
-    // For now we'll just continue with the next question
     if (selectedRole) {
+      localStorage.setItem(`tavara_chat_progress_${sessionId}`, JSON.stringify({
+        role: selectedRole,
+        questionIndex: questionIndex + 1
+      }));
+      
       await simulateBotTyping(getNextQuestion(selectedRole, questionIndex));
       setQuestionIndex(prev => prev + 1);
     }
@@ -188,7 +264,6 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({
     
     if (!input.trim()) return;
     
-    // Add user message
     addMessage({
       content: input,
       isUser: true,
@@ -198,20 +273,24 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({
     setInput("");
     
     if (selectedRole) {
-      // Generate prefill data based on collected answers
+      localStorage.setItem(`tavara_chat_progress_${sessionId}`, JSON.stringify({
+        role: selectedRole,
+        questionIndex: questionIndex + 1
+      }));
+      
       if (questionIndex >= getRoleQuestions(selectedRole).length) {
         setConversationStage("completion");
         const prefillJson = generatePrefillJson(selectedRole, messages);
         console.log("Generated prefill JSON:", prefillJson);
         
-        // Show completion message with prefill data
+        localStorage.removeItem(`tavara_chat_progress_${sessionId}`);
+        
         await simulateBotTyping(
-          `Thanks for providing this information! Based on your answers, we recommend completing your ${selectedRole} registration. In the future, we'll direct you to the registration form with this data pre-filled.`
+          `Thanks plenty for providing this information! Based on your answers, we recommend completing your ${selectedRole} registration. In the future, we'll direct you to the registration form with this data pre-filled. Leh we make care easier together!`
         );
         return;
       }
       
-      // Ask next question based on role path
       const nextQuestion = getNextQuestion(selectedRole, questionIndex);
       await simulateBotTyping(nextQuestion);
       setQuestionIndex(prev => prev + 1);
@@ -262,15 +341,12 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({
     setShowOptions(true);
     setConversationStage("intro");
     
-    // Restart chat with intro message
     const introMessage = getIntroMessage();
     simulateBotTyping(introMessage, getRoleOptions());
   };
 
-  // Handle the first message to show role options
   useEffect(() => {
     if (messages.length === 1 && messages[0].isUser === false && showOptions) {
-      // Only add options to the first bot message if they don't exist yet
       if (!messages[0].options || messages[0].options.length === 0) {
         addMessage({
           content: messages[0].content,
@@ -290,7 +366,6 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({
       )}
       style={{ width }}
     >
-      {/* Chat header */}
       <div className="flex items-center justify-between border-b p-3">
         <h3 className="font-medium">Tavara Assistant</h3>
         <div className="flex gap-2">
@@ -330,7 +405,6 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({
         </div>
       </div>
 
-      {/* Messages container */}
       <div className="flex-1 p-4 overflow-y-auto">
         {messages.map((message, index) => (
           <React.Fragment key={index}>
@@ -342,7 +416,11 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({
             {!message.isUser && message.options && (index === messages.length - 1 || message.isUser) && (
               <OptionsRenderer 
                 options={message.options} 
-                onSelect={conversationStage === "intro" ? handleRoleSelection : handleOptionSelection} 
+                onSelect={
+                  isResuming ? handleRoleSelection : 
+                  conversationStage === "intro" ? handleRoleSelection : 
+                  handleOptionSelection
+                } 
               />
             )}
           </React.Fragment>
@@ -351,19 +429,33 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Input area */}
+      {selectedRole && (
+        <div className="border-t border-b p-2 text-center">
+          <Button
+            variant="link"
+            size="sm"
+            className="text-xs text-muted-foreground"
+            onClick={() => {
+              window.location.href = `/registration/${selectedRole}`;
+            }}
+          >
+            I'd rather fill out a quick form →
+          </Button>
+        </div>
+      )}
+
       <form onSubmit={handleSendMessage} className="border-t p-3 flex gap-2">
         <Input
           placeholder="Type a message..."
           value={input}
           onChange={(e) => setInput(e.target.value)}
           className="flex-1"
-          disabled={isTyping || conversationStage === "intro"}
+          disabled={isTyping || conversationStage === "intro" || isResuming}
         />
         <Button
           type="submit"
           size="icon"
-          disabled={!input.trim() || isTyping || conversationStage === "intro"}
+          disabled={!input.trim() || isTyping || conversationStage === "intro" || isResuming}
           title="Send message"
         >
           <Send size={18} />

@@ -1,4 +1,3 @@
-
 import { useState, useRef } from "react";
 import { motion } from "framer-motion";
 import { Users, UserCog, Heart, ArrowRight, Check, Vote, HelpCircle } from "lucide-react";
@@ -9,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Fab } from "@/components/ui/fab";
 import { ChatProvider } from "@/components/chatbot/ChatProvider";
 import { ChatbotLauncher } from "@/components/chatbot/ChatbotLauncher";
+import { MicroChatBubble } from "@/components/chatbot/MicroChatBubble";
 
 const roles = [{
   id: "family",
@@ -96,16 +96,17 @@ const Index = () => {
           </motion.div>
 
           <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
-            {roles.map((role, index) => <motion.div key={role.id} initial={{
-              opacity: 0,
-              y: 20
-            }} animate={{
-              opacity: 1,
-              y: 0
-            }} transition={{
-              duration: 0.5,
-              delay: index * 0.1
-            }} className={`relative group`}>
+            {roles.map((role, index) => (
+              <motion.div key={role.id} initial={{
+                opacity: 0,
+                y: 20
+              }} animate={{
+                opacity: 1,
+                y: 0
+              }} transition={{
+                duration: 0.5,
+                delay: index * 0.1
+              }} className={`relative group`}>
                 <div className={`${role.color} rounded-2xl p-6 h-full transition-transform duration-300 group-hover:scale-[1.02]`}>
                   <div className="mb-4">
                     <role.icon className="w-8 h-8 text-primary-600" />
@@ -114,12 +115,18 @@ const Index = () => {
                     {role.title}
                   </h3>
                   <p className="text-gray-600 mb-6">{role.description}</p>
-                  <button onClick={() => handleRoleSelect(role.id)} className="inline-flex items-center text-primary-700 font-medium group/button">
-                    {role.cta}
-                    <ArrowRight className="ml-2 w-4 h-4 transition-transform duration-300 group-hover/button:translate-x-1" />
-                  </button>
+                  
+                  <div className="flex justify-between items-center">
+                    <button onClick={() => handleRoleSelect(role.id)} className="inline-flex items-center text-primary-700 font-medium group/button">
+                      {role.cta}
+                      <ArrowRight className="ml-2 w-4 h-4 transition-transform duration-300 group-hover/button:translate-x-1" />
+                    </button>
+                    
+                    <MicroChatBubble role={role.id as 'family' | 'professional' | 'community'} />
+                  </div>
                 </div>
-              </motion.div>)}
+              </motion.div>
+            ))}
           </div>
 
           <motion.div initial={{
@@ -130,9 +137,15 @@ const Index = () => {
             duration: 0.5,
             delay: 0.6
           }} className="text-center mt-16">
-            <button onClick={handleGetStarted} className="inline-flex items-center justify-center h-11 px-8 font-medium text-white bg-primary-500 rounded-full transition-colors duration-300 hover:bg-primary-600">
-              Get Started
-            </button>
+            <div className="relative inline-block">
+              <button onClick={handleGetStarted} className="inline-flex items-center justify-center h-11 px-8 font-medium text-white bg-primary-500 rounded-full transition-colors duration-300 hover:bg-primary-600">
+                Get Started
+              </button>
+              
+              <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-3">
+                <MicroChatBubble role="family" position="top" />
+              </div>
+            </div>
           </motion.div>
 
           <div ref={comparisonRef} className="mt-32">
@@ -152,41 +165,48 @@ const Index = () => {
             </motion.div>
 
             <div className="grid md:grid-cols-2 gap-8 max-w-6xl mx-auto">
-              {roles.map((role, index) => <motion.div key={role.id} initial={{
-                opacity: 0,
-                y: 20
-              }} whileInView={{
-                opacity: 1,
-                y: 0
-              }} transition={{
-                duration: 0.5,
-                delay: index * 0.1
-              }} viewport={{
-                once: true
-              }}>
-                <Card className="h-full">
-                  <CardHeader>
-                    <div className="mb-4">
-                      <role.icon className="w-8 h-8 text-primary-600" />
-                    </div>
-                    <CardTitle>{role.title}</CardTitle>
-                    <CardDescription>{role.description}</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <ul className="space-y-4">
-                      {role.features.map((feature, i) => <li key={i} className="flex items-start">
-                          <ArrowRight className="w-4 h-4 text-primary-500 mr-2 mt-1 flex-shrink-0" />
-                          <span className="text-gray-600">{feature}</span>
-                        </li>)}
-                    </ul>
-                    <Link to={role.path}>
-                      <Button className="w-full mt-6 inline-flex items-center justify-center h-10 px-4 font-medium text-white bg-primary-500 rounded-lg transition-colors duration-300 hover:bg-primary-600">
-                        {role.cta}
-                      </Button>
-                    </Link>
-                  </CardContent>
-                </Card>
-              </motion.div>)}
+              {roles.map((role, index) => (
+                <motion.div key={role.id} initial={{
+                  opacity: 0,
+                  y: 20
+                }} whileInView={{
+                  opacity: 1,
+                  y: 0
+                }} transition={{
+                  duration: 0.5,
+                  delay: index * 0.1
+                }} viewport={{
+                  once: true
+                }}>
+                  <Card className="h-full">
+                    <CardHeader>
+                      <div className="mb-4">
+                        <role.icon className="w-8 h-8 text-primary-600" />
+                      </div>
+                      <CardTitle>{role.title}</CardTitle>
+                      <CardDescription>{role.description}</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <ul className="space-y-4">
+                        {role.features.map((feature, i) => <li key={i} className="flex items-start">
+                            <ArrowRight className="w-4 h-4 text-primary-500 mr-2 mt-1 flex-shrink-0" />
+                            <span className="text-gray-600">{feature}</span>
+                          </li>)}
+                      </ul>
+                      
+                      <div className="flex justify-between items-center mt-6">
+                        <Link to={role.path}>
+                          <Button className="inline-flex items-center justify-center h-10 px-4 font-medium text-white bg-primary-500 rounded-lg transition-colors duration-300 hover:bg-primary-600">
+                            {role.cta}
+                          </Button>
+                        </Link>
+                        
+                        <MicroChatBubble role={role.id as 'family' | 'professional' | 'community'} position="right" />
+                      </div>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              ))}
             </div>
           </div>
 
@@ -237,11 +257,16 @@ const Index = () => {
                           <span className="text-gray-600">{feature}</span>
                         </li>)}
                     </ul>
-                    <Link to={communityRole.path}>
-                      <Button className="w-full mt-6 inline-flex items-center justify-center h-10 px-4 font-medium text-white bg-primary-500 rounded-lg transition-colors duration-300 hover:bg-primary-600">
-                        {communityRole.cta}
-                      </Button>
-                    </Link>
+                    
+                    <div className="flex justify-between items-center mt-6">
+                      <Link to={communityRole.path}>
+                        <Button className="inline-flex items-center justify-center h-10 px-4 font-medium text-white bg-primary-500 rounded-lg transition-colors duration-300 hover:bg-primary-600">
+                          {communityRole.cta}
+                        </Button>
+                      </Link>
+                      
+                      <MicroChatBubble role="community" position="right" />
+                    </div>
                   </CardContent>
                 </Card>
               </motion.div>
@@ -303,7 +328,6 @@ const Index = () => {
           </div>
         </div>
         
-        {/* Place both the ChatbotLauncher and FAB */}
         <ChatbotLauncher 
           position="left-of-fab" 
           spacing={24}

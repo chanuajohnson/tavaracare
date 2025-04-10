@@ -6,6 +6,8 @@ interface ChatContextType {
   toggleChat: () => void;
   openChat: () => void;
   closeChat: () => void;
+  initialRole: string | null;
+  setInitialRole: (role: string | null) => void;
 }
 
 const ChatContext = createContext<ChatContextType | undefined>(undefined);
@@ -20,6 +22,7 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({
   initialOpen = false
 }) => {
   const [isOpen, setIsOpen] = useState(initialOpen);
+  const [initialRole, setInitialRole] = useState<string | null>(null);
 
   // Allow toggling the chat state
   const toggleChat = () => {
@@ -41,16 +44,28 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({
     localStorage.setItem('tavara_chat_is_open', isOpen ? 'true' : 'false');
   }, [isOpen]);
 
-  // Check if chat was previously open
+  // Check if chat was previously open and if there's an initial role
   useEffect(() => {
     const savedState = localStorage.getItem('tavara_chat_is_open');
     if (savedState === 'true') {
       setIsOpen(true);
     }
+    
+    const savedRole = localStorage.getItem('tavara_chat_initial_role');
+    if (savedRole) {
+      setInitialRole(savedRole);
+    }
   }, []);
 
   return (
-    <ChatContext.Provider value={{ isOpen, toggleChat, openChat, closeChat }}>
+    <ChatContext.Provider value={{ 
+      isOpen, 
+      toggleChat, 
+      openChat, 
+      closeChat,
+      initialRole,
+      setInitialRole
+    }}>
       {children}
     </ChatContext.Provider>
   );

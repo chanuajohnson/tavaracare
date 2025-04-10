@@ -10,6 +10,32 @@ interface MessageProps {
 }
 
 export const MessageBubble: React.FC<MessageProps> = ({ content, isUser, timestamp }) => {
+  // Add Trinidad & Tobago cultural flair to bot messages by replacing certain phrases
+  const formatBotMessage = (message: string): string => {
+    if (isUser) return message;
+    
+    // Trinidad & Tobago phrases and replacements
+    const ttPhrases: Record<string, string> = {
+      'Hello': 'Good day',
+      'Hi there': 'Yuh alright',
+      'Don\'t worry': 'Doh worry',
+      'I\'m here to help': 'I got you covered',
+      'Thank you': 'Thanks plenty',
+      'Goodbye': 'Laters',
+      'See you': 'Leh we link up soon',
+    };
+    
+    let formattedMessage = message;
+    Object.keys(ttPhrases).forEach(phrase => {
+      const regex = new RegExp(`\\b${phrase}\\b`, 'gi');
+      formattedMessage = formattedMessage.replace(regex, ttPhrases[phrase]);
+    });
+    
+    return formattedMessage;
+  };
+  
+  const displayContent = formatBotMessage(content);
+  
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
@@ -28,7 +54,7 @@ export const MessageBubble: React.FC<MessageProps> = ({ content, isUser, timesta
             : "bg-muted text-foreground"
         }`}
       >
-        <div className="whitespace-pre-wrap break-words">{content}</div>
+        <div className="whitespace-pre-wrap break-words">{displayContent}</div>
         <div className={`text-xs mt-1 ${isUser ? "text-primary-foreground/80" : "text-muted-foreground"}`}>
           {new Date(timestamp).toLocaleTimeString([], { 
             hour: '2-digit', 
