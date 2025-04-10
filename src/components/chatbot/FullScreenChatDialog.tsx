@@ -15,8 +15,14 @@ export const FullScreenChatDialog: React.FC<FullScreenChatDialogProps> = ({
   open,
   onClose
 }) => {
+  // Added console log for debugging
+  console.log('FullScreenChatDialog rendering', { open });
+  
+  if (!open) return null;
+  
   return (
     <Dialog open={open} onOpenChange={(isOpen) => {
+      console.log('Dialog onOpenChange', { isOpen });
       if (!isOpen) onClose();
     }}>
       <DialogContent className="max-w-full w-full h-full max-h-full sm:max-w-full sm:rounded-none p-0 gap-0">

@@ -29,10 +29,12 @@ const ChatbotSystemInner: React.FC<Omit<ChatbotSystemProps, 'children'>> = ({
       />
       
       {/* Full-screen chat dialog */}
-      <FullScreenChatDialog
-        open={isFullScreen}
-        onClose={closeFullScreenChat}
-      />
+      {isFullScreen && (
+        <FullScreenChatDialog
+          open={isFullScreen}
+          onClose={closeFullScreenChat}
+        />
+      )}
     </>
   );
 };
@@ -42,10 +44,21 @@ export const ChatbotSystem: React.FC<ChatbotSystemProps> = ({
   children,
   ...props
 }) => {
-  return (
-    <ChatProvider>
-      {children}
-      <ChatbotSystemInner {...props} />
-    </ChatProvider>
-  );
+  // No need to create a new ChatProvider if we're already inside one
+  // Instead, try to use the existing context first
+  try {
+    // This will throw an error if no ChatProvider exists
+    useChat();
+    
+    // If we get here, we're already inside a ChatProvider
+    return <ChatbotSystemInner {...props} />;
+  } catch (error) {
+    // No existing ChatProvider, so we need to create one
+    return (
+      <ChatProvider>
+        {children}
+        <ChatbotSystemInner {...props} />
+      </ChatProvider>
+    );
+  }
 };

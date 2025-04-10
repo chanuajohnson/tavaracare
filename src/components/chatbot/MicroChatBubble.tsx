@@ -24,10 +24,27 @@ export const MicroChatBubble: React.FC<MicroChatBubbleProps> = ({
 }) => {
   const [isVisible, setIsVisible] = useState(false);
   const [isDismissed, setIsDismissed] = useState(false);
-  const { openChat, openFullScreenChat } = useChat();
   const isMobile = useIsMobile();
   const [bubbleRect, setBubbleRect] = useState<DOMRect | null>(null);
   const bubbleRef = React.useRef<HTMLDivElement>(null);
+  
+  // Try to get chat context, if it fails, provide fallback behavior
+  let openChat: () => void;
+  let openFullScreenChat: () => void;
+  
+  try {
+    const chatContext = useChat();
+    openChat = chatContext.openChat;
+    openFullScreenChat = chatContext.openFullScreenChat;
+  } catch (error) {
+    // Fallback behavior if not within a ChatProvider
+    console.error('MicroChatBubble: No ChatProvider found in context', error);
+    openChat = () => {
+      console.warn('MicroChatBubble: openChat called but no ChatProvider available');
+      alert('Chat functionality is not available. Please refresh the page or contact support.');
+    };
+    openFullScreenChat = openChat;
+  }
   
   // Don't show if user has dismissed
   if (isDismissed) {
@@ -36,13 +53,21 @@ export const MicroChatBubble: React.FC<MicroChatBubbleProps> = ({
   
   const greeting = roleGreetings[role] || roleGreetings.default;
   
-  const handleStartChat = () => {
+  const handleStartChat = (e: React.MouseEvent) => {
+    // Prevent event from bubbling up
+    e.stopPropagation();
+    e.preventDefault();
+    
+    console.log('MicroChatBubble: handleStartChat called', { role, useFullScreen });
+    
     // Store the selected role in localStorage for the main chat to pick up
     localStorage.setItem('tavara_chat_initial_role', role);
     
     if (useFullScreen) {
+      console.log('MicroChatBubble: Opening full screen chat');
       openFullScreenChat();
     } else {
+      console.log('MicroChatBubble: Opening regular chat');
       openChat();
     }
     
@@ -152,7 +177,6 @@ export const MicroChatBubble: React.FC<MicroChatBubbleProps> = ({
               <X size={14} />
             </Button>
             <p className="text-sm">{greeting.message}</p>
-            {/* Removed the Continue button and arrow */}
           </motion.div>
         </AnimatePresence>,
         document.body
