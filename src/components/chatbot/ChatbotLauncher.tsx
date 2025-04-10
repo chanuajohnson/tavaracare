@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { MessageSquare } from 'lucide-react';
@@ -14,7 +14,20 @@ interface ChatbotLauncherProps {
   className?: string;
 }
 
-export const ChatbotLauncher: React.FC<ChatbotLauncherProps> = ({ 
+// Create a wrapper component that handles the case when no ChatProvider exists
+const ChatbotLauncherWithErrorHandling: React.FC<ChatbotLauncherProps> = (props) => {
+  try {
+    // This will throw an error if no ChatProvider exists in the tree
+    return <ChatbotLauncher {...props} />;
+  } catch (error) {
+    console.error("ChatbotLauncher error:", error);
+    // Return null or a fallback UI when ChatProvider is missing
+    return null;
+  }
+};
+
+// Main component implementation that uses the hook
+const ChatbotLauncher: React.FC<ChatbotLauncherProps> = ({ 
   position = 'above-fab',
   spacing = 24, // Default spacing of 24px (6rem)
   width = '320px',
@@ -83,3 +96,6 @@ export const ChatbotLauncher: React.FC<ChatbotLauncherProps> = ({
     </>
   );
 };
+
+// Export the error-handling wrapper instead of the direct component
+export { ChatbotLauncherWithErrorHandling as ChatbotLauncher };

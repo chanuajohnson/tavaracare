@@ -1,3 +1,4 @@
+
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -137,6 +138,7 @@ const AppWithProviders = () => {
     };
   }, []);
 
+  // Wrap the entire app with ChatProvider to ensure any ChatbotLauncher has access
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>

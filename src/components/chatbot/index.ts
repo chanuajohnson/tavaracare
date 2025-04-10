@@ -1,4 +1,4 @@
 
 export * from './ChatbotWidget';
-export * from './ChatbotLauncher';
+export { ChatbotLauncherWithErrorHandling as ChatbotLauncher } from './ChatbotLauncher';
 export * from './ChatProvider';
