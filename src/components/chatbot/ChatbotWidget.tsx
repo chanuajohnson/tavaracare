@@ -19,7 +19,6 @@ interface ChatbotWidgetProps {
   className?: string;
   width?: string;
   onClose?: () => void;
-  fullScreen?: boolean;
 }
 
 // Bot is typing indicator
@@ -101,8 +100,7 @@ const OptionsRenderer: React.FC<{
 export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({ 
   className,
   width = "320px",
-  onClose,
-  fullScreen = false
+  onClose
 }) => {
   const [input, setInput] = useState("");
   const [selectedRole, setSelectedRole] = useState<string | null>(null);
@@ -352,11 +350,10 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({
   return (
     <div 
       className={cn(
-        "bg-background border rounded-lg shadow-xl flex flex-col z-40",
-        fullScreen ? "h-full" : "h-[500px]",
+        "bg-background border rounded-lg shadow-xl flex flex-col z-40 h-[500px]",
         className
       )}
-      style={{ width: fullScreen ? "100%" : width }}
+      style={{ width }}
     >
       <div className="flex items-center justify-between border-b p-3">
         <h3 className="font-medium">Tavara Assistant</h3>
