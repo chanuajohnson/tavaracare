@@ -16,7 +16,7 @@ interface MicroChatBubbleProps {
 // Role-specific greeting messages with Trinidad & Tobago flavor
 const roleGreetings: Record<string, { message: string, prompt: string }> = {
   family: {
-    message: "Good day, friend! Yuh looking for family care, right? Let's get some quick info to connect yuh with the right care providers.",
+    message: "You're looking for the right caregiver, aren't you? Let me get a few details so we can match you with Tavara.care caregivers who meet your needs.",
     prompt: "Let's get you that care you need"
   },
   professional: {
@@ -91,7 +91,7 @@ export const MicroChatBubble: React.FC<MicroChatBubbleProps> = ({
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.8 }}
             className={cn(
-              "absolute z-10 w-64 bg-white rounded-lg shadow-lg p-3 border border-gray-200",
+              "absolute z-50 w-64 bg-white rounded-lg shadow-lg p-3 border border-gray-200",
               positionClasses[position]
             )}
           >

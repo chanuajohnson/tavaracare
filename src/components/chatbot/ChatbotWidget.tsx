@@ -6,11 +6,12 @@ import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { useChatMessages } from "@/hooks/chat/useChatMessages";
 import { useChatSession } from "@/hooks/chat/useChatSession";
-import { getIntroMessage, getRoleOptions, getRoleFollowupMessage, getCommunityOptions } from "@/data/chatIntroMessage";
+import { getIntroMessage, getRoleFollowupMessage, getCommunityOptions } from "@/data/chatIntroMessage";
 import { generatePrefillJson } from "@/utils/chat/prefillGenerator";
 import { MessageBubble } from "./MessageBubble";
 import { OptionCard } from "./OptionCard";
 import { useChat } from "./ChatProvider";
+import { useChatProgress } from "@/hooks/chat/useChatProgress";
 
 interface TypingIndicatorProps {}
 
@@ -112,7 +113,8 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({
   
   const { sessionId } = useChatSession();
   const { messages, addMessage, clearMessages } = useChatMessages(sessionId);
-  const { initialRole, setInitialRole } = useChat();
+  const { initialRole, setInitialRole, skipIntro, setSkipIntro } = useChat();
+  const { progress, updateProgress, clearProgress } = useChatProgress();
   
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -122,16 +124,19 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({
     if (messages.length === 0) {
       if (initialRole) {
         handleInitialRoleSelection(initialRole);
+      } else if (skipIntro && progress.role) {
+        handleInitialRoleSelection(progress.role);
+        setQuestionIndex(progress.questionIndex);
       } else {
         const introMessage = getIntroMessage();
         simulateBotTyping(introMessage);
       }
     }
-  }, [messages.length, initialRole]);
+  }, [messages.length, initialRole, skipIntro, progress]);
 
   useEffect(() => {
     const partialProgress = localStorage.getItem(`tavara_chat_progress_${sessionId}`);
-    if (partialProgress && messages.length > 1) {
+    if (partialProgress && messages.length > 1 && !skipIntro) {
       setIsResuming(true);
       addMessage({
         content: "Welcome back! Would you like to continue where you left off?",
@@ -143,7 +148,7 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({
         ]
       });
     }
-  }, [sessionId]);
+  }, [sessionId, skipIntro]);
   
   const handleInitialRoleSelection = async (roleId: string) => {
     setSelectedRole(roleId);
@@ -153,32 +158,35 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({
     setInitialRole(null);
     localStorage.removeItem('tavara_chat_initial_role');
     
-    let greeting = "";
-    switch(roleId) {
-      case "family":
-        greeting = "Good day, friend! Yuh looking for family care, right? Let's get some quick info to connect yuh with the right care providers.";
-        break;
-      case "professional":
-        greeting = "So you're a care pro? Let me help you register with Tavara. We have families looking for your skills right now!";
-        break;
-      case "community":
-        greeting = "Welcome! Discover how you can support your community with Tavara. Ready to sign up?";
-        break;
-      default:
-        greeting = "Good day! How can Tavara help you today?";
-    }
-    
-    await simulateBotTyping(greeting);
-    
-    const selectedOption = getRoleOptions().find(o => o.id === roleId);
-    addMessage({
-      content: selectedOption?.label || roleId,
-      isUser: true,
-      timestamp: Date.now()
+    updateProgress({
+      role: roleId,
+      questionIndex: 0
     });
     
-    await simulateBotTyping(getNextQuestion(roleId, 0));
-    setQuestionIndex(1);
+    if (skipIntro) {
+      await simulateBotTyping(getNextQuestion(roleId, 0));
+      setQuestionIndex(1);
+      setSkipIntro(false);
+    } else {
+      let greeting = "";
+      switch(roleId) {
+        case "family":
+          greeting = "You're looking for the right caregiver, aren't you? Let me get a few details so we can match you with Tavara.care caregivers who meet your needs.";
+          break;
+        case "professional":
+          greeting = "So you're a care pro? Let me help you register with Tavara. We have families looking for your skills right now!";
+          break;
+        case "community":
+          greeting = "Welcome! Discover how you can support your community with Tavara. Ready to sign up?";
+          break;
+        default:
+          greeting = "Good day! How can Tavara help you today?";
+      }
+      
+      await simulateBotTyping(greeting);
+      await simulateBotTyping(getNextQuestion(roleId, 0));
+      setQuestionIndex(1);
+    }
   };
 
   const simulateBotTyping = async (message: string, options?: { id: string; label: string; subtext?: string }[]) => {
@@ -222,16 +230,9 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({
     setShowOptions(false);
     setConversationStage("questions");
     
-    localStorage.setItem(`tavara_chat_progress_${sessionId}`, JSON.stringify({
+    updateProgress({
       role: roleId,
       questionIndex: 0
-    }));
-    
-    const selectedOption = getRoleOptions().find(o => o.id === roleId);
-    addMessage({
-      content: selectedOption?.label || roleId,
-      isUser: true,
-      timestamp: Date.now()
     });
     
     const followupMessage = getRoleFollowupMessage(roleId);
@@ -249,10 +250,10 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({
     });
     
     if (selectedRole) {
-      localStorage.setItem(`tavara_chat_progress_${sessionId}`, JSON.stringify({
+      updateProgress({
         role: selectedRole,
         questionIndex: questionIndex + 1
-      }));
+      });
       
       await simulateBotTyping(getNextQuestion(selectedRole, questionIndex));
       setQuestionIndex(prev => prev + 1);
@@ -273,20 +274,20 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({
     setInput("");
     
     if (selectedRole) {
-      localStorage.setItem(`tavara_chat_progress_${sessionId}`, JSON.stringify({
+      updateProgress({
         role: selectedRole,
         questionIndex: questionIndex + 1
-      }));
+      });
       
       if (questionIndex >= getRoleQuestions(selectedRole).length) {
         setConversationStage("completion");
         const prefillJson = generatePrefillJson(selectedRole, messages);
         console.log("Generated prefill JSON:", prefillJson);
         
-        localStorage.removeItem(`tavara_chat_progress_${sessionId}`);
+        clearProgress();
         
         await simulateBotTyping(
-          `Thanks plenty for providing this information! Based on your answers, we recommend completing your ${selectedRole} registration. In the future, we'll direct you to the registration form with this data pre-filled. Leh we make care easier together!`
+          `Thanks for providing this information! Based on your answers, we recommend completing your ${selectedRole} registration. In the future, we'll direct you to the registration form with this data pre-filled.`
         );
         return;
       }
@@ -306,7 +307,7 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({
     switch (role) {
       case "family":
         return [
-          "What's your name?",
+          "What's your first name?",
           "Who do you need care for? (name and your relationship to them)",
           "What kind of care do they need? (e.g., medical, household, memory)",
           "Are there any special needs or conditions we should know about?",
@@ -340,23 +341,11 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({
     setInput("");
     setShowOptions(true);
     setConversationStage("intro");
+    clearProgress();
     
     const introMessage = getIntroMessage();
-    simulateBotTyping(introMessage, getRoleOptions());
+    simulateBotTyping(introMessage);
   };
-
-  useEffect(() => {
-    if (messages.length === 1 && messages[0].isUser === false && showOptions) {
-      if (!messages[0].options || messages[0].options.length === 0) {
-        addMessage({
-          content: messages[0].content,
-          isUser: false,
-          timestamp: messages[0].timestamp,
-          options: getRoleOptions()
-        });
-      }
-    }
-  }, [messages, showOptions, addMessage]);
 
   return (
     <div 

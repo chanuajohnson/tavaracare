@@ -8,6 +8,8 @@ interface ChatContextType {
   closeChat: () => void;
   initialRole: string | null;
   setInitialRole: (role: string | null) => void;
+  skipIntro: boolean;
+  setSkipIntro: (skip: boolean) => void;
 }
 
 const ChatContext = createContext<ChatContextType | undefined>(undefined);
@@ -23,6 +25,7 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({
 }) => {
   const [isOpen, setIsOpen] = useState(initialOpen);
   const [initialRole, setInitialRole] = useState<string | null>(null);
+  const [skipIntro, setSkipIntro] = useState(false);
 
   // Allow toggling the chat state
   const toggleChat = () => {
@@ -54,6 +57,7 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({
     const savedRole = localStorage.getItem('tavara_chat_initial_role');
     if (savedRole) {
       setInitialRole(savedRole);
+      setSkipIntro(true); // Skip intro when a role is defined
     }
   }, []);
 
@@ -64,7 +68,9 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({
       openChat, 
       closeChat,
       initialRole,
-      setInitialRole
+      setInitialRole,
+      skipIntro,
+      setSkipIntro
     }}>
       {children}
     </ChatContext.Provider>
