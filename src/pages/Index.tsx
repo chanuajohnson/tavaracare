@@ -8,8 +8,6 @@ import { Button } from "@/components/ui/button";
 import { Fab } from "@/components/ui/fab";
 import { MicroChatBubble } from "@/components/chatbot/MicroChatBubble";
 import { ChatbotSystem } from "@/components/chatbot/ChatbotSystem";
-import { ChatProvider } from "@/components/chatbot/ChatProvider";
-import { FullScreenChatDialog } from "@/components/chatbot/FullScreenChatDialog";
 
 const roles = [{
   id: "family",
@@ -74,83 +72,82 @@ const Index = () => {
   };
 
   return (
-    <ChatProvider>
-      <div className="min-h-screen w-full bg-gradient-to-b from-white to-primary-100">
-        <div className="container px-4 py-12 mx-auto">
-          <motion.div initial={{
-            opacity: 0,
-            y: 20
-          }} animate={{
-            opacity: 1,
-            y: 0
-          }} transition={{
-            duration: 0.5
-          }} className="text-center mb-16">
-            <span className="px-4 py-1.5 rounded-full text-sm font-medium bg-primary-100 text-primary-800 mb-4 inline-block">
-              Care Coordination Platform
-            </span>
-            <h1 className="text-4xl md:text-6xl font-bold text-gray-900 mb-6">Tavara</h1>
-            <p className="text-lg md:text-xl text-gray-600 max-w-2xl mx-auto">
-              Join our community of care coordinators, families, and professionals to make
-              caring easier and more effective.
-            </p>
-          </motion.div>
+    <div className="min-h-screen w-full bg-gradient-to-b from-white to-primary-100">
+      <div className="container px-4 py-12 mx-auto">
+        <motion.div initial={{
+          opacity: 0,
+          y: 20
+        }} animate={{
+          opacity: 1,
+          y: 0
+        }} transition={{
+          duration: 0.5
+        }} className="text-center mb-16">
+          <span className="px-4 py-1.5 rounded-full text-sm font-medium bg-primary-100 text-primary-800 mb-4 inline-block">
+            Care Coordination Platform
+          </span>
+          <h1 className="text-4xl md:text-6xl font-bold text-gray-900 mb-6">Tavara</h1>
+          <p className="text-lg md:text-xl text-gray-600 max-w-2xl mx-auto">
+            Join our community of care coordinators, families, and professionals to make
+            caring easier and more effective.
+          </p>
+        </motion.div>
 
-          <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
-            {roles.map((role, index) => (
-              <motion.div key={role.id} initial={{
-                opacity: 0,
-                y: 20
-              }} animate={{
-                opacity: 1,
-                y: 0
-              }} transition={{
-                duration: 0.5,
-                delay: index * 0.1
-              }} className={`relative group`}>
-                <div className={`${role.color} rounded-2xl p-6 h-full transition-transform duration-300 group-hover:scale-[1.02]`}>
-                  <div className="mb-4">
-                    <role.icon className="w-8 h-8 text-primary-600" />
-                  </div>
-                  <h3 className="text-xl font-semibold mb-2 text-gray-900">
-                    {role.title}
-                  </h3>
-                  <p className="text-gray-600 mb-6">{role.description}</p>
-                  
-                  <div className="flex justify-between items-center">
-                    <button onClick={() => handleRoleSelect(role.id)} className="inline-flex items-center text-primary-700 font-medium group/button">
-                      {role.cta}
-                      <ArrowRight className="ml-2 w-4 h-4 transition-transform duration-300 group-hover/button:translate-x-1" />
-                    </button>
-                    
-                    <MicroChatBubble role={role.id as 'family' | 'professional' | 'community'} />
-                  </div>
+        <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
+          {roles.map((role, index) => (
+            <motion.div key={role.id} initial={{
+              opacity: 0,
+              y: 20
+            }} animate={{
+              opacity: 1,
+              y: 0
+            }} transition={{
+              duration: 0.5,
+              delay: index * 0.1
+            }} className={`relative group`}>
+              <div className={`${role.color} rounded-2xl p-6 h-full transition-transform duration-300 group-hover:scale-[1.02]`}>
+                <div className="mb-4">
+                  <role.icon className="w-8 h-8 text-primary-600" />
                 </div>
-              </motion.div>
-            ))}
-          </div>
-
-          <motion.div initial={{
-            opacity: 0
-          }} animate={{
-            opacity: 1
-          }} transition={{
-            duration: 0.5,
-            delay: 0.6
-          }} className="text-center mt-16">
-            <div className="relative inline-flex items-center">
-              <button onClick={handleGetStarted} className="inline-flex items-center justify-center h-11 px-8 font-medium text-white bg-primary-500 rounded-full transition-colors duration-300 hover:bg-primary-600">
-                Get Started
-              </button>
-              
-              <div className="ml-3">
-                <MicroChatBubble role="family" position="right" />
+                <h3 className="text-xl font-semibold mb-2 text-gray-900">
+                  {role.title}
+                </h3>
+                <p className="text-gray-600 mb-6">{role.description}</p>
+                
+                <div className="flex justify-between items-center">
+                  <button onClick={() => handleRoleSelect(role.id)} className="inline-flex items-center text-primary-700 font-medium group/button">
+                    {role.cta}
+                    <ArrowRight className="ml-2 w-4 h-4 transition-transform duration-300 group-hover/button:translate-x-1" />
+                  </button>
+                  
+                  <MicroChatBubble role={role.id as 'family' | 'professional' | 'community'} />
+                </div>
               </div>
-            </div>
-          </motion.div>
+            </motion.div>
+          ))}
+        </div>
 
-          <div ref={comparisonRef} className="mt-32">
-            <motion.div initial={{
+        <motion.div initial={{
+          opacity: 0
+        }} animate={{
+          opacity: 1
+        }} transition={{
+          duration: 0.5,
+          delay: 0.6
+        }} className="text-center mt-16">
+          <div className="relative inline-flex items-center">
+            <button onClick={handleGetStarted} className="inline-flex items-center justify-center h-11 px-8 font-medium text-white bg-primary-500 rounded-full transition-colors duration-300 hover:bg-primary-600">
+              Get Started
+            </button>
+            
+            <div className="ml-3">
+              <MicroChatBubble role="family" position="right" />
+            </div>
+          </div>
+        </motion.div>
+
+        <div ref={comparisonRef} className="mt-32">
+          <motion.div initial={{
               opacity: 0,
               y: 20
             }} whileInView={{
@@ -209,10 +206,10 @@ const Index = () => {
                 </motion.div>
               ))}
             </div>
-          </div>
+        </div>
 
-          <div className="mt-32 max-w-5xl mx-auto">
-            <motion.div initial={{
+        <div className="mt-32 max-w-5xl mx-auto">
+          <motion.div initial={{
               opacity: 0,
               y: 20
             }} whileInView={{
@@ -272,10 +269,10 @@ const Index = () => {
                 </Card>
               </motion.div>
             </div>
-          </div>
+        </div>
 
-          <div className="mt-32 max-w-5xl mx-auto">
-            <motion.div initial={{
+        <div className="mt-32 max-w-5xl mx-auto">
+          <motion.div initial={{
               opacity: 0,
               y: 20
             }} whileInView={{
@@ -326,18 +323,17 @@ const Index = () => {
                 </Card>
               </Link>
             </motion.div>
-          </div>
         </div>
-        
-        <FullScreenChatDialog />
-        
-        <Fab
-          position="bottom-right"
-          icon={<HelpCircle className="h-5 w-5" />}
-          className="bg-primary-500 hover:bg-primary-600 text-white"
-        />
       </div>
-    </ChatProvider>
+      
+      <ChatbotSystem />
+      
+      <Fab
+        position="bottom-right"
+        icon={<HelpCircle className="h-5 w-5" />}
+        className="bg-primary-500 hover:bg-primary-600 text-white"
+      />
+    </div>
   );
 };
 
