@@ -22,7 +22,7 @@ export const MicroChatBubble: React.FC<MicroChatBubbleProps> = ({
 }) => {
   const [isVisible, setIsVisible] = useState(false);
   const [isDismissed, setIsDismissed] = useState(false);
-  const { setInitialRole, setFullScreen, openChat } = useChat();
+  const { setInitialRole, setFullScreen } = useChat();
   const isMobile = useIsMobile();
   const [bubbleRect, setBubbleRect] = useState<DOMRect | null>(null);
   const bubbleRef = React.useRef<HTMLDivElement>(null);
@@ -35,18 +35,13 @@ export const MicroChatBubble: React.FC<MicroChatBubbleProps> = ({
   const greeting = roleGreetings[role] || roleGreetings.default;
   
   const handleStartChat = () => {
-    console.log('MicroChatBubble: Starting chat with role:', role);
-    
     // Store the selected role in localStorage for the main chat to pick up
     localStorage.setItem('tavara_chat_initial_role', role);
     setInitialRole(role);
     
     // Open chat in full-screen mode
-    openChat(); // Ensure the chat is open first
-    setFullScreen(true); // Then set full screen mode
+    setFullScreen(true);
     setIsVisible(false);
-    
-    console.log('MicroChatBubble: Chat should now be in full screen mode');
   };
   
   const handleDismiss = (e: React.MouseEvent) => {

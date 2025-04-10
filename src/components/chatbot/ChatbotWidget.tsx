@@ -399,7 +399,7 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({
 
       <div className="flex-1 p-4 overflow-y-auto">
         {messages.map((message, index) => (
-          <div key={index}>
+          <React.Fragment key={index}>
             <MessageBubble
               content={message.content}
               isUser={message.isUser}
@@ -415,7 +415,7 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({
                 } 
               />
             )}
-          </div>
+          </React.Fragment>
         ))}
         {isTyping && <TypingIndicator />}
         <div ref={messagesEndRef} />
