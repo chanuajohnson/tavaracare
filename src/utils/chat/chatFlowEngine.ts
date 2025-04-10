@@ -1,3 +1,4 @@
+
 import { getChatCompletion, convertToOpenAIMessages } from '@/services/aiService';
 import { getIntroMessage, getRoleFollowupMessage, getRoleOptions } from '@/data/chatIntroMessage';
 import { ChatMessage, ChatOption } from '@/types/chatTypes';
@@ -11,7 +12,7 @@ export interface ChatConfig {
 
 // Default configuration
 export const defaultChatConfig: ChatConfig = {
-  mode: 'hybrid',
+  mode: 'ai',
   temperature: 0.7,
   fallbackThreshold: 2
 };
