@@ -1,6 +1,5 @@
 
-import React, { useState, useRef, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import React, { useState, useEffect } from "react";
 import { Send, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,12 +8,9 @@ import { useChatMessages } from "@/hooks/chat/useChatMessages";
 import { useChatSession } from "@/hooks/chat/useChatSession";
 import { getIntroMessage, getRoleFollowupMessage, getCommunityOptions } from "@/data/chatIntroMessage";
 import { generatePrefillJson } from "@/utils/chat/prefillGenerator";
-import { MessageBubble } from "./MessageBubble";
-import { OptionCard } from "./OptionCard";
 import { useChat } from "./ChatProvider";
 import { useChatProgress } from "@/hooks/chat/useChatProgress";
-
-interface TypingIndicatorProps {}
+import { ChatMessagesList } from "./ChatMessagesList";
 
 interface ChatbotWidgetProps {
   className?: string;
@@ -23,82 +19,6 @@ interface ChatbotWidgetProps {
   hideHeader?: boolean;
 }
 
-// Bot is typing indicator
-const TypingIndicator: React.FC<TypingIndicatorProps> = () => {
-  return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      className="flex items-center space-x-1 p-2 rounded-md bg-muted max-w-fit"
-    >
-      <motion.div
-        className="w-2 h-2 rounded-full bg-gray-400"
-        animate={{
-          scale: [1, 1.2, 1],
-          opacity: [1, 0.7, 1],
-        }}
-        transition={{
-          duration: 1,
-          repeat: Infinity,
-          repeatType: "loop",
-          times: [0, 0.5, 1],
-        }}
-      />
-      <motion.div
-        className="w-2 h-2 rounded-full bg-gray-400"
-        animate={{
-          scale: [1, 1.2, 1],
-          opacity: [1, 0.7, 1],
-        }}
-        transition={{
-          duration: 1,
-          repeat: Infinity,
-          repeatType: "loop",
-          delay: 0.3,
-          times: [0, 0.5, 1],
-        }}
-      />
-      <motion.div
-        className="w-2 h-2 rounded-full bg-gray-400"
-        animate={{
-          scale: [1, 1.2, 1],
-          opacity: [1, 0.7, 1],
-        }}
-        transition={{
-          duration: 1,
-          repeat: Infinity,
-          repeatType: "loop",
-          delay: 0.6,
-          times: [0, 0.5, 1],
-        }}
-      />
-    </motion.div>
-  );
-};
-
-// Options renderer component
-const OptionsRenderer: React.FC<{
-  options: { id: string; label: string; subtext?: string }[];
-  onSelect: (id: string) => void;
-}> = ({ options, onSelect }) => {
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="flex flex-col space-y-2 my-2"
-    >
-      {options.map((option) => (
-        <OptionCard
-          key={option.id}
-          option={option}
-          onClick={onSelect}
-        />
-      ))}
-    </motion.div>
-  );
-};
-
-// Main ChatbotWidget component
 export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({ 
   className,
   width = "320px",
@@ -112,17 +32,12 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({
   const [showOptions, setShowOptions] = useState(true);
   const [conversationStage, setConversationStage] = useState<"intro" | "questions" | "completion">("intro");
   const [isResuming, setIsResuming] = useState(false);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
   
   const { sessionId } = useChatSession();
   const { messages, addMessage, clearMessages } = useChatMessages(sessionId);
   const { initialRole, setInitialRole, skipIntro, setSkipIntro } = useChat();
   const { progress, updateProgress, clearProgress } = useChatProgress();
   
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
-
   useEffect(() => {
     if (messages.length === 0) {
       if (initialRole) {
@@ -399,29 +314,14 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({
         </div>
       )}
 
-      <div className="flex-1 p-4 overflow-y-auto">
-        {messages.map((message, index) => (
-          <React.Fragment key={index}>
-            <MessageBubble
-              content={message.content}
-              isUser={message.isUser}
-              timestamp={message.timestamp}
-            />
-            {!message.isUser && message.options && (index === messages.length - 1 || message.isUser) && (
-              <OptionsRenderer 
-                options={message.options} 
-                onSelect={
-                  isResuming ? handleRoleSelection : 
-                  conversationStage === "intro" ? handleRoleSelection : 
-                  handleOptionSelection
-                } 
-              />
-            )}
-          </React.Fragment>
-        ))}
-        {isTyping && <TypingIndicator />}
-        <div ref={messagesEndRef} />
-      </div>
+      <ChatMessagesList 
+        messages={messages}
+        isTyping={isTyping}
+        isResuming={isResuming}
+        conversationStage={conversationStage}
+        handleRoleSelection={handleRoleSelection}
+        handleOptionSelection={handleOptionSelection}
+      />
 
       {selectedRole && (
         <div className="border-t border-b p-2 text-center">

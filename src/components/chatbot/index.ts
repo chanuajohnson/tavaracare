@@ -1,5 +1,8 @@
 
 export * from './ChatbotWidget';
+export * from './ChatMessagesList';
+export * from './ChatOptionsRenderer';
+export * from './TypingIndicator';
 export { ChatbotLauncher } from './ChatbotLauncher';
 export * from './ChatProvider';
 export * from './FullScreenChatDialog';
