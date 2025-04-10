@@ -64,3 +64,10 @@ export const getChatModeName = (mode: ChatConfig['mode']): string => {
       return 'Unknown Mode';
   }
 };
+
+/**
+ * Checks if multiple-choice options should always be shown
+ */
+export const shouldAlwaysShowOptions = (): boolean => {
+  return localStorage.getItem('tavara_chat_always_show_options') === 'true';
+};

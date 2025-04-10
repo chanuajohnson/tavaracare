@@ -6,12 +6,12 @@ export const phrasings = {
   // Common greetings and salutations
   greetings: [
     "Hiya",
-    "How are you going?",
+    "How going?",
     "Hello there",
     "Wha' happening?",
     "Aye! How are you?",
-    "Salutations",
-    "Greetings",
+    "Good day",
+    "Welcome",
   ],
   
   // Expressions of acknowledgment

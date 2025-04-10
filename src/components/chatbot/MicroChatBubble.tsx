@@ -135,7 +135,15 @@ export const MicroChatBubble: React.FC<MicroChatBubbleProps> = ({
         <motion.div
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
-          className="h-10 w-10 rounded-full bg-primary flex items-center justify-center text-white shadow-md relative"
+          className={cn(
+            "h-10 w-10 rounded-full bg-primary flex items-center justify-center text-white shadow-md relative",
+            {
+              "bg-blue-600": role === "family",
+              "bg-green-600": role === "professional",
+              "bg-amber-600": role === "community"
+            }
+          )}
+          title={`Chat about ${role} care`}
         >
           <MessageCircle size={20} />
           

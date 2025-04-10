@@ -19,7 +19,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
-import { loadChatConfig, saveChatConfig } from "@/utils/chat/chatConfig";
+import { loadChatConfig, saveChatConfig, getChatModeName } from "@/utils/chat/chatConfig";
 import { ChatConfig } from '@/utils/chat/chatFlowEngine';
 import { toast } from 'sonner';
 
@@ -34,9 +34,13 @@ export const ChatSettings: React.FC<ChatSettingsProps> = ({
 }) => {
   // Load config from localStorage
   const [config, setConfig] = useState<ChatConfig>(() => loadChatConfig());
+  const [alwaysShowOptions, setAlwaysShowOptions] = useState<boolean>(
+    localStorage.getItem('tavara_chat_always_show_options') === 'true'
+  );
 
   const handleSave = () => {
     saveChatConfig(config);
+    localStorage.setItem('tavara_chat_always_show_options', alwaysShowOptions.toString());
     onOpenChange(false);
     toast.success("Chat settings saved");
   };
@@ -115,6 +119,18 @@ export const ChatSettings: React.FC<ChatSettingsProps> = ({
               </p>
             </div>
           )}
+
+          <div className="flex items-center space-x-2">
+            <Switch
+              id="always-show-options"
+              checked={alwaysShowOptions}
+              onCheckedChange={setAlwaysShowOptions}
+            />
+            <Label htmlFor="always-show-options">Always Show Multiple-Choice Options</Label>
+          </div>
+          <p className="text-sm text-muted-foreground mt-0">
+            When enabled, chat will always provide clickable options instead of requiring free text input
+          </p>
         </div>
 
         <DialogFooter>

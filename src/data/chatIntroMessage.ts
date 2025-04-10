@@ -6,21 +6,16 @@ import { ChatOption } from "@/types/chatTypes";
  */
 export const getIntroMessage = (): string => {
   const introMessages = [
-    "Welcome to Tavara! Are you here to find care for someone, or are you a caregiver looking for opportunities?",
-    "Hi there, happy to have you here. Can you tell me if you're looking for care—or looking to provide it?",
-    "Good day and welcome! Are you hoping to connect with a caregiver, or interested in joining our team?",
-    "Hello and welcome to Tavara. Just to get started—are you here as someone seeking care or as a professional caregiver?",
-    "Warm welcome! Can I help you find trusted care for a loved one, or are you looking to offer your caregiving services?",
-    "Nice to meet you! Are you looking for support at home or hoping to offer support as a caregiver?",
-    "Welcome! Are you hoping to match with a caregiver, or are you looking for work as one?",
-    "Hi there! Are you looking for care for someone in your life, or are you hoping to join Tavara as a caregiver?",
-    "Good day! Would you like help finding a caregiver—or are you here to explore caregiving jobs?",
-    "Hello and thanks for visiting Tavara. Are you here to request care or offer it?",
-    "Welcome to Tavara! Just to get you started—are you looking to hire a caregiver or to find caregiving work?",
-    "Hi! Are you here today as someone looking for support, or as someone ready to provide it?",
-    "Good to see you here. Are you hoping to find reliable care or to join Tavara as a caregiver?",
-    "Hello and welcome! May I ask—are you here to arrange care for someone or to apply as a caregiver?",
-    "Thanks for stopping by! Are you looking for care for a loved one, or are you a caregiver seeking new opportunities?",
+    "Welcome to Tavara! Are you looking for care for someone, or are you a caregiver?",
+    "Hi there! Need help finding a caregiver, or are you looking to offer care?",
+    "Good day! Are you here to find care or to provide care services?",
+    "Hello! Are you looking for a caregiver or would you like to work as one?",
+    "Welcome! Are you searching for care support or offering your caregiving skills?",
+    "Hi! Need help finding care for a loved one, or are you a care professional?",
+    "Good day! Looking for a caregiver or want to join as a care provider?",
+    "Welcome to Tavara! Here for care or to provide care?",
+    "Hello there! Need care assistance or offering your services?",
+    "Hi! Are you looking to find a caregiver or become one?",
   ];
   
   // Get a random message from the list
@@ -138,19 +133,19 @@ export const getCommunityOptions = (): ChatOption[] => {
  */
 export const roleGreetings: Record<string, { message: string, prompt: string }> = {
   family: {
-    message: "Not sure if you're leaning toward family care or professional caregiver services?",
-    prompt: "Let's chat and figure things out"
+    message: "Need help finding care for a loved one?",
+    prompt: "Let's chat about care options"
   },
   professional: {
-    message: "So you're a care pro? Let me help you register with Tavara. We have families looking for your skills right now!",
-    prompt: "Let's get you hired"
+    message: "Are you a care professional? Let's get you connected with families who need your skills!",
+    prompt: "Join as a caregiver"
   },
   community: {
-    message: "Welcome! Discover how you can support your community with Tavara. Ready to sign up?",
-    prompt: "Here to support or for Tech?"
+    message: "Want to support your community through Tavara?",
+    prompt: "Get involved"
   },
   default: {
-    message: "Good day! How can Tavara help you today?",
+    message: "How can I help you today?",
     prompt: "Let's chat"
   }
 };

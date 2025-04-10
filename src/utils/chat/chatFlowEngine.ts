@@ -79,11 +79,15 @@ export const processConversation = async (
         return handleScriptedFlow(messages, userRole, sessionId, questionIndex);
       }
       
-      // Otherwise, return an error message
+      // Otherwise, return an error message with options
       return { 
-        message: `Sorry, I'm having trouble understanding. Could you please try again or rephrase? ${
-          retryState.count > 1 ? '(You can also start over if needed)' : ''
-        }`
+        message: `Sorry, I'm having trouble understanding. Please select one of the options below:`,
+        options: [
+          { id: "family", label: "I need care for someone" },
+          { id: "professional", label: "I provide care services" },
+          { id: "community", label: "I want to support the community" },
+          { id: "restart", label: "Start over" }
+        ]
       };
     }
   }
@@ -118,8 +122,8 @@ You are currently helping them through the registration process. We are at quest
 Keep your responses concise (1-3 sentences), friendly, and focused on gathering relevant information.
 Do NOT list multiple questions at once. Focus on ONE question at a time.
 
-Keep your responses natural and conversational, do not use artificial phrases like "how would you like to engage with us today." 
-Use direct, warm language that reflects how real people speak.`;
+Keep your responses natural and conversational. Use direct, warm language that reflects how real people speak.
+DO NOT use phrases like "how would you like to engage with us today" or other artificial corporate language.`;
 
   // Special instructions for first interaction
   if (!userRole && messages.length <= 3) {
@@ -160,7 +164,56 @@ Use direct, warm language that reflects how real people speak.`;
   // Store this message for repetition detection
   lastMessages.set(sessionId, message);
   
-  return { message };
+  // Always provide options for the user to select from if at the beginning of the conversation
+  let options: ChatOption[] | undefined;
+  if (!userRole && messages.length <= 3) {
+    options = [
+      { id: "family", label: "I need care for someone" },
+      { id: "professional", label: "I provide care services" },
+      { id: "community", label: "I want to support the community" }
+    ];
+  } else if (questionIndex < 5) {
+    // For subsequent questions, provide some contextual options based on the question
+    // This ensures users can click rather than type free text
+    switch (userRole) {
+      case 'family':
+        if (questionIndex === 0) {
+          options = [
+            { id: "parent", label: "For my parent" },
+            { id: "spouse", label: "For my spouse" },
+            { id: "child", label: "For my child" },
+            { id: "other", label: "Someone else" }
+          ];
+        } else if (questionIndex === 1) {
+          options = [
+            { id: "daily_activities", label: "Help with daily activities" },
+            { id: "medical", label: "Medical care" },
+            { id: "companionship", label: "Companionship" },
+            { id: "specialized", label: "Specialized care" }
+          ];
+        }
+        break;
+      case 'professional':
+        if (questionIndex === 0) {
+          options = [
+            { id: "home_care", label: "Home care" },
+            { id: "medical_care", label: "Medical care" },
+            { id: "therapy", label: "Therapy" },
+            { id: "specialized", label: "Specialized care" }
+          ];
+        } else if (questionIndex === 1) {
+          options = [
+            { id: "0-2", label: "0-2 years" },
+            { id: "3-5", label: "3-5 years" },
+            { id: "5-10", label: "5-10 years" },
+            { id: "10+", label: "10+ years" }
+          ];
+        }
+        break;
+    }
+  }
+  
+  return { message, options };
 };
 
 /**
@@ -229,20 +282,58 @@ const handleScriptedFlow = (
     }
     
     if (questionIndex < questionList.length) {
+      // Add options based on the current question
+      let options: ChatOption[] | undefined;
+      
+      if (questionIndex === 0) {
+        if (userRole === 'family') {
+          options = [
+            { id: "parent", label: "For my parent" },
+            { id: "spouse", label: "For my spouse" },
+            { id: "child", label: "For my child" },
+            { id: "other", label: "Someone else" }
+          ];
+        } else if (userRole === 'professional') {
+          options = [
+            { id: "home_care", label: "Home care" },
+            { id: "medical_care", label: "Medical care" },
+            { id: "therapy", label: "Therapy" },
+            { id: "specialized", label: "Specialized care" }
+          ];
+        } else if (userRole === 'community') {
+          options = [
+            { id: "volunteer", label: "Volunteer" },
+            { id: "donate", label: "Donate resources" },
+            { id: "advocate", label: "Advocacy" },
+            { id: "other", label: "Other ways" }
+          ];
+        }
+      }
+      
       return {
-        message: applyTrinidadianStyle(questionList[questionIndex])
+        message: applyTrinidadianStyle(questionList[questionIndex]),
+        options: options
       };
     }
     
     // If we've gone through all the questions
     return {
-      message: applyTrinidadianStyle("Thank you for sharing that information! It will help us understand your needs better. Would you like to continue with registration?")
+      message: applyTrinidadianStyle("Thank you for sharing that information! It will help us understand your needs better. Would you like to continue with registration?"),
+      options: [
+        { id: "continue", label: "Yes, continue to registration" },
+        { id: "questions", label: "I have more questions first" }
+      ]
     };
   }
 
-  // Fallback generic message
+  // Fallback generic message with options
   return { 
-    message: applyTrinidadianStyle("I'd be happy to help you. What would you like to know about our caregiving services?") 
+    message: applyTrinidadianStyle("I'd be happy to help you. What would you like to know about our caregiving services?"),
+    options: [
+      { id: "family", label: "I need care for someone" },
+      { id: "professional", label: "I provide care services" },
+      { id: "community", label: "I want to support the community" }
+    ]
   };
 };
 
@@ -325,6 +416,12 @@ export const applyTrinidadianStyle = (message: string): string => {
       modifiedMessage = `${modifiedMessage} ${expression}`;
     }
   }
+
+  // Remove AI-sounding phrases
+  modifiedMessage = modifiedMessage
+    .replace(/how would you like to engage with us today/gi, "how can I help you today")
+    .replace(/engage with (our|the) platform/gi, "use Tavara")
+    .replace(/engage with (our|the) service/gi, "use our service");
 
   return modifiedMessage;
 };
