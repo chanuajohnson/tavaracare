@@ -5,6 +5,7 @@ import { ChatbotLauncher } from './ChatbotLauncher';
 import { FullScreenChatDialog } from './FullScreenChatDialog';
 
 export const ChatbotSystem: React.FC = () => {
+  console.log('ChatbotSystem: Rendering ChatbotSystem with FullScreenChatDialog');
   return (
     <ChatProvider>
       <ChatbotLauncher 

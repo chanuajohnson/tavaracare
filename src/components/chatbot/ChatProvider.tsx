@@ -32,24 +32,29 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({
 
   // Allow toggling the chat state
   const toggleChat = () => {
+    console.log('ChatProvider: Toggling chat, current state:', isOpen);
     setIsOpen(prev => !prev);
   };
 
   // Explicitly open the chat
   const openChat = () => {
+    console.log('ChatProvider: Opening chat');
     setIsOpen(true);
   };
 
   // Explicitly close the chat
   const closeChat = () => {
+    console.log('ChatProvider: Closing chat and resetting fullscreen');
     setIsOpen(false);
     setIsFullScreen(false);
   };
 
   // Set full screen mode
   const setFullScreen = (fullScreen: boolean) => {
+    console.log('ChatProvider: Setting fullscreen mode to:', fullScreen);
     setIsFullScreen(fullScreen);
     if (fullScreen) {
+      // Ensure chat is open when going fullscreen
       setIsOpen(true);
     }
   };

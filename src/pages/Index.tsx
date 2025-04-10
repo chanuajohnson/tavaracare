@@ -51,6 +51,7 @@ const Index = () => {
         <FeatureVotingSection />
       </div>
       
+      {/* The ChatbotSystem component handles both the floating chat button and the full-screen dialog */}
       <ChatbotSystem />
       
       <Fab
