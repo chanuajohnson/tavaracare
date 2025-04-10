@@ -14,20 +14,34 @@ interface ChatbotLauncherProps {
   className?: string;
 }
 
-// Create a wrapper component that handles the case when no ChatProvider exists
-const ChatbotLauncherWithErrorHandling: React.FC<ChatbotLauncherProps> = (props) => {
+// Create a wrapper component that safely handles the case when no ChatProvider exists
+export const ChatbotLauncher: React.FC<ChatbotLauncherProps> = (props) => {
   try {
-    // This will throw an error if no ChatProvider exists in the tree
-    return <ChatbotLauncher {...props} />;
+    return <ChatbotLauncherInner {...props} />;
   } catch (error) {
     console.error("ChatbotLauncher error:", error);
-    // Return null or a fallback UI when ChatProvider is missing
-    return null;
+    // Return a fallback button that doesn't use the chat context
+    return (
+      <motion.div 
+        className={`fixed bottom-6 right-6 z-50`}
+        initial={{ scale: 0.8, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        transition={{ delay: 0.5 }}
+      >
+        <Button
+          size="icon"
+          className={cn("h-14 w-14 rounded-full shadow-lg bg-primary hover:bg-primary/90", props.className)}
+          onClick={() => console.warn("Chat functionality unavailable: ChatProvider not found")}
+        >
+          <MessageSquare size={24} />
+        </Button>
+      </motion.div>
+    );
   }
 };
 
 // Main component implementation that uses the hook
-const ChatbotLauncher: React.FC<ChatbotLauncherProps> = ({ 
+const ChatbotLauncherInner: React.FC<ChatbotLauncherProps> = ({ 
   position = 'above-fab',
   spacing = 24, // Default spacing of 24px (6rem)
   width = '320px',
@@ -96,6 +110,3 @@ const ChatbotLauncher: React.FC<ChatbotLauncherProps> = ({
     </>
   );
 };
-
-// Export the error-handling wrapper instead of the direct component
-export { ChatbotLauncherWithErrorHandling as ChatbotLauncher };
