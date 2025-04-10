@@ -6,11 +6,15 @@ import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { useChatMessages } from "@/hooks/chat/useChatMessages";
 import { useChatSession } from "@/hooks/chat/useChatSession";
-import { getIntroMessage, getRoleFollowupMessage, getCommunityOptions } from "@/data/chatIntroMessage";
+import { getIntroMessage } from "@/data/chatIntroMessage";
 import { generatePrefillJson } from "@/utils/chat/prefillGenerator";
 import { useChat } from "./ChatProvider";
 import { useChatProgress } from "@/hooks/chat/useChatProgress";
 import { ChatMessagesList } from "./ChatMessagesList";
+import { processConversation } from "@/utils/chat/chatFlowEngine";
+import { syncMessagesToSupabase } from "@/services/aiService";
+import { loadChatConfig } from "@/utils/chat/chatConfig";
+import { toast } from "sonner";
 
 interface ChatbotWidgetProps {
   className?: string;
@@ -26,9 +30,7 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({
   hideHeader = false
 }) => {
   const [input, setInput] = useState("");
-  const [selectedRole, setSelectedRole] = useState<string | null>(null);
   const [isTyping, setIsTyping] = useState(false);
-  const [questionIndex, setQuestionIndex] = useState(0);
   const [showOptions, setShowOptions] = useState(true);
   const [conversationStage, setConversationStage] = useState<"intro" | "questions" | "completion">("intro");
   const [isResuming, setIsResuming] = useState(false);
@@ -38,13 +40,15 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({
   const { initialRole, setInitialRole, skipIntro, setSkipIntro } = useChat();
   const { progress, updateProgress, clearProgress } = useChatProgress();
   
+  // Chat configuration
+  const [config] = useState(() => loadChatConfig());
+  
   useEffect(() => {
     if (messages.length === 0) {
       if (initialRole) {
         handleInitialRoleSelection(initialRole);
       } else if (skipIntro && progress.role) {
         handleInitialRoleSelection(progress.role);
-        setQuestionIndex(progress.questionIndex);
       } else {
         const introMessage = getIntroMessage();
         simulateBotTyping(introMessage);
@@ -69,50 +73,34 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({
   }, [sessionId, skipIntro]);
   
   const handleInitialRoleSelection = async (roleId: string) => {
-    setSelectedRole(roleId);
-    setShowOptions(false);
-    setConversationStage("questions");
-    
-    setInitialRole(null);
-    localStorage.removeItem('tavara_chat_initial_role');
-    
     updateProgress({
       role: roleId,
       questionIndex: 0
     });
     
-    if (skipIntro) {
-      await simulateBotTyping(getNextQuestion(roleId, 0));
-      setQuestionIndex(1);
-      setSkipIntro(false);
-    } else {
-      let greeting = "";
-      switch(roleId) {
-        case "family":
-          greeting = "You're looking for the right caregiver, aren't you? Let me get a few details so we can match you with Tavara.care caregivers who meet your needs.";
-          break;
-        case "professional":
-          greeting = "So you're a care pro? Let me help you register with Tavara. We have families looking for your skills right now!";
-          break;
-        case "community":
-          greeting = "Welcome! Discover how you can support your community with Tavara. Ready to sign up?";
-          break;
-        default:
-          greeting = "Good day! How can Tavara help you today?";
-      }
-      
-      await simulateBotTyping(greeting);
-      await simulateBotTyping(getNextQuestion(roleId, 0));
-      setQuestionIndex(1);
-    }
+    setInitialRole(null);
+    localStorage.removeItem('tavara_chat_initial_role');
+    
+    const response = await processConversation(
+      [], // Start with empty messages
+      sessionId,
+      roleId,
+      0,
+      config
+    );
+    
+    await simulateBotTyping(response.message);
+    setConversationStage("questions");
   };
 
   const simulateBotTyping = async (message: string, options?: { id: string; label: string; subtext?: string }[]) => {
     setIsTyping(true);
     
-    const baseDelay = 500;
-    const perCharDelay = 15;
-    const delay = Math.min(baseDelay + message.length * perCharDelay, 2000);
+    // Calculate a dynamic typing delay based on message length
+    const baseDelay = 300;
+    const charDelay = 10;
+    const maxDelay = 2000;
+    const delay = Math.min(baseDelay + message.length * charDelay, maxDelay);
     
     await new Promise(resolve => setTimeout(resolve, delay));
     
@@ -124,6 +112,13 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({
     });
     
     setIsTyping(false);
+    
+    // Sync messages with Supabase
+    syncMessagesToSupabase(
+      [...messages, { content: message, isUser: false, timestamp: Date.now() }], 
+      sessionId,
+      progress.role || undefined
+    ).catch(err => console.error('Error syncing messages:', err));
   };
 
   const handleRoleSelection = async (roleId: string) => {
@@ -131,10 +126,21 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({
       setIsResuming(false);
       const partialProgress = JSON.parse(localStorage.getItem(`tavara_chat_progress_${sessionId}`) || "{}");
       if (partialProgress.role) {
-        setSelectedRole(partialProgress.role);
-        setQuestionIndex(partialProgress.questionIndex || 0);
+        updateProgress({
+          role: partialProgress.role,
+          questionIndex: partialProgress.questionIndex || 0
+        });
         setConversationStage("questions");
-        await simulateBotTyping("Great! Let's continue where we left off. " + getNextQuestion(partialProgress.role, partialProgress.questionIndex || 0));
+        
+        const response = await processConversation(
+          messages,
+          sessionId,
+          partialProgress.role,
+          partialProgress.questionIndex || 0, 
+          config
+        );
+        
+        await simulateBotTyping("Great! Let's continue where we left off. " + response.message);
       }
       return;
     }
@@ -144,20 +150,29 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({
       return;
     }
     
-    setSelectedRole(roleId);
-    setShowOptions(false);
-    setConversationStage("questions");
+    // Add user selection as a message
+    addMessage({
+      content: `I'm a ${roleId}.`,
+      isUser: true,
+      timestamp: Date.now()
+    });
     
     updateProgress({
       role: roleId,
       questionIndex: 0
     });
     
-    const followupMessage = getRoleFollowupMessage(roleId);
-    await simulateBotTyping(followupMessage);
+    const response = await processConversation(
+      [...messages, { content: `I'm a ${roleId}.`, isUser: true, timestamp: Date.now() }],
+      sessionId,
+      roleId,
+      0,
+      config
+    );
     
-    await simulateBotTyping(getNextQuestion(roleId, 0));
-    setQuestionIndex(1);
+    await simulateBotTyping(response.message);
+    setConversationStage("questions");
+    setShowOptions(false);
   };
 
   const handleOptionSelection = async (optionId: string) => {
@@ -167,14 +182,23 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({
       timestamp: Date.now()
     });
     
-    if (selectedRole) {
+    if (progress.role) {
       updateProgress({
-        role: selectedRole,
-        questionIndex: questionIndex + 1
+        role: progress.role,
+        questionIndex: progress.questionIndex + 1
       });
       
-      await simulateBotTyping(getNextQuestion(selectedRole, questionIndex));
-      setQuestionIndex(prev => prev + 1);
+      const updatedMessages = [...messages, { content: optionId, isUser: true, timestamp: Date.now() }];
+      
+      const response = await processConversation(
+        updatedMessages,
+        sessionId,
+        progress.role,
+        progress.questionIndex,
+        config
+      );
+      
+      await simulateBotTyping(response.message, response.options);
     }
   };
 
@@ -183,83 +207,95 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({
     
     if (!input.trim()) return;
     
-    addMessage({
+    const userMessage = {
       content: input,
       isUser: true,
       timestamp: Date.now()
-    });
+    };
     
+    addMessage(userMessage);
     setInput("");
     
-    if (selectedRole) {
+    if (progress.role) {
       updateProgress({
-        role: selectedRole,
-        questionIndex: questionIndex + 1
+        role: progress.role,
+        questionIndex: progress.questionIndex + 1
       });
       
-      if (questionIndex >= getRoleQuestions(selectedRole).length) {
-        setConversationStage("completion");
-        const prefillJson = generatePrefillJson(selectedRole, messages);
-        console.log("Generated prefill JSON:", prefillJson);
+      try {
+        // If we've completed all questions, finish the conversation
+        if (conversationStage === "completion") {
+          const prefillJson = generatePrefillJson(progress.role, [
+            ...messages, 
+            userMessage
+          ]);
+          
+          clearProgress();
+          console.log("Generated prefill JSON:", prefillJson);
+          return;
+        }
         
-        clearProgress();
+        const updatedMessages = [...messages, userMessage];
         
-        await simulateBotTyping(
-          `Thanks for providing this information! Based on your answers, we recommend completing your ${selectedRole} registration. In the future, we'll direct you to the registration form with this data pre-filled.`
+        const response = await processConversation(
+          updatedMessages,
+          sessionId,
+          progress.role,
+          progress.questionIndex,
+          config
         );
-        return;
+        
+        // Check if we've reached the end of the registration flow
+        if (progress.questionIndex >= 5) { // Assuming 5 questions per role
+          setConversationStage("completion");
+          
+          await simulateBotTyping(
+            `Thanks for providing this information! Based on your answers, we recommend completing your ${progress.role} registration. Click below to continue to the registration form with your data pre-filled.`
+          );
+        } else {
+          await simulateBotTyping(response.message, response.options);
+        }
+      } catch (error) {
+        console.error("Error processing conversation:", error);
+        toast.error("Sorry, I encountered an error. Please try again.");
+        await simulateBotTyping("I'm having trouble processing that. Could you try again or rephrase?");
       }
-      
-      const nextQuestion = getNextQuestion(selectedRole, questionIndex);
-      await simulateBotTyping(nextQuestion);
-      setQuestionIndex(prev => prev + 1);
-    }
-  };
-
-  const getNextQuestion = (role: string, index: number): string => {
-    const questions = getRoleQuestions(role);
-    return questions[index] || "Is there anything else you'd like to tell me?";
-  };
-
-  const getRoleQuestions = (role: string): string[] => {
-    switch (role) {
-      case "family":
-        return [
-          "What's your first name?",
-          "Who do you need care for? (name and your relationship to them)",
-          "What kind of care do they need? (e.g., medical, household, memory)",
-          "Are there any special needs or conditions we should know about?",
-          "When do you need care? (weekdays, weekends, specific times)"
-        ];
-      case "professional":
-        return [
-          "What's your name?",
-          "What's your professional role? (e.g., CNA, Nurse, Therapist)",
-          "How many years of experience do you have in caregiving?",
-          "What services do you offer? (e.g., medical, mobility assistance)",
-          "When are you available to work? (full-time, part-time, flexible)"
-        ];
-      case "community":
-        return [
-          "What's your name?",
-          "How would you like to contribute? (volunteer, mentor, tech)",
-          "What's your background or expertise?",
-          "How much time are you able to commit?",
-          "What aspects of caregiving are you most interested in?"
-        ];
-      default:
-        return ["Could you tell me more?"];
+    } else {
+      // If no role selected yet, try to detect it from the message
+      try {
+        const response = await processConversation(
+          [...messages, userMessage],
+          sessionId,
+          null,
+          0,
+          config
+        );
+        
+        await simulateBotTyping(response.message, response.options || [
+          { id: "family", label: "I need care for someone" },
+          { id: "professional", label: "I provide care services" },
+          { id: "community", label: "I want to support the community" }
+        ]);
+      } catch (error) {
+        console.error("Error detecting user role:", error);
+        await simulateBotTyping(
+          "I'd like to help you better. Are you looking for caregiving services, offering professional care, or interested in community support?",
+          [
+            { id: "family", label: "I need care for someone" },
+            { id: "professional", label: "I provide care services" },
+            { id: "community", label: "I want to support the community" }
+          ]
+        );
+      }
     }
   };
 
   const resetChat = () => {
     clearMessages();
-    setSelectedRole(null);
-    setQuestionIndex(0);
+    clearProgress();
     setInput("");
     setShowOptions(true);
     setConversationStage("intro");
-    clearProgress();
     
     const introMessage = getIntroMessage();
     simulateBotTyping(introMessage);
@@ -323,14 +359,14 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({
         handleOptionSelection={handleOptionSelection}
       />
 
-      {selectedRole && (
+      {progress.role && (
         <div className="border-t border-b p-2 text-center">
           <Button
             variant="link"
             size="sm"
             className="text-xs text-muted-foreground"
             onClick={() => {
-              window.location.href = `/registration/${selectedRole}`;
+              window.location.href = `/registration/${progress.role}`;
             }}
           >
             I'd rather fill out a quick form →

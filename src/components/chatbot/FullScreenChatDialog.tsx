@@ -1,10 +1,11 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { X } from "lucide-react";
+import { Settings, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ChatbotWidget } from './ChatbotWidget';
 import { useChat } from './ChatProvider';
+import { ChatSettings } from './ChatSettings';
 
 interface FullScreenChatDialogProps {
   open: boolean;
@@ -15,6 +16,8 @@ export const FullScreenChatDialog: React.FC<FullScreenChatDialogProps> = ({
   open,
   onClose
 }) => {
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  
   // Added console log for debugging
   console.log('FullScreenChatDialog rendering', { open });
   
@@ -29,10 +32,16 @@ export const FullScreenChatDialog: React.FC<FullScreenChatDialogProps> = ({
         <div className="flex flex-col h-full">
           <div className="flex justify-between items-center p-4 border-b">
             <h2 className="text-xl font-semibold">Tavara Chat</h2>
-            <Button variant="ghost" size="icon" onClick={onClose}>
-              <X className="h-5 w-5" />
-              <span className="sr-only">Close</span>
-            </Button>
+            <div className="flex gap-2">
+              <Button variant="ghost" size="icon" onClick={() => setSettingsOpen(true)} title="Chat Settings">
+                <Settings className="h-5 w-5" />
+                <span className="sr-only">Settings</span>
+              </Button>
+              <Button variant="ghost" size="icon" onClick={onClose}>
+                <X className="h-5 w-5" />
+                <span className="sr-only">Close</span>
+              </Button>
+            </div>
           </div>
           
           <div className="flex-1 overflow-hidden">
@@ -43,6 +52,11 @@ export const FullScreenChatDialog: React.FC<FullScreenChatDialogProps> = ({
             />
           </div>
         </div>
+        
+        <ChatSettings
+          open={settingsOpen}
+          onOpenChange={setSettingsOpen}
+        />
       </DialogContent>
     </Dialog>
   );
