@@ -1,10 +1,11 @@
 
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MessageSquare, X } from 'lucide-react';
+import { MessageCircle, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useChat } from './ChatProvider';
 import { cn } from '@/lib/utils';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface MicroChatBubbleProps {
   role: 'family' | 'professional' | 'community';
@@ -40,6 +41,7 @@ export const MicroChatBubble: React.FC<MicroChatBubbleProps> = ({
   const [isVisible, setIsVisible] = useState(false);
   const [isDismissed, setIsDismissed] = useState(false);
   const { openChat } = useChat();
+  const isMobile = useIsMobile();
   
   // Don't show if user has dismissed
   if (isDismissed) {
@@ -67,20 +69,27 @@ export const MicroChatBubble: React.FC<MicroChatBubbleProps> = ({
     setIsDismissed(true);
     setIsVisible(false);
   };
+
+  // Adjust interactions for mobile vs desktop
+  const handleInteraction = isMobile 
+    ? { onClick: handleStartChat } 
+    : { 
+        onMouseEnter: () => setIsVisible(true),
+        onMouseLeave: () => setIsVisible(false),
+        onClick: handleStartChat
+      };
   
   return (
     <div 
-      className={cn("relative cursor-pointer group", className)}
-      onMouseEnter={() => setIsVisible(true)}
-      onMouseLeave={() => setIsVisible(false)}
-      onClick={handleStartChat}
+      className={cn("relative cursor-pointer", className)}
+      {...handleInteraction}
     >
       <AnimatePresence>
         {isVisible && (
           <motion.div
-            initial={{ opacity: 0, y: 5 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 5 }}
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.8 }}
             className={cn(
               "absolute z-10 w-64 bg-white rounded-lg shadow-lg p-3 border border-gray-200",
               positionClasses[position]
@@ -109,9 +118,28 @@ export const MicroChatBubble: React.FC<MicroChatBubbleProps> = ({
         )}
       </AnimatePresence>
       
-      <div className="flex items-center gap-2 text-sm font-medium text-primary-600 hover:underline">
-        <MessageSquare size={16} className="text-primary" />
-        <span>{greeting.prompt}</span>
+      <div className="flex items-center justify-center">
+        <motion.div
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          className="h-10 w-10 rounded-full bg-primary flex items-center justify-center text-white shadow-md relative"
+        >
+          <MessageCircle size={20} />
+          
+          {/* Text label that appears on desktop hover */}
+          <AnimatePresence>
+            {isVisible && !isMobile && (
+              <motion.div 
+                initial={{ opacity: 0, x: 10 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 10 }}
+                className="absolute left-full ml-2 whitespace-nowrap bg-white text-primary-900 text-sm py-1 px-2 rounded shadow-sm"
+              >
+                {greeting.prompt}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </motion.div>
       </div>
     </div>
   );
