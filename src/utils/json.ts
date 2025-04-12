@@ -69,3 +69,14 @@ export function getNestedValue<T>(
     return fallback;
   }
 }
+
+/**
+ * Ensures a value is a Record<string, any> type.
+ * If the value is not an object or is null/array, returns an empty object.
+ */
+export function ensureRecord(value: any): Record<string, any> {
+  if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+    return value as Record<string, any>;
+  }
+  return {};
+}

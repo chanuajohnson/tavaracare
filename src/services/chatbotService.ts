@@ -1,8 +1,8 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { getRegistrationFlowByRole, ChatRegistrationQuestion } from "@/data/chatRegistrationFlows";
 import { v4 as uuidv4 } from "uuid";
 import { Json } from "@/utils/supabaseTypes";
+import { ensureRecord } from "@/utils/json";
 
 export interface ChatProgress {
   sessionId: string;
@@ -73,7 +73,7 @@ export const updateChatProgress = async (
       current_section: string;
       section_status: "not_started" | "in_progress" | "completed";
       last_question_id?: string;
-      form_data?: Record<string, any>; // Explicitly use Record<string, any> here
+      form_data?: Record<string, any>;
     } = {
       session_id: sessionId,
       user_id: userId,
@@ -83,10 +83,10 @@ export const updateChatProgress = async (
       last_question_id: lastQuestionId,
     };
     
-    // Only add form_data if it exists
+    // Only add form_data if it exists, ensuring it's a proper object
     if (formData) {
-      // Ensure formData is a plain object for Supabase
-      updateData.form_data = { ...formData };
+      // Convert formData to a plain object safe for Supabase
+      updateData.form_data = ensureRecord(formData);
     }
 
     let result;
@@ -228,7 +228,13 @@ export const generateNextQuestionMessage = (
       questionIndex < 0 ||
       questionIndex >= flow.sections[sectionIndex].questions.length
     ) {
-      return null;
+      return {
+        message: "I'm not sure what to ask next. Let's try something else.",
+        options: [
+          { id: "restart", label: "Start over" },
+          { id: "form", label: "Fill out registration form" }
+        ]
+      };
     }
     
     const section = flow.sections[sectionIndex];
@@ -267,7 +273,13 @@ export const generateNextQuestionMessage = (
     };
   } catch (err) {
     console.error("Error generating question message:", err);
-    return null;
+    return {
+      message: "I'm sorry, I encountered an error. Would you like to try again?",
+      options: [
+        { id: "retry", label: "Try again" },
+        { id: "form", label: "Go to registration form" }
+      ]
+    };
   }
 };
 
