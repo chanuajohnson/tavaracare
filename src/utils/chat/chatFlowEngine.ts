@@ -1,7 +1,17 @@
-import { getChatCompletion, convertToOpenAIMessages } from '@/services/aiService';
+
+import { getChatCompletion, convertToOpenAIMessages, syncMessagesToSupabase } from '@/services/aiService';
 import { getIntroMessage, getRoleFollowupMessage, getRoleOptions } from '@/data/chatIntroMessage';
 import { ChatMessage, ChatOption } from '@/types/chatTypes';
 import { phrasings } from '@/utils/chat/phrasings';
+import {
+  getCurrentQuestion,
+  generateNextQuestionMessage,
+  isEndOfSection,
+  isEndOfFlow,
+  generateDataSummary,
+  getRegistrationFlowByRole,
+  getSectionTitle
+} from '@/services/chatbotService';
 
 export interface ChatConfig {
   mode: 'ai' | 'scripted' | 'hybrid';
@@ -51,9 +61,14 @@ export const processConversation = async (
   questionIndex: number,
   config: ChatConfig = defaultChatConfig
 ): Promise<{ message: string; options?: ChatOption[] }> => {
-  // If we're in scripted mode, or we're in the intro stage, use scripted messages
+  // For intro stage or scripted mode, use scripted flow
   if (config.mode === 'scripted' || messages.length === 0) {
     return handleScriptedFlow(messages, userRole, sessionId, questionIndex);
+  }
+
+  // Handle registration flow once a role is selected
+  if (userRole && questionIndex > 0) {
+    return handleRegistrationFlow(messages, userRole, sessionId, questionIndex);
   }
 
   // For AI or hybrid modes, try the AI flow first
@@ -94,6 +109,82 @@ export const processConversation = async (
 
   // Default fallback
   return handleScriptedFlow(messages, userRole, sessionId, questionIndex);
+};
+
+/**
+ * Handle registration flow with structured questions based on the selected role
+ */
+const handleRegistrationFlow = async (
+  messages: ChatMessage[],
+  userRole: string,
+  sessionId: string,
+  questionIndex: number
+): Promise<{ message: string; options?: ChatOption[] }> => {
+  try {
+    // Extract the section index from the progress
+    // For this implementation, we'll use questionIndex / 10 as the section index
+    // This allows up to 10 questions per section
+    const sectionIndex = Math.floor(questionIndex / 10);
+    const questionInSectionIndex = questionIndex % 10;
+    
+    // If we've reached the end of all sections
+    if (isEndOfFlow(userRole, sectionIndex)) {
+      return {
+        message: `Thank you for providing all this information! This will help us get you set up with the right care services. Would you like to proceed to the registration form with this information pre-filled?`,
+        options: [
+          { id: "proceed_to_registration", label: "Yes, proceed to registration" },
+          { id: "talk_to_representative", label: "I'd like to talk to a representative first" }
+        ]
+      };
+    }
+    
+    // If we've reached the end of the current section
+    if (isEndOfSection(userRole, sectionIndex, questionInSectionIndex)) {
+      // Prepare to move to the next section
+      const nextSectionIndex = sectionIndex + 1;
+      
+      if (nextSectionIndex < getRegistrationFlowByRole(userRole).sections.length) {
+        const nextSectionTitle = getSectionTitle(userRole, nextSectionIndex);
+        
+        return {
+          message: `Great! Let's move on to the next section: ${nextSectionTitle}. Are you ready to continue?`,
+          options: [
+            { id: "continue", label: "Yes, continue" },
+            { id: "take_break", label: "I need a break" }
+          ]
+        };
+      }
+    }
+    
+    // Generate the next question based on the role, section, and question index
+    const questionResponse = generateNextQuestionMessage(userRole, sectionIndex, questionInSectionIndex);
+    
+    if (!questionResponse) {
+      // If we couldn't generate a question, provide a generic fallback
+      return {
+        message: "Can you tell me more about your care needs?",
+        options: [
+          { id: "medical_care", label: "Medical care" },
+          { id: "daily_assistance", label: "Daily assistance" },
+          { id: "companionship", label: "Companionship" }
+        ]
+      };
+    }
+    
+    // Return the generated question and options
+    return questionResponse;
+  } catch (error) {
+    console.error('Error in registration flow:', error);
+    
+    // Fallback response
+    return { 
+      message: `I'm sorry, I'm having trouble with our registration process. You can also register using our form instead.`,
+      options: [
+        { id: "retry", label: "Try again" },
+        { id: "go_to_form", label: "Go to registration form" }
+      ]
+    };
+  }
 };
 
 /**
@@ -241,6 +332,11 @@ const handleScriptedFlow = (
     return {
       message: applyTrinidadianStyle(followupMessage)
     };
+  }
+
+  // Handle registration flow once a role is selected
+  if (userRole && questionIndex > 0) {
+    return handleRegistrationFlow(messages, userRole, sessionId, questionIndex);
   }
 
   // Generate questions based on the role and question index

@@ -13,7 +13,11 @@ import { useChatProgress } from "@/hooks/chat/useChatProgress";
 import { ChatMessagesList } from "./ChatMessagesList";
 import { processConversation } from "@/utils/chat/chatFlowEngine";
 import { syncMessagesToSupabase } from "@/services/aiService";
-import { loadChatConfig, shouldAlwaysShowOptions } from "@/utils/chat/chatConfig";
+import { 
+  loadChatConfig, 
+  shouldAlwaysShowOptions 
+} from "@/utils/chat/chatConfig";
+import { getOrCreateSessionId, saveChatResponse, updateChatProgress } from "@/services/chatbotService";
 import { toast } from "sonner";
 
 interface ChatbotWidgetProps {
@@ -34,6 +38,9 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({
   const [showOptions, setShowOptions] = useState(true);
   const [conversationStage, setConversationStage] = useState<"intro" | "questions" | "completion">("intro");
   const [isResuming, setIsResuming] = useState(false);
+  const [currentSectionIndex, setCurrentSectionIndex] = useState(0);
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+  const [formData, setFormData] = useState<Record<string, any>>({});
   const chatInitializedRef = useRef(false);
   
   const { sessionId } = useChatSession();
@@ -81,6 +88,10 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({
   }, [messages.length, initialRole, skipIntro, progress, sessionId]);
   
   const handleInitialRoleSelection = async (roleId: string) => {
+    // Reset section and question indices
+    setCurrentSectionIndex(0);
+    setCurrentQuestionIndex(0);
+    
     updateProgress({
       role: roleId,
       questionIndex: 0
@@ -88,6 +99,26 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({
     
     setInitialRole(null);
     localStorage.removeItem('tavara_chat_initial_role');
+    
+    // Store the user role in formData
+    setFormData(prev => ({
+      ...prev,
+      role: roleId
+    }));
+    
+    // Create or update progress in database
+    try {
+      await updateChatProgress(
+        sessionId,
+        roleId,
+        "0", // Start with first section
+        "not_started",
+        undefined,
+        { role: roleId }
+      );
+    } catch (error) {
+      console.error("Error updating chat progress:", error);
+    }
     
     const response = await processConversation(
       [], // Start with empty messages
@@ -139,6 +170,11 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({
             role: partialProgress.role,
             questionIndex: partialProgress.questionIndex || 0
           });
+          
+          // Set the section and question indices
+          setCurrentSectionIndex(Math.floor((partialProgress.questionIndex || 0) / 10));
+          setCurrentQuestionIndex((partialProgress.questionIndex || 0) % 10);
+          
           setConversationStage("questions");
           
           const response = await processConversation(
@@ -171,10 +207,44 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({
       timestamp: Date.now()
     });
     
+    // Save the user's role in the database
+    try {
+      await saveChatResponse(
+        sessionId,
+        roleId,
+        "intro",
+        "role_selection",
+        roleId
+      );
+      
+      // Create or update progress in database
+      await updateChatProgress(
+        sessionId,
+        roleId,
+        "0", // Start with first section
+        "not_started",
+        "role_selection",
+        { role: roleId }
+      );
+    } catch (error) {
+      console.error("Error saving role selection:", error);
+    }
+    
+    // Update local state
     updateProgress({
       role: roleId,
       questionIndex: 0
     });
+    
+    // Reset section and question indices
+    setCurrentSectionIndex(0);
+    setCurrentQuestionIndex(0);
+    
+    // Update form data
+    setFormData(prev => ({
+      ...prev,
+      role: roleId
+    }));
     
     try {
       const response = await processConversation(
@@ -195,17 +265,68 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({
   };
 
   const handleOptionSelection = async (optionId: string) => {
+    const currentQuestion = `section_${currentSectionIndex}_question_${currentQuestionIndex}`;
+    
+    // Update form data with the selected option
+    setFormData(prev => ({
+      ...prev,
+      [currentQuestion]: optionId
+    }));
+    
+    // Add user selection as a message
     addMessage({
       content: optionId,
       isUser: true,
       timestamp: Date.now()
     });
     
+    // Save the user's response in the database
+    try {
+      await saveChatResponse(
+        sessionId,
+        progress.role!,
+        currentSectionIndex.toString(),
+        currentQuestion,
+        optionId
+      );
+    } catch (error) {
+      console.error("Error saving response:", error);
+    }
+    
     if (progress.role) {
+      // Calculate the next question index for our flow
+      const nextQuestionIndex = currentQuestionIndex + 1;
+      const maxQuestionsPerSection = 10; // Maximum questions per section
+      
+      // Check if we need to move to the next section
+      if (nextQuestionIndex >= maxQuestionsPerSection) {
+        setCurrentSectionIndex(currentSectionIndex + 1);
+        setCurrentQuestionIndex(0);
+      } else {
+        setCurrentQuestionIndex(nextQuestionIndex);
+      }
+      
+      // Calculate the overall question index for progress
+      const overallQuestionIndex = currentSectionIndex * 10 + nextQuestionIndex;
+      
       updateProgress({
         role: progress.role,
-        questionIndex: progress.questionIndex + 1
+        questionIndex: overallQuestionIndex
       });
+      
+      // Update progress in database
+      try {
+        await updateChatProgress(
+          sessionId,
+          progress.role,
+          currentSectionIndex.toString(),
+          "in_progress",
+          currentQuestion,
+          formData
+        );
+      } catch (error) {
+        console.error("Error updating chat progress:", error);
+      }
       
       const updatedMessages = [...messages, { content: optionId, isUser: true, timestamp: Date.now() }];
       
@@ -214,11 +335,16 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({
           updatedMessages,
           sessionId,
           progress.role,
-          progress.questionIndex,
+          overallQuestionIndex,
           config
         );
         
         await simulateBotTyping(response.message, response.options);
+        
+        // If we've completed all questions, move to completion stage
+        if (overallQuestionIndex >= 50) { // Some arbitrary limit
+          setConversationStage("completion");
+        }
       } catch (error) {
         console.error("Error processing option selection:", error);
         await simulateBotTyping("I'm having trouble processing that option. Let's continue with another question.", alwaysShowOptions ? getRoleOptions() : undefined);
@@ -240,11 +366,61 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({
     addMessage(userMessage);
     setInput("");
     
+    const currentQuestion = `section_${currentSectionIndex}_question_${currentQuestionIndex}`;
+    
+    // Update form data with the user's text response
+    setFormData(prev => ({
+      ...prev,
+      [currentQuestion]: input.trim()
+    }));
+    
+    // Save the user's response in the database
+    try {
+      await saveChatResponse(
+        sessionId,
+        progress.role!,
+        currentSectionIndex.toString(),
+        currentQuestion,
+        input.trim()
+      );
+    } catch (error) {
+      console.error("Error saving response:", error);
+    }
+    
     if (progress.role) {
+      // Calculate the next question index for our flow
+      const nextQuestionIndex = currentQuestionIndex + 1;
+      const maxQuestionsPerSection = 10; // Maximum questions per section
+      
+      // Check if we need to move to the next section
+      if (nextQuestionIndex >= maxQuestionsPerSection) {
+        setCurrentSectionIndex(currentSectionIndex + 1);
+        setCurrentQuestionIndex(0);
+      } else {
+        setCurrentQuestionIndex(nextQuestionIndex);
+      }
+      
+      // Calculate the overall question index for progress
+      const overallQuestionIndex = currentSectionIndex * 10 + nextQuestionIndex;
+      
       updateProgress({
         role: progress.role,
-        questionIndex: progress.questionIndex + 1
+        questionIndex: overallQuestionIndex
       });
+      
+      // Update progress in database
+      try {
+        await updateChatProgress(
+          sessionId,
+          progress.role,
+          currentSectionIndex.toString(),
+          "in_progress",
+          currentQuestion,
+          formData
+        );
+      } catch (error) {
+        console.error("Error updating chat progress:", error);
+      }
       
       try {
         // If we've completed all questions, finish the conversation
@@ -265,12 +441,12 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({
           updatedMessages,
           sessionId,
           progress.role,
-          progress.questionIndex,
+          overallQuestionIndex,
           config
         );
         
         // Check if we've reached the end of the registration flow
-        if (progress.questionIndex >= 5) { // Assuming 5 questions per role
+        if (overallQuestionIndex >= 50) { // Some arbitrary limit
           setConversationStage("completion");
           
           await simulateBotTyping(
@@ -322,6 +498,9 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({
     setShowOptions(true);
     setConversationStage("intro");
     setIsResuming(false);
+    setCurrentSectionIndex(0);
+    setCurrentQuestionIndex(0);
+    setFormData({});
     
     // Clean up localStorage
     localStorage.removeItem(`tavara_chat_progress_${sessionId}`);

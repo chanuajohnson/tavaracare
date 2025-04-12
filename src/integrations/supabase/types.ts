@@ -434,6 +434,87 @@ export type Database = {
           },
         ]
       }
+      chatbot_progress: {
+        Row: {
+          created_at: string | null
+          current_section: string
+          form_data: Json | null
+          id: string
+          last_question_id: string | null
+          registration_prefilled: boolean | null
+          responses_complete: boolean | null
+          role: string
+          section_status: Database["public"]["Enums"]["section_status"] | null
+          session_id: string
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          current_section: string
+          form_data?: Json | null
+          id?: string
+          last_question_id?: string | null
+          registration_prefilled?: boolean | null
+          responses_complete?: boolean | null
+          role: string
+          section_status?: Database["public"]["Enums"]["section_status"] | null
+          session_id: string
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          current_section?: string
+          form_data?: Json | null
+          id?: string
+          last_question_id?: string | null
+          registration_prefilled?: boolean | null
+          responses_complete?: boolean | null
+          role?: string
+          section_status?: Database["public"]["Enums"]["section_status"] | null
+          session_id?: string
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      chatbot_responses: {
+        Row: {
+          created_at: string | null
+          id: string
+          question_id: string
+          response: Json | null
+          role: string
+          section: string
+          session_id: string
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          question_id: string
+          response?: Json | null
+          role: string
+          section: string
+          session_id: string
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          question_id?: string
+          response?: Json | null
+          role?: string
+          section?: string
+          session_id?: string
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       cta_engagement_tracking: {
         Row: {
           action_type: string
@@ -1640,6 +1721,7 @@ export type Database = {
         | "dinner"
       module_status: "not_started" | "in_progress" | "completed"
       registration_status: "started" | "in_progress" | "completed" | "abandoned"
+      section_status: "not_started" | "in_progress" | "completed"
       user_role: "family" | "professional" | "community" | "admin"
     }
     CompositeTypes: {
@@ -1783,6 +1865,7 @@ export const Constants = {
       ],
       module_status: ["not_started", "in_progress", "completed"],
       registration_status: ["started", "in_progress", "completed", "abandoned"],
+      section_status: ["not_started", "in_progress", "completed"],
       user_role: ["family", "professional", "community", "admin"],
     },
   },
