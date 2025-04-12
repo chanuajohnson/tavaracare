@@ -1,5 +1,6 @@
 
-import { ChatConfig, defaultChatConfig } from './chatFlowEngine';
+import { ChatConfig } from './engine/types';
+import { defaultChatConfig } from './engine/types';
 
 // Local storage key for chat config
 const CHAT_CONFIG_KEY = 'tavara_chat_config';

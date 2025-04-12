@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { safeToRecord } from "@/utils/json";
 import { ChatProgress } from "./types";
@@ -47,7 +46,7 @@ export const updateChatProgress = async (
   currentSection: string,
   sectionStatus: "not_started" | "in_progress" | "completed",
   lastQuestionId?: string,
-  formData?: Record<string, any> | any,
+  formData?: Record<string, any> | null,
   userId?: string
 ) => {
   try {
@@ -77,9 +76,10 @@ export const updateChatProgress = async (
     };
     
     // Only add form_data if it exists, ensuring it's a proper object
-    if (formData !== undefined) {
+    if (formData !== undefined && formData !== null) {
       // Convert formData to a plain object safe for Supabase
-      updateData.form_data = safeToRecord(formData);
+      const safeFormData = typeof formData === 'object' ? safeToRecord(formData) : {};
+      updateData.form_data = safeFormData;
     }
 
     let result;

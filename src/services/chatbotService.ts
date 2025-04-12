@@ -38,7 +38,7 @@ export {
   
   // Session management
   getOrCreateSessionId,
-  
-  // Types
-  ChatProgress,
 };
+
+// Type exports
+export type { ChatProgress };

@@ -20,7 +20,8 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
 import { loadChatConfig, saveChatConfig, getChatModeName, shouldAlwaysShowOptions, setAlwaysShowOptions, clearChatStorage } from "@/utils/chat/chatConfig";
-import { ChatConfig } from '@/utils/chat/chatFlowEngine';
+import { ChatConfig } from '@/utils/chat/engine/types';
+import { defaultChatConfig } from '@/utils/chat/engine/types';
 import { toast } from 'sonner';
 import { useChatSession } from '@/hooks/chat/useChatSession';
 
