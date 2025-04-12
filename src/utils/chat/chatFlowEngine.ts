@@ -1,4 +1,3 @@
-
 import { getChatCompletion, convertToOpenAIMessages, syncMessagesToSupabase } from '@/services/aiService';
 import { getIntroMessage, getRoleFollowupMessage, getRoleOptions } from '@/data/chatIntroMessage';
 import { ChatMessage, ChatOption } from '@/types/chatTypes';
@@ -241,19 +240,18 @@ DO NOT use phrases like "how would you like to engage with us today" or other ar
   }
 
   // Process the AI response
-  let message = response.message;
+  const message = response.message || "I'm here to help you with your caregiving needs.";
   
   // Apply T&T cultural transformations
-  message = applyTrinidadianStyle(message);
+  const styledMessage = applyTrinidadianStyle(message);
   
   // Check for repetition and fix if necessary
-  if (lastMessages.has(sessionId) && lastMessages.get(sessionId) === message) {
-    // If the message is repeating, slightly modify it
-    message = avoidRepetition(message);
-  }
+  const finalMessage = lastMessages.has(sessionId) && lastMessages.get(sessionId) === styledMessage 
+    ? avoidRepetition(styledMessage)
+    : styledMessage;
   
   // Store this message for repetition detection
-  lastMessages.set(sessionId, message);
+  lastMessages.set(sessionId, finalMessage);
   
   // Always provide options for the user to select from if at the beginning of the conversation
   let options: ChatOption[] | undefined;
@@ -304,7 +302,7 @@ DO NOT use phrases like "how would you like to engage with us today" or other ar
     }
   }
   
-  return { message, options };
+  return { message: finalMessage, options };
 };
 
 /**

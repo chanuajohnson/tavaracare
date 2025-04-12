@@ -67,15 +67,19 @@ export const updateChatProgress = async (
     // Convert formData to a proper JSON object if it exists
     const processedFormData = formData ? { ...formData } : undefined;
     
-    const updateData = {
+    const updateData: Record<string, any> = {
       session_id: sessionId,
       user_id: userId,
       role,
       current_section: currentSection,
       section_status: sectionStatus,
       last_question_id: lastQuestionId,
-      ...(processedFormData && { form_data: processedFormData }),
     };
+    
+    // Only add form_data if processedFormData exists
+    if (processedFormData) {
+      updateData.form_data = processedFormData;
+    }
 
     let result;
     
