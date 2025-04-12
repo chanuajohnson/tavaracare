@@ -73,7 +73,7 @@ export const updateChatProgress = async (
       current_section: string;
       section_status: "not_started" | "in_progress" | "completed";
       last_question_id?: string;
-      form_data?: Record<string, any>;
+      form_data?: Record<string, any>; // Explicitly use Record<string, any> here
     } = {
       session_id: sessionId,
       user_id: userId,
@@ -85,7 +85,8 @@ export const updateChatProgress = async (
     
     // Only add form_data if it exists
     if (formData) {
-      updateData.form_data = formData;
+      // Ensure formData is a plain object for Supabase
+      updateData.form_data = { ...formData };
     }
 
     let result;
