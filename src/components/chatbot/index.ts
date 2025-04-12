@@ -7,3 +7,6 @@ export { ChatbotLauncher } from './ChatbotLauncher';
 export * from './ChatProvider';
 export * from './FullScreenChatDialog';
 export * from './ChatbotSystem';
+export * from './ChatHeader';
+export * from './ChatInputForm';
+export * from './RegistrationLink';
