@@ -78,7 +78,7 @@ export const updateChatProgress = async (
     
     // Only add form_data if it exists, ensuring it's a proper object
     if (formData !== undefined) {
-      // Convert formData to a plain object safe for Supabase using safeToRecord
+      // Convert formData to a plain object safe for Supabase
       updateData.form_data = safeToRecord(formData);
     }
 

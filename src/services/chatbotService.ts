@@ -18,7 +18,7 @@ import {
 } from "./chat/responseUtils";
 
 import { getOrCreateSessionId } from "./chat/sessionUtils";
-import { ChatProgress } from "./chat/types";
+import type { ChatProgress } from "./chat/types";
 
 export {
   // Database operations
