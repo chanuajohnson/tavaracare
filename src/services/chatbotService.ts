@@ -1,8 +1,9 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { getRegistrationFlowByRole, ChatRegistrationQuestion } from "@/data/chatRegistrationFlows";
 import { v4 as uuidv4 } from "uuid";
 import { Json } from "@/utils/supabaseTypes";
-import { ensureRecord } from "@/utils/json";
+import { ensureRecord, safeToRecord } from "@/utils/json";
 
 export interface ChatProgress {
   sessionId: string;
@@ -85,8 +86,8 @@ export const updateChatProgress = async (
     
     // Only add form_data if it exists, ensuring it's a proper object
     if (formData) {
-      // Convert formData to a plain object safe for Supabase
-      updateData.form_data = ensureRecord(formData);
+      // Convert formData to a plain object safe for Supabase using safeToRecord
+      updateData.form_data = safeToRecord(formData);
     }
 
     let result;
@@ -218,7 +219,7 @@ export const generateNextQuestionMessage = (
   role: string,
   sectionIndex: number,
   questionIndex: number
-): { message: string; options?: { id: string; label: string }[] } | null => {
+): { message: string; options?: { id: string; label: string }[] } => {
   try {
     const flow = getRegistrationFlowByRole(role);
     

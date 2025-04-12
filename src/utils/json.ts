@@ -80,3 +80,20 @@ export function ensureRecord(value: any): Record<string, any> {
   }
   return {};
 }
+
+/**
+ * Safely converts any value to a Record<string, any>.
+ * For primitive values, wraps them in an object with a 'value' property.
+ */
+export function safeToRecord(value: unknown): Record<string, any> {
+  if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+    return value as Record<string, any>;
+  }
+  
+  // For primitives, wrap them in a value property
+  if (value !== undefined) {
+    return { value };
+  }
+  
+  return {};
+}
