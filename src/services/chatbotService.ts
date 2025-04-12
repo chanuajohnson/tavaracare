@@ -6,6 +6,7 @@ import {
   getChatProgress,
   getSessionResponses,
   completeSection,
+  ChatProgress
 } from "./chat/databaseUtils";
 
 import {
@@ -18,7 +19,6 @@ import {
 } from "./chat/responseUtils";
 
 import { getOrCreateSessionId } from "./chat/sessionUtils";
-import type { ChatProgress } from "./chat/types";
 
 export {
   // Database operations

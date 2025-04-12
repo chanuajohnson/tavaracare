@@ -1,6 +1,19 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { safeToRecord } from "@/utils/json";
-import { ChatProgress } from "./types";
+
+/**
+ * Interface for ChatProgress
+ */
+export interface ChatProgress {
+  sessionId: string;
+  role: string;
+  currentSection: number;
+  questionIndex: number;
+  sectionStatus: "not_started" | "in_progress" | "completed";
+  responsesComplete: boolean;
+  formData: Record<string, any>;
+}
 
 /**
  * Save chat response to Supabase
@@ -78,8 +91,7 @@ export const updateChatProgress = async (
     // Only add form_data if it exists, ensuring it's a proper object
     if (formData !== undefined && formData !== null) {
       // Convert formData to a plain object safe for Supabase
-      const safeFormData = typeof formData === 'object' ? safeToRecord(formData) : {};
-      updateData.form_data = safeFormData;
+      updateData.form_data = formData;
     }
 
     let result;
