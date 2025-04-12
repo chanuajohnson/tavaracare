@@ -64,6 +64,9 @@ export const updateChatProgress = async (
       .eq("session_id", sessionId)
       .single();
 
+    // Convert formData to a proper JSON object if it exists
+    const processedFormData = formData ? { ...formData } : undefined;
+    
     const updateData = {
       session_id: sessionId,
       user_id: userId,
@@ -71,7 +74,7 @@ export const updateChatProgress = async (
       current_section: currentSection,
       section_status: sectionStatus,
       last_question_id: lastQuestionId,
-      ...(formData && { form_data: formData }),
+      ...(processedFormData && { form_data: processedFormData }),
     };
 
     let result;
@@ -330,4 +333,15 @@ export const generateDataSummary = (formData: Record<string, any>): string => {
   });
   
   return lines.join("\n");
+};
+
+// Export the function to get the section title
+export const getSectionTitle = (role: string, sectionIndex: number): string => {
+  const flow = getRegistrationFlowByRole(role);
+  
+  if (sectionIndex >= 0 && sectionIndex < flow.sections.length) {
+    return flow.sections[sectionIndex].title;
+  }
+  
+  return "";
 };

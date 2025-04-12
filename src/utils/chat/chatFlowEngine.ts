@@ -9,9 +9,9 @@ import {
   isEndOfSection,
   isEndOfFlow,
   generateDataSummary,
-  getRegistrationFlowByRole,
   getSectionTitle
 } from '@/services/chatbotService';
+import { getRegistrationFlowByRole } from '@/data/chatRegistrationFlows';
 
 export interface ChatConfig {
   mode: 'ai' | 'scripted' | 'hybrid';
