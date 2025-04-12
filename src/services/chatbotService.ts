@@ -2,6 +2,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { getRegistrationFlowByRole, ChatRegistrationQuestion } from "@/data/chatRegistrationFlows";
 import { v4 as uuidv4 } from "uuid";
+import { Json } from "@/utils/supabaseTypes";
 
 export interface ChatProgress {
   sessionId: string;
@@ -64,10 +65,16 @@ export const updateChatProgress = async (
       .eq("session_id", sessionId)
       .single();
 
-    // Convert formData to a proper JSON object if it exists
-    const processedFormData = formData ? { ...formData } : undefined;
-    
-    const updateData: Record<string, any> = {
+    // Explicitly define the type-safe update data object
+    const updateData: {
+      session_id: string;
+      user_id?: string;
+      role: string;
+      current_section: string;
+      section_status: "not_started" | "in_progress" | "completed";
+      last_question_id?: string;
+      form_data?: Record<string, any>;
+    } = {
       session_id: sessionId,
       user_id: userId,
       role,
@@ -76,9 +83,9 @@ export const updateChatProgress = async (
       last_question_id: lastQuestionId,
     };
     
-    // Only add form_data if processedFormData exists
-    if (processedFormData) {
-      updateData.form_data = processedFormData;
+    // Only add form_data if it exists
+    if (formData) {
+      updateData.form_data = formData;
     }
 
     let result;
