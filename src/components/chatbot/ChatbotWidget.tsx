@@ -6,14 +6,14 @@ import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { useChatMessages } from "@/hooks/chat/useChatMessages";
 import { useChatSession } from "@/hooks/chat/useChatSession";
-import { getIntroMessage } from "@/data/chatIntroMessage";
+import { getIntroMessage, getRoleOptions } from "@/data/chatIntroMessage";
 import { generatePrefillJson } from "@/utils/chat/prefillGenerator";
 import { useChat } from "./ChatProvider";
 import { useChatProgress } from "@/hooks/chat/useChatProgress";
 import { ChatMessagesList } from "./ChatMessagesList";
 import { processConversation } from "@/utils/chat/chatFlowEngine";
 import { syncMessagesToSupabase } from "@/services/aiService";
-import { loadChatConfig } from "@/utils/chat/chatConfig";
+import { loadChatConfig, shouldAlwaysShowOptions } from "@/utils/chat/chatConfig";
 import { toast } from "sonner";
 
 interface ChatbotWidgetProps {
@@ -43,38 +43,42 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({
   
   // Chat configuration
   const [config] = useState(() => loadChatConfig());
+  const alwaysShowOptions = shouldAlwaysShowOptions();
   
+  // Fixed initialization logic to avoid multiple intro messages
   useEffect(() => {
-    // Prevent initializing multiple times by using a ref
-    if (messages.length === 0 && !chatInitializedRef.current) {
+    const initializeChat = async () => {
+      if (chatInitializedRef.current) return;
       chatInitializedRef.current = true;
       
+      // Check for stored progress to resume conversation
+      const storedProgress = localStorage.getItem(`tavara_chat_progress_${sessionId}`);
+      
       if (initialRole) {
+        // If initial role is set, use it
         handleInitialRoleSelection(initialRole);
       } else if (skipIntro && progress.role) {
+        // If skipping intro and role exists in progress
         handleInitialRoleSelection(progress.role);
-      } else {
-        const introMessage = getIntroMessage();
-        simulateBotTyping(introMessage);
-      }
-    }
-  }, [messages.length, initialRole, skipIntro, progress]);
-
-  useEffect(() => {
-    const partialProgress = localStorage.getItem(`tavara_chat_progress_${sessionId}`);
-    if (partialProgress && messages.length > 1 && !skipIntro && !isResuming) {
-      setIsResuming(true);
-      addMessage({
-        content: "Welcome back! Would you like to continue where you left off?",
-        isUser: false,
-        timestamp: Date.now(),
-        options: [
+      } else if (storedProgress && messages.length === 0 && !skipIntro) {
+        // If there's stored progress but no messages yet
+        setIsResuming(true);
+        const introMessage = "Welcome back! Would you like to continue where you left off?";
+        await simulateBotTyping(introMessage, [
           { id: "resume", label: "Yes, continue" },
           { id: "restart", label: "No, start over" }
-        ]
-      });
-    }
-  }, [sessionId, skipIntro, messages.length]);
+        ]);
+      } else if (messages.length === 0) {
+        // Standard intro for new conversations
+        const introMessage = getIntroMessage();
+        await simulateBotTyping(introMessage, getRoleOptions());
+      }
+    };
+    
+    // Small delay to ensure components are mounted
+    const timer = setTimeout(initializeChat, 100);
+    return () => clearTimeout(timer);
+  }, [messages.length, initialRole, skipIntro, progress, sessionId]);
   
   const handleInitialRoleSelection = async (roleId: string) => {
     updateProgress({
@@ -93,7 +97,7 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({
       config
     );
     
-    await simulateBotTyping(response.message);
+    await simulateBotTyping(response.message, response.options);
     setConversationStage("questions");
   };
 
@@ -103,7 +107,7 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({
     // Calculate a dynamic typing delay based on message length
     const baseDelay = 300;
     const charDelay = 10;
-    const maxDelay = 2000;
+    const maxDelay = 1500;
     const delay = Math.min(baseDelay + message.length * charDelay, maxDelay);
     
     await new Promise(resolve => setTimeout(resolve, delay));
@@ -112,12 +116,12 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({
       content: message,
       isUser: false,
       timestamp: Date.now(),
-      options: options
+      options: options || (alwaysShowOptions ? getRoleOptions() : undefined)
     });
     
     setIsTyping(false);
     
-    // Sync messages with Supabase
+    // Sync messages with Supabase - catch errors silently to prevent UI disruption
     syncMessagesToSupabase(
       [...messages, { content: message, isUser: false, timestamp: Date.now() }], 
       sessionId,
@@ -128,23 +132,29 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({
   const handleRoleSelection = async (roleId: string) => {
     if (roleId === "resume") {
       setIsResuming(false);
-      const partialProgress = JSON.parse(localStorage.getItem(`tavara_chat_progress_${sessionId}`) || "{}");
-      if (partialProgress.role) {
-        updateProgress({
-          role: partialProgress.role,
-          questionIndex: partialProgress.questionIndex || 0
-        });
-        setConversationStage("questions");
-        
-        const response = await processConversation(
-          messages,
-          sessionId,
-          partialProgress.role,
-          partialProgress.questionIndex || 0, 
-          config
-        );
-        
-        await simulateBotTyping("Great! Let's continue where we left off. " + response.message);
+      try {
+        const partialProgress = JSON.parse(localStorage.getItem(`tavara_chat_progress_${sessionId}`) || "{}");
+        if (partialProgress.role) {
+          updateProgress({
+            role: partialProgress.role,
+            questionIndex: partialProgress.questionIndex || 0
+          });
+          setConversationStage("questions");
+          
+          const response = await processConversation(
+            messages,
+            sessionId,
+            partialProgress.role,
+            partialProgress.questionIndex || 0, 
+            config
+          );
+          
+          await simulateBotTyping("Great! Let's continue where we left off. " + response.message, response.options);
+        }
+      } catch (error) {
+        console.error("Error resuming chat:", error);
+        resetChat(true); // Fall back to a reset if resume fails
+        return;
       }
       return;
     }
@@ -166,17 +176,22 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({
       questionIndex: 0
     });
     
-    const response = await processConversation(
-      [...messages, { content: `I'm a ${roleId}.`, isUser: true, timestamp: Date.now() }],
-      sessionId,
-      roleId,
-      0,
-      config
-    );
-    
-    await simulateBotTyping(response.message);
-    setConversationStage("questions");
-    setShowOptions(false);
+    try {
+      const response = await processConversation(
+        [...messages, { content: `I'm a ${roleId}.`, isUser: true, timestamp: Date.now() }],
+        sessionId,
+        roleId,
+        0,
+        config
+      );
+      
+      await simulateBotTyping(response.message, response.options);
+      setConversationStage("questions");
+      setShowOptions(alwaysShowOptions); // Respect the always show options setting
+    } catch (error) {
+      console.error("Error in role selection:", error);
+      await simulateBotTyping("I'm having trouble with your selection. Could you try again?", getRoleOptions());
+    }
   };
 
   const handleOptionSelection = async (optionId: string) => {
@@ -194,15 +209,20 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({
       
       const updatedMessages = [...messages, { content: optionId, isUser: true, timestamp: Date.now() }];
       
-      const response = await processConversation(
-        updatedMessages,
-        sessionId,
-        progress.role,
-        progress.questionIndex,
-        config
-      );
-      
-      await simulateBotTyping(response.message, response.options);
+      try {
+        const response = await processConversation(
+          updatedMessages,
+          sessionId,
+          progress.role,
+          progress.questionIndex,
+          config
+        );
+        
+        await simulateBotTyping(response.message, response.options);
+      } catch (error) {
+        console.error("Error processing option selection:", error);
+        await simulateBotTyping("I'm having trouble processing that option. Let's continue with another question.", alwaysShowOptions ? getRoleOptions() : undefined);
+      }
     }
   };
 
@@ -262,7 +282,7 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({
       } catch (error) {
         console.error("Error processing conversation:", error);
         toast.error("Sorry, I encountered an error. Please try again.");
-        await simulateBotTyping("I'm having trouble processing that. Could you try again or rephrase?");
+        await simulateBotTyping("I'm having trouble processing that. Could you try again or rephrase?", alwaysShowOptions ? getRoleOptions() : undefined);
       }
     } else {
       // If no role selected yet, try to detect it from the message
@@ -275,11 +295,11 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({
           config
         );
         
-        await simulateBotTyping(response.message, response.options || [
+        await simulateBotTyping(response.message, response.options || (alwaysShowOptions ? [
           { id: "family", label: "I need care for someone" },
           { id: "professional", label: "I provide care services" },
           { id: "community", label: "I want to support the community" }
-        ]);
+        ] : undefined));
       } catch (error) {
         console.error("Error detecting user role:", error);
         await simulateBotTyping(
@@ -301,12 +321,19 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({
     setInput("");
     setShowOptions(true);
     setConversationStage("intro");
+    setIsResuming(false);
+    
+    // Clean up localStorage
+    localStorage.removeItem(`tavara_chat_progress_${sessionId}`);
     
     // Only trigger intro message for manual resets
     if (manual) {
-      const introMessage = getIntroMessage();
-      simulateBotTyping(introMessage);
-      chatInitializedRef.current = true; // Mark as initialized since we're manually starting
+      // Set a short timeout to ensure state is updated before triggering intro
+      setTimeout(async () => {
+        const introMessage = getIntroMessage();
+        await simulateBotTyping(introMessage, getRoleOptions());
+        chatInitializedRef.current = true; // Mark as initialized since we're manually starting
+      }, 100);
     }
   };
 
@@ -366,6 +393,7 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({
         conversationStage={conversationStage}
         handleRoleSelection={handleRoleSelection}
         handleOptionSelection={handleOptionSelection}
+        alwaysShowOptions={alwaysShowOptions}
       />
 
       {progress.role && (

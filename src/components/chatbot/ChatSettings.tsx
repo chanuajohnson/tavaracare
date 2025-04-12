@@ -19,9 +19,10 @@ import {
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
-import { loadChatConfig, saveChatConfig, getChatModeName } from "@/utils/chat/chatConfig";
+import { loadChatConfig, saveChatConfig, getChatModeName, shouldAlwaysShowOptions, setAlwaysShowOptions, clearChatStorage } from "@/utils/chat/chatConfig";
 import { ChatConfig } from '@/utils/chat/chatFlowEngine';
 import { toast } from 'sonner';
+import { useChatSession } from '@/hooks/chat/useChatSession';
 
 interface ChatSettingsProps {
   open: boolean;
@@ -32,17 +33,26 @@ export const ChatSettings: React.FC<ChatSettingsProps> = ({
   open,
   onOpenChange,
 }) => {
+  const { sessionId } = useChatSession();
+  
   // Load config from localStorage
   const [config, setConfig] = useState<ChatConfig>(() => loadChatConfig());
-  const [alwaysShowOptions, setAlwaysShowOptions] = useState<boolean>(
-    localStorage.getItem('tavara_chat_always_show_options') === 'true'
+  const [alwaysShowOptions, setAlwaysShowOptionsState] = useState<boolean>(
+    shouldAlwaysShowOptions()
   );
 
   const handleSave = () => {
     saveChatConfig(config);
-    localStorage.setItem('tavara_chat_always_show_options', alwaysShowOptions.toString());
+    setAlwaysShowOptions(alwaysShowOptions);
     onOpenChange(false);
     toast.success("Chat settings saved");
+  };
+
+  const handleReset = () => {
+    if (confirm("Are you sure you want to reset all chat settings and history? This cannot be undone.")) {
+      clearChatStorage(sessionId);
+      window.location.reload();
+    }
   };
 
   return (
@@ -124,7 +134,7 @@ export const ChatSettings: React.FC<ChatSettingsProps> = ({
             <Switch
               id="always-show-options"
               checked={alwaysShowOptions}
-              onCheckedChange={setAlwaysShowOptions}
+              onCheckedChange={setAlwaysShowOptionsState}
             />
             <Label htmlFor="always-show-options">Always Show Multiple-Choice Options</Label>
           </div>
@@ -133,13 +143,23 @@ export const ChatSettings: React.FC<ChatSettingsProps> = ({
           </p>
         </div>
 
-        <DialogFooter>
-          <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>
-            Cancel
+        <DialogFooter className="flex justify-between items-center">
+          <Button 
+            type="button" 
+            variant="destructive" 
+            size="sm"
+            onClick={handleReset}
+          >
+            Reset Chat
           </Button>
-          <Button type="button" onClick={handleSave}>
-            Save Changes
-          </Button>
+          <div className="flex items-center space-x-2">
+            <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>
+              Cancel
+            </Button>
+            <Button type="button" onClick={handleSave}>
+              Save Changes
+            </Button>
+          </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>

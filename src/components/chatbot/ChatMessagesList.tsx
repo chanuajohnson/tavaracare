@@ -12,6 +12,7 @@ interface ChatMessagesListProps {
   conversationStage: "intro" | "questions" | "completion";
   handleRoleSelection: (roleId: string) => void;
   handleOptionSelection: (optionId: string) => void;
+  alwaysShowOptions?: boolean;
 }
 
 export const ChatMessagesList: React.FC<ChatMessagesListProps> = ({
@@ -21,10 +22,12 @@ export const ChatMessagesList: React.FC<ChatMessagesListProps> = ({
   conversationStage,
   handleRoleSelection,
   handleOptionSelection,
+  alwaysShowOptions = false,
 }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    // Smooth scroll to bottom when messages change
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isTyping]);
 
@@ -37,7 +40,7 @@ export const ChatMessagesList: React.FC<ChatMessagesListProps> = ({
             isUser={message.isUser}
             timestamp={message.timestamp}
           />
-          {!message.isUser && message.options && (index === messages.length - 1 || message.isUser) && (
+          {!message.isUser && message.options && (
             <ChatOptionsRenderer 
               options={message.options} 
               onSelect={
