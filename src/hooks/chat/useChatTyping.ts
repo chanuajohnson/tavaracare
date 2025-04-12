@@ -4,7 +4,7 @@ import { ChatOption } from '@/types/chatTypes';
 
 interface UseChatTypingProps {
   addMessage: (message: any) => void;
-  syncMessagesToSupabase?: (messages: any[], sessionId: string, role?: string) => Promise<void>;
+  syncMessagesToSupabase?: (messages: any[], sessionId: string, role?: string) => Promise<boolean | void>;
   messages: any[];
   sessionId?: string;
   role?: string;
@@ -39,11 +39,15 @@ export const useChatTyping = ({
     setIsTyping(false);
     
     if (syncMessagesToSupabase && sessionId) {
-      syncMessagesToSupabase(
-        [...messages, { content: message, isUser: false, timestamp: Date.now() }], 
-        sessionId,
-        role
-      ).catch(err => console.error('Error syncing messages:', err));
+      try {
+        await syncMessagesToSupabase(
+          [...messages, { content: message, isUser: false, timestamp: Date.now() }], 
+          sessionId,
+          role
+        );
+      } catch (err) {
+        console.error('Error syncing messages:', err);
+      }
     }
   };
 
