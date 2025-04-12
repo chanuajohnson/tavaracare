@@ -6,9 +6,17 @@ interface UseChatTypingProps {
   addMessage: (message: any) => void;
   syncMessagesToSupabase?: (messages: any[], sessionId: string, role?: string) => Promise<void>;
   messages: any[];
+  sessionId?: string;
+  role?: string;
 }
 
-export const useChatTyping = ({ addMessage, syncMessagesToSupabase, messages }: UseChatTypingProps) => {
+export const useChatTyping = ({ 
+  addMessage, 
+  syncMessagesToSupabase, 
+  messages,
+  sessionId = '',
+  role = ''
+}: UseChatTypingProps) => {
   const [isTyping, setIsTyping] = useState(false);
 
   const simulateBotTyping = async (message: string, options?: ChatOption[]) => {
@@ -30,7 +38,7 @@ export const useChatTyping = ({ addMessage, syncMessagesToSupabase, messages }: 
     
     setIsTyping(false);
     
-    if (syncMessagesToSupabase) {
+    if (syncMessagesToSupabase && sessionId) {
       syncMessagesToSupabase(
         [...messages, { content: message, isUser: false, timestamp: Date.now() }], 
         sessionId,

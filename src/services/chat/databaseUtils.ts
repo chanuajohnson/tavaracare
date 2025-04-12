@@ -150,7 +150,7 @@ export const getChatProgress = async (sessionId: string): Promise<ChatProgress |
       questionIndex: 0, // Default to first question in the section
       sectionStatus: data.section_status,
       responsesComplete: data.responses_complete,
-      formData: data.form_data || {},
+      formData: data.form_data ? safeToRecord(data.form_data) : {},
     };
   } catch (err) {
     console.error("Exception fetching chat progress:", err);

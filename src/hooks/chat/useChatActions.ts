@@ -1,5 +1,4 @@
 
-import { useState } from "react";
 import { syncMessagesToSupabase } from "@/services/aiService";
 import { processConversation } from "@/utils/chat/chatFlowEngine";
 import { updateChatProgress, saveChatResponse } from "@/services/chatbotService";
@@ -28,7 +27,12 @@ export const useChatActions = (
   clearProgress: () => void,
   simulateBotTyping: (message: string, options?: any) => Promise<void>,
   resetChatState: () => void,
-  alwaysShowOptions: boolean
+  alwaysShowOptions: boolean,
+  input: string,
+  setInput: (value: string) => void,
+  conversationStage: "intro" | "questions" | "completion",
+  skipIntro: boolean,
+  setIsResuming: (value: boolean) => void
 ) => {
   const handleRoleSelection = async (roleId: string) => {
     if (roleId === "resume") {
@@ -398,9 +402,7 @@ export const useChatActions = (
   const initializeChat = async () => {
     const storedProgress = localStorage.getItem(`tavara_chat_progress_${sessionId}`);
     
-    if (initialRole) {
-      handleInitialRoleSelection(initialRole);
-    } else if (skipIntro && progress.role) {
+    if (setInitialRole && skipIntro && progress.role) {
       handleInitialRoleSelection(progress.role);
     } else if (storedProgress && messages.length === 0 && !skipIntro) {
       setIsResuming(true);

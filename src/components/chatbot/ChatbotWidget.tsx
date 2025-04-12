@@ -58,7 +58,9 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({
   const { isTyping, simulateBotTyping } = useChatTyping({ 
     addMessage, 
     syncMessagesToSupabase, 
-    messages 
+    messages,
+    sessionId,
+    role: progress.role
   });
   
   const {
@@ -86,7 +88,12 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({
     clearProgress,
     simulateBotTyping,
     resetChatState,
-    alwaysShowOptions
+    alwaysShowOptions,
+    input,
+    setInput,
+    conversationStage,
+    skipIntro,
+    setIsResuming
   );
 
   useEffect(() => {
