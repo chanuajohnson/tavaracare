@@ -84,16 +84,25 @@ export function ensureRecord(value: any): Record<string, any> {
 /**
  * Safely converts any value to a Record<string, any>.
  * For primitive values, wraps them in an object with a 'value' property.
+ * For arrays, converts them to an object with numeric keys.
+ * Always returns a valid Record<string, any>.
  */
 export function safeToRecord(value: unknown): Record<string, any> {
+  // Handle null or undefined
+  if (value === null || value === undefined) {
+    return {};
+  }
+  
+  // Handle plain objects (already Record<string, any>)
   if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
     return value as Record<string, any>;
   }
   
-  // For primitives, wrap them in a value property
-  if (value !== undefined) {
-    return { value };
+  // Handle arrays by converting to object with numeric keys
+  if (Array.isArray(value)) {
+    return Object.fromEntries(value.map((item, index) => [index.toString(), item]));
   }
   
-  return {};
+  // For primitives (string, number, boolean), wrap in object with 'value' property
+  return { value };
 }
