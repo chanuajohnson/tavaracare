@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from "react";
 import { Send, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -48,27 +47,21 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({
   const { initialRole, setInitialRole, skipIntro, setSkipIntro } = useChat();
   const { progress, updateProgress, clearProgress } = useChatProgress();
   
-  // Chat configuration
   const [config] = useState(() => loadChatConfig());
   const alwaysShowOptions = shouldAlwaysShowOptions();
   
-  // Fixed initialization logic to avoid multiple intro messages
   useEffect(() => {
     const initializeChat = async () => {
       if (chatInitializedRef.current) return;
       chatInitializedRef.current = true;
       
-      // Check for stored progress to resume conversation
       const storedProgress = localStorage.getItem(`tavara_chat_progress_${sessionId}`);
       
       if (initialRole) {
-        // If initial role is set, use it
         handleInitialRoleSelection(initialRole);
       } else if (skipIntro && progress.role) {
-        // If skipping intro and role exists in progress
         handleInitialRoleSelection(progress.role);
       } else if (storedProgress && messages.length === 0 && !skipIntro) {
-        // If there's stored progress but no messages yet
         setIsResuming(true);
         const introMessage = "Welcome back! Would you like to continue where you left off?";
         await simulateBotTyping(introMessage, [
@@ -76,19 +69,16 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({
           { id: "restart", label: "No, start over" }
         ]);
       } else if (messages.length === 0) {
-        // Standard intro for new conversations
         const introMessage = getIntroMessage();
         await simulateBotTyping(introMessage, getRoleOptions());
       }
     };
     
-    // Small delay to ensure components are mounted
     const timer = setTimeout(initializeChat, 100);
     return () => clearTimeout(timer);
   }, [messages.length, initialRole, skipIntro, progress, sessionId]);
   
   const handleInitialRoleSelection = async (roleId: string) => {
-    // Reset section and question indices
     setCurrentSectionIndex(0);
     setCurrentQuestionIndex(0);
     
@@ -100,18 +90,16 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({
     setInitialRole(null);
     localStorage.removeItem('tavara_chat_initial_role');
     
-    // Store the user role in formData
     setFormData(prev => ({
       ...prev,
       role: roleId
     }));
     
-    // Create or update progress in database
     try {
       await updateChatProgress(
         sessionId,
         roleId,
-        "0", // Start with first section
+        "0",
         "not_started",
         undefined,
         { role: roleId }
@@ -121,7 +109,7 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({
     }
     
     const response = await processConversation(
-      [], // Start with empty messages
+      [],
       sessionId,
       roleId,
       0,
@@ -135,7 +123,6 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({
   const simulateBotTyping = async (message: string, options?: { id: string; label: string; subtext?: string }[]) => {
     setIsTyping(true);
     
-    // Calculate a dynamic typing delay based on message length
     const baseDelay = 300;
     const charDelay = 10;
     const maxDelay = 1500;
@@ -152,7 +139,6 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({
     
     setIsTyping(false);
     
-    // Sync messages with Supabase - catch errors silently to prevent UI disruption
     syncMessagesToSupabase(
       [...messages, { content: message, isUser: false, timestamp: Date.now() }], 
       sessionId,
@@ -171,7 +157,6 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({
             questionIndex: partialProgress.questionIndex || 0
           });
           
-          // Set the section and question indices
           setCurrentSectionIndex(Math.floor((partialProgress.questionIndex || 0) / 10));
           setCurrentQuestionIndex((partialProgress.questionIndex || 0) % 10);
           
@@ -189,25 +174,23 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({
         }
       } catch (error) {
         console.error("Error resuming chat:", error);
-        resetChat(true); // Fall back to a reset if resume fails
+        resetChat(true);
         return;
       }
       return;
     }
     
     if (roleId === "restart") {
-      resetChat(true); // Pass true to indicate a manual reset
+      resetChat(true);
       return;
     }
     
-    // Add user selection as a message
     addMessage({
       content: `I'm a ${roleId}.`,
       isUser: true,
       timestamp: Date.now()
     });
     
-    // Save the user's role in the database
     try {
       await saveChatResponse(
         sessionId,
@@ -217,11 +200,10 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({
         roleId
       );
       
-      // Create or update progress in database
       await updateChatProgress(
         sessionId,
         roleId,
-        "0", // Start with first section
+        "0",
         "not_started",
         "role_selection",
         { role: roleId }
@@ -230,17 +212,14 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({
       console.error("Error saving role selection:", error);
     }
     
-    // Update local state
     updateProgress({
       role: roleId,
       questionIndex: 0
     });
     
-    // Reset section and question indices
     setCurrentSectionIndex(0);
     setCurrentQuestionIndex(0);
     
-    // Update form data
     setFormData(prev => ({
       ...prev,
       role: roleId
@@ -257,7 +236,7 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({
       
       await simulateBotTyping(response.message, response.options);
       setConversationStage("questions");
-      setShowOptions(alwaysShowOptions); // Respect the always show options setting
+      setShowOptions(alwaysShowOptions);
     } catch (error) {
       console.error("Error in role selection:", error);
       await simulateBotTyping("I'm having trouble with your selection. Could you try again?", getRoleOptions());
@@ -267,20 +246,17 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({
   const handleOptionSelection = async (optionId: string) => {
     const currentQuestion = `section_${currentSectionIndex}_question_${currentQuestionIndex}`;
     
-    // Update form data with the selected option
     setFormData(prev => ({
       ...prev,
       [currentQuestion]: optionId
     }));
     
-    // Add user selection as a message
     addMessage({
       content: optionId,
       isUser: true,
       timestamp: Date.now()
     });
     
-    // Save the user's response in the database
     try {
       await saveChatResponse(
         sessionId,
@@ -294,11 +270,9 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({
     }
     
     if (progress.role) {
-      // Calculate the next question index for our flow
       const nextQuestionIndex = currentQuestionIndex + 1;
-      const maxQuestionsPerSection = 10; // Maximum questions per section
+      const maxQuestionsPerSection = 10;
       
-      // Check if we need to move to the next section
       if (nextQuestionIndex >= maxQuestionsPerSection) {
         setCurrentSectionIndex(currentSectionIndex + 1);
         setCurrentQuestionIndex(0);
@@ -306,7 +280,6 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({
         setCurrentQuestionIndex(nextQuestionIndex);
       }
       
-      // Calculate the overall question index for progress
       const overallQuestionIndex = currentSectionIndex * 10 + nextQuestionIndex;
       
       updateProgress({
@@ -314,7 +287,6 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({
         questionIndex: overallQuestionIndex
       });
       
-      // Update progress in database
       try {
         await updateChatProgress(
           sessionId,
@@ -341,8 +313,7 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({
         
         await simulateBotTyping(response.message, response.options);
         
-        // If we've completed all questions, move to completion stage
-        if (overallQuestionIndex >= 50) { // Some arbitrary limit
+        if (overallQuestionIndex >= 50) {
           setConversationStage("completion");
         }
       } catch (error) {
@@ -368,13 +339,11 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({
     
     const currentQuestion = `section_${currentSectionIndex}_question_${currentQuestionIndex}`;
     
-    // Update form data with the user's text response
     setFormData(prev => ({
       ...prev,
       [currentQuestion]: input.trim()
     }));
     
-    // Save the user's response in the database
     try {
       await saveChatResponse(
         sessionId,
@@ -388,11 +357,9 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({
     }
     
     if (progress.role) {
-      // Calculate the next question index for our flow
       const nextQuestionIndex = currentQuestionIndex + 1;
-      const maxQuestionsPerSection = 10; // Maximum questions per section
+      const maxQuestionsPerSection = 10;
       
-      // Check if we need to move to the next section
       if (nextQuestionIndex >= maxQuestionsPerSection) {
         setCurrentSectionIndex(currentSectionIndex + 1);
         setCurrentQuestionIndex(0);
@@ -400,7 +367,6 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({
         setCurrentQuestionIndex(nextQuestionIndex);
       }
       
-      // Calculate the overall question index for progress
       const overallQuestionIndex = currentSectionIndex * 10 + nextQuestionIndex;
       
       updateProgress({
@@ -408,7 +374,6 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({
         questionIndex: overallQuestionIndex
       });
       
-      // Update progress in database
       try {
         await updateChatProgress(
           sessionId,
@@ -423,7 +388,6 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({
       }
       
       try {
-        // If we've completed all questions, finish the conversation
         if (conversationStage === "completion") {
           const prefillJson = generatePrefillJson(progress.role, [
             ...messages, 
@@ -445,8 +409,7 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({
           config
         );
         
-        // Check if we've reached the end of the registration flow
-        if (overallQuestionIndex >= 50) { // Some arbitrary limit
+        if (overallQuestionIndex >= 50) {
           setConversationStage("completion");
           
           await simulateBotTyping(
@@ -461,7 +424,6 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({
         await simulateBotTyping("I'm having trouble processing that. Could you try again or rephrase?", alwaysShowOptions ? getRoleOptions() : undefined);
       }
     } else {
-      // If no role selected yet, try to detect it from the message
       try {
         const response = await processConversation(
           [...messages, userMessage],
@@ -491,7 +453,7 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({
   };
 
   const resetChat = (manual = false) => {
-    chatInitializedRef.current = false; // Reset the initialization flag
+    chatInitializedRef.current = false;
     clearMessages();
     clearProgress();
     setInput("");
@@ -502,16 +464,13 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({
     setCurrentQuestionIndex(0);
     setFormData({});
     
-    // Clean up localStorage
     localStorage.removeItem(`tavara_chat_progress_${sessionId}`);
     
-    // Only trigger intro message for manual resets
     if (manual) {
-      // Set a short timeout to ensure state is updated before triggering intro
       setTimeout(async () => {
         const introMessage = getIntroMessage();
         await simulateBotTyping(introMessage, getRoleOptions());
-        chatInitializedRef.current = true; // Mark as initialized since we're manually starting
+        chatInitializedRef.current = true;
       }, 100);
     }
   };

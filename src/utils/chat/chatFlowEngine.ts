@@ -67,7 +67,7 @@ export const processConversation = async (
 
   // Handle registration flow once a role is selected
   if (userRole && questionIndex > 0) {
-    return handleRegistrationFlow(messages, userRole, sessionId, questionIndex);
+    return await handleRegistrationFlow(messages, userRole, sessionId, questionIndex);
   }
 
   // For AI or hybrid modes, try the AI flow first
@@ -308,12 +308,12 @@ DO NOT use phrases like "how would you like to engage with us today" or other ar
 /**
  * Handles scripted conversation flow
  */
-const handleScriptedFlow = (
+const handleScriptedFlow = async (
   messages: ChatMessage[],
   userRole: string | null,
   sessionId: string,
   questionIndex: number
-): { message: string; options?: ChatOption[] } => {
+): Promise<{ message: string; options?: ChatOption[] }> => {
   // Intro stage - no messages yet or only 1-2 messages
   if (messages.length <= 2) {
     // Get a random intro message that won't be the same as the last one
@@ -334,7 +334,7 @@ const handleScriptedFlow = (
 
   // Handle registration flow once a role is selected
   if (userRole && questionIndex > 0) {
-    return handleRegistrationFlow(messages, userRole, sessionId, questionIndex);
+    return await handleRegistrationFlow(messages, userRole, sessionId, questionIndex);
   }
 
   // Generate questions based on the role and question index
