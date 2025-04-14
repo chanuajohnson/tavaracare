@@ -1,4 +1,3 @@
-
 import { ChatMessage, ChatOption } from '@/types/chatTypes';
 
 export interface ChatConfig {
@@ -23,4 +22,5 @@ export interface RetryState {
 export interface ChatResponse {
   message: string;
   options?: ChatOption[];
+  validationNeeded?: string; // Add this field for input validation
 }
