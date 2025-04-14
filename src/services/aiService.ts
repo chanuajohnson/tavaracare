@@ -90,27 +90,80 @@ export const getChatCompletion = async ({
   fieldContext
 }: ChatCompletionParams): Promise<ChatCompletionResponse> => {
   try {
-    const { data, error } = await supabase.functions.invoke('chat-gpt', {
-      body: {
-        messages,
-        sessionId,
-        userRole,
-        systemPrompt: systemPrompt || createSystemPrompt(userRole),
-        temperature,
-        fieldContext
-      }
+    console.log("Calling chat-gpt edge function with:", {
+      messageCount: messages.length,
+      sessionId: sessionId,
+      userRole: userRole || 'not specified',
+      hasSystemPrompt: !!systemPrompt,
+      hasFieldContext: !!fieldContext
     });
 
-    if (error) {
-      console.error('Error calling chat-gpt function:', error);
-      return { message: '', error: error.message };
-    }
+    // Add retries for reliability
+    const MAX_RETRIES = 2;
+    let retries = 0;
+    let lastError;
 
-    return data as ChatCompletionResponse;
+    while (retries <= MAX_RETRIES) {
+      try {
+        const { data, error } = await supabase.functions.invoke('chat-gpt', {
+          body: {
+            messages,
+            sessionId,
+            userRole,
+            systemPrompt: systemPrompt || createSystemPrompt(userRole),
+            temperature,
+            fieldContext
+          }
+        });
+
+        if (error) {
+          console.error(`Error calling chat-gpt function (attempt ${retries + 1}/${MAX_RETRIES + 1}):`, error);
+          lastError = error;
+          retries++;
+          
+          if (retries <= MAX_RETRIES) {
+            console.log(`Retrying in 1 second...`);
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            continue;
+          }
+          
+          return { 
+            message: "I seem to be having trouble with my connection. Could we try again?", 
+            error: error.message 
+          };
+        }
+
+        console.log("Chat-gpt function response:", {
+          success: true,
+          hasMessage: !!data.message,
+          messageLength: data.message?.length || 0,
+          hasUsage: !!data.usage
+        });
+
+        return data as ChatCompletionResponse;
+      } catch (err) {
+        console.error(`Unexpected error in getChatCompletion (attempt ${retries + 1}/${MAX_RETRIES + 1}):`, err);
+        lastError = err;
+        retries++;
+        
+        if (retries <= MAX_RETRIES) {
+          console.log(`Retrying in 1 second...`);
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          continue;
+        }
+        
+        break;
+      }
+    }
+    
+    return { 
+      message: "Sorry, I'm having trouble connecting right now. Could we try a different approach?", 
+      error: lastError instanceof Error ? lastError.message : 'Maximum retries exceeded'
+    };
   } catch (error) {
     console.error('Error in getChatCompletion:', error);
     return { 
-      message: '', 
+      message: "I'm experiencing technical difficulties at the moment. Let's try something else.", 
       error: error instanceof Error ? error.message : 'Unknown error occurred'
     };
   }
@@ -131,6 +184,19 @@ export const syncMessagesToSupabase = async (
   userRole?: string
 ): Promise<boolean> => {
   try {
+    if (!sessionId) {
+      console.error("Cannot sync messages: No session ID provided");
+      return false;
+    }
+    
+    // Prevent sync with empty message array
+    if (!messages || messages.length === 0) {
+      console.log("No messages to sync");
+      return true;
+    }
+    
+    console.log(`Syncing ${messages.length} messages for session ${sessionId}`);
+    
     // Check if conversation exists
     const { data: conversation } = await supabase
       .from('chatbot_conversations')
@@ -150,6 +216,8 @@ export const syncMessagesToSupabase = async (
           user_role: userRole,
           conversation_data: JSON.parse(jsonMessages)
         });
+      
+      console.log("Created new conversation record");
     } else {
       // Update the existing conversation data
       await supabase
@@ -159,6 +227,8 @@ export const syncMessagesToSupabase = async (
           updated_at: new Date().toISOString()
         })
         .eq('session_id', sessionId);
+      
+      console.log("Updated existing conversation record");
 
       // Add any new messages to the messages table
       const { data: existingMessages } = await supabase
@@ -181,6 +251,8 @@ export const syncMessagesToSupabase = async (
             })
           )
         );
+        
+        console.log(`Added ${newMessages.length} new messages`);
       }
     }
     

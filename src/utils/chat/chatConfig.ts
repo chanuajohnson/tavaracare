@@ -20,12 +20,12 @@ export const loadChatConfig = (): ChatConfig => {
     localStorage.removeItem(CHAT_CONFIG_KEY);
   }
   
-  // Set default to AI mode
+  // Set default to AI mode always
   return {
     ...defaultChatConfig,
     mode: 'ai',
     temperature: 0.7,
-    fallbackThreshold: 2
+    fallbackThreshold: 3
   };
 };
 

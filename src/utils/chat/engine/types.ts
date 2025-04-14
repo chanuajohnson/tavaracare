@@ -7,11 +7,11 @@ export interface ChatConfig {
   fallbackThreshold?: number; // Number of retries before falling back to scripted
 }
 
-// Default configuration
+// Default configuration - setting AI as the default mode
 export const defaultChatConfig: ChatConfig = {
   mode: 'ai',
   temperature: 0.7,
-  fallbackThreshold: 2
+  fallbackThreshold: 3  // Increased to give AI more chances
 };
 
 // Interface for tracking retry attempts

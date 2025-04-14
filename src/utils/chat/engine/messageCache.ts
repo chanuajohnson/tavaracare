@@ -9,6 +9,7 @@ const lastMessageCache = new Map<string, string>();
  * Set the last message for a session
  */
 export const setLastMessage = (sessionId: string, message: string): void => {
+  if (!sessionId || !message) return; // Prevent invalid entries
   lastMessageCache.set(sessionId, message);
 };
 
@@ -16,6 +17,8 @@ export const setLastMessage = (sessionId: string, message: string): void => {
  * Check if the current message is too similar to the last message
  */
 export const isRepeatMessage = (sessionId: string, message: string): boolean => {
+  if (!sessionId || !message) return false; // Handle invalid input
+  
   const lastMessage = lastMessageCache.get(sessionId);
   if (!lastMessage) return false;
   
@@ -29,6 +32,9 @@ export const isRepeatMessage = (sessionId: string, message: string): boolean => 
  * Returns a value between 0 (completely different) and 1 (identical)
  */
 const calculateSimilarity = (str1: string, str2: string): number => {
+  // For invalid inputs, return 0
+  if (!str1 || !str2) return 0;
+  
   // For very short messages, use stricter comparison
   if (str1.length < 10 || str2.length < 10) {
     return str1.toLowerCase() === str2.toLowerCase() ? 1 : 0;

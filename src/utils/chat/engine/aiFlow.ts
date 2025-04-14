@@ -8,6 +8,7 @@ import { ChatResponse } from './types';
 import { formatChatHistoryForAI, generatePrompt } from '../generatePrompt';
 import { getCurrentQuestion } from '@/services/chat/responseUtils';
 import { getSessionResponses, validateChatInput } from '@/services/chat/databaseUtils';
+import { toast } from 'sonner';
 
 /**
  * Handles AI-based conversation flow
@@ -38,6 +39,7 @@ export const handleAIFlow = async (
           }
         } catch (error) {
           console.error("Error fetching previous responses:", error);
+          // Continue execution despite error
         }
         
         // Use the context-aware prompt generator
@@ -87,6 +89,7 @@ export const handleAIFlow = async (
         }
       } catch (error) {
         console.error("Error generating context-aware prompt:", error);
+        // Fall back to direct OpenAI call
       }
     }
     
@@ -101,6 +104,7 @@ export const handleAIFlow = async (
       }
     } catch (error) {
       console.error("Error fetching previous responses for OpenAI:", error);
+      // Continue execution despite error
     }
     
     // Convert messages to OpenAI format
@@ -167,81 +171,91 @@ If the user has provided information previously, acknowledge it and don't ask fo
       systemPromptLength: systemPrompt.length
     });
 
-    // Call the AI service
-    const response = await getChatCompletion({
-      messages: limitedHistory,
-      sessionId,
-      userRole: userRole || undefined,
-      fieldContext
-    });
+    // Call the AI service with error handling
+    try {
+      // Call the AI service
+      const response = await getChatCompletion({
+        messages: limitedHistory,
+        sessionId,
+        userRole: userRole || undefined,
+        fieldContext
+      });
 
-    if (response.error) {
-      console.error("AI service error:", response.error);
-      throw new Error(`AI service error: ${response.error}`);
-    }
+      if (response.error) {
+        console.error("AI service error:", response.error);
+        throw new Error(`AI service error: ${response.error}`);
+      }
 
-    // Process the AI response
-    const message = response.message || "I'm here to help you with your caregiving needs.";
-    console.log("Received AI response:", message);
-    
-    // Apply T&T cultural transformations
-    const styledMessage = applyTrinidadianStyle(message);
-    
-    // Check for repetition and fix if necessary
-    const finalMessage = isRepeatMessage(sessionId, styledMessage) 
-      ? avoidRepetition(styledMessage)
-      : styledMessage;
-    
-    // Store this message for repetition detection
-    setLastMessage(sessionId, finalMessage);
-    
-    // Always provide options for the user to select from if at the beginning of the conversation
-    let options: ChatOption[] | undefined;
-    
-    if (!userRole && messages.length <= 3) {
-      options = [
-        { id: "family", label: "I need care for someone" },
-        { id: "professional", label: "I provide care services" },
-        { id: "community", label: "I want to support the community" }
-      ];
-    } else if (userRole && questionIndex < 50) {
-      // For registration questions, check if we should provide options
-      const sectionIndex = Math.floor(questionIndex / 10);
-      const sectionQuestionIndex = questionIndex % 10;
-      const currentQuestion = getCurrentQuestion(userRole, sectionIndex, sectionQuestionIndex);
+      // Process the AI response
+      const message = response.message || "I'm here to help you with your caregiving needs.";
+      console.log("Received AI response:", message);
       
-      if (currentQuestion && ['select', 'multiselect', 'checkbox'].includes(currentQuestion.type)) {
-        options = currentQuestion.options?.map(option => ({
-          id: option,
-          label: option
-        }));
-      } else if (currentQuestion && currentQuestion.type === 'confirm') {
+      // Apply T&T cultural transformations
+      const styledMessage = applyTrinidadianStyle(message);
+      
+      // Check for repetition and fix if necessary
+      const finalMessage = isRepeatMessage(sessionId, styledMessage) 
+        ? avoidRepetition(styledMessage)
+        : styledMessage;
+      
+      // Store this message for repetition detection
+      setLastMessage(sessionId, finalMessage);
+      
+      // Always provide options for the user to select from if at the beginning of the conversation
+      let options: ChatOption[] | undefined;
+      
+      if (!userRole && messages.length <= 3) {
         options = [
-          { id: "yes", label: "Yes" },
-          { id: "no", label: "No" }
+          { id: "family", label: "I need care for someone" },
+          { id: "professional", label: "I provide care services" },
+          { id: "community", label: "I want to support the community" }
         ];
-      }
-      
-      // Determine if field validation is needed
-      let validationNeeded: string | undefined;
-      
-      if (currentQuestion) {
-        const label = (currentQuestion.label || "").toLowerCase();
-        const id = (currentQuestion.id || "").toLowerCase();
+      } else if (userRole && questionIndex < 50) {
+        // For registration questions, check if we should provide options
+        const sectionIndex = Math.floor(questionIndex / 10);
+        const sectionQuestionIndex = questionIndex % 10;
+        const currentQuestion = getCurrentQuestion(userRole, sectionIndex, sectionQuestionIndex);
         
-        if (label.includes("email") || id.includes("email")) {
-          validationNeeded = "email";
-        } else if (label.includes("phone") || id.includes("phone")) {
-          validationNeeded = "phone";
-        } else if (label.includes("name") || id.includes("name")) {
-          validationNeeded = "name";
+        if (currentQuestion && ['select', 'multiselect', 'checkbox'].includes(currentQuestion.type)) {
+          options = currentQuestion.options?.map(option => ({
+            id: option,
+            label: option
+          }));
+        } else if (currentQuestion && currentQuestion.type === 'confirm') {
+          options = [
+            { id: "yes", label: "Yes" },
+            { id: "no", label: "No" }
+          ];
         }
+        
+        // Determine if field validation is needed
+        let validationNeeded: string | undefined;
+        
+        if (currentQuestion) {
+          const label = (currentQuestion.label || "").toLowerCase();
+          const id = (currentQuestion.id || "").toLowerCase();
+          
+          if (label.includes("email") || id.includes("email")) {
+            validationNeeded = "email";
+          } else if (label.includes("phone") || id.includes("phone")) {
+            validationNeeded = "phone";
+          } else if (label.includes("name") || id.includes("name")) {
+            validationNeeded = "name";
+          }
+        }
+        
+        return { message: finalMessage, options, validationNeeded };
       }
       
-      return { message: finalMessage, options, validationNeeded };
+      return { message: finalMessage, options };
+    } catch (error) {
+      console.error("Error calling AI service:", error);
+      
+      // More descriptive error for users
+      const errorMessage = phrasings.connectionErrors[Math.floor(Math.random() * phrasings.connectionErrors.length)];
+      
+      throw new Error(`${errorMessage} Original error: ${error instanceof Error ? error.message : String(error)}`);
     }
-    
-    return { message: finalMessage, options };
   } catch (error) {
     console.error("Error in handleAIFlow:", error);
     
@@ -264,8 +278,11 @@ If the user has provided information previously, acknowledge it and don't ask fo
       };
     }
     
+    // Use a Trinidad & Tobago style error message
+    const errorMessage = phrasings.errorRecovery[Math.floor(Math.random() * phrasings.errorRecovery.length)];
+    
     return {
-      message: "Sorry about that. I'm having a bit of trouble with my thinking. Would you like to continue or try another approach?",
+      message: `${errorMessage} Would you like to continue or try another approach?`,
       options: fallbackOptions
     };
   }

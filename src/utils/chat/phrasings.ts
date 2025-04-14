@@ -199,5 +199,25 @@ export const phrasings = {
     "I seem to be having a moment. Let's try something else.",
     "My brain's a bit slow right now. Let me think differently.",
     "Steups! Something's not connecting right. Let me fix this."
+  ],
+
+  // Connection error responses
+  connectionErrors: [
+    "I seem to have lost my connection. Let me try again.",
+    "Look trouble! My internet's acting up. Give me a moment.",
+    "Something went wrong with our connection. Let's try one more time.",
+    "Oh gosh, I can't reach my brain right now. Let me try a different approach.",
+    "Seems like my thinking part is on a little break. Let's continue another way."
+  ],
+
+  // Cultural inserts (short phrases to add local flavor)
+  culturalInserts: [
+    "eh",
+    "nah",
+    "yes man",
+    "for true",
+    "breds",
+    "ent",
+    "oui"
   ]
 };

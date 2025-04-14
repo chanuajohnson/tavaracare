@@ -25,6 +25,11 @@ export const processConversation = async (
   questionIndex: number,
   config: ChatConfig
 ): Promise<ChatResponse> => {
+  console.log("Processing conversation with config mode:", config.mode);
+  console.log("Session ID:", sessionId);
+  console.log("User role:", userRole);
+  console.log("Question index:", questionIndex);
+  
   // Get or initialize the retry state for this session
   let retryState = aiRetryState.get(sessionId);
   if (!retryState) {
@@ -32,7 +37,7 @@ export const processConversation = async (
     aiRetryState.set(sessionId, retryState);
   }
   
-  // Use AI flow first (prioritize this flow)
+  // IMPORTANT: Always try AI flow first when mode is 'ai' - prioritize this flow
   if (config.mode === 'ai') {
     try {
       console.log("Using AI flow for conversation processing");
@@ -49,12 +54,12 @@ export const processConversation = async (
         validationNeeded: response.validationNeeded
       };
     } catch (error) {
+      console.error(`AI flow error (attempt ${retryState.count + 1}):`, error);
+      
       // Increment retry count
       retryState.count += 1;
-      retryState.lastError = error.message || 'Unknown error';
+      retryState.lastError = error instanceof Error ? error.message : 'Unknown error';
       aiRetryState.set(sessionId, retryState);
-      
-      console.error(`AI flow error (attempt ${retryState.count}):`, error);
       
       // If exceeded threshold, fall back to scripted
       if (config.fallbackThreshold && retryState.count >= config.fallbackThreshold) {
@@ -116,7 +121,7 @@ export const processConversation = async (
     }
   }
   
-  // Registration flow should only be used if no other mode is specified
+  // Registration flow should only be used if no other mode is specified and after AI/scripted fails
   if (userRole && questionIndex >= 0) {
     console.log("Falling back to registration flow");
     return handleRegistrationFlow(messages, userRole, sessionId, questionIndex);

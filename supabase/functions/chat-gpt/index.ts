@@ -9,10 +9,12 @@ const configuration = new Configuration({
 });
 const openai = new OpenAIApi(configuration);
 
-// CORS headers for browser requests
+// CORS headers for browser requests - expanded to ensure they work correctly
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Access-Control-Max-Age': '86400'
 };
 
 // Types
@@ -32,9 +34,12 @@ interface RequestBody {
 }
 
 serve(async (req) => {
-  // Handle CORS preflight requests
+  // Handle CORS preflight requests - improved and expanded
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { 
+      status: 204, 
+      headers: corsHeaders 
+    });
   }
 
   try {
@@ -54,6 +59,7 @@ serve(async (req) => {
     console.log(`User role: ${userRole || 'Not specified'}`);
     console.log(`Message count: ${messages.length}`);
     console.log(`Field context: ${fieldContext?.currentField || 'None'}`);
+    console.log(`System prompt length: ${systemPrompt?.length || 0}`);
 
     // Create customized system prompt based on role and field context
     let effectiveSystemPrompt = systemPrompt || '';
@@ -146,7 +152,10 @@ serve(async (req) => {
     
     // Return error response
     return new Response(
-      JSON.stringify({ error: errorMessage }),
+      JSON.stringify({ 
+        error: errorMessage,
+        message: "I'm sorry, I'm having trouble connecting to my brain right now. Let's try a different approach." 
+      }),
       { 
         status: 500, 
         headers: { 
