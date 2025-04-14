@@ -28,7 +28,7 @@ export const ChatInputForm: React.FC<ChatInputFormProps> = ({
     <div className="border-t p-3 flex flex-col gap-2">
       <form onSubmit={handleSendMessage} className="flex gap-2">
         <Input
-          placeholder="Type a message..."
+          placeholder={conversationStage === "completion" ? "Ask a follow-up question..." : "Type a message..."}
           value={input}
           onChange={(e) => setInput(e.target.value)}
           className={cn(

@@ -9,9 +9,10 @@ export const applyTrinidadianStyle = (message: string): string => {
   if (!message) return message;
 
   // Random chance of applying each transformation for variety
-  const shouldApplyGreeting = Math.random() < 0.3 && (message.includes('hello') || message.includes('hi'));
-  const shouldApplyAcknowledgment = Math.random() < 0.4 && (message.includes('thank') || message.includes('great'));
-  const shouldApplyExpression = Math.random() < 0.2;
+  const shouldApplyGreeting = Math.random() < 0.3 && (message.includes('hello') || message.includes('hi') || message.match(/^(hi|hey|hello)\b/i));
+  const shouldApplyAcknowledgment = Math.random() < 0.5 && (message.includes('thank') || message.includes('great') || message.includes('good'));
+  const shouldApplyExpression = Math.random() < 0.25;
+  const shouldApplyClosing = Math.random() < 0.3;
 
   let modifiedMessage = message;
 
@@ -20,7 +21,7 @@ export const applyTrinidadianStyle = (message: string): string => {
     const greetingIndex = Math.floor(Math.random() * phrasings.greetings.length);
     const greeting = phrasings.greetings[greetingIndex];
     modifiedMessage = modifiedMessage
-      .replace(/\b(hello|hi)\b/i, greeting);
+      .replace(/\b(hello|hi|hey)\b/i, greeting);
   }
 
   // Add acknowledgments
@@ -31,24 +32,68 @@ export const applyTrinidadianStyle = (message: string): string => {
       .replace(/\b(thank you|thanks)\b/i, acknowledgment);
   }
 
-  // Add expressions
+  // Add expressions at the beginning
   if (shouldApplyExpression) {
     const exprIndex = Math.floor(Math.random() * phrasings.expressions.length);
     const expression = phrasings.expressions[exprIndex];
     
-    // 50% chance to add at beginning, 50% at end
-    if (Math.random() < 0.5) {
+    // Make sure we're not doubling up expressions
+    if (!modifiedMessage.includes(expression)) {
       modifiedMessage = `${expression} ${modifiedMessage}`;
-    } else {
-      modifiedMessage = `${modifiedMessage} ${expression}`;
     }
+  }
+  
+  // Add closing expressions at the end
+  if (shouldApplyClosing && message.endsWith('.') || message.endsWith('?') || message.endsWith('!')) {
+    const closingOptions = [
+      "Alright?",
+      "Eh?",
+      "Yes?",
+      "For so!",
+      "You see?"
+    ];
+    
+    const closing = closingOptions[Math.floor(Math.random() * closingOptions.length)];
+    
+    // Remove the ending punctuation and add the closing
+    modifiedMessage = modifiedMessage.replace(/[.!?]$/, ` ${closing}`);
   }
 
   // Remove AI-sounding phrases
   modifiedMessage = modifiedMessage
     .replace(/how would you like to engage with us today/gi, "how can I help you today")
     .replace(/engage with (our|the) platform/gi, "use Tavara")
-    .replace(/engage with (our|the) service/gi, "use our service");
+    .replace(/engage with (our|the) service/gi, "use our service")
+    .replace(/provide us with/gi, "give me")
+    .replace(/we would like to know/gi, "I'd like to know")
+    .replace(/please provide/gi, "please share")
+    .replace(/please select/gi, "please choose")
+    .replace(/please enter/gi, "please type");
+  
+  // Add more natural contractions
+  modifiedMessage = modifiedMessage
+    .replace(/\bit is\b/gi, "it's")
+    .replace(/\byou are\b/gi, "you're")
+    .replace(/\bdo not\b/gi, "don't")
+    .replace(/\bcannot\b/gi, "can't")
+    .replace(/\bi am\b/gi, "I'm")
+    .replace(/\bwill not\b/gi, "won't")
+    .replace(/\bwhat is\b/gi, "what's")
+    .replace(/\bthat is\b/gi, "that's");
+  
+  // Ensure we have emoji occasionally, but not too many
+  const hasEmoji = /[\u{1F300}-\u{1F6FF}]/u.test(modifiedMessage);
+  if (!hasEmoji && Math.random() < 0.2) {
+    const emojis = ["😊", "👋", "✨", "🌺", "💯", "🙌", "👍"];
+    const emoji = emojis[Math.floor(Math.random() * emojis.length)];
+    
+    // Add it near the end
+    if (modifiedMessage.endsWith('.') || modifiedMessage.endsWith('!') || modifiedMessage.endsWith('?')) {
+      modifiedMessage = modifiedMessage.slice(0, -1) + ` ${emoji}` + modifiedMessage.slice(-1);
+    } else {
+      modifiedMessage = `${modifiedMessage} ${emoji}`;
+    }
+  }
 
   return modifiedMessage;
 };
@@ -59,10 +104,10 @@ export const applyTrinidadianStyle = (message: string): string => {
 export const avoidRepetition = (message: string): string => {
   // List of prefixes to add variety
   const prefixes = [
-    "Just to confirm, ",
-    "To be clear, ",
+    "Just to be clear, ",
+    "To clarify, ",
     "In other words, ",
-    "Let me rephrase that, ",
+    "Let me say it again, ",
     "What I meant was, ",
   ];
   
@@ -70,5 +115,5 @@ export const avoidRepetition = (message: string): string => {
   const prefix = prefixes[Math.floor(Math.random() * prefixes.length)];
   
   // Add the prefix to the message
-  return prefix + message.toLowerCase();
+  return prefix + message.charAt(0).toLowerCase() + message.slice(1);
 };

@@ -191,7 +191,10 @@ export const validateChatInput = (input: string, fieldType: string): { isValid: 
   switch(fieldType.toLowerCase()) {
     case 'email':
       if (!emailRegex.test(input)) {
-        return { isValid: false, errorMessage: "Please enter a valid email address." };
+        return { 
+          isValid: false, 
+          errorMessage: "That doesn't look like a valid email address. Could you check it and try again?" 
+        };
       }
       break;
     case 'phone':
@@ -199,14 +202,20 @@ export const validateChatInput = (input: string, fieldType: string): { isValid: 
     case 'phonenumber':
     case 'tel':
       if (!phoneRegex.test(input)) {
-        return { isValid: false, errorMessage: "Please enter a valid phone number." };
+        return { 
+          isValid: false, 
+          errorMessage: "Hmm, that phone number doesn't seem right. Please enter a valid phone number." 
+        };
       }
       break;
     case 'name':
     case 'first_name':
     case 'last_name':
       if (input.length < 2) {
-        return { isValid: false, errorMessage: "Name must be at least 2 characters." };
+        return { 
+          isValid: false, 
+          errorMessage: "Names should be at least 2 characters. Mind trying again?" 
+        };
       }
       break;
   }

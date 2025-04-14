@@ -28,8 +28,25 @@ export const handleAIFlow = async (
       
       try {
         console.log("Using contextual prompt generator for", { userRole, sectionIndex, sectionQuestionIndex });
+        
+        // Get previous user responses to provide context
+        let previousResponses = {};
+        try {
+          if (sessionId && userRole) {
+            previousResponses = await getSessionResponses(sessionId);
+            console.log("Retrieved previous responses for context:", Object.keys(previousResponses).length);
+          }
+        } catch (error) {
+          console.error("Error fetching previous responses:", error);
+        }
+        
         // Use the context-aware prompt generator
-        const generatedPrompt = await generatePrompt(userRole, messages, sectionIndex, sectionQuestionIndex);
+        const generatedPrompt = await generatePrompt(
+          userRole, 
+          messages, 
+          sectionIndex, 
+          sectionQuestionIndex
+        );
         console.log("Generated prompt result:", generatedPrompt);
         
         if (generatedPrompt && generatedPrompt.message) {
@@ -70,12 +87,10 @@ export const handleAIFlow = async (
         }
       } catch (error) {
         console.error("Error generating context-aware prompt:", error);
-        // Continue to fallback OpenAI approach
       }
     }
     
     console.log("Falling back to standard OpenAI approach");
-    // Fallback to standard OpenAI approach if prompt generator fails or we're in general chat
     
     // Get previous responses to provide context
     let previousAnswers: Record<string, any> = {};
@@ -111,7 +126,10 @@ Do NOT list multiple questions at once. Focus on ONE question at a time.
 IMPORTANT: Do NOT use field labels directly like "First Name" or "Last Name". Instead, ask naturally like "What's your first name?" or "And your last name?".
 
 Keep your responses natural and conversational. Use direct, warm language that reflects how real people speak.
-DO NOT use phrases like "how would you like to engage with us today" or other artificial corporate language.`;
+DO NOT use phrases like "how would you like to engage with us today" or other artificial corporate language.
+
+When moving between registration sections, add a brief transition like "Great! Now let's talk about your care preferences."
+If the user has provided information previously, acknowledge it and don't ask for it again.`;
 
     // If we have previous answers, add them as context
     if (Object.keys(previousAnswers).length > 0) {

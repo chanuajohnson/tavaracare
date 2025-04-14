@@ -3,6 +3,7 @@ import { ChatMessage, ChatOption } from '@/types/chatTypes';
 import { phrasings } from './phrasings';
 import { getRegistrationFlowByRole, ChatRegistrationQuestion } from "@/data/chatRegistrationFlows";
 import { getCurrentQuestion } from '@/services/chat/responseUtils';
+import { getChatCompletion } from '@/services/aiService';
 
 interface PromptResponse {
   message: string;
@@ -43,9 +44,110 @@ export const generatePrompt = async (
   // Create a personalized greeting when we know the user's name
   const personalizedGreeting = userName ? `${userName}, ` : '';
   
+  // Check if we're starting a new section
+  const isNewSection = questionIndex === 0;
+  
+  // Use OpenAI to generate a context-aware prompt for the current question
+  try {
+    // Format the chat history for the AI
+    const formattedHistory = formatChatHistoryForAI(chatHistory);
+    
+    // Create a system prompt for the AI
+    const systemPrompt = `You are a warm, friendly assistant for Tavara.care, helping someone register for a caregiving platform in Trinidad & Tobago.
+
+Current role: ${role}
+Current question: ${question.label}
+Question type: ${question.type}
+${isNewSection ? "This is the first question in a new section." : "This is a question in the middle of a section."}
+${userName ? `The user's name is ${userName}.` : "We don't know the user's name yet."}
+
+Your task is to generate a warm, conversational prompt for the next question in our registration flow. 
+Use Trinidad & Tobago friendly language, be warm but professional.
+
+Guidelines:
+- Keep it concise (1-3 sentences)
+- Sound like a real person, not a form
+- Avoid robotic language like "Please enter your email address"
+- Include occasional friendly expressions like "Thanks plenty" or "Well nice" when appropriate
+- If this is the first question in a new section, add a brief transition
+- If we know the user's name, personalize the message
+- Don't sound overly corporate or stiff
+
+Examples:
+- Instead of "Email Address:" say "What's an email I can reach you at?"
+- Instead of "Select availability" say "When would you usually be available to provide care?"
+- Add brief transitions like "Great! Now let's talk about your availability."
+
+The resulting prompt should match the tone of a friendly person in Trinidad & Tobago.`;
+
+    // Call OpenAI to generate the prompt
+    const aiResponse = await getChatCompletion({
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: `Please generate a conversational prompt for: "${question.label}"` }
+      ],
+      sessionId: 'prompt-generation',
+      userRole: role
+    });
+    
+    if (aiResponse.error) {
+      throw new Error(`Error generating AI prompt: ${aiResponse.error}`);
+    }
+    
+    // Get the generated prompt
+    let promptMessage = aiResponse.message;
+    
+    // Apply additional warmth if needed
+    if (!promptMessage.includes(userName) && userName) {
+      promptMessage = `${personalizedGreeting}${promptMessage}`;
+    }
+    
+    console.log("AI generated prompt:", promptMessage);
+    
+    // For select/multiselect/checkbox questions, provide options
+    if (question.type === 'select' || question.type === 'multiselect' || question.type === 'checkbox') {
+      const options = question.options?.map(option => ({
+        id: option,
+        label: option
+      }));
+      
+      return {
+        message: promptMessage,
+        options
+      };
+    }
+    
+    // For confirm questions, provide yes/no options
+    if (question.type === 'confirm') {
+      return {
+        message: promptMessage,
+        options: [
+          { id: "yes", label: "Yes" },
+          { id: "no", label: "No" }
+        ]
+      };
+    }
+    
+    // For text input, just return the message
+    return { message: promptMessage };
+  } catch (error) {
+    console.error("Error using AI to generate prompt:", error);
+    
+    // Fallback to the simple prompt generation if AI fails
+    return generateSimplePrompt(question, personalizedGreeting, isNewSection);
+  }
+};
+
+/**
+ * Fallback prompt generator that doesn't use AI
+ */
+const generateSimplePrompt = (
+  question: ChatRegistrationQuestion,
+  personalizedGreeting: string,
+  isNewSection: boolean
+): PromptResponse => {
   // Add warmth and cultural style to the prompt
-  const warmPrompt = addWarmth(question.label, personalizedGreeting);
-  console.log("Generated warm prompt:", warmPrompt);
+  const warmPrompt = addWarmth(question.label, personalizedGreeting, isNewSection);
   
   // For select/multiselect/checkbox questions, provide options
   if (question.type === 'select' || question.type === 'multiselect' || question.type === 'checkbox') {
@@ -79,25 +181,35 @@ export const generatePrompt = async (
  * Extracts the user's name from chat history if available
  */
 const extractUserName = (chatHistory: ChatMessage[]): string | null => {
-  // Look for first_name or full_name in the chat history
+  // Look for name in chat responses
   for (const message of chatHistory) {
     if (message.isUser && message.content) {
-      // This is a very simple implementation that assumes the first user message
-      // might contain their name. In a real implementation, we would need more
-      // sophisticated logic to extract the name.
+      // This is a very simple implementation
       const content = message.content.trim();
       if (content && !content.includes(' ') && content.length < 30) {
         return content; // Simple heuristic for a name
       }
     }
   }
+  
+  // If no obvious name found from messages, look for name patterns in content
+  for (const message of chatHistory) {
+    if (message.isUser && message.content) {
+      // Look for "my name is" patterns
+      const nameMatch = message.content.match(/(?:my name is|i am|i'm) (\w+)/i);
+      if (nameMatch && nameMatch[1]) {
+        return nameMatch[1];
+      }
+    }
+  }
+  
   return null;
 };
 
 /**
  * Adds warmth and cultural style to the prompt
  */
-const addWarmth = (prompt: string, personalizedGreeting: string): string => {
+const addWarmth = (prompt: string, personalizedGreeting: string, isNewSection: boolean): string => {
   // Convert formal field labels to conversational questions
   if (prompt.includes("First Name")) {
     return `${personalizedGreeting ? personalizedGreeting + "now " : ""}what's your first name?`;
@@ -117,6 +229,19 @@ const addWarmth = (prompt: string, personalizedGreeting: string): string => {
 
   // Pick a random greeting if we're at the start of a section
   let warmPrompt = prompt;
+  
+  // Add a section transition if this is the first question in a section
+  if (isNewSection) {
+    const transitions = [
+      "Great! Now let's talk about ",
+      "Excellent! Moving on to ",
+      "Thanks for that. Next, let's focus on ",
+      "Well nice! Let's switch to talking about ",
+    ];
+    
+    const transition = transitions[Math.floor(Math.random() * transitions.length)];
+    warmPrompt = `${transition}${warmPrompt.toLowerCase()}`;
+  }
 
   // Replace standard question structure with more conversational tone
   warmPrompt = warmPrompt.replace(
@@ -157,30 +282,4 @@ export const formatChatHistoryForAI = (chatHistory: ChatMessage[], limit = 10): 
     role: msg.isUser ? 'user' : 'assistant',
     content: msg.content
   }));
-};
-
-/**
- * Apply Trinidadian tone to a message
- */
-export const toTriniTone = (text: string): string => {
-  // Apply Trinidadian cultural style to a message
-  // This is a simplified implementation, actual implementation would be more nuanced
-  
-  // Replace formal phrases with more casual ones
-  let result = text
-    .replace(/how are you/gi, "how yuh going")
-    .replace(/hello|hi /gi, "hiya ")
-    .replace(/thank you very much/gi, "thanks plenty")
-    .replace(/good morning/gi, "mornin'");
-  
-  // Add occasional expressions
-  if (Math.random() < 0.2) {
-    const endings = ["eh?", "for true!", "nah?"];
-    const ending = endings[Math.floor(Math.random() * endings.length)];
-    if (!result.endsWith("?") && !result.endsWith("!")) {
-      result = result.replace(/\.$/, ` ${ending}`);
-    }
-  }
-  
-  return result;
 };

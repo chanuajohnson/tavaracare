@@ -12,6 +12,8 @@ export const phrasings = {
     "Aye! How are you?",
     "Good day",
     "Welcome",
+    "Hows it going?",
+    "Howdy!"
   ],
   
   // Expressions of acknowledgment
@@ -23,6 +25,9 @@ export const phrasings = {
     "Thanks for that",
     "Thanks eh",
     "Well nice",
+    "Cool cool",
+    "That's good",
+    "Real nice"
   ],
   
   // Common expressions and phrases
@@ -37,6 +42,8 @@ export const phrasings = {
     "Best believe",
     "For so!",
     "Oh gorm",
+    "Allyuh see",
+    "Imagine that"
   ],
   
   // Encouraging phrases
@@ -47,6 +54,8 @@ export const phrasings = {
     "Don't worry yourself",
     "No pressure, no diamonds",
     "You got this",
+    "We moving good!",
+    "That's the way"
   ],
   
   // Ways to express agreement
@@ -56,6 +65,8 @@ export const phrasings = {
     "Is so",
     "You right",
     "Exactly so",
+    "Exactly that",
+    "Just so"
   ],
   
   // Ways to ask questions
@@ -65,6 +76,8 @@ export const phrasings = {
     "I curious about...",
     "Share with me...",
     "What you think about...",
+    "Let me ask you...",
+    "Can you share..."
   ],
   
   // Ways to introduce suggestions
@@ -74,6 +87,8 @@ export const phrasings = {
     "How about...",
     "Let me suggest...",
     "Ever think about...",
+    "What about...",
+    "Consider this..."
   ],
   
   // Family-related terms
@@ -85,6 +100,9 @@ export const phrasings = {
     "mother",
     "father",
     "granny",
+    "auntie",
+    "uncle",
+    "elder"
   ],
   
   // Care-related terms
@@ -95,5 +113,44 @@ export const phrasings = {
     "care",
     "looking after",
     "minding",
+    "watching over",
+    "caregiving"
   ],
+  
+  // Section transitions
+  transitions: [
+    "Let's move on to talk about",
+    "Now, let's discuss",
+    "Great! Let's switch over to",
+    "Perfect! Now I'd like to ask about",
+    "Thanks for that. Let's talk about",
+    "That's helpful. Now, regarding"
+  ],
+  
+  // Validation error responses
+  validationResponses: {
+    email: [
+      "That email doesn't look quite right. Mind checking it?",
+      "Hmm, I'm having trouble with that email address. Could you try again?",
+      "That doesn't seem like a valid email. Let's try once more."
+    ],
+    phone: [
+      "That phone number doesn't seem right. Could you check it?",
+      "I'm not sure that's a valid number. Mind trying again?",
+      "Hmm, that number doesn't look complete. One more time?"
+    ],
+    name: [
+      "That name seems a bit short. Could you give me your full name?",
+      "I need your proper name to continue. Can you share that?",
+      "Could you give me your name again? I need it for the registration."
+    ]
+  },
+  
+  // Completion phrases
+  completion: [
+    "Great! We've completed this part.",
+    "Perfect! That's all I needed for this section.",
+    "Thanks plenty! We've finished this section now.",
+    "Well nice! You've completed this part."
+  ]
 };
