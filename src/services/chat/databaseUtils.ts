@@ -1,3 +1,4 @@
+
 import { supabase } from '@/lib/supabase';
 import { ChatResponseData } from './types';
 
@@ -12,13 +13,13 @@ export const saveChatResponse = async (
   response: string
 ): Promise<boolean> => {
   try {
-    await supabase.from('chat_responses').insert({
+    await supabase.from('chatbot_responses').insert({
       session_id: sessionId,
       role,
       section,
       question_id: questionId,
-      response,
-      timestamp: new Date().toISOString()
+      response: JSON.stringify({ message: response }),
+      created_at: new Date().toISOString()
     });
     return true;
   } catch (error) {
@@ -126,7 +127,7 @@ export const getChatProgress = async (sessionId: string): Promise<any | null> =>
 export const getSessionResponses = async (sessionId: string): Promise<Record<string, any>> => {
   try {
     const { data, error } = await supabase
-      .from('chat_responses')
+      .from('chatbot_responses')
       .select('question_id, response')
       .eq('session_id', sessionId);
 
@@ -137,7 +138,17 @@ export const getSessionResponses = async (sessionId: string): Promise<Record<str
 
     const responses: Record<string, any> = {};
     data.forEach(item => {
-      responses[item.question_id] = item.response;
+      try {
+        // The response is stored as a JSON string so we need to parse it
+        const parsedResponse = typeof item.response === 'string' 
+          ? JSON.parse(item.response)
+          : item.response;
+          
+        responses[item.question_id] = parsedResponse.message || parsedResponse;
+      } catch (err) {
+        // Fallback if parsing fails
+        responses[item.question_id] = item.response;
+      }
     });
 
     return responses;
