@@ -1,151 +1,202 @@
 
 import { ChatMessage, ChatOption } from '@/types/chatTypes';
-import { getIntroMessage, getRoleFollowupMessage, getRoleOptions } from '@/data/chatIntroMessage';
-import { getRegistrationFlowByRole } from '@/data/chatRegistrationFlows';
-import { applyTrinidadianStyle } from './styleUtils';
-import { setLastMessage, getLastMessage } from './messageCache';
-import { ChatResponse } from './types';
-import { handleRegistrationFlow } from './registrationFlow';
+import { ChatConfig, ChatResponse } from './types';
 
 /**
- * Get a random intro message that won't repeat the last one
+ * Handles scripted conversation flow based on predefined responses.
+ * 
+ * @param messages Chat messages history
+ * @param userRole Selected user role
+ * @param questionIndex Current question index
+ * @param config Chat configuration
+ * @returns Response object with message and optional UI options
  */
-const getRandomIntroMessage = (sessionId: string): string => {
-  const introMessage = getIntroMessage();
-  
-  // Check if this message is the same as the last one
-  if (getLastMessage(sessionId) === introMessage) {
-    // Try again to get a different message
-    return getRandomIntroMessage(sessionId);
+export const handleScriptedFlow = (
+  messages: ChatMessage[],
+  userRole: string | null,
+  questionIndex: number,
+  config: ChatConfig
+): ChatResponse => {
+  // Role selection flow
+  if (!userRole || userRole === 'unknown') {
+    return handleRoleSelectionFlow(messages);
   }
-  
-  // Store this message and return it
-  setLastMessage(sessionId, introMessage);
-  return introMessage;
+
+  // Role-specific conversation flows
+  switch (userRole) {
+    case 'family':
+      return handleFamilyFlow(questionIndex);
+    case 'professional':
+      return handleProfessionalFlow(questionIndex);
+    case 'community':
+      return handleCommunityFlow(questionIndex);
+    default:
+      return {
+        message: "I'm not sure how to help with that role. Would you like to select a different role?",
+        options: getRoleOptions()
+      };
+  }
 };
 
 /**
- * Handles scripted conversation flow
+ * Handles the initial role selection flow
  */
-export const handleScriptedFlow = async (
-  messages: ChatMessage[],
-  userRole: string | null,
-  sessionId: string,
-  questionIndex: number
-): Promise<ChatResponse> => {
-  // Intro stage - no messages yet or only 1-2 messages
-  if (messages.length <= 2) {
-    // Get a random intro message that won't be the same as the last one
-    const introMessage = getRandomIntroMessage(sessionId);
+const handleRoleSelectionFlow = (messages: ChatMessage[]): ChatResponse => {
+  const lastMessage = messages[messages.length - 1]?.content?.toLowerCase() || '';
+  
+  if (lastMessage.includes('care') || lastMessage.includes('help')) {
     return {
-      message: applyTrinidadianStyle(introMessage),
+      message: "It sounds like you might be looking for caregiving assistance. Are you:",
       options: getRoleOptions()
     };
   }
+  
+  return {
+    message: "Welcome to Tavara Care! How can I assist you today?",
+    options: getRoleOptions()
+  };
+};
 
-  // Role selection followup
-  if (messages.length <= 4 && userRole) {
-    const followupMessage = getRoleFollowupMessage(userRole);
-    return {
-      message: applyTrinidadianStyle(followupMessage)
-    };
-  }
+/**
+ * Returns the standard role selection options
+ */
+const getRoleOptions = (): ChatOption[] => {
+  return [
+    { id: "family", label: "Looking for care for a loved one" },
+    { id: "professional", label: "A professional caregiver" },
+    { id: "community", label: "Interested in community support" }
+  ];
+};
 
-  // Handle registration flow once a role is selected
-  if (userRole && questionIndex > 0) {
-    return await handleRegistrationFlow(messages, userRole, sessionId, questionIndex);
-  }
-
-  // Generate questions based on the role and question index
-  if (userRole) {
-    // For this implementation, we'll create some sample questions
-    const questions = {
-      family: [
-        "Who are you seeking care for? A parent, spouse, child, or someone else?",
-        "What type of care assistance do you need?",
-        "How often do you need care? Daily, weekly, or on specific days?",
-        "When would you like to start receiving care?",
-        "Do you have any specific requirements for your caregiver?"
-      ],
-      professional: [
-        "What type of caregiving do you provide?",
-        "How many years of experience do you have in caregiving?",
-        "What certifications or qualifications do you have?",
-        "What areas of Trinidad & Tobago are you available to work in?",
-        "What are your weekly availability and preferred hours?"
-      ],
-      community: [
-        "How would you like to support our caregiving community?",
-        "Do you have specific skills or resources you'd like to contribute?",
-        "How much time can you commit to volunteer activities?",
-        "What motivated you to get involved with caregiving support?",
-        "Have you been involved with similar initiatives before?"
-      ]
-    };
-    
-    let questionList: string[];
-    if (userRole === 'family') {
-      questionList = questions.family;
-    } else if (userRole === 'professional') {
-      questionList = questions.professional;
-    } else if (userRole === 'community') {
-      questionList = questions.community;
-    } else {
-      questionList = [];
-    }
-    
-    if (questionIndex < questionList.length) {
-      // Add options based on the current question
-      let options: ChatOption[] | undefined;
-      
-      if (questionIndex === 0) {
-        if (userRole === 'family') {
-          options = [
-            { id: "parent", label: "For my parent" },
-            { id: "spouse", label: "For my spouse" },
-            { id: "child", label: "For my child" },
-            { id: "other", label: "Someone else" }
-          ];
-        } else if (userRole === 'professional') {
-          options = [
-            { id: "home_care", label: "Home care" },
-            { id: "medical_care", label: "Medical care" },
-            { id: "therapy", label: "Therapy" },
-            { id: "specialized", label: "Specialized care" }
-          ];
-        } else if (userRole === 'community') {
-          options = [
-            { id: "volunteer", label: "Volunteer" },
-            { id: "donate", label: "Donate resources" },
-            { id: "advocate", label: "Advocacy" },
-            { id: "other", label: "Other ways" }
-          ];
-        }
-      }
-      
-      return {
-        message: applyTrinidadianStyle(questionList[questionIndex]),
-        options: options
-      };
-    }
-    
-    // If we've gone through all the questions
-    return {
-      message: applyTrinidadianStyle("Thank you for sharing that information! It will help us understand your needs better. Would you like to continue with registration?"),
+/**
+ * Scripted flow for family role
+ */
+const handleFamilyFlow = (questionIndex: number): ChatResponse => {
+  const questions = [
+    {
+      message: "What type of care are you looking for?",
       options: [
-        { id: "continue", label: "Yes, continue to registration" },
-        { id: "questions", label: "I have more questions first" }
+        { id: "elder", label: "Elder care" },
+        { id: "child", label: "Child care" },
+        { id: "special_needs", label: "Special needs care" },
+        { id: "medical", label: "Medical care" },
+        { id: "other", label: "Other" }
       ]
-    };
-  }
-
-  // Fallback generic message with options
-  return { 
-    message: applyTrinidadianStyle("I'd be happy to help you. What would you like to know about our caregiving services?"),
+    },
+    {
+      message: "How soon do you need care?",
+      options: [
+        { id: "immediately", label: "Immediately" },
+        { id: "within_week", label: "Within a week" },
+        { id: "within_month", label: "Within a month" },
+        { id: "planning_ahead", label: "Just planning ahead" }
+      ]
+    },
+    {
+      message: "What's your email address? This helps us create your account.",
+      validationNeeded: "email"
+    },
+    {
+      message: "Thank you! Would you like to complete your registration now?",
+      options: [
+        { id: "yes", label: "Yes, complete registration" },
+        { id: "later", label: "I'll do it later" }
+      ]
+    }
+  ];
+  
+  return questions[questionIndex] || {
+    message: "Thank you for providing this information. Would you like to create a full profile now?",
     options: [
-      { id: "family", label: "I need care for someone" },
-      { id: "professional", label: "I provide care services" },
-      { id: "community", label: "I want to support the community" }
+      { id: "register", label: "Yes, create my profile" },
+      { id: "later", label: "Not right now" }
+    ]
+  };
+};
+
+/**
+ * Scripted flow for professional role
+ */
+const handleProfessionalFlow = (questionIndex: number): ChatResponse => {
+  const questions = [
+    {
+      message: "What type of care services do you provide?",
+      options: [
+        { id: "elder", label: "Elder care" },
+        { id: "child", label: "Child care" },
+        { id: "special_needs", label: "Special needs care" },
+        { id: "medical", label: "Medical care" },
+        { id: "other", label: "Other" }
+      ]
+    },
+    {
+      message: "How many years of experience do you have?",
+      options: [
+        { id: "less_than_1", label: "Less than 1 year" },
+        { id: "1_to_3", label: "1-3 years" },
+        { id: "4_to_7", label: "4-7 years" },
+        { id: "8_plus", label: "8+ years" }
+      ]
+    },
+    {
+      message: "What's your phone number? This helps us verify your account.",
+      validationNeeded: "phone"
+    },
+    {
+      message: "Thank you! Would you like to complete your caregiver profile now?",
+      options: [
+        { id: "yes", label: "Yes, complete my profile" },
+        { id: "later", label: "I'll do it later" }
+      ]
+    }
+  ];
+  
+  return questions[questionIndex] || {
+    message: "Thank you for providing this information. Would you like to create your professional profile now?",
+    options: [
+      { id: "register", label: "Yes, create my profile" },
+      { id: "later", label: "Not right now" }
+    ]
+  };
+};
+
+/**
+ * Scripted flow for community role
+ */
+const handleCommunityFlow = (questionIndex: number): ChatResponse => {
+  const questions = [
+    {
+      message: "What brings you to our community?",
+      options: [
+        { id: "support_family", label: "Support families" },
+        { id: "support_caregivers", label: "Support caregivers" },
+        { id: "resources", label: "Find resources" },
+        { id: "volunteer", label: "Volunteer opportunities" },
+        { id: "other", label: "Other" }
+      ]
+    },
+    {
+      message: "What's your name?",
+      validationNeeded: "name"
+    },
+    {
+      message: "What's your email address?",
+      validationNeeded: "email"
+    },
+    {
+      message: "Thank you! Would you like to join our community now?",
+      options: [
+        { id: "yes", label: "Yes, join the community" },
+        { id: "later", label: "I'll do it later" }
+      ]
+    }
+  ];
+  
+  return questions[questionIndex] || {
+    message: "Thank you for your interest in our community. Would you like to create your community profile now?",
+    options: [
+      { id: "register", label: "Yes, create my profile" },
+      { id: "later", label: "Not right now" }
     ]
   };
 };

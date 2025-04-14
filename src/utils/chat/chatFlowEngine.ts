@@ -23,7 +23,7 @@ export const processConversation = async (
   config: ChatConfig
 ): Promise<ChatResponse> => {
   // Use AI flow
-  if (config.useAI) {
+  if (config.mode === 'ai') {
     const response = await handleAIFlow(messages, sessionId, userRole, questionIndex);
     return {
       message: response.message,
@@ -33,8 +33,8 @@ export const processConversation = async (
   }
   
   // Use scripted flow
-  if (config.useScripted) {
-    return handleScriptedFlow(messages, userRole, questionIndex);
+  if (config.mode === 'scripted') {
+    return handleScriptedFlow(messages, userRole, questionIndex, config);
   }
   
   // Use registration flow

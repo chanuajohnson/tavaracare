@@ -1,3 +1,4 @@
+
 import { ChatMessage, ChatOption } from '@/types/chatTypes';
 
 export interface ChatConfig {
