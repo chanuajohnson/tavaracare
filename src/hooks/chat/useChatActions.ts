@@ -1,14 +1,12 @@
-
-// I'll focus on the parts that need to change to support our new AI prompts and context awareness
-
 import { syncMessagesToSupabase } from "@/services/aiService";
 import { processConversation } from "@/utils/chat/chatFlowEngine";
-import { updateChatProgress, saveChatResponse, getSessionResponses } from "@/services/chatbotService";
+import { updateChatProgress, saveChatResponse, getSessionResponses, validateChatInput } from "@/services/chatbotService";
 import { generatePrefillJson } from "@/utils/chat/prefillGenerator";
 import { toast } from "sonner";
 import { ChatConfig } from "@/utils/chat/engine/types";
 import { getIntroMessage, getRoleOptions } from "@/data/chatIntroMessage";
 import { ChatMessage } from "@/types/chatTypes";
+import { getCurrentQuestion } from "@/services/chat/responseUtils";
 
 export const useChatActions = (
   sessionId: string,
@@ -34,7 +32,8 @@ export const useChatActions = (
   setInput: (value: string) => void,
   conversationStage: "intro" | "questions" | "completion",
   skipIntro: boolean,
-  setIsResuming: (value: boolean) => void
+  setIsResuming: (value: boolean) => void,
+  setValidationError: (error?: string) => void
 ) => {
   const handleRoleSelection = async (roleId: string) => {
     if (roleId === "resume") {
@@ -88,7 +87,6 @@ export const useChatActions = (
     }));
     
     try {
-      // Get previous responses to provide context
       let previousResponses = {};
       try {
         previousResponses = await getSessionResponses(sessionId);
@@ -185,6 +183,8 @@ export const useChatActions = (
   };
 
   const handleOptionSelection = async (optionId: string) => {
+    setValidationError(undefined);
+    
     const currentQuestion = `section_${currentSectionIndex}_question_${currentQuestionIndex}`;
     
     setFormData(prev => ({
@@ -270,6 +270,19 @@ export const useChatActions = (
     const trimmedInput = input.trim();
     if (!trimmedInput) return;
     
+    const questionType = getFieldTypeForCurrentQuestion();
+    
+    if (questionType) {
+      const validationResult = validateChatInput(trimmedInput, questionType);
+      
+      if (!validationResult.isValid) {
+        setValidationError(validationResult.errorMessage);
+        return;
+      } else {
+        setValidationError(undefined);
+      }
+    }
+    
     const userMessage = {
       content: trimmedInput,
       isUser: true,
@@ -343,7 +356,6 @@ export const useChatActions = (
         
         const updatedMessages = [...messages, userMessage];
         
-        // Get previous responses to provide context
         let previousResponses = {};
         try {
           previousResponses = await getSessionResponses(sessionId);
@@ -358,6 +370,10 @@ export const useChatActions = (
           overallQuestionIndex,
           config
         );
+        
+        if (response.validationNeeded) {
+          console.log(`Next question requires ${response.validationNeeded} validation`);
+        }
         
         if (overallQuestionIndex >= 50) {
           setConversationStage("completion");
@@ -415,6 +431,8 @@ export const useChatActions = (
         await simulateBotTyping(introMessage, getRoleOptions());
       }, 100);
     }
+    
+    setValidationError(undefined);
   };
 
   const initializeChat = async () => {
@@ -433,6 +451,41 @@ export const useChatActions = (
       const introMessage = getIntroMessage();
       await simulateBotTyping(introMessage, getRoleOptions());
     }
+  };
+
+  const getFieldTypeForCurrentQuestion = (): string | null => {
+    if (!progress.role) return null;
+    
+    const question = getCurrentQuestion(
+      progress.role,
+      currentSectionIndex,
+      currentQuestionIndex
+    );
+    
+    if (!question) return null;
+    
+    const label = (question.label || "").toLowerCase();
+    const id = (question.id || "").toLowerCase();
+    
+    if (label.includes("email") || id.includes("email")) {
+      return "email";
+    } else if (label.includes("phone") || id.includes("phone")) {
+      return "phone";
+    } else if (
+      label.includes("first name") || 
+      id.includes("first_name") ||
+      label.includes("full name") ||
+      id.includes("full_name")
+    ) {
+      return "name";
+    } else if (
+      label.includes("last name") || 
+      id.includes("last_name")
+    ) {
+      return "name";
+    }
+    
+    return null;
   };
 
   return {

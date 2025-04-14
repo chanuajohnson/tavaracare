@@ -175,6 +175,45 @@ export const completeSection = async (sessionId: string, section: string): Promi
   }
 };
 
+/**
+ * Validates user input based on the field type
+ * @returns Object with validity status and error message if invalid
+ */
+export const validateChatInput = (input: string, fieldType: string): { isValid: boolean; errorMessage?: string } => {
+  // Skip validation if no input
+  if (!input || !input.trim()) {
+    return { isValid: false, errorMessage: "This field cannot be empty." };
+  }
+
+  const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+  const phoneRegex = /^(\+\d{1,3}\s?)?\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4}$/;
+  
+  switch(fieldType.toLowerCase()) {
+    case 'email':
+      if (!emailRegex.test(input)) {
+        return { isValid: false, errorMessage: "Please enter a valid email address." };
+      }
+      break;
+    case 'phone':
+    case 'phone_number':
+    case 'phonenumber':
+    case 'tel':
+      if (!phoneRegex.test(input)) {
+        return { isValid: false, errorMessage: "Please enter a valid phone number." };
+      }
+      break;
+    case 'name':
+    case 'first_name':
+    case 'last_name':
+      if (input.length < 2) {
+        return { isValid: false, errorMessage: "Name must be at least 2 characters." };
+      }
+      break;
+  }
+
+  return { isValid: true };
+};
+
 // Define the ChatProgress type
 export interface ChatProgress {
   session_id: string;

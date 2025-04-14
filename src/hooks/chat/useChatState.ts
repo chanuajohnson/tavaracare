@@ -1,5 +1,5 @@
 
-import { useState, useRef } from 'react';
+import { useState, useRef } from "react";
 
 export const useChatState = () => {
   const [conversationStage, setConversationStage] = useState<"intro" | "questions" | "completion">("intro");
@@ -9,16 +9,19 @@ export const useChatState = () => {
   const [formData, setFormData] = useState<Record<string, any>>({});
   const [input, setInput] = useState("");
   const [showOptions, setShowOptions] = useState(true);
+  const [validationError, setValidationError] = useState<string | undefined>();
   const chatInitializedRef = useRef(false);
-  
+
   const resetChatState = () => {
-    setInput("");
-    setShowOptions(true);
     setConversationStage("intro");
     setIsResuming(false);
     setCurrentSectionIndex(0);
     setCurrentQuestionIndex(0);
     setFormData({});
+    setInput("");
+    setShowOptions(true);
+    setValidationError(undefined);
+    chatInitializedRef.current = false;
   };
 
   return {
@@ -37,6 +40,8 @@ export const useChatState = () => {
     showOptions,
     setShowOptions,
     chatInitializedRef,
-    resetChatState
+    resetChatState,
+    validationError,
+    setValidationError
   };
 };

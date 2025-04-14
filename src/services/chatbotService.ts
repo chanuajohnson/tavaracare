@@ -6,7 +6,8 @@ import {
   getChatProgress,
   getSessionResponses,
   completeSection,
-  ChatProgress
+  ChatProgress,
+  validateChatInput
 } from "./chat/databaseUtils";
 
 import {
@@ -27,6 +28,7 @@ export {
   getChatProgress,
   getSessionResponses,
   completeSection,
+  validateChatInput,
   
   // Response generation
   generateNextQuestionMessage,

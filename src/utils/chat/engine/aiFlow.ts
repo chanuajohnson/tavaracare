@@ -7,7 +7,7 @@ import { isRepeatMessage, setLastMessage } from './messageCache';
 import { ChatResponse } from './types';
 import { formatChatHistoryForAI, generatePrompt } from '../generatePrompt';
 import { getCurrentQuestion } from '@/services/chat/responseUtils';
-import { getSessionResponses } from '@/services/chat/databaseUtils';
+import { getSessionResponses, validateChatInput } from '@/services/chat/databaseUtils';
 
 /**
  * Handles AI-based conversation flow
@@ -17,7 +17,7 @@ export const handleAIFlow = async (
   sessionId: string,
   userRole: string | null,
   questionIndex: number
-): Promise<ChatResponse> => {
+): Promise<ChatResponse & { validationNeeded?: string }> => {
   try {
     console.log("AI Flow starting with:", { userRole, questionIndex });
     
@@ -33,6 +33,37 @@ export const handleAIFlow = async (
         console.log("Generated prompt result:", generatedPrompt);
         
         if (generatedPrompt && generatedPrompt.message) {
+          const currentQuestion = getCurrentQuestion(userRole, sectionIndex, sectionQuestionIndex);
+          
+          // Return validation information based on the question type
+          if (currentQuestion) {
+            let fieldType = "";
+            
+            // Try to determine field type from question label or id
+            const label = currentQuestion.label.toLowerCase();
+            const id = currentQuestion.id?.toLowerCase() || "";
+            
+            if (label.includes("email") || id.includes("email")) {
+              fieldType = "email";
+            } else if (label.includes("phone") || id.includes("phone")) {
+              fieldType = "phone";
+            } else if (
+              label.includes("name") || 
+              id.includes("name") ||
+              label.includes("first name") || 
+              id.includes("first_name") ||
+              label.includes("last name") || 
+              id.includes("last_name")
+            ) {
+              fieldType = "name";
+            }
+            
+            return { 
+              ...generatedPrompt, 
+              validationNeeded: fieldType || undefined 
+            };
+          }
+          
           return generatedPrompt;
         } else {
           console.warn("Generated prompt was empty, falling back to OpenAI direct call");
@@ -169,6 +200,24 @@ DO NOT use phrases like "how would you like to engage with us today" or other ar
           { id: "no", label: "No" }
         ];
       }
+      
+      // Determine if field validation is needed
+      let validationNeeded: string | undefined;
+      
+      if (currentQuestion) {
+        const label = (currentQuestion.label || "").toLowerCase();
+        const id = (currentQuestion.id || "").toLowerCase();
+        
+        if (label.includes("email") || id.includes("email")) {
+          validationNeeded = "email";
+        } else if (label.includes("phone") || id.includes("phone")) {
+          validationNeeded = "phone";
+        } else if (label.includes("name") || id.includes("name")) {
+          validationNeeded = "name";
+        }
+      }
+      
+      return { message: finalMessage, options, validationNeeded };
     }
     
     return { message: finalMessage, options };

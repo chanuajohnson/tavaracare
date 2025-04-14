@@ -85,7 +85,14 @@ serve(async (req) => {
       effectiveSystemPrompt += `\n\nIMPORTANT: Your responses should be warm and conversational, not like form field labels. 
       DO NOT say things like "First Name" or "Email Address". Instead, ask naturally like "What's your name?" or "What's your email?".
       
-      Use a warm, friendly Trinidad & Tobago style in your conversation. Make sure to sound like a real person having a conversation, not a form processor.`;
+      Use a warm, friendly Trinidad & Tobago style in your conversation. Make sure to sound like a real person having a conversation, not a form processor.
+      
+      When asking for data that requires validation:
+      - For email addresses: Say something like "What's the best email to reach you at?" or "What email should I use to contact you?"
+      - For phone numbers: Ask "What's your phone number?" or "What's a good number to reach you at?"
+      - For names: Just ask "What's your name?" or "What should I call you?" in a friendly way.
+      
+      Do not tell users about validation requirements directly, but make sure your questions are clear about what information you're seeking.`;
       
       // Role-specific guidance for AI
       if (userRole === 'family') {

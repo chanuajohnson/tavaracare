@@ -49,7 +49,9 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({
     showOptions,
     setShowOptions,
     chatInitializedRef,
-    resetChatState
+    resetChatState,
+    validationError,
+    setValidationError
   } = useChatState();
   
   const [config] = React.useState(() => loadChatConfig());
@@ -93,7 +95,8 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({
     setInput,
     conversationStage,
     skipIntro,
-    setIsResuming
+    setIsResuming,
+    setValidationError
   );
 
   useEffect(() => {
@@ -141,6 +144,7 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({
         isTyping={isTyping}
         conversationStage={conversationStage}
         isResuming={isResuming}
+        validationError={validationError}
       />
     </div>
   );
