@@ -19,10 +19,13 @@ export const generatePrompt = async (
   sectionIndex: number,
   questionIndex: number
 ): Promise<PromptResponse> => {
+  console.log("Generating prompt for:", { role, sectionIndex, questionIndex });
+  
   // Get the current question from the registration flow
   const question = getCurrentQuestion(role, sectionIndex, questionIndex);
   
   if (!question) {
+    console.warn("No question found for specified indices");
     return {
       message: "Let's continue with your registration. What would you like to share next?",
       options: [
@@ -32,6 +35,8 @@ export const generatePrompt = async (
     };
   }
 
+  console.log("Found question:", { questionLabel: question.label, questionType: question.type });
+  
   // Extract the user's name if they've provided it already
   const userName = extractUserName(chatHistory);
   
@@ -40,6 +45,7 @@ export const generatePrompt = async (
   
   // Add warmth and cultural style to the prompt
   const warmPrompt = addWarmth(question.label, personalizedGreeting);
+  console.log("Generated warm prompt:", warmPrompt);
   
   // For select/multiselect/checkbox questions, provide options
   if (question.type === 'select' || question.type === 'multiselect' || question.type === 'checkbox') {
@@ -92,6 +98,23 @@ const extractUserName = (chatHistory: ChatMessage[]): string | null => {
  * Adds warmth and cultural style to the prompt
  */
 const addWarmth = (prompt: string, personalizedGreeting: string): string => {
+  // Convert formal field labels to conversational questions
+  if (prompt.includes("First Name")) {
+    return `${personalizedGreeting ? personalizedGreeting + "now " : ""}what's your first name?`;
+  }
+  
+  if (prompt.includes("Last Name")) {
+    return `${personalizedGreeting ? "Thanks! And " : ""}what's your last name?`;
+  }
+  
+  if (prompt.includes("Email Address") || prompt.includes("Email")) {
+    return `${personalizedGreeting ? personalizedGreeting + " " : ""}what email address can we use to reach you?`;
+  }
+
+  if (prompt.includes("Phone Number") || prompt.includes("Phone")) {
+    return `${personalizedGreeting ? personalizedGreeting + " " : ""}what's a good phone number to contact you?`;
+  }
+
   // Pick a random greeting if we're at the start of a section
   let warmPrompt = prompt;
 

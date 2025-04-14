@@ -53,6 +53,7 @@ serve(async (req) => {
     console.log(`Processing request for session: ${sessionId}`);
     console.log(`User role: ${userRole || 'Not specified'}`);
     console.log(`Message count: ${messages.length}`);
+    console.log(`Field context: ${fieldContext?.currentField || 'None'}`);
 
     // Create customized system prompt based on role and field context
     let effectiveSystemPrompt = systemPrompt || '';
@@ -79,6 +80,12 @@ serve(async (req) => {
           effectiveSystemPrompt += `\n- ${readableKey}: ${value}`;
         });
       }
+      
+      // IMPORTANT: Instruct the AI to be conversational, not form-like
+      effectiveSystemPrompt += `\n\nIMPORTANT: Your responses should be warm and conversational, not like form field labels. 
+      DO NOT say things like "First Name" or "Email Address". Instead, ask naturally like "What's your name?" or "What's your email?".
+      
+      Use a warm, friendly Trinidad & Tobago style in your conversation. Make sure to sound like a real person having a conversation, not a form processor.`;
       
       // Role-specific guidance for AI
       if (userRole === 'family') {

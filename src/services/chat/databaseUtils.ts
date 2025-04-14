@@ -1,263 +1,177 @@
-
-import { supabase } from "@/integrations/supabase/client";
-import { safeToRecord } from "@/utils/json";
-
-/**
- * Interface for ChatProgress
- */
-export interface ChatProgress {
-  sessionId: string;
-  role: string;
-  currentSection: number;
-  questionIndex: number;
-  sectionStatus: "not_started" | "in_progress" | "completed";
-  responsesComplete: boolean;
-  formData: Record<string, any>;
-}
+import { supabase } from '@/lib/supabase';
+import { ChatResponseData } from './types';
 
 /**
- * Save chat response to Supabase
+ * Saves a chat response to the database
  */
 export const saveChatResponse = async (
   sessionId: string,
   role: string,
   section: string,
   questionId: string,
-  response: any,
-  userId?: string
-) => {
+  response: string
+): Promise<boolean> => {
   try {
-    const { data, error } = await supabase
-      .from("chatbot_responses")
-      .insert({
-        session_id: sessionId,
-        user_id: userId,
-        role,
-        section,
-        question_id: questionId,
-        response,
-      });
-
-    if (error) {
-      console.error("Error saving chat response:", error);
-      return false;
-    }
-
+    await supabase.from('chat_responses').insert({
+      session_id: sessionId,
+      role,
+      section,
+      question_id: questionId,
+      response,
+      timestamp: new Date().toISOString()
+    });
     return true;
-  } catch (err) {
-    console.error("Exception saving chat response:", err);
+  } catch (error) {
+    console.error('Error saving chat response:', error);
     return false;
   }
 };
 
 /**
- * Update chat progress in Supabase
+ * Updates the chat progress information in the database
  */
 export const updateChatProgress = async (
   sessionId: string,
   role: string,
-  currentSection: string,
-  sectionStatus: "not_started" | "in_progress" | "completed",
+  section: string,
+  sectionStatus: 'not_started' | 'in_progress' | 'completed',
   lastQuestionId?: string,
-  formData?: Record<string, any> | null,
-  userId?: string
-) => {
+  formData?: Record<string, any>
+): Promise<boolean> => {
   try {
-    // Check if progress record exists
+    // Format the formData to ensure it's compatible with Supabase's jsonb column
+    const formattedFormData = formData ? formData : {};
+
+    // Check if a progress row already exists for this session
     const { data: existingProgress } = await supabase
-      .from("chatbot_progress")
-      .select("*")
-      .eq("session_id", sessionId)
-      .single();
+      .from('chatbot_progress')
+      .select('id')
+      .eq('session_id', sessionId)
+      .maybeSingle();
 
-    // Explicitly define the type-safe update data object
-    const updateData: {
-      session_id: string;
-      user_id?: string;
-      role: string;
-      current_section: string;
-      section_status: "not_started" | "in_progress" | "completed";
-      last_question_id?: string;
-      form_data?: Record<string, any>;
-    } = {
-      session_id: sessionId,
-      user_id: userId,
-      role,
-      current_section: currentSection,
-      section_status: sectionStatus,
-      last_question_id: lastQuestionId,
-    };
-    
-    // Only add form_data if it exists, ensuring it's a proper object
-    if (formData !== undefined && formData !== null) {
-      // Convert formData to a proper Record<string, any> using safeToRecord
-      updateData.form_data = safeToRecord(formData);
-    }
-
-    let result;
-    
-    if (existingProgress) {
-      // Update existing record
-      result = await supabase
-        .from("chatbot_progress")
-        .update(updateData)
-        .eq("session_id", sessionId);
+    if (!existingProgress) {
+      // Create new progress record
+      await supabase.from('chatbot_progress').insert({
+        session_id: sessionId,
+        role,
+        current_section: section,
+        section_status: sectionStatus,
+        last_question_id: lastQuestionId,
+        form_data: formattedFormData
+      });
     } else {
-      // Create new record
-      result = await supabase
-        .from("chatbot_progress")
-        .insert(updateData);
+      // Update existing progress record
+      await supabase
+        .from('chatbot_progress')
+        .update({
+          role,
+          current_section: section,
+          section_status: sectionStatus,
+          last_question_id: lastQuestionId,
+          form_data: formattedFormData,
+          updated_at: new Date().toISOString()
+        })
+        .eq('session_id', sessionId);
     }
 
-    if (result.error) {
-      console.error("Error updating chat progress:", result.error);
-      return false;
+    // Store progress in localStorage as a backup
+    try {
+      localStorage.setItem(
+        `tavara_chat_progress_${sessionId}`,
+        JSON.stringify({
+          role,
+          section,
+          sectionStatus,
+          lastQuestionId,
+          questionIndex: parseInt(lastQuestionId?.split('_').pop() || '0', 10) || 0
+        })
+      );
+    } catch (error) {
+      console.error('Error storing progress in localStorage:', error);
     }
 
     return true;
-  } catch (err) {
-    console.error("Exception updating chat progress:", err);
+  } catch (error) {
+    console.error('Error updating chat progress:', error);
     return false;
   }
 };
 
 /**
- * Get chat progress from Supabase
+ * Retrieves the chat progress for a given session ID
  */
-export const getChatProgress = async (sessionId: string): Promise<ChatProgress | null> => {
+export const getChatProgress = async (sessionId: string): Promise<any | null> => {
   try {
     const { data, error } = await supabase
-      .from("chatbot_progress")
-      .select("*")
-      .eq("session_id", sessionId)
+      .from('chatbot_progress')
+      .select('*')
+      .eq('session_id', sessionId)
       .single();
 
     if (error) {
-      if (error.code === 'PGRST116') {
-        // No data found, not an error for us
-        return null;
-      }
-      console.error("Error fetching chat progress:", error);
+      console.error('Error fetching chat progress:', error);
       return null;
     }
 
-    if (!data) return null;
-
-    return {
-      sessionId: data.session_id,
-      role: data.role,
-      currentSection: parseInt(data.current_section, 10) || 0,
-      questionIndex: 0, // Default to first question in the section
-      sectionStatus: data.section_status,
-      responsesComplete: data.responses_complete,
-      formData: data.form_data ? safeToRecord(data.form_data) : {},
-    };
-  } catch (err) {
-    console.error("Exception fetching chat progress:", err);
+    return data || null;
+  } catch (error) {
+    console.error('Error getting chat progress:', error);
     return null;
   }
 };
 
 /**
- * Get responses for a session
+ * Retrieves all responses for a given session ID
  */
 export const getSessionResponses = async (sessionId: string): Promise<Record<string, any>> => {
   try {
     const { data, error } = await supabase
-      .from("chatbot_responses")
-      .select("*")
-      .eq("session_id", sessionId);
+      .from('chat_responses')
+      .select('question_id, response')
+      .eq('session_id', sessionId);
 
     if (error) {
-      console.error("Error fetching session responses:", error);
+      console.error('Error fetching session responses:', error);
       return {};
     }
 
-    // Convert to a map of questionId -> response
-    const responseMap: Record<string, any> = {};
-    data?.forEach((item) => {
-      responseMap[item.question_id] = item.response;
+    const responses: Record<string, any> = {};
+    data.forEach(item => {
+      responses[item.question_id] = item.response;
     });
 
-    return responseMap;
-  } catch (err) {
-    console.error("Exception fetching session responses:", err);
+    return responses;
+  } catch (error) {
+    console.error('Error getting session responses:', error);
     return {};
   }
 };
 
 /**
- * Check if a response already exists for a question
+ * Completes a section in the chat progress
  */
-export const hasResponseForQuestion = async (
-  sessionId: string,
-  questionId: string
-): Promise<boolean> => {
+export const completeSection = async (sessionId: string, section: string): Promise<boolean> => {
   try {
-    const { data, error } = await supabase
-      .from("chatbot_responses")
-      .select("id")
-      .eq("session_id", sessionId)
-      .eq("question_id", questionId)
-      .maybeSingle();
-
-    if (error) {
-      console.error("Error checking for response:", error);
-      return false;
-    }
-
-    return !!data;
-  } catch (err) {
-    console.error("Exception checking for response:", err);
-    return false;
-  }
-};
-
-/**
- * Get the chat history from Supabase
- */
-export const getChatHistory = async (sessionId: string): Promise<any[]> => {
-  try {
-    const { data, error } = await supabase
-      .from("chatbot_conversations")
-      .select("conversation_data")
-      .eq("session_id", sessionId)
-      .maybeSingle();
-
-    if (error || !data) {
-      console.error("Error fetching chat history:", error);
-      return [];
-    }
-
-    return data.conversation_data || [];
-  } catch (err) {
-    console.error("Exception fetching chat history:", err);
-    return [];
-  }
-};
-
-/**
- * Mark a section as complete
- */
-export const completeSection = async (
-  sessionId: string,
-  role: string,
-  sectionIndex: number,
-  formData: Record<string, any>
-): Promise<boolean> => {
-  try {
-    await updateChatProgress(
-      sessionId,
-      role,
-      sectionIndex.toString(),
-      "completed",
-      undefined,
-      formData
-    );
-    
+    await supabase
+      .from('chatbot_progress')
+      .update({ section_status: 'completed' })
+      .eq('session_id', sessionId)
+      .eq('current_section', section);
     return true;
-  } catch (err) {
-    console.error("Error completing section:", err);
+  } catch (error) {
+    console.error('Error completing section:', error);
     return false;
   }
 };
+
+// Define the ChatProgress type
+export interface ChatProgress {
+  session_id: string;
+  role: string;
+  current_section: string;
+  section_status: 'not_started' | 'in_progress' | 'completed';
+  last_question_id: string | null;
+  form_data: Record<string, any> | null;
+  created_at: string;
+  updated_at: string | null;
+}

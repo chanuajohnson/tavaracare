@@ -7,6 +7,7 @@ import { isRepeatMessage, setLastMessage } from './messageCache';
 import { ChatResponse } from './types';
 import { formatChatHistoryForAI, generatePrompt } from '../generatePrompt';
 import { getCurrentQuestion } from '@/services/chat/responseUtils';
+import { getSessionResponses } from '@/services/chat/databaseUtils';
 
 /**
  * Handles AI-based conversation flow
@@ -18,21 +19,43 @@ export const handleAIFlow = async (
   questionIndex: number
 ): Promise<ChatResponse> => {
   try {
+    console.log("AI Flow starting with:", { userRole, questionIndex });
+    
     // If we have a role and are in registration flow, use the prompt generator
     if (userRole) {
       const sectionIndex = Math.floor(questionIndex / 10);
       const sectionQuestionIndex = questionIndex % 10;
       
       try {
+        console.log("Using contextual prompt generator for", { userRole, sectionIndex, sectionQuestionIndex });
         // Use the context-aware prompt generator
-        return await generatePrompt(userRole, messages, sectionIndex, sectionQuestionIndex);
+        const generatedPrompt = await generatePrompt(userRole, messages, sectionIndex, sectionQuestionIndex);
+        console.log("Generated prompt result:", generatedPrompt);
+        
+        if (generatedPrompt && generatedPrompt.message) {
+          return generatedPrompt;
+        } else {
+          console.warn("Generated prompt was empty, falling back to OpenAI direct call");
+        }
       } catch (error) {
         console.error("Error generating context-aware prompt:", error);
         // Continue to fallback OpenAI approach
       }
     }
     
+    console.log("Falling back to standard OpenAI approach");
     // Fallback to standard OpenAI approach if prompt generator fails or we're in general chat
+    
+    // Get previous responses to provide context
+    let previousAnswers: Record<string, any> = {};
+    try {
+      if (sessionId && userRole) {
+        previousAnswers = await getSessionResponses(sessionId);
+        console.log("Retrieved previous answers for OpenAI context:", Object.keys(previousAnswers).length);
+      }
+    } catch (error) {
+      console.error("Error fetching previous responses for OpenAI:", error);
+    }
     
     // Convert messages to OpenAI format
     const openAIMessages = convertToOpenAIMessages(messages);
@@ -54,8 +77,21 @@ You are currently helping them through the registration process. We are at quest
 Keep your responses concise (1-3 sentences), friendly, and focused on gathering relevant information.
 Do NOT list multiple questions at once. Focus on ONE question at a time.
 
+IMPORTANT: Do NOT use field labels directly like "First Name" or "Last Name". Instead, ask naturally like "What's your first name?" or "And your last name?".
+
 Keep your responses natural and conversational. Use direct, warm language that reflects how real people speak.
 DO NOT use phrases like "how would you like to engage with us today" or other artificial corporate language.`;
+
+    // If we have previous answers, add them as context
+    if (Object.keys(previousAnswers).length > 0) {
+      systemPrompt += "\n\nThe user has already provided the following information:";
+      
+      Object.entries(previousAnswers).forEach(([key, value]) => {
+        // Format key for readability
+        const readableKey = key.replace(/_/g, ' ').toLowerCase();
+        systemPrompt += `\n- ${readableKey}: ${value}`;
+      });
+    }
 
     // Special instructions for first interaction
     if (!userRole && messages.length <= 3) {
@@ -70,11 +106,23 @@ DO NOT use phrases like "how would you like to engage with us today" or other ar
       });
     }
 
+    // Define field context for the AI
+    const fieldContext = {
+      currentField: questionIndex >= 0 ? `question_${questionIndex}` : undefined,
+      previousAnswers
+    };
+    
+    console.log("Calling AI service with field context:", { 
+      fieldContextDefined: !!fieldContext, 
+      messagesCount: limitedHistory.length 
+    });
+
     // Call the AI service
     const response = await getChatCompletion({
       messages: limitedHistory,
       sessionId,
-      userRole: userRole || undefined
+      userRole: userRole || undefined,
+      fieldContext
     });
 
     if (response.error) {
