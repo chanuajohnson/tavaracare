@@ -39,7 +39,7 @@ export const processConversation = async (
   
   // Use registration flow
   if (userRole && questionIndex >= 0) {
-    return handleRegistrationFlow(userRole, questionIndex);
+    return handleRegistrationFlow(messages, userRole, sessionId, questionIndex);
   }
 
   // Default response if no flow is matched
