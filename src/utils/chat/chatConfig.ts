@@ -1,4 +1,3 @@
-
 import { ChatConfig } from './engine/types';
 import { defaultChatConfig } from './engine/types';
 
@@ -21,7 +20,13 @@ export const loadChatConfig = (): ChatConfig => {
     localStorage.removeItem(CHAT_CONFIG_KEY);
   }
   
-  return defaultChatConfig;
+  // Set default to AI mode
+  return {
+    ...defaultChatConfig,
+    mode: 'ai',
+    temperature: 0.7,
+    fallbackThreshold: 2
+  };
 };
 
 /**

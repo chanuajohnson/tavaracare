@@ -13,7 +13,10 @@ export const phrasings = {
     "Good day",
     "Welcome",
     "Hows it going?",
-    "Howdy!"
+    "Howdy!",
+    "Greetings and salutations!",
+    "Hows the morning/evening?",
+    "Nice to see you!"
   ],
   
   // Expressions of acknowledgment
@@ -27,7 +30,10 @@ export const phrasings = {
     "Well nice",
     "Cool cool",
     "That's good",
-    "Real nice"
+    "Real nice",
+    "Thanks for sharing",
+    "I appreciate that",
+    "That's helpful information"
   ],
   
   // Common expressions and phrases
@@ -43,7 +49,11 @@ export const phrasings = {
     "For so!",
     "Oh gorm",
     "Allyuh see",
-    "Imagine that"
+    "Imagine that",
+    "Look at that nah",
+    "But wait",
+    "You know how it is",
+    "Look at meh trouble"
   ],
   
   // Encouraging phrases
@@ -55,7 +65,10 @@ export const phrasings = {
     "No pressure, no diamonds",
     "You got this",
     "We moving good!",
-    "That's the way"
+    "That's the way",
+    "You making progress",
+    "One step at a time",
+    "We getting there"
   ],
   
   // Ways to express agreement
@@ -66,7 +79,10 @@ export const phrasings = {
     "You right",
     "Exactly so",
     "Exactly that",
-    "Just so"
+    "Just so",
+    "That's right",
+    "Yes yes",
+    "Is that!"
   ],
   
   // Ways to ask questions
@@ -77,7 +93,10 @@ export const phrasings = {
     "Share with me...",
     "What you think about...",
     "Let me ask you...",
-    "Can you share..."
+    "Can you share...",
+    "I'd like to know...",
+    "Mind telling me...",
+    "Could you explain..."
   ],
   
   // Ways to introduce suggestions
@@ -88,7 +107,10 @@ export const phrasings = {
     "Let me suggest...",
     "Ever think about...",
     "What about...",
-    "Consider this..."
+    "Consider this...",
+    "One option is...",
+    "It might work if...",
+    "Have you thought of..."
   ],
   
   // Family-related terms
@@ -102,7 +124,10 @@ export const phrasings = {
     "granny",
     "auntie",
     "uncle",
-    "elder"
+    "elder",
+    "senior",
+    "grandparent",
+    "partner"
   ],
   
   // Care-related terms
@@ -114,7 +139,10 @@ export const phrasings = {
     "looking after",
     "minding",
     "watching over",
-    "caregiving"
+    "caregiving",
+    "attention",
+    "aid",
+    "service"
   ],
   
   // Section transitions
@@ -124,7 +152,11 @@ export const phrasings = {
     "Great! Let's switch over to",
     "Perfect! Now I'd like to ask about",
     "Thanks for that. Let's talk about",
-    "That's helpful. Now, regarding"
+    "That's helpful. Now, regarding",
+    "Well nice! Moving on to",
+    "Let's shift gears and look at",
+    "Excellent progress! Next let's cover",
+    "Good good! Now tell me about"
   ],
   
   // Validation error responses
@@ -132,17 +164,20 @@ export const phrasings = {
     email: [
       "That email doesn't look quite right. Mind checking it?",
       "Hmm, I'm having trouble with that email address. Could you try again?",
-      "That doesn't seem like a valid email. Let's try once more."
+      "That doesn't seem like a valid email. Let's try once more.",
+      "I need a proper email address with an @ sign. Mind checking?"
     ],
     phone: [
       "That phone number doesn't seem right. Could you check it?",
       "I'm not sure that's a valid number. Mind trying again?",
-      "Hmm, that number doesn't look complete. One more time?"
+      "Hmm, that number doesn't look complete. One more time?",
+      "I need a phone number I can reach you at. Can you check that format?"
     ],
     name: [
       "That name seems a bit short. Could you give me your full name?",
       "I need your proper name to continue. Can you share that?",
-      "Could you give me your name again? I need it for the registration."
+      "Could you give me your name again? I need it for the registration.",
+      "That doesn't quite look like a name. Mind typing it again?"
     ]
   },
   
@@ -151,6 +186,18 @@ export const phrasings = {
     "Great! We've completed this part.",
     "Perfect! That's all I needed for this section.",
     "Thanks plenty! We've finished this section now.",
-    "Well nice! You've completed this part."
+    "Well nice! You've completed this part.",
+    "That's everything for this section!",
+    "Excellent! We're done with this part.",
+    "Perfect! Let's move on."
+  ],
+  
+  // Error recovery phrases
+  errorRecovery: [
+    "Oh gosh, something's not quite working. Let me try again.",
+    "Look trouble! I'm having a small issue. Let's take another approach.",
+    "I seem to be having a moment. Let's try something else.",
+    "My brain's a bit slow right now. Let me think differently.",
+    "Steups! Something's not connecting right. Let me fix this."
   ]
 };

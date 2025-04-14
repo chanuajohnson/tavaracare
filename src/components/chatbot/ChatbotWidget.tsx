@@ -20,13 +20,15 @@ interface ChatbotWidgetProps {
   width?: string;
   onClose?: () => void;
   hideHeader?: boolean;
+  debugMode?: boolean;
 }
 
 export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({ 
   className,
   width = "320px",
   onClose,
-  hideHeader = false
+  hideHeader = false,
+  debugMode = process.env.NODE_ENV === 'development'
 }) => {
   const { sessionId } = useChatSession();
   const { messages, addMessage, clearMessages } = useChatMessages(sessionId);
@@ -54,8 +56,15 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({
     setValidationError
   } = useChatState();
   
-  const [config] = React.useState(() => loadChatConfig());
+  const config = loadChatConfig();
   const alwaysShowOptions = shouldAlwaysShowOptions();
+  
+  // Log config in development mode
+  React.useEffect(() => {
+    if (debugMode) {
+      console.log(`[Chat] Config loaded: mode=${config.mode}, temperature=${config.temperature}`, config);
+    }
+  }, [debugMode]);
   
   const { isTyping, simulateBotTyping } = useChatTyping({ 
     addMessage, 
@@ -104,12 +113,34 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({
       if (chatInitializedRef.current) return;
       chatInitializedRef.current = true;
       
+      if (debugMode) {
+        console.log("[Chat] Initializing chat with:", { 
+          sessionId, 
+          initialRole,
+          skipIntro, 
+          messagesLength: messages.length 
+        });
+      }
+      
       await initializeChat();
     };
     
     const timer = setTimeout(setupChat, 100);
     return () => clearTimeout(timer);
   }, [messages.length, initialRole, skipIntro, progress, sessionId]);
+
+  // Debug panel for development
+  const DebugPanel = debugMode ? (
+    <div className="fixed bottom-4 right-4 bg-black/80 text-white p-3 rounded-lg text-xs z-50 max-w-xs overflow-auto max-h-48">
+      <h4 className="font-bold">Chat Debug</h4>
+      <div>Mode: <span className="text-green-400">{config.mode}</span></div>
+      <div>Stage: <span className="text-yellow-400">{conversationStage}</span></div>
+      <div>Role: <span className="text-blue-400">{progress.role || "not set"}</span></div>
+      <div>Index: <span className="text-purple-400">{currentSectionIndex}.{currentQuestionIndex}</span></div>
+      <div>Messages: <span className="text-orange-400">{messages.length}</span></div>
+      <div>Session ID: <span className="text-gray-400 text-[10px]">{sessionId.slice(0, 8)}...</span></div>
+    </div>
+  ) : null;
 
   return (
     <div 
@@ -146,6 +177,9 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({
         isResuming={isResuming}
         validationError={validationError}
       />
+
+      {/* Debug panel for development mode */}
+      {DebugPanel}
     </div>
   );
 };

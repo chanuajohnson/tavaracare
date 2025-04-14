@@ -23,5 +23,5 @@ export interface RetryState {
 export interface ChatResponse {
   message: string;
   options?: ChatOption[];
-  validationNeeded?: string; // Add this field for input validation
+  validationNeeded?: string; // Field for input validation (email, phone, name, etc.)
 }

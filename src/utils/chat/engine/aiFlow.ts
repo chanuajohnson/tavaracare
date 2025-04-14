@@ -90,7 +90,7 @@ export const handleAIFlow = async (
       }
     }
     
-    console.log("Falling back to standard OpenAI approach");
+    console.log("Using standard OpenAI approach");
     
     // Get previous responses to provide context
     let previousAnswers: Record<string, any> = {};
@@ -163,7 +163,8 @@ If the user has provided information previously, acknowledge it and don't ask fo
     
     console.log("Calling AI service with field context:", { 
       fieldContextDefined: !!fieldContext, 
-      messagesCount: limitedHistory.length 
+      messagesCount: limitedHistory.length,
+      systemPromptLength: systemPrompt.length
     });
 
     // Call the AI service
@@ -175,11 +176,13 @@ If the user has provided information previously, acknowledge it and don't ask fo
     });
 
     if (response.error) {
+      console.error("AI service error:", response.error);
       throw new Error(`AI service error: ${response.error}`);
     }
 
     // Process the AI response
     const message = response.message || "I'm here to help you with your caregiving needs.";
+    console.log("Received AI response:", message);
     
     // Apply T&T cultural transformations
     const styledMessage = applyTrinidadianStyle(message);

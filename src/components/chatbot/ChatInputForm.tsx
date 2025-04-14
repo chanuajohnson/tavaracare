@@ -37,6 +37,7 @@ export const ChatInputForm: React.FC<ChatInputFormProps> = ({
           )}
           disabled={isTyping || conversationStage === "intro" || isResuming}
           aria-invalid={!!validationError}
+          onFocus={() => validationError && setInput("")}
         />
         <Button
           type="submit"
@@ -48,7 +49,7 @@ export const ChatInputForm: React.FC<ChatInputFormProps> = ({
         </Button>
       </form>
       {validationError && (
-        <p className="text-red-500 text-xs px-1">{validationError}</p>
+        <p className="text-red-500 text-sm px-1 animate-pulse">{validationError}</p>
       )}
     </div>
   );

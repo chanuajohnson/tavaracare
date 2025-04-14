@@ -9,10 +9,10 @@ export const applyTrinidadianStyle = (message: string): string => {
   if (!message) return message;
 
   // Random chance of applying each transformation for variety
-  const shouldApplyGreeting = Math.random() < 0.3 && (message.includes('hello') || message.includes('hi') || message.match(/^(hi|hey|hello)\b/i));
-  const shouldApplyAcknowledgment = Math.random() < 0.5 && (message.includes('thank') || message.includes('great') || message.includes('good'));
-  const shouldApplyExpression = Math.random() < 0.25;
-  const shouldApplyClosing = Math.random() < 0.3;
+  const shouldApplyGreeting = Math.random() < 0.4 && (message.includes('hello') || message.includes('hi') || message.match(/^(hi|hey|hello)\b/i));
+  const shouldApplyAcknowledgment = Math.random() < 0.6 && (message.includes('thank') || message.includes('great') || message.includes('good'));
+  const shouldApplyExpression = Math.random() < 0.35;
+  const shouldApplyClosing = Math.random() < 0.4;
 
   let modifiedMessage = message;
 
@@ -44,13 +44,15 @@ export const applyTrinidadianStyle = (message: string): string => {
   }
   
   // Add closing expressions at the end
-  if (shouldApplyClosing && message.endsWith('.') || message.endsWith('?') || message.endsWith('!')) {
+  if (shouldApplyClosing && (message.endsWith('.') || message.endsWith('?') || message.endsWith('!'))) {
     const closingOptions = [
       "Alright?",
       "Eh?",
       "Yes?",
       "For so!",
-      "You see?"
+      "You see?",
+      "You get me?",
+      "Understand?"
     ];
     
     const closing = closingOptions[Math.floor(Math.random() * closingOptions.length)];
@@ -83,8 +85,8 @@ export const applyTrinidadianStyle = (message: string): string => {
   
   // Ensure we have emoji occasionally, but not too many
   const hasEmoji = /[\u{1F300}-\u{1F6FF}]/u.test(modifiedMessage);
-  if (!hasEmoji && Math.random() < 0.2) {
-    const emojis = ["😊", "👋", "✨", "🌺", "💯", "🙌", "👍"];
+  if (!hasEmoji && Math.random() < 0.25) {
+    const emojis = ["😊", "👋", "✨", "🌺", "💯", "🙌", "👍", "🌴", "🏝️", "☀️"];
     const emoji = emojis[Math.floor(Math.random() * emojis.length)];
     
     // Add it near the end
@@ -109,6 +111,9 @@ export const avoidRepetition = (message: string): string => {
     "In other words, ",
     "Let me say it again, ",
     "What I meant was, ",
+    "To put it another way, ",
+    "Let me explain it differently, ",
+    "For better understanding, "
   ];
   
   // Choose a random prefix
@@ -116,4 +121,25 @@ export const avoidRepetition = (message: string): string => {
   
   // Add the prefix to the message
   return prefix + message.charAt(0).toLowerCase() + message.slice(1);
+};
+
+/**
+ * Apply validation error message with Trinidad & Tobago style
+ */
+export const stylizeValidationError = (errorType: string): string => {
+  const errorResponses = phrasings.validationResponses[errorType as keyof typeof phrasings.validationResponses];
+  if (!errorResponses || errorResponses.length === 0) {
+    return "That doesn't seem right. Could you check it and try again?";
+  }
+  
+  // Apply an expression randomly
+  const shouldAddExpression = Math.random() < 0.3;
+  let message = errorResponses[Math.floor(Math.random() * errorResponses.length)];
+  
+  if (shouldAddExpression) {
+    const expression = phrasings.expressions[Math.floor(Math.random() * phrasings.expressions.length)];
+    message = `${expression} ${message}`;
+  }
+  
+  return message;
 };

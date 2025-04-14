@@ -32,9 +32,10 @@ export const processConversation = async (
     aiRetryState.set(sessionId, retryState);
   }
   
-  // Use AI flow
+  // Use AI flow first (prioritize this flow)
   if (config.mode === 'ai') {
     try {
+      console.log("Using AI flow for conversation processing");
       const response = await handleAIFlow(messages, sessionId, userRole, questionIndex);
       
       // Reset retry count on success
@@ -115,8 +116,9 @@ export const processConversation = async (
     }
   }
   
-  // Use registration flow
+  // Registration flow should only be used if no other mode is specified
   if (userRole && questionIndex >= 0) {
+    console.log("Falling back to registration flow");
     return handleRegistrationFlow(messages, userRole, sessionId, questionIndex);
   }
 

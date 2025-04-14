@@ -191,9 +191,14 @@ export const validateChatInput = (input: string, fieldType: string): { isValid: 
   switch(fieldType.toLowerCase()) {
     case 'email':
       if (!emailRegex.test(input)) {
+        const errorMessages = [
+          "Eh heh! That doesn't look like a valid email address. Could you check it and try again?",
+          "I'm not seeing that as a proper email. Mind giving it another go?",
+          "That email address doesn't seem quite right. Let's try once more?"
+        ];
         return { 
           isValid: false, 
-          errorMessage: "That doesn't look like a valid email address. Could you check it and try again?" 
+          errorMessage: errorMessages[Math.floor(Math.random() * errorMessages.length)]
         };
       }
       break;
@@ -202,9 +207,14 @@ export const validateChatInput = (input: string, fieldType: string): { isValid: 
     case 'phonenumber':
     case 'tel':
       if (!phoneRegex.test(input)) {
+        const errorMessages = [
+          "Hmm, that phone number doesn't seem right. Please enter a valid phone number.",
+          "I'm having trouble with that number. Could you enter it again?",
+          "That doesn't look like a phone number I can use. One more try?"
+        ];
         return { 
           isValid: false, 
-          errorMessage: "Hmm, that phone number doesn't seem right. Please enter a valid phone number." 
+          errorMessage: errorMessages[Math.floor(Math.random() * errorMessages.length)]
         };
       }
       break;
@@ -212,9 +222,14 @@ export const validateChatInput = (input: string, fieldType: string): { isValid: 
     case 'first_name':
     case 'last_name':
       if (input.length < 2) {
+        const errorMessages = [
+          "Names should be at least 2 characters. Mind trying again?",
+          "That name seems too short. Could you give me your full name?",
+          "I need a bit more for the name field. Can you type it again?"
+        ];
         return { 
           isValid: false, 
-          errorMessage: "Names should be at least 2 characters. Mind trying again?" 
+          errorMessage: errorMessages[Math.floor(Math.random() * errorMessages.length)]
         };
       }
       break;
