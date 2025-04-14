@@ -1,3 +1,4 @@
+
 import { getChatCompletion, convertToOpenAIMessages, syncMessagesToSupabase } from '@/services/aiService';
 import { ChatMessage, ChatOption } from '@/types/chatTypes';
 import { handleAIFlow } from './engine/aiFlow';
@@ -6,6 +7,7 @@ import { handleRegistrationFlow } from './engine/registrationFlow';
 import { ChatConfig, defaultChatConfig } from './engine/types';
 import { getRetryState, resetRetryState } from './engine/retryManager';
 import { applyTrinidadianStyle } from './engine/styleUtils';
+import { getSessionResponses } from '@/services/chat/databaseUtils';
 
 /**
  * Processes the conversation and generates the next message
@@ -18,6 +20,16 @@ export const processConversation = async (
   config: ChatConfig = defaultChatConfig
 ): Promise<{ message: string; options?: ChatOption[] }> => {
   try {
+    // Get existing responses for context if available
+    let previousAnswers: Record<string, any> = {};
+    try {
+      if (sessionId && userRole) {
+        previousAnswers = await getSessionResponses(sessionId);
+      }
+    } catch (error) {
+      console.error("Error fetching previous responses:", error);
+    }
+    
     // For intro stage or scripted mode, use scripted flow
     if (config.mode === 'scripted' || messages.length === 0) {
       return await handleScriptedFlow(messages, userRole, sessionId, questionIndex);

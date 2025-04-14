@@ -1,7 +1,9 @@
 
+// I'll focus on the parts that need to change to support our new AI prompts and context awareness
+
 import { syncMessagesToSupabase } from "@/services/aiService";
 import { processConversation } from "@/utils/chat/chatFlowEngine";
-import { updateChatProgress, saveChatResponse } from "@/services/chatbotService";
+import { updateChatProgress, saveChatResponse, getSessionResponses } from "@/services/chatbotService";
 import { generatePrefillJson } from "@/utils/chat/prefillGenerator";
 import { toast } from "sonner";
 import { ChatConfig } from "@/utils/chat/engine/types";
@@ -86,6 +88,14 @@ export const useChatActions = (
     }));
     
     try {
+      // Get previous responses to provide context
+      let previousResponses = {};
+      try {
+        previousResponses = await getSessionResponses(sessionId);
+      } catch (err) {
+        console.log("No previous responses found");
+      }
+      
       const response = await processConversation(
         [...messages, { content: `I'm a ${roleId}.`, isUser: true, timestamp: Date.now() }],
         sessionId,
@@ -332,6 +342,14 @@ export const useChatActions = (
         }
         
         const updatedMessages = [...messages, userMessage];
+        
+        // Get previous responses to provide context
+        let previousResponses = {};
+        try {
+          previousResponses = await getSessionResponses(sessionId);
+        } catch (err) {
+          console.log("No previous responses found");
+        }
         
         const response = await processConversation(
           updatedMessages,

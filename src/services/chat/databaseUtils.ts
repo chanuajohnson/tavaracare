@@ -187,6 +187,56 @@ export const getSessionResponses = async (sessionId: string): Promise<Record<str
 };
 
 /**
+ * Check if a response already exists for a question
+ */
+export const hasResponseForQuestion = async (
+  sessionId: string,
+  questionId: string
+): Promise<boolean> => {
+  try {
+    const { data, error } = await supabase
+      .from("chatbot_responses")
+      .select("id")
+      .eq("session_id", sessionId)
+      .eq("question_id", questionId)
+      .maybeSingle();
+
+    if (error) {
+      console.error("Error checking for response:", error);
+      return false;
+    }
+
+    return !!data;
+  } catch (err) {
+    console.error("Exception checking for response:", err);
+    return false;
+  }
+};
+
+/**
+ * Get the chat history from Supabase
+ */
+export const getChatHistory = async (sessionId: string): Promise<any[]> => {
+  try {
+    const { data, error } = await supabase
+      .from("chatbot_conversations")
+      .select("conversation_data")
+      .eq("session_id", sessionId)
+      .maybeSingle();
+
+    if (error || !data) {
+      console.error("Error fetching chat history:", error);
+      return [];
+    }
+
+    return data.conversation_data || [];
+  } catch (err) {
+    console.error("Exception fetching chat history:", err);
+    return [];
+  }
+};
+
+/**
  * Mark a section as complete
  */
 export const completeSection = async (

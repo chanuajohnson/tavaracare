@@ -12,6 +12,12 @@ export interface ChatCompletionParams {
   userRole?: string;
   systemPrompt?: string;
   temperature?: number;
+  fieldContext?: {
+    currentField?: string;
+    fieldType?: string;
+    options?: string[];
+    previousAnswers?: Record<string, any>;
+  };
 }
 
 // Interface for the response from the chat completion function
@@ -38,6 +44,9 @@ export const createSystemPrompt = (userRole?: string): string => {
       - Any specific requirements or preferences?
       
       Use compassionate, understanding language. Recognize the emotional aspects of finding care for a loved one.
+      
+      Incorporate warm, friendly Trinidad & Tobago phrases and expressions, but keep it professional and respectful.
+      Be conversational but direct - ask one question at a time.
     `;
   } else if (userRole === 'professional') {
     roleSpecificPrompt = `
@@ -48,6 +57,9 @@ export const createSystemPrompt = (userRole?: string): string => {
       - What skills make them stand out?
       
       Use respectful, professional language that acknowledges their expertise and experience.
+      
+      Incorporate warm, friendly Trinidad & Tobago phrases and expressions when appropriate.
+      Be conversational but direct - ask one question at a time.
     `;
   } else if (userRole === 'community') {
     roleSpecificPrompt = `
@@ -58,6 +70,9 @@ export const createSystemPrompt = (userRole?: string): string => {
       - What motivated them to get involved?
       
       Use warm, inclusive language that emphasizes community values and collective support.
+      
+      Incorporate warm, friendly Trinidad & Tobago phrases and expressions when appropriate.
+      Be conversational but direct - ask one question at a time.
     `;
   }
 
@@ -71,7 +86,8 @@ export const getChatCompletion = async ({
   sessionId,
   userRole,
   systemPrompt,
-  temperature = 0.7
+  temperature = 0.7,
+  fieldContext
 }: ChatCompletionParams): Promise<ChatCompletionResponse> => {
   try {
     const { data, error } = await supabase.functions.invoke('chat-gpt', {
@@ -80,7 +96,8 @@ export const getChatCompletion = async ({
         sessionId,
         userRole,
         systemPrompt: systemPrompt || createSystemPrompt(userRole),
-        temperature
+        temperature,
+        fieldContext
       }
     });
 
@@ -112,7 +129,7 @@ export const syncMessagesToSupabase = async (
   messages: ChatMessage[],
   sessionId: string,
   userRole?: string
-) => {
+): Promise<boolean> => {
   try {
     // Check if conversation exists
     const { data: conversation } = await supabase

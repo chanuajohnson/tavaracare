@@ -23,6 +23,12 @@ interface RequestBody {
   systemPrompt?: string;
   temperature?: number;
   maxTokens?: number;
+  fieldContext?: {
+    currentField?: string;
+    fieldType?: string;
+    options?: string[];
+    previousAnswers?: Record<string, any>;
+  };
 }
 
 serve(async (req) => {
@@ -38,25 +44,63 @@ serve(async (req) => {
       sessionId, 
       temperature = 0.7, 
       maxTokens = 300,
-      systemPrompt 
+      systemPrompt,
+      fieldContext,
+      userRole
     } = requestData;
 
     // Log the request details for troubleshooting
     console.log(`Processing request for session: ${sessionId}`);
-    console.log(`User role: ${requestData.userRole || 'Not specified'}`);
+    console.log(`User role: ${userRole || 'Not specified'}`);
     console.log(`Message count: ${messages.length}`);
 
+    // Create customized system prompt based on role and field context
+    let effectiveSystemPrompt = systemPrompt || '';
+    
+    if (fieldContext && userRole) {
+      // Add field-specific context to enhance AI responses
+      effectiveSystemPrompt += `\n\nThe current field being requested is: ${fieldContext.currentField || 'unknown'}.`;
+      
+      if (fieldContext.fieldType) {
+        effectiveSystemPrompt += ` This is a ${fieldContext.fieldType} field.`;
+      }
+      
+      if (fieldContext.options && fieldContext.options.length > 0) {
+        effectiveSystemPrompt += ` The available options are: ${fieldContext.options.join(', ')}.`;
+      }
+      
+      // Add context from previous answers
+      if (fieldContext.previousAnswers && Object.keys(fieldContext.previousAnswers).length > 0) {
+        effectiveSystemPrompt += `\n\nThe user has already provided the following information:`;
+        
+        Object.entries(fieldContext.previousAnswers).forEach(([key, value]) => {
+          // Format key for readability
+          const readableKey = key.replace(/_/g, ' ').toLowerCase();
+          effectiveSystemPrompt += `\n- ${readableKey}: ${value}`;
+        });
+      }
+      
+      // Role-specific guidance for AI
+      if (userRole === 'family') {
+        effectiveSystemPrompt += `\n\nYou are helping a family member who needs care for a loved one. Be compassionate and understanding.`;
+      } else if (userRole === 'professional') {
+        effectiveSystemPrompt += `\n\nYou are helping a care professional register their services. Be respectful of their expertise.`;
+      } else if (userRole === 'community') {
+        effectiveSystemPrompt += `\n\nYou are helping someone who wants to support the caregiving community. Be appreciative of their interest.`;
+      }
+    }
+
     // Ensure system prompt is included if provided
-    if (systemPrompt && !messages.some(msg => msg.role === 'system')) {
+    if (effectiveSystemPrompt && !messages.some(msg => msg.role === 'system')) {
       messages.unshift({
         role: 'system',
-        content: systemPrompt
+        content: effectiveSystemPrompt
       });
     }
 
-    // Call OpenAI API
+    // Use gpt-4o-mini for a good balance of performance and cost
     const completion = await openai.createChatCompletion({
-      model: "gpt-4o-mini", // Using a more cost-effective model
+      model: "gpt-4o-mini", 
       messages,
       temperature,
       max_tokens: maxTokens,
