@@ -9,12 +9,12 @@ const configuration = new Configuration({
 });
 const openai = new OpenAIApi(configuration);
 
-// IMPROVED CORS headers to ensure they work in all environments
+// IMPROVED CORS headers - more permissive
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS, GET',
-  'Access-Control-Max-Age': '86400'
+  'Access-Control-Allow-Headers': '*', // More permissive
+  'Access-Control-Allow-Methods': 'POST, OPTIONS, GET', // Added GET
+  'Access-Control-Max-Age': '86400' // Cache preflight for 24 hours
 };
 
 // Types
@@ -34,11 +34,13 @@ interface RequestBody {
 }
 
 serve(async (req) => {
-  console.log("Chat-GPT function received request");
+  // Enhanced logging for every request
+  console.log(`[${new Date().toISOString()}] Chat-GPT function received ${req.method} request`);
+  console.log(`Request headers:`, Object.fromEntries(req.headers.entries()));
   
-  // Handle CORS preflight requests - expanded with detailed logging
+  // Handle CORS preflight requests - enhanced with more detailed logging
   if (req.method === 'OPTIONS') {
-    console.log("Handling CORS preflight request");
+    console.log("Handling CORS preflight request - returning all CORS headers");
     return new Response(null, { 
       status: 204, 
       headers: corsHeaders 
@@ -46,6 +48,21 @@ serve(async (req) => {
   }
 
   try {
+    // Verify OpenAI API key at the start
+    if (!openAIApiKey) {
+      console.error("OpenAI API key not configured in environment");
+      return new Response(
+        JSON.stringify({ 
+          error: "OpenAI API key not configured",
+          message: "The server is missing API configuration. Please contact support." 
+        }),
+        { 
+          status: 500, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
+
     const requestData: RequestBody = await req.json();
     const { 
       messages, 
@@ -57,18 +74,12 @@ serve(async (req) => {
       userRole
     } = requestData;
 
-    // Log the request details for troubleshooting
+    // Enhanced logging
     console.log(`Processing request for session: ${sessionId}`);
     console.log(`User role: ${userRole || 'Not specified'}`);
     console.log(`Message count: ${messages.length}`);
     console.log(`Field context: ${fieldContext?.currentField || 'None'}`);
     console.log(`System prompt length: ${systemPrompt?.length || 0}`);
-
-    // Verify OpenAI API key
-    if (!openAIApiKey) {
-      console.error("OpenAI API key not found in environment");
-      throw new Error("OpenAI API key not configured");
-    }
 
     // Create customized system prompt based on role and field context
     let effectiveSystemPrompt = systemPrompt || '';
@@ -156,13 +167,30 @@ serve(async (req) => {
           } 
         }
       );
-    } catch (openAiError) {
+    } catch (openAiError: any) {
+      // Enhanced error logging for OpenAI API errors
       console.error("OpenAI API error:", openAiError);
-      throw new Error(`OpenAI API error: ${openAiError.message || "Unknown OpenAI error"}`);
+      console.error("Error details:", openAiError.response?.data || openAiError.message || "Unknown error");
+      
+      return new Response(
+        JSON.stringify({ 
+          error: "OpenAI API error",
+          details: openAiError.response?.data || openAiError.message || "Unknown OpenAI error",
+          message: "I'm having trouble connecting to my brain right now. Let's try again in a moment."
+        }),
+        { 
+          status: 500, 
+          headers: { 
+            ...corsHeaders, 
+            'Content-Type': 'application/json' 
+          } 
+        }
+      );
     }
-  } catch (error) {
-    // Log detailed error for troubleshooting
+  } catch (error: any) {
+    // Comprehensive error logging
     console.error('Error processing chat request:', error);
+    console.error('Error stack:', error.stack);
     
     const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
     

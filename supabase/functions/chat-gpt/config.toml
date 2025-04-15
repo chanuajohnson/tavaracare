@@ -3,3 +3,4 @@ project_id = "cpdfmyemjrefnhddyrck"
 
 # Turn off JWT verification to simplify testing
 verify_jwt = false
+

@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Fab } from "@/components/ui/fab";
 import { MicroChatBubble } from "@/components/chatbot/MicroChatBubble";
 import { ChatbotSystem } from "@/components/chatbot/ChatbotSystem";
+import { EnvironmentInfo } from "@/components/debug/EnvironmentInfo";
+import { SupabaseDebugger } from "@/components/debug/SupabaseDebugger";
 
 const roles = [{
   id: "family",
@@ -70,6 +72,8 @@ const Index = () => {
   const goToFeatures = () => {
     navigate('/features');
   };
+
+  const isDebug = new URLSearchParams(window.location.search).get('debug') === 'true';
 
   return (
     <div className="min-h-screen w-full bg-gradient-to-b from-white to-primary-100">
@@ -337,6 +341,19 @@ const Index = () => {
         icon={<HelpCircle className="h-5 w-5" />}
         className="bg-primary-500 hover:bg-primary-600 text-white"
       />
+      
+      {isDebug && (
+        <div className="mt-12 space-y-6 border-t pt-8">
+          <h2 className="text-2xl font-semibold">Debug Tools</h2>
+          <div className="grid md:grid-cols-2 gap-6">
+            <EnvironmentInfo />
+            <SupabaseDebugger />
+          </div>
+          <div className="text-xs text-muted-foreground text-center">
+            These tools are only visible when ?debug=true is added to the URL
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -98,6 +98,14 @@ export const getChatCompletion = async ({
       hasFieldContext: !!fieldContext
     });
 
+    // Log the project details and environment
+    const envInfo = {
+      projectId: window.location.hostname,
+      env: import.meta.env.VITE_ENV || 'unknown',
+      mode: import.meta.env.MODE || 'unknown'
+    };
+    console.log("Environment info:", envInfo);
+
     // Add retries for reliability
     const MAX_RETRIES = 3;
     let retries = 0;
@@ -106,6 +114,11 @@ export const getChatCompletion = async ({
     while (retries <= MAX_RETRIES) {
       try {
         console.log(`Attempt ${retries + 1} to call chat-gpt edge function`);
+        
+        // Get the complete URL for logging purposes (but don't use it for the call)
+        const projectId = 'cpdfmyemjrefnhddyrck'; // Hardcoded for reliability
+        const functionUrl = `https://${projectId}.supabase.co/functions/v1/chat-gpt`;
+        console.log(`Function URL would be: ${functionUrl}`);
         
         const { data, error } = await supabase.functions.invoke('chat-gpt', {
           body: {
