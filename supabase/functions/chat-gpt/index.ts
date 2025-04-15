@@ -36,6 +36,7 @@ interface RequestBody {
 serve(async (req) => {
   // Handle CORS preflight requests - improved and expanded
   if (req.method === 'OPTIONS') {
+    console.log("Handling CORS preflight request");
     return new Response(null, { 
       status: 204, 
       headers: corsHeaders 
@@ -60,6 +61,12 @@ serve(async (req) => {
     console.log(`Message count: ${messages.length}`);
     console.log(`Field context: ${fieldContext?.currentField || 'None'}`);
     console.log(`System prompt length: ${systemPrompt?.length || 0}`);
+
+    // Verify OpenAI API key
+    if (!openAIApiKey) {
+      console.error("OpenAI API key not found in environment");
+      throw new Error("OpenAI API key not configured");
+    }
 
     // Create customized system prompt based on role and field context
     let effectiveSystemPrompt = systemPrompt || '';
@@ -117,6 +124,8 @@ serve(async (req) => {
         content: effectiveSystemPrompt
       });
     }
+
+    console.log("Calling OpenAI API with model: gpt-4o-mini");
 
     // Use gpt-4o-mini for a good balance of performance and cost
     const completion = await openai.createChatCompletion({

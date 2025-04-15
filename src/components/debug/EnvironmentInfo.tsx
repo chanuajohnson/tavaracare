@@ -1,51 +1,63 @@
 
 import React from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { getEnvironmentInfo } from "@/integrations/supabase/client";
-import { AlertCircle, Database, Server } from "lucide-react";
+import { getEnvironmentInfo } from "@/lib/supabase";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { InfoIcon } from "lucide-react";
 
 export function EnvironmentInfo() {
   const envInfo = getEnvironmentInfo();
-  const isDev = envInfo.environment === 'development';
   
   return (
-    <Card className={`${isDev ? 'border-amber-300' : 'border-green-300'} shadow-sm`}>
-      <CardHeader className="pb-2">
-        <div className="flex justify-between items-center">
-          <CardTitle className="text-lg flex items-center gap-2">
-            <Server className="h-4 w-4" />
-            {isDev ? 'Development' : 'Production'} Environment
-          </CardTitle>
-          <Badge variant={isDev ? "outline" : "default"} className={isDev ? "bg-amber-50 text-amber-700 border-amber-200" : ""}>
-            {envInfo.environment.toUpperCase()}
-          </Badge>
-        </div>
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-lg">Environment Information</CardTitle>
         <CardDescription>
-          Supabase connection information
+          Current configuration and environment details
         </CardDescription>
       </CardHeader>
-      <CardContent className="pt-0">
-        <div className="space-y-2 text-sm">
-          <div className="flex items-start gap-2">
-            <Database className="h-4 w-4 mt-0.5 flex-shrink-0" />
-            <div>
-              <div className="font-medium">Database URL</div>
-              <div className="text-muted-foreground truncate max-w-[300px]">
-                {envInfo.supabaseUrl?.substring(0, 30)}...
-              </div>
-            </div>
+      <CardContent className="space-y-4">
+        <div className="space-y-2">
+          <div className="flex justify-between">
+            <span className="font-medium">Environment:</span>
+            <Badge variant={envInfo.environment === 'production' ? "default" : "outline"}>
+              {envInfo.environment}
+            </Badge>
           </div>
           
-          <div className="flex items-start gap-2">
-            <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
-            <div>
-              <div className="font-medium">Project ID</div>
-              <div className="text-muted-foreground">{envInfo.projectId}</div>
-            </div>
+          <div className="flex justify-between">
+            <span className="font-medium">Supabase Project:</span>
+            <span className="font-mono text-xs text-muted-foreground">{envInfo.supabaseUrl}</span>
+          </div>
+          
+          <div className="flex justify-between">
+            <span className="font-medium">Project ID:</span>
+            <span className="font-mono text-xs">{envInfo.projectId}</span>
+          </div>
+          
+          <div className="flex justify-between">
+            <span className="font-medium">Using Fallbacks:</span>
+            {envInfo.usingFallbacks ? (
+              <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">Yes</Badge>
+            ) : (
+              <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">No</Badge>
+            )}
           </div>
         </div>
+
+        {envInfo.usingFallbacks && (
+          <Alert variant="warning" className="bg-yellow-50 border-yellow-200">
+            <InfoIcon className="h-4 w-4 text-yellow-600" />
+            <AlertDescription>
+              This project is using fallback Supabase credentials. For full functionality, please ensure proper environment variables are set.
+            </AlertDescription>
+          </Alert>
+        )}
       </CardContent>
+      <CardFooter className="text-xs text-muted-foreground">
+        OpenAI integration requires proper Supabase edge function configuration
+      </CardFooter>
     </Card>
   );
 }

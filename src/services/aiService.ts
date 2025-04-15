@@ -99,12 +99,14 @@ export const getChatCompletion = async ({
     });
 
     // Add retries for reliability
-    const MAX_RETRIES = 2;
+    const MAX_RETRIES = 3;
     let retries = 0;
     let lastError;
 
     while (retries <= MAX_RETRIES) {
       try {
+        console.log(`Attempt ${retries + 1} to call chat-gpt edge function`);
+        
         const { data, error } = await supabase.functions.invoke('chat-gpt', {
           body: {
             messages,
@@ -118,6 +120,7 @@ export const getChatCompletion = async ({
 
         if (error) {
           console.error(`Error calling chat-gpt function (attempt ${retries + 1}/${MAX_RETRIES + 1}):`, error);
+          console.error(`Error details:`, JSON.stringify(error));
           lastError = error;
           retries++;
           
@@ -130,6 +133,25 @@ export const getChatCompletion = async ({
           return { 
             message: "I seem to be having trouble with my connection. Could we try again?", 
             error: error.message 
+          };
+        }
+
+        // If we got data but it's empty or doesn't have a message property
+        if (!data || !data.message) {
+          console.error(`Invalid response from chat-gpt function (attempt ${retries + 1}/${MAX_RETRIES + 1}):`);
+          console.error(`Response:`, JSON.stringify(data));
+          lastError = new Error("Invalid response from chat-gpt function");
+          retries++;
+          
+          if (retries <= MAX_RETRIES) {
+            console.log(`Retrying in 1 second...`);
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            continue;
+          }
+          
+          return { 
+            message: "I received an invalid response. Let's try a different approach.", 
+            error: "Invalid response from chat-gpt function" 
           };
         }
 

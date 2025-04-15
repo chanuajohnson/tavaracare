@@ -26,7 +26,7 @@ export const loadChatConfig = (): ChatConfig => {
     ...defaultChatConfig,
     mode: 'ai',
     temperature: 0.7,
-    fallbackThreshold: 3
+    fallbackThreshold: 5  // Increased retry threshold for more persistence with AI
   };
 };
 
