@@ -1,13 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { ChatCompletionRequestMessage, Configuration, OpenAIApi } from "https://esm.sh/openai@3.2.1";
-
-// More detailed API key logging and validation
-const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
-
-console.log("OpenAI API Key Configuration Check:");
-console.log("- Key Present:", !!openAIApiKey);
-console.log("- Key Length:", openAIApiKey?.length || 0);
-console.log("- First 4 chars:", openAIApiKey?.slice(0, 4) || 'N/A');
+import "https://deno.land/x/xhr@0.3.1/mod.ts"; // Required for fetch in Deno
 
 // Enhanced CORS headers
 const corsHeaders = {
@@ -16,12 +8,14 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
 };
 
-// Validate API key before initializing OpenAI
-const configuration = openAIApiKey 
-  ? new Configuration({ apiKey: openAIApiKey }) 
-  : null;
+// Get API key
+const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
 
-const openai = configuration ? new OpenAIApi(configuration) : null;
+// Validate API key on startup
+console.log("OpenAI API Key Configuration Check:");
+console.log("- Key Present:", !!openAIApiKey);
+console.log("- Key Length:", openAIApiKey?.length || 0);
+console.log("- First 4 chars:", openAIApiKey?.slice(0, 4) || 'N/A');
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -32,7 +26,7 @@ serve(async (req) => {
     });
   }
 
-  // Comprehensive API key validation
+  // Validate API key before proceeding
   if (!openAIApiKey) {
     console.error("❌ CRITICAL: OpenAI API Key is NOT configured!");
     return new Response(
@@ -52,7 +46,10 @@ serve(async (req) => {
 
   // Types
   interface RequestBody {
-    messages: ChatCompletionRequestMessage[];
+    messages: Array<{
+      role: 'system' | 'user' | 'assistant';
+      content: string;
+    }>;
     sessionId: string;
     userRole?: string;
     systemPrompt?: string;
@@ -66,35 +63,12 @@ serve(async (req) => {
     };
   }
 
-  // Enhanced logging for every request
-  console.log(`[${new Date().toISOString()}] Chat-GPT function received ${req.method} request`);
-  console.log(`Request headers:`, Object.fromEntries(req.headers.entries()));
-  
-  // Handle CORS preflight requests - enhanced with more detailed logging
-  if (req.method === 'OPTIONS') {
-    console.log("Handling CORS preflight request - returning all CORS headers");
-    return new Response(null, { 
-      status: 204, 
-      headers: corsHeaders 
-    });
-  }
-
   try {
-    // Verify OpenAI API key at the start
-    if (!openAIApiKey) {
-      console.error("OpenAI API key not configured in environment");
-      return new Response(
-        JSON.stringify({ 
-          error: "OpenAI API key not configured",
-          message: "The server is missing API configuration. Please contact support." 
-        }),
-        { 
-          status: 500, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
-      );
-    }
-
+    // Enhanced logging
+    console.log(`[${new Date().toISOString()}] Chat-GPT function received ${req.method} request`);
+    console.log(`Request headers:`, Object.fromEntries(req.headers.entries()));
+    
+    // Parse request body
     const requestData: RequestBody = await req.json();
     const { 
       messages, 
@@ -106,7 +80,7 @@ serve(async (req) => {
       userRole
     } = requestData;
 
-    // Enhanced logging
+    // Log request data for debugging
     console.log(`Processing request for session: ${sessionId}`);
     console.log(`User role: ${userRole || 'Not specified'}`);
     console.log(`Message count: ${messages.length}`);
@@ -173,28 +147,40 @@ serve(async (req) => {
     console.log("Calling OpenAI API with model: gpt-4o-mini");
 
     try {
-      // Use gpt-4o-mini for a good balance of performance and cost
-
-      if (!openai) {
-  throw new Error("OpenAI client not initialized – check your API key configuration.");
-} 
-      const completion = await openai.createChatCompletion({
-        model: "gpt-4o-mini", 
-        messages,
-        temperature,
-        max_tokens: maxTokens,
+      // Use the modern direct fetch API instead of the OpenAI client
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${openAIApiKey}`
+        },
+        body: JSON.stringify({
+          model: "gpt-4o-mini",
+          messages,
+          temperature,
+          max_tokens: maxTokens,
+        }),
       });
-
-      const responseMessage = completion.data.choices[0].message?.content || "I'm sorry, I couldn't generate a response.";
+      
+      // Check for non-successful response
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error("OpenAI API returned an error:", errorData);
+        throw new Error(`OpenAI API error: ${errorData.error?.message || JSON.stringify(errorData)}`);
+      }
+      
+      const data = await response.json();
+      
+      const responseMessage = data.choices[0].message?.content || "I'm sorry, I couldn't generate a response.";
       
       // Log token usage for monitoring costs
-      console.log('Token usage:', completion.data.usage);
+      console.log('Token usage:', data.usage);
 
       // Return the response with CORS headers
       return new Response(
         JSON.stringify({ 
           message: responseMessage, 
-          usage: completion.data.usage 
+          usage: data.usage 
         }),
         { 
           headers: { 
@@ -206,12 +192,12 @@ serve(async (req) => {
     } catch (openAiError: any) {
       // Enhanced error logging for OpenAI API errors
       console.error("OpenAI API error:", openAiError);
-      console.error("Error details:", openAiError.response?.data || openAiError.message || "Unknown error");
+      console.error("Error details:", openAiError.message || "Unknown error");
       
       return new Response(
         JSON.stringify({ 
           error: "OpenAI API error",
-          details: openAiError.response?.data || openAiError.message || "Unknown OpenAI error",
+          details: openAiError.message || "Unknown OpenAI error",
           message: "I'm having trouble connecting to my brain right now. Let's try again in a moment."
         }),
         { 
