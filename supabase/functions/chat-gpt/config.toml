@@ -1,5 +1,4 @@
-[project]
-id = "cpdfmyemjrefnhddyrck"
+project_id = "cpdfmyemjrefnhddyrck"
 
 [functions]
 verify_jwt = false
