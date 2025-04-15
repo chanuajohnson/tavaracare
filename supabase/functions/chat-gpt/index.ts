@@ -9,11 +9,11 @@ const configuration = new Configuration({
 });
 const openai = new OpenAIApi(configuration);
 
-// CORS headers for browser requests - expanded to ensure they work correctly
+// IMPROVED CORS headers to ensure they work in all environments
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS, GET',
   'Access-Control-Max-Age': '86400'
 };
 
@@ -34,7 +34,9 @@ interface RequestBody {
 }
 
 serve(async (req) => {
-  // Handle CORS preflight requests - improved and expanded
+  console.log("Chat-GPT function received request");
+  
+  // Handle CORS preflight requests - expanded with detailed logging
   if (req.method === 'OPTIONS') {
     console.log("Handling CORS preflight request");
     return new Response(null, { 
@@ -127,39 +129,44 @@ serve(async (req) => {
 
     console.log("Calling OpenAI API with model: gpt-4o-mini");
 
-    // Use gpt-4o-mini for a good balance of performance and cost
-    const completion = await openai.createChatCompletion({
-      model: "gpt-4o-mini", 
-      messages,
-      temperature,
-      max_tokens: maxTokens,
-    });
+    try {
+      // Use gpt-4o-mini for a good balance of performance and cost
+      const completion = await openai.createChatCompletion({
+        model: "gpt-4o-mini", 
+        messages,
+        temperature,
+        max_tokens: maxTokens,
+      });
 
-    const responseMessage = completion.data.choices[0].message?.content || "I'm sorry, I couldn't generate a response.";
-    
-    // Log token usage for monitoring costs
-    console.log('Token usage:', completion.data.usage);
+      const responseMessage = completion.data.choices[0].message?.content || "I'm sorry, I couldn't generate a response.";
+      
+      // Log token usage for monitoring costs
+      console.log('Token usage:', completion.data.usage);
 
-    // Return the response
-    return new Response(
-      JSON.stringify({ 
-        message: responseMessage, 
-        usage: completion.data.usage 
-      }),
-      { 
-        headers: { 
-          ...corsHeaders, 
-          'Content-Type': 'application/json' 
-        } 
-      }
-    );
+      // Return the response with CORS headers
+      return new Response(
+        JSON.stringify({ 
+          message: responseMessage, 
+          usage: completion.data.usage 
+        }),
+        { 
+          headers: { 
+            ...corsHeaders, 
+            'Content-Type': 'application/json' 
+          } 
+        }
+      );
+    } catch (openAiError) {
+      console.error("OpenAI API error:", openAiError);
+      throw new Error(`OpenAI API error: ${openAiError.message || "Unknown OpenAI error"}`);
+    }
   } catch (error) {
     // Log detailed error for troubleshooting
     console.error('Error processing chat request:', error);
     
     const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
     
-    // Return error response
+    // Return error response with CORS headers
     return new Response(
       JSON.stringify({ 
         error: errorMessage,
