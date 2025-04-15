@@ -100,7 +100,7 @@ export const getChatCompletion = async ({
 
     // Log the project details and environment
     const envInfo = {
-      projectId: window.location.hostname,
+      projectId: 'cpdfmyemjrefnhddyrck', // Hardcoded for consistency
       env: import.meta.env.VITE_ENV || 'unknown',
       mode: import.meta.env.MODE || 'unknown'
     };
@@ -116,9 +116,14 @@ export const getChatCompletion = async ({
         console.log(`Attempt ${retries + 1} to call chat-gpt edge function`);
         
         // Get the complete URL for logging purposes (but don't use it for the call)
-        const projectId = 'cpdfmyemjrefnhddyrck'; // Hardcoded for reliability
-        const functionUrl = `https://${projectId}.supabase.co/functions/v1/chat-gpt`;
+        const functionUrl = `https://cpdfmyemjrefnhddyrck.supabase.co/functions/v1/chat-gpt`;
         console.log(`Function URL would be: ${functionUrl}`);
+        
+        // Check for debug parameter in URL to log extra information
+        if (window.location.search.includes('debug=true')) {
+          console.log('DEBUG MODE: Sending full messages payload:', messages);
+          console.table(messages.map(m => ({role: m.role, content: m.content.substring(0, 50) + '...'})));
+        }
         
         const { data, error } = await supabase.functions.invoke('chat-gpt', {
           body: {

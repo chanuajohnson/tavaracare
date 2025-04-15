@@ -1,4 +1,3 @@
-
 import { ChatConfig } from './engine/types';
 import { defaultChatConfig } from './engine/types';
 
@@ -118,4 +117,3 @@ export const debugChatConfig = (): void => {
   console.log('[Chat Config]', config);
   console.log('[Always Show Options]', shouldAlwaysShowOptions());
 };
-
