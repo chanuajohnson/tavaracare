@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { ChatConfig } from "@/utils/chat/engine/types";
 import { getIntroMessage, getRoleOptions } from "@/data/chatIntroMessage";
 import { ChatMessage } from "@/types/chatTypes";
-import { getCurrentQuestion } from "@/services/chat/responseUtils";
+import { getCurrentQuestion } from "@/services/chatbotService";
 
 export const useChatActions = (
   sessionId: string,

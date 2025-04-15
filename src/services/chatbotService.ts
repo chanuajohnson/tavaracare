@@ -1,6 +1,17 @@
 
 // Add these functions to the file; if they already exist, replace them
 
+// Re-export functions from responseUtils
+export { 
+  generateNextQuestionMessage,
+  isEndOfSection,
+  isEndOfFlow,
+  getSectionTitle,
+  getCurrentQuestion,
+  generateDataSummary
+} from './chat/responseUtils';
+
+// Input validation function
 export const validateChatInput = (input: string, fieldType: string): { isValid: boolean; errorMessage?: string } => {
   if (!input.trim()) {
     return { isValid: false, errorMessage: "This field cannot be empty" };
@@ -70,4 +81,72 @@ export const validateChatInput = (input: string, fieldType: string): { isValid: 
   }
 };
 
-// Add this function to the exports if necessary
+// Chat progress management functions
+export const updateChatProgress = async (
+  sessionId: string,
+  role: string,
+  sectionIndex: string,
+  status: string,
+  currentQuestion?: string,
+  formData?: Record<string, any>
+): Promise<boolean> => {
+  try {
+    // Save the progress to localStorage for now
+    // In a real implementation, this would likely be sending data to a server
+    const progressData = {
+      sessionId,
+      role,
+      sectionIndex,
+      status,
+      currentQuestion,
+      formData,
+      timestamp: Date.now()
+    };
+    
+    localStorage.setItem(`tavara_chat_progress_${sessionId}`, JSON.stringify(progressData));
+    return true;
+  } catch (error) {
+    console.error('Error updating chat progress:', error);
+    return false;
+  }
+};
+
+// Chat response saving function
+export const saveChatResponse = async (
+  sessionId: string,
+  role: string,
+  sectionIndex: string,
+  questionId: string,
+  response: string
+): Promise<boolean> => {
+  try {
+    // Get existing responses or initialize an empty object
+    const existingResponses = JSON.parse(localStorage.getItem(`tavara_chat_responses_${sessionId}`) || '{}');
+    
+    // Add the new response
+    existingResponses[questionId] = {
+      response,
+      role,
+      sectionIndex,
+      timestamp: Date.now()
+    };
+    
+    // Save back to localStorage
+    localStorage.setItem(`tavara_chat_responses_${sessionId}`, JSON.stringify(existingResponses));
+    return true;
+  } catch (error) {
+    console.error('Error saving chat response:', error);
+    return false;
+  }
+};
+
+// Function to get all responses for a session
+export const getSessionResponses = async (sessionId: string): Promise<Record<string, any>> => {
+  try {
+    const responses = localStorage.getItem(`tavara_chat_responses_${sessionId}`);
+    return responses ? JSON.parse(responses) : {};
+  } catch (error) {
+    console.error('Error getting session responses:', error);
+    return {};
+  }
+};
