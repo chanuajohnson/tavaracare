@@ -174,6 +174,10 @@ serve(async (req) => {
 
     try {
       // Use gpt-4o-mini for a good balance of performance and cost
+
+      if (!openai) {
+  throw new Error("OpenAI client not initialized – check your API key configuration.");
+} 
       const completion = await openai.createChatCompletion({
         model: "gpt-4o-mini", 
         messages,
