@@ -1,11 +1,14 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import "https://deno.land/x/xhr@0.3.1/mod.ts"; // Required for fetch in Deno
 
-// Enhanced CORS headers
+// Enhanced CORS headers with additional allowed headers
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-app-version, range, x-supabase-auth, x-version',
   'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
+  'Access-Control-Expose-Headers': 'Content-Length, Content-Range',
+  'Access-Control-Max-Age': '86400',
 };
 
 // Get API key
@@ -18,8 +21,11 @@ console.log("- Key Length:", openAIApiKey?.length || 0);
 console.log("- First 4 chars:", openAIApiKey?.slice(0, 4) || 'N/A');
 
 serve(async (req) => {
-  // Handle CORS preflight requests
+  console.log(`[${new Date().toISOString()}] Received ${req.method} request to chat-gpt function`);
+  
+  // Enhanced CORS preflight handling
   if (req.method === 'OPTIONS') {
+    console.log("Handling CORS preflight request");
     return new Response('ok', {
       headers: corsHeaders,
       status: 200
@@ -65,7 +71,7 @@ serve(async (req) => {
 
   try {
     // Enhanced logging
-    console.log(`[${new Date().toISOString()}] Chat-GPT function received ${req.method} request`);
+    console.log(`[${new Date().toISOString()}] Processing chat-gpt request`);
     console.log(`Request headers:`, Object.fromEntries(req.headers.entries()));
     
     // Parse request body
@@ -117,14 +123,16 @@ serve(async (req) => {
       effectiveSystemPrompt += `\n\nIMPORTANT: Your responses should be warm and conversational, not like form field labels. 
       DO NOT say things like "First Name" or "Email Address". Instead, ask naturally like "What's your name?" or "What's your email?".
       
-      Use a warm, friendly Trinidad & Tobago style in your conversation. Make sure to sound like a real person having a conversation, not a form processor.
+      Use a warm, friendly Trinidad & Tobago style in your conversation, but DO NOT use phrases like "a" at the beginning of sentences or "Yuh" which can sound unnatural. Make sure to sound like a real person having a conversation, not a form processor.
       
       When asking for data that requires validation:
       - For email addresses: Say something like "What's the best email to reach you at?" or "What email should I use to contact you?"
       - For phone numbers: Ask "What's your phone number?" or "What's a good number to reach you at?"
       - For names: Just ask "What's your name?" or "What should I call you?" in a friendly way.
       
-      Do not tell users about validation requirements directly, but make sure your questions are clear about what information you're seeking.`;
+      Do not tell users about validation requirements directly, but make sure your questions are clear about what information you're seeking.
+      
+      DO NOT start sentences with "a" or use "Yuh" as these don't reflect natural Trinidad & Tobago speech and can sound artificial.`;
       
       // Role-specific guidance for AI
       if (userRole === 'family') {

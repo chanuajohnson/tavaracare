@@ -11,6 +11,29 @@ import { getSessionResponses, validateChatInput } from '@/services/chat/database
 import { toast } from 'sonner';
 
 /**
+ * Cleans up problematic phrases from responses
+ */
+const cleanupResponse = (text: string): string => {
+  // Remove "a," at the beginning of sentences
+  let cleaned = text.replace(/^a,\s*/i, '');
+  cleaned = cleaned.replace(/\.\s+a,\s*/g, '. ');
+  
+  // Remove "Yuh" phrases
+  cleaned = cleaned.replace(/\byuh\b/gi, '');
+  
+  // Fix any double spaces
+  cleaned = cleaned.replace(/\s{2,}/g, ' ');
+  
+  // Fix any punctuation issues from removals
+  cleaned = cleaned.replace(/\s+\./g, '.');
+  cleaned = cleaned.replace(/\s+\?/g, '?');
+  cleaned = cleaned.replace(/\s+\!/g, '!');
+  cleaned = cleaned.replace(/\s+,/g, ',');
+  
+  return cleaned;
+};
+
+/**
  * Handles AI-based conversation flow
  */
 export const handleAIFlow = async (
@@ -54,6 +77,9 @@ export const handleAIFlow = async (
         if (generatedPrompt && generatedPrompt.message) {
           const currentQuestion = getCurrentQuestion(userRole, sectionIndex, sectionQuestionIndex);
           
+          // Clean up the generated message
+          const cleanedMessage = cleanupResponse(generatedPrompt.message);
+          
           // Return validation information based on the question type
           if (currentQuestion) {
             let fieldType = "";
@@ -78,12 +104,16 @@ export const handleAIFlow = async (
             }
             
             return { 
-              ...generatedPrompt, 
+              ...generatedPrompt,
+              message: cleanedMessage,
               validationNeeded: fieldType || undefined 
             };
           }
           
-          return generatedPrompt;
+          return {
+            ...generatedPrompt,
+            message: cleanedMessage
+          };
         } else {
           console.warn("Generated prompt was empty, falling back to OpenAI direct call");
         }
@@ -131,6 +161,8 @@ IMPORTANT: Do NOT use field labels directly like "First Name" or "Last Name". In
 
 Keep your responses natural and conversational. Use direct, warm language that reflects how real people speak.
 DO NOT use phrases like "how would you like to engage with us today" or other artificial corporate language.
+NEVER start sentences with "a" (like "a, what's your name?")
+NEVER use "Yuh" as it sounds artificial.
 
 When moving between registration sections, add a brief transition like "Great! Now let's talk about your care preferences."
 If the user has provided information previously, acknowledge it and don't ask for it again.`;
@@ -193,10 +225,13 @@ If the user has provided information previously, acknowledge it and don't ask fo
       // Apply T&T cultural transformations
       const styledMessage = applyTrinidadianStyle(message);
       
+      // Clean up any problematic phrases
+      const cleanedMessage = cleanupResponse(styledMessage);
+      
       // Check for repetition and fix if necessary
-      const finalMessage = isRepeatMessage(sessionId, styledMessage) 
-        ? avoidRepetition(styledMessage)
-        : styledMessage;
+      const finalMessage = isRepeatMessage(sessionId, cleanedMessage) 
+        ? avoidRepetition(cleanedMessage)
+        : cleanedMessage;
       
       // Store this message for repetition detection
       setLastMessage(sessionId, finalMessage);

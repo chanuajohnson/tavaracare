@@ -68,10 +68,12 @@ Guidelines:
 - Keep it concise (1-3 sentences)
 - Sound like a real person, not a form
 - Avoid robotic language like "Please enter your email address"
-- Include occasional friendly expressions like "Thanks plenty" or "Well nice" when appropriate
+- Include occasional friendly expressions when appropriate
 - If this is the first question in a new section, add a brief transition
 - If we know the user's name, personalize the message
 - Don't sound overly corporate or stiff
+- NEVER start sentences with "a" (like "a, what's your name?")
+- NEVER use "Yuh" as it sounds artificial
 
 Examples:
 - Instead of "Email Address:" say "What's an email I can reach you at?"
@@ -96,6 +98,9 @@ The resulting prompt should match the tone of a friendly person in Trinidad & To
     
     // Get the generated prompt
     let promptMessage = aiResponse.message;
+    
+    // Clean up any problematic phrases
+    promptMessage = cleanupPrompt(promptMessage);
     
     // Apply additional warmth if needed
     if (!promptMessage.includes(userName) && userName) {
@@ -136,6 +141,29 @@ The resulting prompt should match the tone of a friendly person in Trinidad & To
     // Fallback to the simple prompt generation if AI fails
     return generateSimplePrompt(question, personalizedGreeting, isNewSection);
   }
+};
+
+/**
+ * Clean up problematic phrases from the AI-generated prompt
+ */
+const cleanupPrompt = (prompt: string): string => {
+  // Remove "a," at the beginning of sentences
+  let cleanedPrompt = prompt.replace(/^a,\s*/i, '');
+  cleanedPrompt = cleanedPrompt.replace(/\.\s+a,\s*/g, '. ');
+  
+  // Remove "Yuh" phrases
+  cleanedPrompt = cleanedPrompt.replace(/\byuh\b/gi, '');
+  
+  // Fix any double spaces
+  cleanedPrompt = cleanedPrompt.replace(/\s{2,}/g, ' ');
+  
+  // Fix any punctuation issues from removals
+  cleanedPrompt = cleanedPrompt.replace(/\s+\./g, '.');
+  cleanedPrompt = cleanedPrompt.replace(/\s+\?/g, '?');
+  cleanedPrompt = cleanedPrompt.replace(/\s+\!/g, '!');
+  cleanedPrompt = cleanedPrompt.replace(/\s+,/g, ',');
+  
+  return cleanedPrompt;
 };
 
 /**
@@ -268,7 +296,8 @@ const addWarmth = (prompt: string, personalizedGreeting: string, isNewSection: b
     warmPrompt = `${randomAcknowledgment}! ${warmPrompt}`;
   }
 
-  return warmPrompt;
+  // Clean up any problematic phrases (like starting with "a," or using "Yuh")
+  return cleanupPrompt(warmPrompt);
 };
 
 /**
