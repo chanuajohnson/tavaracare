@@ -1,3 +1,4 @@
+
 import React, { useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { useChatMessages } from "@/hooks/chat/useChatMessages";
@@ -52,7 +53,9 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({
     chatInitializedRef,
     resetChatState,
     validationError,
-    setValidationError
+    setValidationError,
+    fieldType,
+    setFieldType
   } = useChatState();
   
   const config = loadChatConfig();
@@ -104,7 +107,8 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({
     conversationStage,
     skipIntro,
     setIsResuming,
-    setValidationError
+    setValidationError,
+    setFieldType
   );
 
   useEffect(() => {
@@ -175,7 +179,7 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({
         conversationStage={conversationStage}
         isResuming={isResuming}
         validationError={validationError}
-        fieldType={fieldType}  {/* Add this new prop */}
+        fieldType={fieldType}
       />
 
       {/* Debug panel for development mode */}
