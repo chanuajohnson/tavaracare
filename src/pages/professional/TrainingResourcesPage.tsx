@@ -1,4 +1,3 @@
-
 import { motion } from "framer-motion";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { Button } from "@/components/ui/button";
@@ -41,7 +40,7 @@ const TrainingResourcesPage = () => {
             {
               user_id: user.id,
               module_id: modules.length > 0 ? modules[0].id : null,
-              status: 'requested',
+              status: 'not_started',
               last_accessed: new Date().toISOString()
             }
           ]);
@@ -52,6 +51,33 @@ const TrainingResourcesPage = () => {
       } catch (err) {
         console.error("Failed to record training request:", err);
       }
+    }
+  };
+
+  const handleRequestModule = async (moduleId: string) => {
+    try {
+      const { error } = await supabase
+        .from('user_module_progress')
+        .insert({
+          user_id: user.id,
+          module_id: moduleId,
+          status: "not_started",
+          last_accessed: new Date().toISOString()
+        });
+      
+      if (error) throw error;
+      
+      toast({
+        title: "Success",
+        description: "Module access requested successfully",
+        variant: "success"
+      });
+    } catch (err: any) {
+      toast({
+        title: "Error",
+        description: `Error requesting module: ${err.message}`,
+        variant: "destructive"
+      });
     }
   };
 

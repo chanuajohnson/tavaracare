@@ -277,6 +277,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const handlePostLoginRedirection = async () => {
     if (!user || isRedirectingRef.current) return;
     
+    if (sessionStorage.getItem('ignoreRedirect') === 'true') {
+      console.log('[AuthProvider] Ignoring redirection due to ignoreRedirect flag');
+      return;
+    }
+    
+    if (location.pathname === '/auth/reset-password') {
+      console.log('[AuthProvider] On reset password page, skipping redirection');
+      return;
+    }
+    
     isRedirectingRef.current = true;
     
     try {
@@ -506,6 +516,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, newSession) => {
       console.log('[AuthProvider] Auth state changed:', event, newSession ? 'Has session' : 'No session');
       
+      if (location.pathname === '/auth/reset-password' && event === 'SIGNED_IN') {
+        console.log('[AuthProvider] Ignoring auto-login on reset password page');
+        await supabase.auth.signOut({ scope: 'global' });
+        setSession(null);
+        setUser(null);
+        setUserRole(null);
+        return;
+      }
+      
       try {
         setSession(newSession);
         setUser(newSession?.user || null);
@@ -533,7 +552,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             
             if (event === 'SIGNED_IN') {
               console.log('[AuthProvider] Processing post-signin actions');
-              toast.success('You have successfully logged in!');
+              
+              if (location.pathname !== '/auth/reset-password') {
+                toast.success('You have successfully logged in!');
+              }
               
               if (location.pathname === '/auth' && localStorage.getItem('registeringAs')) {
                 const registeringAs = localStorage.getItem('registeringAs');
@@ -588,7 +610,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       console.log('[AuthProvider] Cleaning up auth subscription');
       subscription.unsubscribe();
     };
-  }, [navigate]);
+  }, [navigate, location.pathname]);
 
   const signOut = async () => {
     try {

@@ -348,6 +348,173 @@ export type Database = {
           },
         ]
       }
+      chatbot_conversations: {
+        Row: {
+          care_needs: Json | null
+          contact_info: Json | null
+          conversation_data: Json
+          converted_to_registration: boolean | null
+          created_at: string
+          handoff_requested: boolean | null
+          id: string
+          lead_score: number | null
+          qualification_status: string | null
+          session_id: string
+          updated_at: string
+          user_id: string | null
+          user_role: string | null
+        }
+        Insert: {
+          care_needs?: Json | null
+          contact_info?: Json | null
+          conversation_data?: Json
+          converted_to_registration?: boolean | null
+          created_at?: string
+          handoff_requested?: boolean | null
+          id?: string
+          lead_score?: number | null
+          qualification_status?: string | null
+          session_id: string
+          updated_at?: string
+          user_id?: string | null
+          user_role?: string | null
+        }
+        Update: {
+          care_needs?: Json | null
+          contact_info?: Json | null
+          conversation_data?: Json
+          converted_to_registration?: boolean | null
+          created_at?: string
+          handoff_requested?: boolean | null
+          id?: string
+          lead_score?: number | null
+          qualification_status?: string | null
+          session_id?: string
+          updated_at?: string
+          user_id?: string | null
+          user_role?: string | null
+        }
+        Relationships: []
+      }
+      chatbot_messages: {
+        Row: {
+          context_data: Json | null
+          conversation_id: string | null
+          id: string
+          message: string
+          message_type: string | null
+          sender_type: string
+          timestamp: string
+        }
+        Insert: {
+          context_data?: Json | null
+          conversation_id?: string | null
+          id?: string
+          message: string
+          message_type?: string | null
+          sender_type: string
+          timestamp?: string
+        }
+        Update: {
+          context_data?: Json | null
+          conversation_id?: string | null
+          id?: string
+          message?: string
+          message_type?: string | null
+          sender_type?: string
+          timestamp?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chatbot_messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "chatbot_conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      chatbot_progress: {
+        Row: {
+          created_at: string | null
+          current_section: string
+          form_data: Json | null
+          id: string
+          last_question_id: string | null
+          registration_prefilled: boolean | null
+          responses_complete: boolean | null
+          role: string
+          section_status: Database["public"]["Enums"]["section_status"] | null
+          session_id: string
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          current_section: string
+          form_data?: Json | null
+          id?: string
+          last_question_id?: string | null
+          registration_prefilled?: boolean | null
+          responses_complete?: boolean | null
+          role: string
+          section_status?: Database["public"]["Enums"]["section_status"] | null
+          session_id: string
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          current_section?: string
+          form_data?: Json | null
+          id?: string
+          last_question_id?: string | null
+          registration_prefilled?: boolean | null
+          responses_complete?: boolean | null
+          role?: string
+          section_status?: Database["public"]["Enums"]["section_status"] | null
+          session_id?: string
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      chatbot_responses: {
+        Row: {
+          created_at: string | null
+          id: string
+          question_id: string
+          response: Json | null
+          role: string
+          section: string
+          session_id: string
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          question_id: string
+          response?: Json | null
+          role: string
+          section: string
+          session_id: string
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          question_id?: string
+          response?: Json | null
+          role?: string
+          section?: string
+          session_id?: string
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       cta_engagement_tracking: {
         Row: {
           action_type: string
@@ -1140,6 +1307,66 @@ export type Database = {
         }
         Relationships: []
       }
+      registration_progress: {
+        Row: {
+          care_type: string[] | null
+          completed_step_count: number | null
+          completed_steps: Json
+          created_at: string
+          current_step: string
+          device_info: Json | null
+          email: string | null
+          id: string
+          last_active_at: string
+          referral_source: string | null
+          registration_data: Json
+          session_id: string | null
+          status: Database["public"]["Enums"]["registration_status"]
+          total_steps: number | null
+          updated_at: string
+          urgency: Database["public"]["Enums"]["care_urgency"] | null
+          user_id: string | null
+        }
+        Insert: {
+          care_type?: string[] | null
+          completed_step_count?: number | null
+          completed_steps?: Json
+          created_at?: string
+          current_step?: string
+          device_info?: Json | null
+          email?: string | null
+          id?: string
+          last_active_at?: string
+          referral_source?: string | null
+          registration_data?: Json
+          session_id?: string | null
+          status?: Database["public"]["Enums"]["registration_status"]
+          total_steps?: number | null
+          updated_at?: string
+          urgency?: Database["public"]["Enums"]["care_urgency"] | null
+          user_id?: string | null
+        }
+        Update: {
+          care_type?: string[] | null
+          completed_step_count?: number | null
+          completed_steps?: Json
+          created_at?: string
+          current_step?: string
+          device_info?: Json | null
+          email?: string | null
+          id?: string
+          last_active_at?: string
+          referral_source?: string | null
+          registration_data?: Json
+          session_id?: string | null
+          status?: Database["public"]["Enums"]["registration_status"]
+          total_steps?: number | null
+          updated_at?: string
+          urgency?: Database["public"]["Enums"]["care_urgency"] | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       subscription_plans: {
         Row: {
           created_at: string | null
@@ -1457,32 +1684,34 @@ export type Database = {
     }
     Functions: {
       admin_delete_user: {
-        Args: {
-          target_user_id: string
-        }
+        Args: { target_user_id: string }
         Returns: undefined
       }
       get_feature_vote_count: {
-        Args: {
-          feature_id: string
-        }
+        Args: { feature_id: string }
         Returns: number
       }
       has_user_voted_for_feature: {
-        Args: {
-          feature_id: string
-          user_id: string
-        }
+        Args: { feature_id: string; user_id: string }
         Returns: boolean
       }
     }
     Enums: {
+      care_urgency:
+        | "immediate"
+        | "within_week"
+        | "within_month"
+        | "planning_ahead"
+      chatbot_message_type: "text" | "option" | "handoff" | "form"
+      chatbot_sender_type: "user" | "bot" | "human_agent"
+      chatbot_status: "active" | "completed" | "abandoned"
       content_type: "text" | "image" | "video"
       feature_status:
         | "planned"
         | "in_development"
         | "ready_for_demo"
         | "launched"
+      lead_quality: "high" | "medium" | "low" | "unqualified"
       meal_type:
         | "morning_drink"
         | "breakfast"
@@ -1491,6 +1720,8 @@ export type Database = {
         | "afternoon_snack"
         | "dinner"
       module_status: "not_started" | "in_progress" | "completed"
+      registration_status: "started" | "in_progress" | "completed" | "abandoned"
+      section_status: "not_started" | "in_progress" | "completed"
       user_role: "family" | "professional" | "community" | "admin"
     }
     CompositeTypes: {
@@ -1499,27 +1730,29 @@ export type Database = {
   }
 }
 
-type PublicSchema = Database[Extract<keyof Database, "public">]
+type DefaultSchema = Database[Extract<keyof Database, "public">]
 
 export type Tables<
-  PublicTableNameOrOptions extends
-    | keyof (PublicSchema["Tables"] & PublicSchema["Views"])
+  DefaultSchemaTableNameOrOptions extends
+    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof Database },
-  TableName extends PublicTableNameOrOptions extends { schema: keyof Database }
-    ? keyof (Database[PublicTableNameOrOptions["schema"]]["Tables"] &
-        Database[PublicTableNameOrOptions["schema"]]["Views"])
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof Database
+  }
+    ? keyof (Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        Database[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
     : never = never,
-> = PublicTableNameOrOptions extends { schema: keyof Database }
-  ? (Database[PublicTableNameOrOptions["schema"]]["Tables"] &
-      Database[PublicTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+> = DefaultSchemaTableNameOrOptions extends { schema: keyof Database }
+  ? (Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+      Database[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
       Row: infer R
     }
     ? R
     : never
-  : PublicTableNameOrOptions extends keyof (PublicSchema["Tables"] &
-        PublicSchema["Views"])
-    ? (PublicSchema["Tables"] &
-        PublicSchema["Views"])[PublicTableNameOrOptions] extends {
+  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])
+    ? (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
         Row: infer R
       }
       ? R
@@ -1527,20 +1760,22 @@ export type Tables<
     : never
 
 export type TablesInsert<
-  PublicTableNameOrOptions extends
-    | keyof PublicSchema["Tables"]
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
     | { schema: keyof Database },
-  TableName extends PublicTableNameOrOptions extends { schema: keyof Database }
-    ? keyof Database[PublicTableNameOrOptions["schema"]]["Tables"]
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof Database
+  }
+    ? keyof Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
     : never = never,
-> = PublicTableNameOrOptions extends { schema: keyof Database }
-  ? Database[PublicTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+> = DefaultSchemaTableNameOrOptions extends { schema: keyof Database }
+  ? Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
       Insert: infer I
     }
     ? I
     : never
-  : PublicTableNameOrOptions extends keyof PublicSchema["Tables"]
-    ? PublicSchema["Tables"][PublicTableNameOrOptions] extends {
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
         Insert: infer I
       }
       ? I
@@ -1548,20 +1783,22 @@ export type TablesInsert<
     : never
 
 export type TablesUpdate<
-  PublicTableNameOrOptions extends
-    | keyof PublicSchema["Tables"]
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
     | { schema: keyof Database },
-  TableName extends PublicTableNameOrOptions extends { schema: keyof Database }
-    ? keyof Database[PublicTableNameOrOptions["schema"]]["Tables"]
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof Database
+  }
+    ? keyof Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
     : never = never,
-> = PublicTableNameOrOptions extends { schema: keyof Database }
-  ? Database[PublicTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+> = DefaultSchemaTableNameOrOptions extends { schema: keyof Database }
+  ? Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
       Update: infer U
     }
     ? U
     : never
-  : PublicTableNameOrOptions extends keyof PublicSchema["Tables"]
-    ? PublicSchema["Tables"][PublicTableNameOrOptions] extends {
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
         Update: infer U
       }
       ? U
@@ -1569,21 +1806,23 @@ export type TablesUpdate<
     : never
 
 export type Enums<
-  PublicEnumNameOrOptions extends
-    | keyof PublicSchema["Enums"]
+  DefaultSchemaEnumNameOrOptions extends
+    | keyof DefaultSchema["Enums"]
     | { schema: keyof Database },
-  EnumName extends PublicEnumNameOrOptions extends { schema: keyof Database }
-    ? keyof Database[PublicEnumNameOrOptions["schema"]]["Enums"]
+  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+    schema: keyof Database
+  }
+    ? keyof Database[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
     : never = never,
-> = PublicEnumNameOrOptions extends { schema: keyof Database }
-  ? Database[PublicEnumNameOrOptions["schema"]]["Enums"][EnumName]
-  : PublicEnumNameOrOptions extends keyof PublicSchema["Enums"]
-    ? PublicSchema["Enums"][PublicEnumNameOrOptions]
+> = DefaultSchemaEnumNameOrOptions extends { schema: keyof Database }
+  ? Database[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
+    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
     : never
 
 export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
-    | keyof PublicSchema["CompositeTypes"]
+    | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof Database },
   CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
     schema: keyof Database
@@ -1592,6 +1831,42 @@ export type CompositeTypes<
     : never = never,
 > = PublicCompositeTypeNameOrOptions extends { schema: keyof Database }
   ? Database[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
-  : PublicCompositeTypeNameOrOptions extends keyof PublicSchema["CompositeTypes"]
-    ? PublicSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
+    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
     : never
+
+export const Constants = {
+  public: {
+    Enums: {
+      care_urgency: [
+        "immediate",
+        "within_week",
+        "within_month",
+        "planning_ahead",
+      ],
+      chatbot_message_type: ["text", "option", "handoff", "form"],
+      chatbot_sender_type: ["user", "bot", "human_agent"],
+      chatbot_status: ["active", "completed", "abandoned"],
+      content_type: ["text", "image", "video"],
+      feature_status: [
+        "planned",
+        "in_development",
+        "ready_for_demo",
+        "launched",
+      ],
+      lead_quality: ["high", "medium", "low", "unqualified"],
+      meal_type: [
+        "morning_drink",
+        "breakfast",
+        "morning_snack",
+        "lunch",
+        "afternoon_snack",
+        "dinner",
+      ],
+      module_status: ["not_started", "in_progress", "completed"],
+      registration_status: ["started", "in_progress", "completed", "abandoned"],
+      section_status: ["not_started", "in_progress", "completed"],
+      user_role: ["family", "professional", "community", "admin"],
+    },
+  },
+} as const

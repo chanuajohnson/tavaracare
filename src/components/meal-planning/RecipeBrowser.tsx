@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { Clock, Users, BookOpen } from "lucide-react";
 
+// Updated Recipe type to match the actual database structure
 type Recipe = {
   id: string;
   title: string;
@@ -12,7 +13,7 @@ type Recipe = {
   category: string;
   preparation_time: number;
   servings: number;
-  ingredients: { item: string; amount: string; }[];
+  ingredients: any; // Using 'any' for the JSON type from the database
   instructions: string[];
 };
 
@@ -31,7 +32,8 @@ const RecipeBrowser = ({ category, onSelectRecipe }: RecipeBrowserProps) => {
       }
       const { data, error } = await query;
       if (error) throw error;
-      return data as Recipe[];
+      // Cast the data to Recipe[] to handle the JSON fields correctly
+      return data as unknown as Recipe[];
     },
   });
 

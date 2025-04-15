@@ -6,6 +6,9 @@ import { toast } from "sonner";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Fab } from "@/components/ui/fab";
+import { MicroChatBubble } from "@/components/chatbot/MicroChatBubble";
+import { ChatbotSystem } from "@/components/chatbot/ChatbotSystem";
+
 const roles = [{
   id: "family",
   title: "Family",
@@ -25,6 +28,7 @@ const roles = [{
   cta: "Get Hired as a Skilled Care Professional",
   features: ["Showcase qualifications", "Find care opportunities", "Manage client relationships", "Track care delivery", "Access training resources", "Professional development"]
 }];
+
 const communityRole = {
   id: "community",
   title: "Community",
@@ -35,10 +39,12 @@ const communityRole = {
   cta: "Join the Village",
   features: ["Join care circles", "Share local resources", "Participate in community events", "Offer support services", "Connect with families", "Track community impact"]
 };
+
 const Index = () => {
   const [selectedRole, setSelectedRole] = useState<string | null>(null);
   const navigate = useNavigate();
   const comparisonRef = useRef<HTMLDivElement>(null);
+
   const handleRoleSelect = (roleId: string) => {
     if (roleId === "community") {
       const role = communityRole;
@@ -54,25 +60,29 @@ const Index = () => {
       }
     }
   };
+
   const handleGetStarted = () => {
     comparisonRef.current?.scrollIntoView({
       behavior: "smooth"
     });
   };
+
   const goToFeatures = () => {
     navigate('/features');
   };
-  return <div className="min-h-screen w-full bg-gradient-to-b from-white to-primary-100">
+
+  return (
+    <div className="min-h-screen w-full bg-gradient-to-b from-white to-primary-100">
       <div className="container px-4 py-12 mx-auto">
         <motion.div initial={{
-        opacity: 0,
-        y: 20
-      }} animate={{
-        opacity: 1,
-        y: 0
-      }} transition={{
-        duration: 0.5
-      }} className="text-center mb-16">
+          opacity: 0,
+          y: 20
+        }} animate={{
+          opacity: 1,
+          y: 0
+        }} transition={{
+          duration: 0.5
+        }} className="text-center mb-16">
           <span className="px-4 py-1.5 rounded-full text-sm font-medium bg-primary-100 text-primary-800 mb-4 inline-block">
             Care Coordination Platform
           </span>
@@ -84,16 +94,17 @@ const Index = () => {
         </motion.div>
 
         <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
-          {roles.map((role, index) => <motion.div key={role.id} initial={{
-          opacity: 0,
-          y: 20
-        }} animate={{
-          opacity: 1,
-          y: 0
-        }} transition={{
-          duration: 0.5,
-          delay: index * 0.1
-        }} className={`relative group`}>
+          {roles.map((role, index) => (
+            <motion.div key={role.id} initial={{
+              opacity: 0,
+              y: 20
+            }} animate={{
+              opacity: 1,
+              y: 0
+            }} transition={{
+              duration: 0.5,
+              delay: index * 0.1
+            }} className={`relative group`}>
               <div className={`${role.color} rounded-2xl p-6 h-full transition-transform duration-300 group-hover:scale-[1.02]`}>
                 <div className="mb-4">
                   <role.icon className="w-8 h-8 text-primary-600" />
@@ -102,56 +113,69 @@ const Index = () => {
                   {role.title}
                 </h3>
                 <p className="text-gray-600 mb-6">{role.description}</p>
-                <button onClick={() => handleRoleSelect(role.id)} className="inline-flex items-center text-primary-700 font-medium group/button">
-                  {role.cta}
-                  <ArrowRight className="ml-2 w-4 h-4 transition-transform duration-300 group-hover/button:translate-x-1" />
-                </button>
+                
+                <div className="flex justify-between items-center">
+                  <button onClick={() => handleRoleSelect(role.id)} className="inline-flex items-center text-primary-700 font-medium group/button">
+                    {role.cta}
+                    <ArrowRight className="ml-2 w-4 h-4 transition-transform duration-300 group-hover/button:translate-x-1" />
+                  </button>
+                  
+                  <MicroChatBubble role={role.id as 'family' | 'professional' | 'community'} />
+                </div>
               </div>
-            </motion.div>)}
+            </motion.div>
+          ))}
         </div>
 
         <motion.div initial={{
-        opacity: 0
-      }} animate={{
-        opacity: 1
-      }} transition={{
-        duration: 0.5,
-        delay: 0.6
-      }} className="text-center mt-16">
-          <button onClick={handleGetStarted} className="inline-flex items-center justify-center h-11 px-8 font-medium text-white bg-primary-500 rounded-full transition-colors duration-300 hover:bg-primary-600">
-            Get Started
-          </button>
+          opacity: 0
+        }} animate={{
+          opacity: 1
+        }} transition={{
+          duration: 0.5,
+          delay: 0.6
+        }} className="text-center mt-16">
+          <div className="relative inline-flex items-center">
+            <button onClick={handleGetStarted} className="inline-flex items-center justify-center h-11 px-8 font-medium text-white bg-primary-500 rounded-full transition-colors duration-300 hover:bg-primary-600">
+              Get Started
+            </button>
+            
+            <div className="ml-3">
+              <MicroChatBubble role="family" position="right" />
+            </div>
+          </div>
         </motion.div>
 
         <div ref={comparisonRef} className="mt-32">
           <motion.div initial={{
-          opacity: 0,
-          y: 20
-        }} whileInView={{
-          opacity: 1,
-          y: 0
-        }} transition={{
-          duration: 0.5
-        }} viewport={{
-          once: true
-        }} className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">Who is Tavara For?</h2>
-            <p className="text-lg text-gray-600 max-w-2xl mx-auto">Find your perfect match, whether you’re seeking care or providing care</p>
-          </motion.div>
-
-          <div className="grid md:grid-cols-2 gap-8 max-w-6xl mx-auto">
-            {roles.map((role, index) => <motion.div key={role.id} initial={{
             opacity: 0,
             y: 20
           }} whileInView={{
             opacity: 1,
             y: 0
           }} transition={{
-            duration: 0.5,
-            delay: index * 0.1
+            duration: 0.5
           }} viewport={{
             once: true
-          }}>
+          }} className="text-center mb-16">
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">Who is Tavara For?</h2>
+            <p className="text-lg text-gray-600 max-w-2xl mx-auto">Find your perfect match, whether you’re seeking care or providing care</p>
+          </motion.div>
+
+          <div className="grid md:grid-cols-2 gap-8 max-w-6xl mx-auto">
+            {roles.map((role, index) => (
+              <motion.div key={role.id} initial={{
+                opacity: 0,
+                y: 20
+              }} whileInView={{
+                opacity: 1,
+                y: 0
+              }} transition={{
+                duration: 0.5,
+                delay: index * 0.1
+              }} viewport={{
+                once: true
+              }}>
                 <Card className="h-full">
                   <CardHeader>
                     <div className="mb-4">
@@ -167,29 +191,35 @@ const Index = () => {
                           <span className="text-gray-600">{feature}</span>
                         </li>)}
                     </ul>
-                    <Link to={role.path}>
-                      <Button className="w-full mt-6 inline-flex items-center justify-center h-10 px-4 font-medium text-white bg-primary-500 rounded-lg transition-colors duration-300 hover:bg-primary-600">
-                        {role.cta}
-                      </Button>
-                    </Link>
+                    
+                    <div className="flex justify-between items-center mt-6">
+                      <Link to={role.path}>
+                        <Button className="inline-flex items-center justify-center h-10 px-4 font-medium text-white bg-primary-500 rounded-lg transition-colors duration-300 hover:bg-primary-600">
+                          {role.cta}
+                        </Button>
+                      </Link>
+                      
+                      <MicroChatBubble role={role.id as 'family' | 'professional' | 'community'} position="right" />
+                    </div>
                   </CardContent>
                 </Card>
-              </motion.div>)}
+              </motion.div>
+            ))}
           </div>
         </div>
 
         <div className="mt-32 max-w-5xl mx-auto">
           <motion.div initial={{
-          opacity: 0,
-          y: 20
-        }} whileInView={{
-          opacity: 1,
-          y: 0
-        }} transition={{
-          duration: 0.5
-        }} viewport={{
-          once: true
-        }} className="text-center mb-16">
+            opacity: 0,
+            y: 20
+          }} whileInView={{
+            opacity: 1,
+            y: 0
+          }} transition={{
+            duration: 0.5
+          }} viewport={{
+            once: true
+          }} className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
               Community Engagement
             </h2>
@@ -200,16 +230,16 @@ const Index = () => {
 
           <div className="max-w-3xl mx-auto">
             <motion.div initial={{
-            opacity: 0,
-            y: 20
-          }} whileInView={{
-            opacity: 1,
-            y: 0
-          }} transition={{
-            duration: 0.5
-          }} viewport={{
-            once: true
-          }}>
+              opacity: 0,
+              y: 20
+            }} whileInView={{
+              opacity: 1,
+              y: 0
+            }} transition={{
+              duration: 0.5
+            }} viewport={{
+              once: true
+            }}>
               <Card className="h-full">
                 <CardHeader>
                   <div className="mb-4">
@@ -225,11 +255,16 @@ const Index = () => {
                         <span className="text-gray-600">{feature}</span>
                       </li>)}
                   </ul>
-                  <Link to={communityRole.path}>
-                    <Button className="w-full mt-6 inline-flex items-center justify-center h-10 px-4 font-medium text-white bg-primary-500 rounded-lg transition-colors duration-300 hover:bg-primary-600">
-                      {communityRole.cta}
-                    </Button>
-                  </Link>
+                  
+                  <div className="flex justify-between items-center mt-6">
+                    <Link to={communityRole.path}>
+                      <Button className="inline-flex items-center justify-center h-10 px-4 font-medium text-white bg-primary-500 rounded-lg transition-colors duration-300 hover:bg-primary-600">
+                        {communityRole.cta}
+                      </Button>
+                    </Link>
+                    
+                    <MicroChatBubble role="community" position="right" />
+                  </div>
                 </CardContent>
               </Card>
             </motion.div>
@@ -238,16 +273,16 @@ const Index = () => {
 
         <div className="mt-32 max-w-5xl mx-auto">
           <motion.div initial={{
-          opacity: 0,
-          y: 20
-        }} whileInView={{
-          opacity: 1,
-          y: 0
-        }} transition={{
-          duration: 0.5
-        }} viewport={{
-          once: true
-        }} className="text-center mb-16">
+            opacity: 0,
+            y: 20
+          }} whileInView={{
+            opacity: 1,
+            y: 0
+          }} transition={{
+            duration: 0.5
+          }} viewport={{
+            once: true
+          }} className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
               Shape Our Future Features
             </h2>
@@ -291,7 +326,19 @@ const Index = () => {
         </div>
       </div>
       
-      <Fab icon={<HelpCircle className="h-5 w-5" />} className="bg-primary-500 hover:bg-primary-600 text-white" showMenu={true} label="Support options" />
-    </div>;
+      <ChatbotSystem
+        position="left-of-fab" 
+        spacing={24}
+        className="bg-primary-500 hover:bg-primary-600 text-white"
+      />
+      
+      <Fab
+        position="bottom-right"
+        icon={<HelpCircle className="h-5 w-5" />}
+        className="bg-primary-500 hover:bg-primary-600 text-white"
+      />
+    </div>
+  );
 };
+
 export default Index;

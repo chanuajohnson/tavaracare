@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { HelpCircle, X, MessageSquare, FileQuestion, Phone, Loader2 } from "lucide-react";
@@ -12,6 +13,8 @@ import { Link, useNavigate } from "react-router-dom";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
+import { ChatProvider, useChat } from "@/components/chatbot/ChatProvider";
+import { ChatbotWidget } from "@/components/chatbot/ChatbotWidget";
 
 interface FabProps {
   icon?: React.ReactNode;
@@ -33,6 +36,7 @@ export const Fab = ({
   const navigate = useNavigate();
   const [isContactFormOpen, setIsContactFormOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isChatOpen, setIsChatOpen] = useState(false);
   const [contactFormData, setContactFormData] = useState({
     name: "",
     email: "",
@@ -55,6 +59,14 @@ export const Fab = ({
 
   const handleFAQClick = () => {
     navigate("/faq");
+  };
+
+  const toggleChat = () => {
+    setIsChatOpen(prev => !prev);
+    // Close contact form if open
+    if (isContactFormOpen) {
+      setIsContactFormOpen(false);
+    }
   };
 
   const handleContactFormSubmit = async (e: React.FormEvent) => {
@@ -156,7 +168,7 @@ export const Fab = ({
   }
 
   return (
-    <>
+    <ChatProvider>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button
@@ -192,6 +204,13 @@ export const Fab = ({
           >
             <MessageSquare className="h-5 w-5" />
             <span>Contact Form</span>
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            className="flex items-center gap-2 cursor-pointer p-3 text-base"
+            onClick={toggleChat}
+          >
+            <MessageSquare className="h-5 w-5" />
+            <span>Chat with Assistant</span>
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
@@ -301,6 +320,26 @@ export const Fab = ({
           </div>
         </div>
       )}
-    </>
+      
+      {/* Chat widget */}
+      {isChatOpen && (
+        <div className="fixed right-6 bottom-24 z-50">
+          <div className="relative">
+            <Button
+              size="icon"
+              variant="ghost"
+              className="absolute -right-2 -top-2 h-6 w-6 rounded-full bg-background border shadow-sm z-10"
+              onClick={toggleChat}
+            >
+              <X size={14} />
+            </Button>
+            <ChatbotWidget 
+              width="350px"
+              onClose={toggleChat}
+            />
+          </div>
+        </div>
+      )}
+    </ChatProvider>
   );
 };

@@ -2,8 +2,27 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
-import { CareShift } from "@/services/care-plan-service";
+import { CareShift, CareShiftDto } from "@/types/careTypes";
 import { useAuth } from "@/components/providers/AuthProvider";
+
+// Adapter for converting database shifts to domain model
+const adaptDbShiftToCareShift = (dbShift: CareShiftDto): CareShift => ({
+  id: dbShift.id!,
+  carePlanId: dbShift.care_plan_id,
+  familyId: dbShift.family_id,
+  caregiverId: dbShift.caregiver_id,
+  title: dbShift.title,
+  description: dbShift.description,
+  location: dbShift.location,
+  status: dbShift.status as 'open' | 'assigned' | 'completed' | 'cancelled',
+  startTime: dbShift.start_time,
+  endTime: dbShift.end_time,
+  recurringPattern: dbShift.recurring_pattern,
+  recurrenceRule: dbShift.recurrence_rule,
+  createdAt: dbShift.created_at || new Date().toISOString(),
+  updatedAt: dbShift.updated_at || new Date().toISOString(),
+  googleCalendarEventId: dbShift.google_calendar_event_id
+});
 
 export function useCareShifts() {
   const [shifts, setShifts] = useState<CareShift[]>([]);
@@ -43,7 +62,11 @@ export function useCareShifts() {
         }
         
         console.log(`✅ Care shifts fetched: ${data?.length || 0} shifts found for user ${user.id}`);
-        setShifts(data || []);
+        
+        // Convert database format to domain model
+        const typedShifts: CareShift[] = data ? data.map(shift => adaptDbShiftToCareShift(shift as CareShiftDto)) : [];
+        
+        setShifts(typedShifts);
       } catch (err: any) {
         console.error("❌ Error fetching care shifts:", err);
         setError(err.message || "Failed to load care shifts");

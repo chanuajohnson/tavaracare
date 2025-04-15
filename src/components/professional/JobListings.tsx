@@ -6,12 +6,14 @@ import { Button } from "@/components/ui/button";
 import { Briefcase, MapPin, Clock, ArrowRight, Filter, RefreshCw } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Link, useNavigate, useLocation } from "react-router-dom";
-import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import { SubscriptionFeatureLink } from "@/components/subscription/SubscriptionFeatureLink";
+import { jobOpportunityService } from "@/services/jobOpportunityService";
+import { JobOpportunity } from "@/types/jobOpportunity";
+import { supabase } from "@/lib/supabase";
 
 export const JobListings = () => {
-  const [jobs, setJobs] = useState([]);
+  const [jobs, setJobs] = useState<JobOpportunity[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const navigate = useNavigate();
@@ -29,21 +31,10 @@ export const JobListings = () => {
   const fetchJobs = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
-        .from('job_opportunities')
-        .select('*')
-        .ilike('location', '%Trinidad and Tobago%')
-        .order('posted_at', { ascending: false })
-        .limit(5);
+      const jobOpportunities = await jobOpportunityService.getJobOpportunitiesByLocation('Trinidad and Tobago', 5);
       
-      if (error) {
-        throw error;
-      }
-      
-      if (data) {
-        console.log("Fetched Trinidad and Tobago jobs:", data);
-        setJobs(data);
-      }
+      console.log("Fetched Trinidad and Tobago jobs:", jobOpportunities);
+      setJobs(jobOpportunities);
     } catch (error) {
       console.error("Error fetching jobs:", error);
       toast.error("Failed to load job opportunities");
@@ -79,7 +70,7 @@ export const JobListings = () => {
     }
   };
 
-  const handleViewDetails = (jobId) => {
+  const handleViewDetails = (jobId: string) => {
     navigate('/subscription-features', { 
       state: { 
         returnPath: `/professional/job/${jobId}`,
@@ -143,7 +134,7 @@ export const JobListings = () => {
                 <div className="flex justify-between items-start">
                   <h3 className="font-medium">{job.title}</h3>
                   <Badge variant="outline" className="bg-primary-100 text-primary-700 border-primary-200">
-                    {job.match_percentage}% Match
+                    {job.matchPercentage || 75}% Match
                   </Badge>
                 </div>
                 
@@ -176,7 +167,7 @@ export const JobListings = () => {
                 
                 <div className="mt-2 flex justify-between items-center">
                   <p className="text-xs text-gray-500">
-                    Posted {new Date(job.posted_at).toLocaleDateString()}
+                    Posted {job.postedAt ? new Date(job.postedAt).toLocaleDateString() : "Recently"}
                   </p>
                   <Button 
                     variant="ghost" 
