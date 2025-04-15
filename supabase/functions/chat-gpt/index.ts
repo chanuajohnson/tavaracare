@@ -1,39 +1,71 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { ChatCompletionRequestMessage, Configuration, OpenAIApi } from "https://esm.sh/openai@3.2.1";
 
-// Configure OpenAI
-const openAIApiKey = Deno.env.get('OPENAI_API_KEY') || '';
-const configuration = new Configuration({
-  apiKey: openAIApiKey
-});
-const openai = new OpenAIApi(configuration);
+// More detailed API key logging and validation
+const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
 
-// Enhanced CORS headers - more permissive
+console.log("OpenAI API Key Configuration Check:");
+console.log("- Key Present:", !!openAIApiKey);
+console.log("- Key Length:", openAIApiKey?.length || 0);
+console.log("- First 4 chars:", openAIApiKey?.slice(0, 4) || 'N/A');
+
+// Enhanced CORS headers
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': '*', // More permissive
-  'Access-Control-Allow-Methods': 'POST, OPTIONS, GET', // Added GET
-  'Access-Control-Max-Age': '86400' // Cache preflight for 24 hours
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
 };
 
-// Types
-interface RequestBody {
-  messages: ChatCompletionRequestMessage[];
-  sessionId: string;
-  userRole?: string;
-  systemPrompt?: string;
-  temperature?: number;
-  maxTokens?: number;
-  fieldContext?: {
-    currentField?: string;
-    fieldType?: string;
-    options?: string[];
-    previousAnswers?: Record<string, any>;
-  };
-}
+// Validate API key before initializing OpenAI
+const configuration = openAIApiKey 
+  ? new Configuration({ apiKey: openAIApiKey }) 
+  : null;
+
+const openai = configuration ? new OpenAIApi(configuration) : null;
 
 serve(async (req) => {
+  // Handle CORS preflight requests
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', {
+      headers: corsHeaders,
+      status: 200
+    });
+  }
+
+  // Comprehensive API key validation
+  if (!openAIApiKey) {
+    console.error("❌ CRITICAL: OpenAI API Key is NOT configured!");
+    return new Response(
+      JSON.stringify({ 
+        error: "OpenAI API key is missing", 
+        message: "The server is missing the OpenAI API configuration. Please contact support." 
+      }),
+      { 
+        status: 500, 
+        headers: { 
+          ...corsHeaders, 
+          'Content-Type': 'application/json' 
+        } 
+      }
+    );
+  }
+
+  // Types
+  interface RequestBody {
+    messages: ChatCompletionRequestMessage[];
+    sessionId: string;
+    userRole?: string;
+    systemPrompt?: string;
+    temperature?: number;
+    maxTokens?: number;
+    fieldContext?: {
+      currentField?: string;
+      fieldType?: string;
+      options?: string[];
+      previousAnswers?: Record<string, any>;
+    };
+  }
+
   // Enhanced logging for every request
   console.log(`[${new Date().toISOString()}] Chat-GPT function received ${req.method} request`);
   console.log(`Request headers:`, Object.fromEntries(req.headers.entries()));
