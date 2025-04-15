@@ -1,2 +1,4 @@
+project_id = "cpdfmyemjrefnhddyrck"
+
 [functions]
 verify_jwt = false
