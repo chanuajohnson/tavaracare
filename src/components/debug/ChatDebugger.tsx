@@ -21,8 +21,10 @@ export function ChatDebugger() {
     
     try {
       for (const table of tables) {
+        // Using type assertion to handle the dynamic table name
+        // This is safe because we're explicitly checking tables we know exist in our schema
         const { data, error } = await supabase
-          .from(table)
+          .from(table as any)
           .select('*')
           .limit(10);
           

@@ -30,6 +30,7 @@ const developmentFallbackKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJ
 const finalSupabaseUrl = SUPABASE_URL || (CURRENT_ENV === 'development' ? developmentFallbackUrl : '');
 const finalSupabaseKey = SUPABASE_ANON_KEY || (CURRENT_ENV === 'development' ? developmentFallbackKey : '');
 
+// Create the Supabase client
 export const supabase = createClient<Database>(
   finalSupabaseUrl,
   finalSupabaseKey, 
@@ -47,6 +48,108 @@ export const supabase = createClient<Database>(
     },
   }
 );
+
+// Environment utility functions
+export const getCurrentEnvironment = (): string => {
+  return CURRENT_ENV;
+};
+
+export const isDevelopment = (): boolean => {
+  return CURRENT_ENV === 'development';
+};
+
+export const isProduction = (): boolean => {
+  return CURRENT_ENV === 'production';
+};
+
+export const getEnvironmentInfo = () => {
+  // Extract the project ID from the URL if possible
+  const projectIdMatch = finalSupabaseUrl?.match(/https:\/\/(.+)\.supabase\.co/);
+  const projectId = projectIdMatch ? projectIdMatch[1] : 'unknown';
+  
+  return {
+    environment: CURRENT_ENV,
+    supabaseUrl: finalSupabaseUrl ? `${projectId}.supabase.co` : 'None set',
+    projectId,
+    usingFallbacks: !SUPABASE_URL || !SUPABASE_ANON_KEY,
+  };
+};
+
+// Schema compatibility check
+export const verifySchemaCompatibility = async () => {
+  try {
+    // Basic check - try to query the profiles table
+    const { error } = await supabase
+      .from('profiles')
+      .select('id')
+      .limit(1);
+    
+    // Add more detailed schema compatibility checks here as needed
+    const missingColumns: string[] = [];
+    
+    return {
+      compatible: !error,
+      missingColumns,
+      error: error?.message
+    };
+  } catch (err: any) {
+    console.error('Error verifying schema compatibility:', err.message);
+    return {
+      compatible: false,
+      missingColumns: [],
+      error: err.message
+    };
+  }
+};
+
+// Auth state management
+export const resetAuthState = async () => {
+  try {
+    await supabase.auth.signOut();
+    localStorage.removeItem('supabase.auth.token');
+    return { success: true };
+  } catch (error) {
+    console.error('Error resetting auth state:', error);
+    return { success: false, error };
+  }
+};
+
+// Debug connection utility
+export const debugSupabaseConnection = async () => {
+  try {
+    // Check basic connection
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('count')
+      .limit(1);
+    
+    if (error) {
+      console.error('Connection error:', error);
+      return {
+        connected: false,
+        message: error.message,
+        details: error,
+        timestamp: new Date().toISOString()
+      };
+    }
+    
+    // If we get here, connection is working
+    return {
+      connected: true,
+      message: 'Successfully connected to Supabase',
+      environmentInfo: getEnvironmentInfo(),
+      timestamp: new Date().toISOString()
+    };
+  } catch (err) {
+    console.error('Unexpected error during connection check:', err);
+    return {
+      connected: false,
+      message: err instanceof Error ? err.message : 'Unknown error',
+      details: err,
+      timestamp: new Date().toISOString()
+    };
+  }
+};
 
 // Logging environment details
 console.log(`Supabase Initialization Details:`);
