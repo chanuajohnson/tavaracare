@@ -1,6 +1,7 @@
 
 import { supabase } from '@/lib/supabase';
 import { ChatMessage } from '@/types/chatTypes';
+import { toast } from 'sonner';
 
 // Interface for parameters to the chat completion function
 export interface ChatCompletionParams {
@@ -47,6 +48,8 @@ export const createSystemPrompt = (userRole?: string): string => {
       
       Incorporate warm, friendly Trinidad & Tobago phrases and expressions, but keep it professional and respectful.
       Be conversational but direct - ask one question at a time.
+      
+      IMPORTANT: NEVER start sentences with "a," and NEVER use "Yuh" as these don't reflect natural Trinidad & Tobago speech.
     `;
   } else if (userRole === 'professional') {
     roleSpecificPrompt = `
@@ -60,6 +63,8 @@ export const createSystemPrompt = (userRole?: string): string => {
       
       Incorporate warm, friendly Trinidad & Tobago phrases and expressions when appropriate.
       Be conversational but direct - ask one question at a time.
+      
+      IMPORTANT: NEVER start sentences with "a," and NEVER use "Yuh" as these don't reflect natural Trinidad & Tobago speech.
     `;
   } else if (userRole === 'community') {
     roleSpecificPrompt = `
@@ -73,6 +78,8 @@ export const createSystemPrompt = (userRole?: string): string => {
       
       Incorporate warm, friendly Trinidad & Tobago phrases and expressions when appropriate.
       Be conversational but direct - ask one question at a time.
+      
+      IMPORTANT: NEVER start sentences with "a," and NEVER use "Yuh" as these don't reflect natural Trinidad & Tobago speech.
     `;
   }
 
@@ -98,7 +105,7 @@ export const getChatCompletion = async ({
       hasFieldContext: !!fieldContext
     });
 
-    // Log the project details and environment
+    // Log the environment info for debugging
     const envInfo = {
       projectId: 'cpdfmyemjrefnhddyrck', // Hardcoded for consistency
       env: import.meta.env.VITE_ENV || 'unknown',
@@ -114,10 +121,6 @@ export const getChatCompletion = async ({
     while (retries <= MAX_RETRIES) {
       try {
         console.log(`Attempt ${retries + 1} to call chat-gpt edge function`);
-        
-        // Get the complete URL for logging purposes (but don't use it for the call)
-        const functionUrl = `https://cpdfmyemjrefnhddyrck.supabase.co/functions/v1/chat-gpt`;
-        console.log(`Function URL would be: ${functionUrl}`);
         
         // Check for debug parameter in URL to log extra information
         if (window.location.search.includes('debug=true')) {
@@ -148,6 +151,8 @@ export const getChatCompletion = async ({
             continue;
           }
           
+          toast.error("Unable to connect to the AI assistant. Please try again later.");
+          
           return { 
             message: "I seem to be having trouble with my connection. Could we try again?", 
             error: error.message 
@@ -166,6 +171,8 @@ export const getChatCompletion = async ({
             await new Promise(resolve => setTimeout(resolve, 1000));
             continue;
           }
+          
+          toast.error("Received an invalid response from the AI assistant.");
           
           return { 
             message: "I received an invalid response. Let's try a different approach.", 
@@ -196,12 +203,16 @@ export const getChatCompletion = async ({
       }
     }
     
+    toast.error("Failed to connect to the AI assistant after multiple attempts.");
+    
     return { 
       message: "Sorry, I'm having trouble connecting right now. Could we try a different approach?", 
       error: lastError instanceof Error ? lastError.message : 'Maximum retries exceeded'
     };
   } catch (error) {
     console.error('Error in getChatCompletion:', error);
+    toast.error("An unexpected error occurred while talking to the AI assistant.");
+    
     return { 
       message: "I'm experiencing technical difficulties at the moment. Let's try something else.", 
       error: error instanceof Error ? error.message : 'Unknown error occurred'

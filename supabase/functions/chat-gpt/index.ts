@@ -5,7 +5,7 @@ import "https://deno.land/x/xhr@0.3.1/mod.ts"; // Required for fetch in Deno
 // Enhanced CORS headers with additional allowed headers
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-app-version, range, x-supabase-auth, x-version',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-app-version, range, x-supabase-auth, x-version, x-client-env',
   'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
   'Access-Control-Expose-Headers': 'Content-Length, Content-Range',
   'Access-Control-Max-Age': '86400',
