@@ -33,7 +33,8 @@ export const useChatActions = (
   conversationStage: "intro" | "questions" | "completion",
   skipIntro: boolean,
   setIsResuming: (value: boolean) => void,
-  setValidationError: (error?: string) => void
+  setValidationError: (error?: string) => void,
+  setFieldType: (type: string | null) => void
 ) => {
   const handleRoleSelection = async (roleId: string) => {
     if (roleId === "resume") {
@@ -101,6 +102,9 @@ export const useChatActions = (
         0,
         config
       );
+      
+      const questionType = getFieldTypeForCurrentQuestion();
+      setFieldType(questionType);
       
       await simulateBotTyping(response.message, response.options);
       setConversationStage("questions");
@@ -252,6 +256,9 @@ export const useChatActions = (
           config
         );
         
+        const nextQuestionType = getFieldTypeForCurrentQuestion(currentSectionIndex, nextQuestionIndex % 10);
+        setFieldType(nextQuestionType);
+        
         await simulateBotTyping(response.message, response.options);
         
         if (overallQuestionIndex >= 50) {
@@ -277,9 +284,13 @@ export const useChatActions = (
       
       if (!validationResult.isValid) {
         setValidationError(validationResult.errorMessage);
+        toast.error(validationResult.errorMessage);
         return;
       } else {
         setValidationError(undefined);
+        if (questionType === "email" || questionType === "phone") {
+          toast.success(`Valid ${questionType} format!`);
+        }
       }
     }
     
@@ -371,8 +382,15 @@ export const useChatActions = (
           config
         );
         
+        const nextQuestionType = getFieldTypeForCurrentQuestion(
+          nextQuestionIndex >= maxQuestionsPerSection ? currentSectionIndex + 1 : currentSectionIndex,
+          nextQuestionIndex >= maxQuestionsPerSection ? 0 : nextQuestionIndex
+        );
+        setFieldType(nextQuestionType);
+        
         if (response.validationNeeded) {
           console.log(`Next question requires ${response.validationNeeded} validation`);
+          setFieldType(response.validationNeeded);
         }
         
         if (overallQuestionIndex >= 50) {
@@ -433,6 +451,7 @@ export const useChatActions = (
     }
     
     setValidationError(undefined);
+    setFieldType(null);
   };
 
   const initializeChat = async () => {
@@ -453,13 +472,13 @@ export const useChatActions = (
     }
   };
 
-  const getFieldTypeForCurrentQuestion = (): string | null => {
+  const getFieldTypeForCurrentQuestion = (sectionIndex = currentSectionIndex, questionIndex = currentQuestionIndex): string | null => {
     if (!progress.role) return null;
     
     const question = getCurrentQuestion(
       progress.role,
-      currentSectionIndex,
-      currentQuestionIndex
+      sectionIndex,
+      questionIndex
     );
     
     if (!question) return null;
@@ -469,7 +488,7 @@ export const useChatActions = (
     
     if (label.includes("email") || id.includes("email")) {
       return "email";
-    } else if (label.includes("phone") || id.includes("phone")) {
+    } else if (label.includes("phone") || id.includes("phone") || label.includes("contact number") || id.includes("contact_number")) {
       return "phone";
     } else if (
       label.includes("first name") || 

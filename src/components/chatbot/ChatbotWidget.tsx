@@ -1,4 +1,3 @@
-
 import React, { useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { useChatMessages } from "@/hooks/chat/useChatMessages";
@@ -168,7 +167,7 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({
 
       <RegistrationLink role={progress.role} />
 
-      <ChatInputForm
+      <ChatInputForm 
         input={input}
         setInput={setInput}
         handleSendMessage={handleSendMessage}
@@ -176,6 +175,7 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({
         conversationStage={conversationStage}
         isResuming={isResuming}
         validationError={validationError}
+        fieldType={fieldType}  {/* Add this new prop */}
       />
 
       {/* Debug panel for development mode */}
