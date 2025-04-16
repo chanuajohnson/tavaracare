@@ -3,9 +3,10 @@ import { ChatMessage, ChatOption } from '@/types/chatTypes';
 import { getCurrentQuestion, getFieldTypeForQuestion } from '@/services/chat/utils/questionUtils';
 
 // Interface for the AI flow response
-interface AIFlowResponse {
+export interface AIFlowResponse {
   message: string;
   options?: ChatOption[];
+  validationNeeded?: string;  // Added this property to match usage
 }
 
 /**
@@ -49,24 +50,27 @@ export const handleAIFlow = async (
         // Get validation type
         const fieldType = getFieldTypeForQuestion(userRole, sectionIndex, questionInSectionIndex);
         
-        // Return the question with appropriate options
+        // Return the question with appropriate options and validation type if needed
+        const response: AIFlowResponse = {
+          message: currentQuestion.label
+        };
+        
+        // Add options if this is a selection-type question
         if (currentQuestion.type === 'select' || currentQuestion.type === 'multiselect' || currentQuestion.type === 'checkbox') {
-          return {
-            message: currentQuestion.label,
-            options: currentQuestion.options?.map(option => ({ id: option, label: option }))
-          };
+          response.options = currentQuestion.options?.map(option => ({ id: option, label: option }));
         } else if (currentQuestion.type === 'confirm') {
-          return {
-            message: currentQuestion.label,
-            options: [
-              { id: "yes", label: "Yes" },
-              { id: "no", label: "No" }
-            ]
-          };
-        } else {
-          // Text input
-          return { message: currentQuestion.label };
+          response.options = [
+            { id: "yes", label: "Yes" },
+            { id: "no", label: "No" }
+          ];
         }
+        
+        // Add validation type if this field requires validation
+        if (fieldType) {
+          response.validationNeeded = fieldType;
+        }
+        
+        return response;
       }
     }
     

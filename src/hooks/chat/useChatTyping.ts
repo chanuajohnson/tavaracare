@@ -42,10 +42,10 @@ export const useChatTyping = ({
       // Sync messages to Supabase
       await syncMessagesToSupabase([...messages, newMessage], sessionId, role);
       
-      return true;
+      // Return void instead of boolean to match the expected type
     } catch (err) {
       console.error('Error in bot typing simulation:', err);
-      return false;
+      // Return void instead of boolean
     } finally {
       setIsTyping(false);
     }
