@@ -386,31 +386,4 @@ export const Fab = ({
       )}
     </ChatProvider>
   );
-  
-  // Add the missing handleInputChange function
-  function handleInputChange(
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-  ) {
-    const { name, value } = e.target;
-    setContactFormData((prev) => ({ ...prev, [name]: value }));
-  }
-  
-  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      
-      // Validate file is an image and not too large (max 5MB)
-      if (!file.type.startsWith("image/")) {
-        toast.error("Please upload an image file");
-        return;
-      }
-      
-      if (file.size > 5 * 1024 * 1024) {
-        toast.error("Screenshot must be less than 5MB");
-        return;
-      }
-      
-      setScreenshotFile(file);
-    }
-  }
 };
