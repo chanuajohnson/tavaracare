@@ -228,12 +228,56 @@ export const useChatActions = (
         }
         return;
       } else if (optionId === "talk_to_representative") {
-        // Handle request to talk to a representative
+        // Save the current conversation data for the representative
+        try {
+          await generatePrefillJson(progress.role || 'family', messages);
+          console.log("Saved conversation data for representative contact");
+        } catch (error) {
+          console.error("Error saving conversation data:", error);
+        }
+        
+        // Present contact options instead of restarting the conversation
         await simulateBotTyping(
-          "I've noted that you'd like to speak with a representative. Someone from our team will reach out to you soon. In the meantime, would you like to complete your registration?",
+          "How would you like us to get in touch with you?",
           [
-            { id: "proceed_to_registration", label: "Complete my registration" },
-            { id: "close_chat", label: "Close this chat" }
+            { id: "whatsapp_support", label: "WhatsApp Support" },
+            { id: "email_form", label: "Email Support Form" },
+            { id: "proceed_to_registration", label: "Complete registration first" }
+          ]
+        );
+        return;
+      } else if (optionId === "whatsapp_support") {
+        // Open WhatsApp with pre-populated message
+        const phoneNumber = "+18687865357";
+        const message = encodeURIComponent("Hello, I need support with Tavara.care platform. I've completed a chat session and would like to speak with a representative.");
+        window.open(`https://wa.me/${phoneNumber}?text=${message}`, "_blank");
+        
+        await simulateBotTyping(
+          "I've opened WhatsApp for you to contact our support team. Would you also like to complete your registration?",
+          [
+            { id: "proceed_to_registration", label: "Yes, complete my registration" },
+            { id: "close_chat", label: "No, I'll wait to hear back" }
+          ]
+        );
+        return;
+      } else if (optionId === "email_form") {
+        // Handle showing the email contact form
+        // This will trigger the form in the FAB component
+        window.dispatchEvent(new CustomEvent('tavara:open-contact-form', {
+          detail: { 
+            fromChat: true,
+            prefillData: {
+              role: progress.role,
+              sessionId: sessionId
+            }
+          }
+        }));
+        
+        await simulateBotTyping(
+          "I've opened our contact form for you to send us a message. Would you also like to complete your registration while you wait to hear back?",
+          [
+            { id: "proceed_to_registration", label: "Yes, complete my registration" },
+            { id: "close_chat", label: "No, I'll wait to hear back" }
           ]
         );
         return;

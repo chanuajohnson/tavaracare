@@ -15,6 +15,10 @@ interface ContactFormData {
   email: string;
   message: string;
   screenshot?: string; // Base64 encoded screenshot (optional)
+  chatData?: {
+    role?: string;
+    sessionId?: string;
+  };
 }
 
 serve(async (req) => {
@@ -25,7 +29,7 @@ serve(async (req) => {
 
   try {
     const contactData: ContactFormData = await req.json();
-    const { name, email, message, screenshot } = contactData;
+    const { name, email, message, screenshot, chatData } = contactData;
 
     console.log("Received contact form submission from:", name, email);
 
@@ -34,16 +38,27 @@ serve(async (req) => {
       throw new Error("Missing required fields");
     }
 
+    // Prepare chat data info if available
+    const chatDataHtml = chatData ? `
+      <div style="margin-top: 20px; padding: 10px; background-color: #f5f5f5; border-radius: 5px;">
+        <h3>Chat Session Data:</h3>
+        <p><strong>Role:</strong> ${chatData.role || "Not specified"}</p>
+        <p><strong>Session ID:</strong> ${chatData.sessionId || "Not available"}</p>
+        <p><em>This user requested to speak with a representative through the chat interface.</em></p>
+      </div>
+    ` : '';
+
     // Send email to support team
     const supportEmailResponse = await resend.emails.send({
       from: "Tavara Support <support@tavara.care>",
       to: "chanuajohnson@gmail.com", // Updated to the requested email
-      subject: `Support Request from ${name}`,
+      subject: `Support Request from ${name}${chatData ? ' (via Chat)' : ''}`,
       html: `
         <h1>New Support Request</h1>
         <p><strong>From:</strong> ${name} (${email})</p>
         <p><strong>Message:</strong></p>
         <p>${message.replace(/\n/g, "<br>")}</p>
+        ${chatDataHtml}
         ${screenshot ? `<p><strong>Screenshot:</strong></p><img src="${screenshot}" alt="User provided screenshot" style="max-width: 100%;" />` : ""}
       `,
     });

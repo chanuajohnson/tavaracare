@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { HelpCircle, X, MessageSquare, FileQuestion, Phone, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -43,6 +43,7 @@ export const Fab = ({
     message: "",
   });
   const [screenshotFile, setScreenshotFile] = useState<File | null>(null);
+  const [prefillData, setPrefillData] = useState<any>(null);
 
   const positionClasses = {
     "bottom-right": "bottom-6 right-6",
@@ -50,6 +51,39 @@ export const Fab = ({
     "top-right": "top-6 right-6",
     "top-left": "top-6 left-6",
   };
+
+  // Listen for events from the chat to open the contact form
+  useEffect(() => {
+    const handleOpenContactForm = (event: CustomEvent) => {
+      setIsContactFormOpen(true);
+      
+      // Close chat if it's open
+      if (isChatOpen) {
+        setIsChatOpen(false);
+      }
+      
+      // If we received prefill data from the chat
+      if (event.detail?.prefillData) {
+        setPrefillData(event.detail.prefillData);
+        
+        // Update message if coming from chat
+        if (event.detail.fromChat) {
+          setContactFormData(prev => ({
+            ...prev,
+            message: `[Request from chat] I'd like to speak with a representative about Tavara.care services.${
+              event.detail.prefillData.role ? ` I'm interested as a ${event.detail.prefillData.role}.` : ''
+            }`
+          }));
+        }
+      }
+    };
+
+    window.addEventListener('tavara:open-contact-form', handleOpenContactForm as EventListener);
+    
+    return () => {
+      window.removeEventListener('tavara:open-contact-form', handleOpenContactForm as EventListener);
+    };
+  }, [isChatOpen]);
 
   const handleOpenWhatsApp = () => {
     const phoneNumber = "+18687865357";
@@ -83,7 +117,11 @@ export const Fab = ({
       }
       
       // Prepare the data to send
-      const formData = { ...contactFormData };
+      const formData = { 
+        ...contactFormData,
+        // Add any chat session data if it exists
+        ...(prefillData ? { chatData: prefillData } : {})
+      };
       
       // Handle screenshot if provided
       if (screenshotFile) {
@@ -115,6 +153,7 @@ export const Fab = ({
       // Reset form
       setContactFormData({ name: "", email: "", message: "" });
       setScreenshotFile(null);
+      setPrefillData(null);
       setIsContactFormOpen(false);
     } catch (error) {
       console.error("Error submitting contact form:", error);
@@ -295,6 +334,11 @@ export const Fab = ({
                     </p>
                   )}
                 </div>
+                {prefillData && (
+                  <div className="bg-blue-50 p-2 rounded text-xs">
+                    <p>Including chat session data with your request</p>
+                  </div>
+                )}
               </div>
               <div className="mt-6 flex justify-end space-x-2">
                 <Button
@@ -342,4 +386,31 @@ export const Fab = ({
       )}
     </ChatProvider>
   );
+  
+  // Add the missing handleInputChange function
+  function handleInputChange(
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) {
+    const { name, value } = e.target;
+    setContactFormData((prev) => ({ ...prev, [name]: value }));
+  }
+  
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      
+      // Validate file is an image and not too large (max 5MB)
+      if (!file.type.startsWith("image/")) {
+        toast.error("Please upload an image file");
+        return;
+      }
+      
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error("Screenshot must be less than 5MB");
+        return;
+      }
+      
+      setScreenshotFile(file);
+    }
+  }
 };
