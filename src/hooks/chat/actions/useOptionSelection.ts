@@ -1,4 +1,3 @@
-
 import { 
   saveChatResponse, 
   isMultiSelectQuestion, 
@@ -262,7 +261,7 @@ export const useOptionSelection = ({
     
     try {
       if (isLastQuestion) {
-        // If this is the last question, move to completion stage
+        // Handle completion stage
         // Ensure prefill data is generated and saved
         await preparePrefillDataAndGetRegistrationUrl(progress.role, updatedMessages);
         
@@ -291,14 +290,9 @@ export const useOptionSelection = ({
         const nextQuestionType = getFieldTypeForCurrentQuestion(nextSectionIndex, nextQuestionIndex);
         setFieldType(nextQuestionType);
 
-        // If we're starting a new section, include section title in the message
-        let responseMessage = response.message;
-        if (nextQuestionIndex === 0) {
-          const sectionTitle = getSectionTitle(progress.role, nextSectionIndex);
-          responseMessage = `Great! Let's talk about ${sectionTitle.toLowerCase()}.\n\n${response.message}`;
-        }
-        
-        await simulateBotTyping(responseMessage, response.options);
+        // Don't add extra section intro here as that's now handled by the generateNextQuestionMessage
+        // This prevents the duplicate section introductions
+        await simulateBotTyping(response.message, response.options);
       }
     } catch (error) {
       console.error("Error processing option selection:", error);
