@@ -7,7 +7,8 @@ export {
   getSectionTitle,
   getCurrentQuestion,
   generateDataSummary,
-  getTotalSectionsForRole
+  getTotalSectionsForRole,
+  isMultiSelectQuestion
 } from './chat/responseUtils';
 
 // Input validation function
