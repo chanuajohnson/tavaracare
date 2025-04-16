@@ -1,4 +1,3 @@
-
 import { syncMessagesToSupabase } from "@/services/aiService";
 import { processConversation } from "@/utils/chat/chatFlowEngine";
 import { 
@@ -9,14 +8,7 @@ import {
   setMultiSelectionMode,
   getMultiSelectionStatus,
   addToMultiSelection,
-  completeMultiSelection
-} from "@/services/chatbotService";
-import { generatePrefillJson } from "@/utils/chat/prefillGenerator";
-import { toast } from "sonner";
-import { ChatConfig } from "@/utils/chat/engine/types";
-import { getIntroMessage, getRoleOptions } from "@/data/chatIntroMessage";
-import { ChatMessage } from "@/types/chatTypes";
-import { 
+  completeMultiSelection,
   getCurrentQuestion, 
   isEndOfSection, 
   isEndOfFlow, 
@@ -24,6 +16,11 @@ import {
   getTotalSectionsForRole, 
   isMultiSelectQuestion
 } from "@/services/chatbotService";
+import { generatePrefillJson } from "@/utils/chat/prefillGenerator";
+import { toast } from "sonner";
+import { ChatConfig } from "@/utils/chat/engine/types";
+import { getIntroMessage, getRoleOptions } from "@/data/chatIntroMessage";
+import { ChatMessage } from "@/types/chatTypes";
 
 export const useChatActions = (
   sessionId: string,
