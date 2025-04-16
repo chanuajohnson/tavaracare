@@ -25,24 +25,29 @@ export const validateChatInput = (input: string, fieldType: string): { isValid: 
     }
     
     case "phone": {
-      // Phone validation - accepting different formats
-      // Strip all non-numeric characters except + for international format
-      const cleanedNumber = input.replace(/[^\d+]/g, '');
+      // Enhanced phone validation - more strict requirements
+      // Remove all spaces, dashes, parentheses, and dots for validation
+      const cleanedNumber = input.replace(/[\s\-\(\)\.]/g, '');
       
-      // Check if it's a reasonable length for a phone number (with country code)
-      if (cleanedNumber.length < 7 || cleanedNumber.length > 15) {
-        return { 
-          isValid: false, 
-          errorMessage: "Please enter a valid phone number" 
-        };
-      }
-      
-      // If it doesn't start with +, it should have at least 7 digits
-      if (!cleanedNumber.startsWith('+') && cleanedNumber.length < 7) {
-        return { 
-          isValid: false, 
-          errorMessage: "Please include your country code (e.g., +1868)" 
-        };
+      // Check if it starts with '+' (international format)
+      if (cleanedNumber.startsWith('+')) {
+        // International format: should have at least 8 digits after the '+'
+        // This handles country codes of 1-3 digits plus at least 7 digits for the actual number
+        if (!/^\+\d{8,15}$/.test(cleanedNumber)) {
+          return { 
+            isValid: false, 
+            errorMessage: "International format should be like +18687865357" 
+          };
+        }
+      } else {
+        // Local format: should have at least 7 digits (minimal for most countries)
+        // and shouldn't exceed 15 digits (ITU-T recommendation)
+        if (!/^\d{7,15}$/.test(cleanedNumber)) {
+          return { 
+            isValid: false, 
+            errorMessage: "Please enter a valid phone number with country code (e.g., +18687865357)" 
+          };
+        }
       }
       
       return { isValid: true };

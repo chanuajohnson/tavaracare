@@ -4,7 +4,6 @@ import {
   updateChatProgress, 
   saveChatResponse, 
   getSessionResponses, 
-  validateChatInput,
   setMultiSelectionMode,
   getMultiSelectionStatus,
   addToMultiSelection,
@@ -21,6 +20,7 @@ import { toast } from "sonner";
 import { ChatConfig } from "@/utils/chat/engine/types";
 import { getIntroMessage, getRoleOptions } from "@/data/chatIntroMessage";
 import { ChatMessage } from "@/types/chatTypes";
+import { validateChatInput } from "@/services/chat/utils/inputValidation";
 
 export const useChatActions = (
   sessionId: string,
@@ -529,24 +529,17 @@ export const useChatActions = (
       currentQuestionIndex
     );
     
-    // Special validation for budget questions
-    if (currentQuestion?.id === "budget") {
-      const budgetValidation = validateChatInput(trimmedInput, "budget");
-      if (!budgetValidation.isValid) {
-        setValidationError(budgetValidation.errorMessage);
-        toast.error(budgetValidation.errorMessage);
-        return;
-      }
-    }
-    // Normal validation for other question types
-    else if (questionType) {
+    // Perform validation for the input
+    if (questionType) {
       const validationResult = validateChatInput(trimmedInput, questionType);
       
       if (!validationResult.isValid) {
         setValidationError(validationResult.errorMessage);
-        toast.error(validationResult.errorMessage);
+        toast.error(validationResult.errorMessage || "Invalid input");
+        console.log(`Validation failed for ${questionType}: ${validationResult.errorMessage}`);
         return;
       } else {
+        // Clear any existing validation error
         setValidationError(undefined);
         if (questionType === "email" || questionType === "phone") {
           toast.success(`Valid ${questionType} format!`);

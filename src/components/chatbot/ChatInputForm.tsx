@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { validateChatInput } from "@/services/chat/utils/inputValidation";
 
 interface ChatInputFormProps {
   input: string;
@@ -27,17 +28,16 @@ export const ChatInputForm: React.FC<ChatInputFormProps> = ({
   validationError,
   fieldType
 }) => {
-  // Clear validation error when input changes
+  // Validate input whenever it changes
   useEffect(() => {
-    if (validationError && input) {
-      const timer = setTimeout(() => {
-        // This will trigger validation in the parent component
-        setInput(input);
-      }, 300);
-      
-      return () => clearTimeout(timer);
+    if (fieldType && input) {
+      // Direct validation on input change without delay
+      const validationResult = validateChatInput(input, fieldType);
+      if (!validationResult.isValid) {
+        console.log(`Validation error for ${fieldType}: ${validationResult.errorMessage}`);
+      }
     }
-  }, [input, validationError, setInput]);
+  }, [input, fieldType]);
 
   // Generate placeholder based on field type
   const getPlaceholder = () => {
@@ -65,11 +65,32 @@ export const ChatInputForm: React.FC<ChatInputFormProps> = ({
     }
   };
 
+  // Check if button should be enabled
+  const isButtonDisabled = () => {
+    // Basic conditions
+    if (!input.trim() || isTyping || conversationStage === "intro" || isResuming) {
+      return true;
+    }
+    
+    // If there's a validation error, disable the button
+    if (validationError) {
+      return true;
+    }
+    
+    // If we have a field type requiring validation, do a final validation check
+    if (fieldType && input) {
+      const result = validateChatInput(input, fieldType);
+      return !result.isValid;
+    }
+    
+    return false;
+  };
+
   return (
     <div className="border-t p-3 flex flex-col gap-2">
       <form onSubmit={(e) => {
         e.preventDefault();
-        if (input.trim() && !isTyping && conversationStage !== "intro" && !isResuming && !validationError) {
+        if (!isButtonDisabled()) {
           handleSendMessage(e).catch(err => {
             console.error("Error sending message:", err);
             toast.error("Failed to send message. Please try again.");
@@ -93,7 +114,7 @@ export const ChatInputForm: React.FC<ChatInputFormProps> = ({
         <Button
           type="submit"
           size="icon"
-          disabled={!input.trim() || isTyping || conversationStage === "intro" || isResuming || !!validationError}
+          disabled={isButtonDisabled()}
           title="Send message"
           aria-label="Send message"
           data-testid="send-message-button"
@@ -104,7 +125,7 @@ export const ChatInputForm: React.FC<ChatInputFormProps> = ({
       {validationError && (
         <p className="text-red-500 text-sm px-1 animate-pulse" role="alert" aria-live="assertive">{validationError}</p>
       )}
-      {fieldType && !validationError && (
+      {fieldType && !validationError && input && (
         <p className="text-muted-foreground text-xs px-1">
           {fieldType === "email" ? (
             "Please enter a valid email address like example@domain.com"
