@@ -1,17 +1,16 @@
 
-import { Json } from "@/utils/supabaseTypes";
-
-export interface ChatProgress {
-  sessionId: string;
-  role: string;
-  currentSection: number;
-  questionIndex: number;
-  sectionStatus: "not_started" | "in_progress" | "completed";
-  responsesComplete: boolean;
-  formData: Record<string, any>;
-}
+import { ChatOption } from "@/types/chatTypes";
 
 export interface ChatResponseData {
   message: string;
-  options?: { id: string; label: string }[];
+  options?: ChatOption[];
+}
+
+export interface ChatStorageData {
+  sessionId: string;
+  role: string;
+  section: string;
+  status: string;
+  questionId?: string;
+  responses: Record<string, any>;
 }

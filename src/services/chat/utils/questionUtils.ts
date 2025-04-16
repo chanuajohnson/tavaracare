@@ -41,27 +41,42 @@ export const isMultiSelectQuestion = (
 };
 
 /**
- * Export the function to get the section title
+ * Get the field type for validation based on the current question
  */
-export const getSectionTitle = (role: string, sectionIndex: number): string => {
-  const flow = getRegistrationFlowByRole(role);
+export const getFieldTypeForQuestion = (
+  role: string,
+  sectionIndex: number,
+  questionIndex: number
+): string | null => {
+  const question = getCurrentQuestion(role, sectionIndex, questionIndex);
   
-  if (sectionIndex >= 0 && sectionIndex < flow.sections.length) {
-    return flow.sections[sectionIndex].title;
+  if (!question) return null;
+  
+  const label = (question.label || "").toLowerCase();
+  const id = (question.id || "").toLowerCase();
+  
+  if (label.includes("email") || id.includes("email")) {
+    return "email";
+  } else if (label.includes("phone") || id.includes("phone") || label.includes("contact number") || id.includes("contact_number")) {
+    return "phone";
+  } else if (
+    label.includes("first name") || 
+    id.includes("first_name") ||
+    label.includes("full name") ||
+    id.includes("full_name")
+  ) {
+    return "name";
+  } else if (
+    label.includes("last name") || 
+    id.includes("last_name")
+  ) {
+    return "name";
+  } else if (
+    label.includes("budget") ||
+    id.includes("budget")
+  ) {
+    return "budget";
   }
   
-  return "";
-};
-
-/**
- * Get total number of sections for a specific role
- */
-export const getTotalSectionsForRole = (role: string): number => {
-  try {
-    const flow = getRegistrationFlowByRole(role);
-    return flow.sections.length;
-  } catch (err) {
-    console.error("Error getting total sections:", err);
-    return 0;
-  }
+  return null;
 };

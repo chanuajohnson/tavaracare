@@ -1,73 +1,61 @@
 
-import { useState } from 'react';
-import { ChatOption } from '@/types/chatTypes';
-import { toast } from 'sonner';
+import { useState, useCallback } from 'react';
+import { ChatMessage, ChatOption } from '@/types/chatTypes';
 
 interface UseChatTypingProps {
-  addMessage: (message: any) => void;
-  syncMessagesToSupabase?: (messages: any[], sessionId: string, role?: string) => Promise<boolean | void>;
-  messages: any[];
-  sessionId?: string;
-  role?: string;
+  addMessage: (message: ChatMessage) => void;
+  messages: ChatMessage[];
+  sessionId: string;
+  role?: string | null;
+  syncMessagesToSupabase?: (messages: ChatMessage[]) => Promise<void>;
 }
 
 export const useChatTyping = ({ 
   addMessage, 
-  syncMessagesToSupabase, 
-  messages,
-  sessionId = '',
-  role = ''
+  messages, 
+  sessionId,
+  role,
+  syncMessagesToSupabase
 }: UseChatTypingProps) => {
   const [isTyping, setIsTyping] = useState(false);
-
-  const simulateBotTyping = async (message: string, options?: ChatOption[]) => {
-    if (!message) {
-      console.error("Empty message provided to simulateBotTyping");
-      toast.error("Unable to generate a response. Please try again.");
-      return;
-    }
-
+  
+  /**
+   * Simulate bot typing and then add a message
+   */
+  const simulateBotTyping = useCallback(async (
+    message: string, 
+    options?: ChatOption[]
+  ): Promise<void> => {
+    if (!message) return;
+    
     setIsTyping(true);
     
-    try {
-      // Calculate a realistic typing delay based on message length
-      const baseDelay = 300;
-      const charDelay = 10;
-      const maxDelay = 1500;
-      const delay = Math.min(baseDelay + message.length * charDelay, maxDelay);
-      
-      await new Promise(resolve => setTimeout(resolve, delay));
-      
-      addMessage({
-        content: message,
-        isUser: false,
-        timestamp: Date.now(),
-        options: options
-      });
-      
-      // Sync messages to Supabase
-      if (syncMessagesToSupabase && sessionId) {
-        try {
-          await syncMessagesToSupabase(
-            [...messages, { content: message, isUser: false, timestamp: Date.now() }], 
-            sessionId,
-            role
-          );
-        } catch (err) {
-          console.error('Error syncing messages:', err);
+    // Calculate typing delay based on message length
+    // Between 500ms and 2000ms
+    const typingDelay = Math.min(Math.max(message.length * 20, 500), 2000);
+    
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        const botMessage: ChatMessage = {
+          content: message,
+          isUser: false,
+          timestamp: Date.now(),
+          options
+        };
+        
+        addMessage(botMessage);
+        setIsTyping(false);
+        
+        // Optional: Sync messages to backend
+        if (syncMessagesToSupabase) {
+          syncMessagesToSupabase([...messages, botMessage])
+            .catch(err => console.error('Error syncing messages:', err));
         }
-      }
-    } catch (error) {
-      console.error("Error in simulateBotTyping:", error);
-      toast.error("An error occurred while processing the chat response");
-    } finally {
-      setIsTyping(false);
-    }
-  };
-
-  return {
-    isTyping,
-    setIsTyping,
-    simulateBotTyping
-  };
+        
+        resolve();
+      }, typingDelay);
+    });
+  }, [addMessage, messages, syncMessagesToSupabase]);
+  
+  return { isTyping, simulateBotTyping };
 };

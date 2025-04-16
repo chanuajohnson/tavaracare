@@ -5,9 +5,9 @@ import {
   isEndOfSection, 
   isEndOfFlow,
   getSectionTitle
-} from '@/services/chatbotService';
+} from '@/services/chat';
 import { getRegistrationFlowByRole } from '@/data/chatRegistrationFlows';
-import { ChatResponse } from './types';
+import { ChatResponseData } from '@/services/chat/types';
 
 /**
  * Handle registration flow with structured questions based on the selected role
@@ -17,7 +17,7 @@ export const handleRegistrationFlow = async (
   userRole: string,
   sessionId: string,
   questionIndex: number
-): Promise<ChatResponse> => {
+): Promise<ChatResponseData> => {
   try {
     // Extract the section index from the progress
     // For this implementation, we'll use questionIndex / 10 as the section index
