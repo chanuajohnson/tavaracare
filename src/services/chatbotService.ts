@@ -74,10 +74,62 @@ export const validateChatInput = (input: string, fieldType: string): { isValid: 
       return { isValid: true };
     }
     
+    case "budget": {
+      // Budget validation - check for currency format or range
+      const budgetPattern = /^\$?\s?\d+(\.\d{1,2})?(\s?-\s?\$?\s?\d+(\.\d{1,2})?)?(\s?\/\s?hour)?$/;
+      if (!budgetPattern.test(input) && !input.toLowerCase().includes('negotiable')) {
+        return { 
+          isValid: false, 
+          errorMessage: "Please enter a valid budget amount (e.g., $20-30/hour or Negotiable)" 
+        };
+      }
+      return { isValid: true };
+    }
+    
     default:
       // For any other field type, just ensure it's not empty
       return { isValid: input.trim().length > 0 };
   }
+};
+
+// Flag to track if a multi-selection is in progress
+let multiSelectionInProgress = false;
+let currentSelectedOptions: string[] = [];
+
+// Set multi-selection mode
+export const setMultiSelectionMode = (isActive: boolean, initialSelections: string[] = []) => {
+  multiSelectionInProgress = isActive;
+  currentSelectedOptions = initialSelections;
+};
+
+// Get multi-selection status
+export const getMultiSelectionStatus = () => {
+  return {
+    active: multiSelectionInProgress,
+    selections: currentSelectedOptions
+  };
+};
+
+// Add option to multi-selection
+export const addToMultiSelection = (option: string) => {
+  if (!currentSelectedOptions.includes(option)) {
+    currentSelectedOptions.push(option);
+  }
+  return [...currentSelectedOptions];
+};
+
+// Remove option from multi-selection
+export const removeFromMultiSelection = (option: string) => {
+  currentSelectedOptions = currentSelectedOptions.filter(item => item !== option);
+  return [...currentSelectedOptions];
+};
+
+// Complete multi-selection and return final selections
+export const completeMultiSelection = () => {
+  const selections = [...currentSelectedOptions];
+  multiSelectionInProgress = false;
+  currentSelectedOptions = [];
+  return selections;
 };
 
 // Chat progress management functions
@@ -116,7 +168,7 @@ export const saveChatResponse = async (
   role: string,
   sectionIndex: string,
   questionId: string,
-  response: string
+  response: string | string[]
 ): Promise<boolean> => {
   try {
     // Get existing responses or initialize an empty object

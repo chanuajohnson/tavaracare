@@ -23,7 +23,7 @@ interface ChatbotWidgetProps {
   debugMode?: boolean;
 }
 
-export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({ 
+export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({
   className,
   width = "320px",
   onClose,
@@ -111,6 +111,12 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({
     setFieldType
   );
 
+  const handleRegistrationClick = () => {
+    if (progress.role && sessionId) {
+      window.location.href = `/registration/${progress.role}?session=${sessionId}`;
+    }
+  };
+
   useEffect(() => {
     const setupChat = async () => {
       if (chatInitializedRef.current) return;
@@ -169,7 +175,10 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({
         alwaysShowOptions={alwaysShowOptions}
       />
 
-      <RegistrationLink role={progress.role} />
+      <RegistrationLink 
+        role={progress.role} 
+        onRegistrationClick={handleRegistrationClick}
+      />
 
       <ChatInputForm 
         input={input}

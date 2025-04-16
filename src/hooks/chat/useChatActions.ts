@@ -1,13 +1,29 @@
 
 import { syncMessagesToSupabase } from "@/services/aiService";
 import { processConversation } from "@/utils/chat/chatFlowEngine";
-import { updateChatProgress, saveChatResponse, getSessionResponses, validateChatInput } from "@/services/chatbotService";
+import { 
+  updateChatProgress, 
+  saveChatResponse, 
+  getSessionResponses, 
+  validateChatInput,
+  setMultiSelectionMode,
+  getMultiSelectionStatus,
+  addToMultiSelection,
+  completeMultiSelection
+} from "@/services/chatbotService";
 import { generatePrefillJson } from "@/utils/chat/prefillGenerator";
 import { toast } from "sonner";
 import { ChatConfig } from "@/utils/chat/engine/types";
 import { getIntroMessage, getRoleOptions } from "@/data/chatIntroMessage";
 import { ChatMessage } from "@/types/chatTypes";
-import { getCurrentQuestion, isEndOfSection, isEndOfFlow, getSectionTitle, getTotalSectionsForRole } from "@/services/chatbotService";
+import { 
+  getCurrentQuestion, 
+  isEndOfSection, 
+  isEndOfFlow, 
+  getSectionTitle, 
+  getTotalSectionsForRole, 
+  isMultiSelectQuestion
+} from "@/services/chatbotService";
 
 export const useChatActions = (
   sessionId: string,
@@ -205,6 +221,98 @@ export const useChatActions = (
     
     const currentQuestion = `section_${currentSectionIndex}_question_${currentQuestionIndex}`;
     
+    // Check for special completion options
+    if (conversationStage === "completion") {
+      if (optionId === "proceed_to_registration") {
+        // Handle direct navigation to registration form
+        console.log("Redirecting to registration form");
+        if (progress.role) {
+          window.location.href = `/registration/${progress.role}?session=${sessionId}`;
+        }
+        return;
+      } else if (optionId === "talk_to_representative") {
+        // Handle request to talk to a representative
+        await simulateBotTyping(
+          "I've noted that you'd like to speak with a representative. Someone from our team will reach out to you soon. In the meantime, would you like to complete your registration?",
+          [
+            { id: "proceed_to_registration", label: "Complete my registration" },
+            { id: "close_chat", label: "Close this chat" }
+          ]
+        );
+        return;
+      } else if (optionId === "close_chat") {
+        // Reset chat if user chooses to close
+        resetChat(true);
+        return;
+      }
+    }
+    
+    // Check if multi-selection is in progress
+    const multiSelectStatus = getMultiSelectionStatus();
+    if (multiSelectStatus.active) {
+      if (optionId === "done_selecting") {
+        // Complete the multi-selection
+        const selections = completeMultiSelection();
+        
+        if (selections.length === 0) {
+          await simulateBotTyping("Please select at least one option before continuing.");
+          return;
+        }
+        
+        // Join selections and add as user message
+        const selectionText = selections.join(", ");
+        addMessage({
+          content: selectionText,
+          isUser: true,
+          timestamp: Date.now()
+        });
+        
+        // Update form data with the array of selections
+        setFormData(prev => ({
+          ...prev,
+          [currentQuestion]: selections
+        }));
+        
+        // Save the response
+        try {
+          await saveChatResponse(
+            sessionId,
+            progress.role!,
+            currentSectionIndex.toString(),
+            currentQuestion,
+            selections
+          );
+        } catch (error) {
+          console.error("Error saving multi-select response:", error);
+        }
+        
+        // Now proceed to next question
+        await advanceToNextQuestion(currentQuestion);
+        return;
+      }
+      
+      // Add or remove this option from the current selections
+      const updatedSelections = addToMultiSelection(optionId);
+      
+      // Add a temporary user message showing the selection
+      addMessage({
+        content: `Selected: ${optionId}`,
+        isUser: true,
+        timestamp: Date.now()
+      });
+      
+      // Show a message confirming the selection and asking for more
+      await simulateBotTyping(
+        `Added "${optionId}" to your selections. You can select more options or click "✓ Done selecting" when finished.`,
+        multiSelectStatus.selections.length > 0 ? [
+          { id: "done_selecting", label: "✓ Done selecting" }
+        ] : undefined
+      );
+      
+      return;
+    }
+    
+    // Regular (non-multi-select) question handling
     setFormData(prev => ({
       ...prev,
       [currentQuestion]: optionId
@@ -229,92 +337,119 @@ export const useChatActions = (
     }
     
     if (progress.role) {
-      // Check if we've reached the end of the current section
-      const isLastQuestionInSection = isEndOfSection(progress.role, currentSectionIndex, currentQuestionIndex);
+      // Check if this is a multi-select question
+      const isMultiSelect = isMultiSelectQuestion(progress.role, currentSectionIndex, currentQuestionIndex);
       
-      // Check if we've reached the end of all sections 
-      const isLastSection = currentSectionIndex >= getTotalSectionsForRole(progress.role) - 1;
-      const isLastQuestion = isLastSection && isLastQuestionInSection;
-      
-      let nextSectionIndex = currentSectionIndex;
-      let nextQuestionIndex = currentQuestionIndex;
-      
-      if (isLastQuestion) {
-        // We've completed the entire flow
-        setConversationStage("completion");
-      } else if (isLastQuestionInSection) {
-        // Move to the next section
-        nextSectionIndex = currentSectionIndex + 1;
-        nextQuestionIndex = 0;
-      } else {
-        // Move to the next question in the current section
-        nextQuestionIndex = currentQuestionIndex + 1;
+      if (isMultiSelect) {
+        // Start multi-selection mode
+        setMultiSelectionMode(true, [optionId]);
+        
+        await simulateBotTyping(
+          `Added "${optionId}" to your selections. You can select more options or click "✓ Done selecting" when finished.`,
+          [{ id: "done_selecting", label: "✓ Done selecting" }]
+        );
+        return;
       }
       
-      const overallQuestionIndex = nextSectionIndex * 10 + nextQuestionIndex;
-      
-      setCurrentSectionIndex(nextSectionIndex);
-      setCurrentQuestionIndex(nextQuestionIndex);
-      
-      updateProgress({
-        role: progress.role,
-        questionIndex: overallQuestionIndex
-      });
-      
-      try {
-        await updateChatProgress(
+      // Process normal (non-multi-select) question
+      await advanceToNextQuestion(currentQuestion);
+    }
+  };
+  
+  const advanceToNextQuestion = async (currentQuestionId: string) => {
+    if (!progress.role) return;
+    
+    // Check if we've reached the end of the current section
+    const isLastQuestionInSection = isEndOfSection(progress.role, currentSectionIndex, currentQuestionIndex);
+    
+    // Check if we've reached the end of all sections 
+    const isLastSection = currentSectionIndex >= getTotalSectionsForRole(progress.role) - 1;
+    const isLastQuestion = isLastSection && isLastQuestionInSection;
+    
+    let nextSectionIndex = currentSectionIndex;
+    let nextQuestionIndex = currentQuestionIndex;
+    
+    if (isLastQuestion) {
+      // We've completed the entire flow
+      setConversationStage("completion");
+    } else if (isLastQuestionInSection) {
+      // Move to the next section
+      nextSectionIndex = currentSectionIndex + 1;
+      nextQuestionIndex = 0;
+    } else {
+      // Move to the next question in the current section
+      nextQuestionIndex = currentQuestionIndex + 1;
+    }
+    
+    const overallQuestionIndex = nextSectionIndex * 10 + nextQuestionIndex;
+    
+    setCurrentSectionIndex(nextSectionIndex);
+    setCurrentQuestionIndex(nextQuestionIndex);
+    
+    updateProgress({
+      role: progress.role,
+      questionIndex: overallQuestionIndex
+    });
+    
+    try {
+      await updateChatProgress(
+        sessionId,
+        progress.role,
+        currentSectionIndex.toString(),
+        isLastQuestion ? "completed" : "in_progress",
+        currentQuestionId,
+        formData
+      );
+    } catch (error) {
+      console.error("Error updating chat progress:", error);
+    }
+    
+    const updatedMessages = [...messages, { content: "Selection saved", isUser: false, timestamp: Date.now() }];
+    
+    try {
+      if (isLastQuestion) {
+        // If this is the last question, move to completion stage
+        const prefillJson = generatePrefillJson(progress.role, updatedMessages);
+        
+        await simulateBotTyping(
+          `Thanks for providing all this information! Based on your answers, we recommend completing your ${progress.role} registration. Click below to continue to the registration form with your data pre-filled.`,
+          [
+            { id: "proceed_to_registration", label: "Complete my registration" },
+            { id: "talk_to_representative", label: "I'd like to talk to a representative first" }
+          ]
+        );
+        
+        console.log("Generated prefill JSON:", prefillJson);
+      } else {
+        const response = await processConversation(
+          updatedMessages,
           sessionId,
           progress.role,
-          currentSectionIndex.toString(),
-          isLastQuestion ? "completed" : "in_progress",
-          currentQuestion,
-          formData
+          overallQuestionIndex,
+          config
         );
-      } catch (error) {
-        console.error("Error updating chat progress:", error);
-      }
-      
-      const updatedMessages = [...messages, { content: optionId, isUser: true, timestamp: Date.now() }];
-      
-      try {
-        if (isLastQuestion) {
-          // If this is the last question, move to completion stage
-          const prefillJson = generatePrefillJson(progress.role, updatedMessages);
-          
-          await simulateBotTyping(
-            `Thanks for providing all this information! Based on your answers, we recommend completing your ${progress.role} registration. Click below to continue to the registration form with your data pre-filled.`,
-            [
-              { id: "proceed_to_registration", label: "Complete my registration" },
-              { id: "talk_to_representative", label: "I'd like to talk to a representative first" }
-            ]
-          );
-          
-          console.log("Generated prefill JSON:", prefillJson);
-        } else {
-          const response = await processConversation(
-            updatedMessages,
-            sessionId,
-            progress.role,
-            overallQuestionIndex,
-            config
-          );
-          
-          const nextQuestionType = getFieldTypeForCurrentQuestion(nextSectionIndex, nextQuestionIndex);
-          setFieldType(nextQuestionType);
-
-          // If we're starting a new section, include section title in the message
-          let responseMessage = response.message;
-          if (nextQuestionIndex === 0) {
-            const sectionTitle = getSectionTitle(progress.role, nextSectionIndex);
-            responseMessage = `Great! Let's talk about ${sectionTitle.toLowerCase()}.\n\n${response.message}`;
-          }
-          
-          await simulateBotTyping(responseMessage, response.options);
+        
+        // Check if next question is multi-select
+        const nextIsMultiSelect = isMultiSelectQuestion(progress.role, nextSectionIndex, nextQuestionIndex);
+        if (nextIsMultiSelect) {
+          setMultiSelectionMode(false, []); // Reset multi-selection mode for new question
         }
-      } catch (error) {
-        console.error("Error processing option selection:", error);
-        await simulateBotTyping("I'm having trouble processing that option. Let's continue with another question.", alwaysShowOptions ? getRoleOptions() : undefined);
+        
+        const nextQuestionType = getFieldTypeForCurrentQuestion(nextSectionIndex, nextQuestionIndex);
+        setFieldType(nextQuestionType);
+
+        // If we're starting a new section, include section title in the message
+        let responseMessage = response.message;
+        if (nextQuestionIndex === 0) {
+          const sectionTitle = getSectionTitle(progress.role, nextSectionIndex);
+          responseMessage = `Great! Let's talk about ${sectionTitle.toLowerCase()}.\n\n${response.message}`;
+        }
+        
+        await simulateBotTyping(responseMessage, response.options);
       }
+    } catch (error) {
+      console.error("Error processing option selection:", error);
+      await simulateBotTyping("I'm having trouble processing that option. Let's continue with another question.", alwaysShowOptions ? getRoleOptions() : undefined);
     }
   };
 
@@ -324,9 +459,46 @@ export const useChatActions = (
     const trimmedInput = input.trim();
     if (!trimmedInput) return;
     
-    const questionType = getFieldTypeForCurrentQuestion();
+    // Special handling for completion stage
+    if (conversationStage === "completion") {
+      addMessage({
+        content: trimmedInput,
+        isUser: true,
+        timestamp: Date.now()
+      });
+      
+      setInput("");
+      
+      await simulateBotTyping(
+        "Thanks for your message. Would you like to proceed with registration or speak with a representative?",
+        [
+          { id: "proceed_to_registration", label: "Complete my registration" },
+          { id: "talk_to_representative", label: "I'd like to talk to a representative first" }
+        ]
+      );
+      
+      return;
+    }
     
-    if (questionType) {
+    // Get the current question type
+    const questionType = getFieldTypeForCurrentQuestion();
+    const currentQuestion = getCurrentQuestion(
+      progress.role!,
+      currentSectionIndex,
+      currentQuestionIndex
+    );
+    
+    // Special validation for budget questions
+    if (currentQuestion?.id === "budget") {
+      const budgetValidation = validateChatInput(trimmedInput, "budget");
+      if (!budgetValidation.isValid) {
+        setValidationError(budgetValidation.errorMessage);
+        toast.error(budgetValidation.errorMessage);
+        return;
+      }
+    }
+    // Normal validation for other question types
+    else if (questionType) {
       const validationResult = validateChatInput(trimmedInput, questionType);
       
       if (!validationResult.isValid) {
@@ -350,11 +522,11 @@ export const useChatActions = (
     addMessage(userMessage);
     setInput("");
     
-    const currentQuestion = `section_${currentSectionIndex}_question_${currentQuestionIndex}`;
+    const currentQuestionId = `section_${currentSectionIndex}_question_${currentQuestionIndex}`;
     
     setFormData(prev => ({
       ...prev,
-      [currentQuestion]: trimmedInput
+      [currentQuestionId]: trimmedInput
     }));
     
     try {
@@ -362,7 +534,7 @@ export const useChatActions = (
         sessionId,
         progress.role!,
         currentSectionIndex.toString(),
-        currentQuestion,
+        currentQuestionId,
         trimmedInput
       );
     } catch (error) {
@@ -370,111 +542,7 @@ export const useChatActions = (
     }
     
     if (progress.role) {
-      // Check if we've reached the end of the current section
-      const isLastQuestionInSection = isEndOfSection(progress.role, currentSectionIndex, currentQuestionIndex);
-      
-      // Check if we've reached the end of all sections 
-      const isLastSection = currentSectionIndex >= getTotalSectionsForRole(progress.role) - 1;
-      const isLastQuestion = isLastSection && isLastQuestionInSection;
-      
-      let nextSectionIndex = currentSectionIndex;
-      let nextQuestionIndex = currentQuestionIndex;
-      
-      if (isLastQuestion) {
-        // We've completed the entire flow
-        setConversationStage("completion");
-      } else if (isLastQuestionInSection) {
-        // Move to the next section
-        nextSectionIndex = currentSectionIndex + 1;
-        nextQuestionIndex = 0;
-      } else {
-        // Move to the next question in the current section
-        nextQuestionIndex = currentQuestionIndex + 1;
-      }
-      
-      const overallQuestionIndex = nextSectionIndex * 10 + nextQuestionIndex;
-      
-      setCurrentSectionIndex(nextSectionIndex);
-      setCurrentQuestionIndex(nextQuestionIndex);
-      
-      updateProgress({
-        role: progress.role,
-        questionIndex: overallQuestionIndex
-      });
-      
-      try {
-        await updateChatProgress(
-          sessionId,
-          progress.role,
-          currentSectionIndex.toString(),
-          isLastQuestion ? "completed" : "in_progress",
-          currentQuestion,
-          formData
-        );
-      } catch (error) {
-        console.error("Error updating chat progress:", error);
-      }
-      
-      try {
-        if (conversationStage === "completion" || isLastQuestion) {
-          const prefillJson = generatePrefillJson(progress.role, [
-            ...messages, 
-            userMessage
-          ]);
-          
-          await simulateBotTyping(
-            `Thanks for providing all this information! Based on your answers, we recommend completing your ${progress.role} registration. Click below to continue to the registration form with your data pre-filled.`,
-            [
-              { id: "proceed_to_registration", label: "Complete my registration" },
-              { id: "talk_to_representative", label: "I'd like to talk to a representative first" }
-            ]
-          );
-          
-          console.log("Generated prefill JSON:", prefillJson);
-          return;
-        }
-        
-        const updatedMessages = [...messages, userMessage];
-        
-        let previousResponses = {};
-        try {
-          previousResponses = await getSessionResponses(sessionId);
-        } catch (err) {
-          console.log("No previous responses found");
-        }
-        
-        const response = await processConversation(
-          updatedMessages,
-          sessionId,
-          progress.role,
-          overallQuestionIndex,
-          config
-        );
-        
-        const nextQuestionType = getFieldTypeForCurrentQuestion(
-          nextSectionIndex,
-          nextQuestionIndex
-        );
-        setFieldType(nextQuestionType);
-        
-        if (response.validationNeeded) {
-          console.log(`Next question requires ${response.validationNeeded} validation`);
-          setFieldType(response.validationNeeded);
-        }
-        
-        // If we're starting a new section, include section title in the message
-        let responseMessage = response.message;
-        if (nextQuestionIndex === 0) {
-          const sectionTitle = getSectionTitle(progress.role, nextSectionIndex);
-          responseMessage = `Great! Let's talk about ${sectionTitle.toLowerCase()}.\n\n${response.message}`;
-        }
-        
-        await simulateBotTyping(responseMessage, response.options);
-      } catch (error) {
-        console.error("Error processing conversation:", error);
-        toast.error("Sorry, I encountered an error. Please try again.");
-        await simulateBotTyping("I'm having trouble processing that. Could you try again or rephrase?", alwaysShowOptions ? getRoleOptions() : undefined);
-      }
+      await advanceToNextQuestion(currentQuestionId);
     } else {
       try {
         const response = await processConversation(
@@ -570,6 +638,11 @@ export const useChatActions = (
       id.includes("last_name")
     ) {
       return "name";
+    } else if (
+      label.includes("budget") ||
+      id.includes("budget")
+    ) {
+      return "budget";
     }
     
     return null;

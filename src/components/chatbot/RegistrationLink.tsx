@@ -5,9 +5,13 @@ import { getSessionResponses } from "@/services/chatbotService";
 
 interface RegistrationLinkProps {
   role?: string | null;
+  onRegistrationClick?: () => void;
 }
 
-export const RegistrationLink: React.FC<RegistrationLinkProps> = ({ role }) => {
+export const RegistrationLink: React.FC<RegistrationLinkProps> = ({ 
+  role,
+  onRegistrationClick 
+}) => {
   const [sessionId, setSessionId] = useState<string | null>(null);
   
   useEffect(() => {
@@ -22,6 +26,11 @@ export const RegistrationLink: React.FC<RegistrationLinkProps> = ({ role }) => {
 
   // Create link with session ID for pre-filling form data
   const handleRegistrationClick = async () => {
+    if (onRegistrationClick) {
+      onRegistrationClick();
+      return;
+    }
+    
     if (sessionId) {
       try {
         // Ensure all responses are saved before redirecting

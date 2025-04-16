@@ -54,8 +54,25 @@ export const generateNextQuestionMessage = (
     
     // Add section context to first question in each section
     let message = question.label;
+    
+    // Add special prompts for specific question types
+    if (question.id === "budget") {
+      message = `${question.label} Please specify an hourly range (e.g., $20-30/hour) or say 'Negotiable'.`;
+    }
+    
+    // For multi-select questions, add instruction
+    if (question.type === "checkbox" || question.type === "multiselect") {
+      message = `${question.label} (Please select all that apply)`;
+      
+      // Add "Done selecting" option for multi-select
+      if (options && options.length > 0) {
+        options.push({ id: "done_selecting", label: "✓ Done selecting" });
+      }
+    }
+    
+    // Add section title for first question in section
     if (questionIndex === 0) {
-      message = `Let's talk about ${section.title.toLowerCase()}.\n\n${question.label}`;
+      message = `Let's talk about ${section.title.toLowerCase()}.\n\n${message}`;
     }
     
     return {
@@ -182,4 +199,16 @@ export const generateDataSummary = (formData: Record<string, any>): string => {
   });
   
   return lines.join("\n");
+};
+
+/**
+ * Check if a question is a multi-select type
+ */
+export const isMultiSelectQuestion = (
+  role: string,
+  sectionIndex: number,
+  questionIndex: number
+): boolean => {
+  const question = getCurrentQuestion(role, sectionIndex, questionIndex);
+  return question?.type === "checkbox" || question?.type === "multiselect";
 };
