@@ -28,33 +28,3 @@ export const isEndOfFlow = (
   const flow = getRegistrationFlowByRole(role);
   return sectionIndex >= flow.sections.length - 1;
 };
-
-/**
- * Get the total number of sections for a role
- */
-export const getTotalSectionsForRole = (role: string): number => {
-  try {
-    const flow = getRegistrationFlowByRole(role);
-    return flow.sections.length;
-  } catch (err) {
-    console.error("Error getting total sections:", err);
-    return 0;
-  }
-};
-
-/**
- * Get the title of a section
- */
-export const getSectionTitle = (role: string, sectionIndex: number): string => {
-  try {
-    const flow = getRegistrationFlowByRole(role);
-    
-    if (sectionIndex >= 0 && sectionIndex < flow.sections.length) {
-      return flow.sections[sectionIndex].title;
-    }
-  } catch (err) {
-    console.error("Error getting section title:", err);
-  }
-  
-  return "";
-};

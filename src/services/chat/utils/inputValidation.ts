@@ -1,10 +1,12 @@
 
-import { ValidationResult } from '@/types/chatTypes';
-
 /**
  * Input validation functions for the chatbot
  */
-export const validateChatInput = (input: string, fieldType: string): ValidationResult => {
+
+/**
+ * Validates chat input based on field type
+ */
+export const validateChatInput = (input: string, fieldType: string): { isValid: boolean; errorMessage?: string } => {
   if (!input.trim()) {
     return { isValid: false, errorMessage: "This field cannot be empty" };
   }
@@ -30,6 +32,7 @@ export const validateChatInput = (input: string, fieldType: string): ValidationR
       // Check if it starts with '+' (international format)
       if (cleanedNumber.startsWith('+')) {
         // International format: should have at least 8 digits after the '+'
+        // This handles country codes of 1-3 digits plus at least 7 digits for the actual number
         if (!/^\+\d{8,15}$/.test(cleanedNumber)) {
           return { 
             isValid: false, 
@@ -37,7 +40,8 @@ export const validateChatInput = (input: string, fieldType: string): ValidationR
           };
         }
       } else {
-        // Local format: should have at least 7 digits
+        // Local format: should have at least 7 digits (minimal for most countries)
+        // and shouldn't exceed 15 digits (ITU-T recommendation)
         if (!/^\d{7,15}$/.test(cleanedNumber)) {
           return { 
             isValid: false, 
@@ -50,7 +54,7 @@ export const validateChatInput = (input: string, fieldType: string): ValidationR
     }
     
     case "name": {
-      // Name validation - making sure it's not too short
+      // Name validation - just making sure it's not too short
       if (input.trim().length < 2) {
         return { 
           isValid: false, 
@@ -72,26 +76,18 @@ export const validateChatInput = (input: string, fieldType: string): ValidationR
     
     case "budget": {
       // Budget validation - check for currency format or range
-      const budgetPattern = /^(\$?\d+(\.\d{2})?(-\$?\d+(\.\d{2})?)?\/?(hour|hr)?|negotiable)$/i;
-      if (!budgetPattern.test(input) && !input.toLowerCase().includes("negotiable")) {
-        return {
-          isValid: false,
-          errorMessage: "Please enter a valid budget (e.g., $20/hour, $20-30/hour, or 'Negotiable')"
+      const budgetPattern = /^\$?\s?\d+(\.\d{1,2})?(\s?-\s?\$?\s?\d+(\.\d{1,2})?)?(\s?\/\s?hour)?$/;
+      if (!budgetPattern.test(input) && !input.toLowerCase().includes('negotiable')) {
+        return { 
+          isValid: false, 
+          errorMessage: "Please enter a valid budget amount (e.g., $20-30/hour or Negotiable)" 
         };
       }
-      
       return { isValid: true };
     }
     
-    // Default case - basic length validation
-    default: {
-      if (input.trim().length < 2) {
-        return { 
-          isValid: false, 
-          errorMessage: "Input must be at least 2 characters" 
-        };
-      }
-      return { isValid: true };
-    }
+    default:
+      // For any other field type, just ensure it's not empty
+      return { isValid: input.trim().length > 0 };
   }
 };

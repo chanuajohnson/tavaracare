@@ -99,7 +99,7 @@ export function ChatDebugger() {
                   <span className="font-semibold">Temperature:</span> {chatConfig.temperature}
                 </div>
                 <div className="bg-background p-2 rounded text-xs">
-                  <span className="font-semibold">Fallback Threshold:</span> {chatConfig.fallbackThreshold || 'N/A'}
+                  <span className="font-semibold">Fallback Threshold:</span> {chatConfig.fallbackThreshold}
                 </div>
               </div>
             </div>

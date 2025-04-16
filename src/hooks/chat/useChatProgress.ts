@@ -1,45 +1,71 @@
 
-import { useState, useEffect } from 'react';
-import { ChatProgress } from '@/types/chatTypes';
+import { useEffect, useState } from 'react';
+import { useChatSession } from './useChatSession';
+
+interface ChatProgress {
+  role: string | null;
+  questionIndex: number;
+  lastActive: number;
+}
 
 export const useChatProgress = () => {
+  const { sessionId } = useChatSession();
   const [progress, setProgress] = useState<ChatProgress>({
     role: null,
-    questionIndex: 0
+    questionIndex: 0,
+    lastActive: Date.now()
   });
   
-  // Load progress when component mounts
+  // Load progress from localStorage on mount
   useEffect(() => {
-    try {
-      const storedProgress = localStorage.getItem('tavara_chat_progress');
-      
-      if (storedProgress) {
-        setProgress(JSON.parse(storedProgress));
+    const savedProgress = localStorage.getItem(`tavara_chat_progress_${sessionId}`);
+    if (savedProgress) {
+      try {
+        const parsed = JSON.parse(savedProgress);
+        setProgress({
+          role: parsed.role || null,
+          questionIndex: parsed.questionIndex || 0,
+          lastActive: parsed.lastActive || Date.now()
+        });
+      } catch (error) {
+        console.error('Error parsing saved chat progress:', error);
       }
-    } catch (error) {
-      console.error('Error loading chat progress:', error);
     }
-  }, []);
+  }, [sessionId]);
   
-  // Save progress when it changes
+  // Save progress to localStorage whenever it changes
   useEffect(() => {
-    try {
-      localStorage.setItem('tavara_chat_progress', JSON.stringify(progress));
-    } catch (error) {
-      console.error('Error saving chat progress:', error);
+    if (progress.role) {
+      localStorage.setItem(`tavara_chat_progress_${sessionId}`, JSON.stringify({
+        ...progress,
+        lastActive: Date.now()
+      }));
     }
-  }, [progress]);
+  }, [progress, sessionId]);
   
-  // Update progress with partial data
+  // Update progress
   const updateProgress = (updates: Partial<ChatProgress>) => {
-    setProgress(prev => ({ ...prev, ...updates }));
+    setProgress(prev => ({
+      ...prev,
+      ...updates,
+      lastActive: Date.now()
+    }));
   };
   
   // Clear progress
   const clearProgress = () => {
-    setProgress({ role: null, questionIndex: 0 });
-    localStorage.removeItem('tavara_chat_progress');
+    localStorage.removeItem(`tavara_chat_progress_${sessionId}`);
+    setProgress({
+      role: null,
+      questionIndex: 0,
+      lastActive: Date.now()
+    });
   };
   
-  return { progress, updateProgress, clearProgress };
+  return {
+    progress,
+    updateProgress,
+    clearProgress,
+    hasProgress: !!progress.role,
+  };
 };

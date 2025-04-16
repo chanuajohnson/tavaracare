@@ -25,10 +25,3 @@ export interface ChatResponse {
   options?: ChatOption[];
   validationNeeded?: string; // Field for input validation (email, phone, name, etc.)
 }
-
-// Adding this interface for AIFlowResponse to match usage in the code
-export interface AIFlowResponse {
-  message: string;
-  options?: ChatOption[];
-  validationNeeded?: string; // Field for input validation
-}

@@ -1,55 +1,73 @@
 
-import { useState, useCallback } from 'react';
-import { ChatMessage } from '@/types/chatTypes';
+import { useState } from 'react';
+import { ChatOption } from '@/types/chatTypes';
+import { toast } from 'sonner';
 
-interface ChatTypingHookProps {
-  addMessage: (message: ChatMessage) => void;
-  syncMessagesToSupabase: (messages: ChatMessage[], sessionId: string, userRole?: string | null) => Promise<boolean>;
-  messages: ChatMessage[];
-  sessionId: string;
-  role: string | null;
+interface UseChatTypingProps {
+  addMessage: (message: any) => void;
+  syncMessagesToSupabase?: (messages: any[], sessionId: string, role?: string) => Promise<boolean | void>;
+  messages: any[];
+  sessionId?: string;
+  role?: string;
 }
 
-export const useChatTyping = ({
-  addMessage,
-  syncMessagesToSupabase,
+export const useChatTyping = ({ 
+  addMessage, 
+  syncMessagesToSupabase, 
   messages,
-  sessionId,
-  role
-}: ChatTypingHookProps) => {
+  sessionId = '',
+  role = ''
+}: UseChatTypingProps) => {
   const [isTyping, setIsTyping] = useState(false);
-  
-  // Simulate typing and send the message
-  const simulateBotTyping = useCallback(async (message: string, options?: any[]) => {
+
+  const simulateBotTyping = async (message: string, options?: ChatOption[]) => {
+    if (!message) {
+      console.error("Empty message provided to simulateBotTyping");
+      toast.error("Unable to generate a response. Please try again.");
+      return;
+    }
+
     setIsTyping(true);
     
-    // Calculate typing time based on message length
-    // Between 500ms minimum and 2000ms maximum
-    const typingTime = Math.min(2000, Math.max(500, message.length * 20));
-    
     try {
-      await new Promise(resolve => setTimeout(resolve, typingTime));
+      // Calculate a realistic typing delay based on message length
+      const baseDelay = 300;
+      const charDelay = 10;
+      const maxDelay = 1500;
+      const delay = Math.min(baseDelay + message.length * charDelay, maxDelay);
       
-      const newMessage: ChatMessage = {
+      await new Promise(resolve => setTimeout(resolve, delay));
+      
+      addMessage({
         content: message,
         isUser: false,
         timestamp: Date.now(),
-        options
-      };
-      
-      addMessage(newMessage);
+        options: options
+      });
       
       // Sync messages to Supabase
-      await syncMessagesToSupabase([...messages, newMessage], sessionId, role);
-      
-      // Return void instead of boolean to match the expected type
-    } catch (err) {
-      console.error('Error in bot typing simulation:', err);
-      // Return void instead of boolean
+      if (syncMessagesToSupabase && sessionId) {
+        try {
+          await syncMessagesToSupabase(
+            [...messages, { content: message, isUser: false, timestamp: Date.now() }], 
+            sessionId,
+            role
+          );
+        } catch (err) {
+          console.error('Error syncing messages:', err);
+        }
+      }
+    } catch (error) {
+      console.error("Error in simulateBotTyping:", error);
+      toast.error("An error occurred while processing the chat response");
     } finally {
       setIsTyping(false);
     }
-  }, [addMessage, messages, sessionId, role, syncMessagesToSupabase]);
-  
-  return { isTyping, simulateBotTyping };
+  };
+
+  return {
+    isTyping,
+    setIsTyping,
+    simulateBotTyping
+  };
 };
