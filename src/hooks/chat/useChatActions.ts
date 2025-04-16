@@ -1,3 +1,4 @@
+
 import { syncMessagesToSupabase } from "@/services/aiService";
 import { processConversation } from "@/utils/chat/chatFlowEngine";
 import { updateChatProgress, saveChatResponse, getSessionResponses, validateChatInput } from "@/services/chatbotService";
@@ -6,7 +7,7 @@ import { toast } from "sonner";
 import { ChatConfig } from "@/utils/chat/engine/types";
 import { getIntroMessage, getRoleOptions } from "@/data/chatIntroMessage";
 import { ChatMessage } from "@/types/chatTypes";
-import { getCurrentQuestion } from "@/services/chatbotService";
+import { getCurrentQuestion, isEndOfSection, isEndOfFlow, getSectionTitle, getTotalSectionsForRole } from "@/services/chatbotService";
 
 export const useChatActions = (
   sessionId: string,
@@ -106,7 +107,12 @@ export const useChatActions = (
       const questionType = getFieldTypeForCurrentQuestion();
       setFieldType(questionType);
       
-      await simulateBotTyping(response.message, response.options);
+      const sectionTitle = getSectionTitle(roleId, 0);
+      const introMessage = sectionTitle 
+        ? `Great! Let's start with some ${sectionTitle.toLowerCase()}. ${response.message}`
+        : response.message;
+        
+      await simulateBotTyping(introMessage, response.options);
       setConversationStage("questions");
     } catch (error) {
       console.error("Error in role selection:", error);
@@ -152,7 +158,12 @@ export const useChatActions = (
       config
     );
     
-    await simulateBotTyping(response.message, response.options);
+    const sectionTitle = getSectionTitle(roleId, 0);
+    const introMessage = sectionTitle 
+      ? `Great! Let's start with some ${sectionTitle.toLowerCase()}. ${response.message}`
+      : response.message;
+      
+    await simulateBotTyping(introMessage, response.options);
     setConversationStage("questions");
   };
 
@@ -160,13 +171,16 @@ export const useChatActions = (
     try {
       const partialProgress = JSON.parse(localStorage.getItem(`tavara_chat_progress_${sessionId}`) || "{}");
       if (partialProgress.role) {
+        const sectionIndex = Math.floor((partialProgress.questionIndex || 0) / 10);
+        const questionIndex = (partialProgress.questionIndex || 0) % 10;
+        
         updateProgress({
           role: partialProgress.role,
           questionIndex: partialProgress.questionIndex || 0
         });
         
-        setCurrentSectionIndex(Math.floor((partialProgress.questionIndex || 0) / 10));
-        setCurrentQuestionIndex((partialProgress.questionIndex || 0) % 10);
+        setCurrentSectionIndex(sectionIndex);
+        setCurrentQuestionIndex(questionIndex);
         
         setConversationStage("questions");
         
@@ -215,17 +229,32 @@ export const useChatActions = (
     }
     
     if (progress.role) {
-      const nextQuestionIndex = currentQuestionIndex + 1;
-      const maxQuestionsPerSection = 10;
+      // Check if we've reached the end of the current section
+      const isLastQuestionInSection = isEndOfSection(progress.role, currentSectionIndex, currentQuestionIndex);
       
-      if (nextQuestionIndex >= maxQuestionsPerSection) {
-        setCurrentSectionIndex(currentSectionIndex + 1);
-        setCurrentQuestionIndex(0);
+      // Check if we've reached the end of all sections 
+      const isLastSection = currentSectionIndex >= getTotalSectionsForRole(progress.role) - 1;
+      const isLastQuestion = isLastSection && isLastQuestionInSection;
+      
+      let nextSectionIndex = currentSectionIndex;
+      let nextQuestionIndex = currentQuestionIndex;
+      
+      if (isLastQuestion) {
+        // We've completed the entire flow
+        setConversationStage("completion");
+      } else if (isLastQuestionInSection) {
+        // Move to the next section
+        nextSectionIndex = currentSectionIndex + 1;
+        nextQuestionIndex = 0;
       } else {
-        setCurrentQuestionIndex(nextQuestionIndex);
+        // Move to the next question in the current section
+        nextQuestionIndex = currentQuestionIndex + 1;
       }
       
-      const overallQuestionIndex = currentSectionIndex * 10 + nextQuestionIndex;
+      const overallQuestionIndex = nextSectionIndex * 10 + nextQuestionIndex;
+      
+      setCurrentSectionIndex(nextSectionIndex);
+      setCurrentQuestionIndex(nextQuestionIndex);
       
       updateProgress({
         role: progress.role,
@@ -237,7 +266,7 @@ export const useChatActions = (
           sessionId,
           progress.role,
           currentSectionIndex.toString(),
-          "in_progress",
+          isLastQuestion ? "completed" : "in_progress",
           currentQuestion,
           formData
         );
@@ -248,21 +277,39 @@ export const useChatActions = (
       const updatedMessages = [...messages, { content: optionId, isUser: true, timestamp: Date.now() }];
       
       try {
-        const response = await processConversation(
-          updatedMessages,
-          sessionId,
-          progress.role,
-          overallQuestionIndex,
-          config
-        );
-        
-        const nextQuestionType = getFieldTypeForCurrentQuestion(currentSectionIndex, nextQuestionIndex % 10);
-        setFieldType(nextQuestionType);
-        
-        await simulateBotTyping(response.message, response.options);
-        
-        if (overallQuestionIndex >= 50) {
-          setConversationStage("completion");
+        if (isLastQuestion) {
+          // If this is the last question, move to completion stage
+          const prefillJson = generatePrefillJson(progress.role, updatedMessages);
+          
+          await simulateBotTyping(
+            `Thanks for providing all this information! Based on your answers, we recommend completing your ${progress.role} registration. Click below to continue to the registration form with your data pre-filled.`,
+            [
+              { id: "proceed_to_registration", label: "Complete my registration" },
+              { id: "talk_to_representative", label: "I'd like to talk to a representative first" }
+            ]
+          );
+          
+          console.log("Generated prefill JSON:", prefillJson);
+        } else {
+          const response = await processConversation(
+            updatedMessages,
+            sessionId,
+            progress.role,
+            overallQuestionIndex,
+            config
+          );
+          
+          const nextQuestionType = getFieldTypeForCurrentQuestion(nextSectionIndex, nextQuestionIndex);
+          setFieldType(nextQuestionType);
+
+          // If we're starting a new section, include section title in the message
+          let responseMessage = response.message;
+          if (nextQuestionIndex === 0) {
+            const sectionTitle = getSectionTitle(progress.role, nextSectionIndex);
+            responseMessage = `Great! Let's talk about ${sectionTitle.toLowerCase()}.\n\n${response.message}`;
+          }
+          
+          await simulateBotTyping(responseMessage, response.options);
         }
       } catch (error) {
         console.error("Error processing option selection:", error);
@@ -323,17 +370,32 @@ export const useChatActions = (
     }
     
     if (progress.role) {
-      const nextQuestionIndex = currentQuestionIndex + 1;
-      const maxQuestionsPerSection = 10;
+      // Check if we've reached the end of the current section
+      const isLastQuestionInSection = isEndOfSection(progress.role, currentSectionIndex, currentQuestionIndex);
       
-      if (nextQuestionIndex >= maxQuestionsPerSection) {
-        setCurrentSectionIndex(currentSectionIndex + 1);
-        setCurrentQuestionIndex(0);
+      // Check if we've reached the end of all sections 
+      const isLastSection = currentSectionIndex >= getTotalSectionsForRole(progress.role) - 1;
+      const isLastQuestion = isLastSection && isLastQuestionInSection;
+      
+      let nextSectionIndex = currentSectionIndex;
+      let nextQuestionIndex = currentQuestionIndex;
+      
+      if (isLastQuestion) {
+        // We've completed the entire flow
+        setConversationStage("completion");
+      } else if (isLastQuestionInSection) {
+        // Move to the next section
+        nextSectionIndex = currentSectionIndex + 1;
+        nextQuestionIndex = 0;
       } else {
-        setCurrentQuestionIndex(nextQuestionIndex);
+        // Move to the next question in the current section
+        nextQuestionIndex = currentQuestionIndex + 1;
       }
       
-      const overallQuestionIndex = currentSectionIndex * 10 + nextQuestionIndex;
+      const overallQuestionIndex = nextSectionIndex * 10 + nextQuestionIndex;
+      
+      setCurrentSectionIndex(nextSectionIndex);
+      setCurrentQuestionIndex(nextQuestionIndex);
       
       updateProgress({
         role: progress.role,
@@ -345,7 +407,7 @@ export const useChatActions = (
           sessionId,
           progress.role,
           currentSectionIndex.toString(),
-          "in_progress",
+          isLastQuestion ? "completed" : "in_progress",
           currentQuestion,
           formData
         );
@@ -354,13 +416,20 @@ export const useChatActions = (
       }
       
       try {
-        if (conversationStage === "completion") {
+        if (conversationStage === "completion" || isLastQuestion) {
           const prefillJson = generatePrefillJson(progress.role, [
             ...messages, 
             userMessage
           ]);
           
-          clearProgress();
+          await simulateBotTyping(
+            `Thanks for providing all this information! Based on your answers, we recommend completing your ${progress.role} registration. Click below to continue to the registration form with your data pre-filled.`,
+            [
+              { id: "proceed_to_registration", label: "Complete my registration" },
+              { id: "talk_to_representative", label: "I'd like to talk to a representative first" }
+            ]
+          );
+          
           console.log("Generated prefill JSON:", prefillJson);
           return;
         }
@@ -383,8 +452,8 @@ export const useChatActions = (
         );
         
         const nextQuestionType = getFieldTypeForCurrentQuestion(
-          nextQuestionIndex >= maxQuestionsPerSection ? currentSectionIndex + 1 : currentSectionIndex,
-          nextQuestionIndex >= maxQuestionsPerSection ? 0 : nextQuestionIndex
+          nextSectionIndex,
+          nextQuestionIndex
         );
         setFieldType(nextQuestionType);
         
@@ -393,15 +462,14 @@ export const useChatActions = (
           setFieldType(response.validationNeeded);
         }
         
-        if (overallQuestionIndex >= 50) {
-          setConversationStage("completion");
-          
-          await simulateBotTyping(
-            `Thanks for providing this information! Based on your answers, we recommend completing your ${progress.role} registration. Click below to continue to the registration form with your data pre-filled.`
-          );
-        } else {
-          await simulateBotTyping(response.message, response.options);
+        // If we're starting a new section, include section title in the message
+        let responseMessage = response.message;
+        if (nextQuestionIndex === 0) {
+          const sectionTitle = getSectionTitle(progress.role, nextSectionIndex);
+          responseMessage = `Great! Let's talk about ${sectionTitle.toLowerCase()}.\n\n${response.message}`;
         }
+        
+        await simulateBotTyping(responseMessage, response.options);
       } catch (error) {
         console.error("Error processing conversation:", error);
         toast.error("Sorry, I encountered an error. Please try again.");

@@ -1,6 +1,4 @@
 
-// Add these functions to the file; if they already exist, replace them
-
 // Re-export functions from responseUtils
 export { 
   generateNextQuestionMessage,
@@ -8,7 +6,8 @@ export {
   isEndOfFlow,
   getSectionTitle,
   getCurrentQuestion,
-  generateDataSummary
+  generateDataSummary,
+  getTotalSectionsForRole
 } from './chat/responseUtils';
 
 // Input validation function

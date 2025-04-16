@@ -143,6 +143,19 @@ export const getSectionTitle = (role: string, sectionIndex: number): string => {
 };
 
 /**
+ * Get total number of sections for a specific role
+ */
+export const getTotalSectionsForRole = (role: string): number => {
+  try {
+    const flow = getRegistrationFlowByRole(role);
+    return flow.sections.length;
+  } catch (err) {
+    console.error("Error getting total sections:", err);
+    return 0;
+  }
+};
+
+/**
  * Generate a summary of the collected data
  */
 export const generateDataSummary = (formData: Record<string, any>): string => {
