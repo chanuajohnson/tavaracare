@@ -12,7 +12,7 @@ import {
   getCurrentQuestion
 } from "@/services/chatbotService";
 import { processConversation } from "@/utils/chat/chatFlowEngine";
-import { generatePrefillJson } from "@/utils/chat/prefillGenerator";
+import { preparePrefillDataAndGetRegistrationUrl } from "@/utils/chat/prefillGenerator";
 import { ChatConfig } from "@/utils/chat/engine/types";
 import { ChatMessage } from "@/types/chatTypes";
 import { getRoleOptions } from "@/data/chatIntroMessage";
@@ -71,11 +71,20 @@ export const useOptionSelection = ({
     if (progress.conversationStage === "completion") {
       if (optionId === "proceed_to_registration") {
         // Handle direct navigation to registration form
-        console.log("Redirecting to registration form");
-        if (progress.role) {
-          window.location.href = `/registration/${progress.role}?session=${sessionId}`;
+        console.log("Preparing to redirect to registration form");
+        try {
+          // Generate prefill data before redirection
+          const registrationUrl = await preparePrefillDataAndGetRegistrationUrl(progress.role, messages);
+          window.location.href = registrationUrl;
+          return;
+        } catch (error) {
+          console.error("Error preparing registration redirect:", error);
+          // Fallback if there's an error
+          if (progress.role) {
+            window.location.href = `/registration/${progress.role}`;
+          }
+          return;
         }
-        return;
       } else if (optionId === "talk_to_representative") {
         // Handle request to talk to a representative
         await simulateBotTyping(
@@ -254,7 +263,8 @@ export const useOptionSelection = ({
     try {
       if (isLastQuestion) {
         // If this is the last question, move to completion stage
-        const prefillJson = generatePrefillJson(progress.role, updatedMessages);
+        // Ensure prefill data is generated and saved
+        await preparePrefillDataAndGetRegistrationUrl(progress.role, updatedMessages);
         
         await simulateBotTyping(
           `Thanks for providing all this information! Based on your answers, we recommend completing your ${progress.role} registration. Click below to continue to the registration form with your data pre-filled.`,
@@ -263,8 +273,6 @@ export const useOptionSelection = ({
             { id: "talk_to_representative", label: "I'd like to talk to a representative first" }
           ]
         );
-        
-        console.log("Generated prefill JSON:", prefillJson);
       } else {
         const response = await processConversation(
           updatedMessages,

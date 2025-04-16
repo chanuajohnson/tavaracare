@@ -6,7 +6,7 @@ import { getSessionResponses } from "@/services/chatbotService";
  * Generate a prefill JSON object based on the user's responses
  * This will be used to prefill the registration form
  */
-export const generatePrefillJson = (role: string, messages: ChatMessage[]): Record<string, any> => {
+export const generatePrefillJson = async (role: string, messages: ChatMessage[]): Promise<Record<string, any>> => {
   // Start with the basic role
   const prefill: Record<string, any> = {
     role: role || "family"
@@ -40,65 +40,74 @@ export const generatePrefillJson = (role: string, messages: ChatMessage[]): Reco
     }
   }
 
-  // Attempt to retrieve all saved responses from local storage
-  try {
-    const sessionId = localStorage.getItem("tavara_chat_session") || "";
-    if (sessionId) {
-      // This will be executed asynchronously, but since we're just logging for now,
-      // we'll use the .then pattern without awaiting
-      getSessionResponses(sessionId).then(responses => {
-        console.log("Retrieved saved responses for prefill:", responses);
+  // Get the session ID to retrieve all saved responses
+  const sessionId = localStorage.getItem("tavara_chat_session") || "";
+  if (sessionId) {
+    try {
+      // Use await to make sure we have the data before proceeding
+      const responses = await getSessionResponses(sessionId);
+      console.log("Retrieved saved responses for prefill:", responses);
+      
+      // Map response fields to registration form fields
+      Object.entries(responses).forEach(([key, value]: [string, any]) => {
+        const responseValue = value.response;
         
-        // Map response fields to registration form fields
-        Object.entries(responses).forEach(([key, value]: [string, any]) => {
-          const responseValue = value.response;
+        // Map section_X_question_Y to appropriate field names
+        if (key.includes("first_name") || key.includes("full_name")) {
+          prefill.first_name = responseValue;
+        } else if (key.includes("last_name")) {
+          prefill.last_name = responseValue;
+        } else if (key.includes("email")) {
+          prefill.email = responseValue;
+        } else if (key.includes("phone")) {
+          prefill.phone = responseValue;
+        } else if (key.includes("location") || key.includes("address")) {
+          prefill.location = responseValue;
+        }
+        
+        // Store all responses in a nested object for complete data
+        const questionParts = key.split("_");
+        if (questionParts.length >= 4) {
+          const sectionIndex = questionParts[1];
+          const questionId = questionParts.slice(3).join("_");
           
-          // Map section_X_question_Y to appropriate field names
-          if (key.includes("first_name") || key.includes("full_name")) {
-            prefill.first_name = responseValue;
-          } else if (key.includes("last_name")) {
-            prefill.last_name = responseValue;
-          } else if (key.includes("email")) {
-            prefill.email = responseValue;
-          } else if (key.includes("phone")) {
-            prefill.phone = responseValue;
-          } else if (key.includes("location") || key.includes("address")) {
-            prefill.location = responseValue;
-          }
+          if (!prefill.responses) prefill.responses = {};
+          if (!prefill.responses[sectionIndex]) prefill.responses[sectionIndex] = {};
           
-          // Store all responses in a nested object for complete data
-          const questionParts = key.split("_");
-          if (questionParts.length >= 4) {
-            const sectionIndex = questionParts[1];
-            const questionId = questionParts.slice(3).join("_");
-            
-            if (!prefill.responses) prefill.responses = {};
-            if (!prefill.responses[sectionIndex]) prefill.responses[sectionIndex] = {};
-            
-            prefill.responses[sectionIndex][questionId] = responseValue;
-          }
-        });
-        
-        // Save the prefill data for later use
-        localStorage.setItem(`tavara_chat_prefill_${sessionId}`, JSON.stringify(prefill));
-        
-        // Check for registration link handling
-        const registrationLink = document.querySelector('a[href*="registration"]');
-        if (registrationLink) {
-          // Update the href to include the session ID for data retrieval
-          const href = registrationLink.getAttribute('href');
-          if (href && !href.includes('session=')) {
-            registrationLink.setAttribute(
-              'href', 
-              `${href}${href.includes('?') ? '&' : '?'}session=${sessionId}`
-            );
-          }
+          prefill.responses[sectionIndex][questionId] = responseValue;
         }
       });
+      
+      // Save the prefill data for later use
+      localStorage.setItem(`tavara_chat_prefill_${sessionId}`, JSON.stringify(prefill));
+      console.log(`Saved prefill data to localStorage key: tavara_chat_prefill_${sessionId}`, prefill);
+    } catch (error) {
+      console.error("Error generating prefill data:", error);
     }
-  } catch (error) {
-    console.error("Error generating prefill data:", error);
   }
 
   return prefill;
+};
+
+/**
+ * Save prefill data to local storage and prepare the registration URL
+ * Returns the complete URL with session parameter
+ */
+export const preparePrefillDataAndGetRegistrationUrl = async (role: string, messages: ChatMessage[]): Promise<string> => {
+  const sessionId = localStorage.getItem("tavara_chat_session");
+  if (!sessionId) {
+    console.error("No session ID found for prefill data");
+    return `/registration/${role}`;
+  }
+  
+  try {
+    // Generate and save the prefill data
+    await generatePrefillJson(role, messages);
+    
+    // Return the URL with the session parameter
+    return `/registration/${role}?session=${sessionId}`;
+  } catch (error) {
+    console.error("Error preparing prefill data:", error);
+    return `/registration/${role}`;
+  }
 };

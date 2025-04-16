@@ -2,6 +2,8 @@
 import React, { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { getSessionResponses } from "@/services/chatbotService";
+import { preparePrefillDataAndGetRegistrationUrl } from "@/utils/chat/prefillGenerator";
+import { useChat } from "./ChatProvider";
 
 interface RegistrationLinkProps {
   role?: string | null;
@@ -13,6 +15,8 @@ export const RegistrationLink: React.FC<RegistrationLinkProps> = ({
   onRegistrationClick 
 }) => {
   const [sessionId, setSessionId] = useState<string | null>(null);
+  const [isNavigating, setIsNavigating] = useState<boolean>(false);
+  const { messages } = useChat();
   
   useEffect(() => {
     // Get the session ID from localStorage
@@ -31,22 +35,31 @@ export const RegistrationLink: React.FC<RegistrationLinkProps> = ({
       return;
     }
     
-    if (sessionId) {
-      try {
-        // Ensure all responses are saved before redirecting
-        const responses = await getSessionResponses(sessionId);
-        console.log("Retrieved responses for registration:", responses);
+    if (isNavigating) return; // Prevent multiple clicks
+    setIsNavigating(true);
+    
+    try {
+      if (sessionId) {
+        console.log("Preparing registration redirect with session:", sessionId);
         
-        // Now redirect to the registration page with session ID
-        window.location.href = `/registration/${role}?session=${sessionId}`;
-      } catch (error) {
-        console.error("Error retrieving responses:", error);
-        // Fallback if there's an error
+        // Ensure all responses are processed and saved before redirecting
+        const url = await preparePrefillDataAndGetRegistrationUrl(role, messages);
+        console.log("Redirecting to registration URL:", url);
+        
+        // Short delay to ensure data is saved to localStorage
+        setTimeout(() => {
+          window.location.href = url;
+        }, 100);
+      } else {
+        console.log("No session ID found, redirecting without prefill data");
         window.location.href = `/registration/${role}`;
       }
-    } else {
-      // Fallback if there's no session ID
+    } catch (error) {
+      console.error("Error during registration redirect:", error);
+      // Fallback if there's an error
       window.location.href = `/registration/${role}`;
+    } finally {
+      setIsNavigating(false);
     }
   };
 
@@ -57,8 +70,9 @@ export const RegistrationLink: React.FC<RegistrationLinkProps> = ({
         size="sm"
         className="text-xs text-muted-foreground"
         onClick={handleRegistrationClick}
+        disabled={isNavigating}
       >
-        I'd rather fill out a quick form →
+        {isNavigating ? 'Preparing form...' : "I'd rather fill out a quick form →"}
       </Button>
     </div>
   );
