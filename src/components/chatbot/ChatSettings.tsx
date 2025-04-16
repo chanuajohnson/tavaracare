@@ -19,9 +19,15 @@ import {
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
-import { loadChatConfig, saveChatConfig, getChatModeName, shouldAlwaysShowOptions, setAlwaysShowOptions, clearChatStorage } from "@/utils/chat/chatConfig";
-import { ChatConfig } from '@/utils/chat/engine/types';
-import { defaultChatConfig } from '@/utils/chat/engine/types';
+import { 
+  loadChatConfig, 
+  saveChatConfig, 
+  shouldAlwaysShowOptions, 
+  setAlwaysShowOptions, 
+  clearChatStorage,
+  getChatModeName,
+  resetChatConfig
+} from "@/utils/chat/chatConfig";
 import { toast } from 'sonner';
 import { useChatSession } from '@/hooks/chat/useChatSession';
 
@@ -37,7 +43,7 @@ export const ChatSettings: React.FC<ChatSettingsProps> = ({
   const { sessionId } = useChatSession();
   
   // Load config from localStorage
-  const [config, setConfig] = useState<ChatConfig>(() => loadChatConfig());
+  const [config, setConfig] = useState(loadChatConfig());
   const [alwaysShowOptions, setAlwaysShowOptionsState] = useState<boolean>(
     shouldAlwaysShowOptions()
   );

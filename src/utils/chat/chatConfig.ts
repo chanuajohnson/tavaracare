@@ -1,17 +1,19 @@
 
 export interface ChatConfig {
-  mode: 'structured' | 'ai' | 'hybrid';
+  mode: 'ai' | 'scripted' | 'hybrid';
   temperature?: number;
   model?: string;
   systemPrompt?: string;
   debug?: boolean;
+  fallbackThreshold?: number;
 }
 
 export const defaultChatConfig: ChatConfig = {
   mode: 'hybrid',
   temperature: 0.7,
   model: 'gpt-4o-mini',
-  debug: false
+  debug: false,
+  fallbackThreshold: 2
 };
 
 export const loadChatConfig = (): ChatConfig => {
@@ -35,7 +37,54 @@ export const saveChatConfig = (config: ChatConfig): void => {
   }
 };
 
+// Function to get a user-friendly name for the chat mode
+export const getChatModeName = (mode: string): string => {
+  switch (mode) {
+    case 'ai': return 'AI Only';
+    case 'scripted': return 'Scripted Only';
+    case 'hybrid': return 'Hybrid';
+    default: return 'Unknown';
+  }
+};
+
 export const shouldAlwaysShowOptions = (): boolean => {
-  const config = loadChatConfig();
-  return config.mode === 'structured';
+  const showOptions = localStorage.getItem('tavara_always_show_options');
+  return showOptions === 'true';
+};
+
+export const setAlwaysShowOptions = (value: boolean): void => {
+  localStorage.setItem('tavara_always_show_options', value.toString());
+};
+
+export const resetChatConfig = (): ChatConfig => {
+  const config = { ...defaultChatConfig };
+  saveChatConfig(config);
+  return config;
+};
+
+export const debugChatConfig = (): void => {
+  console.log('Current chat config:', loadChatConfig());
+};
+
+export const clearChatStorage = (sessionId: string): void => {
+  try {
+    // Clear chat config
+    localStorage.removeItem('tavara_chat_config');
+    
+    // Clear chat messages
+    localStorage.removeItem(`tavara_chat_messages_${sessionId}`);
+    
+    // Clear chat progress
+    localStorage.removeItem('tavara_chat_progress');
+    
+    // Clear chat session ID
+    localStorage.removeItem('tavara_chat_session_id');
+    
+    // Clear always show options setting
+    localStorage.removeItem('tavara_always_show_options');
+    
+    console.log('Chat storage cleared successfully');
+  } catch (err) {
+    console.error('Error clearing chat storage:', err);
+  }
 };

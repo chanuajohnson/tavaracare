@@ -3,13 +3,14 @@
 export { 
   getCurrentQuestion,
   isMultiSelectQuestion,
-  getSectionTitle,
-  getTotalSectionsForRole
+  getFieldTypeForQuestion
 } from './utils/questionUtils';
 
 export {
   isEndOfSection,
-  isEndOfFlow
+  isEndOfFlow,
+  getTotalSectionsForRole,
+  getSectionTitle
 } from './utils/navigationUtils';
 
 export {

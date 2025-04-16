@@ -46,10 +46,14 @@ export const getTotalSectionsForRole = (role: string): number => {
  * Get the title of a section
  */
 export const getSectionTitle = (role: string, sectionIndex: number): string => {
-  const flow = getRegistrationFlowByRole(role);
-  
-  if (sectionIndex >= 0 && sectionIndex < flow.sections.length) {
-    return flow.sections[sectionIndex].title;
+  try {
+    const flow = getRegistrationFlowByRole(role);
+    
+    if (sectionIndex >= 0 && sectionIndex < flow.sections.length) {
+      return flow.sections[sectionIndex].title;
+    }
+  } catch (err) {
+    console.error("Error getting section title:", err);
   }
   
   return "";
