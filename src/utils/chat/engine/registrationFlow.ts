@@ -45,9 +45,9 @@ export const handleRegistrationFlow = async (
         const nextSectionTitle = getSectionTitle(userRole, nextSectionIndex);
         
         return {
-          message: `Great! Let's move on to the next section: ${nextSectionTitle}.`,
+          message: `Great! Let's move on to the next section: ${nextSectionTitle}. Are you ready to continue?`,
           options: [
-            { id: "continue", label: "Continue" },
+            { id: "continue", label: "Yes, continue" },
             { id: "take_break", label: "I need a break" }
           ]
         };
@@ -55,9 +55,7 @@ export const handleRegistrationFlow = async (
     }
     
     // Generate the next question based on the role, section, and question index
-    // If we're at the start of a section, mark it as a transition to prevent duplicate intros
-    const isFirstQuestionInSection = questionInSectionIndex === 0;
-    const questionResponse = generateNextQuestionMessage(userRole, sectionIndex, questionInSectionIndex, isFirstQuestionInSection);
+    const questionResponse = generateNextQuestionMessage(userRole, sectionIndex, questionInSectionIndex);
     
     if (!questionResponse) {
       // If we couldn't generate a question, provide a generic fallback

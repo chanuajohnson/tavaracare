@@ -479,7 +479,14 @@ export const useChatActions = (
         const nextQuestionType = getFieldTypeForCurrentQuestion(nextSectionIndex, nextQuestionIndex);
         setFieldType(nextQuestionType);
 
-        await simulateBotTyping(response.message, response.options);
+        // If we're starting a new section, include section title in the message
+        let responseMessage = response.message;
+        if (nextQuestionIndex === 0) {
+          const sectionTitle = getSectionTitle(progress.role, nextSectionIndex);
+          responseMessage = `Great! Let's talk about ${sectionTitle.toLowerCase()}.\n\n${response.message}`;
+        }
+        
+        await simulateBotTyping(responseMessage, response.options);
       }
     } catch (error) {
       console.error("Error processing option selection:", error);
