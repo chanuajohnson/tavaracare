@@ -1,4 +1,3 @@
-
 import React, { useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { useChatMessages } from "@/hooks/chat/useChatMessages";
@@ -31,9 +30,13 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({
   debugMode = process.env.NODE_ENV === 'development'
 }) => {
   const { sessionId } = useChatSession();
-  const { messages, addMessage, clearMessages } = useChatMessages(sessionId);
-  const { initialRole, setInitialRole, skipIntro } = useChat();
+  const { messages, addMessage, clearMessages, setMessages: setLocalMessages } = useChatMessages(sessionId);
+  const { initialRole, setInitialRole, skipIntro, setMessages: setContextMessages } = useChat();
   const { progress, updateProgress, clearProgress } = useChatProgress();
+  
+  useEffect(() => {
+    setContextMessages(messages);
+  }, [messages, setContextMessages]);
   
   const {
     conversationStage,
@@ -61,7 +64,6 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({
   const config = loadChatConfig();
   const alwaysShowOptions = shouldAlwaysShowOptions();
   
-  // Log config in development mode
   React.useEffect(() => {
     if (debugMode) {
       console.log(`[Chat] Config loaded: mode=${config.mode}, temperature=${config.temperature}`, config);
@@ -138,7 +140,6 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({
     return () => clearTimeout(timer);
   }, [messages.length, initialRole, skipIntro, progress, sessionId]);
 
-  // Debug panel for development
   const DebugPanel = debugMode ? (
     <div className="fixed bottom-4 right-4 bg-black/80 text-white p-3 rounded-lg text-xs z-50 max-w-xs overflow-auto max-h-48">
       <h4 className="font-bold">Chat Debug</h4>
@@ -191,7 +192,6 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({
         fieldType={fieldType}
       />
 
-      {/* Debug panel for development mode */}
       {DebugPanel}
     </div>
   );

@@ -23,6 +23,16 @@ export const getPrefillDataFromUrl = (): Record<string, any> | null => {
     if (prefillData) {
       const parsedData = JSON.parse(prefillData);
       console.log("Successfully retrieved prefill data from localStorage:", parsedData);
+      
+      // Add a timestamp check to ensure we're not using stale data
+      const timestamp = parsedData.timestamp || 0;
+      const now = Date.now();
+      const isStale = now - timestamp > 300000; // 5 minutes
+      
+      if (isStale) {
+        console.warn("Prefill data is stale (over 5 minutes old)");
+      }
+      
       return parsedData;
     }
     
@@ -62,6 +72,12 @@ export const getPrefillDataFromUrl = (): Record<string, any> | null => {
       if (pathParts.length > 2) {
         prefill.role = pathParts[2]; // Assuming path is /registration/{role}
       }
+      
+      // Save the generated prefill data for future use
+      localStorage.setItem(`tavara_chat_prefill_${sessionId}`, JSON.stringify({
+        ...prefill,
+        timestamp: Date.now()
+      }));
       
       console.log("Created prefill data from responses:", prefill);
       return prefill;

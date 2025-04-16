@@ -16,7 +16,7 @@ export const RegistrationLink: React.FC<RegistrationLinkProps> = ({
 }) => {
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [isNavigating, setIsNavigating] = useState<boolean>(false);
-  const { messages } = useChat();
+  const { messages } = useChat(); // Now using messages from context
   
   useEffect(() => {
     // Get the session ID from localStorage

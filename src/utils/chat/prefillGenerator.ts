@@ -78,7 +78,8 @@ export const generatePrefillJson = async (role: string, messages: ChatMessage[])
         }
       });
       
-      // Save the prefill data for later use
+      // Save the prefill data for later use with a timestamp to prevent stale data
+      prefill.timestamp = Date.now();
       localStorage.setItem(`tavara_chat_prefill_${sessionId}`, JSON.stringify(prefill));
       console.log(`Saved prefill data to localStorage key: tavara_chat_prefill_${sessionId}`, prefill);
     } catch (error) {
@@ -102,7 +103,11 @@ export const preparePrefillDataAndGetRegistrationUrl = async (role: string, mess
   
   try {
     // Generate and save the prefill data
-    await generatePrefillJson(role, messages);
+    const prefillData = await generatePrefillJson(role, messages);
+    
+    // Add a flag to indicate this is a completed chat session
+    prefillData.completed = true;
+    localStorage.setItem(`tavara_chat_prefill_${sessionId}`, JSON.stringify(prefillData));
     
     // Return the URL with the session parameter
     return `/registration/${role}?session=${sessionId}`;
