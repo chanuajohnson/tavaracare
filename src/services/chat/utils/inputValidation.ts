@@ -13,7 +13,7 @@ export const validateChatInput = (input: string, fieldType: string): { isValid: 
 
   switch (fieldType.toLowerCase()) {
     case "email": {
-      // Basic email validation pattern
+      // Enhanced email validation pattern
       const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailPattern.test(input)) {
         return { 
@@ -32,7 +32,6 @@ export const validateChatInput = (input: string, fieldType: string): { isValid: 
       // Check if it starts with '+' (international format)
       if (cleanedNumber.startsWith('+')) {
         // International format: should have at least 8 digits after the '+'
-        // This handles country codes of 1-3 digits plus at least 7 digits for the actual number
         if (!/^\+\d{8,15}$/.test(cleanedNumber)) {
           return { 
             isValid: false, 
@@ -41,7 +40,6 @@ export const validateChatInput = (input: string, fieldType: string): { isValid: 
         }
       } else {
         // Local format: should have at least 7 digits (minimal for most countries)
-        // and shouldn't exceed 15 digits (ITU-T recommendation)
         if (!/^\d{7,15}$/.test(cleanedNumber)) {
           return { 
             isValid: false, 
@@ -54,7 +52,7 @@ export const validateChatInput = (input: string, fieldType: string): { isValid: 
     }
     
     case "name": {
-      // Name validation - just making sure it's not too short
+      // Name validation - just making sure it's not too short and contains valid characters
       if (input.trim().length < 2) {
         return { 
           isValid: false, 
@@ -86,8 +84,57 @@ export const validateChatInput = (input: string, fieldType: string): { isValid: 
       return { isValid: true };
     }
     
+    case "address": {
+      // Basic address validation
+      if (input.trim().length < 5) {
+        return {
+          isValid: false,
+          errorMessage: "Please enter a complete address"
+        };
+      }
+      return { isValid: true };
+    }
+    
+    case "zipcode": {
+      // Basic zipcode/postal code validation (varies by country)
+      const zipPattern = /^[A-Z0-9]{3,10}$/i;
+      if (!zipPattern.test(input.trim())) {
+        return {
+          isValid: false,
+          errorMessage: "Please enter a valid postal/zip code"
+        };
+      }
+      return { isValid: true };
+    }
+    
+    case "date": {
+      // Simple date validation (could be enhanced for specific formats)
+      const datePattern = /^\d{1,2}[\/\-]\d{1,2}[\/\-]\d{4}$/;
+      if (!datePattern.test(input) && !Date.parse(input)) {
+        return {
+          isValid: false,
+          errorMessage: "Please enter a valid date (MM/DD/YYYY or YYYY-MM-DD)"
+        };
+      }
+      return { isValid: true };
+    }
+    
     default:
-      // For any other field type, just ensure it's not empty
-      return { isValid: input.trim().length > 0 };
+      // For any other field type, ensure it's not empty and reasonable length
+      if (input.trim().length < 1) {
+        return { 
+          isValid: false, 
+          errorMessage: "This field cannot be empty" 
+        };
+      }
+      
+      if (input.trim().length > 1000) {
+        return {
+          isValid: false,
+          errorMessage: "Response is too long. Please keep it under 1000 characters."
+        };
+      }
+      
+      return { isValid: true };
   }
 };
