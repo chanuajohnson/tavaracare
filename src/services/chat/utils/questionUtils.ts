@@ -37,32 +37,24 @@ export const isMultiSelectQuestion = (
   questionIndex: number
 ): boolean => {
   const question = getCurrentQuestion(role, sectionIndex, questionIndex);
-  return question ? (question.type === "checkbox" || question.type === "multiselect") : false;
+  return question?.type === "checkbox" || question?.type === "multiselect";
 };
 
 /**
- * Get the section title for a given role and section index
+ * Export the function to get the section title
  */
-export const getSectionTitle = (
-  role: string,
-  sectionIndex: number
-): string => {
-  try {
-    const flow = getRegistrationFlowByRole(role);
-    
-    if (sectionIndex < 0 || sectionIndex >= flow.sections.length) {
-      return "Registration";
-    }
-    
+export const getSectionTitle = (role: string, sectionIndex: number): string => {
+  const flow = getRegistrationFlowByRole(role);
+  
+  if (sectionIndex >= 0 && sectionIndex < flow.sections.length) {
     return flow.sections[sectionIndex].title;
-  } catch (err) {
-    console.error("Error getting section title:", err);
-    return "Registration";
   }
+  
+  return "";
 };
 
 /**
- * Get the total number of sections for a role
+ * Get total number of sections for a specific role
  */
 export const getTotalSectionsForRole = (role: string): number => {
   try {
@@ -72,94 +64,4 @@ export const getTotalSectionsForRole = (role: string): number => {
     console.error("Error getting total sections:", err);
     return 0;
   }
-};
-
-/**
- * Determines the field type based on question content
- */
-export const getFieldTypeForQuestion = (question: ChatRegistrationQuestion | null): string | null => {
-  if (!question) return null;
-  
-  const label = (question.label || "").toLowerCase();
-  const id = (question.id || "").toLowerCase();
-  
-  // Email detection
-  if (label.includes("email") || id.includes("email")) {
-    return "email";
-  }
-  
-  // Phone detection
-  if (
-    label.includes("phone") || 
-    id.includes("phone") || 
-    label.includes("contact number") || 
-    id.includes("contact_number") ||
-    label.includes("mobile") ||
-    id.includes("mobile")
-  ) {
-    return "phone";
-  }
-  
-  // Name detection
-  if (
-    label.includes("first name") || 
-    id.includes("first_name") ||
-    label.includes("full name") ||
-    id.includes("full_name") ||
-    label.includes("last name") || 
-    id.includes("last_name") ||
-    (label.includes("name") && !label.includes("username"))
-  ) {
-    return "name";
-  }
-  
-  // Budget detection
-  if (
-    label.includes("budget") ||
-    id.includes("budget") ||
-    label.includes("rate") ||
-    id.includes("rate") ||
-    label.includes("price") ||
-    id.includes("price")
-  ) {
-    return "budget";
-  }
-  
-  // Address detection
-  if (
-    label.includes("address") ||
-    id.includes("address") ||
-    label.includes("street") ||
-    id.includes("street")
-  ) {
-    return "address";
-  }
-  
-  // Zip/Postal code detection
-  if (
-    label.includes("zip") ||
-    id.includes("zip") ||
-    label.includes("postal") ||
-    id.includes("postal")
-  ) {
-    return "zipcode";
-  }
-  
-  // Date detection
-  if (
-    label.includes("date") ||
-    id.includes("date") ||
-    label.includes("birthday") ||
-    id.includes("birthday") ||
-    label.includes("born")
-  ) {
-    return "date";
-  }
-  
-  // Default to text for input types
-  if (question.type === "text" || question.type === "textarea") {
-    return "text";
-  }
-  
-  return null;
 };

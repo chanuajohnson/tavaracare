@@ -5,31 +5,17 @@ export {
   isMultiSelectQuestion,
   getSectionTitle,
   getTotalSectionsForRole,
-  getFieldTypeForQuestion
-} from './chat/utils/questionUtils';
-
-export {
   isEndOfSection,
   isEndOfFlow,
-  generateSectionTransitionMessage,
-  calculateOverallQuestionIndex,
-  extractSectionAndQuestionIndices
-} from './chat/utils/navigationUtils';
-
-export {
-  generateNextQuestionMessage
-} from './chat/utils/messageGenerationUtils';
-
-export {
-  generateDataSummary
-} from './chat/utils/summaryUtils';
+  generateNextQuestionMessage,
+  generateDataSummary 
+} from './chat/responseUtils';
 
 // Export validation utilities
 export { validateChatInput } from './chat/utils/inputValidation';
 
 // Export multi-selection utilities
 export {
-  useMultiSelectionStore,
   setMultiSelectionMode,
   getMultiSelectionStatus,
   addToMultiSelection,

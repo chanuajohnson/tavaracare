@@ -1,92 +1,54 @@
 
-import { create } from 'zustand';
+/**
+ * Utilities for managing multi-selection state in the chatbot
+ */
 
-// Define the store interface
-interface MultiSelectionStore {
-  active: boolean;
-  selections: string[];
-  setActive: (isActive: boolean) => void;
-  addSelection: (option: string) => string[];
-  removeSelection: (option: string) => string[];
-  toggleSelection: (option: string) => string[];
-  resetSelections: (initialSelections?: string[]) => void;
-  getSelections: () => string[];
-  completeSelection: () => string[];
-}
+// State for multi-selection
+let multiSelectionInProgress = false;
+let currentSelectedOptions: string[] = [];
 
-// Create store with zustand for better state management
-export const useMultiSelectionStore = create<MultiSelectionStore>((set, get) => ({
-  active: false,
-  selections: [],
-  
-  setActive: (isActive: boolean) => set({ 
-    active: isActive, 
-    selections: isActive ? get().selections : [] 
-  }),
-  
-  addSelection: (option: string) => {
-    set((state) => ({
-      selections: state.selections.includes(option) 
-        ? state.selections 
-        : [...state.selections, option]
-    }));
-    return get().selections;
-  },
-  
-  removeSelection: (option: string) => {
-    set((state) => ({
-      selections: state.selections.filter(item => item !== option)
-    }));
-    return get().selections;
-  },
-  
-  toggleSelection: (option: string) => {
-    const currentSelections = get().selections;
-    if (currentSelections.includes(option)) {
-      return get().removeSelection(option);
-    } else {
-      return get().addSelection(option);
-    }
-  },
-  
-  resetSelections: (initialSelections = []) => {
-    set({ selections: [...initialSelections] });
-  },
-  
-  getSelections: () => {
-    return get().selections;
-  },
-  
-  completeSelection: () => {
-    const selections = [...get().selections];
-    set({ active: false, selections: [] });
-    return selections;
-  }
-}));
-
-// Legacy API compatibility functions
+/**
+ * Sets the multi-selection mode 
+ */
 export const setMultiSelectionMode = (isActive: boolean, initialSelections: string[] = []) => {
-  const store = useMultiSelectionStore.getState();
-  store.setActive(isActive);
-  store.resetSelections(initialSelections);
+  multiSelectionInProgress = isActive;
+  currentSelectedOptions = initialSelections;
 };
 
+/**
+ * Gets the current status of multi-selection
+ */
 export const getMultiSelectionStatus = () => {
-  const state = useMultiSelectionStore.getState();
   return {
-    active: state.active,
-    selections: state.selections
+    active: multiSelectionInProgress,
+    selections: currentSelectedOptions
   };
 };
 
+/**
+ * Adds an option to the multi-selection
+ */
 export const addToMultiSelection = (option: string) => {
-  return useMultiSelectionStore.getState().addSelection(option);
+  if (!currentSelectedOptions.includes(option)) {
+    currentSelectedOptions.push(option);
+  }
+  return [...currentSelectedOptions];
 };
 
+/**
+ * Removes an option from the multi-selection
+ */
 export const removeFromMultiSelection = (option: string) => {
-  return useMultiSelectionStore.getState().removeSelection(option);
+  currentSelectedOptions = currentSelectedOptions.filter(item => item !== option);
+  return [...currentSelectedOptions];
 };
 
+/**
+ * Completes the multi-selection and returns final selections
+ */
 export const completeMultiSelection = () => {
-  return useMultiSelectionStore.getState().completeSelection();
+  const selections = [...currentSelectedOptions];
+  multiSelectionInProgress = false;
+  currentSelectedOptions = [];
+  return selections;
 };

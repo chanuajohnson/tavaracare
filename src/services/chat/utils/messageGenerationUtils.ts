@@ -8,8 +8,7 @@ import { ChatResponseData } from "../types";
 export const generateNextQuestionMessage = (
   role: string,
   sectionIndex: number,
-  questionIndex: number,
-  isFirstQuestion: boolean = false
+  questionIndex: number
 ): ChatResponseData => {
   try {
     const flow = getRegistrationFlowByRole(role);
@@ -53,7 +52,7 @@ export const generateNextQuestionMessage = (
       ];
     }
     
-    // Start with the question text
+    // Add section context to first question in each section
     let message = question.label;
     
     // Add special prompts for specific question types
@@ -71,9 +70,8 @@ export const generateNextQuestionMessage = (
       }
     }
     
-    // Add section title for first question in section, but only if this is the first question
-    // and we haven't already included a section title in a transition message
-    if (questionIndex === 0 && isFirstQuestion) {
+    // Add section title for first question in section
+    if (questionIndex === 0) {
       message = `Let's talk about ${section.title.toLowerCase()}.\n\n${message}`;
     }
     
