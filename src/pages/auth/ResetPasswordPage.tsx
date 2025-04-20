@@ -1,88 +1,72 @@
-
-import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { RequestResetForm } from '@/components/auth/RequestResetForm';
-import { UpdatePasswordForm } from '@/components/auth/UpdatePasswordForm';
-import { extractResetTokens, clearAuthTokens } from '@/utils/authResetUtils';
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
+import { toast } from 'sonner';
+import { EmailSentCard } from './reset-password/EmailSentCard';
+import { RequestResetForm } from './reset-password/RequestResetForm';
 
-export default function ResetPasswordPage() {
-  const [isValidatingToken, setIsValidatingToken] = useState(true);
-  const [isResetMode, setIsResetMode] = useState(false);
+const ResetPassword = () => {
+  const navigate = useNavigate();
+  const [email, setEmail] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [emailSent, setEmailSent] = useState(false);
 
-  useEffect(() => {
-    const validateResetToken = async () => {
-      const { accessToken, refreshToken, type } = extractResetTokens();
+  const handleSendResetLink = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!email) {
+      toast.error('Email required', {
+        description: 'Please enter your email address.',
+      });
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password/confirm`,
+      });
+
+      if (error) throw error;
+
+      setEmailSent(true);
+      toast.success('Reset link sent', {
+        description: 'Please check your email for the password reset link.',
+      });
+    } catch (error: any) {
+      console.error('Reset password error:', error);
       
-      if (!accessToken || !refreshToken || type !== 'recovery') {
-        setIsValidatingToken(false);
-        return;
+      let errorMessage = "We couldn't send the reset link. Please try again.";
+      
+      if (error.message.includes("Email rate limit exceeded")) {
+        errorMessage = "Too many requests. Please wait a few minutes and try again.";
+      } else if (error.message.includes("User not found")) {
+        errorMessage = "No account found with this email address.";
       }
+      
+      toast.error('Reset link failed', {
+        description: errorMessage,
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-      try {
-        // Verify the token without creating a session
-        const { error } = await supabase.auth.verifyOtp({
-          token_hash: accessToken,
-          type: 'recovery'
-        });
-
-        if (error) throw error;
-
-        // If verification successful, allow password reset
-        setIsResetMode(true);
-        clearAuthTokens();
-      } catch (error: any) {
-        console.error('Token validation error:', error);
-        toast.error("Invalid or expired reset link", {
-          description: "Please request a new password reset link"
-        });
-      } finally {
-        setIsValidatingToken(false);
-      }
-    };
-
-    validateResetToken();
-  }, []);
-
-  if (isValidatingToken) {
-    return (
-      <Card className="w-full max-w-md mx-auto">
-        <CardHeader>
-          <CardTitle>Verifying your reset link...</CardTitle>
-          <CardDescription>Please wait while we validate your request.</CardDescription>
-        </CardHeader>
-      </Card>
-    );
+  if (emailSent) {
+    return <EmailSentCard email={email} onBack={() => setEmailSent(false)} />;
   }
 
   return (
-    <Card className="w-full max-w-md mx-auto">
-      <CardHeader>
-        <CardTitle>
-          {isResetMode ? "Create New Password" : "Reset Password"}
-        </CardTitle>
-        <CardDescription>
-          {isResetMode 
-            ? "Please enter your new password"
-            : "Enter your email and we'll send you a reset link"
-          }
-        </CardDescription>
-      </CardHeader>
-      
-      <CardContent>
-        {isResetMode ? <UpdatePasswordForm /> : <RequestResetForm />}
-      </CardContent>
-      
-      <CardFooter className="flex justify-center">
-        <Link 
-          to="/auth" 
-          className="text-sm text-muted-foreground hover:text-primary"
-        >
-          Back to login
-        </Link>
-      </CardFooter>
-    </Card>
+    <div className="container max-w-md mx-auto p-4 mt-8">
+      <RequestResetForm
+        email={email}
+        isLoading={isLoading}
+        onEmailChange={setEmail}
+        onSubmit={handleSendResetLink}
+      />
+    </div>
   );
-}
+};
+
+export default ResetPassword;
