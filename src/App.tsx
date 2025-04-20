@@ -1,4 +1,3 @@
-
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -10,11 +9,11 @@ import { initializeSupabase, isSupabaseExperiencingIssues } from "@/lib/supabase
 import { Fab } from "@/components/ui/fab";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ChatProvider } from "@/components/chatbot/ChatProvider";
+import ResetPasswordPage from "@/pages/auth/ResetPasswordPage";
+import AuthPage from "@/pages/auth/AuthPage";
 
 // Lazy loaded page components
 const Index = lazy(() => import("@/pages/Index"));
-const AuthPage = lazy(() => import("@/pages/auth/AuthPage"));
-const ResetPasswordPage = lazy(() => import("@/pages/auth/ResetPasswordPage"));
 const FeaturesPage = lazy(() => import("@/pages/features/FeaturesPage"));
 const AboutPage = lazy(() => import("@/pages/about/AboutPage"));
 const AdminDashboard = lazy(() => import("@/pages/admin/AdminDashboard"));
