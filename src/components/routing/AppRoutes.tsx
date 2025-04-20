@@ -1,8 +1,7 @@
-
 import { Suspense, lazy } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { Skeleton } from "@/components/ui/skeleton";
-import ResetPasswordPage from "@/pages/auth/ResetPasswordPage";
+import ResetPassword from "@/pages/auth/ResetPassword";
 import AuthPage from "@/pages/auth/AuthPage";
 
 // Lazy loaded page components
@@ -64,7 +63,7 @@ export function AppRoutes() {
       <Routes>
         <Route path="/" element={<Index />} />
         <Route path="/auth" element={<AuthPage />} />
-        <Route path="/auth/reset-password" element={<ResetPasswordPage />} />
+        <Route path="/auth/reset-password" element={<ResetPassword />} />
         <Route path="/features" element={<FeaturesPage />} />
         <Route path="/about" element={<AboutPage />} />
         <Route path="/dashboard/admin" element={<AdminDashboard />} />
