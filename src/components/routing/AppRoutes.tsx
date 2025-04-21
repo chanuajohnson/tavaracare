@@ -65,7 +65,7 @@ export function AppRoutes() {
         <Route path="/" element={<Index />} />
         <Route path="/auth" element={<AuthPage />} />
         <Route path="/auth/reset-password" element={<ResetPassword />} />
-        <Route path="/reset-password/confirm" element={<ResetPasswordConfirm />} />
+        <Route path="/auth/reset-password/confirm" element={<ResetPasswordConfirm />} />
         <Route path="/features" element={<FeaturesPage />} />
         <Route path="/about" element={<AboutPage />} />
         <Route path="/dashboard/admin" element={<AdminDashboard />} />

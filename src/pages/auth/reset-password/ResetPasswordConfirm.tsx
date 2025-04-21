@@ -12,30 +12,47 @@ export default function ResetPasswordConfirm() {
   const [email, setEmail] = useState<string | null>(null);
 
   useEffect(() => {
-    // Parse tokens from hash in URL
-    const { accessToken, refreshToken, type } = extractResetTokens();
-    if (!accessToken || !refreshToken || type !== "recovery") {
-      setStatus("invalid");
-      return;
-    }
-
-    // Set skipPostLoginRedirect flag before starting session
-    sessionStorage.setItem('skipPostLoginRedirect', 'true');
-    supabase.auth.setSession({
-      access_token: accessToken,
-      refresh_token: refreshToken,
-    }).then(({ data, error }) => {
-      if (error || !data.session) {
+    const init = async () => {
+      // Ensure we're starting fresh
+      await supabase.auth.signOut();
+      
+      // Parse tokens from URL
+      const { accessToken, refreshToken, type } = extractResetTokens();
+      if (!accessToken || !refreshToken || type !== "recovery") {
         setStatus("invalid");
-        toast.error("Invalid or expired reset link.");
-        clearAuthTokens();
-        sessionStorage.removeItem('skipPostLoginRedirect');
         return;
       }
-      setStatus("ready");
-      setEmail(data.session.user.email);
-      clearAuthTokens();
-    });
+
+      // Set skipPostLoginRedirect flag before starting session
+      sessionStorage.setItem('skipPostLoginRedirect', 'true');
+      
+      try {
+        const { data, error } = await supabase.auth.setSession({
+          access_token: accessToken,
+          refresh_token: refreshToken,
+        });
+
+        if (error || !data.session) {
+          setStatus("invalid");
+          toast.error("Invalid or expired reset link");
+          clearAuthTokens();
+          sessionStorage.removeItem('skipPostLoginRedirect');
+          return;
+        }
+
+        setStatus("ready");
+        setEmail(data.session.user.email);
+        clearAuthTokens();
+      } catch (err) {
+        console.error('Error setting session:', err);
+        setStatus("invalid");
+        toast.error("Failed to process reset link");
+        clearAuthTokens();
+        sessionStorage.removeItem('skipPostLoginRedirect');
+      }
+    };
+
+    init();
   }, []);
 
   if (status === "loading") {
@@ -77,7 +94,6 @@ export default function ResetPasswordConfirm() {
   }
 
   if (status === "success") {
-    // Clear skipPostLoginRedirect once success UI is shown
     sessionStorage.removeItem('skipPostLoginRedirect');
   }
 
@@ -91,8 +107,8 @@ export default function ResetPasswordConfirm() {
           <UpdatePasswordForm
             onSuccess={() => {
               setStatus("success");
+              toast.success("Password updated successfully");
               setTimeout(() => {
-                // Just in case: ensure flag is cleared on redirect.
                 sessionStorage.removeItem('skipPostLoginRedirect');
                 navigate("/auth");
               }, 2000);
@@ -103,7 +119,7 @@ export default function ResetPasswordConfirm() {
       </Card>
       {status === "success" && (
         <div className="mt-4 text-center text-green-600">
-          Password updated successfully. Redirecting…
+          Password updated successfully. Redirecting...
         </div>
       )}
     </div>

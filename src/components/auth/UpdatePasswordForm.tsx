@@ -29,9 +29,10 @@ export const UpdatePasswordForm = ({ onSuccess, email }: UpdatePasswordFormProps
     try {
       const { error } = await supabase.auth.updateUser({ password });
       if (error) throw error;
-      toast.success("Password updated successfully");
-      // Log out after reset for safety
+
+      // Sign out after reset for safety
       await supabase.auth.signOut({ scope: "global" });
+      
       if (onSuccess) {
         onSuccess();
       } else {
