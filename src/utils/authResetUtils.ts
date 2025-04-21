@@ -2,22 +2,21 @@
 export const extractResetTokens = () => {
   console.log("🔍 Extracting auth reset tokens from URL");
   
-  // Extract token from URL hash (fragment) - most common for Supabase reset links
+  // Extract from URL hash (fragment) which is how Supabase delivers tokens
   const hash = window.location.hash.substring(1);
   const hashParams = new URLSearchParams(hash);
   
-  // Also check URL search params (query string) as fallback
+  // Also check URL search params as fallback (some configurations use this)
   const searchParams = new URLSearchParams(window.location.search);
   
-  // Look for Supabase's password reset token
-  let token = hashParams.get('token') || searchParams.get('token');
-  let type = hashParams.get('type') || searchParams.get('type');
+  // Get token and type from either source
+  const token = hashParams.get('token') || searchParams.get('token');
+  const type = hashParams.get('type') || searchParams.get('type');
   
-  console.log("📝 Token parameters:", { 
-    hasToken: !!token,
-    type,
-    rawHash: hash,
-    rawSearch: window.location.search
+  console.log("Token extraction results:", { 
+    hasToken: !!token, 
+    type, 
+    source: token ? (hashParams.get('token') ? 'hash' : 'search') : 'none' 
   });
   
   // Check for error parameters
@@ -25,7 +24,6 @@ export const extractResetTokens = () => {
   const errorDescription = searchParams.get('error_description');
   
   if (error || errorDescription) {
-    console.error("❌ Error parameters found:", { error, errorDescription });
     throw new Error(errorDescription || 'Invalid reset link');
   }
   
@@ -33,13 +31,9 @@ export const extractResetTokens = () => {
 };
 
 export const clearAuthTokens = () => {
-  console.log("🧹 Clearing auth tokens from URL");
-  
-  // Clear both hash and search parameters without triggering a reload
-  const currentPath = window.location.pathname;
-  
-  if (window.location.hash || window.location.search) {
-    console.log("📝 Current URL has hash or search params, cleaning");
-    window.history.replaceState(null, '', currentPath);
+  // Simply clear the URL without refreshing the page
+  if (window.history && window.history.replaceState) {
+    const cleanPath = window.location.pathname;
+    window.history.replaceState(null, '', cleanPath);
   }
 };

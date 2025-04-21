@@ -1,9 +1,12 @@
+
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Card, CardHeader, CardTitle, CardContent, CardDescription, CardFooter } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from 'sonner';
-import { EmailSentCard } from './reset-password/EmailSentCard';
-import { RequestResetForm } from './reset-password/RequestResetForm';
+import { Loader2, ArrowLeft } from 'lucide-react';
 
 const ResetPassword = () => {
   const navigate = useNavigate();
@@ -11,30 +14,26 @@ const ResetPassword = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
 
-  function getBaseUrl() {
+  const getResetRedirectUrl = () => {
     const { origin } = window.location;
-    return origin;
-  }
-
-  function getPasswordResetRedirectUrl() {
-    return `${getBaseUrl()}/auth/reset-password/confirm`;
-  }
+    return `${origin}/auth/reset-password/confirm`;
+  };
 
   const handleSendResetLink = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!email) {
-      toast.error('Email required', {
-        description: 'Please enter your email address.',
-      });
+      toast.error('Please enter your email address');
       return;
     }
 
     setIsLoading(true);
 
     try {
+      console.log("🔄 Sending reset password email to:", email);
+      
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: getPasswordResetRedirectUrl(),
+        redirectTo: getResetRedirectUrl(),
       });
 
       if (error) throw error;
@@ -50,8 +49,6 @@ const ResetPassword = () => {
 
       if (error.message.includes("Email rate limit exceeded")) {
         errorMessage = "Too many requests. Please wait a few minutes and try again.";
-      } else if (error.message.includes("User not found")) {
-        errorMessage = "No account found with this email address.";
       }
 
       toast.error('Reset link failed', {
@@ -64,24 +61,95 @@ const ResetPassword = () => {
 
   if (emailSent) {
     return (
-      <EmailSentCard
-        email={email}
-        onBack={() => {
-          setEmailSent(false);
-          navigate("/auth/reset-password");
-        }}
-      />
+      <div className="container max-w-md mx-auto mt-16">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-center">Check Your Email</CardTitle>
+            <CardDescription className="text-center">
+              Reset link sent successfully
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-center text-muted-foreground">
+              We've sent a password reset link to <strong>{email}</strong>.
+            </p>
+            <p className="text-center text-muted-foreground text-sm">
+              Check your inbox and follow the link to reset your password.
+              The link will expire after 24 hours.
+            </p>
+          </CardContent>
+          <CardFooter className="flex flex-col gap-4">
+            <Button 
+              className="w-full" 
+              variant="outline" 
+              onClick={() => setEmailSent(false)}
+            >
+              Back to Reset Form
+            </Button>
+            <Button 
+              className="w-full" 
+              onClick={() => navigate('/auth')}
+            >
+              Return to Login
+            </Button>
+          </CardFooter>
+        </Card>
+      </div>
     );
   }
 
   return (
-    <div className="container max-w-md mx-auto p-4 mt-8 flex items-center min-h-[60vh]">
-      <RequestResetForm
-        email={email}
-        isLoading={isLoading}
-        onEmailChange={setEmail}
-        onSubmit={handleSendResetLink}
-      />
+    <div className="container max-w-md mx-auto mt-16">
+      <Card>
+        <CardHeader>
+          <div className="flex items-center mb-2">
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={() => navigate('/auth')}
+              className="mr-2 h-8 w-8"
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+            <CardTitle>Reset Your Password</CardTitle>
+          </div>
+          <CardDescription>
+            Enter your email address and we'll send you a link to reset your password.
+          </CardDescription>
+        </CardHeader>
+        <form onSubmit={handleSendResetLink}>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <label htmlFor="email" className="text-sm font-medium">Email Address</label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="Enter your email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                disabled={isLoading}
+                required
+              />
+            </div>
+          </CardContent>
+          <CardFooter>
+            <Button 
+              type="submit" 
+              className="w-full" 
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Sending Reset Link...
+                </>
+              ) : (
+                "Send Reset Link"
+              )}
+            </Button>
+          </CardFooter>
+        </form>
+      </Card>
     </div>
   );
 };
