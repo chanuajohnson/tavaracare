@@ -13,7 +13,8 @@ export const extractResetTokens = () => {
   console.log("📝 Hash parameters:", { 
     hasAccessToken: !!accessToken, 
     hasRefreshToken: !!refreshToken, 
-    type 
+    type,
+    rawHash: hash // Add raw hash for debugging
   });
 
   // If not in hash, try URL search params (query string)
@@ -24,10 +25,20 @@ export const extractResetTokens = () => {
     refreshToken = searchParams.get('refresh_token');
     type = searchParams.get('type');
     
+    // Check for error parameters
+    const error = searchParams.get('error');
+    const errorDescription = searchParams.get('error_description');
+    
+    if (error || errorDescription) {
+      console.error("❌ Error parameters found:", { error, errorDescription });
+      throw new Error(errorDescription || 'Invalid reset link');
+    }
+    
     console.log("📝 Query parameters:", { 
       hasAccessToken: !!accessToken, 
       hasRefreshToken: !!refreshToken, 
-      type 
+      type,
+      rawSearch: window.location.search // Add raw search for debugging
     });
   }
   
@@ -49,3 +60,4 @@ export const clearAuthTokens = () => {
     window.history.replaceState(null, '', currentPath);
   }
 };
+

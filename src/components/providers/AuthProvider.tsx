@@ -283,13 +283,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       return;
     }
 
-    if (sessionStorage.getItem('ignoreRedirect') === 'true') {
-      console.log('[AuthProvider] Ignoring redirection due to ignoreRedirect flag');
-      return;
-    }
-
-    if (location.pathname === '/auth/reset-password') {
-      console.log('[AuthProvider] On reset password page, skipping redirection');
+    if (location.pathname.includes('/auth/reset-password/confirm')) {
+      console.log('[AuthProvider] On reset password confirmation page, skipping redirection');
       return;
     }
     
