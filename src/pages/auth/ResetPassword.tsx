@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from "@/integrations/supabase/client";
@@ -11,6 +10,15 @@ const ResetPassword = () => {
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
+
+  function getBaseUrl() {
+    const { origin } = window.location;
+    return origin;
+  }
+
+  function getPasswordResetRedirectUrl() {
+    return `${getBaseUrl()}/reset-password/confirm`;
+  }
 
   const handleSendResetLink = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -26,7 +34,7 @@ const ResetPassword = () => {
 
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/reset-password/confirm`, // Ensure consistent route
+        redirectTo: getPasswordResetRedirectUrl(),
       });
 
       if (error) throw error;
@@ -54,7 +62,6 @@ const ResetPassword = () => {
     }
   };
 
-  // After success, show the card and ensure back returns to correct page
   if (emailSent) {
     return (
       <EmailSentCard
