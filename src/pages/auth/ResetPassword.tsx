@@ -17,7 +17,7 @@ const ResetPassword = () => {
   }
 
   function getPasswordResetRedirectUrl() {
-    return `${getBaseUrl()}/reset-password/confirm`;
+    return `${getBaseUrl()}/auth/reset-password/confirm`;
   }
 
   const handleSendResetLink = async (e: React.FormEvent) => {
