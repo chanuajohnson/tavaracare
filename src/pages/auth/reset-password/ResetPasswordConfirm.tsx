@@ -31,9 +31,9 @@ export default function ResetPasswordConfirm() {
           return;
         }
 
-        // Verify the token and create a new session
+        // Verify the token using the tokenHash method
         const { data, error } = await supabase.auth.verifyOtp({
-          token,
+          token_hash: token,
           type: "recovery"
         });
 
