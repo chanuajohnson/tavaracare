@@ -26,7 +26,7 @@ const ResetPassword = () => {
 
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/reset-password/confirm`,
+        redirectTo: `${window.location.origin}/reset-password/confirm`, // Ensure consistent route
       });
 
       if (error) throw error;
@@ -37,15 +37,15 @@ const ResetPassword = () => {
       });
     } catch (error: any) {
       console.error('Reset password error:', error);
-      
+
       let errorMessage = "We couldn't send the reset link. Please try again.";
-      
+
       if (error.message.includes("Email rate limit exceeded")) {
         errorMessage = "Too many requests. Please wait a few minutes and try again.";
       } else if (error.message.includes("User not found")) {
         errorMessage = "No account found with this email address.";
       }
-      
+
       toast.error('Reset link failed', {
         description: errorMessage,
       });
@@ -54,12 +54,21 @@ const ResetPassword = () => {
     }
   };
 
+  // After success, show the card and ensure back returns to correct page
   if (emailSent) {
-    return <EmailSentCard email={email} onBack={() => setEmailSent(false)} />;
+    return (
+      <EmailSentCard
+        email={email}
+        onBack={() => {
+          setEmailSent(false);
+          navigate("/auth/reset-password");
+        }}
+      />
+    );
   }
 
   return (
-    <div className="container max-w-md mx-auto p-4 mt-8">
+    <div className="container max-w-md mx-auto p-4 mt-8 flex items-center min-h-[60vh]">
       <RequestResetForm
         email={email}
         isLoading={isLoading}
