@@ -24,13 +24,21 @@ export const UpdatePasswordForm = ({ onSuccess, email }: UpdatePasswordFormProps
       });
       return;
     }
+    
     setIsLoading(true);
 
     try {
+      console.log("🔒 Updating password");
       const { error } = await supabase.auth.updateUser({ password });
-      if (error) throw error;
+      
+      if (error) {
+        console.error("❌ Password update error:", error);
+        throw error;
+      }
 
-      // Sign out after reset for safety
+      console.log("✅ Password updated successfully, signing out");
+      
+      // Sign out after reset for safety, using global scope to clear on all devices
       await supabase.auth.signOut({ scope: "global" });
       
       if (onSuccess) {
@@ -38,10 +46,14 @@ export const UpdatePasswordForm = ({ onSuccess, email }: UpdatePasswordFormProps
       } else {
         navigate('/auth');
       }
+      
+      toast.success("Password has been reset successfully", {
+        description: "You can now log in with your new password"
+      });
     } catch (error: any) {
-      console.error('Password update error:', error);
+      console.error('❌ Password update error:', error);
       toast.error("Failed to update password", {
-        description: error.message
+        description: error.message || "An unknown error occurred"
       });
     } finally {
       setIsLoading(false);

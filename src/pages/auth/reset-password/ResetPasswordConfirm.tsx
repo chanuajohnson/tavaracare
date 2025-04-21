@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
@@ -13,13 +14,23 @@ export default function ResetPasswordConfirm() {
 
   useEffect(() => {
     const init = async () => {
-      // Ensure we're starting fresh
-      await supabase.auth.signOut();
+      console.log("⚙️ ResetPasswordConfirm: Initializing password reset confirmation");
+      
+      // DO NOT sign out at the beginning - this was causing the flow to break
+      // We need the recovery session to be active for password reset
       
       // Parse tokens from URL
       const { accessToken, refreshToken, type } = extractResetTokens();
+      console.log("🔑 Reset tokens extracted:", { 
+        hasAccessToken: !!accessToken, 
+        hasRefreshToken: !!refreshToken, 
+        type 
+      });
+      
       if (!accessToken || !refreshToken || type !== "recovery") {
+        console.error("❌ Invalid reset tokens:", { accessToken: !!accessToken, refreshToken: !!refreshToken, type });
         setStatus("invalid");
+        toast.error("Invalid reset link parameters");
         return;
       }
 
@@ -27,24 +38,27 @@ export default function ResetPasswordConfirm() {
       sessionStorage.setItem('skipPostLoginRedirect', 'true');
       
       try {
+        console.log("🔄 Setting session with recovery tokens");
         const { data, error } = await supabase.auth.setSession({
           access_token: accessToken,
           refresh_token: refreshToken,
         });
 
         if (error || !data.session) {
+          console.error("❌ Error setting recovery session:", error);
           setStatus("invalid");
-          toast.error("Invalid or expired reset link");
+          toast.error(error?.message || "Invalid or expired reset link");
           clearAuthTokens();
           sessionStorage.removeItem('skipPostLoginRedirect');
           return;
         }
 
+        console.log("✅ Recovery session established successfully");
         setStatus("ready");
         setEmail(data.session.user.email);
         clearAuthTokens();
       } catch (err) {
-        console.error('Error setting session:', err);
+        console.error('❌ Error in recovery session processing:', err);
         setStatus("invalid");
         toast.error("Failed to process reset link");
         clearAuthTokens();
