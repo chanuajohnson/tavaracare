@@ -135,7 +135,8 @@ export default function AuthPage() {
       const port = window.location.port ? `:${window.location.port}` : '';
       const baseUrl = `${protocol}//${baseDomain}${port}`;
       
-      const resetPath = "/auth/reset-password";
+      // Fix: Add the /auth prefix to the reset password redirect URL
+      const resetPath = "/auth/reset-password/confirm";
       const resetPasswordUrl = `${baseUrl}${resetPath}`;
       
       console.log("[AuthPage] Using reset password redirect URL:", resetPasswordUrl);
