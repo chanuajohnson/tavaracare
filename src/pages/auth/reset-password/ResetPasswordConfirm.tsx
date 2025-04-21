@@ -17,57 +17,44 @@ export default function ResetPasswordConfirm() {
       console.log("⚙️ ResetPasswordConfirm: Initializing password reset confirmation");
       
       try {
-        // Extract tokens from URL
-        const { accessToken, refreshToken, type } = extractResetTokens();
-        console.log("🔑 Reset tokens extracted:", { 
-          hasAccessToken: !!accessToken, 
-          hasRefreshToken: !!refreshToken, 
+        // Extract token from URL
+        const { token, type } = extractResetTokens();
+        console.log("🔑 Reset token extracted:", { 
+          hasToken: !!token,
           type 
         });
         
-        if (!accessToken || !refreshToken || type !== "recovery") {
-          console.error("❌ Invalid reset tokens:", { accessToken: !!accessToken, refreshToken: !!refreshToken, type });
+        if (!token || type !== "recovery") {
+          console.error("❌ Invalid reset token:", { hasToken: !!token, type });
           setStatus("invalid");
           toast.error("Invalid or expired reset link");
           return;
         }
 
-        // Set skipPostLoginRedirect flag before starting session
-        sessionStorage.setItem('skipPostLoginRedirect', 'true');
-        
-        try {
-          console.log("🔄 Setting session with recovery tokens");
-          const { data, error } = await supabase.auth.setSession({
-            access_token: accessToken,
-            refresh_token: refreshToken,
-          });
+        // Verify the token and create a new session
+        const { data, error } = await supabase.auth.verifyOtp({
+          token,
+          type: "recovery"
+        });
 
-          if (error || !data.session) {
-            console.error("❌ Error setting recovery session:", error);
-            setStatus("invalid");
-            toast.error(error?.message || "Invalid or expired reset link");
-            clearAuthTokens();
-            sessionStorage.removeItem('skipPostLoginRedirect');
-            return;
-          }
-
-          console.log("✅ Recovery session established successfully");
-          setStatus("ready");
-          setEmail(data.session.user.email);
-          clearAuthTokens();
-        } catch (err) {
-          console.error('❌ Error in recovery session processing:', err);
+        if (error || !data?.user) {
+          console.error("❌ Error verifying recovery token:", error);
           setStatus("invalid");
-          toast.error("Failed to process reset link");
+          toast.error(error?.message || "Invalid or expired reset link");
           clearAuthTokens();
-          sessionStorage.removeItem('skipPostLoginRedirect');
+          return;
         }
+
+        console.log("✅ Recovery token verified successfully");
+        setStatus("ready");
+        setEmail(data.user.email);
+        clearAuthTokens();
+        
       } catch (err: any) {
         console.error('❌ Error in init:', err);
         setStatus("invalid");
         toast.error(err.message || "Invalid reset link");
         clearAuthTokens();
-        sessionStorage.removeItem('skipPostLoginRedirect');
       }
     };
 
@@ -112,10 +99,6 @@ export default function ResetPasswordConfirm() {
     );
   }
 
-  if (status === "success") {
-    sessionStorage.removeItem('skipPostLoginRedirect');
-  }
-
   return (
     <div className="container max-w-md mx-auto mt-16">
       <Card>
@@ -128,7 +111,6 @@ export default function ResetPasswordConfirm() {
               setStatus("success");
               toast.success("Password updated successfully");
               setTimeout(() => {
-                sessionStorage.removeItem('skipPostLoginRedirect');
                 navigate("/auth");
               }, 2000);
             }}
