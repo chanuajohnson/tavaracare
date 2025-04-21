@@ -276,12 +276,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const handlePostLoginRedirection = async () => {
     if (!user || isRedirectingRef.current) return;
-    
+
+    const skipRedirect = sessionStorage.getItem('skipPostLoginRedirect');
+    if (skipRedirect) {
+      console.log('[AuthProvider] Skipping post-login redirect due to skipPostLoginRedirect flag');
+      return;
+    }
+
     if (sessionStorage.getItem('ignoreRedirect') === 'true') {
       console.log('[AuthProvider] Ignoring redirection due to ignoreRedirect flag');
       return;
     }
-    
+
     if (location.pathname === '/auth/reset-password') {
       console.log('[AuthProvider] On reset password page, skipping redirection');
       return;

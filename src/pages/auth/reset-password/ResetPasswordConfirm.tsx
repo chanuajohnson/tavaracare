@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
@@ -20,7 +19,8 @@ export default function ResetPasswordConfirm() {
       return;
     }
 
-    // Try to set the session
+    // Set skipPostLoginRedirect flag before starting session
+    sessionStorage.setItem('skipPostLoginRedirect', 'true');
     supabase.auth.setSession({
       access_token: accessToken,
       refresh_token: refreshToken,
@@ -29,6 +29,7 @@ export default function ResetPasswordConfirm() {
         setStatus("invalid");
         toast.error("Invalid or expired reset link.");
         clearAuthTokens();
+        sessionStorage.removeItem('skipPostLoginRedirect');
         return;
       }
       setStatus("ready");
@@ -75,6 +76,11 @@ export default function ResetPasswordConfirm() {
     );
   }
 
+  if (status === "success") {
+    // Clear skipPostLoginRedirect once success UI is shown
+    sessionStorage.removeItem('skipPostLoginRedirect');
+  }
+
   return (
     <div className="container max-w-md mx-auto mt-16">
       <Card>
@@ -85,7 +91,11 @@ export default function ResetPasswordConfirm() {
           <UpdatePasswordForm
             onSuccess={() => {
               setStatus("success");
-              setTimeout(() => navigate("/auth"), 2000);
+              setTimeout(() => {
+                // Just in case: ensure flag is cleared on redirect.
+                sessionStorage.removeItem('skipPostLoginRedirect');
+                navigate("/auth");
+              }, 2000);
             }}
             email={email ?? ""}
           />
