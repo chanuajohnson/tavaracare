@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Loader2, ArrowLeft, AlertTriangle } from "lucide-react";
-import { exchangeRecoveryToken } from "@/utils/authResetUtils";
+import { extractResetTokens } from "@/utils/authResetUtils";
 
 export default function ResetPasswordConfirm() {
   const navigate = useNavigate();
@@ -27,13 +27,23 @@ export default function ResetPasswordConfirm() {
         sessionStorage.setItem('skipPostLoginRedirect', 'true');
         
         // First check if we have a valid recovery token
-        const { success, error } = await exchangeRecoveryToken();
+        const { access_token, refresh_token, error } = extractResetTokens();
         
-        if (!success) {
-          throw new Error(error || "Invalid or missing token");
+        if (error) {
+          throw new Error(error);
+        }
+
+        // Set up session with the token
+        const { error: sessionError } = await supabase.auth.setSession({
+          access_token: access_token || '',
+          refresh_token: refresh_token || ''
+        });
+
+        if (sessionError) {
+          throw new Error(sessionError.message);
         }
         
-        // Check if we have a valid session (Supabase auto-logs in on reset links)
+        // Check if we have a valid session
         const { data } = await supabase.auth.getSession();
         
         if (!data.session) {
