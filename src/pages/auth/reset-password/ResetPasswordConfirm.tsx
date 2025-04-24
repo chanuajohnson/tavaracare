@@ -107,7 +107,7 @@ export default function ResetPasswordConfirm() {
   }
 
   if (!validSession) {
-    return null; // Will redirect in useEffect
+    return null;
   }
 
   return (

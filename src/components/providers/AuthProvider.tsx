@@ -1,3 +1,4 @@
+
 import { createContext, useContext, useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { Session, User } from '@supabase/supabase-js';
@@ -143,7 +144,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   useEffect(() => {
     if (isLoading || !user || isPasswordResetConfirmRoute || 
-        sessionStorage.getItem('skipPostLoginRedirect')) {
+        sessionStorage.getItem('skipPostLoginRedirect') ||
+        isPasswordRecoveryRef.current) {
       return;
     }
     
@@ -171,6 +173,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       if (event === 'PASSWORD_RECOVERY') {
         console.log('[AuthProvider] Password recovery detected - preventing redirects');
         isPasswordRecoveryRef.current = true;
+        return;
       }
 
       if (event === 'SIGNED_OUT') {
