@@ -30,7 +30,7 @@ const developmentFallbackKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJ
 const finalSupabaseUrl = SUPABASE_URL || (CURRENT_ENV === 'development' ? developmentFallbackUrl : '');
 const finalSupabaseKey = SUPABASE_ANON_KEY || (CURRENT_ENV === 'development' ? developmentFallbackKey : '');
 
-// Create the Supabase client
+// Create the Supabase client with modified auth config
 export const supabase = createClient<Database>(
   finalSupabaseUrl,
   finalSupabaseKey, 
@@ -38,7 +38,7 @@ export const supabase = createClient<Database>(
     auth: {
       persistSession: true,
       autoRefreshToken: true,
-      detectSessionInUrl: true,
+      detectSessionInUrl: false, // Disable automatic token handling
     },
     global: {
       headers: {

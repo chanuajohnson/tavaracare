@@ -1,11 +1,9 @@
-
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/lib/supabase";
-import { extractResetTokens } from "@/utils/authResetUtils";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 
@@ -27,29 +25,27 @@ export default function ResetPasswordConfirm() {
       console.log("🔄 Starting password reset initialization");
       
       try {
-        // First, ensure we're signed out globally to prevent automatic redirects
+        // First extract access token from URL
+        const hash = window.location.hash.substring(1);
+        const searchParams = new URLSearchParams(hash || window.location.search);
+        const accessToken = searchParams.get('access_token');
+        
+        if (!accessToken) {
+          throw new Error("No access token found");
+        }
+
+        // Set the session manually
+        await supabase.auth.setSession({ 
+          access_token: accessToken, 
+          refresh_token: '' 
+        });
+
+        // Immediately sign out globally to prevent auto-login
         await supabase.auth.signOut({ scope: "global" });
         
         // Clean up URL parameters
-        const url = new URL(window.location.href);
-        if (url.hash || url.search) {
-          window.history.replaceState({}, document.title, url.pathname);
-        }
+        window.history.replaceState({}, document.title, window.location.pathname);
         
-        // Extract and verify reset token
-        console.log("⚙️ Checking password reset token");
-        const { token, type } = extractResetTokens();
-        
-        if (!token || type !== "recovery") {
-          console.error("❌ Invalid reset token:", { hasToken: !!token, type });
-          if (mounted) {
-            setStatus("invalid");
-            toast.error("Invalid or expired reset link");
-          }
-          return;
-        }
-
-        console.log("✅ Reset token present, showing password form");
         if (mounted) {
           setStatus("ready");
         }

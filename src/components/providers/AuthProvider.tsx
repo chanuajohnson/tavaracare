@@ -143,7 +143,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   // Enhanced post-login redirection logic with safety checks
   useEffect(() => {
-    if (isLoading || !user || isPasswordResetConfirmRoute) return;
+    if (isLoading || !user || isPasswordResetConfirmRoute || 
+        sessionStorage.getItem('skipPostLoginRedirect')) {
+      return;
+    }
     
     console.log('[AuthProvider] User loaded. Handling redirection...');
     
