@@ -1,5 +1,9 @@
 
-export async function extractResetTokens(): Promise<{ access_token?: string; error?: string }> {
+/**
+ * Extracts authentication tokens from URL hash and search params
+ * Handles both Supabase hash-based tokens and search param tokens
+ */
+export const extractResetTokens = async (): Promise<{ access_token?: string; error?: string }> => {
   // Add small delay to ensure URL is populated
   await new Promise(resolve => setTimeout(resolve, 50));
   
@@ -41,4 +45,4 @@ export async function extractResetTokens(): Promise<{ access_token?: string; err
   }
   
   return { access_token };
-}
+};

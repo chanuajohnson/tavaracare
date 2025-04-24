@@ -1,6 +1,7 @@
 
 import { useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { extractResetTokens } from '@/utils/authResetUtils';
 
 export function RedirectHandler() {
   const navigate = useNavigate();
@@ -24,7 +25,7 @@ export function RedirectHandler() {
       hasToken: !!accessToken
     });
 
-    if (accessToken && type === 'recovery') {
+    if (accessToken || type === 'recovery' || hash.includes('access_token') || hash.includes('type=recovery')) {
       // If we're already on the confirm page, don't redirect
       if (!location.pathname.includes('/reset-password/confirm')) {
         console.log("↪️ Redirecting to password reset confirmation");
@@ -32,7 +33,8 @@ export function RedirectHandler() {
           replace: true,
           state: { 
             access_token: accessToken,
-            type 
+            type,
+            hash
           }
         });
         return;
