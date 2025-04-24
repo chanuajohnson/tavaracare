@@ -1,4 +1,3 @@
-
 /**
  * Extracts and validates reset tokens from URL parameters
  */
@@ -58,3 +57,5 @@ export const extractResetTokens = (): {
     type
   };
 };
+
+import { supabase } from '@/integrations/supabase/client';
