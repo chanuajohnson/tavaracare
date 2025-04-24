@@ -85,9 +85,9 @@ export const exchangeRecoveryToken = async (): Promise<{
     
     if (!access_token || access_token === 'recovery_flow') {
       // Check if we already have a valid session which can happen with Supabase auto-login
-      const { data: { session } } = await supabase.auth.getSession();
+      const { data } = await supabase.auth.getSession();
       
-      if (session) {
+      if (data.session) {
         console.log("✅ Already have a valid session, likely from Supabase auto-login");
         return { success: true };
       } else {

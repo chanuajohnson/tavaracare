@@ -34,21 +34,21 @@ export default function ResetPasswordConfirm() {
         }
         
         // Check if we have a valid session (Supabase auto-logs in on reset links)
-        const { data: { session, user } } = await supabase.auth.getSession();
+        const { data } = await supabase.auth.getSession();
         
-        if (!session) {
+        if (!data.session) {
           throw new Error('No valid session found after token exchange');
         }
         
         // Store the email address for display
-        if (user?.email) {
-          setEmailAddress(user.email);
+        if (data.session.user?.email) {
+          setEmailAddress(data.session.user.email);
         }
         
         console.log('[ResetPasswordConfirm] Valid recovery session detected:', {
-          hasUser: !!user,
-          email: user?.email,
-          hasSession: !!session
+          hasUser: !!data.session.user,
+          email: data.session.user?.email,
+          hasSession: !!data.session
         });
         
         setValidSession(true);
