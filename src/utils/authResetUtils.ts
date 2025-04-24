@@ -1,74 +1,56 @@
 
 /**
- * Extracts authentication tokens from URL hash and search params
- * Handles both Supabase hash-based tokens and search param tokens
+ * Extracts authentication tokens from URL parameters with enhanced logging
  */
 export const extractResetTokens = (): { access_token?: string; refresh_token?: string; error?: string } => {
-  // Get full URL components for detailed debugging
-  const fullUrl = window.location.href;
   const hash = window.location.hash;
   const search = window.location.search;
-  const pathname = window.location.pathname;
   
-  console.log("🔍 Reset URL Full Debug Info:", {
-    fullUrl,
+  console.log("[extractResetTokens] URL components:", {
     hash,
     search,
-    pathname,
-    origin: window.location.origin
+    pathname: window.location.pathname
   });
-  
-  // Handle hash-based tokens (Supabase's default format)
+
+  // First try hash-based tokens (Supabase's default format)
   const hashParams = new URLSearchParams(hash.replace('#', ''));
   
   // Also check URL search params as fallback
   const searchParams = new URLSearchParams(search);
   
-  console.log("🔐 Token Parameter Debug:", { 
+  console.log("[extractResetTokens] Parameters found:", {
     hashParams: Object.fromEntries(hashParams.entries()),
     searchParams: Object.fromEntries(searchParams.entries())
   });
-  
-  // Check for recovery type in hash or search params
+
+  // Check for recovery type in either location
   const isRecoveryFlow = 
     hashParams.get('type') === 'recovery' || 
-    searchParams.get('type') === 'recovery' ||
-    search.includes('type=recovery') ||
-    hash.includes('type=recovery') ||
-    pathname.includes('reset-password');
-  
-  // Look for token in multiple possible locations and formats
-  const access_token =
-    hashParams.get("access_token") ||
-    hashParams.get("token") ||
-    searchParams.get("access_token") ||
-    searchParams.get("token") ||
-    // Extract token from Supabase standard format "#access_token=xxx&type=recovery"
-    hash.match(/access_token=([^&]*)/)?.[1] ||
-    search.match(/access_token=([^&]*)/)?.[1];
-  
-  // Also look for refresh token if present
-  const refresh_token =
-    hashParams.get("refresh_token") ||
-    searchParams.get("refresh_token");
-  
-  console.log("🔐 Token Extraction Results:", { 
-    hasToken: !!access_token,
-    tokenLength: access_token?.length || 0,
+    searchParams.get('type') === 'recovery';
+
+  // Get access token from hash or search params
+  const access_token = 
+    hashParams.get('access_token') || 
+    searchParams.get('access_token');
+    
+  // Get refresh token if present
+  const refresh_token = 
+    hashParams.get('refresh_token') || 
+    searchParams.get('refresh_token');
+
+  console.log("[extractResetTokens] Extraction results:", {
     isRecoveryFlow,
-    pathname
+    hasAccessToken: !!access_token,
+    hasRefreshToken: !!refresh_token
   });
-  
+
   if (!access_token && !isRecoveryFlow) {
-    console.error("❌ No access token found in URL parameters:", { hash, search });
-    return { 
-      error: "No access token found in reset link. Please request a new password reset link." 
-    };
+    return { error: "No valid reset token found. Please request a new password reset link." };
   }
-  
+
   return { 
-    access_token: access_token || (isRecoveryFlow ? 'recovery_flow' : undefined),
-    refresh_token 
+    access_token: access_token || undefined,
+    refresh_token: refresh_token || undefined
   };
 };
 
