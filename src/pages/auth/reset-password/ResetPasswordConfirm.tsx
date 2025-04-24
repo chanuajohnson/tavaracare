@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
@@ -89,12 +90,7 @@ export default function ResetPasswordConfirm() {
     
     try {
       console.log("🔒 Updating password");
-      const { token } = extractResetTokens();
       
-      if (!token) {
-        throw new Error("Reset token not found");
-      }
-
       // Update password
       const { error } = await supabase.auth.updateUser({ 
         password 
