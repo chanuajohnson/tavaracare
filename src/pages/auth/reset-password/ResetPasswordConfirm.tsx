@@ -1,11 +1,10 @@
-
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { supabase } from "@/integrations/supabase/client";
-import { extractResetTokens, clearAuthTokens } from "@/utils/authResetUtils";
+import { supabase } from "@/lib/supabase";
+import { extractResetTokens } from "@/utils/authResetUtils";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 
@@ -17,23 +16,20 @@ export default function ResetPasswordConfirm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    const clearSession = async () => {
-      console.log("🔄 Clearing any existing session on reset password page");
-      const { data } = await supabase.auth.getSession();
-      if (data.session) {
-        console.log("Found existing session, signing out globally");
-        await supabase.auth.signOut({ scope: "global" });
+    const initializeReset = async () => {
+      console.log("🔄 Starting password reset initialization");
+      
+      // Immediately sign out globally
+      await supabase.auth.signOut({ scope: "global" });
+      
+      // Clean up URL
+      const url = new URL(window.location.href);
+      if (url.hash || url.search) {
+        window.history.replaceState({}, document.title, url.pathname);
       }
-    };
-    clearSession();
-  }, []);
-
-  useEffect(() => {
-    const verifyResetToken = () => {
+      
       try {
         console.log("⚙️ Checking password reset token");
-        
-        // Extract token from URL
         const { token, type } = extractResetTokens();
         
         if (!token || type !== "recovery") {
@@ -43,13 +39,8 @@ export default function ResetPasswordConfirm() {
           return;
         }
 
-        // If we have a valid token, show the password form
         console.log("✅ Reset token present, showing password form");
         setStatus("ready");
-        
-        // Clear tokens from URL for security
-        clearAuthTokens();
-        
       } catch (err: any) {
         console.error('❌ Error verifying reset token:', err);
         setStatus("invalid");
@@ -57,7 +48,7 @@ export default function ResetPasswordConfirm() {
       }
     };
 
-    verifyResetToken();
+    initializeReset();
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {

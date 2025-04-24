@@ -67,6 +67,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   );
 
   const location = useLocation();
+  const isPasswordResetConfirmRoute = location.pathname.includes('/auth/reset-password/confirm');
   
   const requireAuth = (action: string, redirectPath?: string) => {
     if (user) return true;
@@ -134,13 +135,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   useEffect(() => {
-    if (isLoading || !user) return;
-    
-    // Skip redirection on reset password page
-    if (location.pathname.includes('/auth/reset-password/confirm')) {
-      console.log('[AuthProvider] Skipping redirection on reset-password page');
-      return;
-    }
+    if (isLoading || !user || isPasswordResetConfirmRoute) return;
     
     console.log('[AuthProvider] User loaded. Handling redirection...');
     
@@ -148,7 +143,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       handlePostLoginRedirection();
       initialRedirectionDoneRef.current = true;
     }
-  }, [isLoading, user, userRole, location.pathname]);
+  }, [isLoading, user, userRole, location.pathname, isPasswordResetConfirmRoute]);
 
   useEffect(() => {
     const clearStaleState = async () => {
@@ -179,12 +174,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, newSession) => {
       console.log('[AuthProvider] Auth state changed:', event, newSession ? 'Has session' : 'No session');
       
-      if (location.pathname === '/auth/reset-password' && event === 'SIGNED_IN') {
+      if (isPasswordResetConfirmRoute && event === 'SIGNED_IN') {
         console.log('[AuthProvider] Ignoring auto-login on reset password page');
-        await supabase.auth.signOut({ scope: 'global' });
-        setSession(null);
-        setUser(null);
-        setUserRole(null);
         return;
       }
       
@@ -197,10 +188,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             setUserRole(newSession.user.user_metadata.role);
           }
           
-          if (event === 'SIGNED_IN') {
-            if (location.pathname !== '/auth/reset-password') {
-              toast.success('You have successfully logged in!');
-            }
+          if (event === 'SIGNED_IN' && !isPasswordResetConfirmRoute) {
+            toast.success('You have successfully logged in!');
           }
         }
       } else if (event === 'SIGNED_OUT') {
@@ -213,7 +202,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       console.log('[AuthProvider] Cleaning up auth subscription');
       subscription.unsubscribe();
     };
-  }, []);
+  }, [isPasswordResetConfirmRoute]);
 
   if (isLoading) {
     return <LoadingScreen message="Loading your account..." />;
