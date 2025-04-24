@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { Session, User } from '@supabase/supabase-js';
@@ -141,7 +140,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-  // Enhanced post-login redirection logic with safety checks
   useEffect(() => {
     if (isLoading || !user || isPasswordResetConfirmRoute || 
         sessionStorage.getItem('skipPostLoginRedirect')) {
@@ -156,11 +154,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   }, [isLoading, user, userRole, location.pathname, isPasswordResetConfirmRoute]);
 
-  // Improved auth initialization with password reset protection
   useEffect(() => {
     console.log('[AuthProvider] Initial auth check started');
     
-    // Skip loading screen on password reset page
     if (isPasswordResetConfirmRoute) {
       console.log('[AuthProvider] On password reset page - skipping initial loading state');
       return;
@@ -168,11 +164,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     setLoadingWithTimeout(true, 'initial-auth-check');
     
-    // First, set up auth subscription before checking current session
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, newSession) => {
       console.log('[AuthProvider] Auth state changed:', event, newSession ? 'Has session' : 'No session');
       
-      // Special handling for password reset page - don't update state while on this route
       if (isPasswordResetConfirmRoute && (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED')) {
         console.log('[AuthProvider] Ignoring auth state change on reset password page');
         return;
@@ -196,14 +190,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setIsProfileComplete(false);
       }
 
-      // Only clear loading state if not on password reset page
       if (!isPasswordResetConfirmRoute) {
         setLoadingWithTimeout(false, `auth-state-${event.toLowerCase()}`);
         authInitializedRef.current = true;
       }
     });
 
-    // After subscription is set up, check for existing session
     if (!isPasswordResetConfirmRoute) {
       supabase.auth.getSession().then(({ data: { session: initialSession } }) => {
         setSession(initialSession);
@@ -223,7 +215,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     };
   }, [isPasswordResetConfirmRoute]);
 
-  // Only show loading screen if not on password reset page
   if (isLoading && !isPasswordResetConfirmRoute) {
     return <LoadingScreen message={`Loading your account... (${lastOperationRef.current})`} />;
   }
