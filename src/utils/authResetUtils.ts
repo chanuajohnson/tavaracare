@@ -9,31 +9,18 @@ export const extractResetTokens = () => {
   // Also check URL search params as fallback (some configurations use this)
   const searchParams = new URLSearchParams(window.location.search);
   
-  // Get token and type from either source
-  const token = hashParams.get('token') || searchParams.get('token');
-  const type = hashParams.get('type') || searchParams.get('type');
+  // Get access token from either source
+  const access_token = hashParams.get('access_token') || searchParams.get('access_token');
   
   console.log("Token extraction results:", { 
-    hasToken: !!token, 
-    type, 
-    source: token ? (hashParams.get('token') ? 'hash' : 'search') : 'none' 
+    hasToken: !!access_token,
+    source: access_token ? (hashParams.get('access_token') ? 'hash' : 'search') : 'none' 
   });
   
-  // Check for error parameters
-  const error = searchParams.get('error');
-  const errorDescription = searchParams.get('error_description');
-  
-  if (error || errorDescription) {
-    throw new Error(errorDescription || 'Invalid reset link');
+  if (!access_token) {
+    return { error: "No access token found in URL" };
   }
   
-  return { token, type };
+  return { access_token };
 };
 
-export const clearAuthTokens = () => {
-  // Simply clear the URL without refreshing the page
-  if (window.history && window.history.replaceState) {
-    const cleanPath = window.location.pathname;
-    window.history.replaceState(null, '', cleanPath);
-  }
-};

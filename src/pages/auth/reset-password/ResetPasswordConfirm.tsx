@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
+import { extractResetTokens } from "@/utils/authResetUtils";
 
 export default function ResetPasswordConfirm() {
   const navigate = useNavigate();
@@ -14,7 +15,6 @@ export default function ResetPasswordConfirm() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [initializationComplete, setInitializationComplete] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -26,24 +26,18 @@ export default function ResetPasswordConfirm() {
       console.log("🔄 Starting password reset initialization");
       
       try {
-        // First extract access token from URL
-        const hash = window.location.hash.substring(1);
-        const searchParams = new URLSearchParams(hash || window.location.search);
-        const accessToken = searchParams.get('access_token');
+        const { access_token, error } = extractResetTokens();
         
-        if (!accessToken) {
-          throw new Error("No access token found");
+        if (error || !access_token) {
+          throw new Error(error || "Invalid reset link");
         }
 
         // Set the session manually
         await supabase.auth.setSession({ 
-          access_token: accessToken, 
+          access_token, 
           refresh_token: '' 
         });
 
-        // Immediately sign out globally to prevent auto-login
-        await supabase.auth.signOut({ scope: "global" });
-        
         // Clean up URL parameters
         window.history.replaceState({}, document.title, window.location.pathname);
         
@@ -56,16 +50,12 @@ export default function ResetPasswordConfirm() {
           setStatus("invalid");
           toast.error(err.message || "Invalid reset link");
         }
-      } finally {
-        if (mounted) {
-          setInitializationComplete(true);
-        }
       }
     };
 
     initializeReset();
     
-    // Cleanup function to remove the flag when component unmounts
+    // Cleanup function
     return () => {
       mounted = false;
       sessionStorage.removeItem('skipPostLoginRedirect');
@@ -122,8 +112,8 @@ export default function ResetPasswordConfirm() {
     }
   };
 
-  // Loading state with initialization check
-  if (status === "loading" || !initializationComplete) {
+  // Loading state
+  if (status === "loading") {
     return (
       <div className="container max-w-md mx-auto mt-16">
         <Card>
@@ -243,3 +233,4 @@ export default function ResetPasswordConfirm() {
     </div>
   );
 }
+
