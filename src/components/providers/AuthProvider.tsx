@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { Session, User } from '@supabase/supabase-js';
@@ -50,6 +49,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setIsProfileComplete,
     clearLoadingTimeout,
     isInitializedRef,
+    lastOperationRef
   } = useAuthSession();
 
   const {
@@ -151,36 +151,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }, [isLoading, user, userRole, location.pathname, isPasswordResetConfirmRoute]);
 
   useEffect(() => {
-    const clearStaleState = async () => {
-      const hadAuthError = localStorage.getItem('authStateError');
-      if (hadAuthError) {
-        console.log('[AuthProvider] Detected previous auth error, clearing state');
-        localStorage.removeItem('authStateError');
-        
-        try {
-          await supabase.auth.signOut();
-          setSession(null);
-          setUser(null);
-          setUserRole(null);
-          setIsProfileComplete(false);
-        } catch (e) {
-          console.error('[AuthProvider] Error clearing stale auth state:', e);
-        }
-      }
-    };
-    
-    clearStaleState();
-    return () => clearLoadingTimeout();
-  }, []);
-
-  useEffect(() => {
     console.log('[AuthProvider] Initial auth check started');
+    setLoadingWithTimeout(true, 'initial-auth-check');
     
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, newSession) => {
       console.log('[AuthProvider] Auth state changed:', event, newSession ? 'Has session' : 'No session');
       
       if (isPasswordResetConfirmRoute && event === 'SIGNED_IN') {
         console.log('[AuthProvider] Ignoring auto-login on reset password page');
+        setLoadingWithTimeout(false, 'reset-password-protection');
         return;
       }
       
@@ -201,16 +180,32 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setUserRole(null);
         setIsProfileComplete(false);
       }
+
+      if (!isPasswordResetConfirmRoute) {
+        setLoadingWithTimeout(false, `auth-state-${event.toLowerCase()}`);
+      }
+    });
+
+    supabase.auth.getSession().then(({ data: { session: initialSession } }) => {
+      if (!isPasswordResetConfirmRoute) {
+        setSession(initialSession);
+        setUser(initialSession?.user || null);
+        if (initialSession?.user?.user_metadata?.role) {
+          setUserRole(initialSession.user.user_metadata.role);
+        }
+        setLoadingWithTimeout(false, 'initial-session-check');
+      }
     });
 
     return () => {
       console.log('[AuthProvider] Cleaning up auth subscription');
       subscription.unsubscribe();
+      clearLoadingTimeout();
     };
   }, [isPasswordResetConfirmRoute]);
 
-  if (isLoading) {
-    return <LoadingScreen message="Loading your account..." />;
+  if (isLoading && !isPasswordResetConfirmRoute) {
+    return <LoadingScreen message={`Loading your account... (${lastOperationRef.current})`} />;
   }
 
   return (

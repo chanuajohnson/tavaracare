@@ -14,10 +14,11 @@ export const useAuthSession = () => {
   const loadingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isInitializedRef = useRef(false);
   const retryAttemptsRef = useRef<Record<string, number>>({});
+  const lastOperationRef = useRef<string>('');
 
   const clearLoadingTimeout = () => {
     if (loadingTimeoutRef.current) {
-      console.log(`[AuthProvider] Clearing loading timeout`);
+      console.log(`[AuthProvider] Clearing loading timeout for: ${lastOperationRef.current}`);
       clearTimeout(loadingTimeoutRef.current);
       loadingTimeoutRef.current = null;
     }
@@ -25,7 +26,9 @@ export const useAuthSession = () => {
 
   const setLoadingWithTimeout = (loading: boolean, operation: string) => {
     console.log(`[AuthProvider] ${loading ? 'START' : 'END'} loading state for: ${operation}`);
+    lastOperationRef.current = operation;
     clearLoadingTimeout();
+    
     setIsLoading(loading);
     
     if (loading) {
@@ -33,8 +36,10 @@ export const useAuthSession = () => {
       loadingTimeoutRef.current = setTimeout(() => {
         console.log(`[AuthProvider] TIMEOUT reached for: ${operation}`);
         setIsLoading(false);
-        toast.error(`Authentication operation timed out. Please refresh the page.`);
-      }, 15000);
+        if (operation !== 'initial-auth-check') {
+          toast.error(`Operation timed out: ${operation}. Please try again.`);
+        }
+      }, 15000); // 15 second timeout
     }
   };
 
@@ -51,6 +56,7 @@ export const useAuthSession = () => {
     setIsProfileComplete,
     clearLoadingTimeout,
     isInitializedRef,
-    retryAttemptsRef
+    retryAttemptsRef,
+    lastOperationRef
   };
 };

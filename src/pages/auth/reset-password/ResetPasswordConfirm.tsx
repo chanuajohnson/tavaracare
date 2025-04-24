@@ -14,41 +14,59 @@ export default function ResetPasswordConfirm() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [initializationComplete, setInitializationComplete] = useState(false);
 
   useEffect(() => {
+    let mounted = true;
+    
     const initializeReset = async () => {
       console.log("🔄 Starting password reset initialization");
       
-      // Immediately sign out globally
-      await supabase.auth.signOut({ scope: "global" });
-      
-      // Clean up URL
-      const url = new URL(window.location.href);
-      if (url.hash || url.search) {
-        window.history.replaceState({}, document.title, url.pathname);
-      }
-      
       try {
+        // First, ensure we're signed out globally
+        await supabase.auth.signOut({ scope: "global" });
+        
+        // Clean up URL
+        const url = new URL(window.location.href);
+        if (url.hash || url.search) {
+          window.history.replaceState({}, document.title, url.pathname);
+        }
+        
+        // Verify reset token
         console.log("⚙️ Checking password reset token");
         const { token, type } = extractResetTokens();
         
         if (!token || type !== "recovery") {
           console.error("❌ Invalid reset token:", { hasToken: !!token, type });
-          setStatus("invalid");
-          toast.error("Invalid or expired reset link");
+          if (mounted) {
+            setStatus("invalid");
+            toast.error("Invalid or expired reset link");
+          }
           return;
         }
 
         console.log("✅ Reset token present, showing password form");
-        setStatus("ready");
+        if (mounted) {
+          setStatus("ready");
+        }
       } catch (err: any) {
         console.error('❌ Error verifying reset token:', err);
-        setStatus("invalid");
-        toast.error(err.message || "Invalid reset link");
+        if (mounted) {
+          setStatus("invalid");
+          toast.error(err.message || "Invalid reset link");
+        }
+      } finally {
+        if (mounted) {
+          setInitializationComplete(true);
+        }
       }
     };
 
     initializeReset();
+    
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -106,8 +124,8 @@ export default function ResetPasswordConfirm() {
     }
   };
 
-  // Loading state
-  if (status === "loading") {
+  // Loading state with initialization check
+  if (status === "loading" || !initializationComplete) {
     return (
       <div className="container max-w-md mx-auto mt-16">
         <Card>
