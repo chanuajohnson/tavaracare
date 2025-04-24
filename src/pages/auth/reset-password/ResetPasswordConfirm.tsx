@@ -25,7 +25,16 @@ export default function ResetPasswordConfirm() {
       console.log("🔄 Starting password reset initialization");
       
       try {
-        const { access_token, error } = await extractResetTokens();
+        // Add timeout to fail gracefully if token extraction takes too long
+        const tokenPromise = extractResetTokens();
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error("Token extraction timed out")), 5000)
+        );
+
+        const { access_token, error } = await Promise.race([
+          tokenPromise,
+          timeoutPromise
+        ]) as { access_token?: string; error?: string };
         
         if (error || !access_token) {
           throw new Error(error || "Invalid reset link");

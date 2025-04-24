@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from 'sonner';
 import { Loader2, ArrowLeft } from 'lucide-react';
+import { EmailSentCard } from './reset-password/EmailSentCard';
+import { RequestResetForm } from './reset-password/RequestResetForm';
 
 const ResetPassword = () => {
   const navigate = useNavigate();
@@ -15,9 +17,8 @@ const ResetPassword = () => {
   const [emailSent, setEmailSent] = useState(false);
 
   const getResetRedirectUrl = () => {
-    // Use the current origin to ensure correct redirect path
-    const { origin } = window.location;
-    return `${origin}/auth/reset-password/confirm`;
+    // Always use absolute URLs for email links
+    return `${window.location.origin}/auth/reset-password/confirm`;
   };
 
   const handleSendResetLink = async (e: React.FormEvent) => {
@@ -34,13 +35,11 @@ const ResetPassword = () => {
       console.log("🔄 Sending reset password email to:", email);
       console.log("🔗 Using redirect URL:", getResetRedirectUrl());
       
-      const { error, data } = await supabase.auth.resetPasswordForEmail(email, {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: getResetRedirectUrl(),
       });
 
       if (error) throw error;
-
-      console.log("✅ Reset password response:", data);
       
       setEmailSent(true);
       toast.success('Reset link sent', {
@@ -49,111 +48,47 @@ const ResetPassword = () => {
       });
     } catch (error: any) {
       console.error('Reset password error:', error);
-
-      let errorMessage = "We couldn't send the reset link. Please try again.";
-
-      if (error.message.includes("Email rate limit exceeded")) {
-        errorMessage = "Too many requests. Please wait a few minutes and try again.";
-      }
-
-      toast.error('Reset link failed', {
-        description: errorMessage,
+      toast.error('Failed to send reset link', {
+        description: error.message || "Please try again later"
       });
     } finally {
       setIsLoading(false);
     }
   };
 
-  if (emailSent) {
-    return (
-      <div className="container max-w-md mx-auto mt-16">
-        <Card>
+  return (
+    <div className="container max-w-md mx-auto mt-16 flex items-center min-h-[55vh]">
+      {emailSent ? (
+        <EmailSentCard 
+          email={email}
+          onBack={() => setEmailSent(false)}
+        />
+      ) : (
+        <Card className="w-full shadow-lg">
           <CardHeader>
-            <CardTitle className="text-center">Check Your Email</CardTitle>
-            <CardDescription className="text-center">
-              Reset link sent successfully
+            <div className="flex items-center mb-2">
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                onClick={() => navigate('/auth')}
+                className="mr-2 h-8 w-8"
+              >
+                <ArrowLeft className="h-4 w-4" />
+              </Button>
+              <CardTitle>Reset Your Password</CardTitle>
+            </div>
+            <CardDescription>
+              Enter your email address and we'll send you a link to reset your password.
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <p className="text-center text-muted-foreground">
-              We've sent a password reset link to <strong>{email}</strong>.
-            </p>
-            <p className="text-center text-muted-foreground text-sm">
-              Check your inbox and spam folder for the email. The link will expire after 24 hours.
-            </p>
-          </CardContent>
-          <CardFooter className="flex flex-col gap-4">
-            <Button 
-              className="w-full" 
-              variant="outline" 
-              onClick={() => setEmailSent(false)}
-            >
-              Back to Reset Form
-            </Button>
-            <Button 
-              className="w-full" 
-              onClick={() => navigate('/auth')}
-            >
-              Return to Login
-            </Button>
-          </CardFooter>
+          <RequestResetForm
+            email={email}
+            isLoading={isLoading}
+            onEmailChange={setEmail}
+            onSubmit={handleSendResetLink}
+          />
         </Card>
-      </div>
-    );
-  }
-
-  return (
-    <div className="container max-w-md mx-auto mt-16">
-      <Card>
-        <CardHeader>
-          <div className="flex items-center mb-2">
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              onClick={() => navigate('/auth')}
-              className="mr-2 h-8 w-8"
-            >
-              <ArrowLeft className="h-4 w-4" />
-            </Button>
-            <CardTitle>Reset Your Password</CardTitle>
-          </div>
-          <CardDescription>
-            Enter your email address and we'll send you a link to reset your password.
-          </CardDescription>
-        </CardHeader>
-        <form onSubmit={handleSendResetLink}>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <label htmlFor="email" className="text-sm font-medium">Email Address</label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="Enter your email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                disabled={isLoading}
-                required
-              />
-            </div>
-          </CardContent>
-          <CardFooter>
-            <Button 
-              type="submit" 
-              className="w-full" 
-              disabled={isLoading}
-            >
-              {isLoading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Sending Reset Link...
-                </>
-              ) : (
-                "Send Reset Link"
-              )}
-            </Button>
-          </CardFooter>
-        </form>
-      </Card>
+      )}
     </div>
   );
 };
