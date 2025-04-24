@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
@@ -14,6 +15,18 @@ export default function ResetPasswordConfirm() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    const clearSession = async () => {
+      console.log("🔄 Clearing any existing session on reset password page");
+      const { data } = await supabase.auth.getSession();
+      if (data.session) {
+        console.log("Found existing session, signing out globally");
+        await supabase.auth.signOut({ scope: "global" });
+      }
+    };
+    clearSession();
+  }, []);
 
   useEffect(() => {
     const verifyResetToken = () => {
