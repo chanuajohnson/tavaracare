@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
@@ -19,20 +20,23 @@ export default function ResetPasswordConfirm() {
   useEffect(() => {
     let mounted = true;
     
+    // Block automatic logins from affecting this page
+    sessionStorage.setItem('skipPostLoginRedirect', 'true');
+    
     const initializeReset = async () => {
       console.log("🔄 Starting password reset initialization");
       
       try {
-        // First, ensure we're signed out globally
+        // First, ensure we're signed out globally to prevent automatic redirects
         await supabase.auth.signOut({ scope: "global" });
         
-        // Clean up URL
+        // Clean up URL parameters
         const url = new URL(window.location.href);
         if (url.hash || url.search) {
           window.history.replaceState({}, document.title, url.pathname);
         }
         
-        // Verify reset token
+        // Extract and verify reset token
         console.log("⚙️ Checking password reset token");
         const { token, type } = extractResetTokens();
         
@@ -64,15 +68,17 @@ export default function ResetPasswordConfirm() {
 
     initializeReset();
     
+    // Cleanup function to remove the flag when component unmounts
     return () => {
       mounted = false;
+      sessionStorage.removeItem('skipPostLoginRedirect');
     };
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Simple validation
+    // Validation
     if (password.length < 6) {
       toast.error("Password must be at least 6 characters");
       return;
@@ -93,7 +99,7 @@ export default function ResetPasswordConfirm() {
         throw new Error("Reset token not found");
       }
 
-      // Update the password directly without verifying OTP first
+      // Update password
       const { error } = await supabase.auth.updateUser({ 
         password 
       });
@@ -111,7 +117,7 @@ export default function ResetPasswordConfirm() {
       
       toast.success("Your password has been reset successfully");
       
-      // Redirect to login page after a brief delay
+      // Redirect to login page after a delay
       setTimeout(() => {
         navigate("/auth");
       }, 1500);

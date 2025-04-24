@@ -15,6 +15,7 @@ export const useAuthSession = () => {
   const isInitializedRef = useRef(false);
   const retryAttemptsRef = useRef<Record<string, number>>({});
   const lastOperationRef = useRef<string>('');
+  const authInitializedRef = useRef(false);
 
   const clearLoadingTimeout = () => {
     if (loadingTimeoutRef.current) {
@@ -57,6 +58,7 @@ export const useAuthSession = () => {
     clearLoadingTimeout,
     isInitializedRef,
     retryAttemptsRef,
-    lastOperationRef
+    lastOperationRef,
+    authInitializedRef
   };
 };
