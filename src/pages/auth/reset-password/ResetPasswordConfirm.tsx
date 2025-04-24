@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription, CardFooter } from "@/components/ui/card";
@@ -21,20 +20,20 @@ export default function ResetPasswordConfirm() {
   useEffect(() => {
     async function validateResetSession() {
       try {
-        console.log('[ResetPasswordConfirm] Starting session validation...');
+        console.log('[Reset] Starting session validation...');
         
         // Prevent any automatic redirects while on this page
         sessionStorage.setItem('skipPostLoginRedirect', 'true');
         
         // First check if we have a valid recovery token
-        const { access_token, refresh_token, error } = extractResetTokens();
+        const { access_token, refresh_token, type, error } = extractResetTokens();
         
         if (error) {
           throw new Error(error);
         }
 
         // Set up session with the token
-        const { error: sessionError } = await supabase.auth.setSession({
+        const { data, error: sessionError } = await supabase.auth.setSession({
           access_token: access_token || '',
           refresh_token: refresh_token || ''
         });
@@ -43,35 +42,30 @@ export default function ResetPasswordConfirm() {
           throw new Error(sessionError.message);
         }
         
-        // Check if we have a valid session
-        const { data } = await supabase.auth.getSession();
+        // Validate the session
+        const { data: { user } } = await supabase.auth.getUser();
         
-        if (!data.session) {
-          throw new Error('No valid session found after token exchange');
+        if (!user) {
+          throw new Error('No valid user found after token exchange');
         }
         
         // Store the email address for display
-        if (data.session.user?.email) {
-          setEmailAddress(data.session.user.email);
-        }
-        
-        console.log('[ResetPasswordConfirm] Valid recovery session detected:', {
-          hasUser: !!data.session.user,
-          email: data.session.user?.email,
-          hasSession: !!data.session
-        });
-        
+        setEmailAddress(user.email);
         setValidSession(true);
         setValidationError(null);
+        
+        console.log('[Reset] Valid recovery session detected:', {
+          email: user.email,
+          type
+        });
+        
       } catch (error: any) {
-        console.error('[ResetPasswordConfirm] Session validation error:', error);
-        setValidationError(error.message || 'Invalid or expired reset link');
+        console.error('[Reset] Session validation error:', error);
+        setValidationError(error.message);
         
         // Add a short delay before redirect to ensure error is seen
         setTimeout(() => {
-          toast.error("Invalid or expired reset link", {
-            description: "Please request a new password reset link"
-          });
+          toast.error(error.message || "Invalid or expired reset link");
           navigate("/auth/reset-password", { replace: true });
         }, 2000);
       } finally {
@@ -79,21 +73,9 @@ export default function ResetPasswordConfirm() {
       }
     }
 
-    // Start validation immediately
     validateResetSession();
     
-    // Add hook to warn user before leaving if they haven't submitted the form
-    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      if (validSession && !isLoading && (password || confirmPassword)) {
-        e.preventDefault();
-        e.returnValue = '';
-        return '';
-      }
-    };
-    
-    window.addEventListener('beforeunload', handleBeforeUnload);
     return () => {
-      window.removeEventListener('beforeunload', handleBeforeUnload);
       // Clear the skip redirect flag when leaving this page
       sessionStorage.removeItem('skipPostLoginRedirect');
     };
@@ -115,30 +97,33 @@ export default function ResetPasswordConfirm() {
     setIsLoading(true);
     
     try {
-      console.log('[ResetPasswordConfirm] Updating password...');
-      const { error } = await supabase.auth.updateUser({ password });
+      console.log('[Reset] Updating password...');
       
-      if (error) throw error;
+      // First update the password
+      const { error: updateError } = await supabase.auth.updateUser({ 
+        password 
+      });
       
-      // Set session flag to explicitly allow redirection after password update
-      sessionStorage.setItem('passwordResetComplete', 'true');
-      sessionStorage.removeItem('skipPostLoginRedirect');
+      if (updateError) throw updateError;
       
-      // Sign out immediately after password update
+      // Explicitly sign out after password update
       await supabase.auth.signOut({ scope: 'local' });
+      
+      // Clear session flags
+      sessionStorage.removeItem('skipPostLoginRedirect');
       
       toast.success("Password updated successfully", {
         description: "You can now log in with your new password"
       });
       
-      // Navigate to auth page with success state
+      // Navigate to login page
       navigate("/auth", { 
         replace: true,
         state: { resetSuccess: true }
       });
       
     } catch (error: any) {
-      console.error('[ResetPasswordConfirm] Password update error:', error);
+      console.error('[Reset] Password update error:', error);
       toast.error("Failed to update password", {
         description: error.message || "Please try again or request a new reset link"
       });
