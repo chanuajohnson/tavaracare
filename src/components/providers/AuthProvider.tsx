@@ -1,3 +1,4 @@
+
 import { createContext, useContext, useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { Session, User } from '@supabase/supabase-js';
@@ -158,11 +159,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
+  // Handle post-login redirection only when appropriate
   useEffect(() => {
-    if (isLoading || !user || 
-        isPasswordResetConfirmRoute || 
-        sessionStorage.getItem('skipPostLoginRedirect') ||
-        isPasswordRecoveryRef.current) {
+    const shouldSkipRedirect = 
+      isLoading || 
+      !user || 
+      isPasswordResetConfirmRoute || 
+      isPasswordRecoveryRef.current ||
+      sessionStorage.getItem('skipPostLoginRedirect');
+    
+    if (shouldSkipRedirect) {
       return;
     }
     
@@ -188,6 +194,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, newSession) => {
       console.log('[AuthProvider] Auth state changed:', event, newSession ? 'Has session' : 'No session');
       
+      // Track password recovery state globally
       if (event === 'PASSWORD_RECOVERY') {
         console.log('[AuthProvider] Password recovery detected - preventing redirects');
         isPasswordRecoveryRef.current = true;
@@ -200,8 +207,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         passwordResetCompleteRef.current = false;
       }
 
-      if (isPasswordResetConfirmRoute && (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED')) {
-        console.log('[AuthProvider] Ignoring auth state change on reset password page');
+      // Don't process auth state changes when on the reset password page
+      if (isPasswordResetConfirmRoute || sessionStorage.getItem('skipPostLoginRedirect')) {
+        console.log('[AuthProvider] Ignoring auth state change on reset password page or due to skip flag');
         return;
       }
       
@@ -223,13 +231,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setIsProfileComplete(false);
       }
 
+      // Complete loading only if not on password reset page and not in recovery flow
       if (!isPasswordResetConfirmRoute && !isPasswordRecoveryRef.current) {
         setLoadingWithTimeout(false, `auth-state-${event.toLowerCase()}`);
         authInitializedRef.current = true;
       }
     });
 
-    if (!isPasswordResetConfirmRoute) {
+    // Only run initial session check if not on the password reset page
+    if (!isPasswordResetConfirmRoute && !sessionStorage.getItem('skipPostLoginRedirect')) {
       supabase.auth.getSession().then(({ data: { session: initialSession } }) => {
         setSession(initialSession);
         setUser(initialSession?.user || null);

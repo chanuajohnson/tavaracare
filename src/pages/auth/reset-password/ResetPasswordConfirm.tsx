@@ -16,11 +16,15 @@ export default function ResetPasswordConfirm() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [validSession, setValidSession] = useState(false);
   const [validationError, setValidationError] = useState<string | null>(null);
+  const [emailAddress, setEmailAddress] = useState<string | null>(null);
 
   useEffect(() => {
     async function validateResetSession() {
       try {
         console.log('[ResetPasswordConfirm] Starting session validation...');
+        
+        // Prevent any automatic redirects while on this page
+        sessionStorage.setItem('skipPostLoginRedirect', 'true');
         
         // First check if we have a valid recovery token
         const { success, error } = await exchangeRecoveryToken();
@@ -29,14 +33,24 @@ export default function ResetPasswordConfirm() {
           throw new Error(error || "Invalid or missing token");
         }
         
-        // Check if we have a valid session
-        const { data: { session } } = await supabase.auth.getSession();
+        // Check if we have a valid session (Supabase auto-logs in on reset links)
+        const { data: { session, user } } = await supabase.auth.getSession();
         
         if (!session) {
           throw new Error('No valid session found after token exchange');
         }
         
-        console.log('[ResetPasswordConfirm] Valid recovery session detected');
+        // Store the email address for display
+        if (user?.email) {
+          setEmailAddress(user.email);
+        }
+        
+        console.log('[ResetPasswordConfirm] Valid recovery session detected:', {
+          hasUser: !!user,
+          email: user?.email,
+          hasSession: !!session
+        });
+        
         setValidSession(true);
         setValidationError(null);
       } catch (error: any) {
@@ -49,7 +63,7 @@ export default function ResetPasswordConfirm() {
             description: "Please request a new password reset link"
           });
           navigate("/auth/reset-password", { replace: true });
-        }, 1500);
+        }, 2000);
       } finally {
         setIsLoading(false);
       }
@@ -68,7 +82,11 @@ export default function ResetPasswordConfirm() {
     };
     
     window.addEventListener('beforeunload', handleBeforeUnload);
-    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      // Clear the skip redirect flag when leaving this page
+      sessionStorage.removeItem('skipPostLoginRedirect');
+    };
   }, [navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -94,6 +112,7 @@ export default function ResetPasswordConfirm() {
       
       // Set session flag to explicitly allow redirection after password update
       sessionStorage.setItem('passwordResetComplete', 'true');
+      sessionStorage.removeItem('skipPostLoginRedirect');
       
       // Sign out immediately after password update
       await supabase.auth.signOut({ scope: 'local' });
@@ -179,7 +198,7 @@ export default function ResetPasswordConfirm() {
             <CardTitle>Set New Password</CardTitle>
           </div>
           <CardDescription>
-            Please enter your new password below
+            {emailAddress ? `Update password for ${emailAddress}` : "Please enter your new password below"}
           </CardDescription>
         </CardHeader>
         <form onSubmit={handleSubmit}>

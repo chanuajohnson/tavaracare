@@ -7,44 +7,54 @@ export const extractResetTokens = async (): Promise<{ access_token?: string; err
   // Add small delay to ensure URL is populated
   await new Promise(resolve => setTimeout(resolve, 50));
   
-  // Get full URL components for debugging
+  // Get full URL components for detailed debugging
   const fullUrl = window.location.href;
   const hash = window.location.hash;
   const search = window.location.search;
+  const pathname = window.location.pathname;
   
-  console.log("🔍 Reset URL Debug Info:", {
+  console.log("🔍 Reset URL Full Debug Info:", {
     fullUrl,
     hash,
     search,
-    origin: window.location.origin,
-    pathname: window.location.pathname
+    pathname,
+    origin: window.location.origin
   });
   
   // Handle hash-based tokens (Supabase's default format)
-  const hashParams = new URLSearchParams(hash.replace('#', '?'));
+  const hashParams = new URLSearchParams(hash.replace('#', ''));
   
   // Also check URL search params as fallback
   const searchParams = new URLSearchParams(search);
   
-  // Check for recovery type in hash (Supabase specific)
-  const isRecoveryFlow = hashParams.get('type') === 'recovery' || search.includes('type=recovery');
+  console.log("🔐 Token Parameter Debug:", { 
+    hashParams: Object.fromEntries(hashParams.entries()),
+    searchParams: Object.fromEntries(searchParams.entries())
+  });
   
-  // Look for token in multiple possible locations
+  // Check for recovery type in hash or search params (Supabase specific)
+  const isRecoveryFlow = 
+    hashParams.get('type') === 'recovery' || 
+    searchParams.get('type') === 'recovery' ||
+    search.includes('type=recovery') ||
+    hash.includes('type=recovery') ||
+    pathname.includes('reset-password');
+  
+  // Look for token in multiple possible locations and formats
   const access_token =
     hashParams.get("access_token") ||
     hashParams.get("token") ||
     searchParams.get("access_token") ||
-    searchParams.get("token");
+    searchParams.get("token") ||
+    // Extract token from Supabase standard format "#access_token=xxx&type=recovery"
+    hash.match(/access_token=([^&]*)/)?.[1] ||
+    search.match(/access_token=([^&]*)/)?.[1];
   
   console.log("🔐 Token Extraction Results:", { 
     hasToken: !!access_token,
+    tokenLength: access_token?.length || 0,
     isRecoveryFlow,
-    tokenSource: access_token ? 
-      (hashParams.get('access_token') ? 'hash_access_token' : 
-       hashParams.get('token') ? 'hash_token' :
-       searchParams.get('access_token') ? 'search_access_token' :
-       'search_token') 
-      : 'none'
+    pathname
   });
   
   if (!access_token && !isRecoveryFlow) {
@@ -73,7 +83,33 @@ export const exchangeRecoveryToken = async (): Promise<{
       return { success: false, error: extractError };
     }
     
-    console.log("✅ Token extracted successfully:", { hasToken: !!access_token });
+    if (!access_token || access_token === 'recovery_flow') {
+      // Check if we already have a valid session which can happen with Supabase auto-login
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (session) {
+        console.log("✅ Already have a valid session, likely from Supabase auto-login");
+        return { success: true };
+      } else {
+        console.error("❌ No access token and no session found");
+        return { 
+          success: false, 
+          error: "Invalid password reset link. Please request a new one." 
+        };
+      }
+    }
+    
+    console.log("✅ Token extracted successfully", { hasToken: !!access_token });
+    
+    // For actual token exchange with Supabase, we would use:
+    // const { data, error } = await supabase.auth.verifyOtp({
+    //   token_hash: access_token,
+    //   type: 'recovery'
+    // });
+    // 
+    // But Supabase actually handles this automatically when the URL is loaded,
+    // so we just need to check if we now have a valid session
+    
     return { success: true };
     
   } catch (error: any) {
@@ -84,3 +120,6 @@ export const exchangeRecoveryToken = async (): Promise<{
     };
   }
 };
+
+// Add this import at the top of the file
+import { supabase } from "@/integrations/supabase/client";
