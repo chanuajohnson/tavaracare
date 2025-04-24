@@ -1,13 +1,13 @@
 
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle, CardContent, CardFooter, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
-import { extractResetTokens } from "@/utils/authResetUtils";
+import { Loader2, ArrowLeft, AlertTriangle } from "lucide-react";
+import { exchangeRecoveryToken } from "@/utils/authResetUtils";
 
 export default function ResetPasswordConfirm() {
   const navigate = useNavigate();
@@ -15,37 +15,60 @@ export default function ResetPasswordConfirm() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [validSession, setValidSession] = useState(false);
+  const [validationError, setValidationError] = useState<string | null>(null);
 
   useEffect(() => {
     async function validateResetSession() {
       try {
-        // First check if we have valid tokens in the URL
-        const { access_token, error: tokenError } = await extractResetTokens();
-        if (tokenError) {
-          console.error('[ResetPasswordConfirm] Token extraction error:', tokenError);
-          throw new Error(tokenError);
+        console.log('[ResetPasswordConfirm] Starting session validation...');
+        
+        // First check if we have a valid recovery token
+        const { success, error } = await exchangeRecoveryToken();
+        
+        if (!success) {
+          throw new Error(error || "Invalid or missing token");
         }
-
-        // Check for valid session
+        
+        // Check if we have a valid session
         const { data: { session } } = await supabase.auth.getSession();
+        
         if (!session) {
-          throw new Error('No valid reset session found');
+          throw new Error('No valid session found after token exchange');
         }
-
-        console.log('[ResetPasswordConfirm] Valid reset session detected');
+        
+        console.log('[ResetPasswordConfirm] Valid recovery session detected');
         setValidSession(true);
+        setValidationError(null);
       } catch (error: any) {
         console.error('[ResetPasswordConfirm] Session validation error:', error);
-        toast.error("Invalid or expired reset link", {
-          description: "Please request a new password reset link"
-        });
-        navigate("/auth/reset-password", { replace: true });
+        setValidationError(error.message || 'Invalid or expired reset link');
+        
+        // Add a short delay before redirect to ensure error is seen
+        setTimeout(() => {
+          toast.error("Invalid or expired reset link", {
+            description: "Please request a new password reset link"
+          });
+          navigate("/auth/reset-password", { replace: true });
+        }, 1500);
       } finally {
         setIsLoading(false);
       }
     }
 
+    // Start validation immediately
     validateResetSession();
+    
+    // Add hook to warn user before leaving if they haven't submitted the form
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (validSession && !isLoading && (password || confirmPassword)) {
+        e.preventDefault();
+        e.returnValue = '';
+        return '';
+      }
+    };
+    
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -69,13 +92,17 @@ export default function ResetPasswordConfirm() {
       
       if (error) throw error;
       
+      // Set session flag to explicitly allow redirection after password update
+      sessionStorage.setItem('passwordResetComplete', 'true');
+      
       // Sign out immediately after password update
-      await supabase.auth.signOut();
+      await supabase.auth.signOut({ scope: 'local' });
       
       toast.success("Password updated successfully", {
         description: "You can now log in with your new password"
       });
       
+      // Navigate to auth page with success state
       navigate("/auth", { 
         replace: true,
         state: { resetSuccess: true }
@@ -95,6 +122,7 @@ export default function ResetPasswordConfirm() {
     }
   };
 
+  // Show loading state
   if (isLoading) {
     return (
       <div className="container max-w-md mx-auto mt-16 flex items-center justify-center min-h-[55vh]">
@@ -106,15 +134,53 @@ export default function ResetPasswordConfirm() {
     );
   }
 
+  // Show error state
+  if (validationError) {
+    return (
+      <div className="container max-w-md mx-auto mt-16 flex items-center justify-center min-h-[55vh]">
+        <Card className="w-full">
+          <CardHeader className="text-center">
+            <AlertTriangle className="h-12 w-12 text-amber-500 mx-auto mb-4" />
+            <CardTitle>Invalid Reset Link</CardTitle>
+            <CardDescription>{validationError}</CardDescription>
+          </CardHeader>
+          <CardFooter>
+            <Button 
+              className="w-full" 
+              onClick={() => navigate("/auth/reset-password")}
+            >
+              Request New Reset Link
+            </Button>
+          </CardFooter>
+        </Card>
+      </div>
+    );
+  }
+
+  // Skip rendering form if session validation failed
   if (!validSession) {
     return null;
   }
 
+  // Show password reset form
   return (
     <div className="container max-w-md mx-auto mt-16">
-      <Card>
+      <Card className="shadow-lg">
         <CardHeader>
-          <CardTitle className="text-center">Set New Password</CardTitle>
+          <div className="flex items-center mb-2">
+            <Button 
+              variant="ghost" 
+              size="icon"
+              onClick={() => navigate("/auth/reset-password")}
+              className="mr-2 h-8 w-8"
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+            <CardTitle>Set New Password</CardTitle>
+          </div>
+          <CardDescription>
+            Please enter your new password below
+          </CardDescription>
         </CardHeader>
         <form onSubmit={handleSubmit}>
           <CardContent className="space-y-4">
@@ -129,6 +195,8 @@ export default function ResetPasswordConfirm() {
                 disabled={isLoading}
                 minLength={6}
                 required
+                className="focus:ring-2 focus:ring-blue-500"
+                autoComplete="new-password"
               />
             </div>
             
@@ -143,6 +211,8 @@ export default function ResetPasswordConfirm() {
                 disabled={isLoading}
                 minLength={6}
                 required
+                className="focus:ring-2 focus:ring-blue-500"
+                autoComplete="new-password"
               />
             </div>
           </CardContent>

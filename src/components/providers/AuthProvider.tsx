@@ -72,9 +72,23 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const location = useLocation();
   const isPasswordResetConfirmRoute = location.pathname.includes('/auth/reset-password/confirm');
   const isPasswordRecoveryRef = useRef(false);
+  const passwordResetCompleteRef = useRef(false);
   
   useEffect(() => {
     console.log('[App] Route changed to:', location.pathname);
+    
+    // Check if we're on the reset password page
+    if (isPasswordResetConfirmRoute) {
+      console.log('[AuthProvider] On password reset page - skipping initial loading state');
+      isPasswordRecoveryRef.current = true;
+    }
+    
+    // Check if password reset was completed
+    if (sessionStorage.getItem('passwordResetComplete')) {
+      console.log('[AuthProvider] Password reset was completed');
+      passwordResetCompleteRef.current = true;
+      sessionStorage.removeItem('passwordResetComplete');
+    }
   }, [location.pathname]);
 
   const requireAuth = (action: string, redirectPath?: string) => {
@@ -143,7 +157,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   useEffect(() => {
-    if (isLoading || !user || isPasswordResetConfirmRoute || 
+    if (isLoading || !user || 
+        isPasswordResetConfirmRoute || 
         sessionStorage.getItem('skipPostLoginRedirect') ||
         isPasswordRecoveryRef.current) {
       return;
@@ -162,6 +177,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     
     if (isPasswordResetConfirmRoute) {
       console.log('[AuthProvider] On password reset page - skipping initial loading state');
+      setLoadingWithTimeout(false, 'reset-page-detected');
       return;
     }
 
@@ -173,12 +189,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       if (event === 'PASSWORD_RECOVERY') {
         console.log('[AuthProvider] Password recovery detected - preventing redirects');
         isPasswordRecoveryRef.current = true;
-        return;
+        return; // Don't process further for PASSWORD_RECOVERY events
       }
 
       if (event === 'SIGNED_OUT') {
         console.log('[AuthProvider] Signed out - clearing password recovery state');
         isPasswordRecoveryRef.current = false;
+        passwordResetCompleteRef.current = false;
       }
 
       if (isPasswordResetConfirmRoute && (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED')) {
@@ -195,7 +212,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             setUserRole(newSession.user.user_metadata.role);
           }
           
-          if (event === 'SIGNED_IN' && !isPasswordResetConfirmRoute) {
+          if (event === 'SIGNED_IN' && !isPasswordResetConfirmRoute && !passwordResetCompleteRef.current) {
             toast.success('You have successfully logged in!');
           }
         }
@@ -204,7 +221,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setIsProfileComplete(false);
       }
 
-      if (!isPasswordResetConfirmRoute) {
+      if (!isPasswordResetConfirmRoute && !isPasswordRecoveryRef.current) {
         setLoadingWithTimeout(false, `auth-state-${event.toLowerCase()}`);
         authInitializedRef.current = true;
       }
