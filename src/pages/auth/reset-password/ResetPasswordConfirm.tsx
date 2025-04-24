@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
@@ -72,18 +71,7 @@ export default function ResetPasswordConfirm() {
         throw new Error("Reset token not found");
       }
 
-      // Verify the token first using verifyOtp
-      const { error: verifyError } = await supabase.auth.verifyOtp({
-        token_hash: token,
-        type: "recovery"
-      });
-
-      if (verifyError) {
-        console.error("❌ Token verification failed:", verifyError);
-        throw verifyError;
-      }
-
-      // Update the password
+      // Update the password directly without verifying OTP first
       const { error } = await supabase.auth.updateUser({ 
         password 
       });
