@@ -28,7 +28,6 @@ export function RedirectHandler() {
       // If we're already on the confirm page, don't redirect
       if (!location.pathname.includes('/reset-password/confirm')) {
         console.log("↪️ Redirecting to password reset confirmation");
-        const searchParams = new URLSearchParams(location.search);
         navigate('/auth/reset-password/confirm', { 
           replace: true,
           state: { 
