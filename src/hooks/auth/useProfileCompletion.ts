@@ -20,7 +20,7 @@ export const useProfileCompletion = (
         throw error;
       }
       
-      if (profile?.role && !userRole) {
+      if (profile?.role) {
         console.log('[AuthProvider] Setting user role from profile:', profile.role);
         setUserRole(profile.role);
       }

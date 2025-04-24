@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { Session, User } from '@supabase/supabase-js';
@@ -128,7 +127,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setSession(null);
       setUser(null);
       setUserRole(null);
-      setIsLoading(false);
+      setLoadingWithTimeout(false, 'sign-out-error');
       safeNavigate('/', { skipCheck: true });
       toast.success('You have been signed out successfully');
     }
