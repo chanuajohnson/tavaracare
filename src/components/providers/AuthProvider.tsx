@@ -1,3 +1,4 @@
+
 import { createContext, useContext, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { Session, User } from '@supabase/supabase-js';
@@ -69,6 +70,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const location = useLocation();
   const isPasswordResetConfirmRoute = location.pathname.includes('/auth/reset-password/confirm');
   
+  useEffect(() => {
+    console.log('[App] Route changed to:', location.pathname);
+  }, [location.pathname]);
+
   const requireAuth = (action: string, redirectPath?: string) => {
     if (user) return true;
 
