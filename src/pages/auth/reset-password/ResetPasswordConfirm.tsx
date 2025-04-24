@@ -7,12 +7,46 @@ import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
+import { extractResetTokens } from "@/utils/authResetUtils";
 
 export default function ResetPasswordConfirm() {
   const navigate = useNavigate();
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [validSession, setValidSession] = useState(false);
+
+  useEffect(() => {
+    async function validateResetSession() {
+      try {
+        // First check if we have valid tokens in the URL
+        const { access_token, error: tokenError } = await extractResetTokens();
+        if (tokenError) {
+          console.error('[ResetPasswordConfirm] Token extraction error:', tokenError);
+          throw new Error(tokenError);
+        }
+
+        // Check for valid session
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
+          throw new Error('No valid reset session found');
+        }
+
+        console.log('[ResetPasswordConfirm] Valid reset session detected');
+        setValidSession(true);
+      } catch (error: any) {
+        console.error('[ResetPasswordConfirm] Session validation error:', error);
+        toast.error("Invalid or expired reset link", {
+          description: "Please request a new password reset link"
+        });
+        navigate("/auth/reset-password", { replace: true });
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    validateResetSession();
+  }, [navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,19 +64,28 @@ export default function ResetPasswordConfirm() {
     setIsLoading(true);
     
     try {
+      console.log('[ResetPasswordConfirm] Updating password...');
       const { error } = await supabase.auth.updateUser({ password });
       
       if (error) throw error;
       
-      toast.success("Password updated successfully");
-      
-      // Sign out and redirect to login
+      // Sign out immediately after password update
       await supabase.auth.signOut();
-      navigate("/auth", { replace: true });
+      
+      toast.success("Password updated successfully", {
+        description: "You can now log in with your new password"
+      });
+      
+      navigate("/auth", { 
+        replace: true,
+        state: { resetSuccess: true }
+      });
       
     } catch (error: any) {
-      console.error("Password update error:", error);
-      toast.error(error.message || "Failed to update password");
+      console.error('[ResetPasswordConfirm] Password update error:', error);
+      toast.error("Failed to update password", {
+        description: error.message || "Please try again or request a new reset link"
+      });
       
       if (error.message?.includes("expired")) {
         navigate("/auth/reset-password", { replace: true });
@@ -51,6 +94,21 @@ export default function ResetPasswordConfirm() {
       setIsLoading(false);
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="container max-w-md mx-auto mt-16 flex items-center justify-center min-h-[55vh]">
+        <div className="text-center space-y-4">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto" />
+          <p className="text-muted-foreground">Validating reset link...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!validSession) {
+    return null; // Will redirect in useEffect
+  }
 
   return (
     <div className="container max-w-md mx-auto mt-16">

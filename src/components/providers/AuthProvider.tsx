@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect } from 'react';
+import { createContext, useContext, useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
@@ -70,6 +70,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const location = useLocation();
   const isPasswordResetConfirmRoute = location.pathname.includes('/auth/reset-password/confirm');
+  const isPasswordRecoveryRef = useRef(false);
   
   useEffect(() => {
     console.log('[App] Route changed to:', location.pathname);
@@ -167,6 +168,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, newSession) => {
       console.log('[AuthProvider] Auth state changed:', event, newSession ? 'Has session' : 'No session');
       
+      if (event === 'PASSWORD_RECOVERY') {
+        console.log('[AuthProvider] Password recovery detected - preventing redirects');
+        isPasswordRecoveryRef.current = true;
+      }
+
+      if (event === 'SIGNED_OUT') {
+        console.log('[AuthProvider] Signed out - clearing password recovery state');
+        isPasswordRecoveryRef.current = false;
+      }
+
       if (isPasswordResetConfirmRoute && (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED')) {
         console.log('[AuthProvider] Ignoring auth state change on reset password page');
         return;
@@ -175,7 +186,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setSession(newSession);
       setUser(newSession?.user || null);
       
-      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+      if (!isPasswordRecoveryRef.current && (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED')) {
         if (newSession?.user) {
           if (newSession.user.user_metadata?.role) {
             setUserRole(newSession.user.user_metadata.role);
