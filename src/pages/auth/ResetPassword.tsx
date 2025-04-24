@@ -15,6 +15,7 @@ const ResetPassword = () => {
   const [emailSent, setEmailSent] = useState(false);
 
   const getResetRedirectUrl = () => {
+    // Use the current origin to ensure correct redirect path
     const { origin } = window.location;
     return `${origin}/auth/reset-password/confirm`;
   };
@@ -31,16 +32,20 @@ const ResetPassword = () => {
 
     try {
       console.log("🔄 Sending reset password email to:", email);
+      console.log("🔗 Using redirect URL:", getResetRedirectUrl());
       
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      const { error, data } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: getResetRedirectUrl(),
       });
 
       if (error) throw error;
 
+      console.log("✅ Reset password response:", data);
+      
       setEmailSent(true);
       toast.success('Reset link sent', {
-        description: 'Please check your email for the password reset link.',
+        description: 'Please check your email inbox and spam folder for the password reset link.',
+        duration: 8000,
       });
     } catch (error: any) {
       console.error('Reset password error:', error);
@@ -74,8 +79,7 @@ const ResetPassword = () => {
               We've sent a password reset link to <strong>{email}</strong>.
             </p>
             <p className="text-center text-muted-foreground text-sm">
-              Check your inbox and follow the link to reset your password.
-              The link will expire after 24 hours.
+              Check your inbox and spam folder for the email. The link will expire after 24 hours.
             </p>
           </CardContent>
           <CardFooter className="flex flex-col gap-4">
