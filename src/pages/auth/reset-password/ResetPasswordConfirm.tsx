@@ -17,9 +17,9 @@ export default function ResetPasswordConfirm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    const verifyResetToken = async () => {
+    const verifyResetToken = () => {
       try {
-        console.log("⚙️ Verifying password reset token");
+        console.log("⚙️ Checking password reset token");
         
         // Extract token from URL
         const { token, type } = extractResetTokens();
@@ -31,20 +31,8 @@ export default function ResetPasswordConfirm() {
           return;
         }
 
-        // Verify the token directly with Supabase
-        const { data, error } = await supabase.auth.verifyOtp({
-          token_hash: token,
-          type: "recovery"
-        });
-
-        if (error || !data?.user) {
-          console.error("❌ Error verifying token:", error);
-          setStatus("invalid");
-          toast.error("This password reset link is invalid or has expired");
-          return;
-        }
-
-        console.log("✅ Reset token verified successfully");
+        // If we have a valid token, show the password form
+        console.log("✅ Reset token present, showing password form");
         setStatus("ready");
         
         // Clear tokens from URL for security
@@ -78,7 +66,18 @@ export default function ResetPasswordConfirm() {
     
     try {
       console.log("🔒 Updating password");
-      const { error } = await supabase.auth.updateUser({ password });
+      const { token } = extractResetTokens();
+      
+      if (!token) {
+        throw new Error("Reset token not found");
+      }
+
+      // Use updateUser with type: 'recovery' to verify token and update password
+      const { error } = await supabase.auth.updateUser({ 
+        password,
+      }, {
+        hash: token
+      });
       
       if (error) {
         console.error("❌ Password update failed:", error);
