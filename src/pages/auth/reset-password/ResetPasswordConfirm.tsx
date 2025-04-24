@@ -7,74 +7,16 @@ import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
-import { extractResetTokens } from "@/utils/authResetUtils";
 
 export default function ResetPasswordConfirm() {
   const navigate = useNavigate();
-  const [status, setStatus] = useState<"loading" | "invalid" | "ready" | "success">("loading");
+  const [isLoading, setIsLoading] = useState(false);
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  useEffect(() => {
-    let mounted = true;
-    
-    // Block automatic logins from affecting this page
-    sessionStorage.setItem('skipPostLoginRedirect', 'true');
-    
-    const initializeReset = async () => {
-      console.log("🔄 Starting password reset initialization");
-      
-      try {
-        // Add timeout to fail gracefully if token extraction takes too long
-        const tokenPromise = extractResetTokens();
-        const timeoutPromise = new Promise((_, reject) => 
-          setTimeout(() => reject(new Error("Token extraction timed out")), 5000)
-        );
-
-        const { access_token, error } = await Promise.race([
-          tokenPromise,
-          timeoutPromise
-        ]) as { access_token?: string; error?: string };
-        
-        if (error || !access_token) {
-          throw new Error(error || "Invalid reset link");
-        }
-
-        console.log("✅ Token extracted successfully, setting session");
-
-        // Set the session manually
-        await supabase.auth.setSession({ 
-          access_token, 
-          refresh_token: '' 
-        });
-        
-        if (mounted) {
-          setStatus("ready");
-          // Only clean up URL after successful token extraction
-          window.history.replaceState({}, document.title, window.location.pathname);
-        }
-      } catch (err: any) {
-        console.error('❌ Error verifying reset token:', err);
-        if (mounted) {
-          setStatus("invalid");
-          toast.error(err.message || "Invalid reset link");
-        }
-      }
-    };
-
-    initializeReset();
-    
-    return () => {
-      mounted = false;
-      sessionStorage.removeItem('skipPostLoginRedirect');
-    };
-  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Validation
     if (password.length < 6) {
       toast.error("Password must be at least 6 characters");
       return;
@@ -85,109 +27,36 @@ export default function ResetPasswordConfirm() {
       return;
     }
     
-    setIsSubmitting(true);
+    setIsLoading(true);
     
     try {
-      console.log("🔒 Updating password");
+      const { error } = await supabase.auth.updateUser({ password });
       
-      // Update password
-      const { error } = await supabase.auth.updateUser({ 
-        password 
-      });
+      if (error) throw error;
       
-      if (error) {
-        console.error("❌ Password update failed:", error);
-        throw error;
-      }
+      toast.success("Password updated successfully");
       
-      console.log("✅ Password updated successfully");
-      setStatus("success");
-      
-      // Sign out after reset for security
-      await supabase.auth.signOut({ scope: "global" });
-      
-      toast.success("Your password has been reset successfully");
-      
-      // Redirect to login page after a delay
-      setTimeout(() => {
-        navigate("/auth");
-      }, 1500);
+      // Sign out and redirect to login
+      await supabase.auth.signOut();
+      navigate("/auth", { replace: true });
       
     } catch (error: any) {
-      console.error("❌ Password update error:", error);
+      console.error("Password update error:", error);
       toast.error(error.message || "Failed to update password");
+      
+      if (error.message?.includes("expired")) {
+        navigate("/auth/reset-password", { replace: true });
+      }
     } finally {
-      setIsSubmitting(false);
+      setIsLoading(false);
     }
   };
 
-  // Loading state
-  if (status === "loading") {
-    return (
-      <div className="container max-w-md mx-auto mt-16">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-center">Verifying Reset Link</CardTitle>
-          </CardHeader>
-          <CardContent className="flex justify-center py-8">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  // Invalid token state
-  if (status === "invalid") {
-    return (
-      <div className="container max-w-md mx-auto mt-16">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-center text-red-500">Invalid Reset Link</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-center text-muted-foreground mb-6">
-              This password reset link is invalid or has expired.
-            </p>
-            <Button
-              onClick={() => navigate("/auth/reset-password")}
-              className="w-full"
-            >
-              Request New Reset Link
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  // Success state
-  if (status === "success") {
-    return (
-      <div className="container max-w-md mx-auto mt-16">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-center text-green-500">Password Reset Successful</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-center text-muted-foreground mb-6">
-              Your password has been reset successfully. You will be redirected to login.
-            </p>
-            <div className="flex justify-center">
-              <Loader2 className="h-6 w-6 animate-spin text-primary" />
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  // Ready state - show password form
   return (
     <div className="container max-w-md mx-auto mt-16">
       <Card>
         <CardHeader>
-          <CardTitle className="text-center">Set Your New Password</CardTitle>
+          <CardTitle className="text-center">Set New Password</CardTitle>
         </CardHeader>
         <form onSubmit={handleSubmit}>
           <CardContent className="space-y-4">
@@ -199,10 +68,9 @@ export default function ResetPasswordConfirm() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Enter your new password"
-                disabled={isSubmitting}
+                disabled={isLoading}
                 minLength={6}
                 required
-                autoFocus
               />
             </div>
             
@@ -214,27 +82,37 @@ export default function ResetPasswordConfirm() {
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 placeholder="Confirm your new password"
-                disabled={isSubmitting}
+                disabled={isLoading}
                 minLength={6}
                 required
               />
             </div>
           </CardContent>
           
-          <CardFooter>
+          <CardFooter className="flex flex-col gap-4">
             <Button 
               type="submit" 
               className="w-full" 
-              disabled={isSubmitting}
+              disabled={isLoading}
             >
-              {isSubmitting ? (
+              {isLoading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Updating Password...
                 </>
               ) : (
-                "Reset Password"
+                "Update Password"
               )}
+            </Button>
+            
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => navigate("/auth/reset-password")}
+              className="w-full"
+              disabled={isLoading}
+            >
+              Request New Reset Link
             </Button>
           </CardFooter>
         </form>
