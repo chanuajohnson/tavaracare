@@ -1,10 +1,9 @@
-
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { supabase } from "@/lib/supabase";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import { extractResetTokens } from "@/utils/authResetUtils";
@@ -26,23 +25,24 @@ export default function ResetPasswordConfirm() {
       console.log("🔄 Starting password reset initialization");
       
       try {
-        const { access_token, error } = extractResetTokens();
+        const { access_token, error } = await extractResetTokens();
         
         if (error || !access_token) {
           throw new Error(error || "Invalid reset link");
         }
+
+        console.log("✅ Token extracted successfully, setting session");
 
         // Set the session manually
         await supabase.auth.setSession({ 
           access_token, 
           refresh_token: '' 
         });
-
-        // Clean up URL parameters
-        window.history.replaceState({}, document.title, window.location.pathname);
         
         if (mounted) {
           setStatus("ready");
+          // Only clean up URL after successful token extraction
+          window.history.replaceState({}, document.title, window.location.pathname);
         }
       } catch (err: any) {
         console.error('❌ Error verifying reset token:', err);
@@ -55,7 +55,6 @@ export default function ResetPasswordConfirm() {
 
     initializeReset();
     
-    // Cleanup function
     return () => {
       mounted = false;
       sessionStorage.removeItem('skipPostLoginRedirect');
@@ -233,4 +232,3 @@ export default function ResetPasswordConfirm() {
     </div>
   );
 }
-

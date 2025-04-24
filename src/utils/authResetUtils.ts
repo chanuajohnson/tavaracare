@@ -1,26 +1,44 @@
 
-export const extractResetTokens = () => {
-  console.log("🔍 Extracting auth reset tokens from URL");
+export async function extractResetTokens(): Promise<{ access_token?: string; error?: string }> {
+  // Add small delay to ensure URL is populated
+  await new Promise(resolve => setTimeout(resolve, 50));
+  
+  // Get full URL components for debugging
+  const fullUrl = window.location.href;
+  const hash = window.location.hash;
+  const search = window.location.search;
+  
+  console.log("🔍 Reset URL components:", {
+    fullUrl,
+    hash,
+    search
+  });
   
   // Extract from URL hash (fragment) which is how Supabase delivers tokens
-  const hash = window.location.hash.substring(1);
-  const hashParams = new URLSearchParams(hash);
+  const hashParams = new URLSearchParams(hash.substring(1));
   
-  // Also check URL search params as fallback (some configurations use this)
-  const searchParams = new URLSearchParams(window.location.search);
+  // Also check URL search params as fallback
+  const searchParams = new URLSearchParams(search);
   
-  // Get access token from either source
-  const access_token = hashParams.get('access_token') || searchParams.get('access_token');
+  // Try different possible token parameter names
+  const access_token =
+    hashParams.get("access_token") ||
+    hashParams.get("token") ||
+    searchParams.get("access_token") ||
+    searchParams.get("token");
   
   console.log("Token extraction results:", { 
     hasToken: !!access_token,
-    source: access_token ? (hashParams.get('access_token') ? 'hash' : 'search') : 'none' 
+    tokenLocation: access_token ? 
+      (hashParams.get('access_token') || hashParams.get('token') ? 'hash' : 'search') 
+      : 'none'
   });
   
   if (!access_token) {
-    return { error: "No access token found in URL" };
+    return { 
+      error: "No access token found in URL. Please check the reset link or request a new one." 
+    };
   }
   
   return { access_token };
-};
-
+}
