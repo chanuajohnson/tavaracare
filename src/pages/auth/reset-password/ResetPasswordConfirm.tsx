@@ -72,11 +72,20 @@ export default function ResetPasswordConfirm() {
         throw new Error("Reset token not found");
       }
 
-      // Use updateUser with type: 'recovery' to verify token and update password
+      // Verify the token first using verifyOtp
+      const { error: verifyError } = await supabase.auth.verifyOtp({
+        token_hash: token,
+        type: "recovery"
+      });
+
+      if (verifyError) {
+        console.error("❌ Token verification failed:", verifyError);
+        throw verifyError;
+      }
+
+      // Update the password
       const { error } = await supabase.auth.updateUser({ 
-        password,
-      }, {
-        hash: token
+        password 
       });
       
       if (error) {
