@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { Session, User } from '@supabase/supabase-js';
@@ -79,13 +78,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     
     // Check if we're on the reset password page
     if (isPasswordResetConfirmRoute) {
-      console.log('[AuthProvider] On password reset page - skipping initial loading state');
+      console.log('[AuthProvider] On password reset confirmation page');
       isPasswordRecoveryRef.current = true;
+      setLoadingWithTimeout(false, 'reset-page-detected');
+      return;
     }
     
     // Check if password reset was completed
     if (sessionStorage.getItem('passwordResetComplete')) {
-      console.log('[AuthProvider] Password reset was completed');
+      console.log('[AuthProvider] Password reset completed, clearing recovery state');
+      isPasswordRecoveryRef.current = false;
       passwordResetCompleteRef.current = true;
       sessionStorage.removeItem('passwordResetComplete');
     }
@@ -176,7 +178,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     console.log('[AuthProvider] Initial auth check started');
     
     if (isPasswordResetConfirmRoute) {
-      console.log('[AuthProvider] On password reset page - skipping initial loading state');
+      console.log('[AuthProvider] On reset password page - skipping initial loading');
       setLoadingWithTimeout(false, 'reset-page-detected');
       return;
     }
@@ -189,11 +191,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       if (event === 'PASSWORD_RECOVERY') {
         console.log('[AuthProvider] Password recovery detected - preventing redirects');
         isPasswordRecoveryRef.current = true;
-        return; // Don't process further for PASSWORD_RECOVERY events
+        return;
       }
 
       if (event === 'SIGNED_OUT') {
-        console.log('[AuthProvider] Signed out - clearing password recovery state');
+        console.log('[AuthProvider] Signed out - clearing recovery state');
         isPasswordRecoveryRef.current = false;
         passwordResetCompleteRef.current = false;
       }
