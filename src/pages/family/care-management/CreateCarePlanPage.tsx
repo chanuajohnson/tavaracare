@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { Container } from "@/components/ui/container";
@@ -20,24 +20,24 @@ type WeekendOption = 'yes' | 'no';
 const CreateCarePlanPage = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const { id } = useParams(); // Get the ID from URL if editing
+  const { id } = useParams();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(!!id);
   const [isEditMode] = useState(!!id);
   
-  // Form state
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [planType, setPlanType] = useState<PlanType>("scheduled");
   const [weekdayOption, setWeekdayOption] = useState<WeekdayOption>("8am-4pm");
   const [weekendOption, setWeekendOption] = useState<WeekendOption>("yes");
   
-  // Additional shifts
   const [shifts, setShifts] = useState({
-    weekdayEvening4pmTo6am: false,  // 4PM - 6AM
-    weekdayEvening4pmTo8am: false,  // 4PM - 8AM
-    weekdayEvening6pmTo6am: false,  // 6PM - 6AM
-    weekdayEvening6pmTo8am: false,  // 6PM - 8AM (new)
+    weekdayEvening4pmTo6am: false,
+    weekdayEvening4pmTo8am: false,
+    weekdayEvening6pmTo6am: false,
+    weekdayEvening6pmTo8am: false,
+    weekday8amTo4pm: false,
+    weekday8amTo6pm: false,
   });
 
   useEffect(() => {
@@ -66,6 +66,8 @@ const CreateCarePlanPage = () => {
               weekdayEvening4pmTo8am: !!plan.metadata.additionalShifts.weekdayEvening4pmTo8am,
               weekdayEvening6pmTo6am: !!plan.metadata.additionalShifts.weekdayEvening6pmTo6am,
               weekdayEvening6pmTo8am: !!plan.metadata.additionalShifts.weekdayEvening6pmTo8am,
+              weekday8amTo4pm: !!plan.metadata.additionalShifts.weekday8amTo4pm,
+              weekday8amTo6pm: !!plan.metadata.additionalShifts.weekday8amTo6pm,
             });
           }
         }
@@ -104,7 +106,6 @@ const CreateCarePlanPage = () => {
     try {
       setIsSubmitting(true);
       
-      // Prepare plan details based on selections
       const planDetails: CarePlanInput = {
         title,
         description,
@@ -381,6 +382,42 @@ const CreateCarePlanPage = () => {
                     </CardHeader>
                     <CardContent>
                       <div className="grid gap-4">
+                        {weekdayOption === '8am-6pm' && (
+                          <div className="flex items-start space-x-2">
+                            <Checkbox 
+                              id="weekday-8am-4pm"
+                              checked={shifts.weekday8amTo4pm} 
+                              onCheckedChange={() => handleShiftChange('weekday8amTo4pm')}
+                            />
+                            <div className="grid gap-1.5 leading-none">
+                              <Label htmlFor="weekday-8am-4pm" className="font-medium">
+                                Monday - Friday, 8 AM - 4 PM
+                              </Label>
+                              <p className="text-sm text-muted-foreground">
+                                Standard daytime coverage during business hours.
+                              </p>
+                            </div>
+                          </div>
+                        )}
+
+                        {weekdayOption === '8am-4pm' && (
+                          <div className="flex items-start space-x-2">
+                            <Checkbox 
+                              id="weekday-8am-6pm"
+                              checked={shifts.weekday8amTo6pm} 
+                              onCheckedChange={() => handleShiftChange('weekday8amTo6pm')}
+                            />
+                            <div className="grid gap-1.5 leading-none">
+                              <Label htmlFor="weekday-8am-6pm" className="font-medium">
+                                Monday - Friday, 8 AM - 6 PM
+                              </Label>
+                              <p className="text-sm text-muted-foreground">
+                                Extended daytime coverage with later end time.
+                              </p>
+                            </div>
+                          </div>
+                        )}
+
                         <div className="flex items-start space-x-2">
                           <Checkbox 
                             id="weekday-evening-4pm-6am"

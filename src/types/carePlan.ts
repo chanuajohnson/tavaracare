@@ -26,6 +26,8 @@ export interface CarePlanMetadata {
     weekdayEvening4pmTo8am?: boolean;
     weekdayEvening6pmTo6am?: boolean;
     weekdayEvening6pmTo8am?: boolean;
+    weekday8amTo4pm?: boolean;  // New field for 8am-4pm shift
+    weekday8amTo6pm?: boolean;  // New field for 8am-6pm shift
   };
 }
 
@@ -69,5 +71,7 @@ export interface DbCarePlanMetadata {
     weekday_evening_4pm_to_8am?: boolean;
     weekday_evening_6pm_to_6am?: boolean;
     weekday_evening_6pm_to_8am?: boolean;
+    weekday_8am_to_4pm?: boolean;  // New field for 8am-4pm shift
+    weekday_8am_to_6pm?: boolean;  // New field for 8am-6pm shift
   };
 }
