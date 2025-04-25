@@ -1,16 +1,20 @@
+
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import type { WorkLog, WorkLogInput } from "../types/workLogTypes";
 
 export const fetchWorkLogs = async (carePlanId: string): Promise<WorkLog[]> => {
   try {
+    console.log('Fetching work logs for care plan:', carePlanId);
     const { data: workLogs, error } = await supabase
       .from('work_logs')
       .select(`
         *,
-        care_team_members:care_team_member_id (
+        care_team_members!care_team_member_id (
+          id,
+          display_name,
           caregiver_id,
-          display_name
+          role
         )
       `)
       .eq('care_plan_id', carePlanId)
@@ -18,15 +22,21 @@ export const fetchWorkLogs = async (carePlanId: string): Promise<WorkLog[]> => {
 
     if (error) throw error;
     
+    console.log('Raw work logs data:', workLogs);
+    
     // Map the display names from care team members
     return workLogs.map(log => {
       const validRateType: 'regular' | 'overtime' | 'holiday' = 
         log.rate_type === 'overtime' ? 'overtime' :
         log.rate_type === 'holiday' ? 'holiday' : 'regular';
       
+      // Use display name from care team member
+      const displayName = log.care_team_members?.display_name || 'Unknown';
+      console.log('Display name for work log:', displayName);
+      
       return {
         ...log,
-        caregiver_name: log.care_team_members?.display_name || 'Unknown',
+        caregiver_name: displayName,
         rate_type: validRateType
       };
     });

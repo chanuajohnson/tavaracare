@@ -5,12 +5,16 @@ import type { PayrollEntry } from "./types/workLogTypes";
 
 export const fetchPayrollEntries = async (carePlanId: string): Promise<PayrollEntry[]> => {
   try {
+    console.log('Fetching payroll entries for care plan:', carePlanId);
     const { data: entries, error } = await supabase
       .from('payroll_entries')
       .select(`
         *,
-        care_team_members:care_team_member_id (
-          display_name
+        care_team_members!care_team_member_id (
+          id,
+          display_name,
+          caregiver_id,
+          role
         )
       `)
       .eq('care_plan_id', carePlanId)
@@ -18,11 +22,17 @@ export const fetchPayrollEntries = async (carePlanId: string): Promise<PayrollEn
 
     if (error) throw error;
     
+    console.log('Raw payroll entries:', entries);
+    
     if (entries.length > 0) {
       return entries.map(entry => {        
+        // Use display name from care team member
+        const displayName = entry.care_team_members?.display_name || 'Unknown';
+        console.log('Display name for payroll entry:', displayName);
+        
         return {
           ...entry,
-          caregiver_name: entry.care_team_members?.display_name || 'Unknown',
+          caregiver_name: displayName,
           payment_status: ['pending', 'approved', 'paid'].includes(entry.payment_status) 
             ? entry.payment_status as 'pending' | 'approved' | 'paid'
             : 'pending'
