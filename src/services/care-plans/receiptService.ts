@@ -49,10 +49,10 @@ export const generatePayReceipt = async (workLog: WorkLog): Promise<string> => {
   let appliedRate = regularRate;
   let rateType = 'Regular';
   
-  if (workLogData?.rate_type === 'overtime') {
+  if (workLog.rate_type === 'overtime' || workLogData?.rate_type === 'overtime') {
     appliedRate = overtimeRate;
     rateType = 'Overtime';
-  } else if (workLogData?.rate_type === 'holiday') {
+  } else if (workLog.rate_type === 'holiday' || workLogData?.rate_type === 'holiday') {
     appliedRate = holidayRate;
     rateType = 'Holiday';
   }

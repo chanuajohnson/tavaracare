@@ -1802,6 +1802,7 @@ export type Database = {
           end_time: string
           id: string
           notes: string | null
+          rate_type: string | null
           shift_id: string | null
           start_time: string
           status: string | null
@@ -1814,6 +1815,7 @@ export type Database = {
           end_time: string
           id?: string
           notes?: string | null
+          rate_type?: string | null
           shift_id?: string | null
           start_time: string
           status?: string | null
@@ -1826,6 +1828,7 @@ export type Database = {
           end_time?: string
           id?: string
           notes?: string | null
+          rate_type?: string | null
           shift_id?: string | null
           start_time?: string
           status?: string | null
