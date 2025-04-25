@@ -59,15 +59,18 @@ export const PayrollTab: React.FC<PayrollTabProps> = ({ carePlanId }) => {
     return true; // Return true to indicate success in opening the dialog
   };
 
-  const handleRejectWorkLogSubmit = async () => {
-    if (!workLogToReject) return;
+  // Updated to return a Promise<boolean> to match the expected type in RejectWorkLogDialog
+  const handleRejectWorkLogSubmit = async (reason: string): Promise<boolean> => {
+    if (!workLogToReject) return false;
     
-    const success = await handleRejectWorkLog(workLogToReject, rejectionReason);
+    const success = await handleRejectWorkLog(workLogToReject, reason);
     if (success) {
       setRejectDialogOpen(false);
       setRejectionReason('');
       setWorkLogToReject(null);
+      return true;
     }
+    return false;
   };
 
   const openPaymentDialog = (payrollId: string) => {
@@ -179,3 +182,4 @@ export const PayrollTab: React.FC<PayrollTabProps> = ({ carePlanId }) => {
     </div>
   );
 };
+
