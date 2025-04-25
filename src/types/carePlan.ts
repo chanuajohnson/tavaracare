@@ -60,7 +60,7 @@ export interface DbCarePlan {
  */
 export interface DbCarePlanMetadata {
   plan_type: 'scheduled' | 'on-demand' | 'both';
-  weekday_coverage?: '8am-4pm' | '8am-6pm' | '6am-6pm' | '6pm-8am' | 'none';
+  weekday_coverage?: WeekdayOption;
   weekend_coverage?: 'yes' | 'no' | '8am-6pm';
   additional_shifts?: {
     weekday_evening_4pm_to_6am?: boolean;
