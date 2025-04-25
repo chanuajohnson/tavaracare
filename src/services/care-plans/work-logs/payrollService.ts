@@ -1,8 +1,6 @@
-
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import type { PayrollEntry } from "../types/workLogTypes";
-import { calculatePayrollEntry } from "../payrollCalculationService";
 
 export const fetchPayrollEntries = async (carePlanId: string): Promise<PayrollEntry[]> => {
   try {
@@ -11,7 +9,7 @@ export const fetchPayrollEntries = async (carePlanId: string): Promise<PayrollEn
       .select(`
         *,
         care_team_members:care_team_member_id (
-          caregiver_id
+          display_name
         )
       `)
       .eq('care_plan_id', carePlanId)
@@ -20,31 +18,13 @@ export const fetchPayrollEntries = async (carePlanId: string): Promise<PayrollEn
     if (error) throw error;
     
     if (entries.length > 0) {
-      const caregiverIds = entries
-        .map(entry => entry.care_team_members?.caregiver_id)
-        .filter(Boolean);
-
-      const { data: profiles, error: profilesError } = await supabase
-        .from('profiles')
-        .select('id, full_name')
-        .in('id', caregiverIds);
-
-      if (profilesError) throw profilesError;
-
-      return entries.map(entry => {
-        const caregiverId = entry.care_team_members?.caregiver_id;
-        const profile = profiles?.find(p => p.id === caregiverId);
-        
-        // Ensure the payment_status is one of the allowed values
-        const validStatus: 'pending' | 'approved' | 'paid' = 
-          ['pending', 'approved', 'paid'].includes(entry.payment_status) 
-            ? entry.payment_status as 'pending' | 'approved' | 'paid'
-            : 'pending';
-            
+      return entries.map(entry => {        
         return {
           ...entry,
-          caregiver_name: profile?.full_name || 'Unknown',
-          payment_status: validStatus
+          caregiver_name: entry.care_team_members?.display_name || 'Unknown',
+          payment_status: ['pending', 'approved', 'paid'].includes(entry.payment_status) 
+            ? entry.payment_status as 'pending' | 'approved' | 'paid'
+            : 'pending'
         };
       });
     }

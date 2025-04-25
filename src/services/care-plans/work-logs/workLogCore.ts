@@ -1,4 +1,3 @@
-
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import type { WorkLog, WorkLogInput } from "../types/workLogTypes";
@@ -10,7 +9,8 @@ export const fetchWorkLogs = async (carePlanId: string): Promise<WorkLog[]> => {
       .select(`
         *,
         care_team_members:care_team_member_id (
-          caregiver_id
+          caregiver_id,
+          display_name
         )
       `)
       .eq('care_plan_id', carePlanId)
@@ -18,40 +18,19 @@ export const fetchWorkLogs = async (carePlanId: string): Promise<WorkLog[]> => {
 
     if (error) throw error;
     
-    // Get caregiver names from profiles
-    const caregiverIds = workLogs
-      .map(log => log.care_team_members?.caregiver_id)
-      .filter(Boolean);
-
-    if (caregiverIds.length > 0) {
-      const { data: profiles, error: profilesError } = await supabase
-        .from('profiles')
-        .select('id, full_name')
-        .in('id', caregiverIds);
-
-      if (profilesError) throw profilesError;
-
-      // Map profiles to work logs and ensure correct typing
-      return workLogs.map(log => {
-        const caregiverId = log.care_team_members?.caregiver_id;
-        const profile = profiles.find(p => p.id === caregiverId);
-        
-        // Ensure rate_type is one of the allowed values
-        let validRateType: 'regular' | 'overtime' | 'holiday' = 'regular';
-        if (log.rate_type === 'overtime') validRateType = 'overtime';
-        if (log.rate_type === 'holiday') validRateType = 'holiday';
-        
-        const typedWorkLog: WorkLog = {
-          ...log,
-          caregiver_name: profile?.full_name || 'Unknown',
-          rate_type: validRateType
-        };
-        
-        return typedWorkLog;
-      });
-    }
+    // Map the display names from care team members
+    return workLogs.map(log => {
+      const validRateType: 'regular' | 'overtime' | 'holiday' = 
+        log.rate_type === 'overtime' ? 'overtime' :
+        log.rate_type === 'holiday' ? 'holiday' : 'regular';
+      
+      return {
+        ...log,
+        caregiver_name: log.care_team_members?.display_name || 'Unknown',
+        rate_type: validRateType
+      };
+    });
     
-    return [] as WorkLog[];
   } catch (error) {
     console.error("Error fetching work logs:", error);
     toast.error("Failed to load work logs");
