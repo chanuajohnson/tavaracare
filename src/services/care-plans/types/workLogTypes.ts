@@ -7,7 +7,7 @@ export interface WorkLog {
   end_time: string;
   break_duration_minutes: number;
   notes?: string;
-  status: 'pending' | 'approved' | 'rejected';
+  status: 'pending' | 'approved' | 'rejected' | string; // Added string to make it compatible with the data from Supabase
   created_at?: string;
   updated_at?: string;
   caregiver_name?: string;

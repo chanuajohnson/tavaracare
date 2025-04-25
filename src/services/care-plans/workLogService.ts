@@ -1,4 +1,3 @@
-
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import { calculatePayrollEntry } from "./payrollCalculationService";
@@ -7,7 +6,8 @@ import type {
   WorkLogInput, 
   WorkLogExpense, 
   WorkLogExpenseInput,
-  PayrollEntry 
+  PayrollEntry,
+  Holiday 
 } from "./types/workLogTypes";
 import type { CareShift } from "@/types/careTypes";
 
@@ -216,7 +216,7 @@ export const approveWorkLog = async (workLogId: string): Promise<boolean> => {
     if (fetchError) throw fetchError;
 
     // Calculate payroll details
-    const payrollData = await calculatePayrollEntry(workLog);
+    const payrollData = await calculatePayrollEntry(workLog as WorkLog);
     
     // Calculate total amount
     const totalAmount = 
