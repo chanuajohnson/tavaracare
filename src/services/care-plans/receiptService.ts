@@ -16,11 +16,11 @@ export const generatePayReceipt = async (workLog: WorkLog): Promise<string> => {
           id,
           regular_rate,
           overtime_rate,
-          caregiver_id
-        ),
-        profiles (
-          full_name,
-          avatar_url
+          caregiver_id,
+          profiles:caregiver_id (
+            full_name,
+            avatar_url
+          )
         )
       `)
       .eq('id', workLog.id)
@@ -41,6 +41,9 @@ export const generatePayReceipt = async (workLog: WorkLog): Promise<string> => {
     // Calculate total
     const total = hoursWorked * appliedRate;
 
+    // Get caregiver name from the nested data
+    const caregiverName = workLogWithTeamMember?.care_team_members?.profiles?.full_name || 'Unknown Caregiver';
+
     // Create PDF document
     const doc = new jsPDF();
     
@@ -54,7 +57,7 @@ export const generatePayReceipt = async (workLog: WorkLog): Promise<string> => {
       `Receipt #: ${workLog.id.slice(0, 8)}`,
       `Date: ${format(startTime, 'MMM d, yyyy')}`,
       `Status: ${workLog.status.charAt(0).toUpperCase() + workLog.status.slice(1)}`,
-      `Caregiver: ${workLogWithTeamMember?.profiles?.full_name || 'Unknown'}`
+      `Caregiver: ${caregiverName}`
     ], 20, 35);
 
     // Add autoTable for hours and rates
