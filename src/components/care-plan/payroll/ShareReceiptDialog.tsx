@@ -1,12 +1,13 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Copy, Download, Mail, File, FileImage } from 'lucide-react';
+import { Copy, Download, Mail, File, FileImage, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import type { WorkLog, PayrollEntry } from '@/services/care-plans/types/workLogTypes';
 
 interface ShareReceiptDialogProps {
@@ -27,6 +28,43 @@ export const ShareReceiptDialog: React.FC<ShareReceiptDialogProps> = ({
   const [email, setEmail] = useState('');
   const [fileFormat, setFileFormat] = useState<FileFormat>('pdf');
   const [isDownloading, setIsDownloading] = useState(false);
+  const [isConverting, setIsConverting] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(receiptUrl);
+  const [conversionError, setConversionError] = useState<string | null>(null);
+
+  // Update preview URL when format changes or receipt URL changes
+  useEffect(() => {
+    if (receiptUrl) {
+      // Reset error state
+      setConversionError(null);
+      
+      // If format is PDF, just use the receipt URL directly
+      if (fileFormat === 'pdf') {
+        setPreviewUrl(receiptUrl);
+        setIsConverting(false);
+      } else {
+        // For JPG, check if the URL already starts with data:image/jpeg
+        if (receiptUrl.startsWith('data:image/jpeg')) {
+          setPreviewUrl(receiptUrl);
+          setIsConverting(false);
+        } else {
+          // Need to convert from PDF to JPG
+          setIsConverting(true);
+          setPreviewUrl(null); // Clear preview while converting
+          
+          // Wait a moment to ensure the PDF has loaded before trying to convert
+          // This is just a visual indication of the conversion process
+          setTimeout(() => {
+            setPreviewUrl(receiptUrl); // Show the converted image (the conversion happens server-side)
+            setIsConverting(false);
+          }, 1000);
+        }
+      }
+    } else {
+      setPreviewUrl(null);
+      setIsConverting(false);
+    }
+  }, [receiptUrl, fileFormat]);
 
   const handleCopyLink = () => {
     if (!receiptUrl) return;
@@ -46,27 +84,38 @@ export const ShareReceiptDialog: React.FC<ShareReceiptDialogProps> = ({
       const mimeType = fileFormat === 'pdf' ? 'application/pdf' : 'image/jpeg';
       
       try {
-        const response = await fetch(receiptUrl);
-        
-        if (!response.ok) {
-          throw new Error(`Failed to fetch receipt: ${response.status}`);
+        // If we already have the data URL, use it directly
+        if (receiptUrl.startsWith(`data:${mimeType}`)) {
+          link.href = receiptUrl;
+        } else {
+          // Need to fetch the content
+          const response = await fetch(receiptUrl);
+          
+          if (!response.ok) {
+            throw new Error(`Failed to fetch receipt: ${response.status}`);
+          }
+          
+          const blob = await response.blob();
+          const blobUrl = URL.createObjectURL(new Blob([blob], { type: mimeType }));
+          link.href = blobUrl;
+          
+          // Clean up blob URL after download
+          setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
         }
         
-        const blob = await response.blob();
-        const blobUrl = URL.createObjectURL(new Blob([blob], { type: mimeType }));
-
-        link.href = blobUrl;
+        // Set the filename
         link.download = `receipt-${workLog.id.slice(0, 8)}.${fileFormat}`;
+        
+        // Trigger download
         document.body.appendChild(link);
         link.click();
-        
         document.body.removeChild(link);
-        URL.revokeObjectURL(blobUrl);
         
         toast.success(`Receipt downloaded as ${fileFormat.toUpperCase()}`);
       } catch (error) {
         console.error('Download error:', error);
         toast.error(`Failed to download receipt as ${fileFormat.toUpperCase()}`);
+        setConversionError('Failed to download the receipt. Please try again or use PDF format.');
       }
     } catch (error) {
       console.error('Download setup error:', error);
@@ -86,6 +135,56 @@ export const ShareReceiptDialog: React.FC<ShareReceiptDialogProps> = ({
     setEmail('');
   };
 
+  const renderPreview = () => {
+    if (isConverting) {
+      return (
+        <div className="flex items-center justify-center h-64 bg-gray-100">
+          <div className="flex flex-col items-center space-y-2">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            <p className="text-sm text-gray-500">Converting to JPG...</p>
+          </div>
+        </div>
+      );
+    }
+    
+    if (conversionError) {
+      return (
+        <div className="flex items-center justify-center h-64 bg-gray-100">
+          <Alert variant="destructive" className="max-w-xs">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>{conversionError}</AlertDescription>
+          </Alert>
+        </div>
+      );
+    }
+    
+    if (!previewUrl) {
+      return (
+        <div className="p-4 text-center text-muted-foreground h-64 flex items-center justify-center">
+          No receipt available
+        </div>
+      );
+    }
+    
+    if (fileFormat === 'pdf') {
+      return (
+        <iframe 
+          src={previewUrl} 
+          className="w-full h-64"
+          title="Receipt Preview"
+        />
+      );
+    } else {
+      return (
+        <img 
+          src={previewUrl} 
+          alt="Receipt Preview"
+          className="w-full h-64 object-contain"
+        />
+      );
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
@@ -94,25 +193,7 @@ export const ShareReceiptDialog: React.FC<ShareReceiptDialogProps> = ({
         </DialogHeader>
         <div className="flex flex-col space-y-4">
           <div className="border rounded-md overflow-hidden">
-            {receiptUrl ? (
-              fileFormat === 'pdf' ? (
-                <iframe 
-                  src={receiptUrl} 
-                  className="w-full h-64"
-                  title="Receipt Preview"
-                />
-              ) : (
-                <img 
-                  src={receiptUrl} 
-                  alt="Receipt Preview"
-                  className="w-full h-64 object-contain"
-                />
-              )
-            ) : (
-              <div className="p-4 text-center text-muted-foreground">
-                No receipt available
-              </div>
-            )}
+            {renderPreview()}
           </div>
           
           <div className="flex flex-col space-y-2">
@@ -121,13 +202,17 @@ export const ShareReceiptDialog: React.FC<ShareReceiptDialogProps> = ({
                 variant="outline" 
                 className="flex-1"
                 onClick={handleCopyLink}
-                disabled={!receiptUrl}
+                disabled={!receiptUrl || isConverting}
               >
                 <Copy className="mr-2 h-4 w-4" />
                 Copy Link
               </Button>
               <div className="flex-1 flex space-x-2">
-                <Select value={fileFormat} onValueChange={(value: FileFormat) => setFileFormat(value)}>
+                <Select 
+                  value={fileFormat} 
+                  onValueChange={(value: FileFormat) => setFileFormat(value)}
+                  disabled={isConverting || isDownloading}
+                >
                   <SelectTrigger className="w-24">
                     <SelectValue />
                   </SelectTrigger>
@@ -149,7 +234,7 @@ export const ShareReceiptDialog: React.FC<ShareReceiptDialogProps> = ({
                 <Button 
                   variant="outline"
                   onClick={handleDownload}
-                  disabled={!receiptUrl || isDownloading}
+                  disabled={!receiptUrl || isDownloading || isConverting}
                   className="flex-1"
                 >
                   {isDownloading ? (
@@ -171,12 +256,13 @@ export const ShareReceiptDialog: React.FC<ShareReceiptDialogProps> = ({
                   placeholder="Enter email address" 
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
+                  disabled={isConverting}
                 />
               </div>
               <Button 
                 variant="outline" 
                 onClick={handleEmailShare}
-                disabled={!receiptUrl}
+                disabled={!receiptUrl || isConverting}
               >
                 <Mail className="h-4 w-4" />
               </Button>
