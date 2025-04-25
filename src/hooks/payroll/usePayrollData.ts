@@ -32,10 +32,10 @@ export const usePayrollData = (carePlanId: string) => {
         fetchCareTeamMembers(carePlanId)
       ]);
 
-      // Create a map of care team members with their display names
+      // Use professional details for name display
       const enhancedMembers = members.map(member => ({
         ...member,
-        displayName: member.display_name || member.professionalDetails?.full_name || 'Unknown'
+        displayName: member.professionalDetails?.full_name || member.profile?.fullName || 'Unknown'
       }));
 
       setWorkLogs(logs);

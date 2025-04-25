@@ -1,4 +1,3 @@
-
 // Domain model type definitions for care-related entities
 
 // Care Plan 
@@ -56,7 +55,6 @@ export interface CareTeamMember {
   notes?: string;
   createdAt: string;
   updatedAt: string;
-  display_name?: string;
 }
 
 // Professional details from profiles
@@ -76,7 +74,6 @@ export interface CareTeamMemberWithProfile extends CareTeamMember {
     yearsOfExperience?: string;
     certifications?: string[];
   };
-  displayName?: string;
 }
 
 // DTOs for database interaction

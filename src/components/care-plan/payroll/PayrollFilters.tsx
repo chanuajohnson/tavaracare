@@ -2,7 +2,6 @@
 import React from 'react';
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { DateRangeFilter } from '@/hooks/payroll/usePayrollFilters';
 import { CareTeamMemberWithProfile } from '@/types/careTypes';
 
 interface PayrollFiltersProps {
@@ -27,7 +26,7 @@ export const PayrollFilters: React.FC<PayrollFiltersProps> = ({
   onStatusChange,
   caregiverFilter,
   onCaregiverChange,
-  careTeamMembers = [], // Default to empty array if undefined
+  careTeamMembers = [],
   showPayrollStatuses = false,
 }) => {
   return (
@@ -81,7 +80,7 @@ export const PayrollFilters: React.FC<PayrollFiltersProps> = ({
           <SelectItem value="all">All caregivers</SelectItem>
           {careTeamMembers.map((member) => (
             <SelectItem key={member.id} value={member.id}>
-              {member.displayName}
+              {member.professionalDetails?.full_name || member.profile?.fullName || 'Unknown'}
             </SelectItem>
           ))}
         </SelectContent>
