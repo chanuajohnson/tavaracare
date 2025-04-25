@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { format } from 'date-fns';
 import { 
   Table, 
@@ -11,10 +11,13 @@ import {
   TableRow 
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Check, X } from "lucide-react";
+import { Check, Receipt, Share2, X } from "lucide-react";
 import { PayrollStatusBadge } from './PayrollStatusBadge';
 import { RejectWorkLogDialog } from './RejectWorkLogDialog';
 import { WorkLogExpenses } from './WorkLogExpenses';
+import { PayRateSelector } from './PayRateSelector';
+import { generatePayReceipt } from '@/services/care-plans/receiptService';
+import { ShareReceiptDialog } from './ShareReceiptDialog';
 import type { WorkLog } from '@/services/care-plans/types/workLogTypes';
 
 interface WorkLogsTableProps {
@@ -28,80 +31,150 @@ export const WorkLogsTable: React.FC<WorkLogsTableProps> = ({
   onApprove,
   onReject
 }) => {
+  const [shareDialogOpen, setShareDialogOpen] = useState(false);
+  const [currentWorkLog, setCurrentWorkLog] = useState<WorkLog | null>(null);
+  const [receiptUrl, setReceiptUrl] = useState<string | null>(null);
+
   if (workLogs.length === 0) {
     return <div className="text-center p-4">No work logs found.</div>;
   }
 
+  const handleGenerateReceipt = async (workLog: WorkLog) => {
+    try {
+      const url = await generatePayReceipt(workLog);
+      setReceiptUrl(url);
+      setCurrentWorkLog(workLog);
+      setShareDialogOpen(true);
+    } catch (error) {
+      console.error("Error generating receipt:", error);
+    }
+  };
+
   return (
-    <Table>
-      <TableCaption>Submitted work logs</TableCaption>
-      <TableHeader>
-        <TableRow>
-          <TableHead>Caregiver</TableHead>
-          <TableHead>Date</TableHead>
-          <TableHead>Hours</TableHead>
-          <TableHead>Expenses</TableHead>
-          <TableHead>Status</TableHead>
-          <TableHead className="text-right">Actions</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {workLogs.map((workLog) => {
-          const startTime = new Date(workLog.start_time);
-          const endTime = new Date(workLog.end_time);
-          const hoursDiff = (endTime.getTime() - startTime.getTime()) / (1000 * 60 * 60);
-          
-          return (
-            <TableRow key={workLog.id}>
-              <TableCell className="font-medium">
-                {workLog.caregiver_name || 'Unknown'}
-              </TableCell>
-              <TableCell>
-                {format(startTime, 'MMM d, yyyy')}
-              </TableCell>
-              <TableCell>
-                {hoursDiff.toFixed(1)}h ({format(startTime, 'h:mm a')} - {format(endTime, 'h:mm a')})
-              </TableCell>
-              <TableCell>
-                {workLog.expenses && workLog.expenses.length > 0 ? (
-                  <WorkLogExpenses expenses={workLog.expenses} />
-                ) : (
-                  <span className="text-muted-foreground">None</span>
-                )}
-              </TableCell>
-              <TableCell>
-                <PayrollStatusBadge status={workLog.status} />
-              </TableCell>
-              <TableCell className="text-right">
-                {workLog.status === 'pending' && (
+    <>
+      <Table>
+        <TableCaption>Submitted work logs</TableCaption>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Caregiver</TableHead>
+            <TableHead>Date</TableHead>
+            <TableHead>Hours</TableHead>
+            <TableHead>Pay Rate</TableHead>
+            <TableHead>Total Pay</TableHead>
+            <TableHead>Expenses</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead className="text-right">Actions</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {workLogs.map((workLog) => {
+            const startTime = new Date(workLog.start_time);
+            const endTime = new Date(workLog.end_time);
+            const hoursDiff = (endTime.getTime() - startTime.getTime()) / (1000 * 60 * 60);
+            
+            // Calculate total pay based on hours and selected rate
+            const totalExpenses = workLog.expenses?.reduce((sum, expense) => sum + Number(expense.amount), 0) || 0;
+            
+            return (
+              <TableRow key={workLog.id}>
+                <TableCell className="font-medium">
+                  {workLog.caregiver_name || 'Unknown'}
+                </TableCell>
+                <TableCell>
+                  {format(startTime, 'MMM d, yyyy')}
+                </TableCell>
+                <TableCell>
+                  {hoursDiff.toFixed(1)}h ({format(startTime, 'h:mm a')} - {format(endTime, 'h:mm a')})
+                </TableCell>
+                <TableCell>
+                  <PayRateSelector workLogId={workLog.id} careTeamMemberId={workLog.care_team_member_id} />
+                </TableCell>
+                <TableCell>
+                  <PayTotalDisplay workLogId={workLog.id} hours={hoursDiff} expenses={totalExpenses} />
+                </TableCell>
+                <TableCell>
+                  {workLog.expenses && workLog.expenses.length > 0 ? (
+                    <WorkLogExpenses expenses={workLog.expenses} />
+                  ) : (
+                    <span className="text-muted-foreground">None</span>
+                  )}
+                </TableCell>
+                <TableCell>
+                  <PayrollStatusBadge status={workLog.status} />
+                </TableCell>
+                <TableCell className="text-right">
                   <div className="flex justify-end gap-2">
                     <Button
                       variant="outline"
                       size="sm"
-                      className="h-8 gap-1"
-                      onClick={() => onApprove(workLog.id)}
+                      className="h-8 w-8 p-0"
+                      title="Generate Receipt"
+                      onClick={() => handleGenerateReceipt(workLog)}
                     >
-                      <Check className="h-4 w-4" /> Approve
+                      <Receipt className="h-4 w-4" />
                     </Button>
                     
-                    <RejectWorkLogDialog 
-                      onReject={(reason) => onReject(workLog.id, reason)}
-                    >
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="h-8 gap-1 border-red-200 hover:bg-red-50 hover:text-red-600"
-                      >
-                        <X className="h-4 w-4" /> Reject
-                      </Button>
-                    </RejectWorkLogDialog>
+                    {workLog.status === 'pending' && (
+                      <>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-8 gap-1"
+                          onClick={() => onApprove(workLog.id)}
+                        >
+                          <Check className="h-4 w-4" /> Approve
+                        </Button>
+                        
+                        <RejectWorkLogDialog 
+                          onReject={(reason) => onReject(workLog.id, reason)}
+                        >
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-8 gap-1 border-red-200 hover:bg-red-50 hover:text-red-600"
+                          >
+                            <X className="h-4 w-4" /> Reject
+                          </Button>
+                        </RejectWorkLogDialog>
+                      </>
+                    )}
                   </div>
-                )}
-              </TableCell>
-            </TableRow>
-          );
-        })}
-      </TableBody>
-    </Table>
+                </TableCell>
+              </TableRow>
+            );
+          })}
+        </TableBody>
+      </Table>
+
+      <ShareReceiptDialog
+        open={shareDialogOpen}
+        onOpenChange={setShareDialogOpen}
+        receiptUrl={receiptUrl}
+        workLog={currentWorkLog}
+      />
+    </>
+  );
+};
+
+// Component to display the total pay based on hours and rate
+const PayTotalDisplay: React.FC<{ workLogId: string; hours: number; expenses: number }> = ({ 
+  workLogId, 
+  hours,
+  expenses 
+}) => {
+  const { rate, totalPay } = useWorkLogPayDetails(workLogId, hours, expenses);
+  
+  if (!rate) {
+    return <span className="text-muted-foreground">Loading...</span>;
+  }
+  
+  return (
+    <div>
+      <div className="font-medium">${totalPay.toFixed(2)}</div>
+      <div className="text-xs text-muted-foreground">
+        {hours.toFixed(1)}h × ${rate.toFixed(2)}/hr
+        {expenses > 0 ? ` + $${expenses.toFixed(2)} expenses` : ''}
+      </div>
+    </div>
   );
 };

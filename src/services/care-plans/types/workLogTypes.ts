@@ -1,4 +1,3 @@
-
 export interface WorkLog {
   id: string;
   care_team_member_id: string;
@@ -12,6 +11,7 @@ export interface WorkLog {
   caregiver_name?: string;
   shift_id?: string;
   expenses?: WorkLogExpense[];
+  rate_type?: 'regular' | 'overtime' | 'holiday';
 }
 
 export interface WorkLogExpense {

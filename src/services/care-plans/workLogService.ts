@@ -326,6 +326,46 @@ export const processPayrollPayment = async (payrollId: string, paymentDate = new
   }
 };
 
+// Get a single work log by ID
+export const getWorkLogById = async (workLogId: string): Promise<WorkLog | null> => {
+  try {
+    const { data, error } = await supabase
+      .from('work_logs')
+      .select(`
+        *,
+        care_team_members:care_team_member_id (
+          caregiver_id
+        )
+      `)
+      .eq('id', workLogId)
+      .single();
+
+    if (error) throw error;
+    
+    // Get caregiver name from profiles
+    if (data.care_team_members?.caregiver_id) {
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('full_name')
+        .eq('id', data.care_team_members.caregiver_id)
+        .single();
+
+      if (profileError) {
+        console.error("Error fetching caregiver profile:", profileError);
+      } else {
+        data.caregiver_name = profile?.full_name || 'Unknown';
+      }
+    }
+
+    // Fetch expenses for the work log
+    const expenses = await fetchWorkLogExpenses(workLogId);
+    return { ...data, expenses } as WorkLog;
+  } catch (error) {
+    console.error("Error fetching work log:", error);
+    return null;
+  }
+};
+
 export type { 
   WorkLog, 
   WorkLogInput, 
