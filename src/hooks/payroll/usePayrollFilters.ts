@@ -1,8 +1,9 @@
 
 import { useState, useCallback, useMemo } from 'react';
 import { subDays, startOfMonth, endOfMonth } from 'date-fns';
+import { DateRange } from 'react-day-picker';
 
-export type DateRangeFilter = 'last7' | 'last30' | 'thisMonth' | 'all';
+export type DateRangeFilter = { from?: Date; to?: Date };
 
 export const usePayrollFilters = <T extends { created_at?: string | null }>(
   items: T[],
@@ -10,11 +11,11 @@ export const usePayrollFilters = <T extends { created_at?: string | null }>(
 ) => {
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [dateRangeFilter, setDateRangeFilter] = useState<DateRangeFilter>('last30');
+  const [dateRangeFilter, setDateRangeFilter] = useState<DateRangeFilter>({});
 
-  // Wrapper function to handle string input and convert to the proper type
-  const handleDateRangeChange = (value: string) => {
-    setDateRangeFilter(value as DateRangeFilter);
+  // Set date range filter
+  const handleDateRangeChange = (value: DateRange | DateRangeFilter) => {
+    setDateRangeFilter(value);
   };
 
   // Wrapper function to ensure type safety
@@ -34,29 +35,20 @@ export const usePayrollFilters = <T extends { created_at?: string | null }>(
     }
     
     // Apply date range filter
-    const today = new Date();
-    let startDate: Date;
+    if (dateRangeFilter.from) {
+      const startDate = dateRangeFilter.from;
+      filtered = filtered.filter(item => filterByDate(item, startDate));
+    }
     
-    switch(dateRangeFilter) {
-      case 'last7':
-        startDate = subDays(today, 7);
-        filtered = filtered.filter(item => filterByDate(item, startDate));
-        break;
-      case 'last30':
-        startDate = subDays(today, 30);
-        filtered = filtered.filter(item => filterByDate(item, startDate));
-        break;
-      case 'thisMonth':
-        startDate = startOfMonth(today);
-        const endDate = endOfMonth(today);
-        filtered = filtered.filter(item => {
-          if (!item.created_at) return false;
-          const itemDate = new Date(item.created_at);
-          return itemDate >= startDate && itemDate <= endDate;
-        });
-        break;
-      default:
-        // "all" - no filtering needed
+    // Apply end date filter if specified
+    if (dateRangeFilter.to) {
+      const endDate = new Date(dateRangeFilter.to);
+      endDate.setHours(23, 59, 59, 999); // End of the day
+      filtered = filtered.filter(item => {
+        if (!item.created_at) return false;
+        const itemDate = new Date(item.created_at);
+        return itemDate <= endDate;
+      });
     }
     
     // Apply search term filter

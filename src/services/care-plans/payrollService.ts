@@ -1,7 +1,7 @@
 
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
-import type { PayrollEntry } from "../types/workLogTypes";
+import type { PayrollEntry } from "./types/workLogTypes";
 
 export const fetchPayrollEntries = async (carePlanId: string): Promise<PayrollEntry[]> => {
   try {

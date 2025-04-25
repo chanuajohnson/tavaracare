@@ -5,9 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { PayrollStatusBadge } from './PayrollStatusBadge';
 import { Input } from "@/components/ui/input";
-import { Calendar } from "lucide-react";
 import { DateRangePicker } from "@/components/ui/date-range-picker";
 import type { PayrollEntry } from "@/services/care-plans/types/workLogTypes";
+import { DateRange } from 'react-day-picker';
 
 interface PayrollEntriesTableProps {
   entries: PayrollEntry[];
@@ -19,7 +19,7 @@ export const PayrollEntriesTable: React.FC<PayrollEntriesTableProps> = ({
   onProcessPayment,
 }) => {
   const [caregiverFilter, setCaregiverFilter] = useState("");
-  const [dateRange, setDateRange] = useState<{ from?: Date; to?: Date }>({});
+  const [dateRange, setDateRange] = useState<DateRange | { from?: Date; to?: Date }>({});
   
   // Filter entries by caregiver name and date range
   const filteredEntries = entries.filter(entry => {

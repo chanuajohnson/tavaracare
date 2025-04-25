@@ -15,6 +15,7 @@ import {
 import { Receipt, Download, Calendar } from "lucide-react";
 import { toast } from "sonner";
 import { generatePayrollReport } from '@/services/care-plans/receiptService';
+import { DateRange } from 'react-day-picker';
 
 interface PayrollReportGeneratorProps {
   carePlanId: string;
@@ -25,7 +26,7 @@ export const PayrollReportGenerator: React.FC<PayrollReportGeneratorProps> = ({
 }) => {
   const [open, setOpen] = useState(false);
   const [caregiverName, setCaregiverName] = useState("");
-  const [dateRange, setDateRange] = useState<{ from?: Date; to?: Date }>({});
+  const [dateRange, setDateRange] = useState<DateRange | { from?: Date; to?: Date }>({});
   const [reportUrl, setReportUrl] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
 

@@ -13,9 +13,10 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 
-interface DateRangePickerProps extends React.HTMLAttributes<HTMLDivElement> {
-  value?: DateRange;
-  onChange?: (date: DateRange) => void;
+export interface DateRangePickerProps {
+  className?: string;
+  value?: DateRange | { from?: Date; to?: Date };
+  onChange?: (date: DateRange | { from?: Date; to?: Date }) => void;
 }
 
 export function DateRangePicker({
@@ -32,7 +33,7 @@ export function DateRangePicker({
             variant={"outline"}
             className={cn(
               "w-[300px] justify-start text-left font-normal",
-              !value && "text-muted-foreground"
+              !value?.from && "text-muted-foreground"
             )}
           >
             <CalendarIcon className="mr-2 h-4 w-4" />
@@ -50,14 +51,15 @@ export function DateRangePicker({
             )}
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-auto p-0" align="start">
+        <PopoverContent className="w-auto p-0 pointer-events-auto" align="start">
           <Calendar
             initialFocus
             mode="range"
             defaultMonth={value?.from}
-            selected={value}
-            onSelect={onChange}
+            selected={value as DateRange}
+            onSelect={(range) => onChange?.(range || {})}
             numberOfMonths={2}
+            className="pointer-events-auto"
           />
         </PopoverContent>
       </Popover>

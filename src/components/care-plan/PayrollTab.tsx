@@ -10,6 +10,7 @@ import { ProcessPaymentDialog } from './payroll/ProcessPaymentDialog';
 import { PayrollReportGenerator } from './payroll/PayrollReportGenerator';
 import { usePayrollData } from '@/hooks/payroll/usePayrollData';
 import { usePayrollFilters } from '@/hooks/payroll/usePayrollFilters';
+import { DateRange } from 'react-day-picker';
 
 interface PayrollTabProps {
   carePlanId: string;

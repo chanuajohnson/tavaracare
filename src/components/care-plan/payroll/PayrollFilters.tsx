@@ -9,12 +9,13 @@ import {
   SelectTrigger, 
   SelectValue 
 } from "@/components/ui/select";
+import { DateRange } from 'react-day-picker';
 
 interface PayrollFiltersProps {
   searchTerm: string;
   onSearchChange: (value: string) => void;
   dateRangeFilter: { from?: Date; to?: Date };
-  onDateRangeChange: (value: { from?: Date; to?: Date }) => void;
+  onDateRangeChange: (value: DateRange | { from?: Date; to?: Date }) => void;
   statusFilter: string;
   onStatusChange: (value: string) => void;
   showPayrollStatuses?: boolean;
