@@ -25,38 +25,32 @@ export const calculatePayrollEntry = async (workLog: WorkLog) => {
   // Calculate total worked hours
   const startTime = new Date(workLog.start_time);
   const endTime = new Date(workLog.end_time);
-  
-  // Total hours worked (no break time to account for now)
-  const totalHours = Math.max(
-    0, 
-    differenceInHours(endTime, startTime)
-  );
+  const totalHours = Math.max(0, differenceInHours(endTime, startTime));
   
   // Determine if any hours were on a holiday
   const workDate = new Date(startTime);
-  const isHoliday = HOLIDAYS.find(h => 
+  const holiday = HOLIDAYS.find(h => 
     new Date(h.date).toDateString() === workDate.toDateString()
   );
   
-  // Default rates if not specified
+  // Get rates from work log or fall back to default rates
   const regularRate = workLogWithTeamMember.care_team_members?.regular_rate || 15;
   const overtimeRate = workLogWithTeamMember.care_team_members?.overtime_rate || regularRate * 1.5;
-  const holidayRate = isHoliday ? regularRate * isHoliday.pay_multiplier : regularRate;
   
-  // Calculate hours by type
+  // Use work log's custom multiplier if set
+  const rateMultiplier = workLogWithTeamMember.rate_multiplier || 1;
+  const effectiveRate = regularRate * rateMultiplier;
+  
+  // Calculate hours by type based on work log rate type
   let regularHours = totalHours;
   let overtimeHours = 0;
   let holidayHours = 0;
   
-  // For weekend, all hours are at overtime rate if not a holiday
-  const isWeekendDay = isWeekend(workDate);
-  if (isWeekendDay && !isHoliday) {
+  if (workLogWithTeamMember.rate_type === 'overtime' || 
+      (isWeekend(workDate) && !holiday && workLogWithTeamMember.rate_type !== 'regular')) {
     overtimeHours = totalHours;
     regularHours = 0;
-  }
-  
-  // For holiday, all hours are at holiday rate
-  if (isHoliday) {
+  } else if (holiday && workLogWithTeamMember.rate_type !== 'regular') {
     holidayHours = totalHours;
     regularHours = 0;
   }
@@ -64,13 +58,15 @@ export const calculatePayrollEntry = async (workLog: WorkLog) => {
   // Fetch expense total for this work log
   let expenseTotal = 0;
   try {
-    const { data: expenses, error } = await supabase
+    const { data: expenses } = await supabase
       .from('work_log_expenses')
       .select('amount')
       .eq('work_log_id', workLog.id);
       
-    if (!error && expenses) {
-      expenseTotal = expenses.reduce((total, expense) => total + (parseFloat(String(expense.amount)) || 0), 0);
+    if (expenses) {
+      expenseTotal = expenses.reduce((total, expense) => 
+        total + (parseFloat(String(expense.amount)) || 0), 0
+      );
     }
   } catch (err) {
     console.error("Error calculating expense total:", err);
@@ -81,9 +77,9 @@ export const calculatePayrollEntry = async (workLog: WorkLog) => {
     regularHours,
     overtimeHours,
     holidayHours,
-    regularRate,
+    regularRate: effectiveRate, // Use effective rate that includes multiplier
     overtimeRate,
-    holidayRate,
+    holidayRate: holiday ? regularRate * holiday.pay_multiplier : regularRate * 2,
     expenseTotal
   };
 };
