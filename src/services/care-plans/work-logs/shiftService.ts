@@ -1,6 +1,7 @@
+
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
-import type { WorkLog, WorkLogInput } from "../types/workLogTypes";
+import type { WorkLog, WorkLogInput, RateType } from "../types/workLogTypes";
 import type { CareShift } from "@/types/careTypes";
 import { createWorkLog } from "./workLogCore";
 

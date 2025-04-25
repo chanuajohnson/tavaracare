@@ -1,3 +1,5 @@
+export type RateType = 'regular' | 'overtime' | 'shadow' | 'custom' | string;
+
 export interface WorkLog {
   id: string;
   care_team_member_id: string;
@@ -11,7 +13,7 @@ export interface WorkLog {
   caregiver_name?: string;
   shift_id?: string;
   expenses?: WorkLogExpense[];
-  rate_type?: 'regular' | 'overtime' | 'holiday';
+  rate_type?: RateType;
   base_rate?: number;
   rate_multiplier?: number;
 }
@@ -56,6 +58,7 @@ export interface WorkLogInput {
   start_time: string;
   end_time: string;
   notes?: string;
+  rate_type?: RateType;
   base_rate?: number;
   rate_multiplier?: number;
 }
