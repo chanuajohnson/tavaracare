@@ -343,6 +343,8 @@ export const getWorkLogById = async (workLogId: string): Promise<WorkLog | null>
     if (error) throw error;
     
     // Get caregiver name from profiles
+    const result: WorkLog = data as unknown as WorkLog; // Cast to WorkLog with proper types
+    
     if (data.care_team_members?.caregiver_id) {
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
@@ -353,13 +355,13 @@ export const getWorkLogById = async (workLogId: string): Promise<WorkLog | null>
       if (profileError) {
         console.error("Error fetching caregiver profile:", profileError);
       } else {
-        data.caregiver_name = profile?.full_name || 'Unknown';
+        result.caregiver_name = profile?.full_name || 'Unknown';
       }
     }
 
     // Fetch expenses for the work log
     const expenses = await fetchWorkLogExpenses(workLogId);
-    return { ...data, expenses } as WorkLog;
+    return { ...result, expenses } as WorkLog;
   } catch (error) {
     console.error("Error fetching work log:", error);
     return null;

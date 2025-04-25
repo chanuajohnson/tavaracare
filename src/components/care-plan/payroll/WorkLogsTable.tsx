@@ -18,6 +18,7 @@ import { WorkLogExpenses } from './WorkLogExpenses';
 import { PayRateSelector } from './PayRateSelector';
 import { generatePayReceipt } from '@/services/care-plans/receiptService';
 import { ShareReceiptDialog } from './ShareReceiptDialog';
+import { useWorkLogPayDetails } from '@/hooks/payroll/useWorkLogPayDetails';
 import type { WorkLog } from '@/services/care-plans/types/workLogTypes';
 
 interface WorkLogsTableProps {
