@@ -1,6 +1,7 @@
 
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
+import { supabase } from "@/lib/supabase";
 import { 
   fetchCarePlanById, 
   fetchCareTeamMembers,
@@ -11,6 +12,14 @@ import {
   type CareTeamMemberWithProfile,
   type CareShift,
 } from "@/services/care-plans";
+
+// Define the Professional type
+interface Professional {
+  id: string;
+  full_name: string | null;
+  professional_type: string | null;
+  avatar_url: string | null;
+}
 
 interface UseCarePlanDataProps {
   carePlanId: string;
