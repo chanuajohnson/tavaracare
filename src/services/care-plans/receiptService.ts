@@ -7,7 +7,7 @@ import type { WorkLog } from './types/workLogTypes';
 
 export const generatePayReceipt = async (workLog: WorkLog): Promise<string> => {
   try {
-    // Get the work log details with care team member info
+    // Get the work log details with care team member info and associated profile
     const { data: workLogWithTeamMember, error: fetchError } = await supabase
       .from('work_logs')
       .select(`
@@ -17,7 +17,7 @@ export const generatePayReceipt = async (workLog: WorkLog): Promise<string> => {
           regular_rate,
           overtime_rate,
           caregiver_id,
-          profiles:caregiver_id (
+          caregiver:caregiver_id (
             full_name,
             avatar_url
           )
@@ -42,7 +42,7 @@ export const generatePayReceipt = async (workLog: WorkLog): Promise<string> => {
     const total = hoursWorked * appliedRate;
 
     // Get caregiver name from the nested data
-    const caregiverName = workLogWithTeamMember?.care_team_members?.profiles?.full_name || 'Unknown Caregiver';
+    const caregiverName = workLogWithTeamMember?.care_team_members?.caregiver?.full_name || 'Unknown Caregiver';
 
     // Create PDF document
     const doc = new jsPDF();
