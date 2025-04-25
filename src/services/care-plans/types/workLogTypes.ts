@@ -1,3 +1,4 @@
+
 export interface WorkLog {
   id: string;
   care_team_member_id: string;
@@ -5,7 +6,7 @@ export interface WorkLog {
   start_time: string;
   end_time: string;
   notes?: string;
-  status: 'pending' | 'approved' | 'rejected' | string; // Added string to make it compatible with the data from Supabase
+  status: 'pending' | 'approved' | 'rejected' | string;
   created_at?: string;
   updated_at?: string;
   caregiver_name?: string;

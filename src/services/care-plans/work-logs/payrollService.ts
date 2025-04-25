@@ -35,14 +35,21 @@ export const fetchPayrollEntries = async (carePlanId: string): Promise<PayrollEn
         const caregiverId = entry.care_team_members?.caregiver_id;
         const profile = profiles?.find(p => p.id === caregiverId);
         
+        // Ensure the payment_status is one of the allowed values
+        const validStatus: 'pending' | 'approved' | 'paid' = 
+          ['pending', 'approved', 'paid'].includes(entry.payment_status) 
+            ? entry.payment_status as 'pending' | 'approved' | 'paid'
+            : 'pending';
+            
         return {
           ...entry,
-          caregiver_name: profile?.full_name || 'Unknown'
+          caregiver_name: profile?.full_name || 'Unknown',
+          payment_status: validStatus
         };
       });
     }
     
-    return entries as PayrollEntry[];
+    return [] as PayrollEntry[];
   } catch (error) {
     console.error("Error fetching payroll entries:", error);
     toast.error("Failed to load payroll entries");

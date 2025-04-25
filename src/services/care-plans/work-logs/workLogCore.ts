@@ -31,19 +31,27 @@ export const fetchWorkLogs = async (carePlanId: string): Promise<WorkLog[]> => {
 
       if (profilesError) throw profilesError;
 
-      // Map profiles to work logs
+      // Map profiles to work logs and ensure correct typing
       return workLogs.map(log => {
         const caregiverId = log.care_team_members?.caregiver_id;
         const profile = profiles.find(p => p.id === caregiverId);
         
-        return {
+        // Ensure rate_type is one of the allowed values
+        let validRateType: 'regular' | 'overtime' | 'holiday' = 'regular';
+        if (log.rate_type === 'overtime') validRateType = 'overtime';
+        if (log.rate_type === 'holiday') validRateType = 'holiday';
+        
+        const typedWorkLog: WorkLog = {
           ...log,
-          caregiver_name: profile?.full_name || 'Unknown'
+          caregiver_name: profile?.full_name || 'Unknown',
+          rate_type: validRateType
         };
+        
+        return typedWorkLog;
       });
     }
     
-    return workLogs as WorkLog[];
+    return [] as WorkLog[];
   } catch (error) {
     console.error("Error fetching work logs:", error);
     toast.error("Failed to load work logs");
@@ -66,7 +74,15 @@ export const getWorkLogById = async (workLogId: string): Promise<WorkLog | null>
 
     if (error) throw error;
     
-    const result: WorkLog = data as unknown as WorkLog;
+    // Ensure rate_type is one of the allowed values
+    let validRateType: 'regular' | 'overtime' | 'holiday' = 'regular';
+    if (data.rate_type === 'overtime') validRateType = 'overtime';
+    if (data.rate_type === 'holiday') validRateType = 'holiday';
+    
+    const result: WorkLog = {
+      ...data,
+      rate_type: validRateType
+    };
     
     if (data.care_team_members?.caregiver_id) {
       const { data: profile, error: profileError } = await supabase
