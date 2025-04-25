@@ -30,6 +30,7 @@ interface PayrollFiltersProps {
   onCaregiverChange?: (value: string) => void;
   caregivers?: Array<{ id: string; name: string }>;
   onQuickDateRangeSelect?: (range: { from?: Date; to?: Date }) => void;
+  className?: string; // Added className prop to the interface
 }
 
 export const PayrollFilters: React.FC<PayrollFiltersProps> = ({
@@ -44,6 +45,7 @@ export const PayrollFilters: React.FC<PayrollFiltersProps> = ({
   onCaregiverChange,
   caregivers = [],
   onQuickDateRangeSelect,
+  className, // Added className prop to destructuring
 }) => {
   const handleQuickDateSelect = (period: string) => {
     const now = new Date();
@@ -82,7 +84,7 @@ export const PayrollFilters: React.FC<PayrollFiltersProps> = ({
   };
 
   return (
-    <div className="flex flex-wrap gap-3 w-full">
+    <div className={`flex flex-wrap gap-3 w-full ${className || ''}`}>
       <div className="flex flex-col sm:flex-row gap-3 w-full">
         <Input
           placeholder="Search by name"

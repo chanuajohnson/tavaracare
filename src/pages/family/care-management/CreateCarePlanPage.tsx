@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "@/components/providers/AuthProvider";
@@ -26,19 +25,17 @@ const CreateCarePlanPage = () => {
   const [isLoading, setIsLoading] = useState(!!planId);
   const [isEditMode, setIsEditMode] = useState(!!planId);
   
-  // Form state
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [planType, setPlanType] = useState<PlanType>("scheduled");
-  const [weekdayOption, setWeekdayOption] = useState<WeekdayOption>("8am-6pm"); // Default changed to 8am-6pm
+  const [weekdayOption, setWeekdayOption] = useState<WeekdayOption>("8am-6pm");
   const [weekendOption, setWeekendOption] = useState<WeekendOption>("yes");
   
-  // Additional shifts
   const [shifts, setShifts] = useState({
-    weekdayEvening4pmTo6am: false,  // 4PM - 6AM
-    weekdayEvening4pmTo8am: false,  // 4PM - 8AM
-    weekdayEvening6pmTo6am: false,  // 6PM - 6AM
-    weekdayEvening6pmTo8am: false,  // 6PM - 8AM (new)
+    weekdayEvening4pmTo6am: false,
+    weekdayEvening4pmTo8am: false,
+    weekdayEvening6pmTo6am: false,
+    weekdayEvening6pmTo8am: false,
   });
 
   useEffect(() => {
@@ -58,7 +55,7 @@ const CreateCarePlanPage = () => {
         
         if (plan.metadata) {
           setPlanType(plan.metadata.planType || "scheduled");
-          setWeekdayOption(plan.metadata.weekdayCoverage || "8am-6pm"); // Default changed
+          setWeekdayOption(plan.metadata.weekdayCoverage || "8am-6pm");
           setWeekendOption(plan.metadata.weekendCoverage || "yes");
           
           if (plan.metadata.additionalShifts) {
@@ -105,7 +102,6 @@ const CreateCarePlanPage = () => {
     try {
       setIsSubmitting(true);
       
-      // Prepare plan details based on selections
       const planDetails: CarePlanInput = {
         title,
         description,
