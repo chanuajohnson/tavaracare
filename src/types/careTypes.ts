@@ -56,6 +56,7 @@ export interface CareTeamMember {
   notes?: string;
   createdAt: string;
   updatedAt: string;
+  display_name?: string;
 }
 
 // Professional details from profiles
@@ -75,6 +76,7 @@ export interface CareTeamMemberWithProfile extends CareTeamMember {
     yearsOfExperience?: string;
     certifications?: string[];
   };
+  displayName?: string;
 }
 
 // DTOs for database interaction
@@ -146,6 +148,7 @@ export interface CareTeamMemberDto {
   notes?: string;
   created_at?: string;
   updated_at?: string;
+  display_name?: string;
 }
 
 // Care Team Member Input for create/update operations

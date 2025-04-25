@@ -13,7 +13,8 @@ const adaptCareTeamMemberFromDb = (dbMember: CareTeamMemberDto): CareTeamMember 
   status: dbMember.status || 'invited',
   notes: dbMember.notes,
   createdAt: dbMember.created_at || new Date().toISOString(),
-  updatedAt: dbMember.updated_at || new Date().toISOString()
+  updatedAt: dbMember.updated_at || new Date().toISOString(),
+  display_name: dbMember.display_name
 });
 
 const adaptCareTeamMemberToDb = (member: Partial<CareTeamMember>): Partial<CareTeamMemberDto> => ({
@@ -23,10 +24,11 @@ const adaptCareTeamMemberToDb = (member: Partial<CareTeamMember>): Partial<CareT
   caregiver_id: member.caregiverId,
   role: member.role,
   status: member.status,
-  notes: member.notes
+  notes: member.notes,
+  display_name: member.display_name
 });
 
-export const fetchCareTeamMembers = async (planId: string): Promise<CareTeamMember[]> => {
+export const fetchCareTeamMembers = async (planId: string): Promise<CareTeamMemberWithProfile[]> => {
   try {
     const { data, error } = await supabase
       .from('care_team_members')
