@@ -48,6 +48,7 @@ export interface PayrollEntry {
   caregiver_name?: string;
   pay_period_start?: string;
   pay_period_end?: string;
+  entered_at?: string; // Added this property to fix the TypeScript error
 }
 
 export interface WorkLogInput {

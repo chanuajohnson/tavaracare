@@ -4,7 +4,7 @@ import { format } from 'date-fns';
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { PayrollStatusBadge } from './PayrollStatusBadge';
-import type { PayrollEntry } from "@/services/care-plans/workLogService";
+import type { PayrollEntry } from "@/services/care-plans/types/workLogTypes";
 
 interface PayrollEntriesTableProps {
   entries: PayrollEntry[];
