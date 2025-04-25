@@ -1,29 +1,20 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Calendar } from "lucide-react";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { format } from "date-fns";
-import { fetchWorkLogs, fetchPayrollEntries, approveWorkLog, rejectWorkLog, processPayrollPayment } from "@/services/care-plans/workLogService";
 import { PayrollFilters } from './payroll/PayrollFilters';
 import { WorkLogsTable } from './payroll/WorkLogsTable';
 import { PayrollEntriesTable } from './payroll/PayrollEntriesTable';
+import { RejectWorkLogDialog } from './payroll/RejectWorkLogDialog';
+import { ProcessPaymentDialog } from './payroll/ProcessPaymentDialog';
+import { usePayrollData } from '@/hooks/payroll/usePayrollData';
 import { usePayrollFilters } from '@/hooks/payroll/usePayrollFilters';
-import { toast } from "sonner";
 
 interface PayrollTabProps {
   carePlanId: string;
 }
 
 export const PayrollTab: React.FC<PayrollTabProps> = ({ carePlanId }) => {
-  const [workLogs, setWorkLogs] = useState([]);
-  const [payrollEntries, setPayrollEntries] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [currentTab, setCurrentTab] = useState<string>("worklogs");
   
   // Dialog states
@@ -33,6 +24,15 @@ export const PayrollTab: React.FC<PayrollTabProps> = ({ carePlanId }) => {
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
   const [payrollToProcess, setPayrollToProcess] = useState<string | null>(null);
   const [paymentDate, setPaymentDate] = useState<Date>(new Date());
+
+  const {
+    workLogs,
+    payrollEntries,
+    loading,
+    handleApproveWorkLog,
+    handleRejectWorkLog,
+    handleProcessPayment
+  } = usePayrollData(carePlanId);
 
   // Set up filters for work logs
   const {
@@ -52,56 +52,19 @@ export const PayrollTab: React.FC<PayrollTabProps> = ({ carePlanId }) => {
     return entry.created_at ? new Date(entry.created_at) >= startDate : false;
   });
 
-  useEffect(() => {
-    const loadData = async () => {
-      setLoading(true);
-      try {
-        const [logs, entries] = await Promise.all([
-          fetchWorkLogs(carePlanId),
-          fetchPayrollEntries(carePlanId)
-        ]);
-        setWorkLogs(logs);
-        setPayrollEntries(entries);
-      } catch (error) {
-        console.error("Error loading payroll data:", error);
-        toast.error("Failed to load payroll data");
-      } finally {
-        setLoading(false);
-      }
-    };
-    
-    loadData();
-  }, [carePlanId]);
-
-  const handleApproveWorkLog = async (workLogId: string) => {
-    const success = await approveWorkLog(workLogId);
-    if (success) {
-      const [updatedLogs, updatedEntries] = await Promise.all([
-        fetchWorkLogs(carePlanId),
-        fetchPayrollEntries(carePlanId)
-      ]);
-      setWorkLogs(updatedLogs);
-      setPayrollEntries(updatedEntries);
-      toast.success("Work log approved successfully");
-    }
-  };
-
   const openRejectDialog = (workLogId: string) => {
     setWorkLogToReject(workLogId);
     setRejectDialogOpen(true);
   };
 
-  const handleRejectWorkLog = async () => {
+  const handleRejectWorkLogSubmit = async () => {
     if (!workLogToReject) return;
     
-    const success = await rejectWorkLog(workLogToReject, rejectionReason);
+    const success = await handleRejectWorkLog(workLogToReject, rejectionReason);
     if (success) {
-      const updatedLogs = await fetchWorkLogs(carePlanId);
-      setWorkLogs(updatedLogs);
       setRejectDialogOpen(false);
       setRejectionReason('');
       setWorkLogToReject(null);
-      toast.success("Work log rejected");
     }
   };
 
@@ -110,16 +73,13 @@ export const PayrollTab: React.FC<PayrollTabProps> = ({ carePlanId }) => {
     setPaymentDialogOpen(true);
   };
 
-  const handleProcessPayment = async () => {
+  const handleProcessPaymentSubmit = async () => {
     if (!payrollToProcess) return;
     
-    const success = await processPayrollPayment(payrollToProcess, paymentDate);
+    const success = await handleProcessPayment(payrollToProcess, paymentDate);
     if (success) {
-      const updatedEntries = await fetchPayrollEntries(carePlanId);
-      setPayrollEntries(updatedEntries);
       setPaymentDialogOpen(false);
       setPayrollToProcess(null);
-      toast.success("Payment processed successfully");
     }
   };
 
@@ -135,7 +95,6 @@ export const PayrollTab: React.FC<PayrollTabProps> = ({ carePlanId }) => {
             <TabsTrigger value="payroll">Payroll Entries</TabsTrigger>
           </TabsList>
           
-          {/* Filters */}
           {currentTab === "worklogs" ? (
             <PayrollFilters
               searchTerm={workLogFilters.searchTerm}
@@ -200,77 +159,21 @@ export const PayrollTab: React.FC<PayrollTabProps> = ({ carePlanId }) => {
         </TabsContent>
       </Tabs>
 
-      {/* Reject Work Log Dialog */}
-      <Dialog open={rejectDialogOpen} onOpenChange={setRejectDialogOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Reject Work Log</DialogTitle>
-            <DialogDescription>
-              Please provide a reason for rejecting this work log.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="py-4">
-            <Input
-              placeholder="Reason for rejection"
-              value={rejectionReason}
-              onChange={(e) => setRejectionReason(e.target.value)}
-            />
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setRejectDialogOpen(false)}>Cancel</Button>
-            <Button 
-              variant="destructive" 
-              onClick={handleRejectWorkLog}
-              disabled={!rejectionReason}
-            >
-              Reject Work Log
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <RejectWorkLogDialog
+        open={rejectDialogOpen}
+        onOpenChange={setRejectDialogOpen}
+        onReject={handleRejectWorkLogSubmit}
+        rejectionReason={rejectionReason}
+        onReasonChange={setRejectionReason}
+      />
 
-      {/* Process Payment Dialog */}
-      <Dialog open={paymentDialogOpen} onOpenChange={setPaymentDialogOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Process Payment</DialogTitle>
-            <DialogDescription>
-              Enter the date when the payment was or will be made.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="py-4">
-            <div className="space-y-2">
-              <p className="text-sm font-medium">Payment Date</p>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className="w-full justify-start text-left"
-                  >
-                    <Calendar className="mr-2 h-4 w-4" />
-                    {format(paymentDate, "PPP")}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <CalendarComponent
-                    mode="single"
-                    selected={paymentDate}
-                    onSelect={(date) => date && setPaymentDate(date)}
-                    initialFocus
-                    className="p-3 pointer-events-auto"
-                  />
-                </PopoverContent>
-              </Popover>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setPaymentDialogOpen(false)}>Cancel</Button>
-            <Button onClick={handleProcessPayment}>
-              Process Payment
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <ProcessPaymentDialog
+        open={paymentDialogOpen}
+        onOpenChange={setPaymentDialogOpen}
+        onProcess={handleProcessPaymentSubmit}
+        paymentDate={paymentDate}
+        onDateChange={setPaymentDate}
+      />
     </div>
   );
 };
