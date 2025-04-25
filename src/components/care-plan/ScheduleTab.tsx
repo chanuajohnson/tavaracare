@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -39,13 +38,11 @@ import {
   PopoverTrigger 
 } from "@/components/ui/popover";
 import { Label } from "@/components/ui/label";
-import { 
-  Calendar as CalendarComponent,
-  DateRange 
-} from "@/components/ui/calendar";
+import { Calendar } from "@/components/ui/calendar";
+import { DateRange } from "react-day-picker";
 import { 
   CalendarRange, 
-  Calendar, 
+  Calendar as CalendarIcon, 
   ChevronDown, 
   Users, 
   Plus 
