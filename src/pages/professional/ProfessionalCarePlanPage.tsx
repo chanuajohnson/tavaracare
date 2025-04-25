@@ -11,6 +11,7 @@ import { PayrollTab } from "@/components/care-plan/PayrollTab";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { supabase } from "@/lib/supabase";
 import { PageViewTracker } from "@/components/tracking/PageViewTracker";
+import { CareShift, CareTeamMemberWithProfile } from "@/types/careTypes";
 
 const ProfessionalCarePlanPage = () => {
   const { planId } = useParams<{ planId: string }>();
@@ -19,6 +20,11 @@ const ProfessionalCarePlanPage = () => {
   const [loading, setLoading] = useState(true);
   const [isTeamMember, setIsTeamMember] = useState(false);
   const { user } = useAuth();
+  
+  // New state variables for care team and shifts
+  const [careTeamMembers, setCareTeamMembers] = useState<CareTeamMemberWithProfile[]>([]);
+  const [professionals, setProfessionals] = useState<any[]>([]);
+  const [careShifts, setCareShifts] = useState<CareShift[]>([]);
 
   useEffect(() => {
     if (!planId || !user) return;
@@ -79,6 +85,50 @@ const ProfessionalCarePlanPage = () => {
         }
         
         setCarePlan(planData);
+        
+        // Fetch care team members
+        const { data: teamMembers, error: teamMembersError } = await supabase
+          .from('care_team_members')
+          .select(`
+            *,
+            professionalDetails:profiles!care_team_members_caregiver_id_fkey (
+              full_name,
+              professional_type,
+              avatar_url
+            )
+          `)
+          .eq('care_plan_id', planId);
+          
+        if (teamMembersError) {
+          console.error("Error fetching team members:", teamMembersError);
+        } else {
+          setCareTeamMembers(teamMembers as CareTeamMemberWithProfile[]);
+        }
+        
+        // Fetch available professionals for assignments
+        const { data: profsData, error: profsError } = await supabase
+          .from('profiles')
+          .select('id, full_name, professional_type, avatar_url')
+          .eq('role', 'professional');
+          
+        if (profsError) {
+          console.error("Error fetching professionals:", profsError);
+        } else {
+          setProfessionals(profsData || []);
+        }
+        
+        // Fetch care shifts
+        const { data: shiftsData, error: shiftsError } = await supabase
+          .from('care_shifts')
+          .select('*')
+          .eq('care_plan_id', planId);
+          
+        if (shiftsError) {
+          console.error("Error fetching care shifts:", shiftsError);
+        } else {
+          setCareShifts(shiftsData as CareShift[]);
+        }
+        
       } catch (error) {
         console.error("Error fetching care plan data:", error);
       } finally {
@@ -88,6 +138,57 @@ const ProfessionalCarePlanPage = () => {
     
     fetchCarePlan();
   }, [planId, user]);
+
+  // Handle team member functions
+  const handleMemberAdded = async () => {
+    if (!planId) return;
+    
+    // Refresh team members
+    const { data, error } = await supabase
+      .from('care_team_members')
+      .select(`
+        *,
+        professionalDetails:profiles!care_team_members_caregiver_id_fkey (
+          full_name,
+          professional_type,
+          avatar_url
+        )
+      `)
+      .eq('care_plan_id', planId);
+      
+    if (error) {
+      console.error("Error refreshing team members:", error);
+    } else {
+      setCareTeamMembers(data as CareTeamMemberWithProfile[]);
+    }
+  };
+
+  const handleMemberRemoveRequest = async (member: CareTeamMemberWithProfile) => {
+    // In a professional view, they can only view the team, not remove members
+    console.log("Professionals cannot remove team members");
+  };
+  
+  // Handle shift functions
+  const handleShiftUpdated = async () => {
+    if (!planId) return;
+    
+    // Refresh care shifts
+    const { data, error } = await supabase
+      .from('care_shifts')
+      .select('*')
+      .eq('care_plan_id', planId);
+      
+    if (error) {
+      console.error("Error refreshing care shifts:", error);
+    } else {
+      setCareShifts(data as CareShift[]);
+    }
+  };
+  
+  const handleDeleteShift = async (shiftId: string) => {
+    // In a professional view, they can only view shifts, not delete them
+    console.log("Professionals cannot delete shifts");
+  };
 
   if (loading) {
     return (
@@ -131,7 +232,7 @@ const ProfessionalCarePlanPage = () => {
             <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
               carePlan.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-amber-100 text-amber-800'
             }`}>
-              {carePlan.status.charAt(0).toUpperCase() + carePlan.status.slice(1)}
+              {carePlan.status?.charAt(0).toUpperCase() + carePlan.status?.slice(1) || 'Unknown'}
             </span>
             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
               Care Professional
@@ -152,11 +253,25 @@ const ProfessionalCarePlanPage = () => {
           </TabsContent>
 
           <TabsContent value="team">
-            <CareTeamTab carePlanId={planId || ''} />
+            <CareTeamTab 
+              carePlanId={planId || ''}
+              familyId={carePlan.family?.id || ''}
+              careTeamMembers={careTeamMembers}
+              professionals={professionals}
+              onMemberAdded={handleMemberAdded}
+              onMemberRemoveRequest={handleMemberRemoveRequest}
+            />
           </TabsContent>
 
           <TabsContent value="schedule">
-            <ScheduleTab carePlanId={planId || ''} />
+            <ScheduleTab 
+              carePlanId={planId || ''}
+              familyId={carePlan.family?.id || ''}
+              careShifts={careShifts}
+              careTeamMembers={careTeamMembers}
+              onShiftUpdated={handleShiftUpdated}
+              onDeleteShift={handleDeleteShift}
+            />
           </TabsContent>
 
           <TabsContent value="payroll">

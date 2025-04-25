@@ -11,6 +11,7 @@ import { supabase } from "@/lib/supabase";
 import { DateRangePicker } from "@/components/ui/date-range-picker";
 import { DateRange } from "react-day-picker";
 import { startOfMonth, endOfMonth } from "date-fns";
+import { CareShift } from "@/types/careTypes";
 
 interface Shift {
   id: string;
@@ -49,8 +50,7 @@ const ProfessionalProfileHub = () => {
           title,
           start_time,
           end_time,
-          care_plans:care_plan_id (title),
-          care_recipient:care_recipient_id (name)
+          care_plans:care_plan_id (title)
         `)
         .eq('caregiver_id', user.id)
         .gte('start_time', dateRange.from ? dateRange.from.toISOString() : '')
@@ -67,7 +67,7 @@ const ProfessionalProfileHub = () => {
         start_time: shift.start_time,
         end_time: shift.end_time,
         care_plan_title: shift.care_plans?.title || 'Unknown Plan',
-        care_recipient_name: shift.care_recipient?.name || 'Unknown Patient',
+        care_recipient_name: 'Patient' // Simplified as we don't have direct access in this query
       }));
       
       setShifts(formattedShifts);
