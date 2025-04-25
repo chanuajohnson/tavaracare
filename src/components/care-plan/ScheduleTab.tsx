@@ -327,7 +327,7 @@ export const ScheduleTab: React.FC<ScheduleTabProps> = ({
                             variant="outline"
                             className="w-full justify-start text-left"
                           >
-                            <Calendar className="mr-2 h-4 w-4" />
+                            <CalendarIcon className="mr-2 h-4 w-4" />
                             {selectedDay ? (
                               format(selectedDay, "PPP")
                             ) : (
@@ -337,7 +337,7 @@ export const ScheduleTab: React.FC<ScheduleTabProps> = ({
                           </Button>
                         </PopoverTrigger>
                         <PopoverContent className="w-auto p-0" align="start">
-                          <CalendarComponent
+                          <Calendar
                             mode="single"
                             selected={selectedDay || undefined}
                             onSelect={(date) => {
@@ -380,7 +380,7 @@ export const ScheduleTab: React.FC<ScheduleTabProps> = ({
                           </Button>
                         </PopoverTrigger>
                         <PopoverContent className="w-auto p-0" align="start">
-                          <CalendarComponent
+                          <Calendar
                             mode="range"
                             selected={dateRange}
                             onSelect={setDateRange}
