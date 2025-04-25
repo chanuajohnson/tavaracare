@@ -1,4 +1,3 @@
-
 // Domain model type definitions for care-related entities
 
 // Care Plan 
@@ -17,7 +16,7 @@ export interface CarePlan {
 export interface CarePlanMetadata {
   planType: 'scheduled' | 'on-demand' | 'both';
   weekdayCoverage?: '8am-4pm' | '6am-6pm' | '6pm-8am' | 'none';
-  weekendCoverage?: 'yes' | 'no';
+  weekendCoverage?: 'yes' | 'no' | '8am-6pm';
   additionalShifts?: {
     weekdayEvening4pmTo6am?: boolean;
     weekdayEvening4pmTo8am?: boolean;

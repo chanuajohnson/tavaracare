@@ -239,10 +239,8 @@ const FamilyRegistration = () => {
 
   const updateProfile = async (profileData) => {
     try {
-      // Convert care_schedule from string[] to string if needed
       const updatedProfileData = {
         ...profileData,
-        // If care_schedule is an array, join it into a string
         care_schedule: Array.isArray(profileData.care_schedule) 
           ? profileData.care_schedule.join(', ')
           : profileData.care_schedule
@@ -255,9 +253,7 @@ const FamilyRegistration = () => {
       
       if (error) throw error;
       
-      // Success handling
     } catch (err) {
-      // Error handling
     }
   };
 
@@ -669,12 +665,22 @@ const FamilyRegistration = () => {
                   <div className="pl-7 space-y-3">
                     <div className="flex items-start space-x-2">
                       <Checkbox 
+                        id="weekend-day-8-6" 
+                        checked={careSchedule.includes('weekend_8_6')}
+                        onCheckedChange={() => handleCareScheduleChange('weekend_8_6')}
+                      />
+                      <Label htmlFor="weekend-day-8-6" className="font-normal">
+                        🌞 Saturday – Sunday, 8 AM – 6 PM (Weekend daytime coverage)
+                      </Label>
+                    </div>
+                    <div className="flex items-start space-x-2">
+                      <Checkbox 
                         id="weekend-day" 
                         checked={careSchedule.includes('weekend_day')}
                         onCheckedChange={() => handleCareScheduleChange('weekend_day')}
                       />
                       <Label htmlFor="weekend-day" className="font-normal">
-                        🌞 Saturday – Sunday, 6 AM – 6 PM (Daytime weekend coverage)
+                        🌞 Saturday – Sunday, 6 AM – 6 PM (Extended weekend coverage)
                       </Label>
                     </div>
                   </div>
