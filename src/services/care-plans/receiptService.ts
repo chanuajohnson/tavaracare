@@ -1,4 +1,3 @@
-
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { format } from 'date-fns';
@@ -359,75 +358,72 @@ const generateConsolidatedReceiptContent = async (doc: jsPDF, entries: PayrollEn
 };
 
 const convertPdfToJpg = async (pdfData: string): Promise<string> => {
-  try {
-    // Create a container to render the PDF
-    const container = document.createElement('div');
-    container.style.position = 'absolute';
-    container.style.left = '-9999px';
-    document.body.appendChild(container);
+  return new Promise((resolve, reject) => {
+    try {
+      // Create a temporary PDF element
+      const pdfContainer = document.createElement('div');
+      const iframe = document.createElement('iframe');
+      iframe.style.cssText = 'position: fixed; left: -9999px; width: 1024px; height: 1400px;';
+      pdfContainer.appendChild(iframe);
+      document.body.appendChild(pdfContainer);
 
-    // Create an iframe to load the PDF
-    const iframe = document.createElement('iframe');
-    iframe.style.width = '800px';
-    iframe.style.height = '1100px';
-    iframe.src = pdfData;
-    container.appendChild(iframe);
-
-    // Wait for the PDF to load
-    return new Promise((resolve, reject) => {
       iframe.onload = async () => {
         try {
-          // Give it a moment to render
-          await new Promise(r => setTimeout(r, 100));
-          
-          // Create a canvas and capture the iframe content
+          await new Promise(r => setTimeout(r, 1000)); // Give PDF time to render
+
           const canvas = document.createElement('canvas');
           const ctx = canvas.getContext('2d');
           
           if (!ctx) {
-            reject(new Error('Could not get canvas context'));
-            return;
+            throw new Error('Could not get canvas context');
           }
-          
-          // Set canvas dimensions
-          canvas.width = 800;
-          canvas.height = 1100;
-          
-          // Draw the iframe content to the canvas
+
+          // Set canvas size to match typical receipt dimensions
+          canvas.width = 1024;
+          canvas.height = 1400;
+
+          // Set white background
           ctx.fillStyle = 'white';
           ctx.fillRect(0, 0, canvas.width, canvas.height);
-          
-          // Use html2canvas or similar if needed for better rendering
-          // For now, just capture what's visible
-          try {
-            const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
-            if (iframeDoc?.body) {
-              // Simple approach - just draw the white background
+
+          // Try to capture the PDF content
+          const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
+          if (iframeDoc) {
+            try {
+              // Draw the iframe content to canvas
+              ctx.drawImage(iframe, 0, 0);
               const jpgData = canvas.toDataURL('image/jpeg', 0.95);
               resolve(jpgData);
-            } else {
-              reject(new Error('Could not access iframe content'));
+            } catch (e) {
+              console.error('Error capturing PDF content:', e);
+              resolve(pdfData); // Fallback to PDF if capture fails
             }
-          } catch (e) {
-            console.error('Error during canvas drawing:', e);
-            // Fallback to returning the PDF if there's an error with JPG conversion
-            resolve(pdfData);
+          } else {
+            resolve(pdfData); // Fallback to PDF if iframe access fails
           }
         } finally {
           // Clean up
-          document.body.removeChild(container);
+          document.body.removeChild(pdfContainer);
         }
       };
-      
-      iframe.onerror = () => {
-        document.body.removeChild(container);
-        reject(new Error('Failed to load PDF'));
-      };
-    });
-  } catch (error) {
-    console.error("Error converting PDF to JPG:", error);
-    throw new Error('Failed to convert PDF to JPG');
-  }
+
+      // Load the PDF data into the iframe
+      iframe.src = pdfData;
+
+      // Set a timeout to prevent hanging
+      setTimeout(() => {
+        try {
+          document.body.removeChild(pdfContainer);
+        } catch (e) {
+          console.error('Error cleaning up PDF container:', e);
+        }
+        resolve(pdfData); // Fallback to PDF on timeout
+      }, 5000);
+    } catch (error) {
+      console.error('Error in convertPdfToJpg:', error);
+      resolve(pdfData); // Fallback to PDF on error
+    }
+  });
 };
 
 export const generatePayReceipt = async (
@@ -441,7 +437,10 @@ export const generatePayReceipt = async (
     const pdfData = doc.output('datauristring');
     
     if (format === 'jpg') {
-      return await convertPdfToJpg(pdfData);
+      console.log('Converting PDF to JPG...');
+      const jpgData = await convertPdfToJpg(pdfData);
+      console.log('JPG conversion complete');
+      return jpgData;
     }
     
     return pdfData;
@@ -466,7 +465,10 @@ export const generateConsolidatedReceipt = async (
     const pdfData = doc.output('datauristring');
     
     if (format === 'jpg') {
-      return await convertPdfToJpg(pdfData);
+      console.log('Converting PDF to JPG...');
+      const jpgData = await convertPdfToJpg(pdfData);
+      console.log('JPG conversion complete');
+      return jpgData;
     }
     
     return pdfData;

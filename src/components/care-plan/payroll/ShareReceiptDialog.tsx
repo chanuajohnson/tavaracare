@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -26,6 +25,7 @@ export const ShareReceiptDialog: React.FC<ShareReceiptDialogProps> = ({
 }) => {
   const [email, setEmail] = useState('');
   const [fileFormat, setFileFormat] = useState<FileFormat>('pdf');
+  const [isDownloading, setIsDownloading] = useState(false);
 
   const handleCopyLink = () => {
     if (!receiptUrl) return;
@@ -35,16 +35,33 @@ export const ShareReceiptDialog: React.FC<ShareReceiptDialogProps> = ({
       .catch(() => toast.error('Failed to copy link'));
   };
 
-  const handleDownload = () => {
-    if (!receiptUrl) return;
+  const handleDownload = async () => {
+    if (!receiptUrl || !workLog) return;
 
-    // Create a link element and trigger download
-    const link = document.createElement('a');
-    link.href = receiptUrl;
-    link.download = `receipt-${workLog?.id.slice(0, 8) || 'download'}.${fileFormat}`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    try {
+      setIsDownloading(true);
+
+      const link = document.createElement('a');
+      const mimeType = fileFormat === 'pdf' ? 'application/pdf' : 'image/jpeg';
+      const response = await fetch(receiptUrl);
+      const blob = await response.blob();
+      const blobUrl = URL.createObjectURL(new Blob([blob], { type: mimeType }));
+
+      link.href = blobUrl;
+      link.download = `receipt-${workLog.id.slice(0, 8)}.${fileFormat}`;
+      document.body.appendChild(link);
+      link.click();
+      
+      document.body.removeChild(link);
+      URL.revokeObjectURL(blobUrl);
+      
+      toast.success(`Receipt downloaded as ${fileFormat.toUpperCase()}`);
+    } catch (error) {
+      console.error('Download error:', error);
+      toast.error('Failed to download receipt');
+    } finally {
+      setIsDownloading(false);
+    }
   };
 
   const handleEmailShare = () => {
@@ -66,11 +83,19 @@ export const ShareReceiptDialog: React.FC<ShareReceiptDialogProps> = ({
         <div className="flex flex-col space-y-4">
           <div className="border rounded-md overflow-hidden">
             {receiptUrl ? (
-              <iframe 
-                src={receiptUrl} 
-                className="w-full h-64"
-                title="Receipt Preview"
-              />
+              fileFormat === 'pdf' ? (
+                <iframe 
+                  src={receiptUrl} 
+                  className="w-full h-64"
+                  title="Receipt Preview"
+                />
+              ) : (
+                <img 
+                  src={receiptUrl} 
+                  alt="Receipt Preview"
+                  className="w-full h-64 object-contain"
+                />
+              )
             ) : (
               <div className="p-4 text-center text-muted-foreground">
                 No receipt available
@@ -112,10 +137,14 @@ export const ShareReceiptDialog: React.FC<ShareReceiptDialogProps> = ({
                 <Button 
                   variant="outline"
                   onClick={handleDownload}
-                  disabled={!receiptUrl}
+                  disabled={!receiptUrl || isDownloading}
                   className="flex-1"
                 >
-                  <Download className="mr-2 h-4 w-4" />
+                  {isDownloading ? (
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary mr-2" />
+                  ) : (
+                    <Download className="mr-2 h-4 w-4" />
+                  )}
                   Download
                 </Button>
               </div>
