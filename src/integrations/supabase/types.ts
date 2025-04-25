@@ -298,6 +298,8 @@ export type Database = {
           family_id: string
           id: string
           notes: string | null
+          overtime_rate: number | null
+          regular_rate: number | null
           role: string | null
           status: string | null
           updated_at: string | null
@@ -309,6 +311,8 @@ export type Database = {
           family_id: string
           id?: string
           notes?: string | null
+          overtime_rate?: number | null
+          regular_rate?: number | null
           role?: string | null
           status?: string | null
           updated_at?: string | null
@@ -320,6 +324,8 @@ export type Database = {
           family_id?: string
           id?: string
           notes?: string | null
+          overtime_rate?: number | null
+          regular_rate?: number | null
           role?: string | null
           status?: string | null
           updated_at?: string | null
@@ -965,6 +971,76 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payroll_entries: {
+        Row: {
+          care_plan_id: string
+          care_team_member_id: string
+          created_at: string | null
+          id: string
+          overtime_hours: number | null
+          overtime_rate: number | null
+          payment_date: string | null
+          payment_status: string | null
+          regular_hours: number
+          regular_rate: number
+          total_amount: number
+          updated_at: string | null
+          work_log_id: string
+        }
+        Insert: {
+          care_plan_id: string
+          care_team_member_id: string
+          created_at?: string | null
+          id?: string
+          overtime_hours?: number | null
+          overtime_rate?: number | null
+          payment_date?: string | null
+          payment_status?: string | null
+          regular_hours: number
+          regular_rate: number
+          total_amount: number
+          updated_at?: string | null
+          work_log_id: string
+        }
+        Update: {
+          care_plan_id?: string
+          care_team_member_id?: string
+          created_at?: string | null
+          id?: string
+          overtime_hours?: number | null
+          overtime_rate?: number | null
+          payment_date?: string | null
+          payment_status?: string | null
+          regular_hours?: number
+          regular_rate?: number
+          total_amount?: number
+          updated_at?: string | null
+          work_log_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payroll_entries_care_plan_id_fkey"
+            columns: ["care_plan_id"]
+            isOneToOne: false
+            referencedRelation: "care_plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payroll_entries_care_team_member_id_fkey"
+            columns: ["care_team_member_id"]
+            isOneToOne: false
+            referencedRelation: "care_team_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payroll_entries_work_log_id_fkey"
+            columns: ["work_log_id"]
+            isOneToOne: false
+            referencedRelation: "work_logs"
             referencedColumns: ["id"]
           },
         ]
@@ -1637,6 +1713,60 @@ export type Database = {
           raw_data?: Json
         }
         Relationships: []
+      }
+      work_logs: {
+        Row: {
+          break_duration_minutes: number | null
+          care_plan_id: string
+          care_team_member_id: string
+          created_at: string | null
+          end_time: string
+          id: string
+          notes: string | null
+          start_time: string
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          break_duration_minutes?: number | null
+          care_plan_id: string
+          care_team_member_id: string
+          created_at?: string | null
+          end_time: string
+          id?: string
+          notes?: string | null
+          start_time: string
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          break_duration_minutes?: number | null
+          care_plan_id?: string
+          care_team_member_id?: string
+          created_at?: string | null
+          end_time?: string
+          id?: string
+          notes?: string | null
+          start_time?: string
+          status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "work_logs_care_plan_id_fkey"
+            columns: ["care_plan_id"]
+            isOneToOne: false
+            referencedRelation: "care_plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "work_logs_care_team_member_id_fkey"
+            columns: ["care_team_member_id"]
+            isOneToOne: false
+            referencedRelation: "care_team_members"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {

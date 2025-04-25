@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "@/components/providers/AuthProvider";
@@ -24,10 +23,10 @@ import {
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 
-// Import components
 import { CareTeamTab } from "@/components/care-plan/CareTeamTab";
 import { PlanDetailsTab } from "@/components/care-plan/PlanDetailsTab";
 import { ScheduleTab } from "@/components/care-plan/ScheduleTab";
+import { PayrollTab } from "@/components/care-plan/PayrollTab";
 
 interface Professional {
   id: string;
@@ -233,6 +232,7 @@ const CarePlanDetailPage = () => {
             <TabsTrigger value="details">Plan Details</TabsTrigger>
             <TabsTrigger value="team">Care Team</TabsTrigger>
             <TabsTrigger value="schedule">Schedule</TabsTrigger>
+            <TabsTrigger value="payroll">Payroll & Hours</TabsTrigger>
           </TabsList>
           
           <TabsContent value="details">
@@ -262,6 +262,10 @@ const CarePlanDetailPage = () => {
               onShiftUpdated={loadCareShifts}
               onDeleteShift={handleDeleteShift}
             />
+          </TabsContent>
+          
+          <TabsContent value="payroll">
+            <PayrollTab carePlanId={id!} />
           </TabsContent>
         </Tabs>
       </Container>
