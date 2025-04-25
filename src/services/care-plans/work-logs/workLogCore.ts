@@ -1,4 +1,3 @@
-
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import type { WorkLog, WorkLogInput } from "../types/workLogTypes";
@@ -14,7 +13,7 @@ export const fetchWorkLogs = async (carePlanId: string): Promise<WorkLog[]> => {
           id,
           display_name,
           caregiver_id,
-          profiles:caregiver_id (
+          profiles (
             full_name
           )
         )
@@ -34,7 +33,7 @@ export const fetchWorkLogs = async (carePlanId: string): Promise<WorkLog[]> => {
       // Use display name from care team member, fallback to profile name
       const displayName = 
         log.care_team_members?.display_name || 
-        log.care_team_members?.profiles?.full_name ||
+        (log.care_team_members?.profiles && log.care_team_members?.profiles[0]?.full_name) ||
         'Unknown';
       
       console.log('Display name for work log:', displayName);

@@ -1,4 +1,3 @@
-
 // Domain model type definitions for care-related entities
 
 // Care Plan 
@@ -144,6 +143,7 @@ export interface CareTeamMemberDto {
   role?: 'caregiver' | 'nurse' | 'therapist' | 'doctor' | 'other';
   status?: 'invited' | 'active' | 'declined' | 'removed';
   notes?: string;
+  display_name?: string; // Added display_name property
   created_at?: string;
   updated_at?: string;
 }
