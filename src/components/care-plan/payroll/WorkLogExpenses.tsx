@@ -66,11 +66,12 @@ export const WorkLogExpenses: React.FC<WorkLogExpensesProps> = ({ expenses = [] 
                   <Badge
                     variant={
                       expense.status === 'approved' 
-                        ? 'success' 
+                        ? 'default' // Changed from 'success' to 'default' as 'success' isn't a valid variant
                         : expense.status === 'rejected' 
                         ? 'destructive' 
                         : 'outline'
                     }
+                    className={expense.status === 'approved' ? "bg-green-500 hover:bg-green-600" : ""}
                   >
                     {expense.status}
                   </Badge>

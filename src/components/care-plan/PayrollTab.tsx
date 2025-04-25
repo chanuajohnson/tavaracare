@@ -52,9 +52,11 @@ export const PayrollTab: React.FC<PayrollTabProps> = ({ carePlanId }) => {
     return entry.created_at ? new Date(entry.created_at) >= startDate : false;
   });
 
-  const openRejectDialog = (workLogId: string) => {
+  // Updated to return a Promise<boolean> to match the expected type
+  const openRejectDialog = async (workLogId: string, reason: string): Promise<boolean> => {
     setWorkLogToReject(workLogId);
     setRejectDialogOpen(true);
+    return true; // Return true to indicate success in opening the dialog
   };
 
   const handleRejectWorkLogSubmit = async () => {

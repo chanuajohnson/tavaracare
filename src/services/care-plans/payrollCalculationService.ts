@@ -71,7 +71,7 @@ export const calculatePayrollEntry = async (workLog: WorkLog) => {
       .eq('work_log_id', workLog.id);
       
     if (!error && expenses) {
-      expenseTotal = expenses.reduce((total, expense) => total + (parseFloat(expense.amount) || 0), 0);
+      expenseTotal = expenses.reduce((total, expense) => total + (parseFloat(String(expense.amount)) || 0), 0);
     }
   } catch (err) {
     console.error("Error calculating expense total:", err);
