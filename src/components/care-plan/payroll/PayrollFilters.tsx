@@ -3,6 +3,7 @@ import React from 'react';
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DateRangeFilter } from '@/hooks/payroll/usePayrollFilters';
+import { CareTeamMemberWithProfile } from '@/types/careTypes';
 
 interface PayrollFiltersProps {
   searchTerm: string;
@@ -11,6 +12,9 @@ interface PayrollFiltersProps {
   onDateRangeChange: (value: string) => void;
   statusFilter: string;
   onStatusChange: (value: string) => void;
+  caregiverFilter: string;
+  onCaregiverChange: (value: string) => void;
+  careTeamMembers: CareTeamMemberWithProfile[];
   showPayrollStatuses?: boolean;
 }
 
@@ -21,6 +25,9 @@ export const PayrollFilters: React.FC<PayrollFiltersProps> = ({
   onDateRangeChange,
   statusFilter,
   onStatusChange,
+  caregiverFilter,
+  onCaregiverChange,
+  careTeamMembers,
   showPayrollStatuses = false,
 }) => {
   return (
@@ -63,6 +70,20 @@ export const PayrollFilters: React.FC<PayrollFiltersProps> = ({
               <SelectItem value="paid">Paid</SelectItem>
             </>
           )}
+        </SelectContent>
+      </Select>
+
+      <Select value={caregiverFilter} onValueChange={onCaregiverChange}>
+        <SelectTrigger className="w-full md:w-[200px]">
+          <SelectValue placeholder="Select caregiver" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="all">All caregivers</SelectItem>
+          {careTeamMembers.map((member) => (
+            <SelectItem key={member.id} value={member.id}>
+              {member.professionalDetails?.full_name || member.caregiverId}
+            </SelectItem>
+          ))}
         </SelectContent>
       </Select>
     </div>

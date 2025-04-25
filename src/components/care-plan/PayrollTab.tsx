@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -31,7 +30,8 @@ export const PayrollTab: React.FC<PayrollTabProps> = ({ carePlanId }) => {
     loading,
     handleApproveWorkLog,
     handleRejectWorkLog,
-    handleProcessPayment
+    handleProcessPayment,
+    careTeamMembers
   } = usePayrollData(carePlanId);
 
   // Set up filters for work logs
@@ -108,6 +108,9 @@ export const PayrollTab: React.FC<PayrollTabProps> = ({ carePlanId }) => {
               onDateRangeChange={workLogSetFilters.setDateRangeFilter}
               statusFilter={workLogFilters.statusFilter}
               onStatusChange={workLogSetFilters.setStatusFilter}
+              caregiverFilter={workLogFilters.caregiverFilter}
+              onCaregiverChange={workLogSetFilters.setCaregiverFilter}
+              careTeamMembers={careTeamMembers}
             />
           ) : (
             <PayrollFilters
@@ -117,6 +120,9 @@ export const PayrollTab: React.FC<PayrollTabProps> = ({ carePlanId }) => {
               onDateRangeChange={payrollSetFilters.setDateRangeFilter}
               statusFilter={payrollFilters.statusFilter}
               onStatusChange={payrollSetFilters.setStatusFilter}
+              caregiverFilter={payrollFilters.caregiverFilter}
+              onCaregiverChange={payrollSetFilters.setCaregiverFilter}
+              careTeamMembers={careTeamMembers}
               showPayrollStatuses
             />
           )}
@@ -182,4 +188,3 @@ export const PayrollTab: React.FC<PayrollTabProps> = ({ carePlanId }) => {
     </div>
   );
 };
-
