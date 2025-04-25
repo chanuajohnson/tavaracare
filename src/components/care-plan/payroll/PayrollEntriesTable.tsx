@@ -1,8 +1,10 @@
 
 import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { format } from "date-fns";
+import { format, formatDistanceToNow } from "date-fns";
 import { PayrollStatusBadge } from "./PayrollStatusBadge";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { useIsMobile } from "@/hooks/use-mobile";
 import type { PayrollEntry } from "@/services/care-plans/types/workLogTypes";
 
 interface PayrollEntriesTableProps {
@@ -14,79 +16,144 @@ export const PayrollEntriesTable: React.FC<PayrollEntriesTableProps> = ({
   entries,
   onProcessPayment
 }) => {
+  const isMobile = useIsMobile();
+
   if (!entries.length) {
     return <div className="text-center p-4">No payroll entries found.</div>;
   }
 
+  const formatDate = (date: string | null | undefined, showRelative = false) => {
+    if (!date) return '-';
+    const dateObj = new Date(date);
+    if (showRelative) {
+      return formatDistanceToNow(dateObj, { addSuffix: true });
+    }
+    return format(dateObj, 'MMM d, yyyy');
+  };
+
+  const DateCell = ({ date, label }: { date: string | null | undefined, label: string }) => (
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <div className="text-sm">
+            <div className="font-medium text-muted-foreground">{label}</div>
+            <div>{formatDate(date, isMobile)}</div>
+          </div>
+        </TooltipTrigger>
+        {date && (
+          <TooltipContent>
+            <p>
+              {format(new Date(date), 'MMMM d, yyyy h:mm a')}
+            </p>
+          </TooltipContent>
+        )}
+      </Tooltip>
+    </TooltipProvider>
+  );
+
   return (
-    <Table>
-      <TableCaption>Payroll entries</TableCaption>
-      <TableHeader>
-        <TableRow>
-          <TableHead>Caregiver</TableHead>
-          <TableHead>Date</TableHead>
-          <TableHead>Regular Hours</TableHead>
-          <TableHead>Overtime Hours</TableHead>
-          <TableHead>Holiday Hours</TableHead>
-          <TableHead>Base Rate</TableHead>
-          <TableHead>Expenses</TableHead>
-          <TableHead>Total</TableHead>
-          <TableHead>Status</TableHead>
-          <TableHead className="text-right">Actions</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {entries.map((entry) => (
-          <TableRow key={entry.id}>
-            <TableCell>{entry.caregiver_name || 'Unknown'}</TableCell>
-            <TableCell>
-              {entry.pay_period_start && format(new Date(entry.pay_period_start), 'MMM d, yyyy')}
-            </TableCell>
-            <TableCell>
-              {entry.regular_hours > 0 && (
-                <div className="text-sm">
-                  {entry.regular_hours}h @ ${entry.regular_rate}/hr
-                </div>
-              )}
-            </TableCell>
-            <TableCell>
-              {entry.overtime_hours > 0 && (
-                <div className="text-sm">
-                  {entry.overtime_hours}h @ ${entry.overtime_rate}/hr
-                </div>
-              )}
-            </TableCell>
-            <TableCell>
-              {entry.holiday_hours > 0 && (
-                <div className="text-sm">
-                  {entry.holiday_hours}h @ ${entry.holiday_rate}/hr
-                </div>
-              )}
-            </TableCell>
-            <TableCell>
-              <div className="text-sm font-medium">
-                ${entry.regular_rate}/hr
-              </div>
-            </TableCell>
-            <TableCell>${entry.expense_total?.toFixed(2) || '0.00'}</TableCell>
-            <TableCell className="font-medium">${entry.total_amount.toFixed(2)}</TableCell>
-            <TableCell>
-              <PayrollStatusBadge status={entry.payment_status} />
-            </TableCell>
-            <TableCell className="text-right">
-              {entry.payment_status === 'pending' && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => onProcessPayment(entry.id)}
-                >
-                  Process Payment
-                </Button>
-              )}
-            </TableCell>
+    <div className="overflow-x-auto">
+      <Table>
+        <TableCaption>Payroll entries</TableCaption>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Caregiver</TableHead>
+            <TableHead>Date</TableHead>
+            {!isMobile && (
+              <>
+                <TableHead>Regular Hours</TableHead>
+                <TableHead>Overtime Hours</TableHead>
+                <TableHead>Holiday Hours</TableHead>
+              </>
+            )}
+            <TableHead>Base Rate</TableHead>
+            {!isMobile && <TableHead>Expenses</TableHead>}
+            <TableHead>Total</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead>Entered On</TableHead>
+            <TableHead>Paid On</TableHead>
+            <TableHead className="text-right">Actions</TableHead>
           </TableRow>
-        ))}
-      </TableBody>
-    </Table>
+        </TableHeader>
+        <TableBody>
+          {entries.map((entry) => (
+            <TableRow key={entry.id}>
+              <TableCell>{entry.caregiver_name || 'Unknown'}</TableCell>
+              <TableCell>
+                {entry.pay_period_start && formatDate(entry.pay_period_start)}
+              </TableCell>
+              {!isMobile && (
+                <>
+                  <TableCell>
+                    {entry.regular_hours > 0 && (
+                      <div className="text-sm">
+                        {entry.regular_hours}h @ ${entry.regular_rate}/hr
+                      </div>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {entry.overtime_hours > 0 && (
+                      <div className="text-sm">
+                        {entry.overtime_hours}h @ ${entry.overtime_rate}/hr
+                      </div>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {entry.holiday_hours > 0 && (
+                      <div className="text-sm">
+                        {entry.holiday_hours}h @ ${entry.holiday_rate}/hr
+                      </div>
+                    )}
+                  </TableCell>
+                </>
+              )}
+              <TableCell>
+                <div className="text-sm font-medium">
+                  ${entry.regular_rate}/hr
+                </div>
+                {isMobile && entry.regular_hours > 0 && (
+                  <div className="text-xs text-muted-foreground">
+                    {entry.regular_hours}h regular
+                  </div>
+                )}
+                {isMobile && entry.overtime_hours > 0 && (
+                  <div className="text-xs text-muted-foreground">
+                    {entry.overtime_hours}h OT
+                  </div>
+                )}
+                {isMobile && entry.holiday_hours > 0 && (
+                  <div className="text-xs text-muted-foreground">
+                    {entry.holiday_hours}h holiday
+                  </div>
+                )}
+              </TableCell>
+              {!isMobile && <TableCell>${entry.expense_total?.toFixed(2) || '0.00'}</TableCell>}
+              <TableCell className="font-medium">${entry.total_amount.toFixed(2)}</TableCell>
+              <TableCell>
+                <PayrollStatusBadge status={entry.payment_status} />
+              </TableCell>
+              <TableCell>
+                <DateCell date={entry.created_at} label="Entered" />
+              </TableCell>
+              <TableCell>
+                <DateCell date={entry.payment_date} label="Paid" />
+              </TableCell>
+              <TableCell className="text-right">
+                {entry.payment_status === 'pending' && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => onProcessPayment(entry.id)}
+                  >
+                    Process Payment
+                  </Button>
+                )}
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </div>
   );
 };
+
