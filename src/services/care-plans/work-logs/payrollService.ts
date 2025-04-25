@@ -1,8 +1,6 @@
-
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import type { PayrollEntry } from "../types/workLogTypes";
-import { calculatePayrollEntry } from "../payrollCalculationService";
 
 export const fetchPayrollEntries = async (carePlanId: string): Promise<PayrollEntry[]> => {
   try {
@@ -11,7 +9,10 @@ export const fetchPayrollEntries = async (carePlanId: string): Promise<PayrollEn
       .select(`
         *,
         care_team_members:care_team_member_id (
-          caregiver_id
+          caregiver_id,
+          profiles:caregiver_id (
+            full_name
+          )
         )
       `)
       .eq('care_plan_id', carePlanId)
