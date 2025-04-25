@@ -1,81 +1,110 @@
 
 import React from 'react';
 import { format } from 'date-fns';
+import { 
+  Table, 
+  TableBody, 
+  TableCaption, 
+  TableCell, 
+  TableHead, 
+  TableHeader, 
+  TableRow 
+} from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Check, X } from "lucide-react";
 import { PayrollStatusBadge } from './PayrollStatusBadge';
-import type { WorkLog } from "@/services/care-plans/workLogService";
+import { RejectWorkLogDialog } from './RejectWorkLogDialog';
+import { WorkLogExpenses } from './WorkLogExpenses';
+import type { WorkLog } from '@/services/care-plans/types/workLogTypes';
 
 interface WorkLogsTableProps {
   workLogs: WorkLog[];
   onApprove: (id: string) => void;
-  onReject: (id: string) => void;
+  onReject: (id: string, reason: string) => Promise<boolean>;
 }
 
-export const WorkLogsTable: React.FC<WorkLogsTableProps> = ({
+export const WorkLogsTable: React.FC<WorkLogsTableProps> = ({ 
   workLogs,
   onApprove,
-  onReject,
+  onReject
 }) => {
+  if (workLogs.length === 0) {
+    return <div className="text-center p-4">No work logs found.</div>;
+  }
+
   return (
     <Table>
+      <TableCaption>Submitted work logs</TableCaption>
       <TableHeader>
         <TableRow>
-          <TableHead>Date</TableHead>
           <TableHead>Caregiver</TableHead>
+          <TableHead>Date</TableHead>
           <TableHead>Hours</TableHead>
+          <TableHead>Break</TableHead>
+          <TableHead>Expenses</TableHead>
           <TableHead>Status</TableHead>
           <TableHead className="text-right">Actions</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
-        {workLogs.length > 0 ? (
-          workLogs.map((log) => (
-            <TableRow key={log.id}>
-              <TableCell>{format(new Date(log.start_time), 'MMM d, yyyy')}</TableCell>
-              <TableCell>{log.caregiver_name || 'Unknown'}</TableCell>
-              <TableCell>
-                {format(new Date(log.start_time), 'h:mm a')} - 
-                {format(new Date(log.end_time), 'h:mm a')}
+        {workLogs.map((workLog) => {
+          const startTime = new Date(workLog.start_time);
+          const endTime = new Date(workLog.end_time);
+          const hoursDiff = (endTime.getTime() - startTime.getTime()) / (1000 * 60 * 60);
+          const breakHours = (workLog.break_duration_minutes || 0) / 60;
+          const netHours = hoursDiff - breakHours;
+          
+          return (
+            <TableRow key={workLog.id}>
+              <TableCell className="font-medium">
+                {workLog.caregiver_name || 'Unknown'}
               </TableCell>
               <TableCell>
-                <PayrollStatusBadge status={log.status} />
+                {format(startTime, 'MMM d, yyyy')}
               </TableCell>
-              <TableCell className="text-right space-x-2">
-                {log.status === 'pending' && (
-                  <>
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => onApprove(log.id)}
-                    >
-                      Approve
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      className="border-red-200 text-red-700 hover:bg-red-50"
-                      onClick={() => onReject(log.id)}
-                    >
-                      Reject
-                    </Button>
-                  </>
+              <TableCell>
+                {netHours.toFixed(1)}h ({format(startTime, 'h:mm a')} - {format(endTime, 'h:mm a')})
+              </TableCell>
+              <TableCell>
+                {breakHours > 0 ? `${breakHours.toFixed(1)}h` : 'None'}
+              </TableCell>
+              <TableCell>
+                {workLog.expenses && workLog.expenses.length > 0 ? (
+                  <WorkLogExpenses expenses={workLog.expenses} />
+                ) : (
+                  <span className="text-muted-foreground">None</span>
                 )}
-                {log.notes && (
-                  <span title={log.notes} className="cursor-help text-sm text-muted-foreground">
-                    Has notes
-                  </span>
+              </TableCell>
+              <TableCell>
+                <PayrollStatusBadge status={workLog.status} />
+              </TableCell>
+              <TableCell className="text-right">
+                {workLog.status === 'pending' && (
+                  <div className="flex justify-end gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-8 gap-1"
+                      onClick={() => onApprove(workLog.id)}
+                    >
+                      <Check className="h-4 w-4" /> Approve
+                    </Button>
+                    
+                    <RejectWorkLogDialog onReject={(reason) => onReject(workLog.id, reason)}>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-8 gap-1 border-red-200 hover:bg-red-50 hover:text-red-600"
+                      >
+                        <X className="h-4 w-4" /> Reject
+                      </Button>
+                    </RejectWorkLogDialog>
+                  </div>
                 )}
               </TableCell>
             </TableRow>
-          ))
-        ) : (
-          <TableRow>
-            <TableCell colSpan={5} className="text-center py-4 text-muted-foreground">
-              No work logs found matching your filters.
-            </TableCell>
-          </TableRow>
-        )}
+          );
+        })}
       </TableBody>
     </Table>
   );

@@ -1,3 +1,4 @@
+
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import { calculatePayrollEntry } from "./payrollCalculationService";
@@ -52,7 +53,15 @@ export const fetchWorkLogs = async (carePlanId: string): Promise<WorkLog[]> => {
         };
       });
 
-      return enhancedLogs as WorkLog[];
+      // Fetch expenses for each work log
+      const logsWithExpenses = await Promise.all(
+        enhancedLogs.map(async (log) => {
+          const expenses = await fetchWorkLogExpenses(log.id);
+          return { ...log, expenses };
+        })
+      );
+
+      return logsWithExpenses as WorkLog[];
     }
     
     return workLogs as WorkLog[];
@@ -65,9 +74,18 @@ export const fetchWorkLogs = async (carePlanId: string): Promise<WorkLog[]> => {
 
 // Fetch expenses for a work log
 export const fetchWorkLogExpenses = async (workLogId: string): Promise<WorkLogExpense[]> => {
-  // Since the work_log_expenses table isn't created yet, we'll return an empty array
-  console.log("Expense fetching will be enabled after database migration");
-  return [];
+  try {
+    const { data, error } = await supabase
+      .from('work_log_expenses')
+      .select('*')
+      .eq('work_log_id', workLogId);
+      
+    if (error) throw error;
+    return data as WorkLogExpense[];
+  } catch (error) {
+    console.error("Error fetching work log expenses:", error);
+    return [];
+  }
 };
 
 // Fetch all payroll entries for a care plan
@@ -189,10 +207,22 @@ export const createWorkLogFromShift = async (
 
 // Add an expense to a work log
 export const addWorkLogExpense = async (expenseInput: WorkLogExpenseInput): Promise<{ success: boolean; expense?: WorkLogExpense; error?: string }> => {
-  // Database table doesn't exist yet, so we'll return a placeholder
-  console.log("Expense tracking will be enabled after database migration");
-  toast.info("Expense tracking will be enabled soon");
-  return { success: false, error: "Expense tracking feature is coming soon" };
+  try {
+    const { data, error } = await supabase
+      .from('work_log_expenses')
+      .insert(expenseInput)
+      .select()
+      .single();
+      
+    if (error) throw error;
+    
+    toast.success("Expense added successfully");
+    return { success: true, expense: data as WorkLogExpense };
+  } catch (error: any) {
+    console.error("Error adding work log expense:", error);
+    toast.error("Failed to add expense");
+    return { success: false, error: error.message };
+  }
 };
 
 // Approve a work log
@@ -234,6 +264,9 @@ export const approveWorkLog = async (workLogId: string): Promise<boolean> => {
       overtime_hours: payrollData.overtimeHours,
       regular_rate: payrollData.regularRate,
       overtime_rate: payrollData.overtimeRate,
+      holiday_hours: payrollData.holidayHours,
+      holiday_rate: payrollData.holidayRate,
+      expense_total: payrollData.expenseTotal,
       total_amount: totalAmount,
       payment_status: 'pending'
     };

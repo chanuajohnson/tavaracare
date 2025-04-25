@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { format } from 'date-fns';
 import { Clock, PlusCircle, X } from 'lucide-react';
@@ -9,8 +8,9 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { createWorkLogFromShift } from "@/services/care-plans/workLogService";
+import { createWorkLogFromShift, addWorkLogExpense } from "@/services/care-plans/workLogService";
 import type { CareShift } from "@/types/careTypes";
+import type { WorkLogExpenseInput } from "@/services/care-plans/types/workLogTypes";
 
 interface WorkLogFormProps {
   carePlanId: string;
@@ -75,14 +75,29 @@ export const WorkLogForm: React.FC<WorkLogFormProps> = ({
       setIsLoading(true);
       
       // Create the work log using the shift data
-      const { success, error } = await createWorkLogFromShift(
+      const { success, workLog, error } = await createWorkLogFromShift(
         shift,
         breakMinutes,
         notes
       );
 
-      if (!success) {
+      if (!success || !workLog) {
         throw new Error(error || "Failed to create work log");
+      }
+
+      // Add expenses if any were entered
+      if (expenses.length > 0) {
+        const expensePromises = expenses.map(expense => {
+          const expenseInput: WorkLogExpenseInput = {
+            work_log_id: workLog.id,
+            category: expense.category,
+            amount: expense.amount,
+            description: expense.description
+          };
+          return addWorkLogExpense(expenseInput);
+        });
+
+        await Promise.all(expensePromises);
       }
 
       toast.success("Work log submitted successfully");

@@ -62,6 +62,21 @@ export const calculatePayrollEntry = async (workLog: WorkLog) => {
     regularHours = 0;
   }
 
+  // Fetch expense total for this work log
+  let expenseTotal = 0;
+  try {
+    const { data: expenses, error } = await supabase
+      .from('work_log_expenses')
+      .select('amount')
+      .eq('work_log_id', workLog.id);
+      
+    if (!error && expenses) {
+      expenseTotal = expenses.reduce((total, expense) => total + (parseFloat(expense.amount) || 0), 0);
+    }
+  } catch (err) {
+    console.error("Error calculating expense total:", err);
+  }
+
   return {
     workLogWithTeamMember,
     regularHours,
@@ -70,6 +85,6 @@ export const calculatePayrollEntry = async (workLog: WorkLog) => {
     regularRate,
     overtimeRate,
     holidayRate,
-    expenseTotal: 0 // We'll implement expense calculation when the table exists
+    expenseTotal
   };
 };
