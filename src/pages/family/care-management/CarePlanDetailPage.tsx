@@ -1,5 +1,6 @@
+
 import { useState, useEffect } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { Container } from "@/components/ui/container";
 import { PageViewTracker } from "@/components/tracking/PageViewTracker";
@@ -14,7 +15,8 @@ import {
   deleteCareShift,
   CareTeamMemberWithProfile,
   CareShift,
-  ProfessionalDetails 
+  ProfessionalDetails,
+  CarePlan
 } from "@/services/care-plans";
 
 import { CareTeamTab } from "@/components/care-plan/CareTeamTab";
@@ -35,6 +37,7 @@ interface Professional {
 
 const CarePlanDetailPage = () => {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const { user } = useAuth();
   const [carePlan, setCarePlan] = useState<CarePlan | null>(null);
   const [careTeamMembers, setCareTeamMembers] = useState<CareTeamMemberWithProfile[]>([]);
