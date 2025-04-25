@@ -16,10 +16,12 @@ const ResetPassword = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
 
-  const getResetRedirectUrl = () => {
+  const getResetRedirectUrl = (userEmail: string) => {
     // Use current origin (domain) with the correct path for reset confirmation
     // This handles both deployed and local environments automatically
-    return `${window.location.origin}/auth/reset-password/confirm`;
+    // Include the email parameter which is now required for token verification
+    const baseUrl = `${window.location.origin}/auth/reset-password/confirm`;
+    return `${baseUrl}?email=${encodeURIComponent(userEmail)}`;
   };
 
   const handleSendResetLink = async (e: React.FormEvent) => {
@@ -33,7 +35,7 @@ const ResetPassword = () => {
     setIsLoading(true);
 
     try {
-      const redirectUrl = getResetRedirectUrl();
+      const redirectUrl = getResetRedirectUrl(email);
       console.log("🔄 Sending reset password email to:", email);
       console.log("🔗 Using redirect URL:", redirectUrl);
       
@@ -83,12 +85,14 @@ const ResetPassword = () => {
               Enter your email address and we'll send you a link to reset your password.
             </CardDescription>
           </CardHeader>
-          <RequestResetForm
-            email={email}
-            isLoading={isLoading}
-            onEmailChange={setEmail}
-            onSubmit={handleSendResetLink}
-          />
+          <CardContent>
+            <RequestResetForm
+              email={email}
+              isLoading={isLoading}
+              onEmailChange={setEmail}
+              onSubmit={handleSendResetLink}
+            />
+          </CardContent>
         </Card>
       )}
     </div>

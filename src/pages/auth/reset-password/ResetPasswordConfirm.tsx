@@ -48,12 +48,28 @@ const ResetPasswordConfirm = () => {
             } 
             else if (token && type === 'recovery') {
               console.log('[Reset] Using legacy token format, exchanging for session');
-              // For the legacy format, we need to exchange the token for a session
-              // Assuming here that the token is the magic link token
+              
+              // For the legacy format, we need to determine the user's email first
+              // This is a workaround since the Supabase API now requires an email for verifyOtp
+              
+              // We can try to extract email from the URL if available
+              const searchParams = new URLSearchParams(window.location.search);
+              const email = searchParams.get('email');
+              
+              if (!email) {
+                console.error('[Reset] Email parameter is missing for recovery token verification');
+                throw new Error('Invalid recovery link. The link must include an email parameter.');
+              }
+              
+              // Now we have the email, we can verify the OTP
               sessionResult = await supabase.auth.verifyOtp({
                 token: token,
-                type: 'recovery'
+                type: 'recovery',
+                email: email
               });
+              
+              // Set the email address for the password reset form
+              setEmailAddress(email);
             } 
             else {
               throw new Error('No valid token format found in URL');
@@ -72,7 +88,10 @@ const ResetPasswordConfirm = () => {
             }
             
             console.log('[Reset] Successfully validated user session for:', user.email);
-            setEmailAddress(user.email);
+            // Only set email if not already set from the URL parameter
+            if (!emailAddress) {
+              setEmailAddress(user.email);
+            }
             setValidSession(true);
             setValidationError(null);
           })(),
@@ -97,7 +116,7 @@ const ResetPasswordConfirm = () => {
       // Clear the skip redirect flag when leaving this page
       sessionStorage.removeItem('skipPostLoginRedirect');
     };
-  }, []);
+  }, [emailAddress]);
 
   // Show loading state
   if (isLoading) {

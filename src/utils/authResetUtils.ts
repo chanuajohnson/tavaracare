@@ -7,6 +7,7 @@ export const extractResetTokens = (): {
   refresh_token?: string; 
   type?: string;
   token?: string;
+  email?: string;
   error?: string 
 } => {
   console.log("[Reset] Starting token extraction...");
@@ -22,11 +23,15 @@ export const extractResetTokens = (): {
   // Also try to extract the legacy token format (token and type)
   const token = searchParams.get('token') || undefined;
   const type = searchParams.get('type') || undefined;
+  
+  // Extract email which is now required for recovery token verification
+  const email = searchParams.get('email') || undefined;
 
   console.log("[Reset] Token validation results:", {
     hasAccessToken: !!access_token,
     hasRefreshToken: !!refresh_token,
     hasLegacyToken: !!token,
+    hasEmail: !!email,
     type
   });
 
@@ -38,7 +43,10 @@ export const extractResetTokens = (): {
   // Case 2: We have the legacy token format (token and type)
   if (token && type === 'recovery') {
     console.log("[Reset] Found legacy token format, will attempt to convert");
-    return { token, type };
+    if (!email) {
+      console.warn("[Reset] Email parameter is missing, which is required for recovery verification");
+    }
+    return { token, type, email };
   }
 
   // No valid tokens found

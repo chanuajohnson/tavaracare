@@ -19,8 +19,9 @@
       // Special handling for auth reset password confirm route
       if (pathname.includes('/auth/reset-password/confirm')) {
         console.log('[404 redirect] Auth reset password route detected with query params:', search);
-        // For auth routes, preserve all query parameters as-is
-        window.location.href = '/#' + pathname + search + hash;
+        // For auth routes with tokens, we need to preserve every query parameter
+        // Redirect to the SPA route with all query parameters intact
+        window.location.href = '/#' + pathname + search;
         return;
       }
       
