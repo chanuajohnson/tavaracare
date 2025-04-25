@@ -1,4 +1,3 @@
-
 import { Json } from '../utils/json';
 
 /**
@@ -12,23 +11,20 @@ export interface CarePlan {
   description: string;
   familyId: string;
   status: 'active' | 'completed' | 'cancelled';
-  metadata?: CarePlanMetadata;
-}
-
-/**
- * Frontend model for care plan metadata (camelCase)
- */
-export interface CarePlanMetadata {
-  planType: 'scheduled' | 'on-demand' | 'both';
-  weekdayCoverage?: '8am-4pm' | '6am-6pm' | '6pm-8am' | 'none';
-  weekendCoverage?: 'yes' | 'no' | '8am-6pm';
-  additionalShifts?: {
-    weekdayEvening4pmTo6am?: boolean;
-    weekdayEvening4pmTo8am?: boolean;
-    weekdayEvening6pmTo6am?: boolean;
-    weekdayEvening6pmTo8am?: boolean;
+  metadata?: {
+    planType: 'scheduled' | 'on-demand' | 'both';
+    weekdayCoverage?: '8am-4pm' | '8am-6pm' | '6am-6pm' | '6pm-8am' | 'none';
+    weekendCoverage?: 'yes' | 'no' | '8am-6pm';
+    additionalShifts?: {
+      weekdayEvening4pmTo6am?: boolean;
+      weekdayEvening4pmTo8am?: boolean;
+      weekdayEvening6pmTo6am?: boolean;
+      weekdayEvening6pmTo8am?: boolean;
+    };
   };
 }
+
+export type WeekdayOption = '8am-4pm' | '8am-6pm' | '6am-6pm' | '6pm-8am' | 'none';
 
 /**
  * Database model for care plan inserts (snake_case)
