@@ -1,12 +1,13 @@
+
 import { Suspense, lazy } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { Skeleton } from "@/components/ui/skeleton";
 import ResetPassword from "@/pages/auth/ResetPassword";
 import ResetPasswordConfirm from "@/pages/auth/reset-password/ResetPasswordConfirm";
 import AuthPage from "@/pages/auth/AuthPage";
+import Index from "@/pages/Index";
 
 // Lazy loaded page components
-const Index = lazy(() => import("@/pages/Index"));
 const FeaturesPage = lazy(() => import("@/pages/features/FeaturesPage"));
 const AboutPage = lazy(() => import("@/pages/about/AboutPage"));
 const AdminDashboard = lazy(() => import("@/pages/admin/AdminDashboard"));
