@@ -1,3 +1,4 @@
+
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import type { PayrollEntry } from "../types/workLogTypes";
@@ -27,17 +28,23 @@ export const fetchPayrollEntries = async (carePlanId: string): Promise<PayrollEn
     
     if (entries.length > 0) {
       return entries.map(entry => {        
-        // Enhanced name resolution logic
-        const displayName = 
-          entry.care_team_members?.display_name || 
-          entry.care_team_members?.profiles?.full_name ||
-          'Unknown';
-
-        console.log("Resolved display name for entry:", {
-          entryId: entry.id,
-          displayName,
-          teamMember: entry.care_team_members
-        });
+        // Enhanced name resolution logic with better error handling
+        let displayName = 'Unknown';
+        
+        try {
+          if (entry.care_team_members?.display_name) {
+            displayName = entry.care_team_members.display_name;
+            console.log(`Using display_name: ${displayName} for entry ${entry.id}`);
+          } else if (entry.care_team_members?.profiles?.full_name) {
+            displayName = entry.care_team_members.profiles.full_name;
+            console.log(`Using profile full_name: ${displayName} for entry ${entry.id}`);
+          } else if (entry.care_team_member_id) {
+            displayName = `Member: ${entry.care_team_member_id.substring(0, 8)}`;
+            console.log(`Using fallback ID: ${displayName} for entry ${entry.id}`);
+          }
+        } catch (err) {
+          console.error('Error resolving display name:', err);
+        }
 
         return {
           ...entry,
