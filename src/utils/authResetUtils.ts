@@ -6,34 +6,43 @@ export const extractResetTokens = (): {
   access_token?: string; 
   refresh_token?: string; 
   type?: string;
+  token?: string;
   error?: string 
 } => {
   console.log("[Reset] Starting token extraction...");
+  console.log("[Reset] URL:", window.location.href);
   
-  // Only check URL search params since template uses query params
+  // Extract query parameters from the URL
   const searchParams = new URLSearchParams(window.location.search);
   
-  // Extract tokens from query parameters
+  // Try to extract Supabase's standard access_token and refresh_token
   const access_token = searchParams.get('access_token') || undefined;
   const refresh_token = searchParams.get('refresh_token') || undefined;
+  
+  // Also try to extract the legacy token format (token and type)
+  const token = searchParams.get('token') || undefined;
   const type = searchParams.get('type') || undefined;
 
   console.log("[Reset] Token validation results:", {
     hasAccessToken: !!access_token,
     hasRefreshToken: !!refresh_token,
+    hasLegacyToken: !!token,
     type
   });
 
-  // Validate required parameters
-  if (!access_token || !refresh_token || type !== 'recovery') {
-    return { 
-      error: "Invalid or expired reset link. Please request a new password reset link." 
-    };
+  // Case 1: We have the modern Supabase token format
+  if (access_token && refresh_token) {
+    return { access_token, refresh_token, type };
+  }
+  
+  // Case 2: We have the legacy token format (token and type)
+  if (token && type === 'recovery') {
+    console.log("[Reset] Found legacy token format, will attempt to convert");
+    return { token, type };
   }
 
+  // No valid tokens found
   return { 
-    access_token,
-    refresh_token,
-    type
+    error: "Invalid or expired reset link. Please request a new password reset link." 
   };
 };

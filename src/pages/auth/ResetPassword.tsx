@@ -17,7 +17,8 @@ const ResetPassword = () => {
   const [emailSent, setEmailSent] = useState(false);
 
   const getResetRedirectUrl = () => {
-    // Always use absolute URLs for email links
+    // Use current origin (domain) with the correct path for reset confirmation
+    // This handles both deployed and local environments automatically
     return `${window.location.origin}/auth/reset-password/confirm`;
   };
 
@@ -32,11 +33,12 @@ const ResetPassword = () => {
     setIsLoading(true);
 
     try {
+      const redirectUrl = getResetRedirectUrl();
       console.log("🔄 Sending reset password email to:", email);
-      console.log("🔗 Using redirect URL:", getResetRedirectUrl());
+      console.log("🔗 Using redirect URL:", redirectUrl);
       
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: getResetRedirectUrl(),
+        redirectTo: redirectUrl,
       });
 
       if (error) throw error;

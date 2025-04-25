@@ -2,7 +2,7 @@
 import React from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Loader2 } from 'lucide-react';
 
 interface RequestResetFormProps {
   email: string;
@@ -18,39 +18,53 @@ export const RequestResetForm: React.FC<RequestResetFormProps> = ({
   onSubmit
 }) => {
   return (
-    <Card className="w-full">
-      <CardHeader>
-        <CardTitle className="text-center">Reset Your Password</CardTitle>
-        <CardDescription className="text-center">
-          Enter your email address and we'll send you a link to reset your password.
-        </CardDescription>
-      </CardHeader>
-      <form onSubmit={onSubmit}>
-        <CardContent>
-          <div className="space-y-4">
-            <Input
-              id="email"
-              type="email"
-              placeholder="Email address"
-              value={email}
-              onChange={(e) => onEmailChange(e.target.value)}
-              disabled={isLoading}
-              required
-              autoComplete="email"
-              className="w-full"
-            />
-          </div>
-        </CardContent>
-        <CardFooter>
-          <Button 
-            type="submit" 
-            className="w-full" 
+    <>
+      <form onSubmit={onSubmit} className="space-y-4">
+        <div className="space-y-2">
+          <label htmlFor="email" className="text-sm font-medium">Email Address</label>
+          <Input
+            id="email"
+            type="email"
+            value={email}
+            onChange={(e) => onEmailChange(e.target.value)}
+            placeholder="Enter your email address"
             disabled={isLoading}
-          >
-            {isLoading ? "Sending Reset Link..." : "Send Reset Link"}
-          </Button>
-        </CardFooter>
+            required
+            className="w-full"
+            autoComplete="email"
+          />
+        </div>
+        
+        <Button 
+          type="submit" 
+          className="w-full" 
+          disabled={isLoading}
+        >
+          {isLoading ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Sending Reset Link...
+            </>
+          ) : (
+            "Send Password Reset Link"
+          )}
+        </Button>
+        
+        <div className="text-sm text-center text-muted-foreground">
+          We'll send you an email with a link to reset your password
+        </div>
       </form>
-    </Card>
+      
+      <div className="pt-4 mt-4 border-t text-center">
+        <Button 
+          type="button" 
+          variant="link"
+          onClick={() => window.location.href = '/auth'}
+          className="text-sm"
+        >
+          Back to Login
+        </Button>
+      </div>
+    </>
   );
 };

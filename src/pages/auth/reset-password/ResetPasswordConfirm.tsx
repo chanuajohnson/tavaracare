@@ -20,13 +20,14 @@ const ResetPasswordConfirm = () => {
       );
 
       try {
-        console.log('[Reset] Starting session validation...');
+        console.log('[Reset] Starting session validation on reset-password/confirm page');
+        console.log('[Reset] URL:', window.location.href);
         
         // Prevent any automatic redirects while on this page
         sessionStorage.setItem('skipPostLoginRedirect', 'true');
         
         // Extract tokens from query parameters
-        const { access_token, refresh_token, type, error } = extractResetTokens();
+        const { access_token, refresh_token, token, type, error } = extractResetTokens();
         
         if (error) {
           throw new Error(error);
@@ -35,14 +36,32 @@ const ResetPasswordConfirm = () => {
         // Race between session validation and timeout
         await Promise.race([
           (async () => {
-            const { data, error: sessionError } = await supabase.auth.setSession({
-              access_token: access_token || '',
-              refresh_token: refresh_token || ''
-            });
+            let sessionResult;
+            
+            // Handle different token formats
+            if (access_token && refresh_token) {
+              console.log('[Reset] Using Supabase access_token format');
+              sessionResult = await supabase.auth.setSession({
+                access_token: access_token,
+                refresh_token: refresh_token
+              });
+            } 
+            else if (token && type === 'recovery') {
+              console.log('[Reset] Using legacy token format, exchanging for session');
+              // For the legacy format, we need to exchange the token for a session
+              // Assuming here that the token is the magic link token
+              sessionResult = await supabase.auth.verifyOtp({
+                token: token,
+                type: 'recovery'
+              });
+            } 
+            else {
+              throw new Error('No valid token format found in URL');
+            }
 
-            if (sessionError) {
-              console.error('[Reset] Session error:', sessionError);
-              throw new Error(sessionError.message);
+            if (sessionResult.error) {
+              console.error('[Reset] Session error:', sessionResult.error);
+              throw new Error(sessionResult.error.message);
             }
             
             // Validate the session
@@ -52,6 +71,7 @@ const ResetPasswordConfirm = () => {
               throw new Error('No valid user found after token exchange');
             }
             
+            console.log('[Reset] Successfully validated user session for:', user.email);
             setEmailAddress(user.email);
             setValidSession(true);
             setValidationError(null);
