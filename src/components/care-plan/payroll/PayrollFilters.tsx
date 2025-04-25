@@ -27,7 +27,7 @@ export const PayrollFilters: React.FC<PayrollFiltersProps> = ({
   onStatusChange,
   caregiverFilter,
   onCaregiverChange,
-  careTeamMembers,
+  careTeamMembers = [], // Default to empty array if undefined
   showPayrollStatuses = false,
 }) => {
   return (
@@ -79,7 +79,7 @@ export const PayrollFilters: React.FC<PayrollFiltersProps> = ({
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="all">All caregivers</SelectItem>
-          {careTeamMembers.map((member) => (
+          {(careTeamMembers || []).map((member) => (
             <SelectItem key={member.id} value={member.id}>
               {member.professionalDetails?.full_name || member.caregiverId}
             </SelectItem>

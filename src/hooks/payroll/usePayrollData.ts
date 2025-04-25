@@ -10,11 +10,14 @@ import {
   WorkLog,
   PayrollEntry 
 } from "@/services/care-plans/workLogService";
+import { fetchCareTeamMembers } from "@/services/care-plans/careTeamService";
+import { CareTeamMemberWithProfile } from "@/types/careTypes";
 
 export const usePayrollData = (carePlanId: string) => {
   const [workLogs, setWorkLogs] = useState<WorkLog[]>([]);
   const [payrollEntries, setPayrollEntries] = useState<PayrollEntry[]>([]);
   const [loading, setLoading] = useState(true);
+  const [careTeamMembers, setCareTeamMembers] = useState<CareTeamMemberWithProfile[]>([]);
 
   useEffect(() => {
     loadData();
@@ -23,12 +26,14 @@ export const usePayrollData = (carePlanId: string) => {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [logs, entries] = await Promise.all([
+      const [logs, entries, members] = await Promise.all([
         fetchWorkLogs(carePlanId),
-        fetchPayrollEntries(carePlanId)
+        fetchPayrollEntries(carePlanId),
+        fetchCareTeamMembers(carePlanId)
       ]);
       setWorkLogs(logs);
       setPayrollEntries(entries);
+      setCareTeamMembers(members);
     } catch (error) {
       console.error("Error loading payroll data:", error);
       toast.error("Failed to load payroll data");
@@ -70,6 +75,7 @@ export const usePayrollData = (carePlanId: string) => {
   return {
     workLogs,
     payrollEntries,
+    careTeamMembers,
     loading,
     handleApproveWorkLog,
     handleRejectWorkLog,
