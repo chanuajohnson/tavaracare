@@ -1,4 +1,3 @@
-
 import { Suspense, lazy } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { Skeleton } from "@/components/ui/skeleton";
@@ -93,6 +92,7 @@ export function AppRoutes() {
         <Route path="/family/story" element={<FamilyStoryPage />} />
         <Route path="/family/care-management" element={<CareManagementPage />} />
         <Route path="/family/care-management/create" element={<CreateCarePlanPage />} />
+        <Route path="/family/care-management/create/:id" element={<CreateCarePlanPage />} />
         <Route path="/family/care-management/:id" element={<CarePlanDetailPage />} />
         <Route path="/legacy-stories" element={<LegacyStoriesPage />} />
         <Route path="/faq" element={<FAQPage />} />

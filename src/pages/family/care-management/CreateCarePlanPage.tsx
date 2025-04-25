@@ -20,10 +20,10 @@ type WeekendOption = 'yes' | 'no';
 const CreateCarePlanPage = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const { planId } = useParams();
+  const { id } = useParams(); // Get the ID from URL if editing
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isLoading, setIsLoading] = useState(!!planId);
-  const [isEditMode, setIsEditMode] = useState(!!planId);
+  const [isLoading, setIsLoading] = useState(!!id);
+  const [isEditMode] = useState(!!id);
   
   // Form state
   const [title, setTitle] = useState("");
@@ -41,15 +41,15 @@ const CreateCarePlanPage = () => {
   });
 
   useEffect(() => {
-    if (planId && isEditMode) {
+    if (id) {
       loadCarePlan();
     }
-  }, [planId]);
+  }, [id]);
 
   const loadCarePlan = async () => {
     try {
       setIsLoading(true);
-      const plan = await fetchCarePlanById(planId!);
+      const plan = await fetchCarePlanById(id!);
       
       if (plan) {
         setTitle(plan.title);
@@ -119,8 +119,8 @@ const CreateCarePlanPage = () => {
       };
       
       let result;
-      if (isEditMode && planId) {
-        result = await updateCarePlan(planId, planDetails);
+      if (isEditMode && id) {
+        result = await updateCarePlan(id, planDetails);
         if (result) {
           toast.success("Care plan updated successfully!");
         }
@@ -148,16 +148,16 @@ const CreateCarePlanPage = () => {
         <Button 
           variant="ghost" 
           className="mb-4" 
-          onClick={() => navigate("/family/care-management")}
+          onClick={() => navigate(id ? `/family/care-management/${id}` : "/family/care-management")}
         >
           <ArrowLeft className="mr-2 h-4 w-4" />
-          Back to Care Management
+          {id ? "Back to Care Plan Details" : "Back to Care Management"}
         </Button>
         
         <div className="mb-6">
           <h1 className="text-3xl font-bold">{isEditMode ? "Edit Care Plan" : "Create New Care Plan"}</h1>
           <p className="text-muted-foreground mt-1">
-            {isEditMode ? "Update the care plan for your loved one" : "Define a care plan for your loved one with scheduled or on-demand care"}
+            {isEditMode ? "Update the care plan for your loved one" : "Define a care plan for your loved one"}
           </p>
         </div>
         
@@ -441,7 +441,7 @@ const CreateCarePlanPage = () => {
               <div className="flex justify-end gap-4">
                 <Button 
                   variant="outline" 
-                  onClick={() => navigate("/family/care-management")}
+                  onClick={() => navigate(id ? `/family/care-management/${id}` : "/family/care-management")}
                   type="button"
                 >
                   Cancel

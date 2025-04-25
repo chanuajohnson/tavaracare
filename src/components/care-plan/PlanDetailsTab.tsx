@@ -2,13 +2,18 @@
 import React from 'react';
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Edit } from "lucide-react";
 import { CarePlan } from "@/types/careTypes";
+import { useNavigate } from "react-router-dom";
 
 interface PlanDetailsTabProps {
   carePlan: CarePlan;
 }
 
 export const PlanDetailsTab: React.FC<PlanDetailsTabProps> = ({ carePlan }) => {
+  const navigate = useNavigate();
+  
   const getPlanTypeDisplay = (plan: CarePlan) => {
     if (!plan.metadata?.planType) return "Not specified";
     
@@ -24,13 +29,23 @@ export const PlanDetailsTab: React.FC<PlanDetailsTabProps> = ({ carePlan }) => {
     }
   };
 
+  const handleEdit = () => {
+    navigate(`/family/care-management/create/${carePlan.id}`);
+  };
+
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>Care Plan Details</CardTitle>
-        <CardDescription>
-          Information about this care plan
-        </CardDescription>
+      <CardHeader className="flex flex-row items-center justify-between">
+        <div>
+          <CardTitle>Care Plan Details</CardTitle>
+          <CardDescription>
+            Information about this care plan
+          </CardDescription>
+        </div>
+        <Button variant="outline" size="sm" onClick={handleEdit}>
+          <Edit className="h-4 w-4 mr-2" />
+          Edit
+        </Button>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
