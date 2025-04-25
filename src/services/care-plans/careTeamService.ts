@@ -1,3 +1,4 @@
+
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import { CareTeamMember, CareTeamMemberWithProfile, CareTeamMemberDto, CareTeamMemberInput } from "@/types/careTypes";
@@ -29,7 +30,14 @@ export const fetchCareTeamMembers = async (planId: string): Promise<CareTeamMemb
   try {
     const { data, error } = await supabase
       .from('care_team_members')
-      .select('*')
+      .select(`
+        *,
+        professionalDetails:profiles!care_team_members_caregiver_id_fkey(
+          full_name,
+          professional_type,
+          avatar_url
+        )
+      `)
       .eq('care_plan_id', planId)
       .order('created_at', { ascending: true });
 
