@@ -362,7 +362,7 @@ export const ScheduleTab: React.FC<ScheduleTabProps> = ({
                         <SelectItem value="unassigned">Unassigned</SelectItem>
                         {careTeamMembers.map((member) => (
                           <SelectItem key={member.caregiverId} value={member.caregiverId}>
-                            {member.professionalDetails?.full_name || "Unknown Professional"}
+                            {member.professionalDetails?.fullName || "Unknown Professional"}
                           </SelectItem>
                         ))}
                       </SelectContent>

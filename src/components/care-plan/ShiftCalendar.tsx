@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, ArrowRight, Edit, Plus, Trash2, Clock } from "lucide-react";
@@ -51,7 +52,7 @@ export const ShiftCalendar: React.FC<ShiftCalendarProps> = ({
     if (!caregiverId) return "Unassigned";
     
     const member = careTeamMembers.find(m => m.caregiverId === caregiverId);
-    return member?.professionalDetails?.full_name || "Unknown";
+    return member?.professionalDetails?.fullName || "Unknown";
   };
 
   const getTimeDisplay = (dateString: string) => {

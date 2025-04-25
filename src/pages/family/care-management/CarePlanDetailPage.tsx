@@ -275,7 +275,7 @@ const CarePlanDetailPage = () => {
           <DialogHeader>
             <DialogTitle>Remove Team Member</DialogTitle>
             <p className="text-sm text-muted-foreground mt-2">
-              Are you sure you want to remove {memberToRemove?.professionalDetails?.full_name || memberToRemove?.caregiverId} from the care team?
+              Are you sure you want to remove {memberToRemove?.professionalDetails?.fullName || memberToRemove?.caregiverId} from the care team?
             </p>
           </DialogHeader>
           <DialogFooter className="sm:justify-between">
