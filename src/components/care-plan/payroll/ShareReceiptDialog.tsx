@@ -4,7 +4,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Copy, Download, Mail, FilePdf, FileImage } from 'lucide-react';
+import { Copy, Download, Mail, File, FileImage } from 'lucide-react';
 import { toast } from 'sonner';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { WorkLog, PayrollEntry } from '@/services/care-plans/types/workLogTypes';
@@ -97,7 +97,7 @@ export const ShareReceiptDialog: React.FC<ShareReceiptDialogProps> = ({
                   <SelectContent>
                     <SelectItem value="pdf">
                       <div className="flex items-center">
-                        <FilePdf className="h-4 w-4 mr-2" />
+                        <File className="h-4 w-4 mr-2" />
                         PDF
                       </div>
                     </SelectItem>

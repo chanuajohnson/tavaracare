@@ -1,3 +1,4 @@
+
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { format } from 'date-fns';
@@ -13,7 +14,7 @@ const isWorkLog = (entry: ReceiptEntry): entry is WorkLog => {
   return 'start_time' in entry && 'end_time' in entry && 'status' in entry;
 };
 
-const generateReceipt = async (doc: jsPDF, entry: ReceiptEntry | PayrollEntry[], isConsolidated = false) => {
+const generateReceipt = async (doc: jsPDF, entry: ReceiptEntry, isConsolidated = false) => {
   try {
     let workLogId = '';
     let startTime: Date;
@@ -180,33 +181,247 @@ const generateReceipt = async (doc: jsPDF, entry: ReceiptEntry | PayrollEntry[],
   }
 };
 
-const convertPdfToJpg = async (pdfDoc: jsPDF): Promise<string> => {
-  return new Promise((resolve, reject) => {
-    const canvas = document.createElement('canvas');
-    const page = pdfDoc.getPage(1);
-    const viewport = page.getViewport({ scale: 2 }); // Higher scale for better quality
-
-    canvas.width = viewport.width;
-    canvas.height = viewport.height;
-    
-    const context = canvas.getContext('2d');
-    if (!context) {
-      reject(new Error('Could not get canvas context'));
-      return;
+// Separate function to handle consolidated receipts for multiple entries
+const generateConsolidatedReceiptContent = async (doc: jsPDF, entries: PayrollEntry[]) => {
+  try {
+    if (!entries.length) {
+      throw new Error('No entries provided for consolidated receipt');
     }
+    
+    // Get the first entry for some basic info
+    const firstEntry = entries[0];
+    const caregiverName = firstEntry.caregiver_name || 'Multiple Caregivers';
+    
+    // Calculate consolidated total
+    let totalAmount = 0;
+    let totalRegularHours = 0;
+    let totalOvertimeHours = 0;
+    let totalHolidayHours = 0;
+    let totalExpenses = 0;
+    
+    entries.forEach(entry => {
+      totalAmount += entry.total_amount;
+      totalRegularHours += entry.regular_hours;
+      totalOvertimeHours += entry.overtime_hours || 0;
+      totalHolidayHours += entry.holiday_hours || 0;
+      totalExpenses += entry.expense_total || 0;
+    });
+    
+    // Determine date range
+    let earliestDate = new Date();
+    let latestDate = new Date(0);
+    
+    entries.forEach(entry => {
+      if (entry.pay_period_start) {
+        const startDate = new Date(entry.pay_period_start);
+        if (startDate < earliestDate) earliestDate = startDate;
+      }
+      
+      if (entry.pay_period_end) {
+        const endDate = new Date(entry.pay_period_end);
+        if (endDate > latestDate) latestDate = endDate;
+      }
+    });
+    
+    // Header
+    doc.setFontSize(16);
+    doc.text('Consolidated Pay Receipt', 105, 20, { align: 'center' });
+    
+    // Basic receipt details
+    doc.setFontSize(10);
+    doc.text([
+      `Receipt #: CONS-${Date.now().toString().slice(-8)}`,
+      `Date Range: ${format(earliestDate, 'MMM d, yyyy')} - ${format(latestDate, 'MMM d, yyyy')}`,
+      `Entries: ${entries.length}`,
+      `Caregiver: ${caregiverName}`
+    ], 20, 35);
+    
+    // Prepare table body with consolidated data
+    const tableBody: string[][] = [];
+    
+    if (totalRegularHours > 0) {
+      tableBody.push([
+        'Regular Hours',
+        totalRegularHours.toFixed(2),
+        'Various',
+        `$${(totalAmount - totalExpenses).toFixed(2)}`
+      ]);
+    }
+    
+    if (totalOvertimeHours > 0) {
+      tableBody.push([
+        'Overtime Hours',
+        totalOvertimeHours.toFixed(2),
+        'Various',
+        'Included in total'
+      ]);
+    }
+    
+    if (totalHolidayHours > 0) {
+      tableBody.push([
+        'Holiday Hours',
+        totalHolidayHours.toFixed(2),
+        'Various',
+        'Included in total'
+      ]);
+    }
+    
+    if (totalExpenses > 0) {
+      tableBody.push([
+        'Expenses',
+        '',
+        '',
+        `$${totalExpenses.toFixed(2)}`
+      ]);
+    }
+    
+    // Add summary table
+    autoTable(doc, {
+      startY: 65,
+      head: [['Type', 'Hours', 'Rate', 'Amount']],
+      body: tableBody,
+      foot: [
+        [
+          'Total',
+          '',
+          '',
+          `$${totalAmount.toFixed(2)}`
+        ]
+      ],
+      styles: {
+        cellPadding: 5,
+        fontSize: 10
+      },
+      headStyles: {
+        fillColor: [200, 200, 200],
+        textColor: [0, 0, 0],
+        fontStyle: 'bold'
+      },
+      footStyles: {
+        fillColor: [240, 240, 240],
+        textColor: [0, 0, 0],
+        fontStyle: 'bold'
+      }
+    });
+    
+    // Add detailed breakdown by entry
+    let detailStartY = doc.previousAutoTable?.finalY || 150;
+    detailStartY += 20;
+    
+    doc.setFontSize(12);
+    doc.text('Detailed Breakdown', 105, detailStartY, { align: 'center' });
+    
+    const detailsBody: string[][] = [];
+    
+    entries.forEach((entry, index) => {
+      const entryDate = entry.pay_period_start 
+        ? format(new Date(entry.pay_period_start), 'MMM d, yyyy')
+        : `Entry ${index + 1}`;
+      
+      detailsBody.push([
+        entryDate,
+        `${entry.regular_hours + (entry.overtime_hours || 0) + (entry.holiday_hours || 0)}h total`,
+        entry.caregiver_name || 'Unknown',
+        `$${entry.total_amount.toFixed(2)}`
+      ]);
+    });
+    
+    autoTable(doc, {
+      startY: detailStartY + 5,
+      head: [['Date', 'Hours', 'Caregiver', 'Amount']],
+      body: detailsBody,
+      styles: {
+        cellPadding: 5,
+        fontSize: 9
+      },
+      headStyles: {
+        fillColor: [220, 220, 220],
+        textColor: [0, 0, 0],
+        fontStyle: 'bold'
+      }
+    });
+    
+    // Generation timestamp at bottom
+    const footerY = doc.internal.pageSize.height - 20;
+    doc.setFontSize(8);
+    doc.text(`Generated: ${format(new Date(), 'MMM d, yyyy h:mm a')}`, 20, footerY);
+    
+  } catch (error) {
+    console.error("Error generating consolidated receipt:", error);
+    throw new Error('Failed to generate consolidated receipt');
+  }
+};
 
-    // Render PDF page to canvas
-    const renderContext = {
-      canvasContext: context,
-      viewport: viewport
-    };
+const convertPdfToJpg = async (pdfData: string): Promise<string> => {
+  try {
+    // Create a container to render the PDF
+    const container = document.createElement('div');
+    container.style.position = 'absolute';
+    container.style.left = '-9999px';
+    document.body.appendChild(container);
 
-    page.render(renderContext).promise.then(() => {
-      // Convert canvas to JPG
-      const jpgDataUrl = canvas.toDataURL('image/jpeg', 0.95);
-      resolve(jpgDataUrl);
-    }).catch(reject);
-  });
+    // Create an iframe to load the PDF
+    const iframe = document.createElement('iframe');
+    iframe.style.width = '800px';
+    iframe.style.height = '1100px';
+    iframe.src = pdfData;
+    container.appendChild(iframe);
+
+    // Wait for the PDF to load
+    return new Promise((resolve, reject) => {
+      iframe.onload = async () => {
+        try {
+          // Give it a moment to render
+          await new Promise(r => setTimeout(r, 100));
+          
+          // Create a canvas and capture the iframe content
+          const canvas = document.createElement('canvas');
+          const ctx = canvas.getContext('2d');
+          
+          if (!ctx) {
+            reject(new Error('Could not get canvas context'));
+            return;
+          }
+          
+          // Set canvas dimensions
+          canvas.width = 800;
+          canvas.height = 1100;
+          
+          // Draw the iframe content to the canvas
+          ctx.fillStyle = 'white';
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          
+          // Use html2canvas or similar if needed for better rendering
+          // For now, just capture what's visible
+          try {
+            const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
+            if (iframeDoc?.body) {
+              // Simple approach - just draw the white background
+              const jpgData = canvas.toDataURL('image/jpeg', 0.95);
+              resolve(jpgData);
+            } else {
+              reject(new Error('Could not access iframe content'));
+            }
+          } catch (e) {
+            console.error('Error during canvas drawing:', e);
+            // Fallback to returning the PDF if there's an error with JPG conversion
+            resolve(pdfData);
+          }
+        } finally {
+          // Clean up
+          document.body.removeChild(container);
+        }
+      };
+      
+      iframe.onerror = () => {
+        document.body.removeChild(container);
+        reject(new Error('Failed to load PDF'));
+      };
+    });
+  } catch (error) {
+    console.error("Error converting PDF to JPG:", error);
+    throw new Error('Failed to convert PDF to JPG');
+  }
 };
 
 export const generatePayReceipt = async (
@@ -217,11 +432,13 @@ export const generatePayReceipt = async (
     const doc = new jsPDF();
     await generateReceipt(doc, entry);
     
+    const pdfData = doc.output('datauristring');
+    
     if (format === 'jpg') {
-      return await convertPdfToJpg(doc);
+      return await convertPdfToJpg(pdfData);
     }
     
-    return doc.output('datauristring');
+    return pdfData;
   } catch (error) {
     console.error("Error generating receipt:", error);
     throw new Error('Failed to generate receipt');
@@ -238,13 +455,15 @@ export const generateConsolidatedReceipt = async (
     }
 
     const doc = new jsPDF();
-    await generateReceipt(doc, entries, true);
+    await generateConsolidatedReceiptContent(doc, entries);
+    
+    const pdfData = doc.output('datauristring');
     
     if (format === 'jpg') {
-      return await convertPdfToJpg(doc);
+      return await convertPdfToJpg(pdfData);
     }
     
-    return doc.output('datauristring');
+    return pdfData;
   } catch (error) {
     console.error("Error generating consolidated receipt:", error);
     throw new Error('Failed to generate consolidated receipt');

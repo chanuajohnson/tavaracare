@@ -11,7 +11,7 @@ import {
   TableRow 
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Check, Receipt, Share2, X } from "lucide-react";
+import { Check, Receipt, X } from "lucide-react";
 import { PayrollStatusBadge } from './PayrollStatusBadge';
 import { RejectWorkLogDialog } from './RejectWorkLogDialog';
 import { WorkLogExpenses } from './WorkLogExpenses';
@@ -20,6 +20,7 @@ import { generatePayReceipt } from '@/services/care-plans/receiptService';
 import { ShareReceiptDialog } from './ShareReceiptDialog';
 import { useWorkLogPayDetails } from '@/hooks/payroll/useWorkLogPayDetails';
 import type { WorkLog } from '@/services/care-plans/types/workLogTypes';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface WorkLogsTableProps {
   workLogs: WorkLog[];
@@ -35,6 +36,7 @@ export const WorkLogsTable: React.FC<WorkLogsTableProps> = ({
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
   const [currentWorkLog, setCurrentWorkLog] = useState<WorkLog | null>(null);
   const [receiptUrl, setReceiptUrl] = useState<string | null>(null);
+  const [selectedFormat, setSelectedFormat] = useState<'pdf' | 'jpg'>('pdf');
 
   if (workLogs.length === 0) {
     return <div className="text-center p-4">No work logs found.</div>;
@@ -42,7 +44,7 @@ export const WorkLogsTable: React.FC<WorkLogsTableProps> = ({
 
   const handleGenerateReceipt = async (workLog: WorkLog) => {
     try {
-      const url = await generatePayReceipt(workLog);
+      const url = await generatePayReceipt(workLog, selectedFormat);
       setReceiptUrl(url);
       setCurrentWorkLog(workLog);
       setShareDialogOpen(true);
@@ -53,6 +55,21 @@ export const WorkLogsTable: React.FC<WorkLogsTableProps> = ({
 
   return (
     <>
+      <div className="mb-4 flex justify-end items-center">
+        <Select
+          value={selectedFormat}
+          onValueChange={(value: 'pdf' | 'jpg') => setSelectedFormat(value)}
+        >
+          <SelectTrigger className="w-24">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="pdf">PDF</SelectItem>
+            <SelectItem value="jpg">JPG</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+      
       <Table>
         <TableCaption>Submitted work logs</TableCaption>
         <TableHeader>
