@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "@/components/providers/AuthProvider";
@@ -15,7 +16,7 @@ import { toast } from "sonner";
 
 type PlanType = 'scheduled' | 'on-demand' | 'both';
 type WeekdayOption = '8am-4pm' | '6am-6pm' | '6pm-8am' | 'none';
-type WeekendOption = 'yes' | 'no';
+type WeekendOption = 'yes' | 'no' | '8am-6pm';
 
 const CreateCarePlanPage = () => {
   const { user } = useAuth();

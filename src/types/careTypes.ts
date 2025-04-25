@@ -1,3 +1,4 @@
+
 // Domain model type definitions for care-related entities
 
 // Care Plan 
