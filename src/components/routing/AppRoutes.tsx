@@ -26,7 +26,6 @@ const TrainingResourcesPage = lazy(() => import("@/pages/professional/TrainingRe
 const ProfessionalProfileHub = lazy(() => import("@/pages/professional/ProfessionalProfileHub"));
 const ProfessionalAssignmentPage = lazy(() => import("@/pages/professional/ProfessionalAssignmentPage"));
 const ProfessionalSchedulePage = lazy(() => import("@/pages/professional/ProfessionalSchedulePage"));
-const ProfessionalCarePlanPage = lazy(() => import("@/pages/professional/ProfessionalCarePlanPage"));
 const ModuleViewerPage = lazy(() => import("@/pages/professional/ModuleViewerPage"));
 const FamilyFeaturesOverview = lazy(() => import("@/pages/family/FamilyFeaturesOverview"));
 const FamilyStoryPage = lazy(() => import("@/pages/family/FamilyStoryPage"));
@@ -60,7 +59,7 @@ const PageLoader = () => (
   </div>
 );
 
-const AppRoutes = () => {
+export function AppRoutes() {
   return (
     <Suspense fallback={<PageLoader />}>
       <Routes>
@@ -86,7 +85,6 @@ const AppRoutes = () => {
         <Route path="/professional/profile" element={<ProfessionalProfileHub />} />
         <Route path="/professional/assignments/:planId" element={<ProfessionalAssignmentPage />} />
         <Route path="/professional/schedule" element={<ProfessionalSchedulePage />} />
-        <Route path="/professional/care-plan/:planId" element={<ProfessionalCarePlanPage />} />
         <Route path="/professional/module/:moduleId" element={<ModuleViewerPage />} />
         <Route path="/professional/training-resources/module/:moduleId" element={<ModuleViewerPage />} />
         <Route path="/professional/training-resources/module/:moduleId/lesson/:lessonId" element={<ModuleViewerPage />} />
@@ -107,6 +105,4 @@ const AppRoutes = () => {
       </Routes>
     </Suspense>
   );
-};
-
-export default AppRoutes;
+}

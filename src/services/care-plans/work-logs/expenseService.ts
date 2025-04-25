@@ -1,48 +1,38 @@
 
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
-import type { WorkLogExpense } from "../types/workLogTypes";
+import type { WorkLogExpense, WorkLogExpenseInput } from "../types/workLogTypes";
 
-export const addWorkLogExpense = async (expenseInput: Partial<WorkLogExpense>): Promise<boolean> => {
+export const fetchWorkLogExpenses = async (workLogId: string): Promise<WorkLogExpense[]> => {
   try {
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('work_log_expenses')
-      .insert({
-        work_log_id: expenseInput.work_log_id,
-        category: expenseInput.category,
-        description: expenseInput.description,
-        amount: expenseInput.amount,
-        receipt_url: expenseInput.receipt_url,
-        status: 'pending'
-      });
-
+      .select('*')
+      .eq('work_log_id', workLogId);
+      
     if (error) throw error;
-    
-    return true;
-  } catch (error: any) {
-    console.error("Error adding expense:", error);
-    toast.error("Failed to add expense");
-    return false;
+    return data as WorkLogExpense[];
+  } catch (error) {
+    console.error("Error fetching work log expenses:", error);
+    return [];
   }
 };
 
-export const updateWorkLogExpenseStatus = async (
-  expenseId: string,
-  status: 'approved' | 'rejected'
-): Promise<boolean> => {
+export const addWorkLogExpense = async (expenseInput: WorkLogExpenseInput): Promise<{ success: boolean; expense?: WorkLogExpense; error?: string }> => {
   try {
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('work_log_expenses')
-      .update({ status })
-      .eq('id', expenseId);
-
+      .insert(expenseInput)
+      .select()
+      .single();
+      
     if (error) throw error;
     
-    toast.success(`Expense ${status === 'approved' ? 'approved' : 'rejected'}`);
-    return true;
+    toast.success("Expense added successfully");
+    return { success: true, expense: data as WorkLogExpense };
   } catch (error: any) {
-    console.error(`Error ${status === 'approved' ? 'approving' : 'rejecting'} expense:`, error);
-    toast.error(`Failed to ${status === 'approved' ? 'approve' : 'reject'} expense`);
-    return false;
+    console.error("Error adding work log expense:", error);
+    toast.error("Failed to add expense");
+    return { success: false, error: error.message };
   }
 };

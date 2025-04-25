@@ -1,52 +1,18 @@
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ShiftCalendar } from './ShiftCalendar';
-import { 
-  format, 
-  startOfWeek, 
-  addDays, 
-  isSameDay, 
-  addWeeks, 
-  subWeeks 
-} from 'date-fns';
-import { CareShift, CareTeamMemberWithProfile, CareShiftInput } from "@/types/careTypes";
-import { 
-  createCareShift, 
-  updateCareShift 
-} from "@/services/care-plans";
-import { WorkLogForm } from './WorkLogForm';
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogDescription, 
-  DialogFooter, 
-  DialogHeader, 
-  DialogTitle 
-} from "@/components/ui/dialog";
+import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
-} from "@/components/ui/select";
-import { 
-  Popover, 
-  PopoverContent, 
-  PopoverTrigger 
-} from "@/components/ui/popover";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Calendar } from "@/components/ui/calendar";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { format } from "date-fns";
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
+import { CalendarRange, Calendar, ChevronDown, Plus, Users } from "lucide-react";
 import { DateRange } from "react-day-picker";
-import { 
-  CalendarRange, 
-  Calendar as CalendarIcon, 
-  ChevronDown, 
-  Users, 
-  Plus 
-} from "lucide-react";
+import { ShiftCalendar } from "./ShiftCalendar";
+import { CareShift, CareShiftInput, CareTeamMemberWithProfile } from "@/types/careTypes";
+import { createCareShift, updateCareShift } from "@/services/care-plans";
+import { WorkLogForm } from './WorkLogForm';
 
 interface ScheduleTabProps {
   carePlanId: string;
@@ -106,15 +72,6 @@ export const ScheduleTab: React.FC<ScheduleTabProps> = ({
     { id: "weekday_evening_6pm_6am", label: "Weekday Evening Shift (6 PM - 6 AM)", description: "Evening care on weekdays after the primary shift ends", timeRange: { start: "18:00", end: "06:00" } },
     { id: "weekday_evening_6pm_8am", label: "Weekday Evening Shift (6 PM - 8 AM)", description: "Evening care on weekdays after the primary shift ends", timeRange: { start: "18:00", end: "08:00" } }
   ];
-
-  const getActiveCaregivers = () => {
-    return careTeamMembers
-      .filter(member => member.status === 'active')
-      .map(member => ({
-        id: member.caregiverId,
-        name: member.professionalDetails?.fullName || member.displayName || 'Unknown'
-      }));
-  };
 
   const handleCreateShift = async () => {
     try {
@@ -327,7 +284,7 @@ export const ScheduleTab: React.FC<ScheduleTabProps> = ({
                             variant="outline"
                             className="w-full justify-start text-left"
                           >
-                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            <Calendar className="mr-2 h-4 w-4" />
                             {selectedDay ? (
                               format(selectedDay, "PPP")
                             ) : (
@@ -337,7 +294,7 @@ export const ScheduleTab: React.FC<ScheduleTabProps> = ({
                           </Button>
                         </PopoverTrigger>
                         <PopoverContent className="w-auto p-0" align="start">
-                          <Calendar
+                          <CalendarComponent
                             mode="single"
                             selected={selectedDay || undefined}
                             onSelect={(date) => {
@@ -380,7 +337,7 @@ export const ScheduleTab: React.FC<ScheduleTabProps> = ({
                           </Button>
                         </PopoverTrigger>
                         <PopoverContent className="w-auto p-0" align="start">
-                          <Calendar
+                          <CalendarComponent
                             mode="range"
                             selected={dateRange}
                             onSelect={setDateRange}
@@ -403,9 +360,9 @@ export const ScheduleTab: React.FC<ScheduleTabProps> = ({
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="unassigned">Unassigned</SelectItem>
-                        {getActiveCaregivers().map((member) => (
-                          <SelectItem key={member.id} value={member.id}>
-                            {member.name}
+                        {careTeamMembers.map((member) => (
+                          <SelectItem key={member.caregiverId} value={member.caregiverId}>
+                            {member.professionalDetails?.full_name || "Unknown Professional"}
                           </SelectItem>
                         ))}
                       </SelectContent>

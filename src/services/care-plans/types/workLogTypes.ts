@@ -3,79 +3,75 @@ export interface WorkLog {
   id: string;
   care_team_member_id: string;
   care_plan_id: string;
-  caregiver_id?: string;
-  caregiver_name?: string;
   start_time: string;
   end_time: string;
-  status: 'pending' | 'approved' | 'rejected';
   notes?: string;
-  expenses?: WorkLogExpense[];
-  base_rate?: number;
-  rate_multiplier?: number;
-  rate_type?: string;
+  status: 'pending' | 'approved' | 'rejected' | string;
   created_at?: string;
   updated_at?: string;
+  caregiver_name?: string;
+  shift_id?: string;
+  expenses?: WorkLogExpense[];
+  rate_type?: 'regular' | 'overtime' | 'holiday' | 'shadow';
+  base_rate?: number;
+  rate_multiplier?: number;
 }
 
 export interface WorkLogExpense {
   id: string;
   work_log_id: string;
-  category: string;
-  description: string;
+  category: 'medical_supplies' | 'food' | 'transportation' | 'other';
   amount: number;
+  description: string;
   receipt_url?: string;
   status: 'pending' | 'approved' | 'rejected';
   created_at?: string;
-  updated_at?: string;
-}
-
-// Add missing WorkLogExpenseInput interface
-export interface WorkLogExpenseInput {
-  work_log_id: string;
-  category: string;
-  description: string;
-  amount: number;
-  receipt_url?: string;
-}
-
-// Add missing WorkLogInput interface
-export interface WorkLogInput {
-  care_team_member_id: string;
-  care_plan_id: string;
-  start_time: string;
-  end_time: string;
-  notes?: string;
-  status?: 'pending' | 'approved' | 'rejected';
-  base_rate?: number;
-  rate_multiplier?: number;
-  rate_type?: string;
-  shift_id?: string;
 }
 
 export interface PayrollEntry {
   id: string;
-  care_plan_id: string;
-  care_team_member_id: string;
-  caregiver_id?: string;
-  caregiver_name?: string;
   work_log_id: string;
+  care_team_member_id: string;
+  care_plan_id: string;
   regular_hours: number;
+  overtime_hours: number;
   regular_rate: number;
-  overtime_hours?: number;
   overtime_rate?: number;
   holiday_hours?: number;
   holiday_rate?: number;
-  shadow_hours?: number;  // Add this missing property
+  shadow_hours?: number; // Added shadow hours field
+  shadow_rate?: number;  // Added shadow rate field
   expense_total?: number;
   total_amount: number;
   payment_status: 'pending' | 'approved' | 'paid';
   payment_date?: string;
   created_at?: string;
   updated_at?: string;
+  caregiver_name?: string;
+  pay_period_start?: string;
+  pay_period_end?: string;
   entered_at?: string;
 }
 
-// Add the Holiday type that's referenced in several files
+export interface WorkLogInput {
+  care_team_member_id: string;
+  care_plan_id: string;
+  shift_id?: string;
+  start_time: string;
+  end_time: string;
+  notes?: string;
+  base_rate?: number;
+  rate_multiplier?: number;
+}
+
+export interface WorkLogExpenseInput {
+  work_log_id: string;
+  category: 'medical_supplies' | 'food' | 'transportation' | 'other';
+  amount: number;
+  description: string;
+  receipt_url?: string;
+}
+
 export interface Holiday {
   date: string;
   name: string;

@@ -25,9 +25,9 @@ export const CareTeamMemberCard: React.FC<CareTeamMemberCardProps> = ({ member, 
     return id.substring(0, 2).toUpperCase();
   };
 
-  const initials = getInitials(member.professionalDetails?.fullName, member.caregiverId);
-  const displayName = member.professionalDetails?.fullName || member.caregiverId;
-  const profType = member.professionalDetails?.professionalType;
+  const initials = getInitials(member.professionalDetails?.full_name, member.caregiverId);
+  const displayName = member.professionalDetails?.full_name || member.caregiverId;
+  const profType = member.professionalDetails?.professional_type;
   
   return (
     <Card key={member.id}>
@@ -35,7 +35,7 @@ export const CareTeamMemberCard: React.FC<CareTeamMemberCardProps> = ({ member, 
         <div className="flex items-start justify-between">
           <div className="flex items-center">
             <Avatar className="h-10 w-10 mr-3">
-              <AvatarImage src={member.professionalDetails?.avatarUrl || ""} />
+              <AvatarImage src={member.professionalDetails?.avatar_url || ""} />
               <AvatarFallback className="bg-primary/10 text-primary">
                 {initials}
               </AvatarFallback>

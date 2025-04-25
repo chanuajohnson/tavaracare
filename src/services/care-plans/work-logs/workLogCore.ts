@@ -1,69 +1,36 @@
-
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import type { WorkLog, WorkLogInput } from "../types/workLogTypes";
 
 export const fetchWorkLogs = async (carePlanId: string): Promise<WorkLog[]> => {
   try {
-    console.log("Fetching work logs for care plan:", carePlanId);
-    const { data, error } = await supabase
+    const { data: workLogs, error } = await supabase
       .from('work_logs')
       .select(`
         *,
-        care_team_members (
-          id,
-          display_name,
+        care_team_members:care_team_member_id (
           caregiver_id,
-          regular_rate,
-          overtime_rate,
-          profiles:caregiver_id (
-            full_name,
-            professional_type
-          )
-        ),
-        work_log_expenses (*)
+          display_name
+        )
       `)
       .eq('care_plan_id', carePlanId)
-      .order('created_at', { ascending: false });
+      .order('start_time', { ascending: false });
 
     if (error) throw error;
-
-    console.log("Raw work logs data:", data);
-
-    return data.map(log => {
-      // Enhanced name resolution logic with better error handling
-      let displayName = 'Unknown';
+    
+    // Map the display names from care team members
+    return workLogs.map(log => {
+      const validRateType: 'regular' | 'overtime' | 'holiday' = 
+        log.rate_type === 'overtime' ? 'overtime' :
+        log.rate_type === 'holiday' ? 'holiday' : 'regular';
       
-      try {
-        if (log.care_team_members?.display_name) {
-          displayName = log.care_team_members.display_name;
-          console.log(`Using display_name: ${displayName} for log ${log.id}`);
-        } else if (log.care_team_members?.caregiver_id) {
-          // Direct ID fallback instead of trying to access nested profile
-          displayName = `Member: ${log.care_team_members.caregiver_id.substring(0, 8)}`;
-          console.log(`Using caregiver ID: ${displayName} for log ${log.id}`);
-        } else if (log.care_team_member_id) {
-          displayName = `Member: ${log.care_team_member_id.substring(0, 8)}`;
-          console.log(`Using fallback ID: ${displayName} for log ${log.id}`);
-        }
-      } catch (err) {
-        console.error('Error resolving display name:', err);
-      }
-
-      // Process expenses correctly
-      const expenses = log.work_log_expenses || [];
-
       return {
         ...log,
-        status: log.status as "pending" | "approved" | "rejected",
-        caregiver_id: log.care_team_members?.caregiver_id || '',
-        caregiver_name: displayName,
-        expenses: expenses.map(expense => ({
-          ...expense,
-          work_log_id: expense.work_log_id || log.id
-        }))
+        caregiver_name: log.care_team_members?.display_name || 'Unknown',
+        rate_type: validRateType
       };
-    }) as WorkLog[];
+    });
+    
   } catch (error) {
     console.error("Error fetching work logs:", error);
     toast.error("Failed to load work logs");
@@ -71,78 +38,65 @@ export const fetchWorkLogs = async (carePlanId: string): Promise<WorkLog[]> => {
   }
 };
 
+export const getWorkLogById = async (workLogId: string): Promise<WorkLog | null> => {
+  try {
+    const { data, error } = await supabase
+      .from('work_logs')
+      .select(`
+        *,
+        care_team_members:care_team_member_id (
+          caregiver_id
+        )
+      `)
+      .eq('id', workLogId)
+      .single();
+
+    if (error) throw error;
+    
+    // Ensure rate_type is one of the allowed values
+    let validRateType: 'regular' | 'overtime' | 'holiday' = 'regular';
+    if (data.rate_type === 'overtime') validRateType = 'overtime';
+    if (data.rate_type === 'holiday') validRateType = 'holiday';
+    
+    const result: WorkLog = {
+      ...data,
+      rate_type: validRateType
+    };
+    
+    if (data.care_team_members?.caregiver_id) {
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('full_name')
+        .eq('id', data.care_team_members.caregiver_id)
+        .single();
+
+      if (!profileError && profile) {
+        result.caregiver_name = profile.full_name;
+      }
+    }
+
+    return result;
+  } catch (error) {
+    console.error("Error fetching work log:", error);
+    return null;
+  }
+};
+
 export const createWorkLog = async (workLogInput: WorkLogInput): Promise<{ success: boolean; workLog?: WorkLog; error?: string }> => {
   try {
     const { data, error } = await supabase
       .from('work_logs')
-      .insert({
-        care_team_member_id: workLogInput.care_team_member_id,
-        care_plan_id: workLogInput.care_plan_id,
-        start_time: workLogInput.start_time,
-        end_time: workLogInput.end_time,
-        notes: workLogInput.notes,
-        status: workLogInput.status || 'pending',
-        base_rate: workLogInput.base_rate,
-        rate_multiplier: workLogInput.rate_multiplier,
-        rate_type: workLogInput.rate_type,
-        shift_id: workLogInput.shift_id
-      })
-      .select(`
-        *,
-        care_team_members (
-          id,
-          caregiver_id,
-          display_name,
-          regular_rate,
-          overtime_rate
-        )
-      `)
+      .insert(workLogInput)
+      .select()
       .single();
 
     if (error) throw error;
-
-    // Convert the data to match our WorkLog type
-    const workLog: WorkLog = {
-      id: data.id,
-      care_team_member_id: data.care_team_member_id,
-      care_plan_id: data.care_plan_id,
-      caregiver_id: data.care_team_members?.caregiver_id,
-      caregiver_name: data.care_team_members?.display_name,
-      start_time: data.start_time,
-      end_time: data.end_time,
-      status: (data.status as 'pending' | 'approved' | 'rejected'),
-      notes: data.notes || '',
-      expenses: [],
-      base_rate: data.base_rate || 0,
-      rate_multiplier: data.rate_multiplier || 1,
-      rate_type: data.rate_type || 'regular',
-      created_at: data.created_at,
-      updated_at: data.updated_at
-    };
     
     toast.success("Work log created successfully");
-    return { success: true, workLog };
+    return { success: true, workLog: data as WorkLog };
   } catch (error: any) {
     console.error("Error creating work log:", error);
     toast.error("Failed to create work log");
     return { success: false, error: error.message };
-  }
-};
-
-export const updateWorkLogStatus = async (workLogId: string, status: 'approved' | 'rejected'): Promise<boolean> => {
-  try {
-    const { error } = await supabase
-      .from('work_logs')
-      .update({ status })
-      .eq('id', workLogId);
-
-    if (error) throw error;
-    
-    toast.success(`Work log ${status}`);
-    return true;
-  } catch (error: any) {
-    console.error(`Error ${status === 'approved' ? 'approving' : 'rejecting'} work log:`, error);
-    toast.error(`Failed to ${status === 'approved' ? 'approve' : 'reject'} work log`);
-    return false;
   }
 };

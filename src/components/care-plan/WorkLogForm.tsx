@@ -88,8 +88,8 @@ export const WorkLogForm: React.FC<WorkLogFormProps> = ({
           const expenseInput: WorkLogExpenseInput = {
             work_log_id: workLog.id,
             category: expense.category,
-            description: expense.description,
-            amount: expense.amount
+            amount: expense.amount,
+            description: expense.description
           };
           return addWorkLogExpense(expenseInput);
         });

@@ -8,9 +8,9 @@ export * from './shiftService';
 // Re-export types
 export type { 
   WorkLog, 
+  WorkLogInput, 
   WorkLogExpense, 
   WorkLogExpenseInput,
-  WorkLogInput,
   PayrollEntry,
   Holiday 
 } from '../types/workLogTypes';

@@ -5,7 +5,7 @@ import { createWorkLogFromShift, addWorkLogExpense } from "@/services/care-plans
 import { format } from 'date-fns';
 import type { CareShift } from "@/types/careTypes";
 import type { ExpenseItem } from '@/components/care-plan/work-logs/types';
-import type { WorkLogExpense, WorkLog } from '@/services/care-plans/types/workLogTypes';
+import type { WorkLogExpenseInput } from '@/services/care-plans/types/workLogTypes';
 
 export const useWorkLogForm = (
   carePlanId: string,
@@ -67,22 +67,22 @@ export const useWorkLogForm = (
     try {
       setIsLoading(true);
       
-      const result = await createWorkLogFromShift(
+      const { success, workLog, error } = await createWorkLogFromShift(
         shift,
         notes
       );
 
-      if (!result.success || !result.workLog) {
-        throw new Error(result.error || "Failed to create work log");
+      if (!success || !workLog) {
+        throw new Error(error || "Failed to create work log");
       }
 
       if (expenses.length > 0) {
         const expensePromises = expenses.map(expense => {
-          const expenseInput: Partial<WorkLogExpense> = {
-            work_log_id: result.workLog!.id,
+          const expenseInput: WorkLogExpenseInput = {
+            work_log_id: workLog.id,
             category: expense.category,
-            description: expense.description,
-            amount: expense.amount
+            amount: expense.amount,
+            description: expense.description
           };
           return addWorkLogExpense(expenseInput);
         });

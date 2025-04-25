@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { Container } from "@/components/ui/container";
@@ -165,15 +165,6 @@ const CarePlanDetailPage = () => {
     }
   };
 
-  const formatTeamMember = (member) => {
-    return {
-      id: member.id,
-      name: member.professionalDetails?.fullName || member.displayName || 'Unknown',
-      role: member.role.charAt(0).toUpperCase() + member.role.slice(1),
-      status: member.status
-    };
-  };
-
   if (loading) {
     return (
       <Container className="py-12">
@@ -284,7 +275,7 @@ const CarePlanDetailPage = () => {
           <DialogHeader>
             <DialogTitle>Remove Team Member</DialogTitle>
             <p className="text-sm text-muted-foreground mt-2">
-              Are you sure you want to remove {memberToRemove?.professionalDetails?.fullName || memberToRemove?.caregiverId} from the care team?
+              Are you sure you want to remove {memberToRemove?.professionalDetails?.full_name || memberToRemove?.caregiverId} from the care team?
             </p>
           </DialogHeader>
           <DialogFooter className="sm:justify-between">
