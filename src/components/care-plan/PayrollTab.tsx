@@ -7,6 +7,7 @@ import { WorkLogsTable } from './payroll/WorkLogsTable';
 import { PayrollEntriesTable } from './payroll/PayrollEntriesTable';
 import { RejectWorkLogDialog } from './payroll/RejectWorkLogDialog';
 import { ProcessPaymentDialog } from './payroll/ProcessPaymentDialog';
+import { PayrollReportGenerator } from './payroll/PayrollReportGenerator';
 import { usePayrollData } from '@/hooks/payroll/usePayrollData';
 import { usePayrollFilters } from '@/hooks/payroll/usePayrollFilters';
 
@@ -110,15 +111,18 @@ export const PayrollTab: React.FC<PayrollTabProps> = ({ carePlanId }) => {
               onStatusChange={workLogSetFilters.setStatusFilter}
             />
           ) : (
-            <PayrollFilters
-              searchTerm={payrollFilters.searchTerm}
-              onSearchChange={payrollSetFilters.setSearchTerm}
-              dateRangeFilter={payrollFilters.dateRangeFilter}
-              onDateRangeChange={payrollSetFilters.setDateRangeFilter}
-              statusFilter={payrollFilters.statusFilter}
-              onStatusChange={payrollSetFilters.setStatusFilter}
-              showPayrollStatuses
-            />
+            <div className="flex flex-col sm:flex-row gap-2 items-center mt-4 sm:mt-0">
+              <PayrollReportGenerator carePlanId={carePlanId} />
+              <PayrollFilters
+                searchTerm={payrollFilters.searchTerm}
+                onSearchChange={payrollSetFilters.setSearchTerm}
+                dateRangeFilter={payrollFilters.dateRangeFilter}
+                onDateRangeChange={payrollSetFilters.setDateRangeFilter}
+                statusFilter={payrollFilters.statusFilter}
+                onStatusChange={payrollSetFilters.setStatusFilter}
+                showPayrollStatuses
+              />
+            </div>
           )}
         </div>
 
@@ -182,4 +186,3 @@ export const PayrollTab: React.FC<PayrollTabProps> = ({ carePlanId }) => {
     </div>
   );
 };
-

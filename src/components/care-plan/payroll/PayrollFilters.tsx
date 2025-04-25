@@ -1,14 +1,20 @@
 
 import React from 'react';
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { DateRangeFilter } from '@/hooks/payroll/usePayrollFilters';
+import { DateRangePicker } from "@/components/ui/date-range-picker";
+import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
+} from "@/components/ui/select";
 
 interface PayrollFiltersProps {
   searchTerm: string;
   onSearchChange: (value: string) => void;
-  dateRangeFilter: string;
-  onDateRangeChange: (value: string) => void;
+  dateRangeFilter: { from?: Date; to?: Date };
+  onDateRangeChange: (value: { from?: Date; to?: Date }) => void;
   statusFilter: string;
   onStatusChange: (value: string) => void;
   showPayrollStatuses?: boolean;
@@ -24,43 +30,40 @@ export const PayrollFilters: React.FC<PayrollFiltersProps> = ({
   showPayrollStatuses = false,
 }) => {
   return (
-    <div className="flex flex-col md:flex-row gap-2 mt-4 md:mt-0">
-      <Input 
-        placeholder="Search by name or notes" 
+    <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+      <Input
+        placeholder="Search by name"
         value={searchTerm}
         onChange={(e) => onSearchChange(e.target.value)}
-        className="w-full md:w-auto"
+        className="sm:w-[200px]"
       />
       
-      <Select value={dateRangeFilter} onValueChange={onDateRangeChange}>
-        <SelectTrigger className="w-full md:w-[180px]">
-          <SelectValue placeholder="Time period" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="last7">Last 7 days</SelectItem>
-          <SelectItem value="last30">Last 30 days</SelectItem>
-          <SelectItem value="thisMonth">This month</SelectItem>
-          <SelectItem value="all">All time</SelectItem>
-        </SelectContent>
-      </Select>
+      <DateRangePicker 
+        value={dateRangeFilter}
+        onChange={onDateRangeChange}
+        className="w-full sm:w-auto"
+      />
       
-      <Select value={statusFilter} onValueChange={onStatusChange}>
-        <SelectTrigger className="w-full md:w-[180px]">
-          <SelectValue placeholder="Status" />
+      <Select
+        value={statusFilter}
+        onValueChange={onStatusChange}
+      >
+        <SelectTrigger className="sm:w-[150px]">
+          <SelectValue placeholder="All Statuses" />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="all">All statuses</SelectItem>
-          {!showPayrollStatuses ? (
+          <SelectItem value="all">All Statuses</SelectItem>
+          {showPayrollStatuses ? (
             <>
               <SelectItem value="pending">Pending</SelectItem>
               <SelectItem value="approved">Approved</SelectItem>
-              <SelectItem value="rejected">Rejected</SelectItem>
+              <SelectItem value="paid">Paid</SelectItem>
             </>
           ) : (
             <>
               <SelectItem value="pending">Pending</SelectItem>
               <SelectItem value="approved">Approved</SelectItem>
-              <SelectItem value="paid">Paid</SelectItem>
+              <SelectItem value="rejected">Rejected</SelectItem>
             </>
           )}
         </SelectContent>

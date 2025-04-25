@@ -3,7 +3,7 @@ import { jsPDF } from 'jspdf';
 import 'jspdf-autotable';
 import { format } from 'date-fns';
 import { supabase } from '@/lib/supabase';
-import type { WorkLog, WorkLogExpense } from './types/workLogTypes';
+import type { WorkLog, WorkLogExpense, PayrollEntry } from './types/workLogTypes';
 
 // Add the missing type for jspdf-autotable
 declare module 'jspdf' {
@@ -49,9 +49,11 @@ export const generatePayReceipt = async (workLog: WorkLog): Promise<string> => {
   
   // Determine rate type based on multiplier
   let rateType = 'Regular';
-  if (rateMultiplier === 1.5) rateType = 'Overtime';
-  if (rateMultiplier === 2) rateType = 'Double Time';
-  if (rateMultiplier === 3) rateType = 'Triple Time';
+  if (rateMultiplier === 0.5) rateType = 'Shadow Day';
+  else if (rateMultiplier === 1.5) rateType = 'Overtime';
+  else if (rateMultiplier === 2) rateType = 'Double Time';
+  else if (rateMultiplier === 3) rateType = 'Triple Time';
+  else if (rateMultiplier === 0.75) rateType = 'Shadow Day on Holiday';
 
   // Calculate total for hours
   const hoursTotal = hoursWorked * appliedRate;
@@ -144,4 +146,151 @@ export const generatePayReceipt = async (workLog: WorkLog): Promise<string> => {
   const pdfDataUrl = doc.output('datauristring');
   
   return pdfDataUrl;
+};
+
+// New function to generate a combined payroll receipt for a date range
+export const generatePayrollReport = async (
+  carePlanId: string,
+  caregiverName?: string,
+  dateRange?: { from?: Date; to?: Date }
+): Promise<string> => {
+  try {
+    // Fetch payroll entries
+    const entries = await fetchPayrollEntries(carePlanId);
+    
+    // Filter entries if needed
+    const filteredEntries = entries.filter(entry => {
+      // Filter by caregiver name
+      const matchesCaregiverFilter = !caregiverName || 
+        entry.caregiver_name?.toLowerCase().includes(caregiverName.toLowerCase());
+        
+      // Date range filter logic
+      let withinDateRange = true;
+      const entryDate = entry.entered_at ? new Date(entry.entered_at) : 
+                      entry.created_at ? new Date(entry.created_at) : null;
+      
+      if (entryDate && dateRange?.from) {
+        withinDateRange = withinDateRange && entryDate >= dateRange.from;
+      }
+      
+      if (entryDate && dateRange?.to) {
+        // Add one day to include entries on the end date
+        const endDate = new Date(dateRange.to);
+        endDate.setDate(endDate.getDate() + 1);
+        withinDateRange = withinDateRange && entryDate < endDate;
+      }
+      
+      return matchesCaregiverFilter && withinDateRange;
+    });
+
+    if (filteredEntries.length === 0) {
+      throw new Error('No payroll entries found for the selected criteria');
+    }
+
+    // Create PDF document
+    const doc = new jsPDF();
+    
+    // Add header
+    doc.setFontSize(20);
+    doc.text('Payroll Report', 105, 20, { align: 'center' });
+    
+    // Add report details
+    doc.setFontSize(12);
+    doc.text(`Generated: ${format(new Date(), 'MMM d, yyyy')}`, 20, 30);
+    
+    if (caregiverName) {
+      doc.text(`Caregiver: ${caregiverName}`, 20, 40);
+    }
+    
+    if (dateRange?.from && dateRange?.to) {
+      doc.text(`Period: ${format(dateRange.from, 'MMM d, yyyy')} - ${format(dateRange.to, 'MMM d, yyyy')}`, 20, 50);
+    }
+    
+    // Prepare data for the table
+    const tableHeaders = ['Caregiver', 'Date', 'Hours', 'Rate', 'Total'];
+    const tableRows = filteredEntries.map(entry => {
+      const entryDate = entry.entered_at ? format(new Date(entry.entered_at), 'MM/dd/yyyy') : 
+                      entry.created_at ? format(new Date(entry.created_at), 'MM/dd/yyyy') : 'N/A';
+      
+      let hoursText = '';
+      if (entry.regular_hours > 0) hoursText += `Reg: ${entry.regular_hours}h `;
+      if (entry.overtime_hours > 0) hoursText += `OT: ${entry.overtime_hours}h `;
+      if (entry.holiday_hours > 0) hoursText += `Hol: ${entry.holiday_hours}h `;
+      if (entry.shadow_hours > 0) hoursText += `Shadow: ${entry.shadow_hours}h `;
+      
+      return [
+        entry.caregiver_name || 'Unknown',
+        entryDate,
+        hoursText.trim(),
+        `$${entry.regular_rate.toFixed(2)}/hr`,
+        `$${entry.total_amount.toFixed(2)}`
+      ];
+    });
+    
+    // Add the table to the PDF
+    doc.autoTable({
+      startY: 60,
+      head: [tableHeaders],
+      body: tableRows,
+      theme: 'striped'
+    });
+    
+    // Calculate totals
+    const totalAmount = filteredEntries.reduce((sum, entry) => sum + entry.total_amount, 0);
+    
+    // Add total to the PDF
+    const totalY = (doc as any).lastAutoTable.finalY + 10;
+    doc.setFontSize(14);
+    doc.text('Total Amount:', 140, totalY);
+    doc.setFontSize(16);
+    doc.text('$' + totalAmount.toFixed(2), 180, totalY, { align: 'right' });
+    
+    // Add footer
+    const footerY = doc.internal.pageSize.height - 20;
+    doc.setFontSize(10);
+    doc.text('This is an automatically generated payroll report.', 105, footerY, { align: 'center' });
+    
+    // Convert to data URL
+    const pdfDataUrl = doc.output('datauristring');
+    
+    return pdfDataUrl;
+  } catch (error) {
+    console.error('Error generating payroll report:', error);
+    throw new Error('Failed to generate payroll report');
+  }
+};
+
+// Separate function to fetch payroll entries for the report
+const fetchPayrollEntries = async (carePlanId: string): Promise<PayrollEntry[]> => {
+  try {
+    const { data: entries, error } = await supabase
+      .from('payroll_entries')
+      .select(`
+        *,
+        care_team_members:care_team_member_id (
+          display_name
+        )
+      `)
+      .eq('care_plan_id', carePlanId)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    
+    if (entries.length > 0) {
+      return entries.map(entry => {        
+        return {
+          ...entry,
+          caregiver_name: entry.care_team_members?.display_name || 'Unknown',
+          payment_status: ['pending', 'approved', 'paid'].includes(entry.payment_status) 
+            ? entry.payment_status as 'pending' | 'approved' | 'paid'
+            : 'pending'
+        };
+      });
+    }
+    
+    return [] as PayrollEntry[];
+  } catch (error) {
+    console.error("Error fetching payroll entries:", error);
+    throw new Error("Failed to load payroll entries");
+  }
 };
