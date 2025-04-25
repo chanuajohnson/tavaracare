@@ -27,32 +27,53 @@ export const calculatePayrollEntry = async (workLog: WorkLog) => {
   const endTime = new Date(workLog.end_time);
   const totalHours = Math.max(0, differenceInHours(endTime, startTime));
   
-  // Determine if any hours were on a holiday
+  // Use work log's base rate, fall back to care team member's rate, then default
+  const baseRate = workLogWithTeamMember.base_rate || 
+    workLogWithTeamMember.care_team_members?.regular_rate || 
+    15;
+  
+  // Use work log's rate multiplier if set
+  const rateMultiplier = workLogWithTeamMember.rate_multiplier || 1;
+  const effectiveRate = baseRate * rateMultiplier;
+  
+  // Get rates for different types
+  const regularRate = baseRate;
+  const overtimeRate = workLogWithTeamMember.care_team_members?.overtime_rate || baseRate * 1.5;
+  
+  // Determine holiday rate if applicable
   const workDate = new Date(startTime);
   const holiday = HOLIDAYS.find(h => 
     new Date(h.date).toDateString() === workDate.toDateString()
   );
-  
-  // Get rates from work log or fall back to default rates
-  const regularRate = workLogWithTeamMember.care_team_members?.regular_rate || 15;
-  const overtimeRate = workLogWithTeamMember.care_team_members?.overtime_rate || regularRate * 1.5;
-  
-  // Use work log's custom multiplier if set
-  const rateMultiplier = workLogWithTeamMember.rate_multiplier || 1;
-  const effectiveRate = regularRate * rateMultiplier;
-  
-  // Calculate hours by type based on work log rate type
+  const holidayRate = holiday ? baseRate * holiday.pay_multiplier : baseRate * 2;
+
+  // Calculate hours based on rate type
   let regularHours = totalHours;
   let overtimeHours = 0;
   let holidayHours = 0;
-  
-  if (workLogWithTeamMember.rate_type === 'overtime' || 
-      (isWeekend(workDate) && !holiday && workLogWithTeamMember.rate_type !== 'regular')) {
-    overtimeHours = totalHours;
-    regularHours = 0;
-  } else if (holiday && workLogWithTeamMember.rate_type !== 'regular') {
-    holidayHours = totalHours;
-    regularHours = 0;
+
+  // Use work log's rate_type to determine hour categories
+  switch (workLogWithTeamMember.rate_type) {
+    case 'overtime':
+      overtimeHours = totalHours;
+      regularHours = 0;
+      break;
+    case 'holiday':
+      holidayHours = totalHours;
+      regularHours = 0;
+      break;
+    case 'regular':
+      regularHours = totalHours;
+      break;
+    default:
+      // If no specific rate type, use default weekend/holiday logic
+      if (holiday) {
+        holidayHours = totalHours;
+        regularHours = 0;
+      } else if (isWeekend(workDate)) {
+        overtimeHours = totalHours;
+        regularHours = 0;
+      }
   }
 
   // Fetch expense total for this work log
@@ -77,9 +98,9 @@ export const calculatePayrollEntry = async (workLog: WorkLog) => {
     regularHours,
     overtimeHours,
     holidayHours,
-    regularRate: effectiveRate, // Use effective rate that includes multiplier
+    regularRate, 
     overtimeRate,
-    holidayRate: holiday ? regularRate * holiday.pay_multiplier : regularRate * 2,
+    holidayRate,
     expenseTotal
   };
 };

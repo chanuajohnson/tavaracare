@@ -28,7 +28,7 @@ export const PayrollEntriesTable: React.FC<PayrollEntriesTableProps> = ({
           <TableHead>Regular Hours</TableHead>
           <TableHead>Overtime Hours</TableHead>
           <TableHead>Holiday Hours</TableHead>
-          <TableHead>Rate</TableHead>
+          <TableHead>Base Rate</TableHead>
           <TableHead>Expenses</TableHead>
           <TableHead>Total</TableHead>
           <TableHead>Status</TableHead>
@@ -64,12 +64,9 @@ export const PayrollEntriesTable: React.FC<PayrollEntriesTableProps> = ({
               )}
             </TableCell>
             <TableCell>
-              ${entry.regular_rate}/hr base
-              {entry.overtime_rate && entry.overtime_rate !== entry.regular_rate && (
-                <div className="text-xs text-muted-foreground">
-                  ${entry.overtime_rate}/hr OT
-                </div>
-              )}
+              <div className="text-sm font-medium">
+                ${entry.regular_rate}/hr
+              </div>
             </TableCell>
             <TableCell>${entry.expense_total?.toFixed(2) || '0.00'}</TableCell>
             <TableCell className="font-medium">${entry.total_amount.toFixed(2)}</TableCell>
