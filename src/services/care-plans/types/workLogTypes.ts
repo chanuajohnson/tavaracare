@@ -12,6 +12,8 @@ export interface WorkLog {
   shift_id?: string;
   expenses?: WorkLogExpense[];
   rate_type?: 'regular' | 'overtime' | 'holiday';
+  base_rate?: number;
+  rate_multiplier?: number;
 }
 
 export interface WorkLogExpense {
@@ -54,6 +56,8 @@ export interface WorkLogInput {
   start_time: string;
   end_time: string;
   notes?: string;
+  base_rate?: number;
+  rate_multiplier?: number;
 }
 
 export interface WorkLogExpenseInput {

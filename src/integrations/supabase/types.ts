@@ -1796,12 +1796,14 @@ export type Database = {
       }
       work_logs: {
         Row: {
+          base_rate: number | null
           care_plan_id: string
           care_team_member_id: string
           created_at: string | null
           end_time: string
           id: string
           notes: string | null
+          rate_multiplier: number | null
           rate_type: string | null
           shift_id: string | null
           start_time: string
@@ -1809,12 +1811,14 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          base_rate?: number | null
           care_plan_id: string
           care_team_member_id: string
           created_at?: string | null
           end_time: string
           id?: string
           notes?: string | null
+          rate_multiplier?: number | null
           rate_type?: string | null
           shift_id?: string | null
           start_time: string
@@ -1822,12 +1826,14 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          base_rate?: number | null
           care_plan_id?: string
           care_team_member_id?: string
           created_at?: string | null
           end_time?: string
           id?: string
           notes?: string | null
+          rate_multiplier?: number | null
           rate_type?: string | null
           shift_id?: string | null
           start_time?: string

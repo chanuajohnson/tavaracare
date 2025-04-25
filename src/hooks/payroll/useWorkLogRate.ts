@@ -1,29 +1,25 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
-import { getRatesForWorkLog, updateWorkLogRateType } from '@/services/care-plans/payrollService';
+import { 
+  getRatesForWorkLog, 
+  updateWorkLogBaseRateAndMultiplier 
+} from '@/services/care-plans/payrollService';
 
 export const useWorkLogRate = (workLogId: string, careTeamMemberId: string) => {
-  const [rateType, setRateType] = useState<'regular' | 'overtime' | 'holiday'>('regular');
-  const [regularRate, setRegularRate] = useState<number | null>(null);
-  const [overtimeRate, setOvertimeRate] = useState<number | null>(null);
-  const [holidayRate, setHolidayRate] = useState<number | null>(null);
+  const [baseRate, setBaseRate] = useState<number | null>(null);
+  const [rateMultiplier, setRateMultiplier] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const loadRates = async () => {
       setIsLoading(true);
       try {
-        const { rateType: savedRateType, regularRate, overtimeRate, holidayRate } = 
+        const { baseRate: savedBaseRate, rateMultiplier: savedMultiplier } = 
           await getRatesForWorkLog(workLogId, careTeamMemberId);
         
-        if (savedRateType) {
-          setRateType(savedRateType as 'regular' | 'overtime' | 'holiday');
-        }
-        
-        setRegularRate(regularRate);
-        setOvertimeRate(overtimeRate);
-        setHolidayRate(holidayRate);
+        setBaseRate(savedBaseRate);
+        setRateMultiplier(savedMultiplier);
       } catch (error) {
         console.error('Error loading rates:', error);
       } finally {
@@ -34,35 +30,34 @@ export const useWorkLogRate = (workLogId: string, careTeamMemberId: string) => {
     loadRates();
   }, [workLogId, careTeamMemberId]);
 
-  const handleSetRateType = async (newRateType: string) => {
+  const handleSetBaseRate = async (newBaseRate: number) => {
     try {
-      // Update the rate type in the database
-      await updateWorkLogRateType(workLogId, newRateType as 'regular' | 'overtime' | 'holiday');
-      setRateType(newRateType as 'regular' | 'overtime' | 'holiday');
+      await updateWorkLogBaseRateAndMultiplier(workLogId, newBaseRate, rateMultiplier || 1);
+      setBaseRate(newBaseRate);
     } catch (error) {
-      console.error('Error updating rate type:', error);
+      console.error('Error updating base rate:', error);
     }
   };
 
-  // Get the currently selected rate based on rate type
-  const getCurrentRate = (): number => {
-    switch (rateType) {
-      case 'overtime':
-        return overtimeRate || 0;
-      case 'holiday':
-        return holidayRate || 0;
-      case 'regular':
-      default:
-        return regularRate || 0;
+  const handleSetRateMultiplier = async (newMultiplier: number) => {
+    try {
+      await updateWorkLogBaseRateAndMultiplier(workLogId, baseRate || 25, newMultiplier);
+      setRateMultiplier(newMultiplier);
+    } catch (error) {
+      console.error('Error updating rate multiplier:', error);
     }
+  };
+
+  // Get the currently calculated rate
+  const getCurrentRate = (): number => {
+    return (baseRate || 25) * (rateMultiplier || 1);
   };
 
   return {
-    rateType,
-    setRateType: handleSetRateType,
-    regularRate,
-    overtimeRate,
-    holidayRate,
+    baseRate,
+    setBaseRate: handleSetBaseRate,
+    rateMultiplier,
+    setRateMultiplier: handleSetRateMultiplier,
     currentRate: getCurrentRate(),
     isLoading
   };

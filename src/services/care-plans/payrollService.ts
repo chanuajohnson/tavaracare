@@ -5,67 +5,59 @@ import { toast } from 'sonner';
 // Get rates for a specific work log
 export const getRatesForWorkLog = async (workLogId: string, careTeamMemberId: string) => {
   try {
-    // First check if the work log has a saved rate type
-    const { data: workLogData, error: workLogError } = await supabase
+    // Fetch work log with base_rate and rate_multiplier
+    const { data, error } = await supabase
       .from('work_logs')
-      .select('rate_type')
+      .select('base_rate, rate_multiplier')
       .eq('id', workLogId)
       .single();
 
-    if (workLogError && workLogError.code !== 'PGRST116') {
-      throw workLogError;
-    }
+    if (error) throw error;
 
-    // Get the care team member rates
+    // Get the care team member default rates if not set
     const { data: teamMember, error: teamMemberError } = await supabase
       .from('care_team_members')
-      .select('regular_rate, overtime_rate')
+      .select('regular_rate')
       .eq('id', careTeamMemberId)
       .single();
 
-    if (teamMemberError) {
-      throw teamMemberError;
-    }
+    if (teamMemberError) throw teamMemberError;
 
-    // Calculate holiday rate as 1.5x regular rate if not specified
-    const regularRate = Number(teamMember?.regular_rate) || 15;
-    const overtimeRate = Number(teamMember?.overtime_rate) || regularRate * 1.5;
-    const holidayRate = regularRate * 2; // Standard holiday rate
-
+    // Use work log rates, or fall back to team member's regular rate, or default to 25
     return {
-      rateType: workLogData?.rate_type || 'regular',
-      regularRate,
-      overtimeRate,
-      holidayRate
+      baseRate: data?.base_rate || teamMember?.regular_rate || 25,
+      rateMultiplier: data?.rate_multiplier || 1
     };
   } catch (error) {
     console.error('Error getting rates for work log:', error);
     toast.error('Failed to load pay rates');
     return {
-      rateType: 'regular',
-      regularRate: 15,
-      overtimeRate: 22.5,
-      holidayRate: 30
+      baseRate: 25,
+      rateMultiplier: 1
     };
   }
 };
 
-// Update the rate type for a work log
-export const updateWorkLogRateType = async (
+// Update base rate and multiplier for a work log
+export const updateWorkLogBaseRateAndMultiplier = async (
   workLogId: string,
-  rateType: 'regular' | 'overtime' | 'holiday'
+  baseRate: number,
+  rateMultiplier: number
 ) => {
   try {
     const { error } = await supabase
       .from('work_logs')
-      .update({ rate_type: rateType })
+      .update({ 
+        base_rate: baseRate, 
+        rate_multiplier: rateMultiplier 
+      })
       .eq('id', workLogId);
 
     if (error) throw error;
     return true;
   } catch (error) {
-    console.error('Error updating work log rate type:', error);
-    toast.error('Failed to update pay rate');
+    console.error('Error updating work log rates:', error);
+    toast.error('Failed to update pay rates');
     return false;
   }
 };
