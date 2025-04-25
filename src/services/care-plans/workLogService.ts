@@ -1,88 +1,15 @@
 
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
-import { differenceInHours, isWeekend } from "date-fns";
-import { CareShift } from "@/types/careTypes";
-
-interface WorkLog {
-  id: string;
-  care_team_member_id: string;
-  care_plan_id: string;
-  start_time: string;
-  end_time: string;
-  break_duration_minutes: number;
-  notes?: string;
-  status: 'pending' | 'approved' | 'rejected';
-  created_at?: string;
-  updated_at?: string;
-  caregiver_name?: string; // For display purposes
-  expenses?: WorkLogExpense[]; // Related expenses
-}
-
-interface WorkLogExpense {
-  id: string;
-  work_log_id: string;
-  category: 'medical_supplies' | 'food' | 'transportation' | 'other';
-  amount: number;
-  description: string;
-  receipt_url?: string;
-  status: 'pending' | 'approved' | 'rejected';
-  created_at?: string;
-}
-
-interface PayrollEntry {
-  id: string;
-  work_log_id: string;
-  care_team_member_id: string;
-  care_plan_id: string;
-  regular_hours: number;
-  overtime_hours: number;
-  regular_rate: number;
-  overtime_rate?: number;
-  holiday_hours?: number;
-  holiday_rate?: number;
-  expense_total?: number;
-  total_amount: number;
-  payment_status: 'pending' | 'approved' | 'paid';
-  payment_date?: string;
-  created_at?: string;
-  updated_at?: string;
-  caregiver_name?: string; // For display purposes
-  pay_period_start?: string;
-  pay_period_end?: string;
-}
-
-interface WorkLogInput {
-  care_team_member_id: string;
-  care_plan_id: string;
-  shift_id?: string;
-  start_time: string;
-  end_time: string;
-  break_duration_minutes?: number;
-  notes?: string;
-}
-
-interface WorkLogExpenseInput {
-  work_log_id: string;
-  category: 'medical_supplies' | 'food' | 'transportation' | 'other';
-  amount: number;
-  description: string;
-  receipt_url?: string;
-}
-
-interface Holiday {
-  date: string;
-  name: string;
-  pay_multiplier: number;
-}
-
-// US holidays (simplified example)
-const HOLIDAYS: Holiday[] = [
-  { date: '2024-01-01', name: 'New Year\'s Day', pay_multiplier: 1.5 },
-  { date: '2024-07-04', name: 'Independence Day', pay_multiplier: 1.5 },
-  { date: '2024-12-25', name: 'Christmas Day', pay_multiplier: 2.0 },
-  // Add more holidays as needed
-];
+import { calculatePayrollEntry } from "./payrollCalculationService";
+import type { 
+  WorkLog, 
+  WorkLogInput, 
+  WorkLogExpense, 
+  WorkLogExpenseInput,
+  PayrollEntry 
+} from "./types/workLogTypes";
+import type { CareShift } from "@/types/careTypes";
 
 // Fetch work logs
 export const fetchWorkLogs = async (carePlanId: string): Promise<WorkLog[]> => {
@@ -139,7 +66,6 @@ export const fetchWorkLogs = async (carePlanId: string): Promise<WorkLog[]> => {
 // Fetch expenses for a work log
 export const fetchWorkLogExpenses = async (workLogId: string): Promise<WorkLogExpense[]> => {
   // Since the work_log_expenses table isn't created yet, we'll return an empty array
-  // This function will be updated after the SQL migration is complete
   console.log("Expense fetching will be enabled after database migration");
   return [];
 };
@@ -280,82 +206,34 @@ export const approveWorkLog = async (workLogId: string): Promise<boolean> => {
 
     if (error) throw error;
 
-    // Get the work log details to calculate payroll
+    // Get work log for payroll calculation
     const { data: workLog, error: fetchError } = await supabase
       .from('work_logs')
-      .select(`
-        *,
-        care_team_members:care_team_member_id (
-          id,
-          regular_rate,
-          overtime_rate,
-          caregiver_id
-        )
-      `)
+      .select('*')
       .eq('id', workLogId)
       .single();
 
     if (fetchError) throw fetchError;
 
-    // Calculate total worked hours
-    const startTime = new Date(workLog.start_time);
-    const endTime = new Date(workLog.end_time);
-    const breakDurationHours = (workLog.break_duration_minutes || 0) / 60;
-    
-    // Total hours worked (accounting for break time)
-    const totalHours = Math.max(
-      0, 
-      differenceInHours(endTime, startTime) - breakDurationHours
-    );
-    
-    // Determine if any hours were on a holiday
-    const workDate = new Date(startTime);
-    const isHoliday = HOLIDAYS.find(h => 
-      new Date(h.date).toDateString() === workDate.toDateString()
-    );
-    
-    // Default rates if not specified
-    const regularRate = workLog.care_team_members?.regular_rate || 15;
-    const overtimeRate = workLog.care_team_members?.overtime_rate || regularRate * 1.5;
-    const holidayRate = isHoliday ? regularRate * isHoliday.pay_multiplier : regularRate;
-    
-    // Calculate hours by type
-    let regularHours = totalHours;
-    let overtimeHours = 0;
-    let holidayHours = 0;
-    
-    // For weekend, all hours are at overtime rate if not a holiday
-    const isWeekendDay = isWeekend(workDate);
-    if (isWeekendDay && !isHoliday) {
-      overtimeHours = totalHours;
-      regularHours = 0;
-    }
-    
-    // For holiday, all hours are at holiday rate
-    if (isHoliday) {
-      holidayHours = totalHours;
-      regularHours = 0;
-    }
-    
-    // We'll skip expense calculation until the expenses table exists
-    const expenseTotal = 0;
+    // Calculate payroll details
+    const payrollData = await calculatePayrollEntry(workLog);
     
     // Calculate total amount
     const totalAmount = 
-      (regularHours * regularRate) +
-      (overtimeHours * overtimeRate) +
-      (holidayHours * holidayRate) +
-      expenseTotal;
+      (payrollData.regularHours * payrollData.regularRate) +
+      (payrollData.overtimeHours * payrollData.overtimeRate) +
+      (payrollData.holidayHours * payrollData.holidayRate) +
+      payrollData.expenseTotal;
 
     // Create payroll entry
     const payrollEntry = {
       work_log_id: workLogId,
       care_team_member_id: workLog.care_team_member_id,
       care_plan_id: workLog.care_plan_id,
-      regular_hours: regularHours,
-      overtime_hours: overtimeHours,
-      regular_rate: regularRate,
-      overtime_rate: overtimeRate,
+      regular_hours: payrollData.regularHours,
+      overtime_hours: payrollData.overtimeHours,
+      regular_rate: payrollData.regularRate,
+      overtime_rate: payrollData.overtimeRate,
       total_amount: totalAmount,
       payment_status: 'pending'
     };
@@ -418,7 +296,6 @@ export const processPayrollPayment = async (payrollId: string, paymentDate = new
   }
 };
 
-// Export the types
 export type { 
   WorkLog, 
   WorkLogInput, 
