@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -43,22 +44,33 @@ export const ShareReceiptDialog: React.FC<ShareReceiptDialogProps> = ({
 
       const link = document.createElement('a');
       const mimeType = fileFormat === 'pdf' ? 'application/pdf' : 'image/jpeg';
-      const response = await fetch(receiptUrl);
-      const blob = await response.blob();
-      const blobUrl = URL.createObjectURL(new Blob([blob], { type: mimeType }));
+      
+      try {
+        const response = await fetch(receiptUrl);
+        
+        if (!response.ok) {
+          throw new Error(`Failed to fetch receipt: ${response.status}`);
+        }
+        
+        const blob = await response.blob();
+        const blobUrl = URL.createObjectURL(new Blob([blob], { type: mimeType }));
 
-      link.href = blobUrl;
-      link.download = `receipt-${workLog.id.slice(0, 8)}.${fileFormat}`;
-      document.body.appendChild(link);
-      link.click();
-      
-      document.body.removeChild(link);
-      URL.revokeObjectURL(blobUrl);
-      
-      toast.success(`Receipt downloaded as ${fileFormat.toUpperCase()}`);
+        link.href = blobUrl;
+        link.download = `receipt-${workLog.id.slice(0, 8)}.${fileFormat}`;
+        document.body.appendChild(link);
+        link.click();
+        
+        document.body.removeChild(link);
+        URL.revokeObjectURL(blobUrl);
+        
+        toast.success(`Receipt downloaded as ${fileFormat.toUpperCase()}`);
+      } catch (error) {
+        console.error('Download error:', error);
+        toast.error(`Failed to download receipt as ${fileFormat.toUpperCase()}`);
+      }
     } catch (error) {
-      console.error('Download error:', error);
-      toast.error('Failed to download receipt');
+      console.error('Download setup error:', error);
+      toast.error('Failed to prepare receipt for download');
     } finally {
       setIsDownloading(false);
     }
