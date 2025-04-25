@@ -2,13 +2,25 @@
 import { useState, useCallback, useMemo } from 'react';
 import { subDays, startOfMonth, endOfMonth } from 'date-fns';
 
+export type DateRangeFilter = 'last7' | 'last30' | 'thisMonth' | 'all';
+
 export const usePayrollFilters = <T extends { created_at?: string | null }>(
   items: T[],
   filterByDate: (item: T, startDate: Date) => boolean
 ) => {
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [dateRangeFilter, setDateRangeFilter] = useState<'last7' | 'last30' | 'thisMonth' | 'all'>('last30');
+  const [dateRangeFilter, setDateRangeFilter] = useState<DateRangeFilter>('last30');
+
+  // Wrapper function to handle string input and convert to the proper type
+  const handleDateRangeChange = (value: string) => {
+    setDateRangeFilter(value as DateRangeFilter);
+  };
+
+  // Wrapper function to ensure type safety
+  const handleStatusChange = (value: string) => {
+    setStatusFilter(value);
+  };
 
   const filterItems = useCallback((items: T[]) => {
     let filtered = [...items];
@@ -72,8 +84,8 @@ export const usePayrollFilters = <T extends { created_at?: string | null }>(
 
   const setFilters = {
     setSearchTerm,
-    setStatusFilter,
-    setDateRangeFilter
+    setStatusFilter: handleStatusChange,
+    setDateRangeFilter: handleDateRangeChange
   };
 
   return {

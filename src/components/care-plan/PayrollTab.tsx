@@ -251,12 +251,13 @@ export const PayrollTab: React.FC<PayrollTabProps> = ({ carePlanId }) => {
                     {format(paymentDate, "PPP")}
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-auto p-0">
+                <PopoverContent className="w-auto p-0" align="start">
                   <CalendarComponent
                     mode="single"
                     selected={paymentDate}
                     onSelect={(date) => date && setPaymentDate(date)}
                     initialFocus
+                    className="p-3 pointer-events-auto"
                   />
                 </PopoverContent>
               </Popover>
