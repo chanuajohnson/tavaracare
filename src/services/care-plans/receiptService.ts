@@ -276,7 +276,7 @@ const generateConsolidatedReceiptContent = async (doc: jsPDF, entries: PayrollEn
     }
     
     // Add summary table
-    autoTable(doc, {
+    const summaryTable = autoTable(doc, {
       startY: 65,
       head: [['Type', 'Hours', 'Rate', 'Amount']],
       body: tableBody,
@@ -305,8 +305,8 @@ const generateConsolidatedReceiptContent = async (doc: jsPDF, entries: PayrollEn
     });
     
     // Add detailed breakdown by entry
-    let detailStartY = doc.previousAutoTable?.finalY || 150;
-    detailStartY += 20;
+    // Use the finalY from the previous table to position the next content
+    let detailStartY = (summaryTable.lastAutoTable?.finalY || 150) + 20;
     
     doc.setFontSize(12);
     doc.text('Detailed Breakdown', 105, detailStartY, { align: 'center' });
