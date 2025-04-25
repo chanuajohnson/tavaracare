@@ -1796,37 +1796,37 @@ export type Database = {
       }
       work_logs: {
         Row: {
-          break_duration_minutes: number | null
           care_plan_id: string
           care_team_member_id: string
           created_at: string | null
           end_time: string
           id: string
           notes: string | null
+          shift_id: string | null
           start_time: string
           status: string | null
           updated_at: string | null
         }
         Insert: {
-          break_duration_minutes?: number | null
           care_plan_id: string
           care_team_member_id: string
           created_at?: string | null
           end_time: string
           id?: string
           notes?: string | null
+          shift_id?: string | null
           start_time: string
           status?: string | null
           updated_at?: string | null
         }
         Update: {
-          break_duration_minutes?: number | null
           care_plan_id?: string
           care_team_member_id?: string
           created_at?: string | null
           end_time?: string
           id?: string
           notes?: string | null
+          shift_id?: string | null
           start_time?: string
           status?: string | null
           updated_at?: string | null
@@ -1844,6 +1844,13 @@ export type Database = {
             columns: ["care_team_member_id"]
             isOneToOne: false
             referencedRelation: "care_team_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "work_logs_shift_id_fkey"
+            columns: ["shift_id"]
+            isOneToOne: false
+            referencedRelation: "care_shifts"
             referencedColumns: ["id"]
           },
         ]

@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { format } from 'date-fns';
 import { Clock, PlusCircle, X } from 'lucide-react';
@@ -33,7 +34,6 @@ export const WorkLogForm: React.FC<WorkLogFormProps> = ({
 }) => {
   const [startTime, setStartTime] = useState(format(new Date(shift.startTime), 'HH:mm'));
   const [endTime, setEndTime] = useState(format(new Date(shift.endTime), 'HH:mm'));
-  const [breakMinutes, setBreakMinutes] = useState<number>(30);
   const [notes, setNotes] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
   const [expenses, setExpenses] = useState<ExpenseItem[]>([]);
@@ -43,7 +43,22 @@ export const WorkLogForm: React.FC<WorkLogFormProps> = ({
     description: ''
   });
 
+  const [amountInput, setAmountInput] = useState('');
+
   const totalExpenses = expenses.reduce((sum, expense) => sum + expense.amount, 0);
+
+  const handleAmountChange = (value: string) => {
+    // Only allow numbers and decimal point
+    const sanitizedValue = value.replace(/[^0-9.]/g, '');
+    // Prevent multiple decimal points
+    const parts = sanitizedValue.split('.');
+    if (parts.length > 2) return;
+    
+    setAmountInput(sanitizedValue);
+    // Convert to number for the expense object
+    const numberValue = parseFloat(sanitizedValue) || 0;
+    setNewExpense({...newExpense, amount: numberValue});
+  };
 
   const addExpense = () => {
     if (newExpense.amount <= 0) {
@@ -62,6 +77,7 @@ export const WorkLogForm: React.FC<WorkLogFormProps> = ({
       amount: 0,
       description: ''
     });
+    setAmountInput(''); // Clear the amount input field
   };
 
   const removeExpense = (index: number) => {
@@ -74,10 +90,8 @@ export const WorkLogForm: React.FC<WorkLogFormProps> = ({
     try {
       setIsLoading(true);
       
-      // Create the work log using the shift data
       const { success, workLog, error } = await createWorkLogFromShift(
         shift,
-        breakMinutes,
         notes
       );
 
@@ -85,7 +99,6 @@ export const WorkLogForm: React.FC<WorkLogFormProps> = ({
         throw new Error(error || "Failed to create work log");
       }
 
-      // Add expenses if any were entered
       if (expenses.length > 0) {
         const expensePromises = expenses.map(expense => {
           const expenseInput: WorkLogExpenseInput = {
@@ -145,18 +158,6 @@ export const WorkLogForm: React.FC<WorkLogFormProps> = ({
                 />
               </div>
             </div>
-          </div>
-
-          <div className="space-y-1">
-            <Label htmlFor="breakMinutes">Break Duration (minutes)</Label>
-            <Input
-              id="breakMinutes"
-              type="number"
-              min={0}
-              max={480}
-              value={breakMinutes}
-              onChange={(e) => setBreakMinutes(parseInt(e.target.value) || 0)}
-            />
           </div>
 
           <div className="space-y-1">
@@ -227,13 +228,10 @@ export const WorkLogForm: React.FC<WorkLogFormProps> = ({
                 <Label htmlFor="expenseAmount">Amount ($)</Label>
                 <Input
                   id="expenseAmount"
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={newExpense.amount}
-                  onChange={(e) => 
-                    setNewExpense({...newExpense, amount: parseFloat(e.target.value) || 0})
-                  }
+                  type="text"
+                  value={amountInput}
+                  onChange={(e) => handleAmountChange(e.target.value)}
+                  placeholder="0.00"
                 />
               </div>
 

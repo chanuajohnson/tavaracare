@@ -1,4 +1,3 @@
-
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import { calculatePayrollEntry } from "./payrollCalculationService";
@@ -164,7 +163,6 @@ export const createWorkLog = async (workLogInput: WorkLogInput): Promise<{ succe
 // Create a work log from a shift
 export const createWorkLogFromShift = async (
   shift: CareShift, 
-  breakDuration: number = 0, 
   notes: string = ''
 ): Promise<{ success: boolean; workLog?: WorkLog; error?: string }> => {
   try {
@@ -193,7 +191,6 @@ export const createWorkLogFromShift = async (
       shift_id: shift.id,
       start_time: shift.startTime,
       end_time: shift.endTime,
-      break_duration_minutes: breakDuration,
       notes
     };
 
