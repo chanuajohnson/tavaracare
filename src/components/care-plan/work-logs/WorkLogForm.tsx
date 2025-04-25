@@ -34,7 +34,7 @@ export const WorkLogForm: React.FC<WorkLogFormProps> = ({
     newExpense,
     amountInput,
     setExpenses,
-    setNewExpense,
+    handleExpenseChange,
     handleAmountChange,
     handleAddExpense,
     handleSubmit
@@ -70,7 +70,7 @@ export const WorkLogForm: React.FC<WorkLogFormProps> = ({
             newExpense={newExpense}
             amountInput={amountInput}
             onAmountChange={handleAmountChange}
-            onExpenseChange={setNewExpense}
+            onExpenseChange={handleExpenseChange}
             onAddExpense={handleAddExpense}
             onRemoveExpense={(index) => setExpenses(expenses.filter((_, i) => i !== index))}
           />

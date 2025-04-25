@@ -24,6 +24,13 @@ export const useWorkLogForm = (
   });
   const [amountInput, setAmountInput] = useState('');
 
+  const handleExpenseChange = (expenseData: Partial<ExpenseItem>) => {
+    setNewExpense(prevExpense => ({
+      ...prevExpense,
+      ...expenseData
+    }));
+  };
+
   const handleAmountChange = (value: string) => {
     const sanitizedValue = value.replace(/[^0-9.]/g, '');
     const parts = sanitizedValue.split('.');
@@ -105,7 +112,7 @@ export const useWorkLogForm = (
     newExpense,
     amountInput,
     setExpenses,
-    setNewExpense,
+    handleExpenseChange,
     handleAmountChange,
     handleAddExpense,
     handleSubmit
