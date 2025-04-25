@@ -1,55 +1,61 @@
-
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import type { WorkLog, WorkLogInput } from "../types/workLogTypes";
 
-export const fetchWorkLogsForCarePlan = async (carePlanId: string): Promise<WorkLog[]> => {
+export const fetchWorkLogs = async (carePlanId: string): Promise<WorkLog[]> => {
   try {
+    console.log("Fetching work logs for care plan:", carePlanId);
     const { data, error } = await supabase
       .from('work_logs')
       .select(`
         *,
         care_team_members (
           id,
-          caregiver_id,
           display_name,
+          caregiver_id,
           regular_rate,
-          overtime_rate
+          overtime_rate,
+          profiles:caregiver_id (
+            full_name,
+            professional_type
+          )
         ),
         work_log_expenses (*)
       `)
-      .eq('care_plan_id', carePlanId);
+      .eq('care_plan_id', carePlanId)
+      .order('created_at', { ascending: false });
 
     if (error) throw error;
-    
-    // Map the database response to match our WorkLog type
-    return (data || []).map(item => {
-      // Ensure status is one of the allowed values
-      const status = ['pending', 'approved', 'rejected'].includes(item.status) 
-        ? item.status as 'pending' | 'approved' | 'rejected'
-        : 'pending';
+
+    console.log("Raw work logs data:", data);
+
+    return data.map(log => {
+      // Enhanced name resolution logic
+      const displayName = 
+        log.care_team_members?.display_name || 
+        log.care_team_members?.profiles?.full_name ||
+        'Unknown';
+
+      console.log("Resolved display name for log:", {
+        logId: log.id,
+        displayName,
+        teamMember: log.care_team_members
+      });
 
       return {
-        id: item.id,
-        care_team_member_id: item.care_team_member_id,
-        care_plan_id: item.care_plan_id,
-        caregiver_id: item.care_team_members?.caregiver_id,
-        caregiver_name: item.care_team_members?.display_name,
-        start_time: item.start_time,
-        end_time: item.end_time,
-        status: status,
-        notes: item.notes || '',
-        expenses: item.work_log_expenses || [],
-        base_rate: item.base_rate || 0,
-        rate_multiplier: item.rate_multiplier || 1,
-        rate_type: item.rate_type || 'regular',
-        created_at: item.created_at,
-        updated_at: item.updated_at
-      } as WorkLog;
-    });
-  } catch (error: any) {
+        ...log,
+        status: log.status as "pending" | "approved" | "rejected",
+        caregiver_id: log.care_team_members?.caregiver_id || '',
+        caregiver_name: displayName,
+        expenses: (log.expenses || []).map(expense => ({
+          ...expense,
+          work_log_id: expense.work_log_id || log.id
+        }))
+      };
+    }) as WorkLog[];
+  } catch (error) {
     console.error("Error fetching work logs:", error);
-    toast.error("Failed to fetch work logs");
+    toast.error("Failed to load work logs");
     return [];
   }
 };
