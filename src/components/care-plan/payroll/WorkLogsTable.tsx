@@ -40,7 +40,6 @@ export const WorkLogsTable: React.FC<WorkLogsTableProps> = ({
           <TableHead>Caregiver</TableHead>
           <TableHead>Date</TableHead>
           <TableHead>Hours</TableHead>
-          <TableHead>Break</TableHead>
           <TableHead>Expenses</TableHead>
           <TableHead>Status</TableHead>
           <TableHead className="text-right">Actions</TableHead>
@@ -51,8 +50,6 @@ export const WorkLogsTable: React.FC<WorkLogsTableProps> = ({
           const startTime = new Date(workLog.start_time);
           const endTime = new Date(workLog.end_time);
           const hoursDiff = (endTime.getTime() - startTime.getTime()) / (1000 * 60 * 60);
-          const breakHours = (workLog.break_duration_minutes || 0) / 60;
-          const netHours = hoursDiff - breakHours;
           
           return (
             <TableRow key={workLog.id}>
@@ -63,10 +60,7 @@ export const WorkLogsTable: React.FC<WorkLogsTableProps> = ({
                 {format(startTime, 'MMM d, yyyy')}
               </TableCell>
               <TableCell>
-                {netHours.toFixed(1)}h ({format(startTime, 'h:mm a')} - {format(endTime, 'h:mm a')})
-              </TableCell>
-              <TableCell>
-                {breakHours > 0 ? `${breakHours.toFixed(1)}h` : 'None'}
+                {hoursDiff.toFixed(1)}h ({format(startTime, 'h:mm a')} - {format(endTime, 'h:mm a')})
               </TableCell>
               <TableCell>
                 {workLog.expenses && workLog.expenses.length > 0 ? (

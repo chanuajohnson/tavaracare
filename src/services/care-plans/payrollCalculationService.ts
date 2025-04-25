@@ -25,12 +25,11 @@ export const calculatePayrollEntry = async (workLog: WorkLog) => {
   // Calculate total worked hours
   const startTime = new Date(workLog.start_time);
   const endTime = new Date(workLog.end_time);
-  const breakDurationHours = (workLog.break_duration_minutes || 0) / 60;
   
-  // Total hours worked (accounting for break time)
+  // Total hours worked (no break time to account for now)
   const totalHours = Math.max(
     0, 
-    differenceInHours(endTime, startTime) - breakDurationHours
+    differenceInHours(endTime, startTime)
   );
   
   // Determine if any hours were on a holiday

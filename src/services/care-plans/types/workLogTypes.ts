@@ -5,12 +5,12 @@ export interface WorkLog {
   care_plan_id: string;
   start_time: string;
   end_time: string;
-  break_duration_minutes: number;
   notes?: string;
   status: 'pending' | 'approved' | 'rejected' | string; // Added string to make it compatible with the data from Supabase
   created_at?: string;
   updated_at?: string;
   caregiver_name?: string;
+  shift_id?: string;
   expenses?: WorkLogExpense[];
 }
 
@@ -53,7 +53,6 @@ export interface WorkLogInput {
   shift_id?: string;
   start_time: string;
   end_time: string;
-  break_duration_minutes?: number;
   notes?: string;
 }
 
