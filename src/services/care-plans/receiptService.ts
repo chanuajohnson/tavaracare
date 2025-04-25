@@ -1,6 +1,6 @@
 
 import { jsPDF } from 'jspdf';
-import 'jspdf-autotable';
+import autoTable from 'jspdf-autotable';
 import { format } from 'date-fns';
 import { supabase } from '@/lib/supabase';
 import type { WorkLog } from './types/workLogTypes';
@@ -12,7 +12,7 @@ export const generatePayReceipt = async (workLog: WorkLog): Promise<string> => {
       .from('work_logs')
       .select(`
         *,
-        care_team_members:care_team_member_id (
+        care_team_members!care_team_member_id (
           id,
           regular_rate,
           overtime_rate,
@@ -42,22 +42,22 @@ export const generatePayReceipt = async (workLog: WorkLog): Promise<string> => {
 
     // Create PDF document
     const doc = new jsPDF();
-
+    
     // Header
     doc.setFontSize(16);
     doc.text('Pay Receipt', 105, 20, { align: 'center' });
     
-    // Receipt details
+    // Basic receipt details
     doc.setFontSize(10);
     doc.text([
       `Receipt #: ${workLog.id.slice(0, 8)}`,
       `Date: ${format(startTime, 'MMM d, yyyy')}`,
       `Status: ${workLog.status.charAt(0).toUpperCase() + workLog.status.slice(1)}`,
-      `Caregiver: ${workLogWithTeamMember.care_team_members?.profiles?.full_name || 'Unknown'}`
+      `Caregiver: ${workLogWithTeamMember?.care_team_members?.profiles?.full_name || 'Unknown'}`
     ], 20, 35);
 
-    // Hours and rate table
-    doc.autoTable({
+    // Add autoTable for hours and rates
+    autoTable(doc, {
       startY: 65,
       head: [['Type', 'Hours', 'Rate', 'Amount']],
       body: [
@@ -106,4 +106,3 @@ export const generatePayReceipt = async (workLog: WorkLog): Promise<string> => {
     throw new Error('Failed to generate receipt');
   }
 };
-
