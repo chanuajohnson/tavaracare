@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
@@ -27,6 +26,7 @@ export const PayrollEntriesTable: React.FC<PayrollEntriesTableProps> = ({
   const [receiptDialogOpen, setReceiptDialogOpen] = useState(false);
   const [currentReceiptUrl, setCurrentReceiptUrl] = useState<string | null>(null);
   const [currentEntry, setCurrentEntry] = useState<PayrollEntry | null>(null);
+  const [selectedFormat, setSelectedFormat] = useState<'pdf' | 'jpg'>('pdf');
 
   const handleSelectEntry = (entryId: string) => {
     setSelectedEntries(prev => 
@@ -38,7 +38,7 @@ export const PayrollEntriesTable: React.FC<PayrollEntriesTableProps> = ({
 
   const handleGenerateReceipt = async (entry: PayrollEntry) => {
     try {
-      const receiptUrl = await generatePayReceipt(entry);
+      const receiptUrl = await generatePayReceipt(entry, selectedFormat);
       setCurrentReceiptUrl(receiptUrl);
       setCurrentEntry(entry);
       setReceiptDialogOpen(true);
@@ -58,12 +58,12 @@ export const PayrollEntriesTable: React.FC<PayrollEntriesTableProps> = ({
 
       if (selectedPayrollEntries.length === 1) {
         // If only one entry is selected, generate a regular receipt
-        const receiptUrl = await generatePayReceipt(selectedPayrollEntries[0]);
+        const receiptUrl = await generatePayReceipt(selectedPayrollEntries[0], selectedFormat);
         setCurrentReceiptUrl(receiptUrl);
         setCurrentEntry(selectedPayrollEntries[0]);
       } else {
         // Generate consolidated receipt for multiple entries
-        const receiptUrl = await generateConsolidatedReceipt(selectedPayrollEntries);
+        const receiptUrl = await generateConsolidatedReceipt(selectedPayrollEntries, selectedFormat);
         setCurrentReceiptUrl(receiptUrl);
         setCurrentEntry(selectedPayrollEntries[0]); // Use first entry for dialog details
       }

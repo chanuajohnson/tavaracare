@@ -4,8 +4,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Copy, Download, Mail } from 'lucide-react';
+import { Copy, Download, Mail, FilePdf, FileImage } from 'lucide-react';
 import { toast } from 'sonner';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { WorkLog, PayrollEntry } from '@/services/care-plans/types/workLogTypes';
 
 interface ShareReceiptDialogProps {
@@ -15,6 +16,8 @@ interface ShareReceiptDialogProps {
   workLog: WorkLog | PayrollEntry | null;
 }
 
+type FileFormat = 'pdf' | 'jpg';
+
 export const ShareReceiptDialog: React.FC<ShareReceiptDialogProps> = ({
   open,
   onOpenChange,
@@ -22,6 +25,7 @@ export const ShareReceiptDialog: React.FC<ShareReceiptDialogProps> = ({
   workLog
 }) => {
   const [email, setEmail] = useState('');
+  const [fileFormat, setFileFormat] = useState<FileFormat>('pdf');
 
   const handleCopyLink = () => {
     if (!receiptUrl) return;
@@ -37,7 +41,7 @@ export const ShareReceiptDialog: React.FC<ShareReceiptDialogProps> = ({
     // Create a link element and trigger download
     const link = document.createElement('a');
     link.href = receiptUrl;
-    link.download = `receipt-${workLog?.id.slice(0, 8) || 'download'}.pdf`;
+    link.download = `receipt-${workLog?.id.slice(0, 8) || 'download'}.${fileFormat}`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -49,8 +53,6 @@ export const ShareReceiptDialog: React.FC<ShareReceiptDialogProps> = ({
       return;
     }
 
-    // In a real implementation, this would send the receipt via email
-    // For now, just show a success toast
     toast.success(`Receipt would be sent to ${email}`);
     setEmail('');
   };
@@ -87,15 +89,36 @@ export const ShareReceiptDialog: React.FC<ShareReceiptDialogProps> = ({
                 <Copy className="mr-2 h-4 w-4" />
                 Copy Link
               </Button>
-              <Button 
-                variant="outline" 
-                className="flex-1"
-                onClick={handleDownload}
-                disabled={!receiptUrl}
-              >
-                <Download className="mr-2 h-4 w-4" />
-                Download
-              </Button>
+              <div className="flex-1 flex space-x-2">
+                <Select value={fileFormat} onValueChange={(value: FileFormat) => setFileFormat(value)}>
+                  <SelectTrigger className="w-24">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="pdf">
+                      <div className="flex items-center">
+                        <FilePdf className="h-4 w-4 mr-2" />
+                        PDF
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="jpg">
+                      <div className="flex items-center">
+                        <FileImage className="h-4 w-4 mr-2" />
+                        JPG
+                      </div>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+                <Button 
+                  variant="outline"
+                  onClick={handleDownload}
+                  disabled={!receiptUrl}
+                  className="flex-1"
+                >
+                  <Download className="mr-2 h-4 w-4" />
+                  Download
+                </Button>
+              </div>
             </div>
             
             <div className="flex items-end space-x-2">
