@@ -35,9 +35,10 @@ export const PayRateSelector: React.FC<PayRateSelectorProps> = ({
   // Base rate options from $25 to $100 in $5 increments
   const baseRateOptions = Array.from({length: 16}, (_, i) => 25 + i * 5);
 
-  // Multiplier options - added 0.5x option and reordered from lowest to highest
+  // Multiplier options - including 0.5x option, 0.75x option, and ordered from lowest to highest
   const multiplierOptions = [
     { value: 0.5, label: '0.5x (Shadow Day)' },
+    { value: 0.75, label: '0.75x (Shadow + Holiday)' },
     { value: 1, label: '1x (Regular)' },
     { value: 1.5, label: '1.5x (Overtime)' },
     { value: 2, label: '2x (Double Time)' },
@@ -67,7 +68,7 @@ export const PayRateSelector: React.FC<PayRateSelectorProps> = ({
           value={rateMultiplier?.toString()} 
           onValueChange={(value) => setRateMultiplier(Number(value))}
         >
-          <SelectTrigger className="w-[150px]">
+          <SelectTrigger className="w-[180px]">
             <SelectValue placeholder="Multiplier" />
           </SelectTrigger>
           <SelectContent>
@@ -91,7 +92,9 @@ export const PayRateSelector: React.FC<PayRateSelectorProps> = ({
               <p className="text-sm">
                 <strong>Shadow Day (0.5x):</strong> For training days where the caregiver is shadowing another caregiver.
                 <br /><br />
-                <strong>Holiday Pay:</strong> When a shadow day falls on a holiday, the rate is 0.75x the base rate.
+                <strong>Shadow + Holiday (0.75x):</strong> When a shadow day falls on a holiday, the rate is 0.75x the base rate.
+                <br /><br />
+                <strong>Holiday Pay:</strong> Typically paid at 1.5x regular rates.
               </p>
             </TooltipContent>
           </Tooltip>

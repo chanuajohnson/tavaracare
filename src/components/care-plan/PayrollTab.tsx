@@ -10,7 +10,6 @@ import { ProcessPaymentDialog } from './payroll/ProcessPaymentDialog';
 import { PayrollReportGenerator } from './payroll/PayrollReportGenerator';
 import { usePayrollData } from '@/hooks/payroll/usePayrollData';
 import { usePayrollFilters } from '@/hooks/payroll/usePayrollFilters';
-import { DateRange } from 'react-day-picker';
 import { supabase } from '@/lib/supabase';
 import { PayrollEntry } from '@/services/care-plans/workLogService';
 
@@ -154,52 +153,56 @@ export const PayrollTab: React.FC<PayrollTabProps> = ({ carePlanId }) => {
 
   return (
     <div className="space-y-6">
-      <Tabs defaultValue="worklogs" onValueChange={setCurrentTab}>
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
-          <TabsList>
-            <TabsTrigger value="worklogs">Work Logs</TabsTrigger>
-            <TabsTrigger value="payroll">Payroll Entries</TabsTrigger>
+      <Tabs defaultValue="worklogs" onValueChange={setCurrentTab} className="w-full">
+        <div className="flex flex-col space-y-4 md:space-y-0 md:flex-row md:justify-between md:items-center mb-6">
+          <TabsList className="w-full md:w-auto">
+            <TabsTrigger value="worklogs" className="flex-1 md:flex-initial">Work Logs</TabsTrigger>
+            <TabsTrigger value="payroll" className="flex-1 md:flex-initial">Payroll Entries</TabsTrigger>
           </TabsList>
           
-          {currentTab === "worklogs" ? (
-            <PayrollFilters
-              searchTerm={workLogFilters.searchTerm}
-              onSearchChange={workLogSetFilters.setSearchTerm}
-              dateRangeFilter={workLogFilters.dateRangeFilter}
-              onDateRangeChange={workLogSetFilters.setDateRangeFilter}
-              statusFilter={workLogFilters.statusFilter}
-              onStatusChange={workLogSetFilters.setStatusFilter}
-              caregiverFilter={caregiverFilter}
-              onCaregiverChange={setCaregiverFilter}
-              caregivers={caregivers}
-              onQuickDateRangeSelect={workLogSetFilters.setDateRangeFilter}
-            />
-          ) : (
-            <div className="flex flex-col sm:flex-row gap-2 items-center mt-4 sm:mt-0">
-              <PayrollReportGenerator carePlanId={carePlanId} />
+          <div className={`flex flex-col w-full md:w-auto space-y-2 md:space-y-0 md:flex-row md:items-center mt-4 md:mt-0 ${currentTab !== "worklogs" ? 'md:space-x-2' : ''}`}>
+            {currentTab === "worklogs" ? (
               <PayrollFilters
-                searchTerm={payrollFilters.searchTerm}
-                onSearchChange={payrollSetFilters.setSearchTerm}
-                dateRangeFilter={payrollFilters.dateRangeFilter}
-                onDateRangeChange={payrollSetFilters.setDateRangeFilter}
-                statusFilter={payrollFilters.statusFilter}
-                onStatusChange={payrollSetFilters.setStatusFilter}
-                showPayrollStatuses
+                searchTerm={workLogFilters.searchTerm}
+                onSearchChange={workLogSetFilters.setSearchTerm}
+                dateRangeFilter={workLogFilters.dateRangeFilter}
+                onDateRangeChange={workLogSetFilters.setDateRangeFilter}
+                statusFilter={workLogFilters.statusFilter}
+                onStatusChange={workLogSetFilters.setStatusFilter}
                 caregiverFilter={caregiverFilter}
                 onCaregiverChange={setCaregiverFilter}
                 caregivers={caregivers}
-                onQuickDateRangeSelect={payrollSetFilters.setDateRangeFilter}
+                onQuickDateRangeSelect={workLogSetFilters.setDateRangeFilter}
+                className="w-full md:w-auto"
               />
-            </div>
-          )}
+            ) : (
+              <div className="flex flex-col w-full space-y-2 sm:space-y-0 sm:flex-row sm:space-x-2 sm:items-center">
+                <PayrollReportGenerator carePlanId={carePlanId} />
+                <PayrollFilters
+                  searchTerm={payrollFilters.searchTerm}
+                  onSearchChange={payrollSetFilters.setSearchTerm}
+                  dateRangeFilter={payrollFilters.dateRangeFilter}
+                  onDateRangeChange={payrollSetFilters.setDateRangeFilter}
+                  statusFilter={payrollFilters.statusFilter}
+                  onStatusChange={payrollSetFilters.setStatusFilter}
+                  showPayrollStatuses
+                  caregiverFilter={caregiverFilter}
+                  onCaregiverChange={setCaregiverFilter}
+                  caregivers={caregivers}
+                  onQuickDateRangeSelect={payrollSetFilters.setDateRangeFilter}
+                  className="w-full"
+                />
+              </div>
+            )}
+          </div>
         </div>
 
-        <TabsContent value="worklogs">
+        <TabsContent value="worklogs" className="mt-0">
           <Card>
-            <CardHeader>
+            <CardHeader className="p-4 md:p-6">
               <CardTitle>Work Logs</CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-2 md:p-6 overflow-auto">
               {loading ? (
                 <div className="flex justify-center py-4">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
@@ -215,12 +218,12 @@ export const PayrollTab: React.FC<PayrollTabProps> = ({ carePlanId }) => {
           </Card>
         </TabsContent>
 
-        <TabsContent value="payroll">
+        <TabsContent value="payroll" className="mt-0">
           <Card>
-            <CardHeader>
+            <CardHeader className="p-4 md:p-6">
               <CardTitle>Payroll Entries</CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-2 md:p-6 overflow-auto">
               {loading ? (
                 <div className="flex justify-center py-4">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>

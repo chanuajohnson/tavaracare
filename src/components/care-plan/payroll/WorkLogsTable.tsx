@@ -19,6 +19,7 @@ import { PayRateSelector } from './PayRateSelector';
 import { generatePayReceipt } from '@/services/care-plans/receiptService';
 import { ShareReceiptDialog } from './ShareReceiptDialog';
 import { useWorkLogPayDetails } from '@/hooks/payroll/useWorkLogPayDetails';
+import { Card, CardContent } from "@/components/ui/card";
 import type { WorkLog } from '@/services/care-plans/types/workLogTypes';
 
 interface WorkLogsTableProps {
@@ -37,6 +38,19 @@ export const WorkLogsTable: React.FC<WorkLogsTableProps> = ({
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
   const [currentWorkLog, setCurrentWorkLog] = useState<WorkLog | null>(null);
   const [receiptUrl, setReceiptUrl] = useState<string | null>(null);
+  const [isMobileView, setIsMobileView] = useState(window.innerWidth < 768);
+
+  // Update mobile view state on window resize
+  React.useEffect(() => {
+    const handleResize = () => {
+      setIsMobileView(window.innerWidth < 768);
+    };
+    
+    window.addEventListener('resize', handleResize);
+    return () => {
+      window.removeEventListener('resize', handleResize);
+    };
+  }, []);
 
   if (workLogs.length === 0) {
     return <div className="text-center p-4">No work logs found.</div>;
@@ -53,107 +67,206 @@ export const WorkLogsTable: React.FC<WorkLogsTableProps> = ({
     }
   };
 
+  // Mobile card view for each work log
+  const renderMobileCard = (workLog: WorkLog) => {
+    const startTime = new Date(workLog.start_time);
+    const endTime = new Date(workLog.end_time);
+    const hoursDiff = (endTime.getTime() - startTime.getTime()) / (1000 * 60 * 60);
+    const totalExpenses = workLog.expenses?.reduce((sum, expense) => sum + Number(expense.amount), 0) || 0;
+
+    return (
+      <Card key={workLog.id} className="mb-4">
+        <CardContent className="p-4 space-y-3">
+          <div className="flex justify-between items-start">
+            <div>
+              <h4 className="font-medium">{workLog.caregiver_name || 'Unknown'}</h4>
+              <p className="text-sm text-muted-foreground">
+                {format(startTime, 'MMM d, yyyy')}
+              </p>
+            </div>
+            <PayrollStatusBadge status={workLog.status} />
+          </div>
+          
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <p className="text-xs text-muted-foreground">Hours</p>
+              <p>{hoursDiff.toFixed(1)}h ({format(startTime, 'h:mm a')} - {format(endTime, 'h:mm a')})</p>
+            </div>
+            
+            <div>
+              <p className="text-xs text-muted-foreground">Pay Rate</p>
+              {readOnly ? (
+                <PayTotalDisplay workLogId={workLog.id} hours={hoursDiff} expenses={totalExpenses} showRateOnly />
+              ) : (
+                <PayRateSelector workLogId={workLog.id} careTeamMemberId={workLog.care_team_member_id} />
+              )}
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <p className="text-xs text-muted-foreground">Total Pay</p>
+              <PayTotalDisplay workLogId={workLog.id} hours={hoursDiff} expenses={totalExpenses} />
+            </div>
+            
+            <div>
+              <p className="text-xs text-muted-foreground">Expenses</p>
+              {workLog.expenses && workLog.expenses.length > 0 ? (
+                <WorkLogExpenses expenses={workLog.expenses} />
+              ) : (
+                <span className="text-muted-foreground">None</span>
+              )}
+            </div>
+          </div>
+          
+          {!readOnly && workLog.status === 'pending' && (
+            <div className="flex gap-2 mt-2 justify-end">
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 w-8 p-0"
+                title="Generate Receipt"
+                onClick={() => handleGenerateReceipt(workLog)}
+              >
+                <Receipt className="h-4 w-4" />
+              </Button>
+              
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 gap-1"
+                onClick={() => onApprove(workLog.id)}
+              >
+                <Check className="h-4 w-4" /> Approve
+              </Button>
+              
+              <RejectWorkLogDialog 
+                onReject={(reason) => onReject(workLog.id, reason)}
+              >
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8 gap-1 border-red-200 hover:bg-red-50 hover:text-red-600"
+                >
+                  <X className="h-4 w-4" /> Reject
+                </Button>
+              </RejectWorkLogDialog>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    );
+  };
+
   return (
     <>
-      <Table>
-        <TableCaption>Submitted work logs</TableCaption>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Caregiver</TableHead>
-            <TableHead>Date</TableHead>
-            <TableHead>Hours</TableHead>
-            <TableHead>Pay Rate</TableHead>
-            <TableHead>Total Pay</TableHead>
-            <TableHead>Expenses</TableHead>
-            <TableHead>Status</TableHead>
-            {!readOnly && <TableHead className="text-right">Actions</TableHead>}
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {workLogs.map((workLog) => {
-            const startTime = new Date(workLog.start_time);
-            const endTime = new Date(workLog.end_time);
-            const hoursDiff = (endTime.getTime() - startTime.getTime()) / (1000 * 60 * 60);
-            
-            // Calculate total pay based on hours and selected rate
-            const totalExpenses = workLog.expenses?.reduce((sum, expense) => sum + Number(expense.amount), 0) || 0;
-            
-            return (
-              <TableRow key={workLog.id}>
-                <TableCell className="font-medium">
-                  {workLog.caregiver_name || 'Unknown'}
-                </TableCell>
-                <TableCell>
-                  {format(startTime, 'MMM d, yyyy')}
-                </TableCell>
-                <TableCell>
-                  {hoursDiff.toFixed(1)}h ({format(startTime, 'h:mm a')} - {format(endTime, 'h:mm a')})
-                </TableCell>
-                <TableCell>
-                  {readOnly ? (
-                    <PayTotalDisplay workLogId={workLog.id} hours={hoursDiff} expenses={totalExpenses} showRateOnly />
-                  ) : (
-                    <PayRateSelector workLogId={workLog.id} careTeamMemberId={workLog.care_team_member_id} />
-                  )}
-                </TableCell>
-                <TableCell>
-                  <PayTotalDisplay workLogId={workLog.id} hours={hoursDiff} expenses={totalExpenses} />
-                </TableCell>
-                <TableCell>
-                  {workLog.expenses && workLog.expenses.length > 0 ? (
-                    <WorkLogExpenses expenses={workLog.expenses} />
-                  ) : (
-                    <span className="text-muted-foreground">None</span>
-                  )}
-                </TableCell>
-                <TableCell>
-                  <PayrollStatusBadge status={workLog.status} />
-                </TableCell>
-                {!readOnly && (
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="h-8 w-8 p-0"
-                        title="Generate Receipt"
-                        onClick={() => handleGenerateReceipt(workLog)}
-                      >
-                        <Receipt className="h-4 w-4" />
-                      </Button>
-                      
-                      {workLog.status === 'pending' && (
-                        <>
+      {isMobileView ? (
+        <div className="space-y-4">
+          {workLogs.map(renderMobileCard)}
+        </div>
+      ) : (
+        <div className="overflow-x-auto">
+          <Table>
+            <TableCaption>Submitted work logs</TableCaption>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Caregiver</TableHead>
+                <TableHead>Date</TableHead>
+                <TableHead>Hours</TableHead>
+                <TableHead>Pay Rate</TableHead>
+                <TableHead>Total Pay</TableHead>
+                <TableHead>Expenses</TableHead>
+                <TableHead>Status</TableHead>
+                {!readOnly && <TableHead className="text-right">Actions</TableHead>}
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {workLogs.map((workLog) => {
+                const startTime = new Date(workLog.start_time);
+                const endTime = new Date(workLog.end_time);
+                const hoursDiff = (endTime.getTime() - startTime.getTime()) / (1000 * 60 * 60);
+                
+                // Calculate total pay based on hours and selected rate
+                const totalExpenses = workLog.expenses?.reduce((sum, expense) => sum + Number(expense.amount), 0) || 0;
+                
+                return (
+                  <TableRow key={workLog.id}>
+                    <TableCell className="font-medium">
+                      {workLog.caregiver_name || 'Unknown'}
+                    </TableCell>
+                    <TableCell>
+                      {format(startTime, 'MMM d, yyyy')}
+                    </TableCell>
+                    <TableCell>
+                      {hoursDiff.toFixed(1)}h ({format(startTime, 'h:mm a')} - {format(endTime, 'h:mm a')})
+                    </TableCell>
+                    <TableCell>
+                      {readOnly ? (
+                        <PayTotalDisplay workLogId={workLog.id} hours={hoursDiff} expenses={totalExpenses} showRateOnly />
+                      ) : (
+                        <PayRateSelector workLogId={workLog.id} careTeamMemberId={workLog.care_team_member_id} />
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <PayTotalDisplay workLogId={workLog.id} hours={hoursDiff} expenses={totalExpenses} />
+                    </TableCell>
+                    <TableCell>
+                      {workLog.expenses && workLog.expenses.length > 0 ? (
+                        <WorkLogExpenses expenses={workLog.expenses} />
+                      ) : (
+                        <span className="text-muted-foreground">None</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <PayrollStatusBadge status={workLog.status} />
+                    </TableCell>
+                    {!readOnly && (
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-2">
                           <Button
                             variant="outline"
                             size="sm"
-                            className="h-8 gap-1"
-                            onClick={() => onApprove(workLog.id)}
+                            className="h-8 w-8 p-0"
+                            title="Generate Receipt"
+                            onClick={() => handleGenerateReceipt(workLog)}
                           >
-                            <Check className="h-4 w-4" /> Approve
+                            <Receipt className="h-4 w-4" />
                           </Button>
                           
-                          <RejectWorkLogDialog 
-                            onReject={(reason) => onReject(workLog.id, reason)}
-                          >
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="h-8 gap-1 border-red-200 hover:bg-red-50 hover:text-red-600"
-                            >
-                              <X className="h-4 w-4" /> Reject
-                            </Button>
-                          </RejectWorkLogDialog>
-                        </>
-                      )}
-                    </div>
-                  </TableCell>
-                )}
-              </TableRow>
-            );
-          })}
-        </TableBody>
-      </Table>
+                          {workLog.status === 'pending' && (
+                            <>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-8 gap-1"
+                                onClick={() => onApprove(workLog.id)}
+                              >
+                                <Check className="h-4 w-4" /> Approve
+                              </Button>
+                              
+                              <RejectWorkLogDialog 
+                                onReject={(reason) => onReject(workLog.id, reason)}
+                              >
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="h-8 gap-1 border-red-200 hover:bg-red-50 hover:text-red-600"
+                                >
+                                  <X className="h-4 w-4" /> Reject
+                                </Button>
+                              </RejectWorkLogDialog>
+                            </>
+                          )}
+                        </div>
+                      </TableCell>
+                    )}
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </div>
+      )}
 
       <ShareReceiptDialog
         open={shareDialogOpen}
@@ -179,14 +292,14 @@ const PayTotalDisplay: React.FC<PayTotalDisplayProps> = ({
   expenses,
   showRateOnly = false
 }) => {
-  const { rate, totalPay } = useWorkLogPayDetails(workLogId, hours, expenses);
+  const { rate, effectiveMultiplier, totalPay } = useWorkLogPayDetails(workLogId, hours, expenses);
   
   if (!rate) {
     return <span className="text-muted-foreground">Loading...</span>;
   }
   
   if (showRateOnly) {
-    return <span>${rate.toFixed(2)}/hr</span>;
+    return <span>${rate.toFixed(2)}/hr {effectiveMultiplier !== 1 && `(${effectiveMultiplier}x)`}</span>;
   }
   
   return (

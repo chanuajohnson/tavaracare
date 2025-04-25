@@ -14,7 +14,8 @@ export const calculatePayrollEntry = async (workLog: WorkLog) => {
         id,
         regular_rate,
         overtime_rate,
-        caregiver_id
+        caregiver_id,
+        display_name
       )
     `)
     .eq('id', workLog.id)
@@ -49,11 +50,15 @@ export const calculatePayrollEntry = async (workLog: WorkLog) => {
   
   // Calculate holiday rate, considering shadow day special case
   let holidayRate = regularRate;
+  let effectiveMultiplier = rateMultiplier;
+  
   if (isHoliday) {
     if (isShadowDay) {
       // When it's both a shadow day and a holiday, use 0.75x multiplier (0.5 × 1.5)
+      effectiveMultiplier = 0.75;
       holidayRate = baseRate * 0.75;
     } else {
+      effectiveMultiplier = isHoliday.pay_multiplier;
       holidayRate = baseRate * isHoliday.pay_multiplier;
     }
   }
@@ -97,7 +102,10 @@ export const calculatePayrollEntry = async (workLog: WorkLog) => {
   }
 
   // Calculate the effective rate based on multiplier
-  const effectiveRate = isShadowDay && !isHoliday ? baseRate * 0.5 : baseRate;
+  const effectiveRate = isHoliday && isShadowDay ? baseRate * 0.75 : 
+                        isShadowDay && !isHoliday ? baseRate * 0.5 : 
+                        isHoliday ? holidayRate : 
+                        baseRate;
 
   return {
     workLogWithTeamMember,
@@ -110,6 +118,7 @@ export const calculatePayrollEntry = async (workLog: WorkLog) => {
     holidayRate,
     shadowRate: baseRate * 0.5,
     effectiveRate,
+    effectiveMultiplier,
     expenseTotal
   };
 };
