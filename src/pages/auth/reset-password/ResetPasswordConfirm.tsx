@@ -4,6 +4,7 @@ import { LoadingState } from '@/components/auth/reset-password/LoadingState';
 import { ErrorState } from '@/components/auth/reset-password/ErrorState';
 import { PasswordResetForm } from '@/components/auth/reset-password/PasswordResetForm';
 import { extractResetTokens } from '@/utils/authResetUtils';
+import { supabase } from '@/integrations/supabase/client';
 
 const ResetPasswordConfirm = () => {
   const [isLoading, setIsLoading] = useState(true);
