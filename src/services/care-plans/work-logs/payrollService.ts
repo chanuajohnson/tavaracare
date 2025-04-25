@@ -31,8 +31,7 @@ export const fetchPayrollEntries = async (carePlanId: string): Promise<PayrollEn
         // Use display name from care team member, fallback to profile name
         const displayName = 
           entry.care_team_members?.display_name || 
-          entry.care_team_members?.profiles?.full_name ||
-          'Unknown';
+          (entry.care_team_members?.profiles ? entry.care_team_members.profiles.full_name : 'Unknown');
         
         console.log('Display name for payroll entry:', displayName);
         
