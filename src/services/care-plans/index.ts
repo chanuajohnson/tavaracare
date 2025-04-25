@@ -4,6 +4,7 @@
 export * from './carePlanService';
 export * from './careShiftService';
 export * from './careTeamService';
+export * from './workLogService';
 
 // Re-export all types from careTypes
 export type { 
