@@ -31,9 +31,16 @@ export const usePayrollData = (carePlanId: string) => {
         fetchPayrollEntries(carePlanId),
         fetchCareTeamMembers(carePlanId)
       ]);
+
+      // Create a map of care team members with their display names
+      const enhancedMembers = members.map(member => ({
+        ...member,
+        displayName: member.display_name || member.professionalDetails?.full_name || 'Unknown'
+      }));
+
       setWorkLogs(logs);
       setPayrollEntries(entries);
-      setCareTeamMembers(members);
+      setCareTeamMembers(enhancedMembers);
     } catch (error) {
       console.error("Error loading payroll data:", error);
       toast.error("Failed to load payroll data");
