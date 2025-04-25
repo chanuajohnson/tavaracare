@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { v4 as uuidv4 } from 'uuid';
@@ -813,3 +814,52 @@ const FamilyRegistration = () => {
 
             <div className="space-y-2">
               <Label htmlFor="budgetPreferences">Budget Preferences – Expected hourly or monthly care budget</Label>
+              <Input 
+                id="budgetPreferences" 
+                placeholder="Your budget for care services" 
+                value={budgetPreferences} 
+                onChange={(e) => setBudgetPreferences(e.target.value)}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="preferredContactMethod">Preferred Contact Method</Label>
+              <Select value={preferredContactMethod} onValueChange={setPreferredContactMethod}>
+                <SelectTrigger id="preferredContactMethod">
+                  <SelectValue placeholder="Select Contact Method" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="phone">Phone</SelectItem>
+                  <SelectItem value="email">Email</SelectItem>
+                  <SelectItem value="text">Text</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="additionalNotes">Additional Notes</Label>
+              <Textarea 
+                id="additionalNotes" 
+                placeholder="Any other information you would like to share" 
+                value={additionalNotes} 
+                onChange={(e) => setAdditionalNotes(e.target.value)}
+                rows={3}
+              />
+            </div>
+          </CardContent>
+        </Card>
+
+        <div className="flex justify-end gap-4">
+          <Button type="button" variant="outline" onClick={() => navigate('/')}>
+            Cancel
+          </Button>
+          <Button type="submit" disabled={loading}>
+            {loading ? 'Submitting...' : 'Complete Registration'}
+          </Button>
+        </div>
+      </form>
+    </div>
+  );
+};
+
+export default FamilyRegistration;
