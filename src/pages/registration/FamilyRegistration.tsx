@@ -2,12 +2,18 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { v4 as uuidv4 } from 'uuid';
 import { supabase, ensureStorageBuckets, ensureAuthContext } from '../../lib/supabase';
-import { Button } from '@/components/ui/button';
-import { PersonalInfoSection } from '@/components/registration/family/PersonalInfoSection';
-import { CareRecipientSection } from '@/components/registration/family/CareRecipientSection';
-import { ScheduleSection } from '@/components/registration/family/ScheduleSection';
-import { PreferencesSection } from '@/components/registration/family/PreferencesSection';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '../../components/ui/card';
+import { Input } from '../../components/ui/input';
+import { Label } from '../../components/ui/label';
+import { Button } from '../../components/ui/button';
+import { Checkbox } from '../../components/ui/checkbox';
+import { Separator } from '../../components/ui/separator';
+import { Textarea } from '../../components/ui/textarea';
+import { useToast } from '../../components/ui/use-toast';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
+import { Avatar, AvatarFallback, AvatarImage } from '../../components/ui/avatar';
 import { toast } from 'sonner';
+import { Calendar, Sun, Moon, Clock, Home } from "lucide-react";
 
 const FamilyRegistration = () => {
   const [loading, setLoading] = useState(false);
@@ -233,8 +239,10 @@ const FamilyRegistration = () => {
 
   const updateProfile = async (profileData) => {
     try {
+      // Convert care_schedule from string[] to string if needed
       const updatedProfileData = {
         ...profileData,
+        // If care_schedule is an array, join it into a string
         care_schedule: Array.isArray(profileData.care_schedule) 
           ? profileData.care_schedule.join(', ')
           : profileData.care_schedule
@@ -247,7 +255,9 @@ const FamilyRegistration = () => {
       
       if (error) throw error;
       
+      // Success handling
     } catch (err) {
+      // Error handling
     }
   };
 
@@ -358,50 +368,479 @@ const FamilyRegistration = () => {
       </p>
 
       <form onSubmit={handleSubmit}>
-        <PersonalInfoSection
-          firstName={firstName}
-          lastName={lastName}
-          email={email}
-          phoneNumber={phoneNumber}
-          address={address}
-          avatarUrl={avatarUrl}
-          onFirstNameChange={setFirstName}
-          onLastNameChange={setLastName}
-          onPhoneNumberChange={setPhoneNumber}
-          onAddressChange={setAddress}
-          onAvatarChange={handleAvatarChange}
-        />
+        <Card className="mb-8">
+          <CardHeader>
+            <CardTitle>Personal & Contact Information</CardTitle>
+            <CardDescription>
+              Tell us about yourself so we can connect you with the right care providers.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex flex-col items-center mb-6">
+              <Avatar className="h-24 w-24 mb-4">
+                {avatarUrl ? (
+                  <AvatarImage src={avatarUrl} alt="Profile" />
+                ) : (
+                  <AvatarFallback>{firstName.charAt(0)}{lastName.charAt(0)}</AvatarFallback>
+                )}
+              </Avatar>
+              <Label htmlFor="avatar" className="cursor-pointer text-primary">
+                {avatarUrl ? 'Change Profile Picture' : 'Upload Profile Picture'}
+                <Input 
+                  id="avatar" 
+                  type="file" 
+                  accept="image/*" 
+                  onChange={handleAvatarChange} 
+                  className="hidden" 
+                />
+              </Label>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="firstName">First Name *</Label>
+                <Input 
+                  id="firstName" 
+                  placeholder="First Name" 
+                  value={firstName} 
+                  onChange={(e) => setFirstName(e.target.value)}
+                  required 
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="lastName">Last Name *</Label>
+                <Input 
+                  id="lastName" 
+                  placeholder="Last Name" 
+                  value={lastName} 
+                  onChange={(e) => setLastName(e.target.value)}
+                  required 
+                />
+              </div>
+            </div>
 
-        <CareRecipientSection
-          careRecipientName={careRecipientName}
-          relationship={relationship}
-          careTypes={careTypes}
-          caregiverType={caregiverType}
-          onCareRecipientNameChange={setCareRecipientName}
-          onRelationshipChange={setRelationship}
-          onCareTypesChange={(value) => handleCheckboxArrayChange(value, careTypes, setCareTypes)}
-          onCaregiverTypeChange={setCaregiverType}
-        />
+            <div className="space-y-2">
+              <Label htmlFor="email">Email Address</Label>
+              <Input id="email" type="email" value={email} disabled />
+              <p className="text-sm text-gray-500">Email address from your registration</p>
+            </div>
 
-        <ScheduleSection
-          careSchedule={careSchedule}
-          customSchedule={customSchedule}
-          onCareScheduleChange={handleCareScheduleChange}
-          onCustomScheduleChange={setCustomSchedule}
-        />
+            <div className="space-y-2">
+              <Label htmlFor="phoneNumber">Phone Number *</Label>
+              <Input 
+                id="phoneNumber" 
+                placeholder="Phone Number" 
+                value={phoneNumber} 
+                onChange={(e) => setPhoneNumber(e.target.value)}
+                required 
+              />
+            </div>
 
-        <PreferencesSection
-          caregiverPreferences={caregiverPreferences}
-          emergencyContact={emergencyContact}
-          budgetPreferences={budgetPreferences}
-          preferredContactMethod={preferredContactMethod}
-          additionalNotes={additionalNotes}
-          onCaregiverPreferencesChange={setCaregiverPreferences}
-          onEmergencyContactChange={setEmergencyContact}
-          onBudgetPreferencesChange={setBudgetPreferences}
-          onPreferredContactMethodChange={setPreferredContactMethod}
-          onAdditionalNotesChange={setAdditionalNotes}
-        />
+            <div className="space-y-2">
+              <Label htmlFor="address">Location – Address/City of the care recipient *</Label>
+              <Input 
+                id="address" 
+                placeholder="Address" 
+                value={address} 
+                onChange={(e) => setAddress(e.target.value)}
+                required
+              />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="mb-8">
+          <CardHeader>
+            <CardTitle>Care Recipient Information</CardTitle>
+            <CardDescription>
+              Tell us about the person you are caring for.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="careRecipientName">Care Recipient's Full Name – Name of the person needing care *</Label>
+              <Input 
+                id="careRecipientName" 
+                placeholder="Care Recipient Name" 
+                value={careRecipientName} 
+                onChange={(e) => setCareRecipientName(e.target.value)}
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="relationship">Relationship to Care Recipient *</Label>
+              <Select value={relationship} onValueChange={setRelationship} required>
+                <SelectTrigger id="relationship">
+                  <SelectValue placeholder="Select your relationship" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Parent">Parent</SelectItem>
+                  <SelectItem value="Child">Child</SelectItem>
+                  <SelectItem value="Spouse">Spouse</SelectItem>
+                  <SelectItem value="Grandparent">Grandparent</SelectItem>
+                  <SelectItem value="Sibling">Sibling</SelectItem>
+                  <SelectItem value="Legal Guardian">Legal Guardian</SelectItem>
+                  <SelectItem value="Other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Primary Care Type Needed – What type of care is needed? (Select all that apply)</Label>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                {[
+                  { id: 'care-inhome', label: '🏠 In-Home Care (Daily, Nighttime, Weekend, Live-in)', value: 'In-Home Care' },
+                  { id: 'care-medical', label: '🏥 Medical Support (Post-surgery, Chronic Condition Management, Hospice)', value: 'Medical Support' },
+                  { id: 'care-therapeutic', label: '🌱 Therapeutic Support (Physical Therapy, Occupational Therapy, Speech Therapy)', value: 'Therapeutic Support' },
+                  { id: 'care-specialneeds', label: '🎓 Child or Special Needs Support (Autism, ADHD, Learning Disabilities)', value: 'Special Needs Support' },
+                  { id: 'care-cognitive', label: '🧠 Cognitive & Memory Care (Alzheimer\'s, Dementia, Parkinson\'s)', value: 'Cognitive & Memory Care' },
+                  { id: 'care-mobility', label: '♿ Mobility Assistance (Wheelchair, Bed-bound, Fall Prevention)', value: 'Mobility Assistance' },
+                  { id: 'care-medication', label: '💊 Medication Management (Daily Medications, Insulin, Medical Equipment)', value: 'Medication Management' },
+                  { id: 'care-nutrition', label: '🍽️ Nutritional Assistance (Meal Prep, Special Diets, Tube Feeding)', value: 'Nutritional Assistance' },
+                  { id: 'care-household', label: '🏡 Household Assistance (Cleaning, Laundry, Errands, Yard/Garden Maintenance)', value: 'Household Assistance' }
+                ].map((item) => (
+                  <div key={item.id} className="flex items-start space-x-2">
+                    <Checkbox 
+                      id={item.id} 
+                      checked={careTypes.includes(item.value)}
+                      onCheckedChange={() => handleCheckboxArrayChange(
+                        item.value, 
+                        careTypes, 
+                        setCareTypes
+                      )}
+                      className="mt-1"
+                    />
+                    <Label htmlFor={item.id} className="font-normal">{item.label}</Label>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="caregiverType">Preferred Caregiver Type – Do you prefer care from:</Label>
+              <Select value={caregiverType} onValueChange={setCaregiverType}>
+                <SelectTrigger id="caregiverType">
+                  <SelectValue placeholder="Select Caregiver Type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Certified Agency">🏥 Certified Agency</SelectItem>
+                  <SelectItem value="Independent Caregiver">🏠 Independent Caregiver</SelectItem>
+                  <SelectItem value="Either">👩‍⚕️ Either is fine</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="mb-8">
+          <CardHeader>
+            <CardTitle>🟡 Special Medical & Care Needs (Required If Applicable)</CardTitle>
+            <CardDescription>
+              Detailed information about specific medical conditions and care requirements.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label>Does the Care Recipient Have Any of These Conditions? (Check all that apply)</Label>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                {[
+                  { id: 'needs-cognitive', label: '🧠 Cognitive Disorders – Alzheimer\'s, Dementia, Parkinson\'s', value: 'Cognitive Disorders' },
+                  { id: 'needs-physical', label: '♿ Physical Disabilities – Stroke, Paralysis, ALS, Multiple Sclerosis', value: 'Physical Disabilities' },
+                  { id: 'needs-chronic', label: '🏥 Chronic Illness – Diabetes, Heart Disease, Cancer, Kidney Disease', value: 'Chronic Illness' },
+                  { id: 'needs-specialneeds', label: '🧩 Special Needs (Child or Adult) – Autism, Down Syndrome, Cerebral Palsy, ADHD', value: 'Special Needs' },
+                  { id: 'needs-equipment', label: '💊 Medical Equipment Use – Oxygen Tank, Ventilator, Catheter, Feeding Tube', value: 'Medical Equipment Use' },
+                  { id: 'needs-vision', label: '👁️ Vision or Hearing Impairment', value: 'Vision or Hearing Impairment' }
+                ].map((item) => (
+                  <div key={item.id} className="flex items-start space-x-2">
+                    <Checkbox 
+                      id={item.id} 
+                      checked={specialNeeds.includes(item.value)}
+                      onCheckedChange={() => handleCheckboxArrayChange(
+                        item.value, 
+                        specialNeeds, 
+                        setSpecialNeeds
+                      )}
+                      className="mt-1"
+                    />
+                    <Label htmlFor={item.id} className="font-normal">{item.label}</Label>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="otherSpecialNeeds">⚠️ Other Special Needs (if any)</Label>
+              <Textarea 
+                id="otherSpecialNeeds" 
+                placeholder="Please specify any other special needs" 
+                value={otherSpecialNeeds} 
+                onChange={(e) => setOtherSpecialNeeds(e.target.value)}
+                rows={3}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Specialized Care Requirements – Do they need:</Label>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                {[
+                  { id: 'specialized-supervision', label: '🏥 24/7 Supervision', value: '24/7 Supervision' },
+                  { id: 'specialized-nurse', label: '🩺 Nurse-Level Medical Assistance', value: 'Nurse-Level Medical Assistance' },
+                  { id: 'specialized-diet', label: '🍽️ Special Diet/Nutritional Needs', value: 'Special Diet/Nutritional Needs' },
+                  { id: 'specialized-transport', label: '🚗 Transportation to Appointments', value: 'Transportation to Appointments' },
+                  { id: 'specialized-language', label: '💬 Sign Language/Language-Specific Care', value: 'Sign Language/Language-Specific Care' }
+                ].map((item) => (
+                  <div key={item.id} className="flex items-start space-x-2">
+                    <Checkbox 
+                      id={item.id} 
+                      checked={specializedCare.includes(item.value)}
+                      onCheckedChange={() => handleCheckboxArrayChange(
+                        item.value, 
+                        specializedCare, 
+                        setSpecializedCare
+                      )}
+                      className="mt-1"
+                    />
+                    <Label htmlFor={item.id} className="font-normal">{item.label}</Label>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="mb-8">
+          <CardHeader>
+            <CardTitle>🟡 Additional Preferences (Optional but Recommended)</CardTitle>
+            <CardDescription>
+              Help us better understand your specific needs and preferences.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="space-y-4">
+              <Label className="text-base font-medium">Care Schedule & Availability – Preferred care hours</Label>
+              <p className="text-sm text-gray-500 mb-4">Select the care schedule options that best fit your needs. This helps us match you with caregivers who have matching availability.</p>
+              
+              <div className="space-y-5">
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <Calendar className="h-5 w-5 text-primary" />
+                    <span className="font-medium">Standard Weekday Shifts</span>
+                  </div>
+                  <div className="pl-7 space-y-3">
+                    <div className="flex items-start space-x-2">
+                      <Checkbox 
+                        id="weekday-standard" 
+                        checked={careSchedule.includes('weekday_standard')}
+                        onCheckedChange={() => handleCareScheduleChange('weekday_standard')}
+                      />
+                      <Label htmlFor="weekday-standard" className="font-normal">
+                        ☀️ Monday – Friday, 8 AM – 4 PM (Standard daytime coverage)
+                      </Label>
+                    </div>
+                    <div className="flex items-start space-x-2">
+                      <Checkbox 
+                        id="weekday-extended" 
+                        checked={careSchedule.includes('weekday_extended')}
+                        onCheckedChange={() => handleCareScheduleChange('weekday_extended')}
+                      />
+                      <Label htmlFor="weekday-extended" className="font-normal">
+                        🕕 Monday – Friday, 6 AM – 6 PM (Extended daytime coverage)
+                      </Label>
+                    </div>
+                    <div className="flex items-start space-x-2">
+                      <Checkbox 
+                        id="weekday-night" 
+                        checked={careSchedule.includes('weekday_night')}
+                        onCheckedChange={() => handleCareScheduleChange('weekday_night')}
+                      />
+                      <Label htmlFor="weekday-night" className="font-normal">
+                        🌙 Monday – Friday, 6 PM – 8 AM (Nighttime coverage)
+                      </Label>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <Sun className="h-5 w-5 text-primary" />
+                    <span className="font-medium">Weekend Shifts</span>
+                  </div>
+                  <div className="pl-7 space-y-3">
+                    <div className="flex items-start space-x-2">
+                      <Checkbox 
+                        id="weekend-day" 
+                        checked={careSchedule.includes('weekend_day')}
+                        onCheckedChange={() => handleCareScheduleChange('weekend_day')}
+                      />
+                      <Label htmlFor="weekend-day" className="font-normal">
+                        🌞 Saturday – Sunday, 6 AM – 6 PM (Daytime weekend coverage)
+                      </Label>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <Moon className="h-5 w-5 text-primary" />
+                    <span className="font-medium">Evening & Overnight Shifts</span>
+                  </div>
+                  <div className="pl-7 space-y-3">
+                    <div className="flex items-start space-x-2">
+                      <Checkbox 
+                        id="evening-4-6" 
+                        checked={careSchedule.includes('evening_4_6')}
+                        onCheckedChange={() => handleCareScheduleChange('evening_4_6')}
+                      />
+                      <Label htmlFor="evening-4-6" className="font-normal">
+                        🌙 Weekday Evening Shift (4 PM – 6 AM)
+                      </Label>
+                    </div>
+                    <div className="flex items-start space-x-2">
+                      <Checkbox 
+                        id="evening-4-8" 
+                        checked={careSchedule.includes('evening_4_8')}
+                        onCheckedChange={() => handleCareScheduleChange('evening_4_8')}
+                      />
+                      <Label htmlFor="evening-4-8" className="font-normal">
+                        🌙 Weekday Evening Shift (4 PM – 8 AM)
+                      </Label>
+                    </div>
+                    <div className="flex items-start space-x-2">
+                      <Checkbox 
+                        id="evening-6-6" 
+                        checked={careSchedule.includes('evening_6_6')}
+                        onCheckedChange={() => handleCareScheduleChange('evening_6_6')}
+                      />
+                      <Label htmlFor="evening-6-6" className="font-normal">
+                        🌙 Weekday Evening Shift (6 PM – 6 AM)
+                      </Label>
+                    </div>
+                    <div className="flex items-start space-x-2">
+                      <Checkbox 
+                        id="evening-6-8" 
+                        checked={careSchedule.includes('evening_6_8')}
+                        onCheckedChange={() => handleCareScheduleChange('evening_6_8')}
+                      />
+                      <Label htmlFor="evening-6-8" className="font-normal">
+                        🌙 Weekday Evening Shift (6 PM – 8 AM)
+                      </Label>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <Clock className="h-5 w-5 text-primary" />
+                    <span className="font-medium">Other Options</span>
+                  </div>
+                  <div className="pl-7 space-y-3">
+                    <div className="flex items-start space-x-2">
+                      <Checkbox 
+                        id="flexible" 
+                        checked={careSchedule.includes('flexible')}
+                        onCheckedChange={() => handleCareScheduleChange('flexible')}
+                      />
+                      <Label htmlFor="flexible" className="font-normal">
+                        ⏳ Flexible / On-Demand Availability
+                      </Label>
+                    </div>
+                    <div className="flex items-start space-x-2">
+                      <Checkbox 
+                        id="live-in" 
+                        checked={careSchedule.includes('live_in')}
+                        onCheckedChange={() => handleCareScheduleChange('live_in')}
+                      />
+                      <Label htmlFor="live-in" className="font-normal">
+                        🏡 Live-In Care (Full-time in-home support)
+                      </Label>
+                    </div>
+                    <div className="flex items-start space-x-2">
+                      <Checkbox 
+                        id="custom" 
+                        checked={careSchedule.includes('custom')}
+                        onCheckedChange={() => handleCareScheduleChange('custom')}
+                      />
+                      <Label htmlFor="custom" className="font-normal">
+                        ✏️ Other (Custom shift — specify your hours)
+                      </Label>
+                    </div>
+                    
+                    {careSchedule.includes('custom') && (
+                      <div className="pt-2 pl-6">
+                        <Label htmlFor="customSchedule" className="text-sm mb-1 block">Please specify your custom schedule:</Label>
+                        <Textarea
+                          id="customSchedule"
+                          placeholder="Describe your specific schedule needs"
+                          value={customSchedule}
+                          onChange={(e) => setCustomSchedule(e.target.value)}
+                          rows={2}
+                          className="w-full"
+                        />
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="caregiverPreferences">Caregiver Preferences – Gender, Age, Language, Experience Level</Label>
+              <Textarea 
+                id="caregiverPreferences" 
+                placeholder="Please specify any preferences regarding your caregiver" 
+                value={caregiverPreferences} 
+                onChange={(e) => setCaregiverPreferences(e.target.value)}
+                rows={3}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="emergencyContact">Emergency Contact Details – Secondary contact in case of urgent needs</Label>
+              <Input 
+                id="emergencyContact" 
+                placeholder="Name, relationship, phone number" 
+                value={emergencyContact} 
+                onChange={(e) => setEmergencyContact(e.target.value)}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="budgetPreferences">Budget Preferences – Expected hourly or monthly care budget</Label>
+              <Input 
+                id="budgetPreferences" 
+                placeholder="Your budget for care services" 
+                value={budgetPreferences} 
+                onChange={(e) => setBudgetPreferences(e.target.value)}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="preferredContactMethod">Preferred Contact Method</Label>
+              <Select value={preferredContactMethod} onValueChange={setPreferredContactMethod}>
+                <SelectTrigger id="preferredContactMethod">
+                  <SelectValue placeholder="Select Contact Method" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="phone">Phone</SelectItem>
+                  <SelectItem value="email">Email</SelectItem>
+                  <SelectItem value="text">Text</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="additionalNotes">Additional Notes</Label>
+              <Textarea 
+                id="additionalNotes" 
+                placeholder="Any other information you would like to share" 
+                value={additionalNotes} 
+                onChange={(e) => setAdditionalNotes(e.target.value)}
+                rows={3}
+              />
+            </div>
+          </CardContent>
+        </Card>
 
         <div className="flex justify-end gap-4">
           <Button type="button" variant="outline" onClick={() => navigate('/')}>

@@ -1,72 +1,6 @@
 
-import { supabase } from "@/lib/supabase";
-import { toast } from "sonner";
-import type { PayrollEntry } from "./types/workLogTypes";
-
-export const fetchPayrollEntries = async (carePlanId: string): Promise<PayrollEntry[]> => {
-  try {
-    console.log('Fetching payroll entries for care plan:', carePlanId);
-    const { data: entries, error } = await supabase
-      .from('payroll_entries')
-      .select(`
-        *,
-        care_team_members!care_team_member_id (
-          id,
-          display_name,
-          caregiver_id,
-          role
-        )
-      `)
-      .eq('care_plan_id', carePlanId)
-      .order('created_at', { ascending: false });
-
-    if (error) throw error;
-    
-    console.log('Raw payroll entries:', entries);
-    
-    if (entries.length > 0) {
-      return entries.map(entry => {        
-        // Use display name from care team member
-        const displayName = entry.care_team_members?.display_name || 'Unknown';
-        console.log('Display name for payroll entry:', displayName);
-        
-        return {
-          ...entry,
-          caregiver_name: displayName,
-          payment_status: ['pending', 'approved', 'paid'].includes(entry.payment_status) 
-            ? entry.payment_status as 'pending' | 'approved' | 'paid'
-            : 'pending'
-        };
-      });
-    }
-    
-    return [] as PayrollEntry[];
-  } catch (error) {
-    console.error("Error fetching payroll entries:", error);
-    toast.error("Failed to load payroll entries");
-    return [];
-  }
-};
-
-export const processPayrollPayment = async (payrollId: string, paymentDate = new Date()): Promise<boolean> => {
-  try {
-    const { error } = await supabase
-      .from('payroll_entries')
-      .update({ 
-        payment_status: 'paid',
-        payment_date: paymentDate.toISOString()
-      })
-      .eq('id', payrollId);
-
-    if (error) throw error;
-    toast.success("Payment processed successfully");
-    return true;
-  } catch (error) {
-    console.error("Error processing payroll payment:", error);
-    toast.error("Failed to process payment");
-    return false;
-  }
-};
+import { supabase } from '@/lib/supabase';
+import { toast } from 'sonner';
 
 // Get rates for a specific work log
 export const getRatesForWorkLog = async (workLogId: string, careTeamMemberId: string) => {
@@ -115,7 +49,7 @@ export const updateWorkLogBaseRateAndMultiplier = async (
       .from('work_logs')
       .update({ 
         base_rate: baseRate, 
-        rate_multiplier: rateMultiplier
+        rate_multiplier: rateMultiplier 
       })
       .eq('id', workLogId);
 
@@ -126,35 +60,4 @@ export const updateWorkLogBaseRateAndMultiplier = async (
     toast.error('Failed to update pay rates');
     return false;
   }
-};
-
-// Filter payroll entries by caregiver and date range
-export const filterPayrollEntries = (
-  entries: PayrollEntry[], 
-  caregiverName?: string, 
-  dateRange?: { from?: Date; to?: Date }
-): PayrollEntry[] => {
-  return entries.filter(entry => {
-    // Filter by caregiver name
-    const matchesCaregiverFilter = !caregiverName || 
-      entry.caregiver_name?.toLowerCase().includes(caregiverName.toLowerCase());
-      
-    // Date range filter logic
-    let withinDateRange = true;
-    const entryDate = entry.entered_at ? new Date(entry.entered_at) : 
-                     entry.created_at ? new Date(entry.created_at) : null;
-    
-    if (entryDate && dateRange?.from) {
-      withinDateRange = withinDateRange && entryDate >= dateRange.from;
-    }
-    
-    if (entryDate && dateRange?.to) {
-      // Add one day to include entries on the end date
-      const endDate = new Date(dateRange.to);
-      endDate.setDate(endDate.getDate() + 1);
-      withinDateRange = withinDateRange && entryDate < endDate;
-    }
-    
-    return matchesCaregiverFilter && withinDateRange;
-  });
 };

@@ -27,21 +27,6 @@ export const createWorkLogFromShift = async (
       return { success: false, error: "Caregiver is not a team member" };
     }
 
-    // Check for existing work log for this shift and caregiver
-    const { data: existingWorkLog, error: existingError } = await supabase
-      .from('work_logs')
-      .select('id')
-      .eq('shift_id', shift.id)
-      .eq('care_team_member_id', teamMember.id)
-      .maybeSingle();
-
-    if (existingError) throw existingError;
-
-    if (existingWorkLog) {
-      toast.error("These hours have already been submitted for this shift, for this caregiver");
-      return { success: false, error: "Duplicate work log submission" };
-    }
-
     const workLogInput: WorkLogInput = {
       care_team_member_id: teamMember.id,
       care_plan_id: shift.carePlanId,

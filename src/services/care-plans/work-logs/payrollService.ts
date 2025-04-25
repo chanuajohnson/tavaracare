@@ -1,21 +1,17 @@
+
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import type { PayrollEntry } from "../types/workLogTypes";
+import { calculatePayrollEntry } from "../payrollCalculationService";
 
 export const fetchPayrollEntries = async (carePlanId: string): Promise<PayrollEntry[]> => {
   try {
-    console.log('Fetching payroll entries for care plan:', carePlanId);
     const { data: entries, error } = await supabase
       .from('payroll_entries')
       .select(`
         *,
-        care_team_members!care_team_member_id (
-          id,
-          display_name,
-          caregiver_id,
-          profiles:caregiver_id (
-            full_name
-          )
+        care_team_members:care_team_member_id (
+          caregiver_id
         )
       `)
       .eq('care_plan_id', carePlanId)
@@ -23,23 +19,32 @@ export const fetchPayrollEntries = async (carePlanId: string): Promise<PayrollEn
 
     if (error) throw error;
     
-    console.log('Raw payroll entries:', entries);
-    
     if (entries.length > 0) {
-      return entries.map(entry => {        
-        // Use display name from care team member, fallback to profile name
-        const displayName = 
-          entry.care_team_members?.display_name || 
-          (entry.care_team_members?.profiles ? entry.care_team_members.profiles.full_name : 'Unknown');
+      const caregiverIds = entries
+        .map(entry => entry.care_team_members?.caregiver_id)
+        .filter(Boolean);
+
+      const { data: profiles, error: profilesError } = await supabase
+        .from('profiles')
+        .select('id, full_name')
+        .in('id', caregiverIds);
+
+      if (profilesError) throw profilesError;
+
+      return entries.map(entry => {
+        const caregiverId = entry.care_team_members?.caregiver_id;
+        const profile = profiles?.find(p => p.id === caregiverId);
         
-        console.log('Display name for payroll entry:', displayName);
-        
+        // Ensure the payment_status is one of the allowed values
+        const validStatus: 'pending' | 'approved' | 'paid' = 
+          ['pending', 'approved', 'paid'].includes(entry.payment_status) 
+            ? entry.payment_status as 'pending' | 'approved' | 'paid'
+            : 'pending';
+            
         return {
           ...entry,
-          caregiver_name: displayName,
-          payment_status: ['pending', 'approved', 'paid'].includes(entry.payment_status) 
-            ? entry.payment_status as 'pending' | 'approved' | 'paid'
-            : 'pending'
+          caregiver_name: profile?.full_name || 'Unknown',
+          payment_status: validStatus
         };
       });
     }
@@ -69,89 +74,5 @@ export const processPayrollPayment = async (payrollId: string, paymentDate = new
     console.error("Error processing payroll payment:", error);
     toast.error("Failed to process payment");
     return false;
-  }
-};
-
-export const getRatesForWorkLog = async (workLogId: string): Promise<number[]> => {
-  try {
-    const { data: rates, error } = await supabase
-      .from('work_log_rates')
-      .select('rate')
-      .eq('work_log_id', workLogId);
-
-    if (error) throw error;
-    return rates.map(rate => rate.rate);
-  } catch (error) {
-    console.error("Error fetching work log rates:", error);
-    toast.error("Failed to load work log rates");
-    return [];
-  }
-};
-
-export const updateWorkLogBaseRateAndMultiplier = async (workLogId: string, baseRate: number, multiplier: number): Promise<boolean> => {
-  try {
-    const { error } = await supabase
-      .from('work_logs')
-      .update({ base_rate: baseRate, multiplier: multiplier })
-      .eq('id', workLogId);
-
-    if (error) throw error;
-    toast.success("Work log base rate and multiplier updated successfully");
-    return true;
-  } catch (error) {
-    console.error("Error updating work log base rate and multiplier:", error);
-    toast.error("Failed to update work log base rate and multiplier");
-    return false;
-  }
-};
-
-export const filterPayrollEntries = async (carePlanId: string, startDate: Date, endDate: Date): Promise<PayrollEntry[]> => {
-  try {
-    const { data: entries, error } = await supabase
-      .from('payroll_entries')
-      .select(`
-        *,
-        care_team_members!care_team_member_id (
-          id,
-          display_name,
-          caregiver_id,
-          profiles:caregiver_id (
-            full_name
-          )
-        )
-      `)
-      .eq('care_plan_id', carePlanId)
-      .gte('created_at', startDate)
-      .lte('created_at', endDate)
-      .order('created_at', { ascending: false });
-
-    if (error) throw error;
-    
-    console.log('Filtered payroll entries:', entries);
-    
-    if (entries.length > 0) {
-      return entries.map(entry => {        
-        // Use display name from care team member, fallback to profile name
-        const displayName = 
-          entry.care_team_members?.display_name || 
-          (entry.care_team_members?.profiles ? entry.care_team_members.profiles.full_name : 'Unknown');
-        
-        console.log('Display name for payroll entry:', displayName);
-        
-        return {
-          ...entry,
-          caregiver_name: displayName,
-          payment_status: ['pending', 'approved', 'paid'].includes(entry.payment_status) 
-            ? entry.payment_status as 'pending' | 'approved' | 'paid'
-            : 'pending'
-        };
-      });
-    }
-    
-    return [] as PayrollEntry[];
-  } catch (error) {
-    console.error("Error filtering payroll entries:", error);
-    toast.error("Failed to filter payroll entries");
-    return [];
   }
 };

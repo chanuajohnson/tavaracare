@@ -295,7 +295,6 @@ export type Database = {
           care_plan_id: string | null
           caregiver_id: string
           created_at: string | null
-          display_name: string | null
           family_id: string
           id: string
           notes: string | null
@@ -309,7 +308,6 @@ export type Database = {
           care_plan_id?: string | null
           caregiver_id: string
           created_at?: string | null
-          display_name?: string | null
           family_id: string
           id?: string
           notes?: string | null
@@ -323,7 +321,6 @@ export type Database = {
           care_plan_id?: string | null
           caregiver_id?: string
           created_at?: string | null
-          display_name?: string | null
           family_id?: string
           id?: string
           notes?: string | null
@@ -1010,7 +1007,6 @@ export type Database = {
           care_plan_id: string
           care_team_member_id: string
           created_at: string | null
-          entered_at: string | null
           expense_total: number | null
           holiday_hours: number | null
           holiday_rate: number | null
@@ -1029,7 +1025,6 @@ export type Database = {
           care_plan_id: string
           care_team_member_id: string
           created_at?: string | null
-          entered_at?: string | null
           expense_total?: number | null
           holiday_hours?: number | null
           holiday_rate?: number | null
@@ -1048,7 +1043,6 @@ export type Database = {
           care_plan_id?: string
           care_team_member_id?: string
           created_at?: string | null
-          entered_at?: string | null
           expense_total?: number | null
           holiday_hours?: number | null
           holiday_rate?: number | null

@@ -12,7 +12,7 @@ export interface WorkLog {
   caregiver_name?: string;
   shift_id?: string;
   expenses?: WorkLogExpense[];
-  rate_type?: 'regular' | 'overtime' | 'holiday' | 'shadow';
+  rate_type?: 'regular' | 'overtime' | 'holiday';
   base_rate?: number;
   rate_multiplier?: number;
 }
@@ -39,8 +39,6 @@ export interface PayrollEntry {
   overtime_rate?: number;
   holiday_hours?: number;
   holiday_rate?: number;
-  shadow_hours?: number; // Added shadow hours field
-  shadow_rate?: number;  // Added shadow rate field
   expense_total?: number;
   total_amount: number;
   payment_status: 'pending' | 'approved' | 'paid';
@@ -50,7 +48,6 @@ export interface PayrollEntry {
   caregiver_name?: string;
   pay_period_start?: string;
   pay_period_end?: string;
-  entered_at?: string;
 }
 
 export interface WorkLogInput {
