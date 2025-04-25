@@ -18,7 +18,7 @@ export const generatePayReceipt = async (workLog: WorkLog): Promise<string> => {
           overtime_rate,
           caregiver_id
         ),
-        profiles:care_team_members!care_team_member_id(caregiver_id).profiles!caregiver_id (
+        profiles (
           full_name,
           avatar_url
         )
