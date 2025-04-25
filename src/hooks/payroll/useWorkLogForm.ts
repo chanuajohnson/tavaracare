@@ -1,11 +1,10 @@
-
 import { useState } from 'react';
 import { toast } from "sonner";
 import { createWorkLogFromShift, addWorkLogExpense } from "@/services/care-plans/work-logs";
 import { format } from 'date-fns';
 import type { CareShift } from "@/types/careTypes";
 import type { ExpenseItem } from '@/components/care-plan/work-logs/types';
-import type { WorkLogExpenseInput } from '@/services/care-plans/types/workLogTypes';
+import type { WorkLogExpenseInput, RateType } from '@/services/care-plans/types/workLogTypes';
 
 export const useWorkLogForm = (
   carePlanId: string,
@@ -23,6 +22,36 @@ export const useWorkLogForm = (
     description: ''
   });
   const [amountInput, setAmountInput] = useState('');
+  
+  const [rateType, setRateType] = useState<RateType>('regular');
+  const [baseRate, setBaseRate] = useState<number>(25);
+  const [customMultiplier, setCustomMultiplier] = useState<number>(1.0);
+
+  const isCustomRate = rateType === 'custom';
+
+  const getRateMultiplier = (): number => {
+    switch (rateType) {
+      case 'overtime': return 1.5;
+      case 'shadow': return 0.5;
+      case 'custom': return customMultiplier;
+      default: return 1.0;
+    }
+  };
+
+  const validateRates = (): boolean => {
+    if (baseRate <= 0) {
+      toast.error("Base rate must be greater than zero");
+      return false;
+    }
+
+    const multiplier = getRateMultiplier();
+    if (multiplier < 0.5 || multiplier > 3.0) {
+      toast.error("Rate multiplier must be between 0.5 and 3.0");
+      return false;
+    }
+
+    return true;
+  };
 
   const handleExpenseChange = (expenseData: Partial<ExpenseItem>) => {
     setNewExpense(prevExpense => ({
@@ -64,12 +93,21 @@ export const useWorkLogForm = (
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    if (!validateRates()) {
+      return;
+    }
+
     try {
       setIsLoading(true);
       
       const { success, workLog, error } = await createWorkLogFromShift(
         shift,
-        notes
+        notes,
+        {
+          rate_type: rateType,
+          base_rate: baseRate,
+          rate_multiplier: getRateMultiplier()
+        }
       );
 
       if (!success || !workLog) {
@@ -111,6 +149,13 @@ export const useWorkLogForm = (
     expenses,
     newExpense,
     amountInput,
+    rateType,
+    baseRate,
+    customMultiplier,
+    isCustomRate,
+    setRateType,
+    setBaseRate,
+    setCustomMultiplier,
     setExpenses,
     handleExpenseChange,
     handleAmountChange,

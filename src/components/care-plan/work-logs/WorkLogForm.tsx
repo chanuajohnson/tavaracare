@@ -6,6 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { WorkLogTimeInput } from './WorkLogTimeInput';
 import { WorkLogExpenseForm } from './WorkLogExpenseForm';
+import { RateTypeSelector } from './RateTypeSelector';
 import { useWorkLogForm } from '@/hooks/payroll/useWorkLogForm';
 import type { CareShift } from "@/types/careTypes";
 
@@ -33,6 +34,13 @@ export const WorkLogForm: React.FC<WorkLogFormProps> = ({
     expenses,
     newExpense,
     amountInput,
+    rateType,
+    baseRate,
+    customMultiplier,
+    isCustomRate,
+    setRateType,
+    setBaseRate,
+    setCustomMultiplier,
     setExpenses,
     handleExpenseChange,
     handleAmountChange,
@@ -52,6 +60,16 @@ export const WorkLogForm: React.FC<WorkLogFormProps> = ({
             endTime={endTime}
             onStartTimeChange={setStartTime}
             onEndTimeChange={setEndTime}
+          />
+
+          <RateTypeSelector
+            rateType={rateType}
+            baseRate={baseRate}
+            customMultiplier={customMultiplier}
+            onRateTypeChange={setRateType}
+            onBaseRateChange={setBaseRate}
+            onMultiplierChange={setCustomMultiplier}
+            isCustomRate={isCustomRate}
           />
 
           <div className="space-y-1">

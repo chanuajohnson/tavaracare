@@ -1,9 +1,14 @@
-
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import type { WorkLog, WorkLogInput } from "../types/workLogTypes";
 import type { CareShift } from "@/types/careTypes";
 import { createWorkLog } from "./workLogCore";
+
+interface CreateWorkLogOptions {
+  rate_type?: RateType;
+  base_rate?: number;
+  rate_multiplier?: number;
+}
 
 const checkDuplicateWorkLog = async (
   careTeamMemberId: string,
@@ -35,7 +40,8 @@ const checkDuplicateWorkLog = async (
 
 export const createWorkLogFromShift = async (
   shift: CareShift, 
-  notes: string = ''
+  notes: string = '',
+  options: CreateWorkLogOptions = {}
 ): Promise<{ success: boolean; workLog?: WorkLog; error?: string }> => {
   try {
     if (!shift.caregiverId) {
@@ -55,7 +61,6 @@ export const createWorkLogFromShift = async (
       return { success: false, error: "Caregiver is not a team member" };
     }
 
-    // Check for duplicate work log
     const isDuplicate = await checkDuplicateWorkLog(
       teamMember.id,
       shift.startTime,
@@ -77,7 +82,10 @@ export const createWorkLogFromShift = async (
       shift_id: shift.id,
       start_time: shift.startTime,
       end_time: shift.endTime,
-      notes
+      notes,
+      rate_type: options.rate_type,
+      base_rate: options.base_rate,
+      rate_multiplier: options.rate_multiplier
     };
 
     return await createWorkLog(workLogInput);
@@ -87,4 +95,3 @@ export const createWorkLogFromShift = async (
     return { success: false, error: error.message };
   }
 };
-

@@ -1,4 +1,3 @@
-
 export interface WorkLog {
   id: string;
   care_team_member_id: string;
