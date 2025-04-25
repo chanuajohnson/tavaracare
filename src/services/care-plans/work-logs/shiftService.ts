@@ -2,11 +2,11 @@
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import type { CareShift } from "@/types/careTypes";
-import type { WorkLogInput } from "../types/workLogTypes";
+import type { WorkLog, WorkLogInput } from "../types/workLogTypes";
 import { createWorkLog } from "./workLogCore";
 
 // Function to create a work log from a shift
-export const createWorkLogFromShift = async (shift: CareShift, notes?: string) => {
+export const createWorkLogFromShift = async (shift: CareShift, notes?: string): Promise<{ success: boolean; workLog?: WorkLog; error?: string }> => {
   try {
     if (!shift.caregiverId) {
       toast.error("No caregiver assigned to this shift");

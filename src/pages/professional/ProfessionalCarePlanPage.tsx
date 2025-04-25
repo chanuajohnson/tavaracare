@@ -111,8 +111,8 @@ const ProfessionalCarePlanPage = () => {
             displayName: member.display_name || '',
             regularRate: member.regular_rate || 0,
             overtimeRate: member.overtime_rate || 0,
-            status: member.status || 'pending',
-            role: member.role || 'caregiver',
+            status: member.status as 'invited' | 'active' | 'declined' | 'removed',
+            role: member.role as 'caregiver' | 'nurse' | 'therapist' | 'doctor' | 'other',
             notes: member.notes || '',
             createdAt: member.created_at || '',
             updatedAt: member.updated_at || '',
@@ -120,7 +120,7 @@ const ProfessionalCarePlanPage = () => {
               fullName: member.professionalDetails.full_name || '',
               professionalType: member.professionalDetails.professional_type || '',
               avatarUrl: member.professionalDetails.avatar_url || ''
-            } : null
+            } : undefined
           }));
           
           setCareTeamMembers(transformedMembers);
@@ -157,12 +157,13 @@ const ProfessionalCarePlanPage = () => {
             startTime: shift.start_time,
             endTime: shift.end_time,
             location: shift.location || '',
-            caregiverId: shift.caregiver_id || null,
-            status: shift.status || 'open',
-            recurringPattern: shift.recurring_pattern || null,
-            recurrenceRule: shift.recurrence_rule || null,
+            caregiverId: shift.caregiver_id || undefined,
+            status: (shift.status || 'open') as 'open' | 'assigned' | 'completed' | 'cancelled',
+            recurringPattern: shift.recurring_pattern || undefined,
+            recurrenceRule: shift.recurrence_rule || undefined,
             createdAt: shift.created_at || '',
-            updatedAt: shift.updated_at || ''
+            updatedAt: shift.updated_at || '',
+            googleCalendarEventId: shift.google_calendar_event_id
           }));
           
           setCareShifts(transformedShifts);
@@ -207,8 +208,8 @@ const ProfessionalCarePlanPage = () => {
         displayName: member.display_name || '',
         regularRate: member.regular_rate || 0,
         overtimeRate: member.overtime_rate || 0,
-        status: member.status || 'pending',
-        role: member.role || 'caregiver',
+        status: member.status as 'invited' | 'active' | 'declined' | 'removed',
+        role: member.role as 'caregiver' | 'nurse' | 'therapist' | 'doctor' | 'other',
         notes: member.notes || '',
         createdAt: member.created_at || '',
         updatedAt: member.updated_at || '',
@@ -216,7 +217,7 @@ const ProfessionalCarePlanPage = () => {
           fullName: member.professionalDetails.full_name || '',
           professionalType: member.professionalDetails.professional_type || '',
           avatarUrl: member.professionalDetails.avatar_url || ''
-        } : null
+        } : undefined
       }));
       
       setCareTeamMembers(transformedMembers);
@@ -251,12 +252,13 @@ const ProfessionalCarePlanPage = () => {
         startTime: shift.start_time,
         endTime: shift.end_time,
         location: shift.location || '',
-        caregiverId: shift.caregiver_id || null,
-        status: shift.status || 'open',
-        recurringPattern: shift.recurring_pattern || null,
-        recurrenceRule: shift.recurrence_rule || null,
+        caregiverId: shift.caregiver_id || undefined,
+        status: (shift.status || 'open') as 'open' | 'assigned' | 'completed' | 'cancelled',
+        recurringPattern: shift.recurring_pattern || undefined,
+        recurrenceRule: shift.recurrence_rule || undefined,
         createdAt: shift.created_at || '',
-        updatedAt: shift.updated_at || ''
+        updatedAt: shift.updated_at || '',
+        googleCalendarEventId: shift.google_calendar_event_id
       }));
       
       setCareShifts(transformedShifts);

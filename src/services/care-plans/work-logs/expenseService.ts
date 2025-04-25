@@ -1,9 +1,9 @@
 
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
-import type { WorkLogExpenseInput, WorkLogExpense } from "../types/workLogTypes";
+import type { WorkLogExpense } from "../types/workLogTypes";
 
-export const addWorkLogExpense = async (expenseInput: WorkLogExpenseInput): Promise<boolean> => {
+export const addWorkLogExpense = async (expenseInput: Partial<WorkLogExpense>): Promise<boolean> => {
   try {
     const { error } = await supabase
       .from('work_log_expenses')
