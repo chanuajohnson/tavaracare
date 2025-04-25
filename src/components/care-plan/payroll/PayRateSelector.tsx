@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Select, 
   SelectContent, 
@@ -31,6 +31,19 @@ export const PayRateSelector: React.FC<PayRateSelectorProps> = ({
   const [showCustomMultiplier, setShowCustomMultiplier] = useState(false);
   const [customMultiplier, setCustomMultiplier] = useState(1);
 
+  // Check if current multiplier is a custom value
+  useEffect(() => {
+    if (rateMultiplier) {
+      const isCustom = !multiplierOptions.some(opt => 
+        opt.value === rateMultiplier && opt.value !== 'custom'
+      );
+      if (isCustom) {
+        setShowCustomMultiplier(true);
+        setCustomMultiplier(rateMultiplier);
+      }
+    }
+  }, [rateMultiplier]);
+
   if (isLoading) {
     return <div className="text-sm text-muted-foreground">Loading rates...</div>;
   }
@@ -46,6 +59,20 @@ export const PayRateSelector: React.FC<PayRateSelectorProps> = ({
     { value: 3, label: '3x (Triple Time)' },
     { value: 'custom', label: 'Other (Custom)' }
   ];
+
+  const getMultiplierDisplayValue = () => {
+    if (!rateMultiplier) return '';
+    
+    const standardOption = multiplierOptions.find(opt => 
+      opt.value === rateMultiplier && opt.value !== 'custom'
+    );
+    
+    if (standardOption) {
+      return standardOption.label;
+    }
+    
+    return `${rateMultiplier}x (Custom)`;
+  };
 
   const handleMultiplierChange = (value: string) => {
     if (value === 'custom') {
@@ -90,7 +117,9 @@ export const PayRateSelector: React.FC<PayRateSelectorProps> = ({
           onValueChange={handleMultiplierChange}
         >
           <SelectTrigger className="w-[150px]">
-            <SelectValue placeholder="Multiplier" />
+            <SelectValue>
+              {getMultiplierDisplayValue()}
+            </SelectValue>
           </SelectTrigger>
           <SelectContent>
             {multiplierOptions.map((option) => (
