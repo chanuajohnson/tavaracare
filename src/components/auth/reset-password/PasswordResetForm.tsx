@@ -1,12 +1,18 @@
-
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { 
+  MAX_RESET_ATTEMPTS, 
+  getResetAttempts, 
+  incrementResetAttempts, 
+  clearResetAttempts,
+  isPasswordStrong 
+} from '@/utils/passwordResetUtils';
 import { Loader2, ArrowLeft } from 'lucide-react';
-import { toast } from 'sonner';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
-import { supabase } from '@/integrations/supabase/client';
 
 interface PasswordResetFormProps {
   emailAddress: string | null;
@@ -14,12 +20,28 @@ interface PasswordResetFormProps {
 
 export const PasswordResetForm = ({ emailAddress }: PasswordResetFormProps) => {
   const navigate = useNavigate();
-  const [isLoading, setIsLoading] = useState(false);
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    const attempts = getResetAttempts();
+    if (attempts >= MAX_RESET_ATTEMPTS) {
+      toast.error("Too many attempts", {
+        description: "Please request a new password reset link"
+      });
+      navigate('/auth/reset-password');
+      return;
+    }
+
+    if (!isPasswordStrong(password)) {
+      toast.error("Password is too weak", {
+        description: "Please use at least 8 characters"
+      });
+      return;
+    }
     
     if (password.length < 6) {
       toast.error("Password must be at least 6 characters");
@@ -32,40 +54,49 @@ export const PasswordResetForm = ({ emailAddress }: PasswordResetFormProps) => {
     }
     
     setIsLoading(true);
-    
+
     try {
-      console.log('[Reset] Updating password...');
+      console.log("🔒 Updating password");
+      const { error } = await supabase.auth.updateUser({ password });
       
-      const { error: updateError } = await supabase.auth.updateUser({ 
-        password 
-      });
+      if (error) {
+        console.error("❌ Password update error:", error);
+        throw error;
+      }
+
+      console.log("✅ Password updated successfully, signing out");
       
-      if (updateError) throw updateError;
+      // Sign out after reset for safety, using global scope to clear on all devices
+      await supabase.auth.signOut({ scope: "global" });
       
-      // Sign out after successful password update
-      await supabase.auth.signOut({ scope: 'local' });
-      
-      // Clean up session storage
+      // Clean up all reset-related storage
+      clearResetAttempts();
       sessionStorage.removeItem('skipPostLoginRedirect');
       
-      toast.success("Password updated successfully", {
-        description: "You can now log in with your new password"
-      });
-      
-      // Redirect to login page
       navigate("/auth", { 
         replace: true,
         state: { resetSuccess: true }
       });
       
-    } catch (error: any) {
-      console.error('[Reset] Password update error:', error);
-      toast.error("Failed to update password", {
-        description: error.message || "Please try again or request a new reset link"
+      toast.success("Password has been reset successfully", {
+        description: "You can now log in with your new password"
       });
+    } catch (error: any) {
+      console.error('❌ Password update error:', error);
       
-      if (error.message?.includes("expired")) {
-        navigate("/auth/reset-password", { replace: true });
+      // Increment attempts counter
+      const newAttempts = incrementResetAttempts();
+      
+      // Show appropriate error message based on attempts
+      if (newAttempts >= MAX_RESET_ATTEMPTS) {
+        toast.error("Too many failed attempts", {
+          description: "Please request a new password reset link"
+        });
+        navigate('/auth/reset-password');
+      } else {
+        toast.error("Failed to update password", {
+          description: error.message || "Please try again"
+        });
       }
     } finally {
       setIsLoading(false);

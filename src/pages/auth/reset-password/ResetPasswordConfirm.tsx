@@ -5,6 +5,7 @@ import { ErrorState } from '@/components/auth/reset-password/ErrorState';
 import { PasswordResetForm } from '@/components/auth/reset-password/PasswordResetForm';
 import { extractResetTokens } from '@/utils/authResetUtils';
 import { supabase } from '@/integrations/supabase/client';
+import { VALIDATION_TIMEOUT_MS } from '@/utils/passwordResetUtils';
 
 const ResetPasswordConfirm = () => {
   const [isLoading, setIsLoading] = useState(true);
@@ -13,7 +14,11 @@ const ResetPasswordConfirm = () => {
   const [emailAddress, setEmailAddress] = useState<string | null>(null);
 
   useEffect(() => {
-    async function validateResetSession() {
+    const validateResetSession = async () => {
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Session validation timed out')), VALIDATION_TIMEOUT_MS)
+      );
+
       try {
         console.log('[Reset] Starting session validation...');
         
@@ -27,41 +32,44 @@ const ResetPasswordConfirm = () => {
           throw new Error(error);
         }
 
-        // Set up session with the tokens
-        const { data, error: sessionError } = await supabase.auth.setSession({
-          access_token: access_token || '',
-          refresh_token: refresh_token || ''
-        });
+        // Race between session validation and timeout
+        await Promise.race([
+          (async () => {
+            const { data, error: sessionError } = await supabase.auth.setSession({
+              access_token: access_token || '',
+              refresh_token: refresh_token || ''
+            });
 
-        if (sessionError) {
-          console.error('[Reset] Session error:', sessionError);
-          throw new Error(sessionError.message);
-        }
-        
-        // Validate the session
-        const { data: { user } } = await supabase.auth.getUser();
-        
-        if (!user) {
-          throw new Error('No valid user found after token exchange');
-        }
-        
-        // Store the email address for display
-        setEmailAddress(user.email);
-        setValidSession(true);
-        setValidationError(null);
-        
-        console.log('[Reset] Valid recovery session detected:', {
-          email: user.email,
-          type
-        });
+            if (sessionError) {
+              console.error('[Reset] Session error:', sessionError);
+              throw new Error(sessionError.message);
+            }
+            
+            // Validate the session
+            const { data: { user } } = await supabase.auth.getUser();
+            
+            if (!user) {
+              throw new Error('No valid user found after token exchange');
+            }
+            
+            setEmailAddress(user.email);
+            setValidSession(true);
+            setValidationError(null);
+          })(),
+          timeoutPromise
+        ]);
         
       } catch (error: any) {
         console.error('[Reset] Session validation error:', error);
-        setValidationError(error.message);
+        setValidationError(
+          error.message === 'Session validation timed out'
+            ? 'Connection timeout. Please try again or request a new reset link.'
+            : error.message
+        );
       } finally {
         setIsLoading(false);
       }
-    }
+    };
 
     validateResetSession();
     
