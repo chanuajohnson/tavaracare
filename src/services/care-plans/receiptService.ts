@@ -1,3 +1,4 @@
+
 import { jsPDF } from 'jspdf';
 import 'jspdf-autotable';
 import { format } from 'date-fns';
@@ -40,23 +41,7 @@ export const generatePayReceipt = async (workLog: WorkLog): Promise<string> => {
     console.error('Error fetching work log:', workLogError);
   }
 
-  // Determine rate based on rate_type
-  const regularRate = Number(teamMember?.regular_rate) || 15;
-  const overtimeRate = Number(teamMember?.overtime_rate) || regularRate * 1.5;
-  const holidayRate = regularRate * 2;
-  
-  let appliedRate = regularRate;
-  let rateType = 'Regular';
-  
-  if (workLog.rate_type === 'overtime' || workLogData?.rate_type === 'overtime') {
-    appliedRate = overtimeRate;
-    rateType = 'Overtime';
-  } else if (workLog.rate_type === 'holiday' || workLogData?.rate_type === 'holiday') {
-    appliedRate = holidayRate;
-    rateType = 'Holiday';
-  }
-  
-  // Use base_rate and rate_multiplier if available
+  // Use base_rate and rate_multiplier from the work log
   const baseRate = workLog.base_rate || 25;
   const rateMultiplier = workLog.rate_multiplier || 1;
   

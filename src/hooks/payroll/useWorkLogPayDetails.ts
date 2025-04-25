@@ -24,7 +24,7 @@ export const useWorkLogPayDetails = (workLogId: string, hours: number, expenses:
     loadWorkLog();
   }, [workLogId]);
 
-  const { currentRate, rateType, regularRate, overtimeRate, holidayRate } = useWorkLogRate(
+  const { baseRate, rateMultiplier, currentRate, isLoading: rateLoading } = useWorkLogRate(
     workLogId,
     careTeamMemberId
   );
@@ -34,12 +34,10 @@ export const useWorkLogPayDetails = (workLogId: string, hours: number, expenses:
   const totalPay = totalPayBeforeExpenses + expenses;
 
   return {
-    rateType,
     rate: currentRate,
-    regularRate,
-    overtimeRate,
-    holidayRate,
+    baseRate,
+    rateMultiplier,
     totalPay,
-    isLoading: isLoading || !currentRate
+    isLoading: isLoading || rateLoading
   };
 };
