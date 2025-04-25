@@ -91,10 +91,7 @@ export const WorkLogsTable: React.FC<WorkLogsTableProps> = ({
                     </Button>
                     
                     <RejectWorkLogDialog 
-                      onReject={(reason) => {
-                        // Convert void to Promise<boolean>
-                        return onReject(workLog.id, reason);
-                      }}
+                      onReject={(reason) => onReject(workLog.id, reason)}
                     >
                       <Button
                         variant="outline"
