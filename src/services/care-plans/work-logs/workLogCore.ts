@@ -38,9 +38,10 @@ export const fetchWorkLogs = async (carePlanId: string): Promise<WorkLog[]> => {
         if (log.care_team_members?.display_name) {
           displayName = log.care_team_members.display_name;
           console.log(`Using display_name: ${displayName} for log ${log.id}`);
-        } else if (log.care_team_members?.profiles?.full_name) {
-          displayName = log.care_team_members.profiles.full_name;
-          console.log(`Using profile full_name: ${displayName} for log ${log.id}`);
+        } else if (log.care_team_members?.caregiver_id) {
+          // Direct ID fallback instead of trying to access nested profile
+          displayName = `Member: ${log.care_team_members.caregiver_id.substring(0, 8)}`;
+          console.log(`Using caregiver ID: ${displayName} for log ${log.id}`);
         } else if (log.care_team_member_id) {
           displayName = `Member: ${log.care_team_member_id.substring(0, 8)}`;
           console.log(`Using fallback ID: ${displayName} for log ${log.id}`);
