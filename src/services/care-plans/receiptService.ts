@@ -275,8 +275,10 @@ const generateConsolidatedReceiptContent = async (doc: jsPDF, entries: PayrollEn
       ]);
     }
     
-    // Add summary table
-    const summaryTable = autoTable(doc, {
+    // Add summary table and capture its final Y position
+    let finalY: number = 65;
+    
+    autoTable(doc, {
       startY: 65,
       head: [['Type', 'Hours', 'Rate', 'Amount']],
       body: tableBody,
@@ -301,12 +303,16 @@ const generateConsolidatedReceiptContent = async (doc: jsPDF, entries: PayrollEn
         fillColor: [240, 240, 240],
         textColor: [0, 0, 0],
         fontStyle: 'bold'
+      },
+      didDrawPage: (data) => {
+        // Save the last Y position after drawing the table
+        finalY = data.cursor.y;
       }
     });
     
     // Add detailed breakdown by entry
-    // Use the finalY from the previous table to position the next content
-    let detailStartY = (summaryTable.lastAutoTable?.finalY || 150) + 20;
+    // Use the finalY position from didDrawPage callback
+    let detailStartY = finalY + 20;
     
     doc.setFontSize(12);
     doc.text('Detailed Breakdown', 105, detailStartY, { align: 'center' });
