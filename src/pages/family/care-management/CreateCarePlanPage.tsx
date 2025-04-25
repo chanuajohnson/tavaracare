@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "@/components/providers/AuthProvider";
@@ -13,6 +12,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { ArrowLeft } from "lucide-react";
 import { createCarePlan, fetchCarePlanById, updateCarePlan } from "@/services/care-plans";
 import { toast } from "sonner";
+import { CarePlanMetadata } from '@/types/carePlan';
 
 type PlanType = 'scheduled' | 'on-demand' | 'both';
 type WeekdayOption = '8am-4pm' | '8am-6pm' | '6am-6pm' | '6pm-8am' | 'none';
@@ -113,7 +113,7 @@ const CreateCarePlanPage = () => {
         familyId: user.id,
         status: 'active' as const, // Use const assertion to specify literal type
         metadata: {
-          planType: planType,
+          planType,
           weekdayCoverage: weekdayOption,
           weekendCoverage: weekendOption,
           additionalShifts: shifts

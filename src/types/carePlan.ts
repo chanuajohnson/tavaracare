@@ -27,8 +27,8 @@ export interface CarePlanMetadata {
     weekdayEvening4pmTo8am?: boolean;
     weekdayEvening6pmTo6am?: boolean;
     weekdayEvening6pmTo8am?: boolean;
-    weekday8amTo4pm?: boolean;  // Added this field
-    weekday8amTo6pm?: boolean;  // Added this field
+    weekday8amTo4pm?: boolean;
+    weekday8amTo6pm?: boolean;
   };
 }
 
@@ -72,7 +72,7 @@ export interface DbCarePlanMetadata {
     weekday_evening_4pm_to_8am?: boolean;
     weekday_evening_6pm_to_6am?: boolean;
     weekday_evening_6pm_to_8am?: boolean;
-    weekday_8am_to_4pm?: boolean;  // Added this field
-    weekday_8am_to_6pm?: boolean;  // Added this field
+    weekday_8am_to_4pm?: boolean;
+    weekday_8am_to_6pm?: boolean;
   };
 }
