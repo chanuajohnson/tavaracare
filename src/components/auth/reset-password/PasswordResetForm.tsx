@@ -42,14 +42,17 @@ export const PasswordResetForm = ({ emailAddress }: PasswordResetFormProps) => {
       
       if (updateError) throw updateError;
       
+      // Sign out after successful password update
       await supabase.auth.signOut({ scope: 'local' });
       
+      // Clean up session storage
       sessionStorage.removeItem('skipPostLoginRedirect');
       
       toast.success("Password updated successfully", {
         description: "You can now log in with your new password"
       });
       
+      // Redirect to login page
       navigate("/auth", { 
         replace: true,
         state: { resetSuccess: true }

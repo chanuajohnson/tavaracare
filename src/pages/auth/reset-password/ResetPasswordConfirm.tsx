@@ -20,20 +20,21 @@ const ResetPasswordConfirm = () => {
         // Prevent any automatic redirects while on this page
         sessionStorage.setItem('skipPostLoginRedirect', 'true');
         
-        // First check if we have a valid recovery token
+        // Extract tokens from query parameters
         const { access_token, refresh_token, type, error } = extractResetTokens();
         
         if (error) {
           throw new Error(error);
         }
 
-        // Set up session with the token
+        // Set up session with the tokens
         const { data, error: sessionError } = await supabase.auth.setSession({
           access_token: access_token || '',
           refresh_token: refresh_token || ''
         });
 
         if (sessionError) {
+          console.error('[Reset] Session error:', sessionError);
           throw new Error(sessionError.message);
         }
         

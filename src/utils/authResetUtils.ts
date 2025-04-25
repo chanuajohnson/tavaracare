@@ -1,5 +1,6 @@
+
 /**
- * Extracts and validates reset tokens from URL parameters
+ * Extracts and validates reset tokens from URL query parameters
  */
 export const extractResetTokens = (): { 
   access_token?: string; 
@@ -7,45 +8,24 @@ export const extractResetTokens = (): {
   type?: string;
   error?: string 
 } => {
-  const hash = window.location.hash;
-  const search = window.location.search;
+  console.log("[Reset] Starting token extraction...");
   
-  console.log("[Reset] Full URL components:", {
-    url: window.location.href,
-    hash,
-    search,
-    pathname: window.location.pathname
-  });
+  // Only check URL search params since template uses query params
+  const searchParams = new URLSearchParams(window.location.search);
+  
+  // Extract tokens from query parameters
+  const access_token = searchParams.get('access_token') || undefined;
+  const refresh_token = searchParams.get('refresh_token') || undefined;
+  const type = searchParams.get('type') || undefined;
 
-  // Parse both hash and search parameters
-  const hashParams = new URLSearchParams(hash.replace('#', ''));
-  const searchParams = new URLSearchParams(search);
-  
-  // Check all possible token locations
-  const access_token = 
-    hashParams.get('access_token') || 
-    searchParams.get('access_token') ||
-    hashParams.get('token') ||
-    searchParams.get('token');
-    
-  const refresh_token = 
-    hashParams.get('refresh_token') || 
-    searchParams.get('refresh_token');
-    
-  const type = 
-    hashParams.get('type') || 
-    searchParams.get('type');
-
-  const isValidRecovery = type === 'recovery' && access_token;
-  
-  console.log("[Reset] Token extraction results:", {
+  console.log("[Reset] Token validation results:", {
     hasAccessToken: !!access_token,
     hasRefreshToken: !!refresh_token,
-    type,
-    isValidRecovery
+    type
   });
 
-  if (!isValidRecovery) {
+  // Validate required parameters
+  if (!access_token || !refresh_token || type !== 'recovery') {
     return { 
       error: "Invalid or expired reset link. Please request a new password reset link." 
     };
@@ -57,5 +37,3 @@ export const extractResetTokens = (): {
     type
   };
 };
-
-import { supabase } from '@/integrations/supabase/client';
