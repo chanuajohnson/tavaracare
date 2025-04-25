@@ -1,20 +1,20 @@
 
-import { CarePlan, CarePlanMetadata, DbCarePlan, DbCarePlanInsert, DbCarePlanMetadata } from "../types/carePlan";
+import { CarePlan, DbCarePlan, DbCarePlanInsert, DbCarePlanMetadata } from "../types/carePlan";
 import { fromJson, toJson, Json } from "../utils/json";
 
 /**
  * Adapts a care plan metadata from frontend to database format
  */
-function adaptCarePlanMetadataToDb(metadata: CarePlanMetadata): DbCarePlanMetadata {
+function adaptCarePlanMetadataToDb(metadata: CarePlan['metadata']): DbCarePlanMetadata {
   return {
-    plan_type: metadata.planType,
-    weekday_coverage: metadata.weekdayCoverage,
-    weekend_coverage: metadata.weekendCoverage,
-    additional_shifts: metadata.additionalShifts ? {
-      weekday_evening_4pm_to_6am: metadata.additionalShifts.weekdayEvening4pmTo6am,
-      weekday_evening_4pm_to_8am: metadata.additionalShifts.weekdayEvening4pmTo8am,
-      weekday_evening_6pm_to_6am: metadata.additionalShifts.weekdayEvening6pmTo6am,
-      weekday_evening_6pm_to_8am: metadata.additionalShifts.weekdayEvening6pmTo8am,
+    plan_type: metadata!.planType,
+    weekday_coverage: metadata!.weekdayCoverage,
+    weekend_coverage: metadata!.weekendCoverage,
+    additional_shifts: metadata!.additionalShifts ? {
+      weekday_evening_4pm_to_6am: metadata!.additionalShifts.weekdayEvening4pmTo6am,
+      weekday_evening_4pm_to_8am: metadata!.additionalShifts.weekdayEvening4pmTo8am,
+      weekday_evening_6pm_to_6am: metadata!.additionalShifts.weekdayEvening6pmTo6am,
+      weekday_evening_6pm_to_8am: metadata!.additionalShifts.weekdayEvening6pmTo8am,
     } : undefined
   };
 }
@@ -22,7 +22,7 @@ function adaptCarePlanMetadataToDb(metadata: CarePlanMetadata): DbCarePlanMetada
 /**
  * Adapts care plan metadata from database to frontend format
  */
-function adaptCarePlanMetadataFromDb(dbMetadata: DbCarePlanMetadata): CarePlanMetadata {
+function adaptCarePlanMetadataFromDb(dbMetadata: DbCarePlanMetadata): NonNullable<CarePlan['metadata']> {
   return {
     planType: dbMetadata.plan_type,
     weekdayCoverage: dbMetadata.weekday_coverage,
@@ -54,7 +54,7 @@ export function adaptCarePlanToDb(carePlan: Partial<CarePlan>): DbCarePlanInsert
  * Adapts a database care plan to a frontend-ready object
  */
 export function adaptCarePlanFromDb(dbCarePlan: any): CarePlan {
-  let metadata: CarePlanMetadata | undefined = undefined;
+  let metadata: CarePlan['metadata'] | undefined = undefined;
   
   if (dbCarePlan.metadata) {
     const parsedMetadata = fromJson(dbCarePlan.metadata, {} as DbCarePlanMetadata);
