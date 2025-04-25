@@ -1,3 +1,4 @@
+
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import type { WorkLog, WorkLogInput } from "../types/workLogTypes";
@@ -20,29 +21,37 @@ export const fetchWorkLogs = async (carePlanId: string): Promise<WorkLog[]> => {
 
     if (error) throw error;
     
-    // Get caregiver names from profiles
-    const caregiverIds = workLogs
-      .map(log => log.care_team_members?.caregiver_id)
-      .filter(Boolean);
+    if (workLogs && workLogs.length > 0) {
+      // Get caregiver names from profiles
+      const caregiverIds = workLogs
+        .map(log => log.care_team_members?.caregiver_id)
+        .filter(Boolean);
 
-    if (caregiverIds.length > 0) {
-      const { data: profiles, error: profilesError } = await supabase
-        .from('profiles')
-        .select('id, full_name')
-        .in('id', caregiverIds);
+      if (caregiverIds.length > 0) {
+        const { data: profiles, error: profilesError } = await supabase
+          .from('profiles')
+          .select('id, full_name')
+          .in('id', caregiverIds);
 
-      if (profilesError) throw profilesError;
+        if (profilesError) throw profilesError;
 
-      // Map profiles to work logs
-      return workLogs.map(log => {
-        const caregiverId = log.care_team_members?.caregiver_id;
-        const profile = profiles?.find(p => p.id === caregiverId);
-        
-        return {
-          ...log,
-          caregiver_name: profile?.full_name || 'Unknown'
-        };
-      });
+        // Map profiles to work logs and ensure rate_type is valid
+        return workLogs.map(log => {
+          const caregiverId = log.care_team_members?.caregiver_id;
+          const profile = profiles?.find(p => p.id === caregiverId);
+          
+          // Ensure rate_type is one of the allowed values
+          let validRateType: 'regular' | 'overtime' | 'holiday' = 'regular';
+          if (log.rate_type === 'overtime') validRateType = 'overtime';
+          if (log.rate_type === 'holiday') validRateType = 'holiday';
+          
+          return {
+            ...log,
+            caregiver_name: profile?.full_name || 'Unknown',
+            rate_type: validRateType
+          };
+        });
+      }
     }
     
     return [] as WorkLog[];
@@ -108,7 +117,18 @@ export const createWorkLog = async (workLogInput: WorkLogInput): Promise<{ succe
     if (error) throw error;
     
     toast.success("Work log created successfully");
-    return { success: true, workLog: data as WorkLog };
+    
+    // Ensure rate_type is one of the allowed values for the returned data
+    const validRateType: 'regular' | 'overtime' | 'holiday' = 
+      data.rate_type === 'overtime' ? 'overtime' : 
+      data.rate_type === 'holiday' ? 'holiday' : 'regular';
+    
+    const workLog: WorkLog = {
+      ...data,
+      rate_type: validRateType
+    };
+    
+    return { success: true, workLog };
   } catch (error: any) {
     console.error("Error creating work log:", error);
     toast.error("Failed to create work log");
