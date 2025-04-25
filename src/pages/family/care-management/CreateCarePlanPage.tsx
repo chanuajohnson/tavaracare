@@ -14,7 +14,7 @@ import { createCarePlan, fetchCarePlanById, updateCarePlan, CarePlan, CarePlanIn
 import { toast } from "sonner";
 
 type PlanType = 'scheduled' | 'on-demand' | 'both';
-type WeekdayOption = '8am-4pm' | '6am-6pm' | '6pm-8am' | 'none';
+type WeekdayOption = '8am-4pm' | '8am-6pm' | '6am-6pm' | '6pm-8am' | 'none';
 type WeekendOption = 'yes' | 'no';
 
 const CreateCarePlanPage = () => {
@@ -282,10 +282,22 @@ const CreateCarePlanPage = () => {
                         </div>
                         
                         <div className="flex items-start space-x-2">
-                          <RadioGroupItem value="6am-6pm" id="option2" />
+                          <RadioGroupItem value="8am-6pm" id="option2" />
                           <div className="grid gap-1.5 leading-none">
                             <Label htmlFor="option2" className="font-medium">
-                              Option 2: Monday - Friday, 6 AM - 6 PM
+                              Option 2: Monday - Friday, 8 AM - 6 PM
+                            </Label>
+                            <p className="text-sm text-muted-foreground">
+                              Extended daytime coverage with later end time.
+                            </p>
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-start space-x-2">
+                          <RadioGroupItem value="6am-6pm" id="option3" />
+                          <div className="grid gap-1.5 leading-none">
+                            <Label htmlFor="option3" className="font-medium">
+                              Option 3: Monday - Friday, 6 AM - 6 PM
                             </Label>
                             <p className="text-sm text-muted-foreground">
                               Extended daytime coverage for more comprehensive care.
@@ -294,10 +306,10 @@ const CreateCarePlanPage = () => {
                         </div>
                         
                         <div className="flex items-start space-x-2">
-                          <RadioGroupItem value="6pm-8am" id="option3" />
+                          <RadioGroupItem value="6pm-8am" id="option4" />
                           <div className="grid gap-1.5 leading-none">
-                            <Label htmlFor="option3" className="font-medium">
-                              Option 3: Monday - Friday, 6 PM - 8 AM
+                            <Label htmlFor="option4" className="font-medium">
+                              Option 4: Monday - Friday, 6 PM - 8 AM
                             </Label>
                             <p className="text-sm text-muted-foreground">
                               Extended nighttime coverage to relieve standard daytime coverage.
