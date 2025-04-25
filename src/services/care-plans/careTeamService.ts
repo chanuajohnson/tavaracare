@@ -50,6 +50,18 @@ export const inviteCareTeamMember = async (
   member: CareTeamMemberInput
 ): Promise<CareTeamMember | null> => {
   try {
+    // First get the professional's full name
+    const { data: professional, error: profileError } = await supabase
+      .from('profiles')
+      .select('full_name')
+      .eq('id', member.caregiverId)
+      .single();
+
+    if (profileError) {
+      console.error("Error fetching professional profile:", profileError);
+      throw profileError;
+    }
+
     // Convert from domain model input to database model
     const dbMember: CareTeamMemberDto = {
       care_plan_id: member.carePlanId,
@@ -57,7 +69,8 @@ export const inviteCareTeamMember = async (
       caregiver_id: member.caregiverId,
       role: member.role,
       status: member.status || 'invited',
-      notes: member.notes
+      notes: member.notes,
+      display_name: professional?.full_name || 'Unknown Professional'
     };
 
     const { data, error } = await supabase

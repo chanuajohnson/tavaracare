@@ -14,7 +14,9 @@ export const fetchWorkLogs = async (carePlanId: string): Promise<WorkLog[]> => {
           id,
           display_name,
           caregiver_id,
-          role
+          profiles:caregiver_id (
+            full_name
+          )
         )
       `)
       .eq('care_plan_id', carePlanId)
@@ -24,14 +26,17 @@ export const fetchWorkLogs = async (carePlanId: string): Promise<WorkLog[]> => {
     
     console.log('Raw work logs data:', workLogs);
     
-    // Map the display names from care team members
     return workLogs.map(log => {
       const validRateType: 'regular' | 'overtime' | 'holiday' = 
         log.rate_type === 'overtime' ? 'overtime' :
         log.rate_type === 'holiday' ? 'holiday' : 'regular';
       
-      // Use display name from care team member
-      const displayName = log.care_team_members?.display_name || 'Unknown';
+      // Use display name from care team member, fallback to profile name
+      const displayName = 
+        log.care_team_members?.display_name || 
+        log.care_team_members?.profiles?.full_name ||
+        'Unknown';
+      
       console.log('Display name for work log:', displayName);
       
       return {
