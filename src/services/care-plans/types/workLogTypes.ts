@@ -3,7 +3,7 @@ export interface WorkLog {
   id: string;
   care_team_member_id: string;
   care_plan_id: string;
-  caregiver_id?: string; // Adding this property
+  caregiver_id?: string;
   caregiver_name?: string;
   start_time: string;
   end_time: string;
@@ -29,11 +29,34 @@ export interface WorkLogExpense {
   updated_at?: string;
 }
 
+// Add missing WorkLogExpenseInput interface
+export interface WorkLogExpenseInput {
+  work_log_id: string;
+  category: string;
+  description: string;
+  amount: number;
+  receipt_url?: string;
+}
+
+// Add missing WorkLogInput interface
+export interface WorkLogInput {
+  care_team_member_id: string;
+  care_plan_id: string;
+  start_time: string;
+  end_time: string;
+  notes?: string;
+  status?: 'pending' | 'approved' | 'rejected';
+  base_rate?: number;
+  rate_multiplier?: number;
+  rate_type?: string;
+  shift_id?: string;
+}
+
 export interface PayrollEntry {
   id: string;
   care_plan_id: string;
   care_team_member_id: string;
-  caregiver_id?: string; // Adding this property
+  caregiver_id?: string;
   caregiver_name?: string;
   work_log_id: string;
   regular_hours: number;
@@ -42,6 +65,7 @@ export interface PayrollEntry {
   overtime_rate?: number;
   holiday_hours?: number;
   holiday_rate?: number;
+  shadow_hours?: number;  // Add this missing property
   expense_total?: number;
   total_amount: number;
   payment_status: 'pending' | 'approved' | 'paid';
@@ -49,4 +73,11 @@ export interface PayrollEntry {
   created_at?: string;
   updated_at?: string;
   entered_at?: string;
+}
+
+// Add the Holiday type that's referenced in several files
+export interface Holiday {
+  date: string;
+  name: string;
+  pay_multiplier: number;
 }

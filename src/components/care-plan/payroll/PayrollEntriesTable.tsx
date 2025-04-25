@@ -88,13 +88,13 @@ export const PayrollEntriesTable: React.FC<PayrollEntriesTableProps> = ({
                 {entry.regular_hours > 0 && (
                   <div>Regular: {entry.regular_hours}h</div>
                 )}
-                {entry.overtime_hours > 0 && (
+                {entry.overtime_hours && entry.overtime_hours > 0 && (
                   <div className="text-amber-600">Overtime: {entry.overtime_hours}h</div>
                 )}
-                {entry.holiday_hours > 0 && (
+                {entry.holiday_hours && entry.holiday_hours > 0 && (
                   <div className="text-blue-600">Holiday: {entry.holiday_hours}h</div>
                 )}
-                {entry.shadow_hours > 0 && (
+                {entry.shadow_hours && entry.shadow_hours > 0 && (
                   <div className="text-purple-600">Shadow: {entry.shadow_hours}h</div>
                 )}
               </TableCell>
@@ -103,7 +103,7 @@ export const PayrollEntriesTable: React.FC<PayrollEntriesTableProps> = ({
                 <PayrollStatusBadge status={entry.payment_status} />
               </TableCell>
               <TableCell>
-                {entry.entered_at ? format(new Date(entry.entered_at), 'MMM d, yyyy') : format(new Date(entry.created_at), 'MMM d, yyyy')}
+                {entry.entered_at ? format(new Date(entry.entered_at), 'MMM d, yyyy') : format(new Date(entry.created_at!), 'MMM d, yyyy')}
               </TableCell>
               <TableCell className="text-right">
                 {entry.payment_status !== 'paid' ? (

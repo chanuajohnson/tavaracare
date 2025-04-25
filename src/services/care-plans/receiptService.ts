@@ -214,9 +214,9 @@ export const generatePayrollReport = async (
       
       let hoursText = '';
       if (entry.regular_hours > 0) hoursText += `Reg: ${entry.regular_hours}h `;
-      if (entry.overtime_hours > 0) hoursText += `OT: ${entry.overtime_hours}h `;
-      if (entry.holiday_hours > 0) hoursText += `Hol: ${entry.holiday_hours}h `;
-      if (entry.shadow_hours > 0) hoursText += `Shadow: ${entry.shadow_hours}h `;
+      if (entry.overtime_hours && entry.overtime_hours > 0) hoursText += `OT: ${entry.overtime_hours}h `;
+      if (entry.holiday_hours && entry.holiday_hours > 0) hoursText += `Hol: ${entry.holiday_hours}h `;
+      if (entry.shadow_hours && entry.shadow_hours > 0) hoursText += `Shadow: ${entry.shadow_hours}h `;
       
       return [
         entry.caregiver_name || 'Unknown',

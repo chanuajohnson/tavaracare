@@ -1,3 +1,4 @@
+
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import type { WorkLog, WorkLogInput } from "../types/workLogTypes";
@@ -18,16 +19,33 @@ export const fetchWorkLogs = async (carePlanId: string): Promise<WorkLog[]> => {
 
     if (error) throw error;
     
-    // Map the display names from care team members
+    // Map the display names from care team members and ensure types match WorkLog interface
     return workLogs.map(log => {
-      const validRateType: 'regular' | 'overtime' | 'holiday' = 
-        log.rate_type === 'overtime' ? 'overtime' :
-        log.rate_type === 'holiday' ? 'holiday' : 'regular';
+      const validStatus = ['pending', 'approved', 'rejected'].includes(log.status) 
+        ? log.status as 'pending' | 'approved' | 'rejected'
+        : 'pending';
+      
+      const validRateType = log.rate_type === 'overtime' 
+        ? 'overtime' 
+        : log.rate_type === 'holiday' 
+        ? 'holiday' 
+        : 'regular';
       
       return {
-        ...log,
-        caregiver_name: log.care_team_members?.display_name || 'Unknown',
-        rate_type: validRateType
+        id: log.id,
+        care_team_member_id: log.care_team_member_id,
+        care_plan_id: log.care_plan_id,
+        caregiver_id: log.care_team_members?.caregiver_id,
+        start_time: log.start_time,
+        end_time: log.end_time,
+        status: validStatus,
+        notes: log.notes || '',
+        base_rate: log.base_rate || 25,
+        rate_multiplier: log.rate_multiplier || 1,
+        rate_type: validRateType,
+        created_at: log.created_at || '',
+        updated_at: log.updated_at || '',
+        caregiver_name: log.care_team_members?.display_name || 'Unknown'
       };
     });
     
@@ -53,14 +71,32 @@ export const getWorkLogById = async (workLogId: string): Promise<WorkLog | null>
 
     if (error) throw error;
     
+    // Ensure status is one of the allowed values
+    const validStatus = ['pending', 'approved', 'rejected'].includes(data.status) 
+      ? data.status as 'pending' | 'approved' | 'rejected'
+      : 'pending';
+      
     // Ensure rate_type is one of the allowed values
-    let validRateType: 'regular' | 'overtime' | 'holiday' = 'regular';
-    if (data.rate_type === 'overtime') validRateType = 'overtime';
-    if (data.rate_type === 'holiday') validRateType = 'holiday';
+    const validRateType = data.rate_type === 'overtime' 
+      ? 'overtime' 
+      : data.rate_type === 'holiday' 
+      ? 'holiday' 
+      : 'regular';
     
     const result: WorkLog = {
-      ...data,
-      rate_type: validRateType
+      id: data.id,
+      care_team_member_id: data.care_team_member_id,
+      care_plan_id: data.care_plan_id,
+      caregiver_id: data.care_team_members?.caregiver_id,
+      start_time: data.start_time,
+      end_time: data.end_time,
+      status: validStatus,
+      notes: data.notes || '',
+      base_rate: data.base_rate || 25,
+      rate_multiplier: data.rate_multiplier || 1,
+      rate_type: validRateType,
+      created_at: data.created_at || '',
+      updated_at: data.updated_at || ''
     };
     
     if (data.care_team_members?.caregiver_id) {
@@ -92,8 +128,27 @@ export const createWorkLog = async (workLogInput: WorkLogInput): Promise<{ succe
 
     if (error) throw error;
     
+    // Ensure we return data that conforms to the WorkLog type
+    const validStatus = ['pending', 'approved', 'rejected'].includes(data.status) 
+      ? data.status as 'pending' | 'approved' | 'rejected'
+      : 'pending';
+
+    const workLog: WorkLog = {
+      id: data.id,
+      care_team_member_id: data.care_team_member_id,
+      care_plan_id: data.care_plan_id,
+      start_time: data.start_time,
+      end_time: data.end_time,
+      status: validStatus,
+      notes: data.notes || '',
+      base_rate: data.base_rate || 25,
+      rate_multiplier: data.rate_multiplier || 1,
+      created_at: data.created_at || '',
+      updated_at: data.updated_at || ''
+    };
+    
     toast.success("Work log created successfully");
-    return { success: true, workLog: data as WorkLog };
+    return { success: true, workLog };
   } catch (error: any) {
     console.error("Error creating work log:", error);
     toast.error("Failed to create work log");

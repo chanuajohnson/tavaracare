@@ -102,7 +102,28 @@ const ProfessionalCarePlanPage = () => {
         if (teamMembersError) {
           console.error("Error fetching team members:", teamMembersError);
         } else {
-          setCareTeamMembers(teamMembers as CareTeamMemberWithProfile[]);
+          // Transform the data to match CareTeamMemberWithProfile type
+          const transformedMembers: CareTeamMemberWithProfile[] = teamMembers.map(member => ({
+            id: member.id,
+            carePlanId: member.care_plan_id,
+            familyId: member.family_id,
+            caregiverId: member.caregiver_id,
+            displayName: member.display_name || '',
+            regularRate: member.regular_rate || 0,
+            overtimeRate: member.overtime_rate || 0,
+            status: member.status || 'pending',
+            role: member.role || 'caregiver',
+            notes: member.notes || '',
+            createdAt: member.created_at || '',
+            updatedAt: member.updated_at || '',
+            professionalDetails: member.professionalDetails ? {
+              fullName: member.professionalDetails.full_name || '',
+              professionalType: member.professionalDetails.professional_type || '',
+              avatarUrl: member.professionalDetails.avatar_url || ''
+            } : null
+          }));
+          
+          setCareTeamMembers(transformedMembers);
         }
         
         // Fetch available professionals for assignments
@@ -126,7 +147,25 @@ const ProfessionalCarePlanPage = () => {
         if (shiftsError) {
           console.error("Error fetching care shifts:", shiftsError);
         } else {
-          setCareShifts(shiftsData as CareShift[]);
+          // Transform the data to match CareShift type
+          const transformedShifts: CareShift[] = shiftsData.map(shift => ({
+            id: shift.id,
+            carePlanId: shift.care_plan_id,
+            familyId: shift.family_id,
+            title: shift.title,
+            description: shift.description || '',
+            startTime: shift.start_time,
+            endTime: shift.end_time,
+            location: shift.location || '',
+            caregiverId: shift.caregiver_id || null,
+            status: shift.status || 'open',
+            recurringPattern: shift.recurring_pattern || null,
+            recurrenceRule: shift.recurrence_rule || null,
+            createdAt: shift.created_at || '',
+            updatedAt: shift.updated_at || ''
+          }));
+          
+          setCareShifts(transformedShifts);
         }
         
       } catch (error) {
@@ -159,7 +198,28 @@ const ProfessionalCarePlanPage = () => {
     if (error) {
       console.error("Error refreshing team members:", error);
     } else {
-      setCareTeamMembers(data as CareTeamMemberWithProfile[]);
+      // Transform the data to match CareTeamMemberWithProfile type
+      const transformedMembers: CareTeamMemberWithProfile[] = data.map(member => ({
+        id: member.id,
+        carePlanId: member.care_plan_id,
+        familyId: member.family_id,
+        caregiverId: member.caregiver_id,
+        displayName: member.display_name || '',
+        regularRate: member.regular_rate || 0,
+        overtimeRate: member.overtime_rate || 0,
+        status: member.status || 'pending',
+        role: member.role || 'caregiver',
+        notes: member.notes || '',
+        createdAt: member.created_at || '',
+        updatedAt: member.updated_at || '',
+        professionalDetails: member.professionalDetails ? {
+          fullName: member.professionalDetails.full_name || '',
+          professionalType: member.professionalDetails.professional_type || '',
+          avatarUrl: member.professionalDetails.avatar_url || ''
+        } : null
+      }));
+      
+      setCareTeamMembers(transformedMembers);
     }
   };
 
@@ -181,7 +241,25 @@ const ProfessionalCarePlanPage = () => {
     if (error) {
       console.error("Error refreshing care shifts:", error);
     } else {
-      setCareShifts(data as CareShift[]);
+      // Transform the data to match CareShift type
+      const transformedShifts: CareShift[] = data.map(shift => ({
+        id: shift.id,
+        carePlanId: shift.care_plan_id,
+        familyId: shift.family_id,
+        title: shift.title,
+        description: shift.description || '',
+        startTime: shift.start_time,
+        endTime: shift.end_time,
+        location: shift.location || '',
+        caregiverId: shift.caregiver_id || null,
+        status: shift.status || 'open',
+        recurringPattern: shift.recurring_pattern || null,
+        recurrenceRule: shift.recurrence_rule || null,
+        createdAt: shift.created_at || '',
+        updatedAt: shift.updated_at || ''
+      }));
+      
+      setCareShifts(transformedShifts);
     }
   };
   
