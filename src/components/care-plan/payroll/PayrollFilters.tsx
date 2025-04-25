@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -78,7 +79,7 @@ export const PayrollFilters: React.FC<PayrollFiltersProps> = ({
         <SelectContent>
           <SelectItem value="all">All caregivers</SelectItem>
           {careTeamMembers.map((member) => (
-            <SelectItem key={member.caregiverId} value={member.caregiverId}>
+            <SelectItem key={member.id} value={member.id}>
               {member.professionalDetails?.full_name || 'Unknown'}
             </SelectItem>
           ))}
