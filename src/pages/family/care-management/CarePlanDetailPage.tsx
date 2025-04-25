@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { Container } from "@/components/ui/container";
@@ -163,6 +163,15 @@ const CarePlanDetailPage = () => {
       console.error("Error deleting care shift:", error);
       toast.error("Failed to delete care shift");
     }
+  };
+
+  const formatTeamMember = (member) => {
+    return {
+      id: member.id,
+      name: member.professionalDetails?.fullName || member.displayName || 'Unknown',
+      role: member.role.charAt(0).toUpperCase() + member.role.slice(1),
+      status: member.status
+    };
   };
 
   if (loading) {

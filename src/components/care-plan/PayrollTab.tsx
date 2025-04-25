@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -11,6 +12,7 @@ import { usePayrollData } from '@/hooks/payroll/usePayrollData';
 import { usePayrollFilters } from '@/hooks/payroll/usePayrollFilters';
 import { DateRange } from 'react-day-picker';
 import { supabase } from '@/lib/supabase';
+import { PayrollEntry } from '@/services/care-plans/workLogService';
 
 interface PayrollTabProps {
   carePlanId: string;
@@ -110,8 +112,8 @@ export const PayrollTab: React.FC<PayrollTabProps> = ({ carePlanId }) => {
     return false;
   };
 
-  const openPaymentDialog = (payrollId: string) => {
-    setPayrollToProcess(payrollId);
+  const openPaymentDialog = (entry: PayrollEntry) => {
+    setPayrollToProcess(entry.id);
     setPaymentDialogOpen(true);
   };
 

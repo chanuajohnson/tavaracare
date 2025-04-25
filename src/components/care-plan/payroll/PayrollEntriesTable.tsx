@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { format } from "date-fns";
 import { Clock, Download, Printer } from "lucide-react";
-import type { PayrollEntry } from "@/services/care-plans/types/workLogTypes";
+import { PayrollEntry } from "@/services/care-plans/workLogService";
 import { formatCurrency } from "@/lib/utils";
 import { generatePayrollReceipt } from "@/services/care-plans/receiptService";
 import { toast } from "sonner";
@@ -89,7 +89,7 @@ export const PayrollEntriesTable: React.FC<PayrollEntriesTableProps> = ({
                 <TableHead>Overtime Hours</TableHead>
                 <TableHead>Holiday Hours</TableHead>
                 {/* Only show shadow hours if available */}
-                {entries.some(entry => entry.shadow_hours !== undefined) && (
+                {entries.some(entry => entry.shadow_hours !== undefined && entry.shadow_hours > 0) && (
                   <TableHead>Shadow Hours</TableHead>
                 )}
                 <TableHead>Expenses</TableHead>
@@ -115,7 +115,7 @@ export const PayrollEntriesTable: React.FC<PayrollEntriesTableProps> = ({
                     {entry.holiday_hours ? `${entry.holiday_hours} hrs @ ${formatCurrency(entry.holiday_rate || 0)}` : '-'}
                   </TableCell>
                   {/* Only show shadow hours if available */}
-                  {entries.some(entry => entry.shadow_hours !== undefined) && (
+                  {entries.some(entry => entry.shadow_hours !== undefined && entry.shadow_hours > 0) && (
                     <TableCell>
                       {entry.shadow_hours ? `${entry.shadow_hours} hrs` : '-'}
                     </TableCell>

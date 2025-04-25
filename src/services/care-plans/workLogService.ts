@@ -1,7 +1,92 @@
 
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
-import { WorkLog, PayrollEntry } from "./types/workLogTypes";
+
+// Define WorkLogExpense type - ensure it matches the database schema
+export interface WorkLogExpense {
+  id: string;
+  work_log_id: string;
+  category: string;
+  description: string;
+  amount: number;
+  receipt_url?: string;
+  status: 'pending' | 'approved' | 'rejected';
+  created_at?: string;
+  updated_at?: string;
+}
+
+// Define WorkLog type - ensure it matches the database schema
+export interface WorkLog {
+  id: string;
+  care_team_member_id: string;
+  care_plan_id: string;
+  caregiver_id?: string;
+  caregiver_name?: string;
+  start_time: string;
+  end_time: string;
+  status: 'pending' | 'approved' | 'rejected';
+  notes?: string;
+  expenses?: WorkLogExpense[];
+  base_rate?: number;
+  rate_multiplier?: number;
+  rate_type?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+// Define WorkLogExpenseInput for creating new expenses
+export interface WorkLogExpenseInput {
+  work_log_id: string;
+  category: string;
+  description: string;
+  amount: number;
+  receipt_url?: string;
+}
+
+// Define WorkLogInput for creating new work logs
+export interface WorkLogInput {
+  care_team_member_id: string;
+  care_plan_id: string;
+  start_time: string;
+  end_time: string;
+  notes?: string;
+  status?: 'pending' | 'approved' | 'rejected';
+  base_rate?: number;
+  rate_multiplier?: number;
+  rate_type?: string;
+  shift_id?: string;
+}
+
+// Define PayrollEntry type
+export interface PayrollEntry {
+  id: string;
+  care_plan_id: string;
+  care_team_member_id: string;
+  caregiver_id?: string;
+  caregiver_name?: string;
+  work_log_id: string;
+  regular_hours: number;
+  regular_rate: number;
+  overtime_hours?: number;
+  overtime_rate?: number;
+  holiday_hours?: number;
+  holiday_rate?: number;
+  shadow_hours?: number;
+  expense_total?: number;
+  total_amount: number;
+  payment_status: 'pending' | 'approved' | 'paid';
+  payment_date?: string;
+  created_at?: string;
+  updated_at?: string;
+  entered_at?: string;
+}
+
+// Define Holiday type
+export interface Holiday {
+  date: string;
+  name: string;
+  pay_multiplier: number;
+}
 
 /**
  * Fetch work logs for a care plan
@@ -24,7 +109,8 @@ export const fetchWorkLogs = async (carePlanId: string): Promise<WorkLog[]> => {
           amount,
           category,
           description,
-          status
+          status,
+          work_log_id
         )
       `)
       .eq('care_plan_id', carePlanId)
@@ -37,7 +123,10 @@ export const fetchWorkLogs = async (carePlanId: string): Promise<WorkLog[]> => {
       status: log.status as "pending" | "approved" | "rejected",
       caregiver_id: log.care_team_members?.caregiver_id || '',
       caregiver_name: log.care_team_members?.display_name || 'Unknown',
-      expenses: log.expenses || []
+      expenses: (log.expenses || []).map(expense => ({
+        ...expense,
+        work_log_id: expense.work_log_id || log.id
+      }))
     })) as WorkLog[];
   } catch (error) {
     console.error("Error fetching work logs:", error);
@@ -67,7 +156,8 @@ export const getWorkLogById = async (workLogId: string): Promise<WorkLog | null>
           amount,
           category,
           description,
-          status
+          status,
+          work_log_id
         )
       `)
       .eq('id', workLogId)
@@ -80,7 +170,10 @@ export const getWorkLogById = async (workLogId: string): Promise<WorkLog | null>
       status: data.status as "pending" | "approved" | "rejected",
       caregiver_id: data.care_team_members?.caregiver_id || '',
       caregiver_name: data.care_team_members?.display_name || 'Unknown',
-      expenses: data.expenses || []
+      expenses: (data.expenses || []).map(expense => ({
+        ...expense,
+        work_log_id: expense.work_log_id || data.id
+      }))
     } as WorkLog;
   } catch (error) {
     console.error("Error fetching work log:", error);
