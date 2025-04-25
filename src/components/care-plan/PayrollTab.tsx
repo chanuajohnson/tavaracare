@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PayrollFilters } from './payroll/PayrollFilters';
@@ -11,6 +11,7 @@ import { PayrollReportGenerator } from './payroll/PayrollReportGenerator';
 import { usePayrollData } from '@/hooks/payroll/usePayrollData';
 import { usePayrollFilters } from '@/hooks/payroll/usePayrollFilters';
 import { DateRange } from 'react-day-picker';
+import { supabase } from '@/lib/supabase';
 
 interface PayrollTabProps {
   carePlanId: string;
@@ -26,6 +27,8 @@ export const PayrollTab: React.FC<PayrollTabProps> = ({ carePlanId }) => {
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
   const [payrollToProcess, setPayrollToProcess] = useState<string | null>(null);
   const [paymentDate, setPaymentDate] = useState<Date>(new Date());
+  const [caregivers, setCaregivers] = useState<Array<{ id: string; name: string }>>([]);
+  const [caregiverFilter, setCaregiverFilter] = useState<string>("all");
 
   const {
     workLogs,
@@ -53,6 +56,31 @@ export const PayrollTab: React.FC<PayrollTabProps> = ({ carePlanId }) => {
   } = usePayrollFilters(payrollEntries, (entry, startDate) => {
     return entry.created_at ? new Date(entry.created_at) >= startDate : false;
   });
+
+  // Fetch caregivers for this care plan
+  useEffect(() => {
+    const fetchCaregivers = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('care_team_members')
+          .select('id, care_team_member_id, display_name')
+          .eq('care_plan_id', carePlanId);
+        
+        if (error) throw error;
+        
+        const formattedCaregivers = data?.map(member => ({
+          id: member.care_team_member_id,
+          name: member.display_name || 'Unknown'
+        })) || [];
+        
+        setCaregivers(formattedCaregivers);
+      } catch (error) {
+        console.error('Failed to fetch caregivers:', error);
+      }
+    };
+    
+    fetchCaregivers();
+  }, [carePlanId]);
 
   // Updated to return a Promise<boolean> to match the expected type
   const openRejectDialog = async (workLogId: string, reason: string): Promise<boolean> => {
@@ -90,8 +118,30 @@ export const PayrollTab: React.FC<PayrollTabProps> = ({ carePlanId }) => {
     }
   };
 
-  const filteredWorkLogs = filterWorkLogs(workLogs);
-  const filteredPayrollEntries = filterPayrollEntries(payrollEntries);
+  // Apply caregiver filter
+  const applyFilters = () => {
+    let filtered = filterWorkLogs(workLogs);
+    
+    if (caregiverFilter && caregiverFilter !== 'all') {
+      filtered = filtered.filter(workLog => workLog.care_team_member_id === caregiverFilter);
+    }
+    
+    return filtered;
+  };
+  
+  // Apply caregiver filter to payroll entries
+  const applyPayrollFilters = () => {
+    let filtered = filterPayrollEntries(payrollEntries);
+    
+    if (caregiverFilter && caregiverFilter !== 'all') {
+      filtered = filtered.filter(entry => entry.care_team_member_id === caregiverFilter);
+    }
+    
+    return filtered;
+  };
+
+  const filteredWorkLogs = applyFilters();
+  const filteredPayrollEntries = applyPayrollFilters();
 
   return (
     <div className="space-y-6">
@@ -110,6 +160,10 @@ export const PayrollTab: React.FC<PayrollTabProps> = ({ carePlanId }) => {
               onDateRangeChange={workLogSetFilters.setDateRangeFilter}
               statusFilter={workLogFilters.statusFilter}
               onStatusChange={workLogSetFilters.setStatusFilter}
+              caregiverFilter={caregiverFilter}
+              onCaregiverChange={setCaregiverFilter}
+              caregivers={caregivers}
+              onQuickDateRangeSelect={workLogSetFilters.setDateRangeFilter}
             />
           ) : (
             <div className="flex flex-col sm:flex-row gap-2 items-center mt-4 sm:mt-0">
@@ -122,6 +176,10 @@ export const PayrollTab: React.FC<PayrollTabProps> = ({ carePlanId }) => {
                 statusFilter={payrollFilters.statusFilter}
                 onStatusChange={payrollSetFilters.setStatusFilter}
                 showPayrollStatuses
+                caregiverFilter={caregiverFilter}
+                onCaregiverChange={setCaregiverFilter}
+                caregivers={caregivers}
+                onQuickDateRangeSelect={payrollSetFilters.setDateRangeFilter}
               />
             </div>
           )}

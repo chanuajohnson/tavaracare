@@ -25,12 +25,14 @@ interface WorkLogsTableProps {
   workLogs: WorkLog[];
   onApprove: (id: string) => void;
   onReject: (id: string, reason: string) => Promise<boolean>;
+  readOnly?: boolean;
 }
 
 export const WorkLogsTable: React.FC<WorkLogsTableProps> = ({ 
   workLogs,
   onApprove,
-  onReject
+  onReject,
+  readOnly = false
 }) => {
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
   const [currentWorkLog, setCurrentWorkLog] = useState<WorkLog | null>(null);
@@ -64,7 +66,7 @@ export const WorkLogsTable: React.FC<WorkLogsTableProps> = ({
             <TableHead>Total Pay</TableHead>
             <TableHead>Expenses</TableHead>
             <TableHead>Status</TableHead>
-            <TableHead className="text-right">Actions</TableHead>
+            {!readOnly && <TableHead className="text-right">Actions</TableHead>}
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -88,7 +90,11 @@ export const WorkLogsTable: React.FC<WorkLogsTableProps> = ({
                   {hoursDiff.toFixed(1)}h ({format(startTime, 'h:mm a')} - {format(endTime, 'h:mm a')})
                 </TableCell>
                 <TableCell>
-                  <PayRateSelector workLogId={workLog.id} careTeamMemberId={workLog.care_team_member_id} />
+                  {readOnly ? (
+                    <PayTotalDisplay workLogId={workLog.id} hours={hoursDiff} expenses={totalExpenses} showRateOnly />
+                  ) : (
+                    <PayRateSelector workLogId={workLog.id} careTeamMemberId={workLog.care_team_member_id} />
+                  )}
                 </TableCell>
                 <TableCell>
                   <PayTotalDisplay workLogId={workLog.id} hours={hoursDiff} expenses={totalExpenses} />
@@ -103,44 +109,46 @@ export const WorkLogsTable: React.FC<WorkLogsTableProps> = ({
                 <TableCell>
                   <PayrollStatusBadge status={workLog.status} />
                 </TableCell>
-                <TableCell className="text-right">
-                  <div className="flex justify-end gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="h-8 w-8 p-0"
-                      title="Generate Receipt"
-                      onClick={() => handleGenerateReceipt(workLog)}
-                    >
-                      <Receipt className="h-4 w-4" />
-                    </Button>
-                    
-                    {workLog.status === 'pending' && (
-                      <>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="h-8 gap-1"
-                          onClick={() => onApprove(workLog.id)}
-                        >
-                          <Check className="h-4 w-4" /> Approve
-                        </Button>
-                        
-                        <RejectWorkLogDialog 
-                          onReject={(reason) => onReject(workLog.id, reason)}
-                        >
+                {!readOnly && (
+                  <TableCell className="text-right">
+                    <div className="flex justify-end gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-8 w-8 p-0"
+                        title="Generate Receipt"
+                        onClick={() => handleGenerateReceipt(workLog)}
+                      >
+                        <Receipt className="h-4 w-4" />
+                      </Button>
+                      
+                      {workLog.status === 'pending' && (
+                        <>
                           <Button
                             variant="outline"
                             size="sm"
-                            className="h-8 gap-1 border-red-200 hover:bg-red-50 hover:text-red-600"
+                            className="h-8 gap-1"
+                            onClick={() => onApprove(workLog.id)}
                           >
-                            <X className="h-4 w-4" /> Reject
+                            <Check className="h-4 w-4" /> Approve
                           </Button>
-                        </RejectWorkLogDialog>
-                      </>
-                    )}
-                  </div>
-                </TableCell>
+                          
+                          <RejectWorkLogDialog 
+                            onReject={(reason) => onReject(workLog.id, reason)}
+                          >
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-8 gap-1 border-red-200 hover:bg-red-50 hover:text-red-600"
+                            >
+                              <X className="h-4 w-4" /> Reject
+                            </Button>
+                          </RejectWorkLogDialog>
+                        </>
+                      )}
+                    </div>
+                  </TableCell>
+                )}
               </TableRow>
             );
           })}
@@ -158,15 +166,27 @@ export const WorkLogsTable: React.FC<WorkLogsTableProps> = ({
 };
 
 // Component to display the total pay based on hours and rate
-const PayTotalDisplay: React.FC<{ workLogId: string; hours: number; expenses: number }> = ({ 
+interface PayTotalDisplayProps {
+  workLogId: string;
+  hours: number;
+  expenses: number;
+  showRateOnly?: boolean;
+}
+
+const PayTotalDisplay: React.FC<PayTotalDisplayProps> = ({ 
   workLogId, 
   hours,
-  expenses 
+  expenses,
+  showRateOnly = false
 }) => {
   const { rate, totalPay } = useWorkLogPayDetails(workLogId, hours, expenses);
   
   if (!rate) {
     return <span className="text-muted-foreground">Loading...</span>;
+  }
+  
+  if (showRateOnly) {
+    return <span>${rate.toFixed(2)}/hr</span>;
   }
   
   return (

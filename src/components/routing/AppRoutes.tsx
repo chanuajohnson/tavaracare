@@ -1,4 +1,3 @@
-
 import { Suspense, lazy } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { Skeleton } from "@/components/ui/skeleton";
@@ -59,7 +58,7 @@ const PageLoader = () => (
   </div>
 );
 
-export function AppRoutes() {
+const AppRoutes = () => {
   return (
     <Suspense fallback={<PageLoader />}>
       <Routes>
@@ -105,4 +104,6 @@ export function AppRoutes() {
       </Routes>
     </Suspense>
   );
-}
+};
+
+export default AppRoutes;
