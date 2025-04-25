@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "@/components/providers/AuthProvider";
@@ -11,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ArrowLeft } from "lucide-react";
-import { createCarePlan, fetchCarePlanById, updateCarePlan, CarePlan, CarePlanInput } from "@/services/care-plans";
+import { createCarePlan, fetchCarePlanById, updateCarePlan } from "@/services/care-plans";
 import { toast } from "sonner";
 
 type PlanType = 'scheduled' | 'on-demand' | 'both';
@@ -107,7 +106,7 @@ const CreateCarePlanPage = () => {
     try {
       setIsSubmitting(true);
       
-      const planDetails: CarePlanInput = {
+      const planDetails = {
         title,
         description,
         familyId: user.id,
