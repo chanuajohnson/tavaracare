@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Edit } from "lucide-react";
-import { CarePlan } from "@/types/careTypes";
+import { CarePlan } from "@/types/carePlan";
 import { useNavigate } from "react-router-dom";
 
 interface PlanDetailsTabProps {
@@ -94,6 +94,12 @@ export const PlanDetailsTab: React.FC<PlanDetailsTabProps> = ({ carePlan }) => {
               )}
               {carePlan.metadata.additionalShifts.weekdayEvening6pmTo8am && (
                 <Badge variant="outline" className="justify-start">Weekday Evening (6PM-8AM)</Badge>
+              )}
+              {carePlan.metadata.additionalShifts.weekday8amTo4pm && (
+                <Badge variant="outline" className="justify-start">Weekday (8AM-4PM)</Badge>
+              )}
+              {carePlan.metadata.additionalShifts.weekday8amTo6pm && (
+                <Badge variant="outline" className="justify-start">Weekday (8AM-6PM)</Badge>
               )}
             </div>
           </div>
