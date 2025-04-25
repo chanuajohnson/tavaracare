@@ -1,11 +1,55 @@
+
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ShiftCalendar } from './ShiftCalendar';
-import { startOfWeek } from 'date-fns';
-import { CareShift, CareTeamMemberWithProfile } from "@/types/careTypes";
-import { createCareShift, updateCareShift } from "@/services/care-plans";
+import { 
+  format, 
+  startOfWeek, 
+  addDays, 
+  isSameDay, 
+  addWeeks, 
+  subWeeks 
+} from 'date-fns';
+import { CareShift, CareTeamMemberWithProfile, CareShiftInput } from "@/types/careTypes";
+import { 
+  createCareShift, 
+  updateCareShift 
+} from "@/services/care-plans";
 import { WorkLogForm } from './WorkLogForm';
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogDescription, 
+  DialogFooter, 
+  DialogHeader, 
+  DialogTitle 
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
+} from "@/components/ui/select";
+import { 
+  Popover, 
+  PopoverContent, 
+  PopoverTrigger 
+} from "@/components/ui/popover";
+import { Label } from "@/components/ui/label";
+import { 
+  Calendar as CalendarComponent,
+  DateRange 
+} from "@/components/ui/calendar";
+import { 
+  CalendarRange, 
+  Calendar, 
+  ChevronDown, 
+  Users, 
+  Plus 
+} from "lucide-react";
 
 interface ScheduleTabProps {
   carePlanId: string;
