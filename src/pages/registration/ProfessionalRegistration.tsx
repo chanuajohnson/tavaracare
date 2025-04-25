@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm, Controller } from 'react-hook-form';
@@ -901,6 +900,30 @@ const ProfessionalRegistration = () => {
                     />
                     <Label htmlFor="weekday-standard" className="leading-tight cursor-pointer">
                       Monday – Friday, 8 AM – 4 PM (Standard daytime coverage)
+                    </Label>
+                  </div>
+                  
+                  <div className="flex items-start space-x-2">
+                    <Controller
+                      control={control}
+                      name="availability"
+                      render={({ field }) => (
+                        <Checkbox
+                          id="weekday-8am-6pm"
+                          checked={field.value?.includes('weekday_8am_6pm')}
+                          onCheckedChange={(checked) => {
+                            const currentValues = field.value || [];
+                            if (checked) {
+                              setValue('availability', [...currentValues, 'weekday_8am_6pm']);
+                            } else {
+                              setValue('availability', currentValues.filter(value => value !== 'weekday_8am_6pm'));
+                            }
+                          }}
+                        />
+                      )}
+                    />
+                    <Label htmlFor="weekday-8am-6pm" className="leading-tight cursor-pointer">
+                      Monday – Friday, 8 AM – 6 PM (Standard daytime coverage)
                     </Label>
                   </div>
                   
