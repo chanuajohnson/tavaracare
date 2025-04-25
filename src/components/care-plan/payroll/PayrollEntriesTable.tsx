@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
@@ -8,7 +9,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { Receipt, Check } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ShareReceiptDialog } from "./ShareReceiptDialog";
-import { generatePayReceipt } from "@/services/care-plans/receiptService";
+import { generatePayReceipt, generateConsolidatedReceipt } from "@/services/care-plans/receiptService";
 import { toast } from "sonner";
 import type { PayrollEntry } from "@/services/care-plans/types/workLogTypes";
 
@@ -50,11 +51,22 @@ export const PayrollEntriesTable: React.FC<PayrollEntriesTableProps> = ({
   const handleGenerateConsolidatedReceipt = async () => {
     try {
       const selectedPayrollEntries = entries.filter(entry => selectedEntries.includes(entry.id));
-      if (selectedPayrollEntries.length === 0) return;
+      if (selectedPayrollEntries.length === 0) {
+        toast.error("No entries selected");
+        return;
+      }
 
-      const receiptUrl = await generatePayReceipt(selectedPayrollEntries[0]); // Temporary, will be updated
-      setCurrentReceiptUrl(receiptUrl);
-      setCurrentEntry(selectedPayrollEntries[0]);
+      if (selectedPayrollEntries.length === 1) {
+        // If only one entry is selected, generate a regular receipt
+        const receiptUrl = await generatePayReceipt(selectedPayrollEntries[0]);
+        setCurrentReceiptUrl(receiptUrl);
+        setCurrentEntry(selectedPayrollEntries[0]);
+      } else {
+        // Generate consolidated receipt for multiple entries
+        const receiptUrl = await generateConsolidatedReceipt(selectedPayrollEntries);
+        setCurrentReceiptUrl(receiptUrl);
+        setCurrentEntry(selectedPayrollEntries[0]); // Use first entry for dialog details
+      }
       setReceiptDialogOpen(true);
     } catch (error) {
       console.error('Error generating consolidated receipt:', error);
@@ -103,7 +115,7 @@ export const PayrollEntriesTable: React.FC<PayrollEntriesTableProps> = ({
             onClick={handleGenerateConsolidatedReceipt}
           >
             <Receipt className="h-4 w-4" />
-            Generate Consolidated Receipt ({selectedEntries.length})
+            Generate {selectedEntries.length > 1 ? "Consolidated " : ""}Receipt ({selectedEntries.length})
           </Button>
         </div>
       )}
