@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { toast } from "sonner";
 import { 
@@ -35,7 +34,7 @@ export const usePayrollData = (carePlanId: string) => {
       // Use professional details for name display
       const enhancedMembers = members.map(member => ({
         ...member,
-        displayName: member.professionalDetails?.full_name || member.profile?.fullName || 'Unknown'
+        // No need to add displayName property anymore as we're using the existing properties directly
       }));
 
       setWorkLogs(logs);

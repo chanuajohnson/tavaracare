@@ -1,4 +1,3 @@
-
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import { CareTeamMember, CareTeamMemberWithProfile, CareTeamMemberDto, CareTeamMemberInput } from "@/types/careTypes";
@@ -13,8 +12,7 @@ const adaptCareTeamMemberFromDb = (dbMember: CareTeamMemberDto): CareTeamMember 
   status: dbMember.status || 'invited',
   notes: dbMember.notes,
   createdAt: dbMember.created_at || new Date().toISOString(),
-  updatedAt: dbMember.updated_at || new Date().toISOString(),
-  display_name: dbMember.display_name
+  updatedAt: dbMember.updated_at || new Date().toISOString()
 });
 
 const adaptCareTeamMemberToDb = (member: Partial<CareTeamMember>): Partial<CareTeamMemberDto> => ({
@@ -24,8 +22,7 @@ const adaptCareTeamMemberToDb = (member: Partial<CareTeamMember>): Partial<CareT
   caregiver_id: member.caregiverId,
   role: member.role,
   status: member.status,
-  notes: member.notes,
-  display_name: member.display_name
+  notes: member.notes
 });
 
 export const fetchCareTeamMembers = async (planId: string): Promise<CareTeamMemberWithProfile[]> => {
