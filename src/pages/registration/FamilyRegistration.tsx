@@ -636,22 +636,22 @@ const FamilyRegistration = () => {
                     </div>
                     <div className="flex items-start space-x-2">
                       <Checkbox 
+                        id="weekday-8am-6pm" 
+                        checked={careSchedule.includes('weekday_8am_6pm')}
+                        onCheckedChange={() => handleCareScheduleChange('weekday_8am_6pm')}
+                      />
+                      <Label htmlFor="weekday-8am-6pm" className="font-normal">
+                        ☀️ Monday – Friday, 8 AM – 6 PM (Standard daytime coverage with extended hours)
+                      </Label>
+                    </div>
+                    <div className="flex items-start space-x-2">
+                      <Checkbox 
                         id="weekday-extended" 
                         checked={careSchedule.includes('weekday_extended')}
                         onCheckedChange={() => handleCareScheduleChange('weekday_extended')}
                       />
                       <Label htmlFor="weekday-extended" className="font-normal">
                         🕕 Monday – Friday, 6 AM – 6 PM (Extended daytime coverage)
-                      </Label>
-                    </div>
-                    <div className="flex items-start space-x-2">
-                      <Checkbox 
-                        id="weekday-night" 
-                        checked={careSchedule.includes('weekday_night')}
-                        onCheckedChange={() => handleCareScheduleChange('weekday_night')}
-                      />
-                      <Label htmlFor="weekday-night" className="font-normal">
-                        🌙 Monday – Friday, 6 PM – 8 AM (Nighttime coverage)
                       </Label>
                     </div>
                   </div>
@@ -813,52 +813,3 @@ const FamilyRegistration = () => {
 
             <div className="space-y-2">
               <Label htmlFor="budgetPreferences">Budget Preferences – Expected hourly or monthly care budget</Label>
-              <Input 
-                id="budgetPreferences" 
-                placeholder="Your budget for care services" 
-                value={budgetPreferences} 
-                onChange={(e) => setBudgetPreferences(e.target.value)}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="preferredContactMethod">Preferred Contact Method</Label>
-              <Select value={preferredContactMethod} onValueChange={setPreferredContactMethod}>
-                <SelectTrigger id="preferredContactMethod">
-                  <SelectValue placeholder="Select Contact Method" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="phone">Phone</SelectItem>
-                  <SelectItem value="email">Email</SelectItem>
-                  <SelectItem value="text">Text</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="additionalNotes">Additional Notes</Label>
-              <Textarea 
-                id="additionalNotes" 
-                placeholder="Any other information you would like to share" 
-                value={additionalNotes} 
-                onChange={(e) => setAdditionalNotes(e.target.value)}
-                rows={3}
-              />
-            </div>
-          </CardContent>
-        </Card>
-
-        <div className="flex justify-end gap-4">
-          <Button type="button" variant="outline" onClick={() => navigate('/')}>
-            Cancel
-          </Button>
-          <Button type="submit" disabled={loading}>
-            {loading ? 'Submitting...' : 'Complete Registration'}
-          </Button>
-        </div>
-      </form>
-    </div>
-  );
-};
-
-export default FamilyRegistration;
