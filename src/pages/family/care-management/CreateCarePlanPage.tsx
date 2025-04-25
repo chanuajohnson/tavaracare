@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "@/components/providers/AuthProvider";
@@ -110,7 +111,7 @@ const CreateCarePlanPage = () => {
         title,
         description,
         familyId: user.id,
-        status: 'active',
+        status: 'active' as const, // Use const assertion to specify literal type
         metadata: {
           planType: planType,
           weekdayCoverage: weekdayOption,
