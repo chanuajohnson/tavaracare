@@ -17,6 +17,11 @@ interface PayrollTabProps {
   carePlanId: string;
 }
 
+interface Caregiver {
+  id: string;
+  name: string;
+}
+
 export const PayrollTab: React.FC<PayrollTabProps> = ({ carePlanId }) => {
   const [currentTab, setCurrentTab] = useState<string>("worklogs");
   
@@ -27,7 +32,7 @@ export const PayrollTab: React.FC<PayrollTabProps> = ({ carePlanId }) => {
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
   const [payrollToProcess, setPayrollToProcess] = useState<string | null>(null);
   const [paymentDate, setPaymentDate] = useState<Date>(new Date());
-  const [caregivers, setCaregivers] = useState<Array<{ id: string; name: string }>>([]);
+  const [caregivers, setCaregivers] = useState<Caregiver[]>([]);
   const [caregiverFilter, setCaregiverFilter] = useState<string>("all");
 
   const {
@@ -63,13 +68,16 @@ export const PayrollTab: React.FC<PayrollTabProps> = ({ carePlanId }) => {
       try {
         const { data, error } = await supabase
           .from('care_team_members')
-          .select('id, care_team_member_id, display_name')
+          .select('id, caregiver_id, display_name')
           .eq('care_plan_id', carePlanId);
         
-        if (error) throw error;
+        if (error) {
+          console.error('Failed to fetch caregivers:', error);
+          return;
+        }
         
         const formattedCaregivers = data?.map(member => ({
-          id: member.care_team_member_id,
+          id: member.caregiver_id,
           name: member.display_name || 'Unknown'
         })) || [];
         
@@ -123,7 +131,7 @@ export const PayrollTab: React.FC<PayrollTabProps> = ({ carePlanId }) => {
     let filtered = filterWorkLogs(workLogs);
     
     if (caregiverFilter && caregiverFilter !== 'all') {
-      filtered = filtered.filter(workLog => workLog.care_team_member_id === caregiverFilter);
+      filtered = filtered.filter(workLog => workLog.caregiver_id === caregiverFilter);
     }
     
     return filtered;
@@ -134,7 +142,7 @@ export const PayrollTab: React.FC<PayrollTabProps> = ({ carePlanId }) => {
     let filtered = filterPayrollEntries(payrollEntries);
     
     if (caregiverFilter && caregiverFilter !== 'all') {
-      filtered = filtered.filter(entry => entry.care_team_member_id === caregiverFilter);
+      filtered = filtered.filter(entry => entry.caregiver_id === caregiverFilter);
     }
     
     return filtered;

@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Container } from "@/components/ui/container";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -7,10 +7,76 @@ import { CarePlansList } from "@/components/professional/CarePlansList";
 import { ProfessionalCalendar } from "@/components/professional/ProfessionalCalendar";
 import { PageViewTracker } from "@/components/tracking/PageViewTracker";
 import { useAuth } from "@/components/providers/AuthProvider";
+import { supabase } from "@/lib/supabase";
+import { DateRangePicker } from "@/components/ui/date-range-picker";
+import { DateRange } from "react-day-picker";
+import { startOfMonth, endOfMonth } from "date-fns";
+
+interface Shift {
+  id: string;
+  title: string;
+  start_time: string;
+  end_time: string;
+  care_plan_title?: string;
+  care_recipient_name?: string;
+}
 
 const ProfessionalProfileHub = () => {
   const [activeTab, setActiveTab] = useState("care-plans");
   const { user } = useAuth();
+  const [shifts, setShifts] = useState<Shift[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [dateRange, setDateRange] = useState<DateRange | { from?: Date; to?: Date }>({
+    from: startOfMonth(new Date()),
+    to: endOfMonth(new Date())
+  });
+
+  useEffect(() => {
+    if (user && activeTab === "schedule") {
+      fetchShifts();
+    }
+  }, [user, activeTab, dateRange]);
+
+  const fetchShifts = async () => {
+    if (!user) return;
+    
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('care_shifts')
+        .select(`
+          id,
+          title,
+          start_time,
+          end_time,
+          care_plans:care_plan_id (title),
+          care_recipient:care_recipient_id (name)
+        `)
+        .eq('caregiver_id', user.id)
+        .gte('start_time', dateRange.from ? dateRange.from.toISOString() : '')
+        .lte('end_time', dateRange.to ? dateRange.to.toISOString() : '');
+      
+      if (error) {
+        console.error("Error fetching shifts:", error);
+        return;
+      }
+
+      const formattedShifts = data.map(shift => ({
+        id: shift.id,
+        title: shift.title,
+        start_time: shift.start_time,
+        end_time: shift.end_time,
+        care_plan_title: shift.care_plans?.title || 'Unknown Plan',
+        care_recipient_name: shift.care_recipient?.name || 'Unknown Patient',
+      }));
+      
+      setShifts(formattedShifts);
+    } catch (error) {
+      console.error("Error fetching shifts:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -55,13 +121,27 @@ const ProfessionalProfileHub = () => {
           <TabsContent value="schedule">
             <Card>
               <CardHeader>
-                <CardTitle>My Schedule</CardTitle>
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center">
+                  <CardTitle>My Schedule</CardTitle>
+                  <div className="mt-4 md:mt-0">
+                    <DateRangePicker
+                      value={dateRange}
+                      onChange={setDateRange}
+                    />
+                  </div>
+                </div>
               </CardHeader>
               <CardContent>
                 <p className="text-muted-foreground mb-6">
                   View and manage your upcoming shifts across all care plans.
                 </p>
-                <ProfessionalCalendar />
+                {loading ? (
+                  <div className="flex justify-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                  </div>
+                ) : (
+                  <ProfessionalCalendar shifts={shifts} />
+                )}
               </CardContent>
             </Card>
           </TabsContent>
