@@ -689,6 +689,33 @@ export type Database = {
         }
         Relationships: []
       }
+      holidays: {
+        Row: {
+          created_at: string | null
+          date: string
+          id: string
+          name: string
+          pay_multiplier: number
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          date: string
+          id?: string
+          name: string
+          pay_multiplier?: number
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          date?: string
+          id?: string
+          name?: string
+          pay_multiplier?: number
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       job_opportunities: {
         Row: {
           details: string | null
@@ -980,6 +1007,9 @@ export type Database = {
           care_plan_id: string
           care_team_member_id: string
           created_at: string | null
+          expense_total: number | null
+          holiday_hours: number | null
+          holiday_rate: number | null
           id: string
           overtime_hours: number | null
           overtime_rate: number | null
@@ -995,6 +1025,9 @@ export type Database = {
           care_plan_id: string
           care_team_member_id: string
           created_at?: string | null
+          expense_total?: number | null
+          holiday_hours?: number | null
+          holiday_rate?: number | null
           id?: string
           overtime_hours?: number | null
           overtime_rate?: number | null
@@ -1010,6 +1043,9 @@ export type Database = {
           care_plan_id?: string
           care_team_member_id?: string
           created_at?: string | null
+          expense_total?: number | null
+          holiday_hours?: number | null
+          holiday_rate?: number | null
           id?: string
           overtime_hours?: number | null
           overtime_rate?: number | null
@@ -1713,6 +1749,50 @@ export type Database = {
           raw_data?: Json
         }
         Relationships: []
+      }
+      work_log_expenses: {
+        Row: {
+          amount: number
+          category: string
+          created_at: string | null
+          description: string
+          id: string
+          receipt_url: string | null
+          status: string
+          updated_at: string | null
+          work_log_id: string
+        }
+        Insert: {
+          amount: number
+          category: string
+          created_at?: string | null
+          description: string
+          id?: string
+          receipt_url?: string | null
+          status?: string
+          updated_at?: string | null
+          work_log_id: string
+        }
+        Update: {
+          amount?: number
+          category?: string
+          created_at?: string | null
+          description?: string
+          id?: string
+          receipt_url?: string | null
+          status?: string
+          updated_at?: string | null
+          work_log_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "work_log_expenses_work_log_id_fkey"
+            columns: ["work_log_id"]
+            isOneToOne: false
+            referencedRelation: "work_logs"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       work_logs: {
         Row: {
