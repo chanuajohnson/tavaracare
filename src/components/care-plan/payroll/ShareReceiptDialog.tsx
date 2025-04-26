@@ -31,10 +31,11 @@ export const ShareReceiptDialog: React.FC<ShareReceiptDialogProps> = ({
 }) => {
   const [email, setEmail] = useState('');
   const [isDownloading, setIsDownloading] = useState(false);
+  // Add state for converting
+  const [isConverting, setIsConverting] = useState(false);
   const { 
     fileFormat, 
     setFileFormat, 
-    isConverting, 
     previewUrl, 
     conversionError, 
     setConversionError 
@@ -348,3 +349,5 @@ export const ShareReceiptDialog: React.FC<ShareReceiptDialogProps> = ({
     </Dialog>
   );
 };
+
+export default ShareReceiptDialog;
