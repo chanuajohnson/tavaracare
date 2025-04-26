@@ -173,8 +173,8 @@ const generateReceipt = async (doc: jsPDF, entry: ReceiptEntry, isConsolidated =
       },
       didDrawPage: (data) => {
         // Footer
-        // Fix: Use the pageNumber property directly instead of getCurrentPageInfo()
-        const footerStr = 'Page ' + doc.internal.pageSize.pageNumber;
+        // Fix: Use doc.internal.getCurrentPageNumber() to get the current page number
+        const footerStr = 'Page ' + doc.internal.getCurrentPageNumber();
         doc.setFontSize(10);
         doc.text(footerStr, data.settings.margin.left, doc.internal.pageSize.height - 10);
       }
