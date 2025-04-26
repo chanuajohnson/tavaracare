@@ -173,9 +173,10 @@ const generateReceipt = async (doc: jsPDF, entry: ReceiptEntry, isConsolidated =
       },
       didDrawPage: (data) => {
         // Footer
-        const footerStr = 'Page ' + doc.internal.getCurrentPageInfo().pageNumber
-        doc.setFontSize(10)
-        doc.text(footerStr, data.settings.margin.left, doc.internal.pageSize.height - 10)
+        // Fix: Use the pageNumber property directly instead of getCurrentPageInfo()
+        const footerStr = 'Page ' + doc.internal.pageSize.pageNumber;
+        doc.setFontSize(10);
+        doc.text(footerStr, data.settings.margin.left, doc.internal.pageSize.height - 10);
       }
     });
 
