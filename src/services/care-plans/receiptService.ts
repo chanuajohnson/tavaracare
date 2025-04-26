@@ -1,4 +1,3 @@
-
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { format } from 'date-fns';
@@ -172,9 +171,7 @@ const generateReceipt = async (doc: jsPDF, entry: ReceiptEntry, isConsolidated =
         fontStyle: 'bold'
       },
       didDrawPage: (data) => {
-        // Footer
-        // Fix: Use doc.internal.getCurrentPageNumber() to get the current page number
-        const footerStr = 'Page ' + doc.internal.getCurrentPageNumber();
+        const footerStr = 'Page ' + doc.internal.getNumberOfPages();
         doc.setFontSize(10);
         doc.text(footerStr, data.settings.margin.left, doc.internal.pageSize.height - 10);
       }
@@ -466,4 +463,3 @@ export const generateConsolidatedReceipt = async (
     throw new Error('Failed to generate consolidated receipt');
   }
 };
-
