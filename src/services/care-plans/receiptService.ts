@@ -1,3 +1,4 @@
+
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { format } from 'date-fns';
@@ -171,7 +172,7 @@ const generateReceipt = async (doc: jsPDF, entry: ReceiptEntry, isConsolidated =
         fontStyle: 'bold'
       },
       didDrawPage: (data) => {
-        const footerStr = 'Page ' + doc.internal.getNumberOfPages();
+        const footerStr = 'Page ' + doc.getNumberOfPages();
         doc.setFontSize(10);
         doc.text(footerStr, data.settings.margin.left, doc.internal.pageSize.height - 10);
       }
