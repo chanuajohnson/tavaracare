@@ -1017,6 +1017,8 @@ export type Database = {
           id: string
           overtime_hours: number | null
           overtime_rate: number | null
+          pay_period_end: string | null
+          pay_period_start: string | null
           payment_date: string | null
           payment_status: string | null
           regular_hours: number
@@ -1036,6 +1038,8 @@ export type Database = {
           id?: string
           overtime_hours?: number | null
           overtime_rate?: number | null
+          pay_period_end?: string | null
+          pay_period_start?: string | null
           payment_date?: string | null
           payment_status?: string | null
           regular_hours: number
@@ -1055,6 +1059,8 @@ export type Database = {
           id?: string
           overtime_hours?: number | null
           overtime_rate?: number | null
+          pay_period_end?: string | null
+          pay_period_start?: string | null
           payment_date?: string | null
           payment_status?: string | null
           regular_hours?: number

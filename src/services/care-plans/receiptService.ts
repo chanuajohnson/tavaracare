@@ -25,6 +25,7 @@ const generateReceipt = async (doc: jsPDF, entry: ReceiptEntry, isConsolidated =
     let appliedRate: number;
     let total: number;
     let caregiverName = 'Unknown Caregiver';
+    let generatedDate = new Date();
 
     if (isWorkLog(entry)) {
       workLogId = entry.id;
@@ -72,22 +73,30 @@ const generateReceipt = async (doc: jsPDF, entry: ReceiptEntry, isConsolidated =
       caregiverName = entry.caregiver_name || 'Unknown Caregiver';
     }
 
+    // Header Configuration
     doc.setFontSize(16);
     doc.text('Pay Receipt', 105, 20, { align: 'center' });
     
     doc.setFontSize(10);
-    doc.text([
+    const headerText = [
       `Receipt #: ${workLogId.slice(0, 8)}`,
-      `Date: ${format(startTime, 'MMM d, yyyy')}`,
+      `Work Date: ${format(startTime, 'MMM d, yyyy')}${
+        endTime.toDateString() !== startTime.toDateString() 
+          ? ` to ${format(endTime, 'MMM d, yyyy')}`
+          : ''
+      }`,
+      `Receipt Generated: ${format(generatedDate, 'MMM d, yyyy h:mm a')}`,
       `Status: ${isWorkLog(entry) ? entry.status.charAt(0).toUpperCase() + entry.status.slice(1) : entry.payment_status.charAt(0).toUpperCase() + entry.payment_status.slice(1)}`,
       `Caregiver: ${caregiverName}`
-    ], 20, 35);
+    ];
+    doc.text(headerText, 20, 35);
 
     const tableBody: string[][] = [];
 
     if (isWorkLog(entry)) {
       tableBody.push([
         'Regular Hours',
+        format(startTime, 'MMM d'),
         hoursWorked.toFixed(2),
         `$${appliedRate.toFixed(2)}/hr`,
         `$${total.toFixed(2)}`
@@ -96,6 +105,7 @@ const generateReceipt = async (doc: jsPDF, entry: ReceiptEntry, isConsolidated =
       if (entry.regular_hours > 0) {
         tableBody.push([
           'Regular Hours',
+          format(new Date(entry.pay_period_start || ''), 'MMM d'),
           entry.regular_hours.toFixed(2),
           `$${entry.regular_rate.toFixed(2)}/hr`,
           `$${(entry.regular_hours * entry.regular_rate).toFixed(2)}`
@@ -105,6 +115,7 @@ const generateReceipt = async (doc: jsPDF, entry: ReceiptEntry, isConsolidated =
       if (entry.overtime_hours && entry.overtime_hours > 0 && entry.overtime_rate) {
         tableBody.push([
           'Overtime Hours',
+          format(new Date(entry.pay_period_start || ''), 'MMM d'),
           entry.overtime_hours.toFixed(2),
           `$${entry.overtime_rate.toFixed(2)}/hr`,
           `$${(entry.overtime_hours * entry.overtime_rate).toFixed(2)}`
@@ -114,6 +125,7 @@ const generateReceipt = async (doc: jsPDF, entry: ReceiptEntry, isConsolidated =
       if (entry.holiday_hours && entry.holiday_hours > 0 && entry.holiday_rate) {
         tableBody.push([
           'Holiday Hours',
+          format(new Date(entry.pay_period_start || ''), 'MMM d'),
           entry.holiday_hours.toFixed(2),
           `$${entry.holiday_rate.toFixed(2)}/hr`,
           `$${(entry.holiday_hours * entry.holiday_rate).toFixed(2)}`
@@ -123,6 +135,7 @@ const generateReceipt = async (doc: jsPDF, entry: ReceiptEntry, isConsolidated =
       if (entry.expense_total && entry.expense_total > 0) {
         tableBody.push([
           'Expenses',
+          format(new Date(entry.pay_period_start || ''), 'MMM d'),
           '',
           '',
           `$${entry.expense_total.toFixed(2)}`
@@ -132,11 +145,12 @@ const generateReceipt = async (doc: jsPDF, entry: ReceiptEntry, isConsolidated =
 
     autoTable(doc, {
       startY: 65,
-      head: [['Type', 'Hours', 'Rate', 'Amount']],
+      head: [['Type', 'Date', 'Hours', 'Rate', 'Amount']],
       body: tableBody,
       foot: [
         [
           'Total',
+          '',
           '',
           '',
           `$${total.toFixed(2)}`
@@ -155,6 +169,12 @@ const generateReceipt = async (doc: jsPDF, entry: ReceiptEntry, isConsolidated =
         fillColor: [240, 240, 240],
         textColor: [0, 0, 0],
         fontStyle: 'bold'
+      },
+      didDrawPage: (data) => {
+        // Footer
+        const footerStr = 'Page ' + doc.internal.getNumberOfPages()
+        doc.setFontSize(10)
+        doc.text(footerStr, data.settings.margin.left, doc.internal.pageSize.height - 10)
       }
     });
 
@@ -209,12 +229,14 @@ const generateConsolidatedReceiptContent = async (doc: jsPDF, entries: PayrollEn
     doc.text('Consolidated Pay Receipt', 105, 20, { align: 'center' });
     
     doc.setFontSize(10);
-    doc.text([
+    const headerText = [
       `Receipt #: CONS-${Date.now().toString().slice(-8)}`,
       `Date Range: ${format(earliestDate, 'MMM d, yyyy')} - ${format(latestDate, 'MMM d, yyyy')}`,
+      `Receipt Generated: ${format(new Date(), 'MMM d, yyyy h:mm a')}`,
       `Entries: ${entries.length}`,
       `Caregiver: ${caregiverName}`
-    ], 20, 35);
+    ];
+    doc.text(headerText, 20, 35);
     
     const tableBody: string[][] = [];
     
@@ -301,15 +323,15 @@ const generateConsolidatedReceiptContent = async (doc: jsPDF, entries: PayrollEn
       
       detailsBody.push([
         entryDate,
-        `${entry.regular_hours + (entry.overtime_hours || 0) + (entry.holiday_hours || 0)}h total`,
         entry.caregiver_name || 'Unknown',
+        `${entry.regular_hours + (entry.overtime_hours || 0) + (entry.holiday_hours || 0)}h total`,
         `$${entry.total_amount.toFixed(2)}`
       ]);
     });
     
     autoTable(doc, {
       startY: detailStartY + 5,
-      head: [['Date', 'Hours', 'Caregiver', 'Amount']],
+      head: [['Work Date', 'Caregiver', 'Hours', 'Amount']],
       body: detailsBody,
       styles: {
         cellPadding: 5,
