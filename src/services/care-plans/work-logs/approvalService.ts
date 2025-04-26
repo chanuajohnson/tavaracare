@@ -43,7 +43,10 @@ export const approveWorkLog = async (workLogId: string): Promise<boolean> => {
         holiday_rate: payrollData.holidayRate,
         expense_total: payrollData.expenseTotal,
         total_amount: totalAmount,
-        payment_status: 'pending'
+        payment_status: 'pending',
+        // Add these two fields for proper date tracking
+        pay_period_start: workLog.start_time,
+        pay_period_end: workLog.end_time
       });
       
     if (payrollError) throw payrollError;

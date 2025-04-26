@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
@@ -59,15 +58,13 @@ export const PayrollEntriesTable: React.FC<PayrollEntriesTableProps> = ({
       }
 
       if (selectedPayrollEntries.length === 1) {
-        // If only one entry is selected, generate a regular receipt
         const receiptUrl = await generatePayReceipt(selectedPayrollEntries[0], selectedFormat);
         setCurrentReceiptUrl(receiptUrl);
         setCurrentEntry(selectedPayrollEntries[0]);
       } else {
-        // Generate consolidated receipt for multiple entries
         const receiptUrl = await generateConsolidatedReceipt(selectedPayrollEntries, selectedFormat);
         setCurrentReceiptUrl(receiptUrl);
-        setCurrentEntry(selectedPayrollEntries[0]); // Use first entry for dialog details
+        setCurrentEntry(selectedPayrollEntries[0]);
       }
       setReceiptDialogOpen(true);
     } catch (error) {
@@ -76,17 +73,18 @@ export const PayrollEntriesTable: React.FC<PayrollEntriesTableProps> = ({
     }
   };
 
-  if (!entries.length) {
-    return <div className="text-center p-4">No payroll entries found.</div>;
-  }
-
   const formatDate = (date: string | null | undefined, showRelative = false) => {
     if (!date) return '-';
-    const dateObj = new Date(date);
-    if (showRelative) {
-      return formatDistanceToNow(dateObj, { addSuffix: true });
+    try {
+      const dateObj = new Date(date);
+      if (showRelative) {
+        return formatDistanceToNow(dateObj, { addSuffix: true });
+      }
+      return format(dateObj, 'MMM d, yyyy');
+    } catch (error) {
+      console.error('Error formatting date:', error);
+      return '-';
     }
-    return format(dateObj, 'MMM d, yyyy');
   };
 
   const DateCell = ({ date, label }: { date: string | null | undefined, label: string }) => (
@@ -106,6 +104,10 @@ export const PayrollEntriesTable: React.FC<PayrollEntriesTableProps> = ({
       </Tooltip>
     </TooltipProvider>
   );
+
+  if (!entries.length) {
+    return <div className="text-center p-4">No payroll entries found.</div>;
+  }
 
   return (
     <div>
@@ -150,7 +152,7 @@ export const PayrollEntriesTable: React.FC<PayrollEntriesTableProps> = ({
                 />
               </TableHead>
               <TableHead>Caregiver</TableHead>
-              <TableHead>Date</TableHead>
+              <TableHead>Work Date</TableHead>
               {!isMobile && (
                 <>
                   <TableHead>Regular Hours</TableHead>
@@ -178,7 +180,16 @@ export const PayrollEntriesTable: React.FC<PayrollEntriesTableProps> = ({
                 </TableCell>
                 <TableCell>{entry.caregiver_name || 'Unknown'}</TableCell>
                 <TableCell>
-                  {entry.pay_period_start && formatDate(entry.pay_period_start)}
+                  <div className="text-sm">
+                    <div className="font-medium">
+                      {formatDate(entry.pay_period_start)}
+                    </div>
+                    {entry.pay_period_end && entry.pay_period_start !== entry.pay_period_end && (
+                      <div className="text-xs text-muted-foreground">
+                        to {formatDate(entry.pay_period_end)}
+                      </div>
+                    )}
+                  </div>
                 </TableCell>
                 {!isMobile && (
                   <>
