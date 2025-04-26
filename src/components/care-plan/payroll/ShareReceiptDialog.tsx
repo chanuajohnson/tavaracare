@@ -8,7 +8,11 @@ import { Copy, Download, Mail, File, FileImage, AlertCircle } from 'lucide-react
 import { toast } from 'sonner';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import useReceiptFormat from "@/hooks/payroll/useReceiptFormat";
 import type { WorkLog, PayrollEntry } from '@/services/care-plans/types/workLogTypes';
+
+// Import pdfjs dynamically to avoid module loading issues
+let pdfjs: any = null;
 
 interface ShareReceiptDialogProps {
   open: boolean;
@@ -26,45 +30,110 @@ export const ShareReceiptDialog: React.FC<ShareReceiptDialogProps> = ({
   workLog
 }) => {
   const [email, setEmail] = useState('');
-  const [fileFormat, setFileFormat] = useState<FileFormat>('pdf');
   const [isDownloading, setIsDownloading] = useState(false);
-  const [isConverting, setIsConverting] = useState(false);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(receiptUrl);
-  const [conversionError, setConversionError] = useState<string | null>(null);
+  const { 
+    fileFormat, 
+    setFileFormat, 
+    isConverting, 
+    previewUrl, 
+    conversionError, 
+    setConversionError 
+  } = useReceiptFormat(receiptUrl);
 
-  // Update preview URL when format changes or receipt URL changes
+  // Load PDF.js dynamically when needed
   useEffect(() => {
-    if (receiptUrl) {
-      // Reset error state
+    if (open && fileFormat === 'jpg' && receiptUrl?.startsWith('data:application/pdf')) {
+      // Only load PDF.js when we actually need to convert a PDF
+      import('pdfjs-dist').then(module => {
+        pdfjs = module;
+        // Set the worker source URL
+        pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
+      }).catch(error => {
+        console.error('Error loading PDF.js library:', error);
+        setConversionError('Failed to load PDF conversion library. Please try again or use PDF format.');
+      });
+    }
+  }, [open, fileFormat, receiptUrl, setConversionError]);
+
+  const convertPdfToJpg = async (pdfData: string): Promise<string> => {
+    try {
+      console.log('Starting PDF to JPG conversion with PDF.js');
+      
+      if (!pdfjs) {
+        throw new Error('PDF.js library not loaded');
+      }
+      
+      const base64Content = pdfData.split(',')[1];
+      if (!base64Content) {
+        throw new Error('Invalid PDF data URL format');
+      }
+      
+      const binaryData = atob(base64Content);
+      const bytes = new Uint8Array(binaryData.length);
+      for (let i = 0; i < binaryData.length; i++) {
+        bytes[i] = binaryData.charCodeAt(i);
+      }
+      
+      const loadingTask = pdfjs.getDocument({ data: bytes });
+      const pdf = await loadingTask.promise;
+      console.log(`PDF loaded successfully. Number of pages: ${pdf.numPages}`);
+      
+      const page = await pdf.getPage(1);
+      
+      const scale = 2.0;
+      const viewport = page.getViewport({ scale });
+      
+      const canvas = document.createElement('canvas');
+      canvas.width = viewport.width;
+      canvas.height = viewport.height;
+      
+      const context = canvas.getContext('2d');
+      if (!context) {
+        throw new Error('Could not get canvas context');
+      }
+      
+      context.fillStyle = 'white';
+      context.fillRect(0, 0, canvas.width, canvas.height);
+      
+      const renderContext = {
+        canvasContext: context,
+        viewport: viewport
+      };
+      
+      await page.render(renderContext).promise;
+      console.log('PDF page rendered successfully');
+      
+      try {
+        const jpgData = canvas.toDataURL('image/jpeg', 0.95);
+        console.log('Canvas converted to JPG successfully');
+        return jpgData;
+      } catch (error) {
+        console.error('Error converting canvas to JPG:', error);
+        throw new Error('Failed to convert PDF to JPG');
+      }
+    } catch (error) {
+      console.error('Error in PDF to JPG conversion:', error);
+      throw error;
+    }
+  };
+
+  const handlePdfToJpgConversion = async () => {
+    if (!receiptUrl) return null;
+    
+    try {
+      setIsConverting(true);
       setConversionError(null);
       
-      // If format is PDF, just use the receipt URL directly
-      if (fileFormat === 'pdf') {
-        setPreviewUrl(receiptUrl);
-        setIsConverting(false);
-      } else {
-        // For JPG, check if the URL already starts with data:image/jpeg
-        if (receiptUrl.startsWith('data:image/jpeg')) {
-          setPreviewUrl(receiptUrl);
-          setIsConverting(false);
-        } else {
-          // Need to convert from PDF to JPG
-          setIsConverting(true);
-          setPreviewUrl(null); // Clear preview while converting
-          
-          // Wait a moment to ensure the PDF has loaded before trying to convert
-          // This is just a visual indication of the conversion process
-          setTimeout(() => {
-            setPreviewUrl(receiptUrl); // Show the converted image (the conversion happens server-side)
-            setIsConverting(false);
-          }, 1000);
-        }
-      }
-    } else {
-      setPreviewUrl(null);
+      const jpgData = await convertPdfToJpg(receiptUrl);
+      return jpgData;
+    } catch (error) {
+      console.error('PDF to JPG conversion failed:', error);
+      setConversionError('Failed to convert PDF to JPG. Please try using PDF format instead.');
+      return null;
+    } finally {
       setIsConverting(false);
     }
-  }, [receiptUrl, fileFormat]);
+  };
 
   const handleCopyLink = () => {
     if (!receiptUrl) return;
@@ -84,26 +153,18 @@ export const ShareReceiptDialog: React.FC<ShareReceiptDialogProps> = ({
       const mimeType = fileFormat === 'pdf' ? 'application/pdf' : 'image/jpeg';
       
       try {
-        // If we already have the data URL, use it directly
-        if (receiptUrl.startsWith(`data:${mimeType}`)) {
-          link.href = receiptUrl;
-        } else {
-          // Need to fetch the content
-          const response = await fetch(receiptUrl);
-          
-          if (!response.ok) {
-            throw new Error(`Failed to fetch receipt: ${response.status}`);
+        let downloadUrl = receiptUrl;
+        
+        // If we need to convert to JPG
+        if (fileFormat === 'jpg' && receiptUrl.startsWith('data:application/pdf')) {
+          const jpgData = await handlePdfToJpgConversion();
+          if (!jpgData) {
+            throw new Error('Failed to convert PDF to JPG');
           }
-          
-          const blob = await response.blob();
-          const blobUrl = URL.createObjectURL(new Blob([blob], { type: mimeType }));
-          link.href = blobUrl;
-          
-          // Clean up blob URL after download
-          setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
+          downloadUrl = jpgData;
         }
         
-        // Set the filename
+        link.href = downloadUrl;
         link.download = `receipt-${workLog.id.slice(0, 8)}.${fileFormat}`;
         
         // Trigger download
@@ -166,7 +227,7 @@ export const ShareReceiptDialog: React.FC<ShareReceiptDialogProps> = ({
       );
     }
     
-    if (fileFormat === 'pdf') {
+    if (fileFormat === 'pdf' || !previewUrl.startsWith('data:image/jpeg')) {
       return (
         <iframe 
           src={previewUrl} 
@@ -182,6 +243,15 @@ export const ShareReceiptDialog: React.FC<ShareReceiptDialogProps> = ({
           className="w-full h-64 object-contain"
         />
       );
+    }
+  };
+
+  const handleFormatChange = async (value: FileFormat) => {
+    setFileFormat(value);
+    
+    // If changing to JPG and we have a PDF, perform conversion
+    if (value === 'jpg' && receiptUrl?.startsWith('data:application/pdf')) {
+      handlePdfToJpgConversion();
     }
   };
 
@@ -210,7 +280,7 @@ export const ShareReceiptDialog: React.FC<ShareReceiptDialogProps> = ({
               <div className="flex-1 flex space-x-2">
                 <Select 
                   value={fileFormat} 
-                  onValueChange={(value: FileFormat) => setFileFormat(value)}
+                  onValueChange={(value: FileFormat) => handleFormatChange(value)}
                   disabled={isConverting || isDownloading}
                 >
                   <SelectTrigger className="w-24">

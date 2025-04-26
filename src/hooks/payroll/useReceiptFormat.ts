@@ -28,13 +28,13 @@ export const useReceiptFormat = (
           setIsConverting(false);
         } else if (initialReceiptUrl.startsWith('data:application/pdf')) {
           // Need to convert - we'll simulate this with a loading state
-          // The actual conversion happens server-side when the receipt is generated
           setIsConverting(true);
           setPreviewUrl(null); // Clear preview while converting
           
-          // Wait a moment for visual indication of conversion process
+          // Signal that conversion is happening but don't actually perform it here
+          // The actual conversion happens in the ShareReceiptDialog component
           setTimeout(() => {
-            setPreviewUrl(initialReceiptUrl); // The URL will contain JPG data if conversion succeeded
+            setPreviewUrl(initialReceiptUrl);
             setIsConverting(false);
           }, 800);
         } else {
