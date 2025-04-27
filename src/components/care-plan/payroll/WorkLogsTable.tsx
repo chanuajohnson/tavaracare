@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { format } from 'date-fns';
 import { 
@@ -115,7 +116,6 @@ export const WorkLogsTable: React.FC<WorkLogsTableProps> = ({
                     workLogId={workLog.id} 
                     hours={hoursDiff} 
                     expenses={totalExpenses} 
-                    key={`pay-${workLog.id}-${lastSaveTime}`}
                   />
                 </TableCell>
                 <TableCell>
@@ -203,3 +203,4 @@ const PayTotalDisplay: React.FC<{ workLogId: string; hours: number; expenses: nu
     </div>
   );
 };
+
