@@ -29,6 +29,8 @@ export const PayRateSelector: React.FC<PayRateSelectorProps> = ({
     setBaseRate, 
     rateMultiplier, 
     setRateMultiplier,
+    rateType,
+    setRateType,
     saveRates,
     isLoading,
     isSaving
@@ -83,9 +85,12 @@ export const PayRateSelector: React.FC<PayRateSelectorProps> = ({
   const handleMultiplierChange = (value: string) => {
     if (value === 'custom') {
       setShowCustomMultiplier(true);
+      setRateType('custom');
     } else {
       setShowCustomMultiplier(false);
-      setRateMultiplier(Number(value));
+      const numValue = Number(value);
+      setRateMultiplier(numValue);
+      setRateType(numValue === 1 ? 'regular' : numValue === 1.5 ? 'overtime' : 'custom');
     }
   };
 
