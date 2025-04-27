@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '@/lib/supabase';
 import { getWorkLogById } from '@/services/care-plans/workLogService';
@@ -88,14 +87,14 @@ export const useWorkLogRate = (workLogId: string, careTeamMemberId: string) => {
 
       if (error) throw error;
 
-      // Update local state immediately
       setRateState({
         baseRate,
         rateMultiplier
       });
       
-      // Trigger a refresh
       setLastSaveTime(Date.now());
+      
+      toast.success('Pay rates updated successfully');
       return true;
     } catch (error) {
       console.error('Error updating rates:', error);

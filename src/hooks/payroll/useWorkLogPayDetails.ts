@@ -9,9 +9,18 @@ export const useWorkLogPayDetails = (workLogId: string, hours: number, expenses:
   const [careTeamMemberId, setCareTeamMemberId] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
 
+  const { 
+    currentRate, 
+    baseRate, 
+    rateMultiplier,
+    lastSaveTime,
+    isLoading: rateLoading 
+  } = useWorkLogRate(workLogId, careTeamMemberId);
+
   useEffect(() => {
     const loadWorkLog = async () => {
       try {
+        setIsLoading(true);
         const workLog = await getWorkLogById(workLogId);
         if (workLog) {
           setWorkLog(workLog);
@@ -25,15 +34,7 @@ export const useWorkLogPayDetails = (workLogId: string, hours: number, expenses:
     };
 
     loadWorkLog();
-  }, [workLogId]);
-
-  const { 
-    currentRate, 
-    baseRate, 
-    rateMultiplier,
-    lastSaveTime, 
-    isLoading: rateLoading 
-  } = useWorkLogRate(workLogId, careTeamMemberId);
+  }, [workLogId, lastSaveTime]); // Add lastSaveTime as dependency to refresh when rates change
 
   // Calculate total pay based on hours and rate using memoization
   const totalPayBeforeExpenses = useMemo(() => {
@@ -48,6 +49,7 @@ export const useWorkLogPayDetails = (workLogId: string, hours: number, expenses:
     rate: currentRate,
     totalPay,
     isLoading: isLoading || rateLoading,
-    workLog
+    workLog,
+    lastSaveTime
   };
 };

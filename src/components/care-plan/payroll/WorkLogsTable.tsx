@@ -115,7 +115,7 @@ export const WorkLogsTable: React.FC<WorkLogsTableProps> = ({
                     workLogId={workLog.id} 
                     hours={hoursDiff} 
                     expenses={totalExpenses} 
-                    key={`pay-${workLog.id}-${workLog.base_rate}-${workLog.rate_multiplier}`}
+                    key={`pay-${workLog.id}-${lastSaveTime}`}
                   />
                 </TableCell>
                 <TableCell>
@@ -182,13 +182,12 @@ export const WorkLogsTable: React.FC<WorkLogsTableProps> = ({
   );
 };
 
-// Component to display the total pay based on hours and rate
 const PayTotalDisplay: React.FC<{ workLogId: string; hours: number; expenses: number }> = ({ 
   workLogId, 
   hours,
   expenses 
 }) => {
-  const { rate, totalPay, isLoading, workLog } = useWorkLogPayDetails(workLogId, hours, expenses);
+  const { rate, totalPay, isLoading, lastSaveTime } = useWorkLogPayDetails(workLogId, hours, expenses);
   
   if (isLoading) {
     return <div className="text-muted-foreground">Calculating...</div>;
