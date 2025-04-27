@@ -125,7 +125,7 @@ export const PayRateSelector: React.FC<PayRateSelectorProps> = ({
     }
   };
 
-  const handleMultiplierKeyDown = async (e: KeyboardEvent<HTMLDivElement>) => {
+  const handleMultiplierKeyDown = async (e: KeyboardEvent<HTMLButtonElement>) => {
     if (e.key === 'Enter' && isEditable && !showCustomMultiplier) {
       e.preventDefault();
       e.stopPropagation();
