@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { format } from 'date-fns';
 import { 
@@ -116,7 +115,7 @@ export const WorkLogsTable: React.FC<WorkLogsTableProps> = ({
                     workLogId={workLog.id} 
                     hours={hoursDiff} 
                     expenses={totalExpenses} 
-                    key={`pay-${workLog.id}-${workLog.base_rate}-${workLog.rate_multiplier}`}
+                    key={`pay-${workLog.id}`}
                   />
                 </TableCell>
                 <TableCell>

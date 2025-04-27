@@ -24,7 +24,7 @@ export const useWorkLogPayDetails = (workLogId: string, hours: number, expenses:
     loadWorkLog();
   }, [workLogId]);
 
-  const { currentRate, isLoading: rateLoading } = useWorkLogRate(
+  const { currentRate, lastSaveTime, isLoading: rateLoading } = useWorkLogRate(
     workLogId,
     careTeamMemberId
   );
@@ -32,7 +32,7 @@ export const useWorkLogPayDetails = (workLogId: string, hours: number, expenses:
   // Calculate total pay based on hours and rate using memoization
   const totalPayBeforeExpenses = useMemo(() => {
     return hours * currentRate;
-  }, [hours, currentRate]);
+  }, [hours, currentRate, lastSaveTime]);
   
   const totalPay = useMemo(() => {
     return totalPayBeforeExpenses + expenses;

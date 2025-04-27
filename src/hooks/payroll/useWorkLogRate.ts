@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { getWorkLogById } from '@/services/care-plans/workLogService';
@@ -16,6 +17,7 @@ export const useWorkLogRate = (workLogId: string, careTeamMemberId: string) => {
   });
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [lastSaveTime, setLastSaveTime] = useState<number>(0);
   
   const baseRate = rateState.baseRate;
   const rateMultiplier = rateState.rateMultiplier;
@@ -48,7 +50,7 @@ export const useWorkLogRate = (workLogId: string, careTeamMemberId: string) => {
     };
 
     loadRates();
-  }, [workLogId, careTeamMemberId]);
+  }, [workLogId, careTeamMemberId, lastSaveTime]);
 
   const handleSetBaseRate = (newBaseRate: number) => {
     setRateState(prev => ({
@@ -87,14 +89,7 @@ export const useWorkLogRate = (workLogId: string, careTeamMemberId: string) => {
 
       if (error) throw error;
 
-      const workLog = await getWorkLogById(workLogId);
-      if (workLog) {
-        setRateState({
-          baseRate: workLog.base_rate || 25,
-          rateMultiplier: workLog.rate_multiplier || 1
-        });
-      }
-
+      setLastSaveTime(Date.now()); // Trigger a refresh
       return true;
     } catch (error) {
       console.error('Error updating rates:', error);
@@ -113,6 +108,7 @@ export const useWorkLogRate = (workLogId: string, careTeamMemberId: string) => {
     saveRates,
     currentRate,
     isLoading,
-    isSaving
+    isSaving,
+    lastSaveTime
   };
 };
