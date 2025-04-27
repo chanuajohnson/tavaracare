@@ -9,27 +9,37 @@ import {
 } from "@/components/ui/select";
 import { useWorkLogRate } from '@/hooks/payroll/useWorkLogRate';
 import { CustomRateMultiplierInput } from './CustomRateMultiplierInput';
+import { Button } from "@/components/ui/button";
+import { Pencil, Check } from "lucide-react";
 import { toast } from 'sonner';
 
 interface PayRateSelectorProps {
   workLogId: string;
   careTeamMemberId: string;
+  status?: string;
 }
 
 export const PayRateSelector: React.FC<PayRateSelectorProps> = ({ 
   workLogId, 
-  careTeamMemberId 
+  careTeamMemberId,
+  status = 'pending'
 }) => {
   const { 
     baseRate, 
     setBaseRate, 
     rateMultiplier, 
     setRateMultiplier,
-    isLoading 
+    saveRates,
+    isLoading,
+    isSaving
   } = useWorkLogRate(workLogId, careTeamMemberId);
 
   const [showCustomMultiplier, setShowCustomMultiplier] = useState(false);
   const [customMultiplier, setCustomMultiplier] = useState(1);
+  const [editMode, setEditMode] = useState(false);
+  
+  // Check if the work log is editable based on status
+  const isEditable = status === 'pending' || editMode;
 
   // Multiplier options - define outside to avoid recreation on each render
   const multiplierOptions = [
@@ -93,52 +103,120 @@ export const PayRateSelector: React.FC<PayRateSelectorProps> = ({
     }
   };
 
+  const handleSaveRates = async () => {
+    const success = await saveRates();
+    if (success && status !== 'pending') {
+      setEditMode(false);
+    }
+  };
+
+  const toggleEditMode = () => {
+    setEditMode(!editMode);
+  };
+
   return (
     <div className="space-y-2">
-      <div className="flex space-x-2">
-        <Select 
-          value={baseRate?.toString()} 
-          onValueChange={(value) => setBaseRate(Number(value))}
-        >
-          <SelectTrigger className="w-[100px]">
-            <SelectValue placeholder="Base Rate" />
-          </SelectTrigger>
-          <SelectContent>
-            {baseRateOptions.map((rate) => (
-              <SelectItem key={rate} value={rate.toString()}>
-                ${rate}/hr
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+      {status !== 'pending' && !editMode ? (
+        <div className="flex items-center space-x-2">
+          <div className="text-sm">
+            <span className="font-medium">${baseRate}/hr</span>
+            <span className="text-muted-foreground"> × {rateMultiplier}x</span>
+          </div>
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="h-6 w-6 p-0" 
+            onClick={toggleEditMode} 
+            title="Edit rates"
+          >
+            <Pencil className="h-3.5 w-3.5" />
+          </Button>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          <div className="flex flex-wrap gap-2">
+            <Select 
+              value={baseRate?.toString()} 
+              onValueChange={(value) => setBaseRate(Number(value))}
+              disabled={!isEditable}
+            >
+              <SelectTrigger className="w-[100px]">
+                <SelectValue placeholder="Base Rate" />
+              </SelectTrigger>
+              <SelectContent>
+                {baseRateOptions.map((rate) => (
+                  <SelectItem key={rate} value={rate.toString()}>
+                    ${rate}/hr
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
 
-        <Select 
-          value={showCustomMultiplier ? 'custom' : rateMultiplier?.toString()} 
-          onValueChange={handleMultiplierChange}
-        >
-          <SelectTrigger className="w-[150px]">
-            <SelectValue>
-              {getMultiplierDisplayValue()}
-            </SelectValue>
-          </SelectTrigger>
-          <SelectContent>
-            {multiplierOptions.map((option) => (
-              <SelectItem 
-                key={option.value.toString()} 
-                value={option.value.toString()}
+            <Select 
+              value={showCustomMultiplier ? 'custom' : rateMultiplier?.toString()} 
+              onValueChange={handleMultiplierChange}
+              disabled={!isEditable}
+            >
+              <SelectTrigger className="w-[150px]">
+                <SelectValue>
+                  {getMultiplierDisplayValue()}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {multiplierOptions.map((option) => (
+                  <SelectItem 
+                    key={option.value.toString()} 
+                    value={option.value.toString()}
+                  >
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {showCustomMultiplier && (
+            <CustomRateMultiplierInput
+              value={customMultiplier}
+              onChange={handleCustomMultiplierChange}
+              disabled={!isEditable}
+            />
+          )}
+
+          {(status !== 'pending' || isSaving) && (
+            <div className="flex justify-end">
+              {editMode && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={toggleEditMode}
+                  className="mr-2"
+                  disabled={isSaving}
+                >
+                  Cancel
+                </Button>
+              )}
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={handleSaveRates}
+                disabled={isSaving}
+                className="flex items-center gap-1"
               >
-                {option.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      {showCustomMultiplier && (
-        <CustomRateMultiplierInput
-          value={customMultiplier}
-          onChange={handleCustomMultiplierChange}
-        />
+                {isSaving ? (
+                  <>
+                    <span className="animate-spin h-4 w-4 border-2 border-t-transparent rounded-full mr-1"></span>
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <Check className="h-4 w-4" /> Save
+                  </>
+                )}
+              </Button>
+            </div>
+          )}
+        </div>
       )}
     </div>
   );

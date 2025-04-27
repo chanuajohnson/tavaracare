@@ -90,7 +90,7 @@ export const WorkLogsTable: React.FC<WorkLogsTableProps> = ({
             const endTime = new Date(workLog.end_time);
             const hoursDiff = (endTime.getTime() - startTime.getTime()) / (1000 * 60 * 60);
             
-            // Calculate total pay based on hours and selected rate
+            // Calculate total expenses
             const totalExpenses = workLog.expenses?.reduce((sum, expense) => sum + Number(expense.amount), 0) || 0;
             
             return (
@@ -105,10 +105,19 @@ export const WorkLogsTable: React.FC<WorkLogsTableProps> = ({
                   {hoursDiff.toFixed(1)}h ({format(startTime, 'h:mm a')} - {format(endTime, 'h:mm a')})
                 </TableCell>
                 <TableCell>
-                  <PayRateSelector workLogId={workLog.id} careTeamMemberId={workLog.care_team_member_id} />
+                  <PayRateSelector 
+                    workLogId={workLog.id} 
+                    careTeamMemberId={workLog.care_team_member_id}
+                    status={workLog.status}
+                  />
                 </TableCell>
                 <TableCell>
-                  <PayTotalDisplay workLogId={workLog.id} hours={hoursDiff} expenses={totalExpenses} />
+                  <PayTotalDisplay 
+                    workLogId={workLog.id} 
+                    hours={hoursDiff} 
+                    expenses={totalExpenses} 
+                    key={`pay-${workLog.id}-${workLog.base_rate}-${workLog.rate_multiplier}`}
+                  />
                 </TableCell>
                 <TableCell>
                   {workLog.expenses && workLog.expenses.length > 0 ? (
@@ -180,10 +189,10 @@ const PayTotalDisplay: React.FC<{ workLogId: string; hours: number; expenses: nu
   hours,
   expenses 
 }) => {
-  const { rate, totalPay } = useWorkLogPayDetails(workLogId, hours, expenses);
+  const { rate, totalPay, isLoading } = useWorkLogPayDetails(workLogId, hours, expenses);
   
-  if (!rate) {
-    return <span className="text-muted-foreground">Loading...</span>;
+  if (isLoading) {
+    return <div className="text-muted-foreground">Calculating...</div>;
   }
   
   return (

@@ -6,11 +6,13 @@ import { Label } from "@/components/ui/label";
 interface CustomRateMultiplierInputProps {
   value: number;
   onChange: (value: number) => void;
+  disabled?: boolean;
 }
 
 export const CustomRateMultiplierInput: React.FC<CustomRateMultiplierInputProps> = ({
   value,
-  onChange
+  onChange,
+  disabled = false
 }) => {
   return (
     <div className="mt-2 space-y-2">
@@ -24,6 +26,7 @@ export const CustomRateMultiplierInput: React.FC<CustomRateMultiplierInputProps>
         value={value}
         onChange={(e) => onChange(parseFloat(e.target.value) || 1)}
         className="w-[150px]"
+        disabled={disabled}
       />
       <p className="text-xs text-muted-foreground">Enter a value between 0.5x and 3.0x</p>
     </div>

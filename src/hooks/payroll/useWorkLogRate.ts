@@ -1,14 +1,33 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { getWorkLogById } from '@/services/care-plans/workLogService';
 import { toast } from 'sonner';
+import { useMemo } from 'react';
+
+interface RateState {
+  baseRate: number | null;
+  rateMultiplier: number | null;
+}
 
 export const useWorkLogRate = (workLogId: string, careTeamMemberId: string) => {
-  const [baseRate, setBaseRate] = useState<number | null>(null);
-  const [rateMultiplier, setRateMultiplier] = useState<number | null>(null);
+  const [rateState, setRateState] = useState<RateState>({
+    baseRate: null,
+    rateMultiplier: null
+  });
   const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  
+  // Extract values from state for easier access
+  const baseRate = rateState.baseRate;
+  const rateMultiplier = rateState.rateMultiplier;
 
+  // Calculate the current effective rate with memoization
+  const currentRate = useMemo(() => {
+    return (rateState.baseRate || 25) * (rateState.rateMultiplier || 1);
+  }, [rateState.baseRate, rateState.rateMultiplier]);
+
+  // Load initial rates
   useEffect(() => {
     const loadRates = async () => {
       if (!workLogId || !careTeamMemberId) {
@@ -19,8 +38,10 @@ export const useWorkLogRate = (workLogId: string, careTeamMemberId: string) => {
       try {
         const workLog = await getWorkLogById(workLogId);
         if (workLog) {
-          setBaseRate(workLog.base_rate || 25);
-          setRateMultiplier(workLog.rate_multiplier || 1);
+          setRateState({
+            baseRate: workLog.base_rate || 25,
+            rateMultiplier: workLog.rate_multiplier || 1
+          });
         }
       } catch (error) {
         console.error('Error loading rates:', error);
@@ -33,52 +54,64 @@ export const useWorkLogRate = (workLogId: string, careTeamMemberId: string) => {
     loadRates();
   }, [workLogId, careTeamMemberId]);
 
-  const handleSetBaseRate = async (newBaseRate: number) => {
+  // Handler for updating base rate
+  const handleSetBaseRate = (newBaseRate: number) => {
+    setRateState(prev => ({
+      ...prev,
+      baseRate: newBaseRate
+    }));
+  };
+
+  // Handler for updating rate multiplier
+  const handleSetRateMultiplier = (newMultiplier: number) => {
+    if (newMultiplier < 0.5 || newMultiplier > 3.0) {
+      toast.error('Rate multiplier must be between 0.5x and 3.0x');
+      return;
+    }
+
+    setRateState(prev => ({
+      ...prev,
+      rateMultiplier: newMultiplier
+    }));
+  };
+
+  // Save rates to database
+  const saveRates = useCallback(async () => {
+    if (!workLogId || baseRate === null || rateMultiplier === null) {
+      return false;
+    }
+
+    setIsSaving(true);
+    
     try {
       const { error } = await supabase
         .from('work_logs')
-        .update({ base_rate: newBaseRate })
+        .update({ 
+          base_rate: baseRate, 
+          rate_multiplier: rateMultiplier 
+        })
         .eq('id', workLogId);
 
       if (error) throw error;
-      setBaseRate(newBaseRate);
-      toast.success('Base rate updated successfully');
+      toast.success('Pay rates updated successfully');
+      return true;
     } catch (error) {
-      console.error('Error updating base rate:', error);
-      toast.error('Failed to update base rate');
+      console.error('Error updating rates:', error);
+      toast.error('Failed to update pay rates');
+      return false;
+    } finally {
+      setIsSaving(false);
     }
-  };
-
-  const handleSetRateMultiplier = async (newMultiplier: number) => {
-    try {
-      if (newMultiplier < 0.5 || newMultiplier > 3.0) {
-        toast.error('Rate multiplier must be between 0.5x and 3.0x');
-        return;
-      }
-
-      const { error } = await supabase
-        .from('work_logs')
-        .update({ rate_multiplier: newMultiplier })
-        .eq('id', workLogId);
-
-      if (error) throw error;
-      setRateMultiplier(newMultiplier);
-      toast.success('Rate multiplier updated successfully');
-    } catch (error) {
-      console.error('Error updating rate multiplier:', error);
-      toast.error('Failed to update rate multiplier');
-    }
-  };
-
-  // Calculate the current effective rate
-  const currentRate = (baseRate || 25) * (rateMultiplier || 1);
+  }, [workLogId, baseRate, rateMultiplier]);
 
   return {
     baseRate,
     setBaseRate: handleSetBaseRate,
     rateMultiplier,
     setRateMultiplier: handleSetRateMultiplier,
+    saveRates,
     currentRate,
-    isLoading
+    isLoading,
+    isSaving
   };
 };
