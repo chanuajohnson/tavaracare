@@ -1,5 +1,4 @@
-
-import React, { useState, useEffect } from 'react';
+import React, { useState, KeyboardEvent } from 'react';
 import { 
   Select, 
   SelectContent, 
@@ -11,7 +10,8 @@ import { useWorkLogRate } from '@/hooks/payroll/useWorkLogRate';
 import { CustomRateMultiplierInput } from './CustomRateMultiplierInput';
 import { Button } from "@/components/ui/button";
 import { Pencil, Check } from "lucide-react";
-import { toast } from 'sonner';
+import { toast } from "sonner";
+import { Input } from "@/components/ui/input";
 
 interface PayRateSelectorProps {
   workLogId: string;
@@ -38,10 +38,8 @@ export const PayRateSelector: React.FC<PayRateSelectorProps> = ({
   const [customMultiplier, setCustomMultiplier] = useState(1);
   const [editMode, setEditMode] = useState(false);
   
-  // Check if the work log is editable based on status
   const isEditable = status === 'pending' || editMode;
 
-  // Multiplier options - define outside to avoid recreation on each render
   const multiplierOptions = [
     { value: 1, label: '1x (Regular)' },
     { value: 1.5, label: '1.5x (Overtime)' },
@@ -50,7 +48,6 @@ export const PayRateSelector: React.FC<PayRateSelectorProps> = ({
     { value: 'custom', label: 'Other (Custom)' }
   ];
 
-  // Check if current multiplier is a custom value
   useEffect(() => {
     if (rateMultiplier) {
       const isCustom = !multiplierOptions.some(opt => 
@@ -67,7 +64,6 @@ export const PayRateSelector: React.FC<PayRateSelectorProps> = ({
     return <div className="text-sm text-muted-foreground">Loading rates...</div>;
   }
 
-  // Base rate options from $25 to $100 in $5 increments
   const baseRateOptions = Array.from({length: 16}, (_, i) => 25 + i * 5);
 
   const getMultiplierDisplayValue = () => {
@@ -87,7 +83,6 @@ export const PayRateSelector: React.FC<PayRateSelectorProps> = ({
   const handleMultiplierChange = (value: string) => {
     if (value === 'custom') {
       setShowCustomMultiplier(true);
-      // Don't update the actual multiplier until a valid custom value is entered
     } else {
       setShowCustomMultiplier(false);
       setRateMultiplier(Number(value));
@@ -114,6 +109,32 @@ export const PayRateSelector: React.FC<PayRateSelectorProps> = ({
     setEditMode(!editMode);
   };
 
+  const handleRateKeyDown = async (e: KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && isEditable) {
+      e.preventDefault();
+      const newRate = Number((e.target as HTMLInputElement).value);
+      if (newRate >= 25 && newRate <= 100) {
+        setBaseRate(newRate);
+        const success = await saveRates();
+        if (success) {
+          toast.success('Base rate updated');
+        }
+      } else {
+        toast.error('Base rate must be between $25 and $100');
+      }
+    }
+  };
+
+  const handleMultiplierSave = async (newMultiplier: number) => {
+    if (isEditable) {
+      setRateMultiplier(newMultiplier);
+      const success = await saveRates();
+      if (!success) {
+        toast.error('Failed to save rate multiplier');
+      }
+    }
+  };
+
   return (
     <div className="space-y-2">
       {status !== 'pending' && !editMode ? (
@@ -135,22 +156,20 @@ export const PayRateSelector: React.FC<PayRateSelectorProps> = ({
       ) : (
         <div className="space-y-3">
           <div className="flex flex-wrap gap-2">
-            <Select 
-              value={baseRate?.toString()} 
-              onValueChange={(value) => setBaseRate(Number(value))}
-              disabled={!isEditable}
-            >
-              <SelectTrigger className="w-[100px]">
-                <SelectValue placeholder="Base Rate" />
-              </SelectTrigger>
-              <SelectContent>
-                {baseRateOptions.map((rate) => (
-                  <SelectItem key={rate} value={rate.toString()}>
-                    ${rate}/hr
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="w-[100px]">
+              <Input
+                type="number"
+                min={25}
+                max={100}
+                step={5}
+                value={baseRate || ''}
+                onChange={(e) => setBaseRate(Number(e.target.value))}
+                onKeyDown={handleRateKeyDown}
+                disabled={!isEditable}
+                className="w-full"
+                placeholder="Base Rate"
+              />
+            </div>
 
             <Select 
               value={showCustomMultiplier ? 'custom' : rateMultiplier?.toString()} 
@@ -179,6 +198,7 @@ export const PayRateSelector: React.FC<PayRateSelectorProps> = ({
             <CustomRateMultiplierInput
               value={customMultiplier}
               onChange={handleCustomMultiplierChange}
+              onSave={handleMultiplierSave}
               disabled={!isEditable}
             />
           )}

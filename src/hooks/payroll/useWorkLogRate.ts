@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { getWorkLogById } from '@/services/care-plans/workLogService';
@@ -18,16 +17,13 @@ export const useWorkLogRate = (workLogId: string, careTeamMemberId: string) => {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   
-  // Extract values from state for easier access
   const baseRate = rateState.baseRate;
   const rateMultiplier = rateState.rateMultiplier;
 
-  // Calculate the current effective rate with memoization
   const currentRate = useMemo(() => {
     return (rateState.baseRate || 25) * (rateState.rateMultiplier || 1);
   }, [rateState.baseRate, rateState.rateMultiplier]);
 
-  // Load initial rates
   useEffect(() => {
     const loadRates = async () => {
       if (!workLogId || !careTeamMemberId) {
@@ -54,7 +50,6 @@ export const useWorkLogRate = (workLogId: string, careTeamMemberId: string) => {
     loadRates();
   }, [workLogId, careTeamMemberId]);
 
-  // Handler for updating base rate
   const handleSetBaseRate = (newBaseRate: number) => {
     setRateState(prev => ({
       ...prev,
@@ -62,7 +57,6 @@ export const useWorkLogRate = (workLogId: string, careTeamMemberId: string) => {
     }));
   };
 
-  // Handler for updating rate multiplier
   const handleSetRateMultiplier = (newMultiplier: number) => {
     if (newMultiplier < 0.5 || newMultiplier > 3.0) {
       toast.error('Rate multiplier must be between 0.5x and 3.0x');
@@ -75,7 +69,6 @@ export const useWorkLogRate = (workLogId: string, careTeamMemberId: string) => {
     }));
   };
 
-  // Save rates to database
   const saveRates = useCallback(async () => {
     if (!workLogId || baseRate === null || rateMultiplier === null) {
       return false;
@@ -93,7 +86,15 @@ export const useWorkLogRate = (workLogId: string, careTeamMemberId: string) => {
         .eq('id', workLogId);
 
       if (error) throw error;
-      toast.success('Pay rates updated successfully');
+
+      const workLog = await getWorkLogById(workLogId);
+      if (workLog) {
+        setRateState({
+          baseRate: workLog.base_rate || 25,
+          rateMultiplier: workLog.rate_multiplier || 1
+        });
+      }
+
       return true;
     } catch (error) {
       console.error('Error updating rates:', error);
