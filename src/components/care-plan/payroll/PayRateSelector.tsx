@@ -1,4 +1,3 @@
-
 import React, { useState, KeyboardEvent, useEffect } from 'react';
 import { 
   Select, 
@@ -126,6 +125,17 @@ export const PayRateSelector: React.FC<PayRateSelectorProps> = ({
     }
   };
 
+  const handleMultiplierKeyDown = async (e: KeyboardEvent<HTMLDivElement>) => {
+    if (e.key === 'Enter' && isEditable && !showCustomMultiplier) {
+      e.preventDefault();
+      e.stopPropagation();
+      const success = await saveRates();
+      if (success) {
+        toast.success('Rate multiplier updated');
+      }
+    }
+  };
+
   const handleMultiplierSave = async (newMultiplier: number) => {
     if (isEditable) {
       setRateMultiplier(newMultiplier);
@@ -177,7 +187,10 @@ export const PayRateSelector: React.FC<PayRateSelectorProps> = ({
               onValueChange={handleMultiplierChange}
               disabled={!isEditable}
             >
-              <SelectTrigger className="w-[150px]">
+              <SelectTrigger 
+                className="w-[150px]"
+                onKeyDown={handleMultiplierKeyDown}
+              >
                 <SelectValue>
                   {getMultiplierDisplayValue()}
                 </SelectValue>
