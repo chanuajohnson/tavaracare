@@ -2,8 +2,10 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useWorkLogRate } from './useWorkLogRate';
 import { getWorkLogById } from '@/services/care-plans/workLogService';
+import type { WorkLog } from '@/services/care-plans/types/workLogTypes';
 
 export const useWorkLogPayDetails = (workLogId: string, hours: number, expenses: number = 0) => {
+  const [workLog, setWorkLog] = useState<WorkLog | null>(null);
   const [careTeamMemberId, setCareTeamMemberId] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
 
@@ -12,6 +14,7 @@ export const useWorkLogPayDetails = (workLogId: string, hours: number, expenses:
       try {
         const workLog = await getWorkLogById(workLogId);
         if (workLog) {
+          setWorkLog(workLog);
           setCareTeamMemberId(workLog.care_team_member_id);
         }
       } catch (error) {
@@ -24,15 +27,18 @@ export const useWorkLogPayDetails = (workLogId: string, hours: number, expenses:
     loadWorkLog();
   }, [workLogId]);
 
-  const { currentRate, lastSaveTime, isLoading: rateLoading } = useWorkLogRate(
-    workLogId,
-    careTeamMemberId
-  );
+  const { 
+    currentRate, 
+    baseRate, 
+    rateMultiplier,
+    lastSaveTime, 
+    isLoading: rateLoading 
+  } = useWorkLogRate(workLogId, careTeamMemberId);
 
   // Calculate total pay based on hours and rate using memoization
   const totalPayBeforeExpenses = useMemo(() => {
     return hours * currentRate;
-  }, [hours, currentRate, lastSaveTime]);
+  }, [hours, currentRate, baseRate, rateMultiplier, lastSaveTime]);
   
   const totalPay = useMemo(() => {
     return totalPayBeforeExpenses + expenses;
@@ -41,6 +47,7 @@ export const useWorkLogPayDetails = (workLogId: string, hours: number, expenses:
   return {
     rate: currentRate,
     totalPay,
-    isLoading: isLoading || rateLoading
+    isLoading: isLoading || rateLoading,
+    workLog
   };
 };

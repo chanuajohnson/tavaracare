@@ -3,7 +3,6 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { getWorkLogById } from '@/services/care-plans/workLogService';
 import { toast } from 'sonner';
-import { useMemo } from 'react';
 
 interface RateState {
   baseRate: number | null;
@@ -17,7 +16,7 @@ export const useWorkLogRate = (workLogId: string, careTeamMemberId: string) => {
   });
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [lastSaveTime, setLastSaveTime] = useState<number>(0);
+  const [lastSaveTime, setLastSaveTime] = useState<number>(Date.now());
   
   const baseRate = rateState.baseRate;
   const rateMultiplier = rateState.rateMultiplier;
@@ -89,7 +88,14 @@ export const useWorkLogRate = (workLogId: string, careTeamMemberId: string) => {
 
       if (error) throw error;
 
-      setLastSaveTime(Date.now()); // Trigger a refresh
+      // Update local state immediately
+      setRateState({
+        baseRate,
+        rateMultiplier
+      });
+      
+      // Trigger a refresh
+      setLastSaveTime(Date.now());
       return true;
     } catch (error) {
       console.error('Error updating rates:', error);
