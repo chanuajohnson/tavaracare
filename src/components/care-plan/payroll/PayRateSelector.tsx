@@ -13,6 +13,7 @@ import { BaseRateInput } from './rate-selector/BaseRateInput';
 import { RateDisplay } from './rate-selector/RateDisplay';
 import { SaveRatesButtons } from './rate-selector/SaveRatesButtons';
 import { toast } from "sonner";
+import { WorkLogRateProvider } from '@/hooks/payroll/WorkLogRateContext';
 
 interface PayRateSelectorProps {
   workLogId: string;
@@ -22,12 +23,9 @@ interface PayRateSelectorProps {
   rateMultiplier?: number;
 }
 
-export const PayRateSelector: React.FC<PayRateSelectorProps> = ({ 
-  workLogId, 
-  careTeamMemberId,
-  status = 'pending',
-  baseRate: initialBaseRate,
-  rateMultiplier: initialRateMultiplier
+// Separate the inner content to use the context
+const PayRateSelectorContent: React.FC<{ status?: string }> = ({ 
+  status = 'pending' 
 }) => {
   const {
     baseRate,
@@ -45,8 +43,9 @@ export const PayRateSelector: React.FC<PayRateSelectorProps> = ({
     getMultiplierDisplayValue,
     handleMultiplierChange,
     handleSaveRates,
-    toggleEditMode
-  } = useRateSelector(workLogId, careTeamMemberId, status, initialBaseRate, initialRateMultiplier);
+    toggleEditMode,
+    isDirty
+  } = useRateSelector(status);
 
   const handleRateKeyDown = async (e: KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && isEditable) {
@@ -146,7 +145,7 @@ export const PayRateSelector: React.FC<PayRateSelectorProps> = ({
         />
       )}
 
-      {(status !== 'pending' || isSaving) && (
+      {((status !== 'pending' || isSaving || isDirty) && isEditable) && (
         <SaveRatesButtons
           isSaving={isSaving}
           onSave={handleSaveRates}
@@ -155,5 +154,24 @@ export const PayRateSelector: React.FC<PayRateSelectorProps> = ({
         />
       )}
     </div>
+  );
+};
+
+export const PayRateSelector: React.FC<PayRateSelectorProps> = ({ 
+  workLogId, 
+  careTeamMemberId,
+  status = 'pending',
+  baseRate: initialBaseRate,
+  rateMultiplier: initialRateMultiplier
+}) => {
+  return (
+    <WorkLogRateProvider
+      workLogId={workLogId}
+      careTeamMemberId={careTeamMemberId}
+      initialBaseRate={initialBaseRate}
+      initialRateMultiplier={initialRateMultiplier}
+    >
+      <PayRateSelectorContent status={status} />
+    </WorkLogRateProvider>
   );
 };

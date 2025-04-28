@@ -1,25 +1,29 @@
 
 import { useState, useEffect, useMemo } from 'react';
-import { useWorkLogRate } from './useWorkLogRate';
+import { useWorkLogRateContext } from './WorkLogRateContext';
+import { WorkLogRateProvider } from './WorkLogRateContext';
 import type { WorkLog } from '@/services/care-plans/types/workLogTypes';
 
-export const useWorkLogPayDetails = (workLogId: string, hours: number, expenses: number = 0, initialWorkLog?: WorkLog) => {
-  // Use provided workLog directly if available, avoiding unnecessary fetch
-  const [workLog, setWorkLog] = useState<WorkLog | null>(initialWorkLog || null);
-  const [isLoading, setIsLoading] = useState(true);
-  const careTeamMemberId = workLog?.care_team_member_id || '';
+interface UseWorkLogPayDetailsResult {
+  rate: number;
+  totalPay: number;
+  isLoading: boolean;
+  lastSaveTime: number;
+}
 
-  // Use the rate hook with initial values from workLog if available
-  const { 
-    currentRate,
-    lastSaveTime,
-    isLoading: rateLoading 
-  } = useWorkLogRate(
-    workLogId, 
-    careTeamMemberId, 
-    workLog?.base_rate, 
-    workLog?.rate_multiplier
-  );
+export const useWorkLogPayDetails = (
+  workLogId: string, 
+  hours: number, 
+  expenses: number = 0, 
+  careTeamMemberId: string,
+  initialBaseRate?: number,
+  initialRateMultiplier?: number
+): UseWorkLogPayDetailsResult => {
+  const [isLoading, setIsLoading] = useState(true);
+  
+  // Use the WorkLogRateContext to get rate data
+  const { rateState, isLoading: rateLoading } = useWorkLogRateContext();
+  const { currentRate, lastSaveTime } = rateState;
   
   // Calculate derived values
   const totalPayBeforeExpenses = useMemo(() => {
@@ -31,21 +35,73 @@ export const useWorkLogPayDetails = (workLogId: string, hours: number, expenses:
   }, [totalPayBeforeExpenses, expenses]);
 
   useEffect(() => {
-    // If we already have the workLog data, no need to load
-    if (initialWorkLog) {
-      setWorkLog(initialWorkLog);
-      setIsLoading(false);
-      return;
-    }
-    
-    setIsLoading(true);
-  }, [initialWorkLog, workLogId]);
+    setIsLoading(false);
+  }, [currentRate]);
 
   return {
     rate: currentRate,
     totalPay,
     isLoading: isLoading || rateLoading,
-    workLog,
     lastSaveTime
   };
+};
+
+// This is a wrapper component to provide the context
+export const WorkLogPayDetailsProvider: React.FC<{
+  children: (result: UseWorkLogPayDetailsResult) => React.ReactNode;
+  workLogId: string;
+  hours: number;
+  expenses?: number;
+  careTeamMemberId: string;
+  initialBaseRate?: number;
+  initialRateMultiplier?: number;
+}> = ({
+  children,
+  workLogId,
+  hours,
+  expenses = 0,
+  careTeamMemberId,
+  initialBaseRate,
+  initialRateMultiplier
+}) => {
+  return (
+    <WorkLogRateProvider
+      workLogId={workLogId}
+      careTeamMemberId={careTeamMemberId}
+      initialBaseRate={initialBaseRate}
+      initialRateMultiplier={initialRateMultiplier}
+    >
+      <WorkLogPayDetailsConsumer hours={hours} expenses={expenses}>
+        {children}
+      </WorkLogPayDetailsConsumer>
+    </WorkLogRateProvider>
+  );
+};
+
+// Internal consumer component
+const WorkLogPayDetailsConsumer: React.FC<{
+  children: (result: UseWorkLogPayDetailsResult) => React.ReactNode;
+  hours: number;
+  expenses: number;
+}> = ({ children, hours, expenses }) => {
+  const { rateState, isLoading: rateLoading } = useWorkLogRateContext();
+  const { currentRate, lastSaveTime } = rateState;
+  
+  // Calculate derived values
+  const totalPayBeforeExpenses = useMemo(() => {
+    return hours * (currentRate || 0);
+  }, [hours, currentRate]);
+  
+  const totalPay = useMemo(() => {
+    return totalPayBeforeExpenses + expenses;
+  }, [totalPayBeforeExpenses, expenses]);
+
+  const result: UseWorkLogPayDetailsResult = {
+    rate: currentRate,
+    totalPay,
+    isLoading: rateLoading,
+    lastSaveTime
+  };
+
+  return <>{children(result)}</>;
 };

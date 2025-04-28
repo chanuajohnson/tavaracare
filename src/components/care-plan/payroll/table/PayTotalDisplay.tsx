@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from "react";
-import { useWorkLogRate } from "@/hooks/payroll/useWorkLogRate";
+import { WorkLogRateProvider, useWorkLogRateContext } from "@/hooks/payroll/WorkLogRateContext";
 
 interface PayTotalDisplayProps {
   workLogId: string;
@@ -11,36 +11,18 @@ interface PayTotalDisplayProps {
   rateMultiplier?: number;
 }
 
-export const PayTotalDisplay = ({ 
-  workLogId, 
-  hours, 
-  expenses,
-  careTeamMemberId,
-  baseRate: initialBaseRate,
-  rateMultiplier: initialRateMultiplier 
-}: PayTotalDisplayProps) => {
+const PayTotalContent = ({ hours, expenses }: { hours: number; expenses: number }) => {
   const [totalPay, setTotalPay] = useState<number>(0);
+  const { rateState, isLoading } = useWorkLogRateContext();
+  const { baseRate, rateMultiplier, currentRate, lastSaveTime } = rateState;
   
-  const { 
-    baseRate,
-    rateMultiplier,
-    currentRate,
-    isLoading,
-    lastSaveTime
-  } = useWorkLogRate(
-    workLogId, 
-    careTeamMemberId, 
-    initialBaseRate,
-    initialRateMultiplier
-  );
-
-  // Recalculate total pay whenever rate or hours change
+  // Recalculate total pay whenever rate data changes
   useEffect(() => {
     if (currentRate) {
       const payBeforeExpenses = hours * currentRate;
       setTotalPay(payBeforeExpenses + expenses);
     }
-  }, [hours, currentRate, expenses, lastSaveTime]);
+  }, [hours, expenses, currentRate, lastSaveTime]);
   
   if (isLoading) {
     return <div className="text-muted-foreground">Calculating...</div>;
@@ -54,5 +36,25 @@ export const PayTotalDisplay = ({
         {expenses > 0 ? ` + $${expenses.toFixed(2)} expenses` : ''}
       </div>
     </div>
+  );
+};
+
+export const PayTotalDisplay = ({ 
+  workLogId, 
+  hours, 
+  expenses,
+  careTeamMemberId,
+  baseRate: initialBaseRate,
+  rateMultiplier: initialRateMultiplier 
+}: PayTotalDisplayProps) => {
+  return (
+    <WorkLogRateProvider
+      workLogId={workLogId}
+      careTeamMemberId={careTeamMemberId}
+      initialBaseRate={initialBaseRate}
+      initialRateMultiplier={initialRateMultiplier}
+    >
+      <PayTotalContent hours={hours} expenses={expenses} />
+    </WorkLogRateProvider>
   );
 };

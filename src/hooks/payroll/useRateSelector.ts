@@ -1,7 +1,7 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, KeyboardEvent } from 'react';
 import { toast } from "sonner";
-import { useWorkLogRate } from './useWorkLogRate';
+import { useWorkLogRateContext } from './WorkLogRateContext';
 import type { RateType } from '@/services/care-plans/types/workLogTypes';
 
 export interface RateMultiplierOption {
@@ -10,36 +10,29 @@ export interface RateMultiplierOption {
 }
 
 export const useRateSelector = (
-  workLogId: string,
-  careTeamMemberId: string,
-  status: string = 'pending',
-  initialBaseRate?: number,
-  initialRateMultiplier?: number
+  status: string = 'pending'
 ) => {
   const { 
-    baseRate, 
+    rateState,
     setBaseRate, 
-    rateMultiplier, 
     setRateMultiplier,
-    rateType,
     setRateType,
     saveRates,
     isLoading,
-    isSaving
-  } = useWorkLogRate(workLogId, careTeamMemberId, initialBaseRate, initialRateMultiplier);
+  } = useWorkLogRateContext();
 
   const [showCustomMultiplier, setShowCustomMultiplier] = useState(false);
-  const [customMultiplier, setCustomMultiplier] = useState(() => initialRateMultiplier || 1);
+  const [customMultiplier, setCustomMultiplier] = useState(() => rateState.rateMultiplier || 1);
   const [editMode, setEditMode] = useState(false);
 
-  // Set custom multiplier mode if initial rate multiplier isn't a standard value
+  // Update custom multiplier when rateMultiplier changes
   useEffect(() => {
-    if (rateMultiplier) {
-      const isStandardMultiplier = [1, 1.5, 2, 3].includes(rateMultiplier);
+    if (rateState.rateMultiplier) {
+      const isStandardMultiplier = [1, 1.5, 2, 3].includes(rateState.rateMultiplier);
       setShowCustomMultiplier(!isStandardMultiplier);
-      setCustomMultiplier(rateMultiplier);
+      setCustomMultiplier(rateState.rateMultiplier);
     }
-  }, [rateMultiplier]);
+  }, [rateState.rateMultiplier]);
 
   const isEditable = status === 'pending' || editMode;
 
@@ -52,17 +45,17 @@ export const useRateSelector = (
   ];
 
   const getMultiplierDisplayValue = () => {
-    if (!rateMultiplier) return '';
+    if (!rateState.rateMultiplier) return '';
     
     const standardOption = multiplierOptions.find(opt => 
-      typeof opt.value === 'number' && opt.value === rateMultiplier
+      typeof opt.value === 'number' && opt.value === rateState.rateMultiplier
     );
     
     if (standardOption) {
       return standardOption.label;
     }
     
-    return `${rateMultiplier}x (Custom)`;
+    return `${rateState.rateMultiplier}x (Custom)`;
   };
 
   const handleMultiplierChange = (value: string) => {
@@ -90,9 +83,9 @@ export const useRateSelector = (
   };
 
   return {
-    baseRate,
+    baseRate: rateState.baseRate,
     setBaseRate,
-    rateMultiplier,
+    rateMultiplier: rateState.rateMultiplier,
     setRateMultiplier,
     showCustomMultiplier,
     customMultiplier,
@@ -100,11 +93,12 @@ export const useRateSelector = (
     editMode,
     isEditable,
     isLoading,
-    isSaving,
+    isSaving: rateState.isSaving,
     multiplierOptions,
     getMultiplierDisplayValue,
     handleMultiplierChange,
     handleSaveRates,
-    toggleEditMode
+    toggleEditMode,
+    isDirty: rateState.isDirty
   };
 };

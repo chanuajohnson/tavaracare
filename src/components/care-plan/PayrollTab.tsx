@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -8,6 +9,7 @@ import { RejectWorkLogDialog } from './payroll/RejectWorkLogDialog';
 import { ProcessPaymentDialog } from './payroll/ProcessPaymentDialog';
 import { usePayrollData } from '@/hooks/payroll/usePayrollData';
 import { usePayrollFilters } from '@/hooks/payroll/usePayrollFilters';
+import { PayrollRealtimeInitializer } from './payroll/PayrollRealtimeInitializer';
 
 interface PayrollTabProps {
   carePlanId: string;
@@ -93,6 +95,9 @@ export const PayrollTab: React.FC<PayrollTabProps> = ({ carePlanId }) => {
 
   return (
     <div className="space-y-6">
+      {/* Initialize realtime subscriptions */}
+      <PayrollRealtimeInitializer />
+      
       <Tabs defaultValue="worklogs" onValueChange={setCurrentTab}>
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
           <TabsList>

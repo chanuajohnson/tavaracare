@@ -97,6 +97,19 @@ export const isSupabaseExperiencingIssues = () => {
   return false;
 };
 
+// Enable realtime for a specific table
+export const enableRealtimeForTable = async (tableName: string) => {
+  try {
+    await supabase.rpc('supabase_realtime.enable_subscription', {
+      table_name: tableName
+    });
+    return true;
+  } catch (err) {
+    console.error(`[enableRealtimeForTable] Error enabling realtime for ${tableName}:`, err);
+    return false;
+  }
+};
+
 // Re-export everything
 export { 
   supabase, 
