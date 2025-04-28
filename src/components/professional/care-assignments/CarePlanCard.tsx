@@ -1,8 +1,7 @@
 
-import { Card, CardContent, CardFooter } from "@/components/ui/card";
+import React from 'react';
+import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Check } from "lucide-react";
 import { CarePlan } from "@/types/carePlan";
 
 interface CarePlanCardProps {
@@ -11,51 +10,51 @@ interface CarePlanCardProps {
   onSelect: () => void;
 }
 
-export const CarePlanCard: React.FC<CarePlanCardProps> = ({ 
-  carePlan, 
+export const CarePlanCard: React.FC<CarePlanCardProps> = ({
+  carePlan,
   isSelected,
-  onSelect 
+  onSelect
 }) => {
-  const getStatusColor = (status: string) => {
+  // Get badge color based on status
+  const getBadgeColor = (status: string) => {
     switch (status) {
       case 'active':
-        return 'bg-green-100 text-green-800';
+        return 'bg-green-100 text-green-800 border-green-200';
       case 'completed':
-        return 'bg-blue-100 text-blue-800';
+        return 'bg-blue-100 text-blue-800 border-blue-200';
       case 'cancelled':
-        return 'bg-red-100 text-red-800';
+        return 'bg-gray-100 text-gray-800 border-gray-200';
       default:
-        return 'bg-gray-100 text-gray-800';
+        return 'bg-gray-100 text-gray-800 border-gray-200';
     }
   };
 
+  // Format date to readable string
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString();
+  };
+
   return (
-    <Card className={`cursor-pointer transition-all ${
-      isSelected ? 'border-primary shadow-md' : 'hover:border-primary/50'
-    }`} onClick={onSelect}>
-      <CardContent className="pt-6">
-        <div className="space-y-2">
-          <div className="flex items-start justify-between">
-            <h3 className="font-medium text-lg truncate">{carePlan.title}</h3>
-            <Badge className={getStatusColor(carePlan.status)}>
-              {carePlan.status}
-            </Badge>
-          </div>
-          <p className="text-sm text-muted-foreground line-clamp-2">
-            {carePlan.description || "No description available"}
-          </p>
-        </div>
-      </CardContent>
-      <CardFooter className="flex justify-between">
-        <Button variant="ghost" size="sm" className="text-xs">
-          View Details
-        </Button>
-        {isSelected && (
-          <Badge variant="outline" className="bg-primary/10 text-primary">
-            <Check className="h-3 w-3 mr-1" /> Selected
-          </Badge>
-        )}
-      </CardFooter>
+    <Card 
+      className={`p-4 cursor-pointer transition-colors hover:bg-muted/60 ${
+        isSelected ? 'bg-primary-100 border-primary' : ''
+      }`}
+      onClick={onSelect}
+    >
+      <div className="flex justify-between items-start">
+        <h3 className="font-medium">{carePlan.title}</h3>
+        <Badge variant="outline" className={getBadgeColor(carePlan.status)}>
+          {carePlan.status.charAt(0).toUpperCase() + carePlan.status.slice(1)}
+        </Badge>
+      </div>
+      
+      <p className="text-sm text-muted-foreground mt-2 line-clamp-2">
+        {carePlan.description || 'No description provided'}
+      </p>
+      
+      <div className="mt-4 text-xs text-muted-foreground">
+        Created: {formatDate(carePlan.createdAt)}
+      </div>
     </Card>
   );
 };

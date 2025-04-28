@@ -35,6 +35,7 @@ export const ProfessionalScheduleCalendar: React.FC<ProfessionalScheduleCalendar
 
   const getShiftsForDay = (day: Date) => {
     return shifts.filter(shift => {
+      if (!shift.startTime) return false;
       const shiftDate = new Date(shift.startTime);
       return isSameDay(shiftDate, day);
     });
@@ -62,7 +63,8 @@ export const ProfessionalScheduleCalendar: React.FC<ProfessionalScheduleCalendar
     return plan?.title || "Unknown Care Plan";
   };
   
-  const getTimeDisplay = (dateString: string) => {
+  const getTimeDisplay = (dateString: string | null | undefined) => {
+    if (!dateString) return "N/A";
     const date = new Date(dateString);
     return format(date, "h:mm a");
   };
