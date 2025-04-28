@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { toast } from "sonner";
 import { useWorkLogRate } from './useWorkLogRate';
 import type { RateType } from '@/services/care-plans/types/workLogTypes';
@@ -12,7 +12,9 @@ export interface RateMultiplierOption {
 export const useRateSelector = (
   workLogId: string,
   careTeamMemberId: string,
-  status: string = 'pending'
+  status: string = 'pending',
+  initialBaseRate?: number,
+  initialRateMultiplier?: number
 ) => {
   const { 
     baseRate, 
@@ -24,11 +26,20 @@ export const useRateSelector = (
     saveRates,
     isLoading,
     isSaving
-  } = useWorkLogRate(workLogId, careTeamMemberId);
+  } = useWorkLogRate(workLogId, careTeamMemberId, initialBaseRate, initialRateMultiplier);
 
   const [showCustomMultiplier, setShowCustomMultiplier] = useState(false);
-  const [customMultiplier, setCustomMultiplier] = useState(1);
+  const [customMultiplier, setCustomMultiplier] = useState(() => initialRateMultiplier || 1);
   const [editMode, setEditMode] = useState(false);
+
+  // Set custom multiplier mode if initial rate multiplier isn't a standard value
+  useEffect(() => {
+    if (rateMultiplier) {
+      const isStandardMultiplier = [1, 1.5, 2, 3].includes(rateMultiplier);
+      setShowCustomMultiplier(!isStandardMultiplier);
+      setCustomMultiplier(rateMultiplier);
+    }
+  }, [rateMultiplier]);
 
   const isEditable = status === 'pending' || editMode;
 

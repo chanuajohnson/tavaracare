@@ -18,12 +18,16 @@ interface PayRateSelectorProps {
   workLogId: string;
   careTeamMemberId: string;
   status?: string;
+  baseRate?: number;
+  rateMultiplier?: number;
 }
 
 export const PayRateSelector: React.FC<PayRateSelectorProps> = ({ 
   workLogId, 
   careTeamMemberId,
-  status = 'pending'
+  status = 'pending',
+  baseRate: initialBaseRate,
+  rateMultiplier: initialRateMultiplier
 }) => {
   const {
     baseRate,
@@ -42,7 +46,7 @@ export const PayRateSelector: React.FC<PayRateSelectorProps> = ({
     handleMultiplierChange,
     handleSaveRates,
     toggleEditMode
-  } = useRateSelector(workLogId, careTeamMemberId, status);
+  } = useRateSelector(workLogId, careTeamMemberId, status, initialBaseRate, initialRateMultiplier);
 
   const handleRateKeyDown = async (e: KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && isEditable) {

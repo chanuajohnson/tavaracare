@@ -9,12 +9,7 @@ export const useWorkLogPayDetails = (workLogId: string, hours: number, expenses:
   const [careTeamMemberId, setCareTeamMemberId] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
 
-  const { 
-    currentRate,
-    lastSaveTime,
-    isLoading: rateLoading 
-  } = useWorkLogRate(workLogId, careTeamMemberId);
-
+  // Initial load of work log to get care_team_member_id
   useEffect(() => {
     const loadWorkLog = async () => {
       try {
@@ -32,6 +27,37 @@ export const useWorkLogPayDetails = (workLogId: string, hours: number, expenses:
     };
 
     loadWorkLog();
+  }, [workLogId]);
+
+  const { 
+    currentRate,
+    lastSaveTime,
+    isLoading: rateLoading 
+  } = useWorkLogRate(
+    workLogId, 
+    careTeamMemberId, 
+    workLog?.base_rate, 
+    workLog?.rate_multiplier
+  );
+  
+  // Reload work log when rates change
+  useEffect(() => {
+    const refreshWorkLog = async () => {
+      if (!workLogId) return;
+      
+      try {
+        const updatedWorkLog = await getWorkLogById(workLogId);
+        if (updatedWorkLog) {
+          setWorkLog(updatedWorkLog);
+        }
+      } catch (error) {
+        console.error('Error refreshing work log:', error);
+      }
+    };
+
+    if (lastSaveTime > 0) {
+      refreshWorkLog();
+    }
   }, [workLogId, lastSaveTime]);
 
   const totalPayBeforeExpenses = useMemo(() => {

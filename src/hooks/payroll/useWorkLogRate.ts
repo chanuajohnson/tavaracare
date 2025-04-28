@@ -11,13 +11,18 @@ interface RateState {
   rateType: RateType;
 }
 
-export const useWorkLogRate = (workLogId: string, careTeamMemberId: string) => {
+export const useWorkLogRate = (
+  workLogId: string, 
+  careTeamMemberId: string,
+  initialBaseRate?: number,
+  initialRateMultiplier?: number
+) => {
   const [rateState, setRateState] = useState<RateState>({
-    baseRate: null,
-    rateMultiplier: null,
+    baseRate: initialBaseRate || null,
+    rateMultiplier: initialRateMultiplier || null,
     rateType: 'regular'
   });
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(!initialBaseRate || !initialRateMultiplier);
   const [isSaving, setIsSaving] = useState(false);
   const [lastSaveTime, setLastSaveTime] = useState<number>(Date.now());
 
@@ -32,7 +37,7 @@ export const useWorkLogRate = (workLogId: string, careTeamMemberId: string) => {
 
   useEffect(() => {
     const loadRates = async () => {
-      if (!workLogId || !careTeamMemberId) {
+      if (!workLogId) {
         setIsLoading(false);
         return;
       }
@@ -40,11 +45,11 @@ export const useWorkLogRate = (workLogId: string, careTeamMemberId: string) => {
       try {
         const workLog = await getWorkLogById(workLogId);
         if (workLog) {
-          setRateState({
-            baseRate: workLog.base_rate || 25,
-            rateMultiplier: workLog.rate_multiplier || 1,
+          setRateState(prev => ({
+            baseRate: workLog.base_rate !== null ? workLog.base_rate : prev.baseRate || 25,
+            rateMultiplier: workLog.rate_multiplier !== null ? workLog.rate_multiplier : prev.rateMultiplier || 1,
             rateType: workLog.rate_type || 'regular'
-          });
+          }));
         }
       } catch (error) {
         console.error('Error loading rates:', error);
@@ -54,17 +59,20 @@ export const useWorkLogRate = (workLogId: string, careTeamMemberId: string) => {
       }
     };
 
-    loadRates();
-  }, [workLogId, careTeamMemberId, lastSaveTime]);
+    // Only load from database if no initial values provided
+    if (!initialBaseRate || !initialRateMultiplier) {
+      loadRates();
+    }
+  }, [workLogId, careTeamMemberId, lastSaveTime, initialBaseRate, initialRateMultiplier]);
 
-  const handleSetBaseRate = async (newBaseRate: number) => {
+  const handleSetBaseRate = (newBaseRate: number) => {
     setRateState(prev => ({
       ...prev,
       baseRate: newBaseRate
     }));
   };
 
-  const handleSetRateMultiplier = async (newMultiplier: number) => {
+  const handleSetRateMultiplier = (newMultiplier: number) => {
     if (newMultiplier < 0.5 || newMultiplier > 3.0) {
       toast.error('Rate multiplier must be between 0.5x and 3.0x');
       return;
@@ -84,7 +92,7 @@ export const useWorkLogRate = (workLogId: string, careTeamMemberId: string) => {
     }));
   };
 
-  const saveRates = useCallback(async () => {
+  const saveRates = useCallback(async (): Promise<boolean> => {
     if (!workLogId || baseRate === null || rateMultiplier === null) {
       return false;
     }
@@ -104,7 +112,6 @@ export const useWorkLogRate = (workLogId: string, careTeamMemberId: string) => {
       if (error) throw error;
 
       setLastSaveTime(Date.now());
-      toast.success('Pay rates updated successfully');
       return true;
     } catch (error) {
       console.error('Error updating rates:', error);

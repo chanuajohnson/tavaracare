@@ -109,6 +109,8 @@ export const WorkLogsTable: React.FC<WorkLogsTableProps> = ({
                     workLogId={workLog.id} 
                     careTeamMemberId={workLog.care_team_member_id}
                     status={workLog.status}
+                    baseRate={workLog.base_rate}
+                    rateMultiplier={workLog.rate_multiplier}
                   />
                 </TableCell>
                 <TableCell>
@@ -203,4 +205,3 @@ const PayTotalDisplay: React.FC<{ workLogId: string; hours: number; expenses: nu
     </div>
   );
 };
-
