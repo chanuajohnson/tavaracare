@@ -1,4 +1,3 @@
-
 import { motion } from "framer-motion";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -946,8 +945,7 @@ const ProfessionalProfileHub = () => {
                             {carePlans.slice(0, 2).map((plan) => (
                               <CareAssignmentCard 
                                 key={plan.id} 
-                                carePlan={plan.care_plans} 
-                                assignment={plan}
+                                assignment={plan} 
                                 className="h-auto"
                               />
                             ))}
