@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '@/lib/supabase';
 import { getWorkLogById } from '@/services/care-plans/workLogService';
@@ -27,12 +28,12 @@ export const useWorkLogRate = (workLogId: string, careTeamMemberId: string) => {
     const base = rateState.baseRate || 25;
     const multiplier = rateState.rateMultiplier || 1;
     
-    // Apply specific multipliers based on rate type
+    // Apply rate multiplier based on rate type
     switch (rateState.rateType) {
       case 'overtime':
         return base * 1.5;
       case 'regular':
-        return base; // Regular rate is just the base rate
+        return base * multiplier;
       case 'custom':
         return base * multiplier;
       default:
@@ -82,38 +83,21 @@ export const useWorkLogRate = (workLogId: string, careTeamMemberId: string) => {
 
     setRateState(prev => ({
       ...prev,
-      rateMultiplier: newMultiplier,
-      rateType: 'custom' // When setting a custom multiplier, update rate type
+      rateMultiplier: newMultiplier
     }));
   };
 
   const handleSetRateType = (rateType: string) => {
-    let multiplier = rateState.rateMultiplier;
-    
-    // Set appropriate multiplier based on rate type
-    switch (rateType) {
-      case 'regular':
-        multiplier = 1;
-        break;
-      case 'overtime':
-        multiplier = 1.5;
-        break;
-      // For custom, keep existing multiplier
-      case 'custom':
-        break;
-      default:
-        multiplier = 1;
-    }
-
     setRateState(prev => ({
       ...prev,
       rateType,
-      rateMultiplier: multiplier
+      // Set appropriate multiplier based on rate type
+      rateMultiplier: rateType === 'overtime' ? 1.5 : prev.rateMultiplier
     }));
   };
 
   const saveRates = useCallback(async () => {
-    if (!workLogId || baseRate === null) {
+    if (!workLogId || baseRate === null || rateMultiplier === null) {
       return false;
     }
 
@@ -124,7 +108,7 @@ export const useWorkLogRate = (workLogId: string, careTeamMemberId: string) => {
         .from('work_logs')
         .update({ 
           base_rate: baseRate,
-          rate_multiplier: rateState.rateMultiplier || 1,
+          rate_multiplier: rateMultiplier,
           rate_type: rateState.rateType
         })
         .eq('id', workLogId);
@@ -141,7 +125,7 @@ export const useWorkLogRate = (workLogId: string, careTeamMemberId: string) => {
     } finally {
       setIsSaving(false);
     }
-  }, [workLogId, baseRate, rateState.rateMultiplier, rateState.rateType]);
+  }, [workLogId, baseRate, rateMultiplier, rateState.rateType]);
 
   return {
     baseRate,

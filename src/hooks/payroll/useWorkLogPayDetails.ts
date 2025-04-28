@@ -14,8 +14,7 @@ export const useWorkLogPayDetails = (workLogId: string, hours: number, expenses:
     baseRate, 
     rateMultiplier,
     lastSaveTime,
-    isLoading: rateLoading,
-    rateType 
+    isLoading: rateLoading 
   } = useWorkLogRate(workLogId, careTeamMemberId);
 
   useEffect(() => {
@@ -38,7 +37,6 @@ export const useWorkLogPayDetails = (workLogId: string, hours: number, expenses:
   }, [workLogId, lastSaveTime]);
 
   const totalPayBeforeExpenses = useMemo(() => {
-    // Use currentRate which already includes rate type and multiplier logic
     return hours * currentRate;
   }, [hours, currentRate, lastSaveTime]);
   
@@ -51,7 +49,6 @@ export const useWorkLogPayDetails = (workLogId: string, hours: number, expenses:
     totalPay,
     isLoading: isLoading || rateLoading,
     workLog,
-    lastSaveTime,
-    rateType
+    lastSaveTime
   };
 };
