@@ -1,11 +1,10 @@
 
 import { useState, useEffect, useMemo } from 'react';
-import { useWorkLogRateContext } from './WorkLogRateContext';
-import { WorkLogRateProvider } from './WorkLogRateContext';
+import { useWorkLogRateContext, WorkLogRateProvider } from './WorkLogRateContext';
 import type { WorkLog } from '@/services/care-plans/types/workLogTypes';
 
 interface UseWorkLogPayDetailsResult {
-  rate: number;
+  rate: number | null;
   totalPay: number;
   isLoading: boolean;
   lastSaveTime: number;
