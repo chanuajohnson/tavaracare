@@ -45,46 +45,21 @@ export const useWorkLogPayDetails = (
   };
 };
 
-// This is a wrapper component to provide the context
-export const WorkLogPayDetailsProvider: React.FC<{
-  children: (result: UseWorkLogPayDetailsResult) => React.ReactNode;
-  workLogId: string;
-  hours: number;
-  expenses?: number;
-  careTeamMemberId: string;
-  initialBaseRate?: number;
-  initialRateMultiplier?: number;
-}> = ({
-  children,
-  workLogId,
-  hours,
-  expenses = 0,
-  careTeamMemberId,
-  initialBaseRate,
-  initialRateMultiplier
-}) => {
-  return (
-    <WorkLogRateProvider
-      workLogId={workLogId}
-      careTeamMemberId={careTeamMemberId}
-      initialBaseRate={initialBaseRate}
-      initialRateMultiplier={initialRateMultiplier}
-    >
-      <WorkLogPayDetailsConsumer hours={hours} expenses={expenses} workLogId={workLogId} careTeamMemberId={careTeamMemberId}>
-        {children}
-      </WorkLogPayDetailsConsumer>
-    </WorkLogRateProvider>
-  );
-};
-
-// Internal consumer component
-const WorkLogPayDetailsConsumer: React.FC<{
+interface WorkLogPayDetailsConsumerProps {
   children: (result: UseWorkLogPayDetailsResult) => React.ReactNode;
   hours: number;
   expenses: number;
   workLogId: string;
   careTeamMemberId: string;
-}> = ({ children, hours, expenses, workLogId, careTeamMemberId }) => {
+}
+
+const WorkLogPayDetailsConsumer: React.FC<WorkLogPayDetailsConsumerProps> = ({
+  children,
+  hours,
+  expenses,
+  workLogId,
+  careTeamMemberId
+}) => {
   const { rateState, isLoading: rateLoading } = useWorkLogRateContext();
   const { currentRate, lastSaveTime } = rateState;
   
@@ -105,4 +80,42 @@ const WorkLogPayDetailsConsumer: React.FC<{
   };
 
   return <>{children(result)}</>;
+};
+
+interface WorkLogPayDetailsProviderProps {
+  children: (result: UseWorkLogPayDetailsResult) => React.ReactNode;
+  workLogId: string;
+  hours: number;
+  expenses?: number;
+  careTeamMemberId: string;
+  initialBaseRate?: number;
+  initialRateMultiplier?: number;
+}
+
+export const WorkLogPayDetailsProvider: React.FC<WorkLogPayDetailsProviderProps> = ({
+  children,
+  workLogId,
+  hours,
+  expenses = 0,
+  careTeamMemberId,
+  initialBaseRate,
+  initialRateMultiplier
+}) => {
+  return (
+    <WorkLogRateProvider
+      workLogId={workLogId}
+      careTeamMemberId={careTeamMemberId}
+      initialBaseRate={initialBaseRate}
+      initialRateMultiplier={initialRateMultiplier}
+    >
+      <WorkLogPayDetailsConsumer 
+        hours={hours} 
+        expenses={expenses} 
+        workLogId={workLogId} 
+        careTeamMemberId={careTeamMemberId}
+      >
+        {children}
+      </WorkLogPayDetailsConsumer>
+    </WorkLogRateProvider>
+  );
 };
