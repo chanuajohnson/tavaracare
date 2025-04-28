@@ -1,15 +1,9 @@
 
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
-import { 
-  CareTeamMember, 
-  CareTeamMemberDto, 
-  CareTeamMemberInput,
-  CareTeamMemberWithProfile, 
-  ProfessionalDetails 
-} from "@/types/careTypes";
+import { CareTeamMember, CareTeamMemberWithProfile, CareTeamMemberDto, CareTeamMemberInput } from "@/types/careTypes";
 
-// Adapter to convert DB format to domain model
+// Adapters for converting between domain and database models
 const adaptCareTeamMemberFromDb = (dbMember: CareTeamMemberDto): CareTeamMember => ({
   id: dbMember.id!,
   carePlanId: dbMember.care_plan_id,
@@ -22,8 +16,8 @@ const adaptCareTeamMemberFromDb = (dbMember: CareTeamMemberDto): CareTeamMember 
   updatedAt: dbMember.updated_at || new Date().toISOString()
 });
 
-// Adapter to convert domain model to DB format
-const adaptCareTeamMemberToDb = (member: CareTeamMemberInput): CareTeamMemberDto => ({
+const adaptCareTeamMemberToDb = (member: Partial<CareTeamMember>): Partial<CareTeamMemberDto> => ({
+  id: member.id,
   care_plan_id: member.carePlanId,
   family_id: member.familyId,
   caregiver_id: member.caregiverId,
@@ -32,105 +26,109 @@ const adaptCareTeamMemberToDb = (member: CareTeamMemberInput): CareTeamMemberDto
   notes: member.notes
 });
 
-export const fetchCareTeamMembers = async (carePlanId: string): Promise<CareTeamMemberWithProfile[]> => {
+export const fetchCareTeamMembers = async (planId: string): Promise<CareTeamMemberWithProfile[]> => {
   try {
-    console.log(`Fetching care team members for care plan: ${carePlanId}`);
-    
     const { data, error } = await supabase
       .from('care_team_members')
       .select(`
         *,
-        profiles:profiles(
+        profiles!caregiver_id(
           full_name,
           professional_type,
           avatar_url
         )
       `)
-      .eq('care_plan_id', carePlanId);
-    
+      .eq('care_plan_id', planId)
+      .order('created_at', { ascending: true });
+
     if (error) {
-      console.error("Error fetching care team members:", error);
       throw error;
     }
-    
-    console.log(`Retrieved ${data?.length || 0} care team members`);
-    
-    // Transform the data to match the CareTeamMemberWithProfile interface
-    return (data || []).map(member => {
-      const baseTeamMember = adaptCareTeamMemberFromDb(member as CareTeamMemberDto);
-      
-      // Add profile information
-      return {
-        ...baseTeamMember,
-        professionalDetails: member.profiles as ProfessionalDetails
-      };
-    });
+
+    return (data || []).map(member => ({
+      ...adaptCareTeamMemberFromDb(member as CareTeamMemberDto),
+      professionalDetails: {
+        full_name: member.profiles?.full_name,
+        professional_type: member.profiles?.professional_type,
+        avatar_url: member.profiles?.avatar_url
+      }
+    }));
   } catch (error) {
-    console.error("Failed to fetch care team members:", error);
+    console.error("Error fetching care team members:", error);
     toast.error("Failed to load care team members");
     return [];
   }
 };
 
-export const addCareTeamMember = async (member: CareTeamMemberInput): Promise<CareTeamMemberWithProfile | null> => {
+export const inviteCareTeamMember = async (
+  member: CareTeamMemberInput
+): Promise<CareTeamMember | null> => {
   try {
-    const dbMember = adaptCareTeamMemberToDb(member);
-    
+    // Convert from domain model input to database model
+    const dbMember: CareTeamMemberDto = {
+      care_plan_id: member.carePlanId,
+      family_id: member.familyId,
+      caregiver_id: member.caregiverId,
+      role: member.role,
+      status: member.status || 'invited',
+      notes: member.notes
+    };
+
     const { data, error } = await supabase
       .from('care_team_members')
       .insert([dbMember])
-      .select(`
-        *,
-        profiles:profiles(
-          full_name,
-          professional_type,
-          avatar_url
-        )
-      `)
+      .select()
       .single();
-    
+
     if (error) {
-      console.error("Error adding care team member:", error);
       throw error;
     }
+
+    toast.success("Team member assigned successfully");
     
-    if (!data) {
-      throw new Error("No data returned after adding care team member");
-    }
-    
-    const baseTeamMember = adaptCareTeamMemberFromDb(data as CareTeamMemberDto);
-    
-    return {
-      ...baseTeamMember,
-      professionalDetails: data.profiles as ProfessionalDetails
-    };
+    return data ? adaptCareTeamMemberFromDb(data as CareTeamMemberDto) : null;
   } catch (error) {
-    console.error("Failed to add care team member:", error);
-    toast.error("Failed to add team member");
+    console.error("Error assigning team member:", error);
+    toast.error("Failed to assign team member");
     return null;
   }
 };
 
-export const updateCareTeamMemberStatus = async (
-  memberId: string, 
-  status: 'invited' | 'active' | 'declined' | 'removed'
-): Promise<boolean> => {
+export const updateCareTeamMember = async (
+  memberId: string,
+  updates: Partial<Omit<CareTeamMemberInput, 'carePlanId' | 'familyId' | 'caregiverId'>>
+): Promise<CareTeamMember | null> => {
   try {
-    const { error } = await supabase
+    // Convert from domain model input to database model
+    const dbUpdates: Partial<CareTeamMemberDto> = {
+      role: updates.role,
+      status: updates.status,
+      notes: updates.notes
+    };
+
+    // Remove undefined properties
+    Object.keys(dbUpdates).forEach(key => 
+      dbUpdates[key as keyof Partial<CareTeamMemberDto>] === undefined && delete dbUpdates[key as keyof Partial<CareTeamMemberDto>]
+    );
+
+    const { data, error } = await supabase
       .from('care_team_members')
-      .update({ status })
-      .eq('id', memberId);
-    
+      .update(dbUpdates)
+      .eq('id', memberId)
+      .select()
+      .single();
+
     if (error) {
-      console.error("Error updating care team member status:", error);
       throw error;
     }
+
+    toast.success("Team member updated successfully");
     
-    return true;
+    return data ? adaptCareTeamMemberFromDb(data as CareTeamMemberDto) : null;
   } catch (error) {
-    console.error("Failed to update care team member status:", error);
-    toast.error("Failed to update team member status");
-    return false;
+    console.error("Error updating team member:", error);
+    toast.error("Failed to update team member");
+    return null;
   }
 };
 
@@ -140,15 +138,15 @@ export const removeCareTeamMember = async (memberId: string): Promise<boolean> =
       .from('care_team_members')
       .delete()
       .eq('id', memberId);
-    
+
     if (error) {
-      console.error("Error removing care team member:", error);
       throw error;
     }
-    
+
+    toast.success("Team member removed successfully");
     return true;
   } catch (error) {
-    console.error("Failed to remove care team member:", error);
+    console.error("Error removing team member:", error);
     toast.error("Failed to remove team member");
     return false;
   }

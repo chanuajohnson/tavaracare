@@ -6,17 +6,42 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 
-interface CareAssignmentCardProps {
-  assignment: any;
-  className?: string;
+interface CareTeamMember {
+  id: string;
+  care_plan_id: string;
+  family_id: string;
+  caregiver_id: string;
+  role: string;
+  status: string;
+  notes?: string;
+  created_at: string;
+  care_plans?: {
+    id: string;
+    title: string;
+    description?: string;
+    status?: string;
+    family_id: string;
+    created_at: string;
+    updated_at: string;
+    metadata?: any;
+    profiles?: {
+      full_name?: string;
+      avatar_url?: string;
+      phone_number?: string;
+    };
+  };
 }
 
-export function CareAssignmentCard({ assignment, className = "" }: CareAssignmentCardProps) {
+interface CareAssignmentCardProps {
+  assignment: CareTeamMember;
+}
+
+export function CareAssignmentCard({ assignment }: CareAssignmentCardProps) {
   // Add debug logging
   console.log("Rendering CareAssignmentCard with assignment:", assignment);
 
-  if (!assignment?.care_plans) {
-    console.warn("Assignment missing care_plans data:", assignment?.id);
+  if (!assignment.care_plans) {
+    console.warn("Assignment missing care_plans data:", assignment.id);
     return null;
   }
 
@@ -28,16 +53,16 @@ export function CareAssignmentCard({ assignment, className = "" }: CareAssignmen
   const getStatusColor = (status?: string) => {
     switch (status) {
       case 'active':
-        return 'success';
+        return 'bg-green-50 text-green-700 border-green-200';
       case 'invited':
       case 'pending': 
-        return 'outline';
+        return 'bg-yellow-50 text-yellow-700 border-yellow-200';
       case 'completed':
-        return 'secondary';
+        return 'bg-blue-50 text-blue-600 border-blue-200';
       case 'cancelled':
-        return 'destructive';
+        return 'bg-red-50 text-red-700 border-red-200';
       default:
-        return 'outline';
+        return 'bg-gray-50 text-gray-700 border-gray-200';
     }
   };
 
@@ -57,7 +82,7 @@ export function CareAssignmentCard({ assignment, className = "" }: CareAssignmen
   };
 
   return (
-    <Card key={assignment.id} className={`overflow-hidden ${className}`}>
+    <Card key={assignment.id} className="overflow-hidden">
       <div className={`border-l-4 ${getAssignmentStatusColor(assignment.status)}`}>
         <CardContent className="p-4">
           <div className="flex justify-between items-start">
@@ -71,14 +96,19 @@ export function CareAssignmentCard({ assignment, className = "" }: CareAssignmen
                   {assignment.role || "Caregiver"}
                 </Badge>
                 <Badge 
-                  variant={getStatusColor(assignment.status)}
+                  variant="outline" 
+                  className={`
+                    ${assignment.status === 'active' ? 'bg-green-50 text-green-700 border-green-200' : 
+                      assignment.status === 'invited' ? 'bg-yellow-50 text-yellow-700 border-yellow-200' : 
+                      'bg-gray-50 text-gray-700 border-gray-200'}
+                  `}
                 >
                   {assignment.status === 'active' ? 'Active' :
                     assignment.status === 'invited' ? 'Invitation Pending' : 
                     assignment.status || "Pending"}
                 </Badge>
                 {assignment.care_plans.status && (
-                  <Badge variant="outline">
+                  <Badge variant="outline" className={getStatusColor(assignment.care_plans.status)}>
                     Plan: {assignment.care_plans.status}
                   </Badge>
                 )}
