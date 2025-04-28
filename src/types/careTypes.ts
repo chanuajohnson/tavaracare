@@ -1,33 +1,6 @@
 
 // Domain model type definitions for care-related entities
 
-// Care Plan 
-export interface CarePlan {
-  id: string;
-  familyId: string;
-  title: string;
-  description: string;
-  status: 'active' | 'completed' | 'cancelled';
-  createdAt: string;
-  updatedAt: string;
-  metadata?: CarePlanMetadata;
-}
-
-// Care Plan Metadata
-export interface CarePlanMetadata {
-  planType: 'scheduled' | 'on-demand' | 'both';
-  weekdayCoverage?: '8am-4pm' | '8am-6pm' | '6am-6pm' | '6pm-8am' | 'none';
-  weekendCoverage?: 'yes' | 'no';
-  additionalShifts?: {
-    weekdayEvening4pmTo6am?: boolean;
-    weekdayEvening4pmTo8am?: boolean;
-    weekdayEvening6pmTo6am?: boolean;
-    weekdayEvening6pmTo8am?: boolean;
-    weekday8amTo4pm?: boolean;
-    weekday8amTo6pm?: boolean;
-  };
-}
-
 // Care Shift
 export interface CareShift {
   id: string;
@@ -35,16 +8,16 @@ export interface CareShift {
   familyId: string;
   caregiverId?: string;
   title: string;
-  description?: string;
-  location?: string;
+  description: string;
+  location: string;
   status: 'open' | 'assigned' | 'completed' | 'cancelled';
   startTime: string;
   endTime: string;
-  recurringPattern?: string;
-  recurrenceRule?: string;
+  recurringPattern: string;
+  recurrenceRule: string;
   createdAt: string;
   updatedAt: string;
-  googleCalendarEventId?: string;
+  googleCalendarEventId: string;
 }
 
 // Care Team Member
@@ -99,7 +72,7 @@ export interface CarePlanInput {
   description: string;
   familyId: string;
   status?: 'active' | 'completed' | 'cancelled';
-  metadata?: CarePlanMetadata;
+  metadata?: any;
 }
 
 // Care Shift database model

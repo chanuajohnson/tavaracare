@@ -3,8 +3,9 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { toast } from 'sonner';
-import { CarePlan } from '@/types/carePlan';
+import { CarePlan, CarePlanMetadata } from '@/types/carePlan';
 import { CareTeamMemberWithProfile, CareShift } from '@/types/careTypes';
+import { Json } from '@/utils/json';
 
 export const useCareAssignments = () => {
   const { user } = useAuth();
@@ -51,10 +52,10 @@ export const useCareAssignments = () => {
         const formattedPlans = plansData.map(plan => ({
           id: plan.id,
           title: plan.title,
-          description: plan.description,
-          status: plan.status as 'active' | 'completed' | 'cancelled',
+          description: plan.description || '',
+          status: (plan.status || 'active') as 'active' | 'completed' | 'cancelled',
           familyId: plan.family_id,
-          metadata: plan.metadata,
+          metadata: plan.metadata as unknown as CarePlanMetadata,
           createdAt: plan.created_at,
           updatedAt: plan.updated_at
         }));
@@ -66,7 +67,7 @@ export const useCareAssignments = () => {
           setSelectedPlanId(formattedPlans[0].id);
         }
 
-        // Fetch team members
+        // Fetch team members with properly hinted column name for profiles
         const { data: membersData, error: membersError } = await supabase
           .from('care_team_members')
           .select(`
@@ -81,14 +82,14 @@ export const useCareAssignments = () => {
 
         if (membersError) throw new Error(membersError.message);
         
-        // Transform to CareTeamMemberWithProfile format
+        // Transform to CareTeamMemberWithProfile format with proper type casting
         const formattedTeamMembers = membersData.map(member => ({
           id: member.id,
           carePlanId: member.care_plan_id,
           familyId: member.family_id,
           caregiverId: member.caregiver_id,
-          role: member.role || 'caregiver',
-          status: member.status || 'invited',
+          role: (member.role || 'caregiver') as 'caregiver' | 'nurse' | 'therapist' | 'doctor' | 'other',
+          status: (member.status || 'invited') as 'invited' | 'active' | 'declined' | 'removed',
           notes: member.notes,
           createdAt: member.created_at || new Date().toISOString(),
           updatedAt: member.updated_at || new Date().toISOString(),
@@ -109,23 +110,23 @@ export const useCareAssignments = () => {
 
         if (shiftsError) throw new Error(shiftsError.message);
         
-        // Transform to CareShift format
+        // Transform to CareShift format with proper type casting for status
         const formattedShifts = shiftsData.map(shift => ({
           id: shift.id,
           carePlanId: shift.care_plan_id,
           familyId: shift.family_id,
           caregiverId: shift.caregiver_id,
           title: shift.title,
-          description: shift.description,
-          location: shift.location,
-          status: shift.status || 'open',
+          description: shift.description || '',
+          location: shift.location || '',
+          status: (shift.status || 'open') as 'open' | 'assigned' | 'completed' | 'cancelled',
           startTime: shift.start_time,
           endTime: shift.end_time,
-          recurringPattern: shift.recurring_pattern,
-          recurrenceRule: shift.recurrence_rule,
+          recurringPattern: shift.recurring_pattern || '',
+          recurrenceRule: shift.recurrence_rule || '',
           createdAt: shift.created_at || new Date().toISOString(),
           updatedAt: shift.updated_at || new Date().toISOString(),
-          googleCalendarEventId: shift.google_calendar_event_id
+          googleCalendarEventId: shift.google_calendar_event_id || ''
         }));
         
         setCareShifts(formattedShifts);

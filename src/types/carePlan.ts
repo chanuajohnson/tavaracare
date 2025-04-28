@@ -2,7 +2,7 @@
 export interface CarePlan {
   id: string;
   title: string;
-  description?: string;
+  description: string;
   status: 'active' | 'completed' | 'cancelled';
   familyId: string;
   metadata?: CarePlanMetadata;
