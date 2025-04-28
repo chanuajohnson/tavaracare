@@ -5,7 +5,7 @@ import { Check } from "lucide-react";
 
 interface SaveRatesButtonsProps {
   isSaving: boolean;
-  onSave: () => Promise<void>;
+  onSave: () => Promise<boolean>;
   onCancel?: () => void;
   showCancel?: boolean;
 }

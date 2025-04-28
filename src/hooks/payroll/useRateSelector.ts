@@ -66,11 +66,12 @@ export const useRateSelector = (
     }
   };
 
-  const handleSaveRates = async () => {
+  const handleSaveRates = async (): Promise<boolean> => {
     const success = await saveRates();
     if (success && status !== 'pending') {
       setEditMode(false);
     }
+    return success;
   };
 
   const toggleEditMode = () => {

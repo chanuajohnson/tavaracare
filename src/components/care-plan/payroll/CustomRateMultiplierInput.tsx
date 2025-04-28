@@ -7,7 +7,7 @@ import { toast } from "sonner";
 interface CustomRateMultiplierInputProps {
   value: number;
   onChange: (value: number) => void;
-  onSave?: (value: number) => Promise<void>;
+  onSave?: (value: number) => Promise<boolean>;
   disabled?: boolean;
 }
 
@@ -23,7 +23,10 @@ export const CustomRateMultiplierInput: React.FC<CustomRateMultiplierInputProps>
       const currentValue = parseFloat((e.target as HTMLInputElement).value);
       if (currentValue >= 0.5 && currentValue <= 3.0) {
         try {
-          await onSave(currentValue);
+          const success = await onSave(currentValue);
+          if (!success) {
+            toast.error('Failed to update rate multiplier');
+          }
         } catch (error) {
           toast.error('Failed to update rate multiplier');
         }
