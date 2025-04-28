@@ -1,15 +1,23 @@
 
+import { Json } from '../utils/json';
+
+/**
+ * Frontend model for care plans (camelCase)
+ */
 export interface CarePlan {
   id: string;
-  title: string;
-  description: string;
-  status: 'active' | 'completed' | 'cancelled';
-  familyId: string;
-  metadata?: CarePlanMetadata;
   createdAt: string;
   updatedAt: string;
+  title: string;
+  description: string;
+  familyId: string;
+  status: 'active' | 'completed' | 'cancelled';
+  metadata?: CarePlanMetadata;
 }
 
+/**
+ * Frontend model for care plan metadata (camelCase)
+ */
 export interface CarePlanMetadata {
   planType: 'scheduled' | 'on-demand' | 'both';
   weekdayCoverage?: '8am-4pm' | '8am-6pm' | '6am-6pm' | '6pm-8am' | 'none';
@@ -24,27 +32,37 @@ export interface CarePlanMetadata {
   };
 }
 
-// Database models for adapter conversion
-export interface DbCarePlan {
-  id: string;
-  title: string;
-  description?: string;
-  status: 'active' | 'completed' | 'cancelled';
-  family_id: string;
-  metadata?: any;
-  created_at: string;
-  updated_at: string;
-}
-
+/**
+ * Database model for care plan inserts (snake_case)
+ */
 export interface DbCarePlanInsert {
   id?: string;
+  created_at?: string;
+  updated_at?: string;
   title: string;
-  description?: string;
-  status?: 'active' | 'completed' | 'cancelled';
+  description: string;
   family_id: string;
-  metadata?: any;
+  status?: 'active' | 'completed' | 'cancelled';
+  metadata?: Json;
 }
 
+/**
+ * Database model for care plans (snake_case)
+ */
+export interface DbCarePlan {
+  id: string;
+  created_at: string;
+  updated_at: string;
+  title: string;
+  description: string;
+  family_id: string;
+  status: 'active' | 'completed' | 'cancelled';
+  metadata?: Json;
+}
+
+/**
+ * Database model for care plan metadata (snake_case)
+ */
 export interface DbCarePlanMetadata {
   plan_type: 'scheduled' | 'on-demand' | 'both';
   weekday_coverage?: '8am-4pm' | '8am-6pm' | '6am-6pm' | '6pm-8am' | 'none';
