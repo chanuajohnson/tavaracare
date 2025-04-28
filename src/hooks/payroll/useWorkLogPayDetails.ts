@@ -1,29 +1,25 @@
 
 import { useState, useEffect, useMemo } from 'react';
-import React from 'react';
-import { useWorkLogRateContext, WorkLogRateProvider } from './WorkLogRateContext';
+import { useWorkLogRate } from './useWorkLogRate';
 import type { WorkLog } from '@/services/care-plans/types/workLogTypes';
 
-interface UseWorkLogPayDetailsResult {
-  rate: number | null;
-  totalPay: number;
-  isLoading: boolean;
-  lastSaveTime: number;
-}
-
-export const useWorkLogPayDetails = (
-  workLogId: string, 
-  hours: number, 
-  expenses: number = 0, 
-  careTeamMemberId: string,
-  initialBaseRate?: number,
-  initialRateMultiplier?: number
-): UseWorkLogPayDetailsResult => {
+export const useWorkLogPayDetails = (workLogId: string, hours: number, expenses: number = 0, initialWorkLog?: WorkLog) => {
+  // Use provided workLog directly if available, avoiding unnecessary fetch
+  const [workLog, setWorkLog] = useState<WorkLog | null>(initialWorkLog || null);
   const [isLoading, setIsLoading] = useState(true);
-  
-  // Use the WorkLogRateContext to get rate data
-  const { rateState, isLoading: rateLoading } = useWorkLogRateContext();
-  const { currentRate, lastSaveTime } = rateState;
+  const careTeamMemberId = workLog?.care_team_member_id || '';
+
+  // Use the rate hook with initial values from workLog if available
+  const { 
+    currentRate,
+    lastSaveTime,
+    isLoading: rateLoading 
+  } = useWorkLogRate(
+    workLogId, 
+    careTeamMemberId, 
+    workLog?.base_rate, 
+    workLog?.rate_multiplier
+  );
   
   // Calculate derived values
   const totalPayBeforeExpenses = useMemo(() => {
@@ -35,88 +31,21 @@ export const useWorkLogPayDetails = (
   }, [totalPayBeforeExpenses, expenses]);
 
   useEffect(() => {
-    setIsLoading(false);
-  }, [currentRate]);
+    // If we already have the workLog data, no need to load
+    if (initialWorkLog) {
+      setWorkLog(initialWorkLog);
+      setIsLoading(false);
+      return;
+    }
+    
+    setIsLoading(true);
+  }, [initialWorkLog, workLogId]);
 
   return {
     rate: currentRate,
     totalPay,
     isLoading: isLoading || rateLoading,
+    workLog,
     lastSaveTime
   };
-};
-
-interface WorkLogPayDetailsConsumerProps {
-  children: (result: UseWorkLogPayDetailsResult) => React.ReactNode;
-  hours: number;
-  expenses: number;
-  workLogId: string;
-  careTeamMemberId: string;
-}
-
-const WorkLogPayDetailsConsumer: React.FC<WorkLogPayDetailsConsumerProps> = ({
-  children,
-  hours,
-  expenses,
-  workLogId,
-  careTeamMemberId
-}) => {
-  const { rateState, isLoading: rateLoading } = useWorkLogRateContext();
-  const { currentRate, lastSaveTime } = rateState;
-  
-  // Calculate derived values
-  const totalPayBeforeExpenses = useMemo(() => {
-    return hours * (currentRate || 0);
-  }, [hours, currentRate]);
-  
-  const totalPay = useMemo(() => {
-    return totalPayBeforeExpenses + expenses;
-  }, [totalPayBeforeExpenses, expenses]);
-
-  const result: UseWorkLogPayDetailsResult = {
-    rate: currentRate,
-    totalPay,
-    isLoading: rateLoading,
-    lastSaveTime
-  };
-
-  return <>{children(result)}</>;
-};
-
-interface WorkLogPayDetailsProviderProps {
-  children: (result: UseWorkLogPayDetailsResult) => React.ReactNode;
-  workLogId: string;
-  hours: number;
-  expenses?: number;
-  careTeamMemberId: string;
-  initialBaseRate?: number;
-  initialRateMultiplier?: number;
-}
-
-export const WorkLogPayDetailsProvider: React.FC<WorkLogPayDetailsProviderProps> = ({
-  children,
-  workLogId,
-  hours,
-  expenses = 0,
-  careTeamMemberId,
-  initialBaseRate,
-  initialRateMultiplier
-}) => {
-  return (
-    <WorkLogRateProvider
-      workLogId={workLogId}
-      careTeamMemberId={careTeamMemberId}
-      initialBaseRate={initialBaseRate}
-      initialRateMultiplier={initialRateMultiplier}
-    >
-      <WorkLogPayDetailsConsumer 
-        hours={hours} 
-        expenses={expenses} 
-        workLogId={workLogId} 
-        careTeamMemberId={careTeamMemberId}
-      >
-        {children}
-      </WorkLogPayDetailsConsumer>
-    </WorkLogRateProvider>
-  );
 };

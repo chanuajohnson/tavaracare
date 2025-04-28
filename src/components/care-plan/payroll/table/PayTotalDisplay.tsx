@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from "react";
-import { WorkLogRateProvider, useWorkLogRateContext } from "@/hooks/payroll/WorkLogRateContext";
+import { useWorkLogRate } from "@/hooks/payroll/useWorkLogRate";
 
 interface PayTotalDisplayProps {
   workLogId: string;
@@ -11,18 +11,36 @@ interface PayTotalDisplayProps {
   rateMultiplier?: number;
 }
 
-const PayTotalContent = ({ hours, expenses }: { hours: number; expenses: number }) => {
+export const PayTotalDisplay = ({ 
+  workLogId, 
+  hours, 
+  expenses,
+  careTeamMemberId,
+  baseRate: initialBaseRate,
+  rateMultiplier: initialRateMultiplier 
+}: PayTotalDisplayProps) => {
   const [totalPay, setTotalPay] = useState<number>(0);
-  const { rateState, isLoading } = useWorkLogRateContext();
-  const { baseRate, rateMultiplier, currentRate, lastSaveTime } = rateState;
   
-  // Recalculate total pay whenever rate data changes
+  const { 
+    baseRate,
+    rateMultiplier,
+    currentRate,
+    isLoading,
+    lastSaveTime
+  } = useWorkLogRate(
+    workLogId, 
+    careTeamMemberId, 
+    initialBaseRate,
+    initialRateMultiplier
+  );
+
+  // Recalculate total pay whenever rate or hours change
   useEffect(() => {
     if (currentRate) {
       const payBeforeExpenses = hours * currentRate;
       setTotalPay(payBeforeExpenses + expenses);
     }
-  }, [hours, expenses, currentRate, lastSaveTime]);
+  }, [hours, currentRate, expenses, lastSaveTime]);
   
   if (isLoading) {
     return <div className="text-muted-foreground">Calculating...</div>;
@@ -36,25 +54,5 @@ const PayTotalContent = ({ hours, expenses }: { hours: number; expenses: number 
         {expenses > 0 ? ` + $${expenses.toFixed(2)} expenses` : ''}
       </div>
     </div>
-  );
-};
-
-export const PayTotalDisplay = ({ 
-  workLogId, 
-  hours, 
-  expenses,
-  careTeamMemberId,
-  baseRate: initialBaseRate,
-  rateMultiplier: initialRateMultiplier 
-}: PayTotalDisplayProps) => {
-  return (
-    <WorkLogRateProvider
-      workLogId={workLogId}
-      careTeamMemberId={careTeamMemberId}
-      initialBaseRate={initialBaseRate}
-      initialRateMultiplier={initialRateMultiplier}
-    >
-      <PayTotalContent hours={hours} expenses={expenses} />
-    </WorkLogRateProvider>
   );
 };
