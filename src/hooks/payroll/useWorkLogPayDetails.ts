@@ -11,8 +11,6 @@ export const useWorkLogPayDetails = (workLogId: string, hours: number, expenses:
 
   const { 
     currentRate,
-    baseRate, 
-    rateMultiplier,
     lastSaveTime,
     isLoading: rateLoading 
   } = useWorkLogRate(workLogId, careTeamMemberId);
@@ -38,7 +36,7 @@ export const useWorkLogPayDetails = (workLogId: string, hours: number, expenses:
 
   const totalPayBeforeExpenses = useMemo(() => {
     return hours * currentRate;
-  }, [hours, currentRate, lastSaveTime]);
+  }, [hours, currentRate]);
   
   const totalPay = useMemo(() => {
     return totalPayBeforeExpenses + expenses;

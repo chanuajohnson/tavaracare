@@ -24,13 +24,19 @@ export const CustomRateMultiplierInput: React.FC<CustomRateMultiplierInputProps>
       if (currentValue >= 0.5 && currentValue <= 3.0) {
         try {
           await onSave(currentValue);
-          toast.success('Rate multiplier updated');
         } catch (error) {
           toast.error('Failed to update rate multiplier');
         }
       } else {
         toast.error('Multiplier must be between 0.5x and 3.0x');
       }
+    }
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newValue = parseFloat(e.target.value);
+    if (!isNaN(newValue)) {
+      onChange(newValue);
     }
   };
 
@@ -44,7 +50,7 @@ export const CustomRateMultiplierInput: React.FC<CustomRateMultiplierInputProps>
         max="3.0"
         step="0.1"
         value={value}
-        onChange={(e) => onChange(parseFloat(e.target.value) || 1)}
+        onChange={handleChange}
         onKeyDown={handleKeyDown}
         className="w-[150px]"
         disabled={disabled}

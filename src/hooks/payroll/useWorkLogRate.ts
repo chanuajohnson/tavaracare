@@ -3,11 +3,12 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '@/lib/supabase';
 import { getWorkLogById } from '@/services/care-plans/workLogService';
 import { toast } from 'sonner';
+import type { RateType } from '@/services/care-plans/types/workLogTypes';
 
 interface RateState {
   baseRate: number | null;
   rateMultiplier: number | null;
-  rateType: string;
+  rateType: RateType;
 }
 
 export const useWorkLogRate = (workLogId: string, careTeamMemberId: string) => {
@@ -23,23 +24,11 @@ export const useWorkLogRate = (workLogId: string, careTeamMemberId: string) => {
   const baseRate = rateState.baseRate;
   const rateMultiplier = rateState.rateMultiplier;
 
-  // Calculate current rate based on rate type and multiplier
   const currentRate = useMemo(() => {
     const base = rateState.baseRate || 25;
     const multiplier = rateState.rateMultiplier || 1;
-    
-    // Apply rate multiplier based on rate type
-    switch (rateState.rateType) {
-      case 'overtime':
-        return base * 1.5;
-      case 'regular':
-        return base * multiplier;
-      case 'custom':
-        return base * multiplier;
-      default:
-        return base * multiplier;
-    }
-  }, [rateState.baseRate, rateState.rateMultiplier, rateState.rateType]);
+    return base * multiplier;
+  }, [rateState.baseRate, rateState.rateMultiplier]);
 
   useEffect(() => {
     const loadRates = async () => {
@@ -68,14 +57,14 @@ export const useWorkLogRate = (workLogId: string, careTeamMemberId: string) => {
     loadRates();
   }, [workLogId, careTeamMemberId, lastSaveTime]);
 
-  const handleSetBaseRate = (newBaseRate: number) => {
+  const handleSetBaseRate = async (newBaseRate: number) => {
     setRateState(prev => ({
       ...prev,
       baseRate: newBaseRate
     }));
   };
 
-  const handleSetRateMultiplier = (newMultiplier: number) => {
+  const handleSetRateMultiplier = async (newMultiplier: number) => {
     if (newMultiplier < 0.5 || newMultiplier > 3.0) {
       toast.error('Rate multiplier must be between 0.5x and 3.0x');
       return;
@@ -87,11 +76,10 @@ export const useWorkLogRate = (workLogId: string, careTeamMemberId: string) => {
     }));
   };
 
-  const handleSetRateType = (rateType: string) => {
+  const handleSetRateType = (rateType: RateType) => {
     setRateState(prev => ({
       ...prev,
       rateType,
-      // Set appropriate multiplier based on rate type
       rateMultiplier: rateType === 'overtime' ? 1.5 : prev.rateMultiplier
     }));
   };
