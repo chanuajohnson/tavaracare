@@ -67,12 +67,12 @@ export const useCareAssignments = () => {
           setSelectedPlanId(formattedPlans[0].id);
         }
 
-        // Fetch team members - FIX: properly hint the profiles column
+        // Fetch team members - explicitly specify the relationship key
         const { data: membersData, error: membersError } = await supabase
           .from('care_team_members')
           .select(`
             *,
-            profiles:caregiver_id(
+            profiles (
               full_name,
               professional_type,
               avatar_url
