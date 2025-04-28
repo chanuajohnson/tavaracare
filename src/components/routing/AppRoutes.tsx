@@ -1,3 +1,4 @@
+
 import { Suspense, lazy } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { Skeleton } from "@/components/ui/skeleton";
@@ -14,6 +15,7 @@ const UserJourneyPage = lazy(() => import("@/pages/admin/UserJourneyPage"));
 const FamilyDashboard = lazy(() => import("@/pages/dashboards/FamilyDashboard"));
 const CommunityDashboard = lazy(() => import("@/pages/dashboards/CommunityDashboard"));
 const ProfessionalDashboard = lazy(() => import("@/pages/dashboards/ProfessionalDashboard"));
+const CareAssignmentsPage = lazy(() => import("@/pages/professional/CareAssignmentsPage"));
 const FamilyRegistration = lazy(() => import("@/pages/registration/FamilyRegistration"));
 const ProfessionalRegistration = lazy(() => import("@/pages/registration/ProfessionalRegistration"));
 const ProfessionalRegistrationFix = lazy(() => import("@/pages/registration/ProfessionalRegistrationFix"));
@@ -73,6 +75,7 @@ export function AppRoutes() {
         <Route path="/dashboard/family" element={<FamilyDashboard />} />
         <Route path="/dashboard/community" element={<CommunityDashboard />} />
         <Route path="/dashboard/professional" element={<ProfessionalDashboard />} />
+        <Route path="/professional/care-assignments" element={<CareAssignmentsPage />} />
         <Route path="/registration/family" element={<FamilyRegistration />} />
         <Route path="/registration/professional" element={<ProfessionalRegistration />} />
         <Route path="/registration/professional-fix" element={<ProfessionalRegistrationFix />} />
