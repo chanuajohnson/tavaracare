@@ -1,40 +1,15 @@
 
 import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { toast } from 'sonner';
 import { CarePlan } from '@/types/carePlan';
-
-// Define the types for care team members and shifts
-interface CareTeamMember {
-  id: string;
-  display_name: string;
-  role: string;
-  status: string;
-  notes?: string;
-  caregiver_id: string;
-  care_plan_id: string;
-  created_at: string;
-}
-
-interface CareShift {
-  id: string;
-  title: string;
-  description?: string;
-  location?: string;
-  start_time: string;
-  end_time: string;
-  status: 'open' | 'completed' | 'cancelled' | 'assigned';
-  caregiver_id?: string;
-  family_id: string;
-  care_plan_id?: string;
-  created_at: string;
-}
+import { CareTeamMemberWithProfile, CareShift } from '@/types/careTypes';
 
 export const useCareAssignments = () => {
   const { user } = useAuth();
   const [carePlans, setCarePlans] = useState<CarePlan[]>([]);
-  const [careTeamMembers, setCareTeamMembers] = useState<CareTeamMember[]>([]);
+  const [careTeamMembers, setCareTeamMembers] = useState<CareTeamMemberWithProfile[]>([]);
   const [careShifts, setCareShifts] = useState<CareShift[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -94,11 +69,37 @@ export const useCareAssignments = () => {
         // Fetch team members
         const { data: membersData, error: membersError } = await supabase
           .from('care_team_members')
-          .select('*')
+          .select(`
+            *,
+            profiles:caregiver_id (
+              full_name,
+              professional_type,
+              avatar_url
+            )
+          `)
           .in('care_plan_id', planIds);
 
         if (membersError) throw new Error(membersError.message);
-        setCareTeamMembers(membersData as CareTeamMember[]);
+        
+        // Transform to CareTeamMemberWithProfile format
+        const formattedTeamMembers = membersData.map(member => ({
+          id: member.id,
+          carePlanId: member.care_plan_id,
+          familyId: member.family_id,
+          caregiverId: member.caregiver_id,
+          role: member.role || 'caregiver',
+          status: member.status || 'invited',
+          notes: member.notes,
+          createdAt: member.created_at || new Date().toISOString(),
+          updatedAt: member.updated_at || new Date().toISOString(),
+          professionalDetails: {
+            full_name: member.profiles?.full_name,
+            professional_type: member.profiles?.professional_type,
+            avatar_url: member.profiles?.avatar_url
+          }
+        }));
+        
+        setCareTeamMembers(formattedTeamMembers);
 
         // Fetch care shifts
         const { data: shiftsData, error: shiftsError } = await supabase
@@ -107,7 +108,27 @@ export const useCareAssignments = () => {
           .in('care_plan_id', planIds);
 
         if (shiftsError) throw new Error(shiftsError.message);
-        setCareShifts(shiftsData as CareShift[]);
+        
+        // Transform to CareShift format
+        const formattedShifts = shiftsData.map(shift => ({
+          id: shift.id,
+          carePlanId: shift.care_plan_id,
+          familyId: shift.family_id,
+          caregiverId: shift.caregiver_id,
+          title: shift.title,
+          description: shift.description,
+          location: shift.location,
+          status: shift.status || 'open',
+          startTime: shift.start_time,
+          endTime: shift.end_time,
+          recurringPattern: shift.recurring_pattern,
+          recurrenceRule: shift.recurrence_rule,
+          createdAt: shift.created_at || new Date().toISOString(),
+          updatedAt: shift.updated_at || new Date().toISOString(),
+          googleCalendarEventId: shift.google_calendar_event_id
+        }));
+        
+        setCareShifts(formattedShifts);
 
       } catch (err) {
         const error = err as Error;
@@ -120,7 +141,7 @@ export const useCareAssignments = () => {
     };
 
     fetchCareAssignments();
-  }, [user]);
+  }, [user, selectedPlanId]);
 
   return {
     carePlans,

@@ -94,40 +94,41 @@ export const ProfessionalScheduleCalendar: React.FC<ProfessionalScheduleCalendar
       </div>
       
       <div className="grid grid-cols-7 gap-2">
-        {getWeekDays().map((day, index) => {
-          const dayShifts = getShiftsForDay(day);
-          const isWeekend = index === 0 || index === 6;
+        {getWeekDays().map((day, dayIndex) => {
+          const shiftsForDay = getShiftsForDay(day);
+          const isToday = isSameDay(new Date(), day);
           
           return (
             <div 
-              key={index} 
-              className={`border rounded-md p-2 min-h-[120px] ${
-                isWeekend ? 'bg-blue-50/30' : ''
-              }`}
+              key={dayIndex} 
+              className={`min-h-28 border rounded-md p-1 ${isToday ? 'border-primary bg-primary/5' : 'border-muted'}`}
             >
-              {dayShifts.length > 0 ? (
-                <div className="space-y-2">
-                  {dayShifts.map(shift => (
-                    <TooltipProvider key={shift.id}>
+              {shiftsForDay.length > 0 ? (
+                <div className="space-y-1">
+                  {shiftsForDay.map((shift, shiftIndex) => (
+                    <TooltipProvider key={shiftIndex}>
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <div className="text-xs p-2 rounded bg-white border flex flex-col cursor-pointer hover:shadow-sm transition-all">
-                            <Badge className={getCarePlanColor(shift.carePlanId)} variant="secondary">
-                              {getCarePlanName(shift.carePlanId)}
-                            </Badge>
-                            <div className="font-medium mt-1 truncate">{shift.title}</div>
-                            <div className="flex items-center text-muted-foreground mt-1">
-                              <Clock className="h-3 w-3 mr-1" />
-                              {getTimeDisplay(shift.startTime)} - {getTimeDisplay(shift.endTime)}
+                          <div 
+                            className={`${getCarePlanColor(shift.carePlanId)} px-2 py-1 rounded-sm text-xs cursor-pointer truncate`}
+                          >
+                            <div className="flex items-center gap-1">
+                              <Clock className="h-3 w-3" />
+                              <span>{getTimeDisplay(shift.startTime)}</span>
                             </div>
+                            <div className="truncate">{shift.title}</div>
                           </div>
                         </TooltipTrigger>
-                        <TooltipContent side="right">
-                          <div className="space-y-1 p-1">
-                            <p className="font-medium">{shift.title}</p>
-                            <p className="text-xs">{shift.description}</p>
-                            <p className="text-xs">{getTimeDisplay(shift.startTime)} - {getTimeDisplay(shift.endTime)}</p>
-                            <p className="text-xs">{shift.location}</p>
+                        <TooltipContent className="max-w-xs">
+                          <div className="space-y-1">
+                            <div className="font-medium">{shift.title}</div>
+                            <div className="text-xs text-muted-foreground">{getCarePlanName(shift.carePlanId)}</div>
+                            <div className="text-xs">
+                              {getTimeDisplay(shift.startTime)} - {getTimeDisplay(shift.endTime)}
+                            </div>
+                            {shift.location && (
+                              <div className="text-xs">{shift.location}</div>
+                            )}
                           </div>
                         </TooltipContent>
                       </Tooltip>
@@ -135,8 +136,8 @@ export const ProfessionalScheduleCalendar: React.FC<ProfessionalScheduleCalendar
                   ))}
                 </div>
               ) : (
-                <div className="flex items-center justify-center h-full">
-                  <p className="text-xs text-muted-foreground">No shifts</p>
+                <div className="h-full flex items-center justify-center">
+                  <span className="text-xs text-muted-foreground">No shifts</span>
                 </div>
               )}
             </div>
