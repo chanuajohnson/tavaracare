@@ -16,6 +16,8 @@ export function CareAssignmentsTab({ carePlans, loading }: CareAssignmentsTabPro
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   
+  console.log("CareAssignmentsTab received carePlans:", carePlans);
+  
   const filteredPlans = carePlans.filter(plan => {
     // Filter by search query
     const matchesSearch = !searchQuery || 

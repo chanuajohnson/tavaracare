@@ -15,8 +15,8 @@ export function CareAssignmentCard({ assignment, className = "" }: CareAssignmen
   // Add debug logging
   console.log("Rendering CareAssignmentCard with assignment:", assignment);
 
-  if (!assignment.care_plans) {
-    console.warn("Assignment missing care_plans data:", assignment.id);
+  if (!assignment?.care_plans) {
+    console.warn("Assignment missing care_plans data:", assignment?.id);
     return null;
   }
 

@@ -316,7 +316,7 @@ const ProfessionalProfileHub = () => {
               created_at,
               updated_at,
               metadata,
-              profiles:profiles!care_plans_family_id_fkey(
+              profiles:profiles(
                 full_name,
                 avatar_url,
                 phone_number
@@ -330,21 +330,36 @@ const ProfessionalProfileHub = () => {
           throw carePlansError;
         }
         
-        console.log("Loaded care plans for professional:", data);
+        console.log("Initial care plans data loaded:", data);
         
         const validCarePlans = data?.filter(plan => plan.care_plans) || [];
         console.log("Valid care plans after filtering:", validCarePlans.length);
         
+        validCarePlans.forEach((plan, index) => {
+          console.log(`Care plan ${index + 1}:`, {
+            id: plan.id,
+            status: plan.status,
+            role: plan.role,
+            care_plan_id: plan.care_plan_id,
+            care_plan_title: plan.care_plans?.title,
+            family_name: plan.care_plans?.profiles?.full_name
+          });
+        });
+        
         setCarePlans(validCarePlans);
         setLoadingCarePlans(false);
 
-        // After loading care plans, load team members
-        await loadCareTeamMembers(validCarePlans);
+        if (validCarePlans.length > 0) {
+          await loadCareTeamMembers(validCarePlans);
+        } else {
+          setLoadingTeamMembers(false);
+        }
         
       } catch (err) {
         console.error("Error loading care plans:", err);
         toast.error("Failed to load care assignments");
         setLoadingCarePlans(false);
+        setLoadingTeamMembers(false);
       }
     };
     
@@ -361,10 +376,10 @@ const ProfessionalProfileHub = () => {
     try {
       setLoadingTeamMembers(true);
       
-      // Get care plan IDs
       const carePlanIds = plans.map(plan => plan.care_plans.id);
       
-      // Fetch team members for all care plans
+      console.log("Fetching team members for care plans:", carePlanIds);
+      
       const { data, error } = await supabase
         .from('care_team_members')
         .select(`
@@ -377,7 +392,7 @@ const ProfessionalProfileHub = () => {
           notes,
           created_at,
           updated_at,
-          profiles:profiles!caregiver_id(
+          profiles:profiles(
             full_name,
             professional_type,
             avatar_url
@@ -390,7 +405,8 @@ const ProfessionalProfileHub = () => {
         throw error;
       }
 
-      // Transform the data to match the CareTeamMemberWithProfile interface structure
+      console.log("Care team members loaded:", data?.length);
+
       const transformedData = data.map(member => ({
         id: member.id,
         carePlanId: member.care_plan_id,

@@ -44,6 +44,7 @@ export const useCarePlanData = ({ carePlanId, userId }: UseCarePlanDataProps) =>
   const loadData = async () => {
     try {
       setLoading(true);
+      console.log("Loading care plan data for plan:", carePlanId);
       await Promise.all([
         loadCarePlan(),
         loadCareTeamMembers(),
@@ -59,7 +60,10 @@ export const useCarePlanData = ({ carePlanId, userId }: UseCarePlanDataProps) =>
     try {
       const plan = await fetchCarePlanById(carePlanId);
       if (plan) {
+        console.log("Care plan loaded:", plan.title);
         setCarePlan(plan);
+      } else {
+        console.warn("No care plan found with id:", carePlanId);
       }
     } catch (error) {
       console.error("Error loading care plan:", error);
@@ -70,6 +74,7 @@ export const useCarePlanData = ({ carePlanId, userId }: UseCarePlanDataProps) =>
   const loadCareTeamMembers = async () => {
     try {
       const members = await fetchCareTeamMembers(carePlanId);
+      console.log(`Loaded ${members.length} team members for care plan:`, carePlanId);
       setCareTeamMembers(members);
     } catch (error) {
       console.error("Error loading care team members:", error);
@@ -80,6 +85,7 @@ export const useCarePlanData = ({ carePlanId, userId }: UseCarePlanDataProps) =>
   const loadCareShifts = async () => {
     try {
       const shifts = await fetchCareShifts(carePlanId);
+      console.log(`Loaded ${shifts.length} shifts for care plan:`, carePlanId);
       setCareShifts(shifts);
     } catch (error) {
       console.error("Error loading care shifts:", error);
@@ -95,6 +101,7 @@ export const useCarePlanData = ({ carePlanId, userId }: UseCarePlanDataProps) =>
         .eq('role', 'professional');
 
       if (error) throw error;
+      console.log(`Loaded ${data?.length || 0} professionals`);
       setProfessionals(data || []);
     } catch (error) {
       console.error("Error loading professionals:", error);
