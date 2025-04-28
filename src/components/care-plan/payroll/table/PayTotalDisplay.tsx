@@ -34,13 +34,13 @@ export const PayTotalDisplay = ({
     initialRateMultiplier
   );
 
-  // Recalculate total pay whenever rate or hours change
+  // Recalculate total pay whenever any dependent values change
   useEffect(() => {
     if (currentRate) {
       const payBeforeExpenses = hours * currentRate;
       setTotalPay(payBeforeExpenses + expenses);
     }
-  }, [hours, currentRate, expenses, lastSaveTime]);
+  }, [hours, currentRate, expenses, lastSaveTime, rateMultiplier, baseRate]);
   
   if (isLoading) {
     return <div className="text-muted-foreground">Calculating...</div>;

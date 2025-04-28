@@ -1,5 +1,5 @@
 
-import React, { KeyboardEvent } from 'react';
+import React, { KeyboardEvent, useEffect } from 'react';
 import { 
   Select, 
   SelectContent, 
@@ -20,6 +20,7 @@ interface PayRateSelectorProps {
   status?: string;
   baseRate?: number;
   rateMultiplier?: number;
+  onRateChange?: () => void;
 }
 
 export const PayRateSelector: React.FC<PayRateSelectorProps> = ({ 
@@ -27,7 +28,8 @@ export const PayRateSelector: React.FC<PayRateSelectorProps> = ({
   careTeamMemberId,
   status = 'pending',
   baseRate: initialBaseRate,
-  rateMultiplier: initialRateMultiplier
+  rateMultiplier: initialRateMultiplier,
+  onRateChange
 }) => {
   const {
     baseRate,
@@ -41,6 +43,7 @@ export const PayRateSelector: React.FC<PayRateSelectorProps> = ({
     isEditable,
     isLoading,
     isSaving,
+    lastSaveTime,
     multiplierOptions,
     getMultiplierDisplayValue,
     handleMultiplierChange,
@@ -48,12 +51,18 @@ export const PayRateSelector: React.FC<PayRateSelectorProps> = ({
     toggleEditMode
   } = useRateSelector(workLogId, careTeamMemberId, status, initialBaseRate, initialRateMultiplier);
 
+  // Notify parent component when rates change
+  useEffect(() => {
+    if (onRateChange && lastSaveTime > 0) {
+      onRateChange();
+    }
+  }, [lastSaveTime, onRateChange]);
+
   const handleRateKeyDown = async (e: KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && isEditable) {
       e.preventDefault();
       const newRate = Number((e.target as HTMLInputElement).value);
       if (newRate >= 25 && newRate <= 100) {
-        setBaseRate(newRate);
         const success = await handleSaveRates();
         if (success) {
           toast.success('Base rate updated');

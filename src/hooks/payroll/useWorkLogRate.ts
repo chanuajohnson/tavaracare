@@ -29,21 +29,25 @@ export const useWorkLogRate = (
   const rateMultiplier = rateState.rateMultiplier;
 
   const currentRate = useMemo(() => {
-    const base = rateState.baseRate || 25;
-    const multiplier = rateState.rateMultiplier || 1;
-    return base * multiplier;
-  }, [rateState.baseRate, rateState.rateMultiplier]);
+    if (baseRate === null || rateMultiplier === null) return null;
+    return baseRate * rateMultiplier;
+  }, [baseRate, rateMultiplier]);
 
   // Initialize or update state when workLogId or initialValues change
   useEffect(() => {
     const loadRates = async () => {
       // Skip loading if we already have initial values
-      if (!workLogId || (initialBaseRate && initialRateMultiplier)) {
+      if (initialBaseRate && initialRateMultiplier) {
         setRateState({
-          baseRate: initialBaseRate || 25,
-          rateMultiplier: initialRateMultiplier || 1,
+          baseRate: initialBaseRate,
+          rateMultiplier: initialRateMultiplier,
           rateType: 'regular'
         });
+        setIsLoading(false);
+        return;
+      }
+
+      if (!workLogId) {
         setIsLoading(false);
         return;
       }
@@ -72,18 +76,48 @@ export const useWorkLogRate = (
     };
 
     loadRates();
-
-    // Clean up function to reset state when workLogId changes
-    return () => {
-      setLastSaveTime(0);
-    };
   }, [workLogId, careTeamMemberId, initialBaseRate, initialRateMultiplier]);
+
+  // Setup real-time subscription to work_logs table changes
+  useEffect(() => {
+    if (!workLogId) return;
+    
+    const channel = supabase
+      .channel('work_logs_changes')
+      .on('postgres_changes', 
+        { 
+          event: 'UPDATE', 
+          schema: 'public', 
+          table: 'work_logs',
+          filter: `id=eq.${workLogId}`
+        }, 
+        (payload) => {
+          const { new: newData } = payload;
+          if (newData) {
+            setRateState({
+              baseRate: newData.base_rate || 25,
+              rateMultiplier: newData.rate_multiplier || 1,
+              rateType: newData.rate_type || 'regular'
+            });
+            // Trigger UI update
+            setLastSaveTime(Date.now());
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [workLogId]);
 
   const handleSetBaseRate = useCallback((newBaseRate: number) => {
     setRateState(prev => ({
       ...prev,
       baseRate: newBaseRate
     }));
+    // Update lastSaveTime to trigger UI updates immediately for optimistic rendering
+    setLastSaveTime(Date.now());
   }, []);
 
   const handleSetRateMultiplier = useCallback((newMultiplier: number) => {
@@ -96,6 +130,8 @@ export const useWorkLogRate = (
       ...prev,
       rateMultiplier: newMultiplier
     }));
+    // Update lastSaveTime to trigger UI updates immediately for optimistic rendering
+    setLastSaveTime(Date.now());
   }, []);
 
   const handleSetRateType = useCallback((rateType: RateType) => {
@@ -104,6 +140,8 @@ export const useWorkLogRate = (
       rateType,
       rateMultiplier: rateType === 'overtime' ? 1.5 : prev.rateMultiplier
     }));
+    // Update lastSaveTime to trigger UI updates
+    setLastSaveTime(Date.now());
   }, []);
 
   const saveRates = useCallback(async (): Promise<boolean> => {
@@ -125,7 +163,9 @@ export const useWorkLogRate = (
 
       if (error) throw error;
 
-      setLastSaveTime(Date.now());
+      // Update timestamp to trigger UI updates
+      const timestamp = Date.now();
+      setLastSaveTime(timestamp);
       return true;
     } catch (error) {
       console.error('Error updating rates:', error);

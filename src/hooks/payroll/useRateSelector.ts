@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { toast } from "sonner";
 import { useWorkLogRate } from './useWorkLogRate';
 import type { RateType } from '@/services/care-plans/types/workLogTypes';
@@ -25,7 +25,8 @@ export const useRateSelector = (
     setRateType,
     saveRates,
     isLoading,
-    isSaving
+    isSaving,
+    lastSaveTime
   } = useWorkLogRate(workLogId, careTeamMemberId, initialBaseRate, initialRateMultiplier);
 
   const [showCustomMultiplier, setShowCustomMultiplier] = useState(false);
@@ -41,6 +42,13 @@ export const useRateSelector = (
     }
   }, [rateMultiplier]);
 
+  // If the multiplier changes due to real-time updates, update our local state
+  useEffect(() => {
+    if (rateMultiplier) {
+      setCustomMultiplier(rateMultiplier);
+    }
+  }, [rateMultiplier, lastSaveTime]);
+
   const isEditable = status === 'pending' || editMode;
 
   const multiplierOptions: RateMultiplierOption[] = [
@@ -51,7 +59,7 @@ export const useRateSelector = (
     { value: 'custom', label: 'Other (Custom)' }
   ];
 
-  const getMultiplierDisplayValue = () => {
+  const getMultiplierDisplayValue = useCallback(() => {
     if (!rateMultiplier) return '';
     
     const standardOption = multiplierOptions.find(opt => 
@@ -63,9 +71,9 @@ export const useRateSelector = (
     }
     
     return `${rateMultiplier}x (Custom)`;
-  };
+  }, [rateMultiplier, multiplierOptions]);
 
-  const handleMultiplierChange = (value: string) => {
+  const handleMultiplierChange = useCallback((value: string) => {
     if (value === 'custom') {
       setShowCustomMultiplier(true);
       setRateType('custom');
@@ -73,14 +81,34 @@ export const useRateSelector = (
       setShowCustomMultiplier(false);
       const numValue = Number(value);
       setRateMultiplier(numValue);
-      setRateType(numValue === 1 ? 'regular' : numValue === 1.5 ? 'overtime' : 'custom');
+      
+      // Set the appropriate rate type based on the multiplier value
+      if (numValue === 1) {
+        setRateType('regular');
+      } else if (numValue === 1.5) {
+        setRateType('overtime');
+      } else {
+        setRateType('custom');
+      }
+      
+      // Auto-save when selecting a standard multiplier option
+      if (status === 'pending' || editMode) {
+        saveRates().then(success => {
+          if (success) {
+            toast.success(`Rate updated to ${numValue}x`);
+          }
+        });
+      }
     }
-  };
+  }, [setRateMultiplier, setRateType, status, editMode, saveRates]);
 
   const handleSaveRates = async (): Promise<boolean> => {
     const success = await saveRates();
-    if (success && status !== 'pending') {
-      setEditMode(false);
+    if (success) {
+      if (status !== 'pending') {
+        setEditMode(false);
+      }
+      toast.success('Pay rate updated successfully');
     }
     return success;
   };
@@ -89,6 +117,11 @@ export const useRateSelector = (
     setEditMode(!editMode);
   };
 
+  const handleSetCustomMultiplier = useCallback((value: number) => {
+    setCustomMultiplier(value);
+    setRateMultiplier(value);
+  }, [setRateMultiplier]);
+
   return {
     baseRate,
     setBaseRate,
@@ -96,11 +129,12 @@ export const useRateSelector = (
     setRateMultiplier,
     showCustomMultiplier,
     customMultiplier,
-    setCustomMultiplier,
+    setCustomMultiplier: handleSetCustomMultiplier,
     editMode,
     isEditable,
     isLoading,
     isSaving,
+    lastSaveTime,
     multiplierOptions,
     getMultiplierDisplayValue,
     handleMultiplierChange,

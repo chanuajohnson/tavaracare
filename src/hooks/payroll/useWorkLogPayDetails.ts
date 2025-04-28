@@ -12,6 +12,8 @@ export const useWorkLogPayDetails = (workLogId: string, hours: number, expenses:
   // Use the rate hook with initial values from workLog if available
   const { 
     currentRate,
+    baseRate,
+    rateMultiplier,
     lastSaveTime,
     isLoading: rateLoading 
   } = useWorkLogRate(
@@ -24,11 +26,11 @@ export const useWorkLogPayDetails = (workLogId: string, hours: number, expenses:
   // Calculate derived values
   const totalPayBeforeExpenses = useMemo(() => {
     return hours * (currentRate || 0);
-  }, [hours, currentRate]);
+  }, [hours, currentRate, lastSaveTime]);
   
   const totalPay = useMemo(() => {
     return totalPayBeforeExpenses + expenses;
-  }, [totalPayBeforeExpenses, expenses]);
+  }, [totalPayBeforeExpenses, expenses, lastSaveTime]);
 
   useEffect(() => {
     // If we already have the workLog data, no need to load
@@ -43,6 +45,8 @@ export const useWorkLogPayDetails = (workLogId: string, hours: number, expenses:
 
   return {
     rate: currentRate,
+    baseRate,
+    rateMultiplier,
     totalPay,
     isLoading: isLoading || rateLoading,
     workLog,

@@ -1,5 +1,5 @@
 
-import React, { KeyboardEvent } from 'react';
+import React, { KeyboardEvent, useState, useEffect } from 'react';
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
@@ -17,15 +17,23 @@ export const CustomRateMultiplierInput: React.FC<CustomRateMultiplierInputProps>
   onSave,
   disabled = false
 }) => {
+  // Local state for immediate UI feedback
+  const [localValue, setLocalValue] = useState(value.toString());
+  
+  // Update local state when prop changes
+  useEffect(() => {
+    setLocalValue(value.toString());
+  }, [value]);
+
   const handleKeyDown = async (e: KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && onSave) {
       e.preventDefault();
-      const currentValue = parseFloat((e.target as HTMLInputElement).value);
+      const currentValue = parseFloat(localValue);
       if (currentValue >= 0.5 && currentValue <= 3.0) {
         try {
           const success = await onSave(currentValue);
-          if (!success) {
-            toast.error('Failed to update rate multiplier');
+          if (success) {
+            toast.success('Rate multiplier updated');
           }
         } catch (error) {
           toast.error('Failed to update rate multiplier');
@@ -37,9 +45,11 @@ export const CustomRateMultiplierInput: React.FC<CustomRateMultiplierInputProps>
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newValue = parseFloat(e.target.value);
-    if (!isNaN(newValue)) {
-      onChange(newValue);
+    const newValue = e.target.value;
+    setLocalValue(newValue);
+    const numValue = parseFloat(newValue);
+    if (!isNaN(numValue)) {
+      onChange(numValue);
     }
   };
 
@@ -52,7 +62,7 @@ export const CustomRateMultiplierInput: React.FC<CustomRateMultiplierInputProps>
         min="0.5"
         max="3.0"
         step="0.1"
-        value={value}
+        value={localValue}
         onChange={handleChange}
         onKeyDown={handleKeyDown}
         className="w-[150px]"
