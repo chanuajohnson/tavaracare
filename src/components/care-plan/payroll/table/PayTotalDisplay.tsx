@@ -36,11 +36,11 @@ export const PayTotalDisplay = ({
 
   // Recalculate total pay whenever any dependent values change
   useEffect(() => {
-    if (currentRate) {
+    if (currentRate !== null) {
       const payBeforeExpenses = hours * currentRate;
       setTotalPay(payBeforeExpenses + expenses);
     }
-  }, [hours, currentRate, expenses, lastSaveTime, rateMultiplier, baseRate]);
+  }, [hours, currentRate, expenses, lastSaveTime]);
   
   if (isLoading) {
     return <div className="text-muted-foreground">Calculating...</div>;
@@ -50,7 +50,7 @@ export const PayTotalDisplay = ({
     <div>
       <div className="font-medium">${totalPay.toFixed(2)}</div>
       <div className="text-xs text-muted-foreground">
-        {hours.toFixed(1)}h × ${baseRate?.toFixed(2)}/hr × {rateMultiplier}x
+        {hours.toFixed(1)}h × ${baseRate?.toFixed(2) || '0.00'}/hr × {rateMultiplier?.toFixed(1) || '1.0'}x
         {expenses > 0 ? ` + $${expenses.toFixed(2)} expenses` : ''}
       </div>
     </div>

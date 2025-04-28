@@ -23,7 +23,7 @@ export const useWorkLogRate = (
   });
   const [isLoading, setIsLoading] = useState(!initialBaseRate || !initialRateMultiplier);
   const [isSaving, setIsSaving] = useState(false);
-  const [lastSaveTime, setLastSaveTime] = useState<number>(0);
+  const [lastSaveTime, setLastSaveTime] = useState<number>(Date.now());
 
   const baseRate = rateState.baseRate;
   const rateMultiplier = rateState.rateMultiplier;
@@ -94,6 +94,7 @@ export const useWorkLogRate = (
         (payload) => {
           const { new: newData } = payload;
           if (newData) {
+            console.log('Realtime update received:', newData);
             setRateState({
               baseRate: newData.base_rate || 25,
               rateMultiplier: newData.rate_multiplier || 1,
@@ -106,7 +107,10 @@ export const useWorkLogRate = (
       )
       .subscribe();
 
+    console.log(`Subscribed to realtime updates for work_log ${workLogId}`);
+
     return () => {
+      console.log(`Unsubscribing from realtime updates for work_log ${workLogId}`);
       supabase.removeChannel(channel);
     };
   }, [workLogId]);
@@ -163,6 +167,8 @@ export const useWorkLogRate = (
 
       if (error) throw error;
 
+      console.log('Rates saved successfully:', { baseRate, rateMultiplier });
+      
       // Update timestamp to trigger UI updates
       const timestamp = Date.now();
       setLastSaveTime(timestamp);

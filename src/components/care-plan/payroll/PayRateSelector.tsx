@@ -54,6 +54,7 @@ export const PayRateSelector: React.FC<PayRateSelectorProps> = ({
   // Notify parent component when rates change
   useEffect(() => {
     if (onRateChange && lastSaveTime > 0) {
+      console.log('Rate changed, notifying parent component');
       onRateChange();
     }
   }, [lastSaveTime, onRateChange]);
@@ -123,7 +124,7 @@ export const PayRateSelector: React.FC<PayRateSelectorProps> = ({
         <Select 
           value={showCustomMultiplier ? 'custom' : rateMultiplier?.toString()} 
           onValueChange={handleMultiplierChange}
-          disabled={!isEditable}
+          disabled={!isEditable || isSaving}
         >
           <SelectTrigger 
             className="w-[150px]"
@@ -151,7 +152,7 @@ export const PayRateSelector: React.FC<PayRateSelectorProps> = ({
           value={customMultiplier}
           onChange={setCustomMultiplier}
           onSave={handleMultiplierSave}
-          disabled={!isEditable}
+          disabled={!isEditable || isSaving}
         />
       )}
 

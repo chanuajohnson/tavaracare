@@ -19,6 +19,7 @@ export const CustomRateMultiplierInput: React.FC<CustomRateMultiplierInputProps>
 }) => {
   // Local state for immediate UI feedback
   const [localValue, setLocalValue] = useState(value.toString());
+  const [isSaving, setIsSaving] = useState(false);
   
   // Update local state when prop changes
   useEffect(() => {
@@ -31,12 +32,15 @@ export const CustomRateMultiplierInput: React.FC<CustomRateMultiplierInputProps>
       const currentValue = parseFloat(localValue);
       if (currentValue >= 0.5 && currentValue <= 3.0) {
         try {
+          setIsSaving(true);
           const success = await onSave(currentValue);
           if (success) {
             toast.success('Rate multiplier updated');
           }
         } catch (error) {
           toast.error('Failed to update rate multiplier');
+        } finally {
+          setIsSaving(false);
         }
       } else {
         toast.error('Multiplier must be between 0.5x and 3.0x');
@@ -66,9 +70,11 @@ export const CustomRateMultiplierInput: React.FC<CustomRateMultiplierInputProps>
         onChange={handleChange}
         onKeyDown={handleKeyDown}
         className="w-[150px]"
-        disabled={disabled}
+        disabled={disabled || isSaving}
       />
-      <p className="text-xs text-muted-foreground">Enter a value between 0.5x and 3.0x and press Enter to save</p>
+      <p className="text-xs text-muted-foreground">
+        {isSaving ? 'Saving...' : 'Enter a value between 0.5x and 3.0x and press Enter to save'}
+      </p>
     </div>
   );
 };

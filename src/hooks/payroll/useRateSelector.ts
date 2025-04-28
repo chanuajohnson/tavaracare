@@ -103,6 +103,7 @@ export const useRateSelector = (
   }, [setRateMultiplier, setRateType, status, editMode, saveRates]);
 
   const handleSaveRates = async (): Promise<boolean> => {
+    console.log('Saving rates:', { baseRate, rateMultiplier });
     const success = await saveRates();
     if (success) {
       if (status !== 'pending') {
