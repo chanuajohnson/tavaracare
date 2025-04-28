@@ -1,3 +1,4 @@
+
 import { format } from "date-fns";
 import { TableCell, TableRow } from "@/components/ui/table";
 import { PayRateSelector } from "../PayRateSelector";
@@ -26,7 +27,7 @@ export const WorkLogTableRow = ({
   const totalExpenses = workLog.expenses?.reduce((sum, expense) => sum + Number(expense.amount), 0) || 0;
 
   return (
-    <TableRow>
+    <TableRow key={workLog.id}>
       <TableCell className="font-medium">
         {workLog.caregiver_name || 'Unknown'}
       </TableCell>

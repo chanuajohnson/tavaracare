@@ -1,34 +1,15 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { useWorkLogRate } from './useWorkLogRate';
-import { getWorkLogById } from '@/services/care-plans/workLogService';
 import type { WorkLog } from '@/services/care-plans/types/workLogTypes';
 
-export const useWorkLogPayDetails = (workLogId: string, hours: number, expenses: number = 0) => {
-  const [workLog, setWorkLog] = useState<WorkLog | null>(null);
-  const [careTeamMemberId, setCareTeamMemberId] = useState<string>('');
+export const useWorkLogPayDetails = (workLogId: string, hours: number, expenses: number = 0, initialWorkLog?: WorkLog) => {
+  // Use provided workLog directly if available, avoiding unnecessary fetch
+  const [workLog, setWorkLog] = useState<WorkLog | null>(initialWorkLog || null);
   const [isLoading, setIsLoading] = useState(true);
+  const careTeamMemberId = workLog?.care_team_member_id || '';
 
-  // Initial load of work log to get care_team_member_id
-  useEffect(() => {
-    const loadWorkLog = async () => {
-      try {
-        setIsLoading(true);
-        const workLog = await getWorkLogById(workLogId);
-        if (workLog) {
-          setWorkLog(workLog);
-          setCareTeamMemberId(workLog.care_team_member_id);
-        }
-      } catch (error) {
-        console.error('Error loading work log:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    loadWorkLog();
-  }, [workLogId]);
-
+  // Use the rate hook with initial values from workLog if available
   const { 
     currentRate,
     lastSaveTime,
@@ -40,33 +21,25 @@ export const useWorkLogPayDetails = (workLogId: string, hours: number, expenses:
     workLog?.rate_multiplier
   );
   
-  // Reload work log when rates change
-  useEffect(() => {
-    const refreshWorkLog = async () => {
-      if (!workLogId) return;
-      
-      try {
-        const updatedWorkLog = await getWorkLogById(workLogId);
-        if (updatedWorkLog) {
-          setWorkLog(updatedWorkLog);
-        }
-      } catch (error) {
-        console.error('Error refreshing work log:', error);
-      }
-    };
-
-    if (lastSaveTime > 0) {
-      refreshWorkLog();
-    }
-  }, [workLogId, lastSaveTime]);
-
+  // Calculate derived values
   const totalPayBeforeExpenses = useMemo(() => {
-    return hours * currentRate;
+    return hours * (currentRate || 0);
   }, [hours, currentRate]);
   
   const totalPay = useMemo(() => {
     return totalPayBeforeExpenses + expenses;
   }, [totalPayBeforeExpenses, expenses]);
+
+  useEffect(() => {
+    // If we already have the workLog data, no need to load
+    if (initialWorkLog) {
+      setWorkLog(initialWorkLog);
+      setIsLoading(false);
+      return;
+    }
+    
+    setIsLoading(true);
+  }, [initialWorkLog, workLogId]);
 
   return {
     rate: currentRate,

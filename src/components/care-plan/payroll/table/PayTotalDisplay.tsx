@@ -25,7 +25,8 @@ export const PayTotalDisplay = ({
     baseRate,
     rateMultiplier,
     currentRate,
-    isLoading 
+    isLoading,
+    lastSaveTime
   } = useWorkLogRate(
     workLogId, 
     careTeamMemberId, 
@@ -33,12 +34,13 @@ export const PayTotalDisplay = ({
     initialRateMultiplier
   );
 
+  // Recalculate total pay whenever rate or hours change
   useEffect(() => {
     if (currentRate) {
       const payBeforeExpenses = hours * currentRate;
       setTotalPay(payBeforeExpenses + expenses);
     }
-  }, [hours, currentRate, expenses]);
+  }, [hours, currentRate, expenses, lastSaveTime]);
   
   if (isLoading) {
     return <div className="text-muted-foreground">Calculating...</div>;

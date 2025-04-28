@@ -23,7 +23,7 @@ export const useWorkLogRate = (
   });
   const [isLoading, setIsLoading] = useState(!initialBaseRate || !initialRateMultiplier);
   const [isSaving, setIsSaving] = useState(false);
-  const [lastSaveTime, setLastSaveTime] = useState<number>(Date.now());
+  const [lastSaveTime, setLastSaveTime] = useState<number>(0);
 
   const baseRate = rateState.baseRate;
   const rateMultiplier = rateState.rateMultiplier;
@@ -34,13 +34,21 @@ export const useWorkLogRate = (
     return base * multiplier;
   }, [rateState.baseRate, rateState.rateMultiplier]);
 
+  // Initialize or update state when workLogId or initialValues change
   useEffect(() => {
     const loadRates = async () => {
+      // Skip loading if we already have initial values
       if (!workLogId || (initialBaseRate && initialRateMultiplier)) {
+        setRateState({
+          baseRate: initialBaseRate || 25,
+          rateMultiplier: initialRateMultiplier || 1,
+          rateType: 'regular'
+        });
         setIsLoading(false);
         return;
       }
 
+      setIsLoading(true);
       try {
         const { data: workLog, error } = await supabase
           .from('work_logs')
@@ -50,11 +58,11 @@ export const useWorkLogRate = (
 
         if (error) throw error;
 
-        setRateState(prev => ({
-          baseRate: workLog.base_rate || prev.baseRate || 25,
-          rateMultiplier: workLog.rate_multiplier || prev.rateMultiplier || 1,
+        setRateState({
+          baseRate: workLog.base_rate || 25,
+          rateMultiplier: workLog.rate_multiplier || 1,
           rateType: workLog.rate_type || 'regular'
-        }));
+        });
       } catch (error) {
         console.error('Error loading rates:', error);
         toast.error('Failed to load pay rates');
@@ -65,13 +73,9 @@ export const useWorkLogRate = (
 
     loadRates();
 
+    // Clean up function to reset state when workLogId changes
     return () => {
-      // Cleanup function to prevent state updates on unmounted component
-      setRateState({
-        baseRate: null,
-        rateMultiplier: null,
-        rateType: 'regular'
-      });
+      setLastSaveTime(0);
     };
   }, [workLogId, careTeamMemberId, initialBaseRate, initialRateMultiplier]);
 
