@@ -1,4 +1,5 @@
-import React, { lazy } from 'react';
+
+import React, { lazy, Suspense } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from 'react-query';
 import { Auth } from '@supabase/auth-ui-react';
@@ -31,6 +32,9 @@ import NotFoundPage from './pages/NotFoundPage';
 import ComingSoonPage from './pages/ComingSoonPage';
 import { usePageViewTracking } from './components/tracking/usePageViewTracking';
 import { useAuthCheck } from './hooks/useAuthCheck';
+
+// Lazy-loaded components
+const CareAssignmentsPage = lazy(() => import('./pages/professional/CareAssignmentsPage'));
 
 const queryClient = new QueryClient();
 
@@ -89,7 +93,14 @@ function App() {
 
         {/* Professional routes */}
         <Route path="/dashboard/professional" element={<ProfessionalDashboard />} />
-        <Route path="/professional/care-assignments" element={<lazy(() => import('./pages/professional/CareAssignmentsPage'))()} />
+        <Route 
+          path="/professional/care-assignments" 
+          element={
+            <Suspense fallback={<div>Loading...</div>}>
+              <CareAssignmentsPage />
+            </Suspense>
+          } 
+        />
 
         {/* Community routes */}
         <Route path="/dashboard/community" element={<CommunityDashboard />} />
