@@ -71,14 +71,16 @@ export const PayRateSelector: React.FC<PayRateSelectorProps> = ({
     }
   };
 
-  const handleMultiplierSave = async (newMultiplier: number) => {
+  const handleMultiplierSave = async (newMultiplier: number): Promise<boolean> => {
     if (isEditable) {
       setRateMultiplier(newMultiplier);
       const success = await handleSaveRates();
       if (!success) {
         toast.error('Failed to save rate multiplier');
       }
+      return success;
     }
+    return false;
   };
 
   if (isLoading) {
