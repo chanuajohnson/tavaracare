@@ -70,7 +70,7 @@ export const WorkLogPayDetailsProvider: React.FC<{
       initialBaseRate={initialBaseRate}
       initialRateMultiplier={initialRateMultiplier}
     >
-      <WorkLogPayDetailsConsumer hours={hours} expenses={expenses}>
+      <WorkLogPayDetailsConsumer hours={hours} expenses={expenses} workLogId={workLogId} careTeamMemberId={careTeamMemberId}>
         {children}
       </WorkLogPayDetailsConsumer>
     </WorkLogRateProvider>
@@ -82,7 +82,9 @@ const WorkLogPayDetailsConsumer: React.FC<{
   children: (result: UseWorkLogPayDetailsResult) => React.ReactNode;
   hours: number;
   expenses: number;
-}> = ({ children, hours, expenses }) => {
+  workLogId: string;
+  careTeamMemberId: string;
+}> = ({ children, hours, expenses, workLogId, careTeamMemberId }) => {
   const { rateState, isLoading: rateLoading } = useWorkLogRateContext();
   const { currentRate, lastSaveTime } = rateState;
   
