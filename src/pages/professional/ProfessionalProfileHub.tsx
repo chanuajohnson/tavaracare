@@ -1,3 +1,4 @@
+
 import { motion } from "framer-motion";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -917,6 +918,199 @@ const ProfessionalProfileHub = () => {
                                   <p className={`font-medium ${step.completed ? 'text-gray-500 line-through' : 'text-gray-800'}`}>
                                     {step.title}
                                   </p>
-                                  {!step.completed && (
-                                    <div className="flex items-center text-xs text-gray-500 gap-1">
-                                      <Clock className="h-3 w-3" />
+                                  {!step.completed && renderActionButton(step)}
+                                </div>
+                                <p className="text-sm text-gray-500 mt-0.5">
+                                  {step.description}
+                                </p>
+                              </div>
+                            </li>
+                          ))}
+                        </ul>
+                      </CardContent>
+                    </Card>
+                    
+                    {!loadingCarePlans && carePlans.length > 0 && (
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="flex items-center gap-2 text-xl">
+                            <ClipboardList className="h-5 w-5 text-primary" />
+                            Current Assignments
+                          </CardTitle>
+                          <CardDescription>
+                            Your active care assignments
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="grid grid-cols-1 gap-4">
+                            {carePlans.slice(0, 2).map((plan) => (
+                              <CareAssignmentCard 
+                                key={plan.id} 
+                                carePlan={plan.care_plans} 
+                                assignment={plan}
+                                className="h-auto"
+                              />
+                            ))}
+                            
+                            {carePlans.length > 2 && (
+                              <div className="text-center mt-2">
+                                <Button 
+                                  variant="outline" 
+                                  size="sm" 
+                                  asChild
+                                >
+                                  <Link to="#assignments">
+                                    View all {carePlans.length} assignments
+                                  </Link>
+                                </Button>
+                              </div>
+                            )}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    )}
+                  </TabsContent>
+                  
+                  <TabsContent value="assignments">
+                    <CareAssignmentsTab 
+                      carePlans={carePlans}
+                      loading={loadingCarePlans}
+                    />
+                  </TabsContent>
+
+                  <TabsContent value="team-members">
+                    <CareTeamMembersTab 
+                      careTeamMembers={careTeamMembers}
+                      carePlans={carePlans}
+                      loading={loadingTeamMembers}
+                    />
+                  </TabsContent>
+
+                  <TabsContent value="documents">
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                          <FileText className="h-5 w-5 text-primary" />
+                          Required Documents
+                        </CardTitle>
+                        <CardDescription>
+                          Upload and manage your professional documents
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        <div className="text-center py-10">
+                          <FileText className="h-12 w-12 mx-auto text-gray-300" />
+                          <h3 className="mt-4 text-lg font-medium">Document management coming soon</h3>
+                          <p className="text-sm text-muted-foreground mt-1">
+                            This feature will be available in the next update
+                          </p>
+                          <Button 
+                            className="mt-4"
+                            onClick={handleUploadCertificates}
+                          >
+                            Upload Documents
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </TabsContent>
+
+                  <TabsContent value="admin-assist">
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                          <Briefcase className="h-5 w-5 text-primary" />
+                          Administrative Assistant
+                        </CardTitle>
+                        <CardDescription>
+                          Support for administrative tasks and requests
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        <div className="text-center py-10">
+                          <Briefcase className="h-12 w-12 mx-auto text-gray-300" />
+                          <h3 className="mt-4 text-lg font-medium">Administrative support coming soon</h3>
+                          <p className="text-sm text-muted-foreground mt-1">
+                            Request help with administrative tasks, paperwork, and scheduling
+                          </p>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </TabsContent>
+                </Tabs>
+              </motion.div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <Dialog open={isAvailabilityModalOpen} onOpenChange={setIsAvailabilityModalOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Set Your Availability</DialogTitle>
+            <DialogDescription>
+              Select when you're available to work
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="grid gap-4 py-4">
+            <RadioGroup 
+              value={selectedAvailability[0] || ""} 
+              onValueChange={val => setSelectedAvailability([val])}
+            >
+              <div className="flex items-center space-x-2 mb-2">
+                <RadioGroupItem value="Full-time" id="full-time" />
+                <Label htmlFor="full-time">Full-time (40+ hours per week)</Label>
+              </div>
+              <div className="flex items-center space-x-2 mb-2">
+                <RadioGroupItem value="Part-time" id="part-time" />
+                <Label htmlFor="part-time">Part-time (Less than 40 hours per week)</Label>
+              </div>
+              <div className="flex items-center space-x-2 mb-2">
+                <RadioGroupItem value="Weekdays only" id="weekdays" />
+                <Label htmlFor="weekdays">Weekdays only</Label>
+              </div>
+              <div className="flex items-center space-x-2 mb-2">
+                <RadioGroupItem value="Weekends only" id="weekends" />
+                <Label htmlFor="weekends">Weekends only</Label>
+              </div>
+              <div className="flex items-center space-x-2 mb-2">
+                <RadioGroupItem value="Evenings" id="evenings" />
+                <Label htmlFor="evenings">Evenings</Label>
+              </div>
+              <div className="flex items-center space-x-2 mb-2">
+                <RadioGroupItem value="Overnight shifts" id="overnight" />
+                <Label htmlFor="overnight">Overnight shifts</Label>
+              </div>
+            </RadioGroup>
+            
+            <div className="border-t pt-4 mt-2">
+              <Label htmlFor="other">Other availability details:</Label>
+              <textarea 
+                id="other" 
+                className="w-full h-24 p-2 border rounded-md mt-2" 
+                placeholder="Enter any additional availability details..."
+                value={otherAvailability}
+                onChange={(e) => setOtherAvailability(e.target.value)}
+              />
+            </div>
+          </div>
+          
+          <div className="flex justify-end gap-2">
+            <Button 
+              variant="outline" 
+              onClick={() => setIsAvailabilityModalOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button onClick={saveAvailability}>
+              Save
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+};
+
+export default ProfessionalProfileHub;
