@@ -1,5 +1,6 @@
 
 import { useState, useEffect, useMemo } from 'react';
+import React from 'react';
 import { useWorkLogRateContext, WorkLogRateProvider } from './WorkLogRateContext';
 import type { WorkLog } from '@/services/care-plans/types/workLogTypes';
 
