@@ -1,7 +1,6 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '@/lib/supabase';
-import { getWorkLogById } from '@/services/care-plans/workLogService';
 import { toast } from 'sonner';
 import type { RateType } from '@/services/care-plans/types/workLogTypes';
 
@@ -37,20 +36,25 @@ export const useWorkLogRate = (
 
   useEffect(() => {
     const loadRates = async () => {
-      if (!workLogId) {
+      if (!workLogId || (initialBaseRate && initialRateMultiplier)) {
         setIsLoading(false);
         return;
       }
 
       try {
-        const workLog = await getWorkLogById(workLogId);
-        if (workLog) {
-          setRateState(prev => ({
-            baseRate: workLog.base_rate !== null ? workLog.base_rate : prev.baseRate || 25,
-            rateMultiplier: workLog.rate_multiplier !== null ? workLog.rate_multiplier : prev.rateMultiplier || 1,
-            rateType: workLog.rate_type || 'regular'
-          }));
-        }
+        const { data: workLog, error } = await supabase
+          .from('work_logs')
+          .select('base_rate, rate_multiplier, rate_type')
+          .eq('id', workLogId)
+          .single();
+
+        if (error) throw error;
+
+        setRateState(prev => ({
+          baseRate: workLog.base_rate || prev.baseRate || 25,
+          rateMultiplier: workLog.rate_multiplier || prev.rateMultiplier || 1,
+          rateType: workLog.rate_type || 'regular'
+        }));
       } catch (error) {
         console.error('Error loading rates:', error);
         toast.error('Failed to load pay rates');
@@ -59,20 +63,26 @@ export const useWorkLogRate = (
       }
     };
 
-    // Only load from database if no initial values provided
-    if (!initialBaseRate || !initialRateMultiplier) {
-      loadRates();
-    }
-  }, [workLogId, careTeamMemberId, lastSaveTime, initialBaseRate, initialRateMultiplier]);
+    loadRates();
 
-  const handleSetBaseRate = (newBaseRate: number) => {
+    return () => {
+      // Cleanup function to prevent state updates on unmounted component
+      setRateState({
+        baseRate: null,
+        rateMultiplier: null,
+        rateType: 'regular'
+      });
+    };
+  }, [workLogId, careTeamMemberId, initialBaseRate, initialRateMultiplier]);
+
+  const handleSetBaseRate = useCallback((newBaseRate: number) => {
     setRateState(prev => ({
       ...prev,
       baseRate: newBaseRate
     }));
-  };
+  }, []);
 
-  const handleSetRateMultiplier = (newMultiplier: number) => {
+  const handleSetRateMultiplier = useCallback((newMultiplier: number) => {
     if (newMultiplier < 0.5 || newMultiplier > 3.0) {
       toast.error('Rate multiplier must be between 0.5x and 3.0x');
       return;
@@ -82,15 +92,15 @@ export const useWorkLogRate = (
       ...prev,
       rateMultiplier: newMultiplier
     }));
-  };
+  }, []);
 
-  const handleSetRateType = (rateType: RateType) => {
+  const handleSetRateType = useCallback((rateType: RateType) => {
     setRateState(prev => ({
       ...prev,
       rateType,
       rateMultiplier: rateType === 'overtime' ? 1.5 : prev.rateMultiplier
     }));
-  };
+  }, []);
 
   const saveRates = useCallback(async (): Promise<boolean> => {
     if (!workLogId || baseRate === null || rateMultiplier === null) {

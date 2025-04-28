@@ -1,4 +1,3 @@
-
 import { format } from "date-fns";
 import { TableCell, TableRow } from "@/components/ui/table";
 import { PayRateSelector } from "../PayRateSelector";
@@ -50,7 +49,10 @@ export const WorkLogTableRow = ({
         <PayTotalDisplay 
           workLogId={workLog.id} 
           hours={hoursDiff} 
-          expenses={totalExpenses} 
+          expenses={totalExpenses}
+          careTeamMemberId={workLog.care_team_member_id}
+          baseRate={workLog.base_rate}
+          rateMultiplier={workLog.rate_multiplier}
         />
       </TableCell>
       <TableCell>
