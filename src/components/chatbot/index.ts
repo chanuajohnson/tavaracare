@@ -12,3 +12,4 @@ export * from './ChatbotSystem';
 export * from './ChatHeader';
 export * from './ChatInputForm';
 export * from './RegistrationLink';
+export * from './ChatSettings';
