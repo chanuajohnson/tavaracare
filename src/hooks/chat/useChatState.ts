@@ -16,25 +16,29 @@ export const useChatState = () => {
 
   // Validate input whenever it changes or field type changes
   useEffect(() => {
+    // Don't show validation errors for empty or very short inputs
+    if (!input || input.length <= 1) {
+      if (validationError) {
+        setValidationError(undefined);
+      }
+      return;
+    }
+    
     // If we have both input and field type, validate
-    if (fieldType && input) {
+    if (fieldType && input.length > 1) {
+      console.log(`[useChatState] Validating input: "${input}" as type: ${fieldType}`);
+      
       const validationResult = validateChatInput(input, fieldType);
       
-      if (validationResult.isValid) {
-        // Clear validation error if input is now valid
+      if (!validationResult.isValid) {
+        console.log(`[useChatState] Validation error: ${validationResult.errorMessage}`);
+        setValidationError(validationResult.errorMessage);
+      } else {
+        console.log(`[useChatState] Input is valid for type: ${fieldType}`);
         if (validationError) {
           setValidationError(undefined);
         }
-      } else {
-        // Only set validation error if the user has actually started typing
-        // This prevents showing errors immediately when a question is displayed
-        if (input.length > 1) {
-          setValidationError(validationResult.errorMessage);
-        }
       }
-    } else if (!input && validationError) {
-      // Clear validation error if input is cleared
-      setValidationError(undefined);
     }
   }, [input, fieldType, validationError]);
   
@@ -42,10 +46,9 @@ export const useChatState = () => {
   const handleInputChange = (value: string) => {
     setInput(value);
     
-    // If field type exists, validate immediately but don't set errors on initial input
-    if (fieldType && value.length > 1) {
-      const validationResult = validateChatInput(value, fieldType);
-      setValidationError(validationResult.isValid ? undefined : validationResult.errorMessage);
+    // Clear validation error when input field is emptied
+    if (!value && validationError) {
+      setValidationError(undefined);
     }
   };
   

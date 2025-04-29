@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { KeyboardEvent } from 'react';
 import { Send } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 
@@ -44,7 +44,7 @@ export const ChatInputForm: React.FC<ChatInputFormProps> = ({
     }
     
     if (fieldType === "phone") {
-      return "Enter your phone number...";
+      return "Enter your phone number with country code (+1...)";
     }
     
     if (fieldType === "name") {
@@ -58,11 +58,24 @@ export const ChatInputForm: React.FC<ChatInputFormProps> = ({
     return "Type your message...";
   };
 
+  // Handle keyboard events for the input field
+  const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey && input.trim() && shouldShowInput) {
+      e.preventDefault();
+      handleSendMessage(undefined, input);
+    }
+  };
+
   return (
     <div className={`border-t ${validationError ? "border-red-300 bg-red-50" : "border-border"} p-2 flex`}>
       <form 
         className="flex w-full items-center gap-2" 
-        onSubmit={handleSendMessage}
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (input.trim() && shouldShowInput) {
+            handleSendMessage(e, input);
+          }
+        }}
         style={{ opacity: shouldShowInput ? 1 : 0.5 }}
       >
         <input
@@ -76,13 +89,14 @@ export const ChatInputForm: React.FC<ChatInputFormProps> = ({
           disabled={!shouldShowInput}
           aria-invalid={!!validationError}
           aria-describedby={validationError ? "input-error-message" : undefined}
+          onKeyDown={handleKeyDown}
         />
         <button
           type="submit"
           className={`rounded-md ${
-            input ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+            input.trim() ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
           } p-2 transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50`}
-          disabled={!shouldShowInput || !input}
+          disabled={!shouldShowInput || !input.trim()}
         >
           <Send size={isMobile ? 16 : 18} />
         </button>

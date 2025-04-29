@@ -49,10 +49,17 @@ export const useMessageInput = ({
 }: UseMessageInputProps) => {
   
   const handleSendMessage = async (e?: React.FormEvent, inputValue?: string) => {
-    e?.preventDefault();
+    if (e) {
+      e.preventDefault();
+    }
     
-    const trimmedInput = (inputValue || "").trim();
-    if (!trimmedInput) return;
+    const trimmedInput = inputValue?.trim() || "";
+    if (!trimmedInput) {
+      console.log("[useMessageInput] Empty input, not submitting");
+      return;
+    }
+    
+    console.log(`[useMessageInput] Processing message: "${trimmedInput}" with role: ${progress.role || 'unknown'}`);
     
     // Special handling for completion stage
     if (conversationStage === "completion") {
@@ -75,8 +82,6 @@ export const useMessageInput = ({
       return;
     }
     
-    console.log(`[useMessageInput] Processing message: "${trimmedInput}" with role: ${progress.role || 'unknown'}`);
-    
     // Get the current question type, passing the role parameter
     const questionType = getFieldTypeForCurrentQuestion(
       currentSectionIndex, 
@@ -84,7 +89,7 @@ export const useMessageInput = ({
       progress.role
     );
     
-    console.log(`[useMessageInput] Detected field type: ${questionType || 'none'}`);
+    console.log(`[useMessageInput] Detected field type: ${questionType || 'none'}, progress.role: ${progress.role}`);
     
     const currentQuestion = getCurrentQuestion(
       progress.role!,
@@ -92,40 +97,19 @@ export const useMessageInput = ({
       currentQuestionIndex
     );
     
-    // Special validation for budget questions
-    if (currentQuestion?.id === "budget") {
-      const budgetValidation = validateChatInput(trimmedInput, "budget");
-      if (!budgetValidation.isValid) {
-        setValidationError(budgetValidation.errorMessage);
-        toast.error(budgetValidation.errorMessage);
-        return;
-      }
-    }
-    // Name validation - enhanced to provide better feedback
-    else if (questionType === "name") {
-      const nameValidation = validateChatInput(trimmedInput, "name");
-      if (!nameValidation.isValid) {
-        const errorMsg = nameValidation.errorMessage || "Please enter a valid name with letters only";
-        setValidationError(errorMsg);
-        toast.error(errorMsg);
-        console.log(`[useMessageInput] Name validation failed: ${errorMsg}`);
-        return;
-      } else {
-        setValidationError(undefined);
-        console.log(`[useMessageInput] Valid name format: ${trimmedInput}`);
-      }
-    }
-    // Normal validation for other question types
-    else if (questionType) {
+    // Perform field validation based on detected type
+    if (questionType) {
       const validationResult = validateChatInput(trimmedInput, questionType);
       
       if (!validationResult.isValid) {
+        console.log(`[useMessageInput] Validation failed for ${questionType}: ${validationResult.errorMessage}`);
         setValidationError(validationResult.errorMessage);
-        toast.error(validationResult.errorMessage);
+        toast.error(validationResult.errorMessage || `Invalid ${questionType} format`);
         return;
       } else {
+        console.log(`[useMessageInput] Validation passed for ${questionType}`);
         setValidationError(undefined);
-        if (questionType === "email" || questionType === "phone") {
+        if (questionType === "email" || questionType === "phone" || questionType === "name") {
           toast.success(`Valid ${questionType} format!`);
         }
       }
