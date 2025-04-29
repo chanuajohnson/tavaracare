@@ -295,7 +295,7 @@ export const useOptionSelection = ({
         let responseMessage = response.message;
         if (nextQuestionIndex === 0) {
           const sectionTitle = getSectionTitle(progress.role, nextSectionIndex);
-          responseMessage = `Great! Let's talk about ${sectionTitle.toLowerCase()}.\n\n${response.message}`;
+          responseMessage = `Now let's move on to ${sectionTitle.toLowerCase()}.\n\n${response.message}`;
         }
         
         await simulateBotTyping(responseMessage, response.options);
