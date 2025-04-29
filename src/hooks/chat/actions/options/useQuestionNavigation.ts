@@ -27,6 +27,7 @@ interface UseQuestionNavigationProps {
   updateChatProgress: Function;
   setFieldType: (type: string | null) => void;
   getFieldTypeForCurrentQuestion: (sectionIndex?: number, questionIndex?: number) => string | null;
+  updateProgress: (updates: any) => void; // Add this parameter
 }
 
 export const useQuestionNavigation = ({
@@ -44,7 +45,8 @@ export const useQuestionNavigation = ({
   alwaysShowOptions,
   updateChatProgress,
   setFieldType,
-  getFieldTypeForCurrentQuestion
+  getFieldTypeForCurrentQuestion,
+  updateProgress // Add this parameter here as well
 }: UseQuestionNavigationProps) => {
 
   const advanceToNextQuestion = async (currentQuestionId: string) => {

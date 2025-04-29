@@ -1,4 +1,3 @@
-
 import { getMultiSelectionStatus } from "@/services/chatbotService";
 import { toast } from "sonner";
 import { useCompletionHandler } from "./options/useCompletionHandler";
@@ -52,7 +51,7 @@ export const useOptionSelection = ({
   getFieldTypeForCurrentQuestion
 }: UseOptionSelectionProps) => {
   
-  // Set up question navigation hook
+  // Set up question navigation hook - pass updateProgress here
   const { advanceToNextQuestion } = useQuestionNavigation({
     sessionId,
     messages,
@@ -68,7 +67,8 @@ export const useOptionSelection = ({
     alwaysShowOptions,
     updateChatProgress,
     setFieldType,
-    getFieldTypeForCurrentQuestion
+    getFieldTypeForCurrentQuestion,
+    updateProgress // Pass it here!
   });
   
   // Set up completion handler hook
