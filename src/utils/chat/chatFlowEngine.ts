@@ -52,7 +52,8 @@ export const processConversation = async (
     
     // Choose between AI prompt generation or standard message generation
     let response;
-    if (config.useAIPrompts) {
+    // Use the optional chaining operator to safely check if useAIPrompts is true
+    if (config.useAIPrompts === true) {
       try {
         console.log("Using AI prompt generation");
         response = await generatePrompt(role, messages, sectionIndex, localQuestionIndex);
