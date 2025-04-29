@@ -23,7 +23,8 @@ import {
   Moon,
   AlertCircle,
   ChevronUp,
-  ChevronDown
+  ChevronDown,
+  Users
 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/components/providers/AuthProvider";
@@ -110,6 +111,9 @@ const ProfessionalProfileHub = () => {
 
   const [carePlans, setCarePlans] = useState<any[]>([]);
   const [loadingCarePlans, setLoadingCarePlans] = useState(true);
+
+  const [careTeamMembers, setCareTeamMembers] = useState<any[]>([]);
+  const [loadingCareTeamMembers, setLoadingCareTeamMembers] = useState(true);
 
   const [isAvailabilityModalOpen, setIsAvailabilityModalOpen] = useState(false);
   const [selectedAvailability, setSelectedAvailability] = useState<string[]>([]);
@@ -302,7 +306,7 @@ const ProfessionalProfileHub = () => {
             care_plan_id,
             notes,
             created_at,
-            care_plans:care_plans(
+            care_plans(
               id,
               title,
               description,
@@ -327,10 +331,52 @@ const ProfessionalProfileHub = () => {
         
         console.log("Loaded care plans for professional:", data);
         
-        const validCarePlans = data?.filter(plan => plan.care_plans) || [];
+        const validCarePlans = (data || []).filter(plan => plan.care_plans) || [];
         console.log("Valid care plans after filtering:", validCarePlans.length);
         
         setCarePlans(validCarePlans);
+        
+        const memberPromises = validCarePlans.map(async (plan) => {
+          const { data: teamMembers, error: membersError } = await supabase
+            .from('care_team_members')
+            .select(`
+              *,
+              profiles:caregiver_id(
+                full_name,
+                professional_type,
+                avatar_url
+              )
+            `)
+            .eq('care_plan_id', plan.care_plan_id);
+            
+          if (membersError) {
+            console.error(`Error fetching team members for plan ${plan.care_plan_id}:`, membersError);
+            return [];
+          }
+          
+          return (teamMembers || []).map(member => ({
+            id: member.id,
+            carePlanId: member.care_plan_id,
+            familyId: member.family_id,
+            caregiverId: member.caregiver_id,
+            role: member.role || 'caregiver',
+            status: member.status || 'invited',
+            notes: member.notes,
+            createdAt: member.created_at,
+            updatedAt: member.updated_at,
+            carePlan: plan.care_plans,
+            professionalDetails: {
+              full_name: member.profiles?.full_name,
+              professional_type: member.profiles?.professional_type,
+              avatar_url: member.profiles?.avatar_url
+            }
+          }));
+        });
+        
+        const allTeamMembers = await Promise.all(memberPromises);
+        const flattenedMembers = allTeamMembers.flat();
+        setCareTeamMembers(flattenedMembers);
+        
         setLoadingCarePlans(false);
       } catch (err) {
         console.error("Error loading care plans:", err);
@@ -999,6 +1045,24 @@ const ProfessionalProfileHub = () => {
                             </div>
                           </div>
                         )}
+                      </CardContent>
+                    </Card>
+                    
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                          <Users className="h-5 w-5 text-primary" />
+                          Care Team Members
+                        </CardTitle>
+                        <CardDescription>
+                          View all team members across your care plans
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <CareTeamMembersTab 
+                          teamMembers={careTeamMembers}
+                          loading={loadingCareTeamMembers}
+                        />
                       </CardContent>
                     </Card>
                   </TabsContent>

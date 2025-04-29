@@ -32,7 +32,7 @@ export const fetchCareTeamMembers = async (planId: string): Promise<CareTeamMemb
       .from('care_team_members')
       .select(`
         *,
-        profiles!caregiver_id(
+        profiles:caregiver_id(
           full_name,
           professional_type,
           avatar_url
