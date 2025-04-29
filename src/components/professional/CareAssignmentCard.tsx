@@ -15,6 +15,22 @@ interface CareTeamMember {
   status?: string;
   notes?: string;
   created_at?: string;
+  care_plan?: {
+    id?: string;
+    title?: string;
+    description?: string;
+    status?: string;
+    family_id?: string;
+    created_at?: string;
+    updated_at?: string;
+    metadata?: any;
+    family_profile?: {
+      full_name?: string | null;
+      avatar_url?: string | null;
+      phone_number?: string | null;
+    };
+  };
+  // For backward compatibility with existing code
   care_plans?: {
     id?: string;
     title?: string;
@@ -42,21 +58,33 @@ interface CareAssignmentCardProps {
 }
 
 export function CareAssignmentCard({ assignment }: CareAssignmentCardProps) {
-  // Add debug logging
+  // Enhanced debug logging
   console.log("Rendering CareAssignmentCard with assignment:", assignment);
 
   // Enhanced validation to ensure required data exists
-  if (!assignment || !assignment.care_plans) {
-    console.warn("Assignment missing or care_plans data missing:", assignment?.id);
+  if (!assignment) {
+    console.warn("Assignment is missing or null");
+    return null;
+  }
+  
+  // Support both care_plan and care_plans property (either could exist based on data structure)
+  const carePlanData = assignment.care_plan || assignment.care_plans;
+  
+  if (!carePlanData) {
+    console.warn("Both care_plan and care_plans data missing for assignment:", assignment.id);
     return null;
   }
 
-  // Get family data from either nested profiles or family property with improved fallbacks
-  const familyProfile = assignment?.care_plans?.profiles || assignment?.family || {
-    full_name: "Family",
-    avatar_url: null,
-    phone_number: null
-  };
+  // Get family data from either nested profile structures with improved fallbacks
+  const familyProfile = 
+    (assignment.care_plan?.family_profile) || 
+    (assignment.care_plans?.profiles) || 
+    assignment.family || 
+    {
+      full_name: "Family",
+      avatar_url: null,
+      phone_number: null
+    };
 
   const getInitials = (name?: string | null) => {
     if (!name) return "F";
@@ -95,12 +123,12 @@ export function CareAssignmentCard({ assignment }: CareAssignmentCardProps) {
   };
 
   // Ensure values exist and provide defaults
-  const carePlanTitle = assignment.care_plans?.title || "Care Plan";
-  const carePlanDescription = assignment.care_plans?.description || "No description provided";
-  const carePlanId = assignment.care_plan_id || assignment.care_plans?.id || "";
+  const carePlanTitle = carePlanData.title || "Care Plan";
+  const carePlanDescription = carePlanData.description || "No description provided";
+  const carePlanId = assignment.care_plan_id || carePlanData.id || "";
   const assignmentRole = assignment.role || "Caregiver";
   const assignmentStatus = assignment.status || "pending";
-  const carePlanStatus = assignment.care_plans?.status;
+  const carePlanStatus = carePlanData.status;
   const createdAt = assignment.created_at;
   const familyName = familyProfile?.full_name || "Family";
   const avatarUrl = familyProfile?.avatar_url || '';
