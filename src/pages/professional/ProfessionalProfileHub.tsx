@@ -997,8 +997,12 @@ const ProfessionalProfileHub = () => {
             </div>
             
             <div className="md:col-span-2">
-              <Tabs defaultValue="assignments" className="space-y-6">
+              <Tabs defaultValue="next-steps" className="space-y-6">
                 <TabsList>
+                  <TabsTrigger value="next-steps" className="flex items-center gap-2">
+                    <ListChecks className="h-4 w-4" />
+                    <span>Next Steps</span>
+                  </TabsTrigger>
                   <TabsTrigger value="assignments" className="flex items-center gap-2">
                     <ClipboardList className="h-4 w-4" />
                     <span>Care Assignments</span>
@@ -1015,7 +1019,58 @@ const ProfessionalProfileHub = () => {
                     <GraduationCap className="h-4 w-4" />
                     <span>Training</span>
                   </TabsTrigger>
+                  <TabsTrigger value="documents" className="flex items-center gap-2">
+                    <FileText className="h-4 w-4" />
+                    <span>Documents</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="admin-assistant" className="flex items-center gap-2">
+                    <Briefcase className="h-4 w-4" />
+                    <span>Admin Assistant</span>
+                  </TabsTrigger>
                 </TabsList>
+                
+                <TabsContent value="next-steps" className="space-y-6">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Next Steps</CardTitle>
+                      <CardDescription>
+                        Complete these steps to set up your professional profile
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="space-y-4 mt-4">
+                        {steps.map((step) => (
+                          <div key={step.id} className="flex items-start gap-3">
+                            <div className="mt-0.5">
+                              {step.completed ? (
+                                <CheckCircle2 className="h-5 w-5 text-green-500" />
+                              ) : (
+                                <Circle className="h-5 w-5 text-gray-300" />
+                              )}
+                            </div>
+                            <div className="flex-1">
+                              <div className="flex justify-between">
+                                <h4 className="font-medium">{step.title}</h4>
+                                {renderActionButton(step)}
+                              </div>
+                              <p className="text-sm text-gray-500 mt-0.5">{step.description}</p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                      
+                      <div className="pt-4">
+                        <div className="space-y-2">
+                          <div className="flex justify-between items-center text-sm">
+                            <span>Overall Progress</span>
+                            <span>{completedSteps}/{steps.length} steps</span>
+                          </div>
+                          <Progress value={progress} className="h-2" />
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
                 
                 <TabsContent value="assignments" className="space-y-6">
                   <Card>
@@ -1171,6 +1226,14 @@ const ProfessionalProfileHub = () => {
                       )}
                     </CardContent>
                   </Card>
+                </TabsContent>
+                
+                <TabsContent value="documents" className="space-y-6">
+                  <DocumentsTab />
+                </TabsContent>
+                
+                <TabsContent value="admin-assistant" className="space-y-6">
+                  <AdminAssistantTab />
                 </TabsContent>
               </Tabs>
             </div>
