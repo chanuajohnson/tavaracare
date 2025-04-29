@@ -22,15 +22,17 @@ export const useChatTyping = ({
   const [isTyping, setIsTyping] = useState(false);
 
   const simulateBotTyping = async (message: string, options?: ChatOption[]) => {
+    console.log(`[simulateBotTyping] Called with message length: ${message?.length || 0}, options: ${options?.length || 0}`);
+    
     if (!message) {
-      console.error("Empty message provided to simulateBotTyping");
+      console.error("[simulateBotTyping] Empty message provided to simulateBotTyping");
       toast.error("Unable to generate a response. Please try again.");
       return;
     }
 
     // Check if this message would be repetitive
     if (sessionId && isRepeatMessage(sessionId, message)) {
-      console.log("[useChatTyping] Preventing repeat message:", message.substring(0, 50) + "...");
+      console.log("[simulateBotTyping] Preventing repeat message:", message.substring(0, 50) + "...");
       return;
     }
 
@@ -43,13 +45,15 @@ export const useChatTyping = ({
       const maxDelay = 1500;
       const delay = Math.min(baseDelay + message.length * charDelay, maxDelay);
       
+      console.log(`[simulateBotTyping] Simulating typing for ${delay}ms for message: "${message.substring(0, 30)}..."`);
       await new Promise(resolve => setTimeout(resolve, delay));
       
-      // Store the message in cache to prevent repetition in the future
+      // Store the message in cache to prevent repetition
       if (sessionId) {
         setLastMessage(sessionId, message);
       }
       
+      console.log(`[simulateBotTyping] Adding bot message to chat with ${options?.length || 0} options`);
       addMessage({
         content: message,
         isUser: false,
@@ -60,17 +64,18 @@ export const useChatTyping = ({
       // Sync messages to Supabase
       if (syncMessagesToSupabase && sessionId) {
         try {
+          console.log(`[simulateBotTyping] Syncing messages to Supabase`);
           await syncMessagesToSupabase(
             [...messages, { content: message, isUser: false, timestamp: Date.now() }], 
             sessionId,
             role
           );
         } catch (err) {
-          console.error('Error syncing messages:', err);
+          console.error('[simulateBotTyping] Error syncing messages:', err);
         }
       }
     } catch (error) {
-      console.error("Error in simulateBotTyping:", error);
+      console.error("[simulateBotTyping] Error in simulateBotTyping:", error);
       toast.error("An error occurred while processing the chat response");
     } finally {
       setIsTyping(false);

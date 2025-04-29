@@ -45,16 +45,21 @@ export const useRoleSelection = ({
 }: UseRoleSelectionProps) => {
   
   const handleRoleSelection = async (roleId: string) => {
+    console.log(`[handleRoleSelection] Processing role selection: ${roleId}`);
+    
     if (roleId === "resume") {
+      console.log(`[handleRoleSelection] User chose to resume chat`);
       handleResumeChat();
       return;
     }
     
     if (roleId === "restart") {
+      console.log(`[handleRoleSelection] User chose to restart chat`);
       // This will be handled by the main hook
       return { action: "restart" };
     }
     
+    // Add user message to chat
     addMessage({
       content: `I'm a ${roleId}.`,
       isUser: true,
@@ -62,6 +67,8 @@ export const useRoleSelection = ({
     });
     
     try {
+      console.log(`[handleRoleSelection] Saving role selection: ${roleId}`);
+      
       await saveChatResponse(
         sessionId,
         roleId,
@@ -79,17 +86,20 @@ export const useRoleSelection = ({
         { role: roleId }
       );
     } catch (error) {
-      console.error("Error saving role selection:", error);
+      console.error("[handleRoleSelection] Error saving role selection:", error);
     }
     
+    // Update progress in app state
     updateProgress({
       role: roleId,
       questionIndex: 0
     });
     
+    // Update section indices to start at the beginning
     setCurrentSectionIndex(0);
     setCurrentQuestionIndex(0);
     
+    // Update form data with selected role
     setFormData(prev => ({
       ...prev,
       role: roleId
@@ -100,8 +110,10 @@ export const useRoleSelection = ({
       try {
         previousResponses = await getSessionResponses(sessionId);
       } catch (err) {
-        console.log("No previous responses found");
+        console.log("[handleRoleSelection] No previous responses found");
       }
+      
+      console.log(`[handleRoleSelection] Processing conversation for role: ${roleId}, section: 0, isFirstQuestion: true`);
       
       const response = await processConversation(
         [...messages, { content: `I'm a ${roleId}.`, isUser: true, timestamp: Date.now() }],
@@ -112,7 +124,11 @@ export const useRoleSelection = ({
         true // Indicate this is the first question after role selection
       );
       
+      console.log(`[handleRoleSelection] Received response from processConversation:`, response);
+      
+      // Detect the field type for the first question
       const questionType = getFieldTypeForCurrentQuestion(0, 0, roleId);
+      console.log(`[handleRoleSelection] Setting field type to: ${questionType}`);
       setFieldType(questionType);
       
       // Use a simpler greeting without redundant section introduction
@@ -122,10 +138,14 @@ export const useRoleSelection = ({
       // Store this message in the cache to prevent repetition
       setLastMessage(sessionId, finalMessage);
       
+      console.log(`[handleRoleSelection] Displaying bot message: "${finalMessage.substring(0, 50)}..."`);
       await simulateBotTyping(finalMessage, response.options);
+      
+      // Change conversation stage to questions
+      console.log(`[handleRoleSelection] Setting conversation stage to questions`);
       setConversationStage("questions");
     } catch (error) {
-      console.error("Error in role selection:", error);
+      console.error("[handleRoleSelection] Error in role selection:", error);
       await simulateBotTyping("I'm having trouble with your selection. Could you try again?", getRoleOptions());
     }
     

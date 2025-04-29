@@ -13,7 +13,7 @@ export const defaultChatConfig: ChatConfig = {
   mode: 'ai',
   temperature: 0.7,
   fallbackThreshold: 3,  // Increased to give AI more chances
-  useAIPrompts: false    // Default to scripted prompts
+  useAIPrompts: true     // Enable AI prompts by default for testing
 };
 
 // Interface for tracking retry attempts
