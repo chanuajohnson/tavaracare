@@ -294,7 +294,7 @@ const ProfessionalProfileHub = () => {
       
       console.log("Fetching care plans for professional user:", user?.id);
       
-      // UPDATED QUERY: Using proper join syntax and explicit selection
+      // FIXED QUERY: Using proper column-specific join syntax to avoid ambiguity
       const { data: careTeamData, error: carePlansError } = await supabase
         .from('care_team_members')
         .select(`
@@ -312,8 +312,7 @@ const ProfessionalProfileHub = () => {
             status, 
             family_id
           ),
-          family:family_id (
-            id,
+          family_profiles:family_id (
             full_name,
             avatar_url,
             phone_number
@@ -342,6 +341,9 @@ const ProfessionalProfileHub = () => {
       // Improved data transformation to correctly structure data
       const transformedCarePlans = validCarePlans.map(plan => {
         // Create a properly structured object for CareAssignmentCard
+        // Using null coalescence to provide fallback values
+        const familyProfileData = plan.family_profiles || {};
+        
         return {
           id: plan.id,
           care_plan_id: plan.care_plan_id,
@@ -358,9 +360,9 @@ const ProfessionalProfileHub = () => {
             family_id: plan.care_plans?.family_id,
             // Add required profiles information from family data
             profiles: {
-              full_name: plan.family?.full_name || "Family",
-              avatar_url: plan.family?.avatar_url,
-              phone_number: plan.family?.phone_number
+              full_name: familyProfileData.full_name || "Family",
+              avatar_url: familyProfileData.avatar_url,
+              phone_number: familyProfileData.phone_number
             }
           }
         };
@@ -377,7 +379,7 @@ const ProfessionalProfileHub = () => {
         }
         
         try {
-          // UPDATED QUERY: Using proper join syntax for professional details
+          // FIXED QUERY: Using proper column-specific join syntax to avoid ambiguity
           const { data: teamMembers, error: membersError } = await supabase
             .from('care_team_members')
             .select(`
@@ -390,8 +392,7 @@ const ProfessionalProfileHub = () => {
               notes,
               created_at,
               updated_at,
-              caregiver:caregiver_id (
-                id,
+              profiles:caregiver_id (
                 full_name,
                 professional_type,
                 avatar_url
@@ -408,7 +409,8 @@ const ProfessionalProfileHub = () => {
           
           return (teamMembers || []).map(member => {
             // Format data for the CareTeamMembersTab component
-            const profileData = member.caregiver || {};
+            // Add safe access with fallbacks
+            const profileData = member.profiles || {};
             
             return {
               id: member.id,

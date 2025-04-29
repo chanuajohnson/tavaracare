@@ -1,4 +1,3 @@
-
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import { CareTeamMember, CareTeamMemberWithProfile, CareTeamMemberDto, CareTeamMemberInput } from "@/types/careTypes";
@@ -28,7 +27,7 @@ const adaptCareTeamMemberToDb = (member: Partial<CareTeamMember>): Partial<CareT
 
 export const fetchCareTeamMembers = async (planId: string): Promise<CareTeamMemberWithProfile[]> => {
   try {
-    // IMPROVED QUERY: Using proper join syntax for professional details
+    // FIXED QUERY: Using proper column-specific join syntax to avoid ambiguity
     const { data, error } = await supabase
       .from('care_team_members')
       .select(`
@@ -41,8 +40,7 @@ export const fetchCareTeamMembers = async (planId: string): Promise<CareTeamMemb
         notes, 
         created_at, 
         updated_at,
-        caregiver:caregiver_id (
-          id,
+        profiles:caregiver_id(
           full_name,
           professional_type,
           avatar_url
@@ -59,8 +57,8 @@ export const fetchCareTeamMembers = async (planId: string): Promise<CareTeamMemb
     console.log("Raw care team members data:", data);
 
     return (data || []).map(member => {
-      // Access the caregiver object with proper type casting and default values
-      const profileData = member.caregiver || {
+      // Access the profiles object with proper type casting and default values
+      const profileData = member.profiles || {
         full_name: 'Unknown Professional',
         professional_type: 'Care Professional',
         avatar_url: null

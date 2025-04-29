@@ -73,7 +73,7 @@ export function CareTeamMembersTab({ teamMembers = [], loading = false }: CareTe
   return (
     <div className="space-y-3">
       {teamMembers.map(member => {
-        // Ensure professionalDetails exists
+        // Create a safe accessor for professionalDetails with fallbacks
         const professionalDetails = member.professionalDetails || {
           full_name: 'Unknown Professional', 
           professional_type: 'Care Professional', 
