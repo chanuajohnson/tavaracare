@@ -67,9 +67,9 @@ export const fetchCareTeamMembers = async (planId: string): Promise<CareTeamMemb
       return {
         ...adaptCareTeamMemberFromDb(member as CareTeamMemberDto),
         professionalDetails: {
-          full_name: profileData.full_name || 'Unknown Professional',
-          professional_type: profileData.professional_type || 'Care Professional',
-          avatar_url: profileData.avatar_url || null
+          full_name: (profileData as any).full_name || 'Unknown Professional',
+          professional_type: (profileData as any).professional_type || 'Care Professional',
+          avatar_url: (profileData as any).avatar_url || null
         }
       };
     });

@@ -1,4 +1,3 @@
-
 import { motion } from "framer-motion";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -294,7 +293,7 @@ const ProfessionalProfileHub = () => {
       
       console.log("Fetching care plans for professional user:", user?.id);
       
-      // FIXED QUERY: Using proper column-specific join syntax to avoid ambiguity
+      // FIXED QUERY: Using proper column-specific join syntax with clear naming to avoid ambiguity
       const { data: careTeamData, error: carePlansError } = await supabase
         .from('care_team_members')
         .select(`
@@ -360,9 +359,9 @@ const ProfessionalProfileHub = () => {
             family_id: plan.care_plans?.family_id,
             // Add required profiles information from family data
             profiles: {
-              full_name: familyProfileData.full_name || "Family",
-              avatar_url: familyProfileData.avatar_url,
-              phone_number: familyProfileData.phone_number
+              full_name: (familyProfileData as any).full_name || "Family",
+              avatar_url: (familyProfileData as any).avatar_url,
+              phone_number: (familyProfileData as any).phone_number
             }
           }
         };
@@ -379,7 +378,7 @@ const ProfessionalProfileHub = () => {
         }
         
         try {
-          // FIXED QUERY: Using proper column-specific join syntax to avoid ambiguity
+          // FIXED QUERY: Using proper column-specific join syntax with explicit naming
           const { data: teamMembers, error: membersError } = await supabase
             .from('care_team_members')
             .select(`
@@ -392,7 +391,7 @@ const ProfessionalProfileHub = () => {
               notes,
               created_at,
               updated_at,
-              profiles:caregiver_id (
+              professional_profiles:caregiver_id (
                 full_name,
                 professional_type,
                 avatar_url
@@ -410,7 +409,7 @@ const ProfessionalProfileHub = () => {
           return (teamMembers || []).map(member => {
             // Format data for the CareTeamMembersTab component
             // Add safe access with fallbacks
-            const profileData = member.profiles || {};
+            const profileData = member.professional_profiles || {};
             
             return {
               id: member.id,
@@ -423,9 +422,9 @@ const ProfessionalProfileHub = () => {
               createdAt: member.created_at,
               updatedAt: member.updated_at,
               professionalDetails: {
-                full_name: profileData.full_name || 'Unknown Professional',
-                professional_type: profileData.professional_type || 'Care Professional',
-                avatar_url: profileData.avatar_url || null
+                full_name: (profileData as any).full_name || 'Unknown Professional',
+                professional_type: (profileData as any).professional_type || 'Care Professional',
+                avatar_url: (profileData as any).avatar_url || null
               }
             };
           });
