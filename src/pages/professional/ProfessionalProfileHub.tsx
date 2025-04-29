@@ -50,6 +50,7 @@ import { CareAssignmentCard } from "@/components/professional/CareAssignmentCard
 import { ProfessionalCalendar } from "@/components/professional/ProfessionalCalendar";
 import { useCareShifts } from "@/hooks/useCareShifts";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { CareTeamMembersTab } from "@/components/professional/CareTeamMembersTab";
 
 const initialSteps = [
   { 

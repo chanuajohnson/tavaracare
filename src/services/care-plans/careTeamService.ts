@@ -46,13 +46,15 @@ export const fetchCareTeamMembers = async (planId: string): Promise<CareTeamMemb
     }
 
     return (data || []).map(member => {
-      const profile = member.profiles || {};
+      // Ensure profiles is an object, not an array or null
+      const profileData = member.profiles || {};
+      
       return {
         ...adaptCareTeamMemberFromDb(member as CareTeamMemberDto),
         professionalDetails: {
-          full_name: profile.full_name,
-          professional_type: profile.professional_type,
-          avatar_url: profile.avatar_url
+          full_name: profileData.full_name || null,
+          professional_type: profileData.professional_type || null,
+          avatar_url: profileData.avatar_url || null
         }
       };
     });
