@@ -2,7 +2,12 @@
 import { useState } from 'react';
 import { ChatOption } from '@/types/chatTypes';
 import { toast } from 'sonner';
-import { isRepeatMessage, setLastMessage } from '@/utils/chat/engine/messageCache';
+import { 
+  isRepeatMessage, 
+  setLastMessage, 
+  startProcessingMessage,
+  finishProcessingMessage 
+} from '@/utils/chat/engine/messageCache';
 
 interface UseChatTypingProps {
   addMessage: (message: any) => void;
@@ -30,9 +35,18 @@ export const useChatTyping = ({
       return;
     }
 
-    // Check if this message would be repetitive
-    if (sessionId && isRepeatMessage(sessionId, message)) {
+    // If this is a role selection follow-up question, always allow it through
+    const isFirstQuestion = message.includes("Let's get started");
+    
+    // Mark that we're starting to process this message to avoid immediate deduplication
+    if (sessionId) {
+      startProcessingMessage(sessionId);
+    }
+    
+    // Check if this message would be repetitive, unless it's a first question
+    if (sessionId && !isFirstQuestion && isRepeatMessage(sessionId, message)) {
       console.log("[simulateBotTyping] Preventing repeat message:", message.substring(0, 50) + "...");
+      finishProcessingMessage(sessionId);
       return;
     }
 
@@ -51,6 +65,7 @@ export const useChatTyping = ({
       // Store the message in cache to prevent repetition
       if (sessionId) {
         setLastMessage(sessionId, message);
+        finishProcessingMessage(sessionId);
       }
       
       console.log(`[simulateBotTyping] Adding bot message to chat with ${options?.length || 0} options`);
@@ -77,6 +92,9 @@ export const useChatTyping = ({
     } catch (error) {
       console.error("[simulateBotTyping] Error in simulateBotTyping:", error);
       toast.error("An error occurred while processing the chat response");
+      if (sessionId) {
+        finishProcessingMessage(sessionId);
+      }
     } finally {
       setIsTyping(false);
     }

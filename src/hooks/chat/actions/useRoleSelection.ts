@@ -10,7 +10,12 @@ import {
 import { getRoleOptions } from "@/data/chatIntroMessage";
 import { ChatMessage } from "@/types/chatTypes";
 import { ChatConfig } from "@/utils/chat/engine/types";
-import { isRepeatMessage, setLastMessage } from "@/utils/chat/engine/messageCache";
+import { 
+  isRepeatMessage, 
+  setLastMessage, 
+  clearMessageCache,
+  startProcessingMessage 
+} from "@/utils/chat/engine/messageCache";
 
 interface UseRoleSelectionProps {
   sessionId: string;
@@ -58,6 +63,9 @@ export const useRoleSelection = ({
       // This will be handled by the main hook
       return { action: "restart" };
     }
+    
+    // Clear the message cache before processing a new role selection
+    clearMessageCache(sessionId);
     
     // Add user message to chat
     addMessage({
@@ -135,8 +143,8 @@ export const useRoleSelection = ({
       const simpleIntro = "Great! Let's get started. ";
       const finalMessage = simpleIntro + response.message;
       
-      // Store this message in the cache to prevent repetition
-      setLastMessage(sessionId, finalMessage);
+      // Mark that we're starting to process this message
+      startProcessingMessage(sessionId);
       
       console.log(`[handleRoleSelection] Displaying bot message: "${finalMessage.substring(0, 50)}..."`);
       await simulateBotTyping(finalMessage, response.options);

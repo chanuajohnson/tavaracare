@@ -4,6 +4,7 @@
  * to detect and prevent repetition
  */
 const lastMessageCache = new Map<string, string>();
+const processingMessageCache = new Map<string, boolean>();
 
 /**
  * Set the last message for a session
@@ -15,13 +16,45 @@ export const setLastMessage = (sessionId: string, message: string): void => {
 };
 
 /**
+ * Mark a message as currently being processed to avoid immediate deduplication
+ */
+export const startProcessingMessage = (sessionId: string): void => {
+  processingMessageCache.set(sessionId, true);
+};
+
+/**
+ * Mark a message as done processing
+ */
+export const finishProcessingMessage = (sessionId: string): void => {
+  processingMessageCache.delete(sessionId);
+};
+
+/**
  * Check if the current message is too similar to the last message
  */
 export const isRepeatMessage = (sessionId: string, message: string): boolean => {
   if (!sessionId || !message) return false; // Handle invalid input
   
+  // If we're currently processing a message for this session, don't consider it a repeat
+  if (processingMessageCache.get(sessionId)) {
+    console.log(`[messageCache] Message is currently being processed, not checking for repetition`);
+    return false;
+  }
+  
   const lastMessage = lastMessageCache.get(sessionId);
   if (!lastMessage) return false;
+  
+  // If the message is identical to the last one, it's definitely a repeat
+  if (message === lastMessage) {
+    console.log(`[messageCache] Detected exact duplicate message for session ${sessionId.substring(0, 6)}...`);
+    return true;
+  }
+  
+  // For intro messages containing "Let's get started", never consider them repeats
+  if (message.includes("Let's get started") || message.includes("First name")) {
+    console.log(`[messageCache] First question after role selection, allowing through`);
+    return false;
+  }
   
   // Simple string similarity check (can be improved)
   const similarity = calculateSimilarity(lastMessage, message);
@@ -66,6 +99,7 @@ const calculateSimilarity = (str1: string, str2: string): number => {
  */
 export const clearMessageCache = (sessionId: string): void => {
   lastMessageCache.delete(sessionId);
+  processingMessageCache.delete(sessionId);
   console.log(`[messageCache] Cleared cache for session ${sessionId.substring(0, 6)}...`);
 };
 
