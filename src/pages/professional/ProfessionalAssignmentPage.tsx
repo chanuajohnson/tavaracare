@@ -75,7 +75,7 @@ const ProfessionalAssignmentPage = () => {
           return;
         }
 
-        // Fetch care plan details with standardized naming
+        // Fetch care plan details
         const { data: planData, error: planError } = await supabase
           .from('care_plans')
           .select(`
@@ -106,14 +106,7 @@ const ProfessionalAssignmentPage = () => {
           return;
         }
 
-        // Rename profiles to family_profile for consistency
-        const formattedPlan = {
-          ...planData,
-          family_profile: planData.profiles
-        };
-        
-        console.log("Formatted care plan with standardized naming:", formattedPlan);
-        setCarePlan(formattedPlan);
+        setCarePlan(planData);
 
         // Fetch team members for this care plan
         const { data: teamData, error: teamError } = await supabase
@@ -207,7 +200,7 @@ const ProfessionalAssignmentPage = () => {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div>
-            <FamilyDetailsCard familyProfile={carePlan?.family_profile} />
+            <FamilyDetailsCard familyProfile={carePlan?.profiles} />
           </div>
 
           <div className="lg:col-span-2">
@@ -224,6 +217,6 @@ const ProfessionalAssignmentPage = () => {
       </div>
     </div>
   );
-}
+};
 
 export default ProfessionalAssignmentPage;

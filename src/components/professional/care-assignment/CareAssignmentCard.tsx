@@ -68,7 +68,7 @@ export function CareAssignmentCard({ assignment }: CareAssignmentCardProps) {
     return null;
   }
   
-  // Prioritize care_plan (singular) first, then fall back to care_plans if needed for transition period
+  // Support both care_plan and care_plans property (either could exist based on data structure)
   const carePlanData = assignment.care_plan || assignment.care_plans;
   
   if (!carePlanData) {
@@ -76,7 +76,7 @@ export function CareAssignmentCard({ assignment }: CareAssignmentCardProps) {
     return null;
   }
 
-  // Get family data from either nested profile structures with standardized preference
+  // Get family data from either nested profile structures with improved fallbacks
   const familyProfile = 
     (assignment.care_plan?.family_profile) || 
     (assignment.care_plans?.profiles) || 

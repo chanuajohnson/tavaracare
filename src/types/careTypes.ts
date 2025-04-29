@@ -67,15 +67,6 @@ export interface ProfessionalDetails {
   avatar_url?: string | null;
 }
 
-// Family details from profiles
-export interface FamilyDetails {
-  full_name?: string | null;
-  avatar_url?: string | null;
-  phone_number?: string | null;
-  email?: string | null;
-  address?: string | null;
-}
-
 // Care Team Member with associated profile information
 export interface CareTeamMemberWithProfile extends CareTeamMember {
   professionalDetails?: ProfessionalDetails;
@@ -86,13 +77,6 @@ export interface CareTeamMemberWithProfile extends CareTeamMember {
     yearsOfExperience?: string;
     certifications?: string[];
   };
-}
-
-// Care Plan with associated family profile information
-export interface CarePlanWithFamilyProfile extends CarePlan {
-  family_profile?: FamilyDetails;
-  // Deprecated - for backward compatibility
-  profiles?: FamilyDetails;
 }
 
 // DTOs for database interaction
