@@ -47,6 +47,10 @@ export const ChatInputForm: React.FC<ChatInputFormProps> = ({
       return "Enter your phone number...";
     }
     
+    if (fieldType === "name") {
+      return "Enter your name (letters only)...";
+    }
+    
     if (fieldType === "budget") {
       return "Enter a budget range (e.g., $15-20/hr)...";
     }
@@ -70,6 +74,8 @@ export const ChatInputForm: React.FC<ChatInputFormProps> = ({
           onChange={(e) => setInput(e.target.value)}
           placeholder={getPlaceholder()}
           disabled={!shouldShowInput}
+          aria-invalid={!!validationError}
+          aria-describedby={validationError ? "input-error-message" : undefined}
         />
         <button
           type="submit"

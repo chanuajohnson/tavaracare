@@ -26,7 +26,7 @@ interface UseMessageInputProps {
   alwaysShowOptions: boolean;
   advanceToNextQuestion: (currentQuestionId: string) => Promise<void>;
   setValidationError: (error?: string) => void;
-  getFieldTypeForCurrentQuestion: (sectionIndex?: number, questionIndex?: number) => string | null;
+  getFieldTypeForCurrentQuestion: (sectionIndex?: number, questionIndex?: number, role?: string | null) => string | null;
 }
 
 export const useMessageInput = ({
@@ -75,8 +75,17 @@ export const useMessageInput = ({
       return;
     }
     
-    // Get the current question type
-    const questionType = getFieldTypeForCurrentQuestion(currentSectionIndex, currentQuestionIndex);
+    console.log(`[useMessageInput] Processing message: "${trimmedInput}" with role: ${progress.role || 'unknown'}`);
+    
+    // Get the current question type, passing the role parameter
+    const questionType = getFieldTypeForCurrentQuestion(
+      currentSectionIndex, 
+      currentQuestionIndex, 
+      progress.role
+    );
+    
+    console.log(`[useMessageInput] Detected field type: ${questionType || 'none'}`);
+    
     const currentQuestion = getCurrentQuestion(
       progress.role!,
       currentSectionIndex,
@@ -90,6 +99,20 @@ export const useMessageInput = ({
         setValidationError(budgetValidation.errorMessage);
         toast.error(budgetValidation.errorMessage);
         return;
+      }
+    }
+    // Name validation - enhanced to provide better feedback
+    else if (questionType === "name") {
+      const nameValidation = validateChatInput(trimmedInput, "name");
+      if (!nameValidation.isValid) {
+        const errorMsg = nameValidation.errorMessage || "Please enter a valid name with letters only";
+        setValidationError(errorMsg);
+        toast.error(errorMsg);
+        console.log(`[useMessageInput] Name validation failed: ${errorMsg}`);
+        return;
+      } else {
+        setValidationError(undefined);
+        console.log(`[useMessageInput] Valid name format: ${trimmedInput}`);
       }
     }
     // Normal validation for other question types

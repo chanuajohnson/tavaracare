@@ -67,7 +67,7 @@ export const validateChatInput = (input: string, fieldType: string): { isValid: 
       if (!namePattern.test(input)) {
         return { 
           isValid: false, 
-          errorMessage: "Please use only letters, spaces, hyphens, and apostrophes" 
+          errorMessage: "Please use only letters, spaces, hyphens, and apostrophes in your name" 
         };
       }
       

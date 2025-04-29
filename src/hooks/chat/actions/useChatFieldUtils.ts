@@ -4,11 +4,16 @@ import { getCurrentQuestion } from "@/services/chatbotService";
 export const useChatFieldUtils = () => {
   const getFieldTypeForCurrentQuestion = (
     sectionIndex: number = 0, 
-    questionIndex: number = 0
+    questionIndex: number = 0,
+    role: string | null = null
   ): string | null => {
-    // Get the current role from the progress object or another source
-    // For now we'll assume this function is used in a context where role is known
-    const role = ""; // We'll use the current role from the context later
+    // Handle the case where role is null or empty
+    if (!role) {
+      console.log("[useChatFieldUtils] Warning: No role provided for field type detection");
+      return null;
+    }
+    
+    console.log(`[useChatFieldUtils] Getting field type for role: ${role}, section: ${sectionIndex}, question: ${questionIndex}`);
     
     const question = getCurrentQuestion(
       role,
@@ -16,10 +21,15 @@ export const useChatFieldUtils = () => {
       questionIndex
     );
     
-    if (!question) return null;
+    if (!question) {
+      console.log("[useChatFieldUtils] No question found for the current section/index");
+      return null;
+    }
     
     const label = (question.label || "").toLowerCase();
     const id = (question.id || "").toLowerCase();
+    
+    console.log(`[useChatFieldUtils] Analyzing question: ${label} (${id})`);
     
     if (label.includes("email") || id.includes("email")) {
       return "email";
@@ -29,7 +39,8 @@ export const useChatFieldUtils = () => {
       label.includes("first name") || 
       id.includes("first_name") ||
       label.includes("full name") ||
-      id.includes("full_name")
+      id.includes("full_name") ||
+      label.includes("name")
     ) {
       return "name";
     } else if (
@@ -44,6 +55,7 @@ export const useChatFieldUtils = () => {
       return "budget";
     }
     
+    console.log(`[useChatFieldUtils] No specific field type detected for question: ${label}`);
     return null;
   };
 
