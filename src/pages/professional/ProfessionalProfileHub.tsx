@@ -1,3 +1,4 @@
+
 import { motion } from "framer-motion";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -335,7 +336,7 @@ const ProfessionalProfileHub = () => {
       // STEP 2: Extract all care plan IDs from assignments
       const carePlanIds = careTeamAssignments
         .map(assignment => assignment.care_plan_id)
-        .filter(id => id !== null) as string[];
+        .filter(id => id !== null && id !== undefined) as string[];
         
       console.log("Care plan IDs to fetch:", carePlanIds);
       console.log("Number of care plan IDs to fetch:", carePlanIds.length);
@@ -369,64 +370,89 @@ const ProfessionalProfileHub = () => {
       console.log("Raw care plans data:", carePlansData);
       console.log("Number of care plans retrieved:", carePlansData?.length || 0);
       
+      if (!carePlansData || carePlansData.length === 0) {
+        console.log("No care plans found with the given IDs");
+        setCarePlans([]);
+        setCareTeamMembers([]);
+        setLoadingCarePlans(false);
+        setLoadingCareTeamMembers(false);
+        return;
+      }
+      
       // STEP 4: Fetch family profiles for all care plans
-      const familyIds = [...new Set((carePlansData || []).map(plan => plan.family_id))];
+      const familyIds = [...new Set((carePlansData || [])
+        .map(plan => plan.family_id)
+        .filter(id => id !== null && id !== undefined))];
       
       console.log("Family IDs to fetch:", familyIds);
       
-      const { data: familyProfiles, error: familyProfilesError } = await supabase
-        .from('profiles')
-        .select(`
-          id, 
-          full_name, 
-          avatar_url, 
-          phone_number
-        `)
-        .in('id', familyIds);
-      
-      if (familyProfilesError) {
-        console.error("Error fetching family profiles:", familyProfilesError);
-        throw familyProfilesError;
+      let familyProfiles = [];
+      if (familyIds.length > 0) {
+        const { data: familyProfilesData, error: familyProfilesError } = await supabase
+          .from('profiles')
+          .select(`
+            id, 
+            full_name, 
+            avatar_url, 
+            phone_number
+          `)
+          .in('id', familyIds);
+        
+        if (familyProfilesError) {
+          console.error("Error fetching family profiles:", familyProfilesError);
+          throw familyProfilesError;
+        }
+        
+        familyProfiles = familyProfilesData || [];
+        console.log("Raw family profiles data:", familyProfiles);
       }
       
-      console.log("Raw family profiles data:", familyProfiles);
+      // STEP 5: Build transformed care plans with proper validation
+      const transformedCarePlans = [];
       
-      // STEP 5: Combine all data into care assignments
-      const transformedCarePlans = careTeamAssignments
-        .filter(assignment => assignment.care_plan_id)
-        .map(assignment => {
-          const carePlan = carePlansData?.find(plan => plan.id === assignment.care_plan_id);
-          
-          if (!carePlan) {
-            console.warn(`No care plan found for assignment ${assignment.id} with plan ID ${assignment.care_plan_id}`);
-            return null;
+      for (const assignment of careTeamAssignments) {
+        // Skip assignments without care_plan_id
+        if (!assignment.care_plan_id) {
+          console.warn("Skipping assignment without care_plan_id:", assignment);
+          continue;
+        }
+        
+        // Find matching care plan
+        const carePlan = carePlansData.find(plan => plan.id === assignment.care_plan_id);
+        
+        // Skip if no matching care plan
+        if (!carePlan) {
+          console.warn(`No care plan found for assignment ${assignment.id} with plan ID ${assignment.care_plan_id}`);
+          continue;
+        }
+        
+        // Find family profile with fallback
+        const familyProfile = familyProfiles.find(profile => profile.id === carePlan.family_id) || {
+          id: carePlan.family_id,
+          full_name: "Family",
+          avatar_url: null,
+          phone_number: null
+        };
+        
+        // Create transformed object with validated fields
+        transformedCarePlans.push({
+          id: assignment.id,
+          care_plan_id: assignment.care_plan_id,
+          family_id: carePlan.family_id,
+          role: assignment.role || 'caregiver',
+          status: assignment.status || 'pending',
+          notes: assignment.notes,
+          created_at: assignment.created_at,
+          care_plans: {
+            id: carePlan.id,
+            title: carePlan.title || "Untitled Care Plan",
+            description: carePlan.description || "No description provided",
+            status: carePlan.status || "active",
+            family_id: carePlan.family_id,
+            profiles: familyProfile
           }
-          
-          const familyProfile = familyProfiles?.find(profile => profile.id === carePlan.family_id) || {
-            full_name: "Family",
-            avatar_url: null,
-            phone_number: null
-          };
-          
-          return {
-            id: assignment.id,
-            care_plan_id: assignment.care_plan_id,
-            family_id: assignment.family_id,
-            role: assignment.role || 'caregiver',
-            status: assignment.status || 'pending',
-            notes: assignment.notes,
-            created_at: assignment.created_at,
-            care_plans: {
-              id: carePlan.id,
-              title: carePlan.title || "Untitled Care Plan",
-              description: carePlan.description || "No description provided",
-              status: carePlan.status || "active",
-              family_id: carePlan.family_id,
-              profiles: familyProfile
-            }
-          };
-        })
-        .filter(plan => plan !== null) as any[];
+        });
+      }
       
       console.log("Transformed care plans:", transformedCarePlans);
       console.log("Number of transformed care plans:", transformedCarePlans.length);
@@ -435,11 +461,13 @@ const ProfessionalProfileHub = () => {
       // STEP 6: Fetch ALL team members for these care plans
       const fetchCareTeamMembers = async () => {
         try {
-          const allTeamMembers: any[] = [];
+          console.log("Starting to fetch care team members for all plans...");
+          const allTeamMembers = [];
           
           for (const carePlanId of carePlanIds) {
             console.log(`Fetching team members for care plan: ${carePlanId}`);
             
+            // Improved query to get all team members for this care plan, not just the current user
             const { data: teamMembers, error: membersError } = await supabase
               .from('care_team_members')
               .select(`
@@ -483,9 +511,15 @@ const ProfessionalProfileHub = () => {
                   createdAt: member.created_at,
                   updatedAt: member.updated_at,
                   professionalDetails: {
-                    full_name: typeof profileData === 'object' ? (profileData as any).full_name || 'Unknown Professional' : 'Unknown Professional',
-                    professional_type: typeof profileData === 'object' ? (profileData as any).professional_type || 'Care Professional' : 'Care Professional',
-                    avatar_url: typeof profileData === 'object' ? (profileData as any).avatar_url : null
+                    full_name: typeof profileData === 'object' && profileData !== null 
+                      ? (profileData as any).full_name || 'Unknown Professional' 
+                      : 'Unknown Professional',
+                    professional_type: typeof profileData === 'object' && profileData !== null 
+                      ? (profileData as any).professional_type || 'Care Professional' 
+                      : 'Care Professional',
+                    avatar_url: typeof profileData === 'object' && profileData !== null 
+                      ? (profileData as any).avatar_url 
+                      : null
                   }
                 };
               });

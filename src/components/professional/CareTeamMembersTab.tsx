@@ -35,17 +35,22 @@ export function CareTeamMembersTab({ teamMembers = [], loading = false }: CareTe
     teamMembers, 
     loading, 
     teamMembersCount: teamMembers.length,
-    teamMembersWithDetails: teamMembers.filter(m => m.professionalDetails),
-    firstMember: teamMembers.length > 0 ? teamMembers[0] : 'No members'
+    teamMembersWithDetails: teamMembers.filter(m => m.professionalDetails).length,
+    memberIds: teamMembers.map(m => m.id),
+    memberRoles: teamMembers.map(m => m.role)
   });
 
   const getInitials = (name: string) => {
     if (!name) return "?";
-    return name.split(' ').map(n => n[0]).join('').toUpperCase();
+    return name.split(' ')
+      .filter(part => part.length > 0)
+      .map(n => n[0])
+      .join('')
+      .toUpperCase();
   };
 
   const getStatusColor = (status: string) => {
-    switch (status) {
+    switch (status?.toLowerCase()) {
       case 'active':
         return 'bg-green-50 text-green-700 border-green-200';
       case 'invited': 
@@ -90,6 +95,15 @@ export function CareTeamMembersTab({ teamMembers = [], loading = false }: CareTe
           professional_type: 'Care Professional', 
           avatar_url: null
         };
+
+        // Debug individual member rendering
+        console.log("Rendering team member:", { 
+          id: member.id, 
+          role: member.role,
+          status: member.status,
+          caregiverId: member.caregiverId,
+          professionalName: professionalDetails.full_name 
+        });
         
         return (
           <Card key={member.id} className="overflow-hidden">
@@ -97,7 +111,7 @@ export function CareTeamMembersTab({ teamMembers = [], loading = false }: CareTe
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <Avatar className="h-10 w-10">
-                    <AvatarImage src={professionalDetails.avatar_url || ''} />
+                    <AvatarImage src={professionalDetails.avatar_url || ''} alt={professionalDetails.full_name} />
                     <AvatarFallback className="bg-primary text-white">
                       {getInitials(professionalDetails.full_name || 'U')}
                     </AvatarFallback>
@@ -109,10 +123,10 @@ export function CareTeamMembersTab({ teamMembers = [], loading = false }: CareTe
                 </div>
                 <div className="flex flex-col items-end">
                   <Badge variant="outline" className={getStatusColor(member.status)}>
-                    {member.status.charAt(0).toUpperCase() + member.status.slice(1)}
+                    {member.status ? member.status.charAt(0).toUpperCase() + member.status.slice(1) : 'Unknown'}
                   </Badge>
                   <span className="text-xs text-gray-500 mt-1">
-                    {member.role.charAt(0).toUpperCase() + member.role.slice(1)}
+                    {member.role ? member.role.charAt(0).toUpperCase() + member.role.slice(1) : 'Unknown Role'}
                   </span>
                 </div>
               </div>

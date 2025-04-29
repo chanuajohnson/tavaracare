@@ -59,25 +59,35 @@ export const fetchCareTeamMembers = async (planId: string): Promise<CareTeamMemb
 
     console.log(`Retrieved ${data?.length || 0} care team members for plan ID ${planId}:`, data);
 
+    // More detailed transformation with validation
     return (data || []).map(member => {
+      // Validate member data
+      if (!member) {
+        console.warn("Received null or undefined member in data array");
+        return null;
+      }
+      
       // Safely access profile data with fallbacks
       const profileData = member.profiles || {};
+      const fullName = typeof profileData === 'object' && profileData !== null 
+        ? (profileData as any).full_name || 'Unknown Professional' 
+        : 'Unknown Professional';
+      const professionalType = typeof profileData === 'object' && profileData !== null 
+        ? (profileData as any).professional_type || 'Care Professional' 
+        : 'Care Professional';
+      const avatarUrl = typeof profileData === 'object' && profileData !== null 
+        ? (profileData as any).avatar_url 
+        : null;
       
       return {
         ...adaptCareTeamMemberFromDb(member as CareTeamMemberDto),
         professionalDetails: {
-          full_name: typeof profileData === 'object' && profileData !== null 
-            ? (profileData as any).full_name || 'Unknown Professional' 
-            : 'Unknown Professional',
-          professional_type: typeof profileData === 'object' && profileData !== null 
-            ? (profileData as any).professional_type || 'Care Professional' 
-            : 'Care Professional',
-          avatar_url: typeof profileData === 'object' && profileData !== null 
-            ? (profileData as any).avatar_url 
-            : null
+          full_name: fullName,
+          professional_type: professionalType,
+          avatar_url: avatarUrl
         }
       };
-    });
+    }).filter(Boolean) as CareTeamMemberWithProfile[];
   } catch (error) {
     console.error("Error fetching care team members:", error);
     toast.error("Failed to load care team members");
@@ -109,9 +119,15 @@ export const fetchAllCareTeamMembersForProfessional = async (professionalId: str
     }
     
     // Extract care plan IDs
-    const carePlanIds = userAssignments.map(assignment => assignment.care_plan_id);
+    const carePlanIds = userAssignments
+      .map(assignment => assignment.care_plan_id)
+      .filter(id => id !== null && id !== undefined);
     
     console.log("Care plan IDs to fetch team members for:", carePlanIds);
+    
+    if (carePlanIds.length === 0) {
+      return [];
+    }
     
     // Now fetch all team members for these care plans
     const { data: allTeamMembers, error: teamMembersError } = await supabase
@@ -142,25 +158,34 @@ export const fetchAllCareTeamMembersForProfessional = async (professionalId: str
     
     console.log(`Retrieved ${allTeamMembers?.length || 0} total care team members:`, allTeamMembers);
     
+    // Improved transformation with validation
     return (allTeamMembers || []).map(member => {
+      if (!member) {
+        console.warn("Received null or undefined member in data array");
+        return null;
+      }
+      
       // Safely access profile data with fallbacks
       const profileData = member.profiles || {};
+      const fullName = typeof profileData === 'object' && profileData !== null 
+        ? (profileData as any).full_name || 'Unknown Professional' 
+        : 'Unknown Professional';
+      const professionalType = typeof profileData === 'object' && profileData !== null 
+        ? (profileData as any).professional_type || 'Care Professional' 
+        : 'Care Professional';
+      const avatarUrl = typeof profileData === 'object' && profileData !== null 
+        ? (profileData as any).avatar_url 
+        : null;
       
       return {
         ...adaptCareTeamMemberFromDb(member as CareTeamMemberDto),
         professionalDetails: {
-          full_name: typeof profileData === 'object' && profileData !== null 
-            ? (profileData as any).full_name || 'Unknown Professional' 
-            : 'Unknown Professional',
-          professional_type: typeof profileData === 'object' && profileData !== null 
-            ? (profileData as any).professional_type || 'Care Professional' 
-            : 'Care Professional',
-          avatar_url: typeof profileData === 'object' && profileData !== null 
-            ? (profileData as any).avatar_url 
-            : null
+          full_name: fullName,
+          professional_type: professionalType,
+          avatar_url: avatarUrl
         }
       };
-    });
+    }).filter(Boolean) as CareTeamMemberWithProfile[];
   } catch (error) {
     console.error("Error fetching all care team members:", error);
     toast.error("Failed to load care team members");
