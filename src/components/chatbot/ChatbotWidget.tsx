@@ -13,7 +13,7 @@ import { ChatInputForm } from "./ChatInputForm";
 import { useChatState } from "@/hooks/chat/useChatState";
 import { useChatTyping } from "@/hooks/chat/useChatTyping";
 import { useChatActions } from "@/hooks/chat/useChatActions";
-import { useIsMobile } from "@/hooks/useIsMobile";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface ChatbotWidgetProps {
   className?: string;
