@@ -1,5 +1,5 @@
+
 import React, { useEffect } from "react";
-import { cn } from "@/lib/utils";
 import { useChatMessages } from "@/hooks/chat/useChatMessages";
 import { useChatSession } from "@/hooks/chat/useChatSession";
 import { useChat } from "./ChatProvider";
@@ -14,6 +14,8 @@ import { useChatState } from "@/hooks/chat/useChatState";
 import { useChatTyping } from "@/hooks/chat/useChatTyping";
 import { useChatActions } from "@/hooks/chat/useChatActions";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { ChatContainer } from "./components/ChatContainer";
+import { ChatDebugPanel } from "./components/ChatDebugPanel";
 
 interface ChatbotWidgetProps {
   className?: string;
@@ -34,7 +36,6 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({
   const { messages, addMessage, clearMessages, setMessages: setLocalMessages } = useChatMessages(sessionId);
   const { initialRole, setInitialRole, skipIntro, setMessages: setContextMessages } = useChat();
   const { progress, updateProgress, clearProgress } = useChatProgress();
-  const isMobile = useIsMobile();
   
   useEffect(() => {
     setContextMessages(messages);
@@ -142,29 +143,8 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({
     return () => clearTimeout(timer);
   }, [messages.length, initialRole, skipIntro, progress, sessionId]);
 
-  const DebugPanel = debugMode ? (
-    <div className="fixed bottom-4 right-4 bg-black/80 text-white p-3 rounded-lg text-xs z-50 max-w-xs overflow-auto max-h-48">
-      <h4 className="font-bold">Chat Debug</h4>
-      <div>Mode: <span className="text-green-400">{config.mode}</span></div>
-      <div>Stage: <span className="text-yellow-400">{conversationStage}</span></div>
-      <div>Role: <span className="text-blue-400">{progress.role || "not set"}</span></div>
-      <div>Index: <span className="text-purple-400">{currentSectionIndex}.{currentQuestionIndex}</span></div>
-      <div>Messages: <span className="text-orange-400">{messages.length}</span></div>
-      <div>Session ID: <span className="text-gray-400 text-[10px]">{sessionId.slice(0, 8)}...</span></div>
-    </div>
-  ) : null;
-
-  const responsiveWidth = isMobile ? "100%" : width;
-
   return (
-    <div 
-      className={cn(
-        "bg-background border rounded-lg shadow-xl flex flex-col z-40",
-        isMobile ? "h-[calc(100vh-120px)]" : "h-[500px]",
-        className
-      )}
-      style={{ width: responsiveWidth }}
-    >
+    <ChatContainer className={className} width={width}>
       <ChatHeader
         hideHeader={hideHeader}
         onClose={onClose}
@@ -197,7 +177,16 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({
         fieldType={fieldType}
       />
 
-      {DebugPanel}
-    </div>
+      <ChatDebugPanel 
+        debugMode={debugMode}
+        config={config}
+        conversationStage={conversationStage}
+        progress={progress}
+        currentSectionIndex={currentSectionIndex}
+        currentQuestionIndex={currentQuestionIndex}
+        messages={messages}
+        sessionId={sessionId}
+      />
+    </ChatContainer>
   );
 };
