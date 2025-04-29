@@ -8,9 +8,10 @@ interface TeamMembersTabProps {
   teamMembers: any[];
   loading?: boolean;
   carePlanId?: string;
+  currentUserId?: string; // Added the currentUserId prop
 }
 
-export function TeamMembersTab({ teamMembers, loading = false, carePlanId }: TeamMembersTabProps) {
+export function TeamMembersTab({ teamMembers, loading = false, carePlanId, currentUserId }: TeamMembersTabProps) {
   return (
     <Card>
       <CardHeader>

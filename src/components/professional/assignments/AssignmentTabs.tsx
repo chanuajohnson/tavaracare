@@ -48,7 +48,11 @@ export function AssignmentTabs({
       </TabsContent>
 
       <TabsContent value="team" className="space-y-4">
-        <TeamMembersTab teamMembers={teamMembers} currentUserId={userId} />
+        <TeamMembersTab 
+          teamMembers={teamMembers} 
+          carePlanId={carePlan?.id}
+          currentUserId={userId} 
+        />
       </TabsContent>
     </Tabs>
   );
