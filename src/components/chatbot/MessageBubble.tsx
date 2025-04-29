@@ -49,6 +49,7 @@ export const MessageBubble: React.FC<MessageProps> = ({
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.2 }}
       className={`flex ${isUser ? "justify-end" : "justify-start"} mb-3`}
     >
       {!isUser && (
@@ -57,7 +58,7 @@ export const MessageBubble: React.FC<MessageProps> = ({
         </div>
       )}
       <div
-        className={`rounded-lg px-4 py-2 max-w-[75vw] sm:max-w-[70%] ${
+        className={`rounded-lg px-4 py-2.5 max-w-[78vw] sm:max-w-[70%] ${
           isUser
             ? "bg-primary text-primary-foreground"
             : isNewSection 

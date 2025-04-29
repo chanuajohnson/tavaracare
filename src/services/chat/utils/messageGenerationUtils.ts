@@ -74,7 +74,6 @@ export const generateNextQuestionMessage = (
     // Add section title handling - consider if this is the very first question after role selection
     if (isFirstQuestion) {
       // For the first question after role selection, use a more natural format
-      // without adding redundant greetings
       message = `${message}`;
     }
     else if (questionIndex === 0) {

@@ -1,4 +1,3 @@
-
 import { syncMessagesToSupabase } from "@/services/aiService";
 import { processConversation } from "@/utils/chat/chatFlowEngine";
 import { 
@@ -139,15 +138,14 @@ export const useRoleSelection = ({
       console.log(`[handleRoleSelection] Setting field type to: ${questionType}`);
       setFieldType(questionType);
       
-      // Use a simpler greeting without redundant section introduction
-      const simpleIntro = "Great! Let's get started. ";
-      const finalMessage = simpleIntro + response.message;
+      // Add a consistent greeting that will be processed properly by simulateBotTyping
+      const firstMessage = "Let's get started. " + response.message;
       
       // Mark that we're starting to process this message
       startProcessingMessage(sessionId);
       
-      console.log(`[handleRoleSelection] Displaying bot message: "${finalMessage.substring(0, 50)}..."`);
-      await simulateBotTyping(finalMessage, response.options);
+      console.log(`[handleRoleSelection] Displaying bot message: "${firstMessage.substring(0, 50)}..."`);
+      await simulateBotTyping(firstMessage, response.options);
       
       // Change conversation stage to questions
       console.log(`[handleRoleSelection] Setting conversation stage to questions`);
@@ -202,14 +200,13 @@ export const useRoleSelection = ({
     const questionType = getFieldTypeForCurrentQuestion(0, 0, roleId);
     setFieldType(questionType);
     
-    // Use a simpler greeting without redundant section information
-    const simpleIntro = "Great! Let's get started. ";
-    const finalMessage = simpleIntro + response.message;
+    // Add a consistent greeting that will be processed properly by simulateBotTyping
+    const firstMessage = "Let's get started. " + response.message;
     
     // Store this message in the cache to prevent repetition
-    setLastMessage(sessionId, finalMessage);
+    setLastMessage(sessionId, firstMessage);
     
-    await simulateBotTyping(finalMessage, response.options);
+    await simulateBotTyping(firstMessage, response.options);
     setConversationStage("questions");
   };
 

@@ -18,7 +18,8 @@ export const SectionTransition: React.FC<SectionTransitionProps> = ({
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -10 }}
-      className="py-2 px-4 my-2 bg-primary/10 rounded-md border-l-4 border-primary text-center"
+      transition={{ duration: 0.3 }}
+      className="py-3 px-4 my-3 bg-primary/10 rounded-md border-l-4 border-primary text-center shadow-sm"
     >
       <span className="text-sm font-medium text-primary-700">
         Moving to new section: {title}

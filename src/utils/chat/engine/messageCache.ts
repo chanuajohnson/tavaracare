@@ -55,9 +55,11 @@ export const isRepeatMessage = (sessionId: string, message: string): boolean => 
     message.includes("Now let's move on to") || 
     message.includes("You've completed the") || 
     message.includes("Let's get started") || 
-    message.includes("First name")
+    message.includes("This will take about") ||
+    message.includes("First name") ||
+    message.includes("Welcome back")
   ) {
-    console.log(`[messageCache] Section transition or initial message, allowing through`);
+    console.log(`[messageCache] Section transition, welcome message, or initial message - allowing through`);
     return false;
   }
   

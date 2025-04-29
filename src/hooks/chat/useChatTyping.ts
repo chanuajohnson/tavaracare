@@ -40,6 +40,7 @@ export const useChatTyping = ({
     const isFirstQuestion = message.includes("Let's get started");
     
     // If this is the first question after role selection, add time expectation
+    // but don't add an additional greeting since the message already has one
     if (isFirstQuestion && role) {
       try {
         const flow = getRegistrationFlowByRole(role);
@@ -53,8 +54,11 @@ export const useChatTyping = ({
         // Estimate completion time (1 minute per 3 questions)
         const estimatedMinutes = Math.max(Math.ceil(totalQuestions / 3), 2);
         
-        // Add time estimation and section information to the first message
-        message = `Great! Let's get started. This will take about ${estimatedMinutes} minutes to complete across ${totalSections} sections. We'll guide you through each step.\n\n${message.replace("Great! Let's get started. ", "")}`;
+        // Clean up any existing "Let's get started" text to avoid duplication
+        const cleanedMessage = message.replace(/Great! Let's get started\.\s*/g, "");
+        
+        // Add time estimation and section information
+        message = `This will take about ${estimatedMinutes} minutes to complete across ${totalSections} sections. We'll guide you through each step.\n\n${cleanedMessage}`;
       } catch (error) {
         console.error("[simulateBotTyping] Error adding time estimation:", error);
       }

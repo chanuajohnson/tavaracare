@@ -15,8 +15,14 @@ export const OptionCard: React.FC<OptionCardProps> = ({ option, onClick, isSelec
   
   return (
     <div 
-      className={`flex flex-col ${isMobile ? "p-2" : "p-3"} rounded-md bg-white border ${isSelected ? 'border-primary border-2' : 'border-gray-200'} shadow-sm hover:shadow-md transition-shadow cursor-pointer ${isMobile ? "mb-1" : "mb-2"}`}
+      className={`flex flex-col ${isMobile ? "p-2.5" : "p-3"} rounded-md bg-white border 
+        ${isSelected ? 'border-primary border-2 bg-primary/5' : 'border-gray-200'} 
+        shadow-sm hover:shadow-md transition-all cursor-pointer 
+        ${isMobile ? "mb-1.5" : "mb-2"} 
+        active:scale-[0.98] hover:border-primary/50`}
       onClick={() => onClick(option.id)}
+      role="button"
+      aria-pressed={isSelected}
     >
       <div className="flex items-center justify-between">
         <div className={`font-medium ${isMobile ? "text-sm" : ""} break-words overflow-hidden`}>

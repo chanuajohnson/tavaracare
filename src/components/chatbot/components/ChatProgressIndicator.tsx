@@ -47,7 +47,7 @@ export const ChatProgressIndicator: React.FC<ChatProgressIndicatorProps> = ({
   const sectionName = currentSection ? currentSection.title : "";
 
   return (
-    <div className={`w-full px-4 py-2 border-b border-gray-200 bg-white/80`}>
+    <div className={`w-full px-4 py-2 border-b border-gray-200 bg-white/80 sticky top-0 z-10`}>
       <div className="flex justify-between items-center mb-1">
         <div className="flex items-center">
           <span className={`font-medium ${isMobile ? "text-xs" : "text-sm"}`}>
