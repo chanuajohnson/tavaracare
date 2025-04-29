@@ -21,7 +21,7 @@ interface CareTeamMember {
   notes?: string;
   createdAt: string;
   updatedAt?: string;
-  professionalDetails: ProfessionalDetails;
+  professionalDetails?: ProfessionalDetails;
 }
 
 interface CareTeamMembersTabProps {
@@ -31,7 +31,7 @@ interface CareTeamMembersTabProps {
 
 export function CareTeamMembersTab({ teamMembers = [], loading = false }: CareTeamMembersTabProps) {
   // Add debug logging
-  console.log("CareTeamMembersTab rendering with:", { teamMembers, loading });
+  console.log("CareTeamMembersTab rendering with:", { teamMembers, loading, teamMembersCount: teamMembers.length });
 
   const getInitials = (name: string) => {
     if (!name) return "?";
@@ -72,34 +72,43 @@ export function CareTeamMembersTab({ teamMembers = [], loading = false }: CareTe
   
   return (
     <div className="space-y-3">
-      {teamMembers.map(member => (
-        <Card key={member.id} className="overflow-hidden">
-          <CardContent className="p-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <Avatar className="h-10 w-10">
-                  <AvatarImage src={member.professionalDetails?.avatar_url || ''} />
-                  <AvatarFallback className="bg-primary text-white">
-                    {getInitials(member.professionalDetails?.full_name || 'U')}
-                  </AvatarFallback>
-                </Avatar>
-                <div>
-                  <p className="font-medium">{member.professionalDetails?.full_name || 'Unknown Professional'}</p>
-                  <p className="text-sm text-gray-500">{member.professionalDetails?.professional_type || 'Care Professional'}</p>
+      {teamMembers.map(member => {
+        // Ensure professionalDetails exists
+        const professionalDetails = member.professionalDetails || {
+          full_name: 'Unknown Professional', 
+          professional_type: 'Care Professional', 
+          avatar_url: null
+        };
+        
+        return (
+          <Card key={member.id} className="overflow-hidden">
+            <CardContent className="p-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <Avatar className="h-10 w-10">
+                    <AvatarImage src={professionalDetails.avatar_url || ''} />
+                    <AvatarFallback className="bg-primary text-white">
+                      {getInitials(professionalDetails.full_name || 'U')}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <p className="font-medium">{professionalDetails.full_name || 'Unknown Professional'}</p>
+                    <p className="text-sm text-gray-500">{professionalDetails.professional_type || 'Care Professional'}</p>
+                  </div>
+                </div>
+                <div className="flex flex-col items-end">
+                  <Badge variant="outline" className={getStatusColor(member.status)}>
+                    {member.status.charAt(0).toUpperCase() + member.status.slice(1)}
+                  </Badge>
+                  <span className="text-xs text-gray-500 mt-1">
+                    {member.role.charAt(0).toUpperCase() + member.role.slice(1)}
+                  </span>
                 </div>
               </div>
-              <div className="flex flex-col items-end">
-                <Badge variant="outline" className={getStatusColor(member.status)}>
-                  {member.status.charAt(0).toUpperCase() + member.status.slice(1)}
-                </Badge>
-                <span className="text-xs text-gray-500 mt-1">
-                  {member.role.charAt(0).toUpperCase() + member.role.slice(1)}
-                </span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      ))}
+            </CardContent>
+          </Card>
+        );
+      })}
     </div>
   );
 }

@@ -1,3 +1,4 @@
+
 import { motion } from "framer-motion";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -293,12 +294,30 @@ const ProfessionalProfileHub = () => {
       
       console.log("Fetching care plans for professional user:", user?.id);
       
+      // UPDATED QUERY: Using proper join syntax and explicit selection
       const { data: careTeamData, error: carePlansError } = await supabase
         .from('care_team_members')
         .select(`
-          *,
-          care_plans:care_plan_id(*),
-          family:family_id(*)
+          id, 
+          care_plan_id, 
+          family_id, 
+          role, 
+          status, 
+          notes, 
+          created_at,
+          care_plans:care_plan_id (
+            id, 
+            title, 
+            description, 
+            status, 
+            family_id
+          ),
+          family:family_id (
+            id,
+            full_name,
+            avatar_url,
+            phone_number
+          )
         `)
         .eq('caregiver_id', user?.id);
       
@@ -309,26 +328,48 @@ const ProfessionalProfileHub = () => {
       
       console.log("Raw care team assignments data:", careTeamData);
       
-      const validCarePlans = (careTeamData || []).filter(plan => plan.care_plans) || [];
+      // Improved data validation with better null checks
+      const validCarePlans = (careTeamData || []).filter(plan => {
+        if (!plan.care_plans) {
+          console.warn("Found care team entry without care_plan data:", plan.id);
+          return false;
+        }
+        return true;
+      });
+      
       console.log("Valid care plans after filtering:", validCarePlans.length);
       
-      const transformedCarePlans = validCarePlans.map(plan => ({
-        ...plan,
-        id: plan.id,
-        status: plan.status,
-        role: plan.role,
-        care_plan_id: plan.care_plan_id,
-        notes: plan.notes,
-        created_at: plan.created_at,
-        care_plans: {
-          ...plan.care_plans,
-          profiles: plan.family || {}
-        }
-      }));
+      // Improved data transformation to correctly structure data
+      const transformedCarePlans = validCarePlans.map(plan => {
+        // Create a properly structured object for CareAssignmentCard
+        return {
+          id: plan.id,
+          care_plan_id: plan.care_plan_id,
+          family_id: plan.family_id,
+          role: plan.role || 'caregiver',
+          status: plan.status || 'pending',
+          notes: plan.notes,
+          created_at: plan.created_at,
+          care_plans: {
+            id: plan.care_plans?.id,
+            title: plan.care_plans?.title || "Untitled Care Plan",
+            description: plan.care_plans?.description || "No description provided",
+            status: plan.care_plans?.status || "active",
+            family_id: plan.care_plans?.family_id,
+            // Add required profiles information from family data
+            profiles: {
+              full_name: plan.family?.full_name || "Family",
+              avatar_url: plan.family?.avatar_url,
+              phone_number: plan.family?.phone_number
+            }
+          }
+        };
+      });
       
       console.log("Transformed care plans:", transformedCarePlans);
       setCarePlans(transformedCarePlans);
       
+      // Load team members for each care plan
       const memberPromises = validCarePlans.map(async (plan) => {
         if (!plan.care_plan_id) {
           console.warn("Missing care_plan_id for plan:", plan.id);
@@ -336,11 +377,21 @@ const ProfessionalProfileHub = () => {
         }
         
         try {
+          // UPDATED QUERY: Using proper join syntax for professional details
           const { data: teamMembers, error: membersError } = await supabase
             .from('care_team_members')
             .select(`
-              *,
-              caregiver:caregiver_id(
+              id,
+              care_plan_id,
+              family_id,
+              caregiver_id,
+              role,
+              status,
+              notes,
+              created_at,
+              updated_at,
+              caregiver:caregiver_id (
+                id,
                 full_name,
                 professional_type,
                 avatar_url
@@ -356,11 +407,8 @@ const ProfessionalProfileHub = () => {
           console.log(`Team members for plan ${plan.care_plan_id}:`, teamMembers);
           
           return (teamMembers || []).map(member => {
-            const profileData = member.caregiver as { 
-              full_name?: string; 
-              professional_type?: string; 
-              avatar_url?: string | null;
-            } || {};
+            // Format data for the CareTeamMembersTab component
+            const profileData = member.caregiver || {};
             
             return {
               id: member.id,

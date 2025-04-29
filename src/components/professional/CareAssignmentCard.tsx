@@ -10,19 +10,19 @@ interface CareTeamMember {
   id: string;
   care_plan_id: string;
   family_id: string;
-  caregiver_id: string;
-  role: string;
-  status: string;
+  caregiver_id?: string;
+  role?: string;
+  status?: string;
   notes?: string;
-  created_at: string;
+  created_at?: string;
   care_plans?: {
-    id: string;
-    title: string;
+    id?: string;
+    title?: string;
     description?: string;
     status?: string;
-    family_id: string;
-    created_at: string;
-    updated_at: string;
+    family_id?: string;
+    created_at?: string;
+    updated_at?: string;
     metadata?: any;
     profiles?: {
       full_name?: string | null;
@@ -45,14 +45,14 @@ export function CareAssignmentCard({ assignment }: CareAssignmentCardProps) {
   // Add debug logging
   console.log("Rendering CareAssignmentCard with assignment:", assignment);
 
-  // Check for required data
-  if (!assignment.care_plans) {
-    console.warn("Assignment missing care_plans data:", assignment.id);
+  // Enhanced validation to ensure required data exists
+  if (!assignment || !assignment.care_plans) {
+    console.warn("Assignment missing or care_plans data missing:", assignment?.id);
     return null;
   }
 
-  // Get family data from either nested profiles or family property
-  const familyProfile = assignment.care_plans.profiles || assignment.family || {
+  // Get family data from either nested profiles or family property with improved fallbacks
+  const familyProfile = assignment?.care_plans?.profiles || assignment?.family || {
     full_name: "Family",
     avatar_url: null,
     phone_number: null
@@ -94,35 +94,46 @@ export function CareAssignmentCard({ assignment }: CareAssignmentCardProps) {
     }
   };
 
+  // Ensure values exist and provide defaults
+  const carePlanTitle = assignment.care_plans?.title || "Care Plan";
+  const carePlanDescription = assignment.care_plans?.description || "No description provided";
+  const carePlanId = assignment.care_plan_id || assignment.care_plans?.id || "";
+  const assignmentRole = assignment.role || "Caregiver";
+  const assignmentStatus = assignment.status || "pending";
+  const carePlanStatus = assignment.care_plans?.status;
+  const createdAt = assignment.created_at;
+  const familyName = familyProfile?.full_name || "Family";
+  const avatarUrl = familyProfile?.avatar_url || '';
+
   return (
     <Card key={assignment.id} className="overflow-hidden">
-      <div className={`border-l-4 ${getAssignmentStatusColor(assignment.status)}`}>
+      <div className={`border-l-4 ${getAssignmentStatusColor(assignmentStatus)}`}>
         <CardContent className="p-4">
           <div className="flex justify-between items-start">
             <div>
-              <h4 className="font-medium mb-1">{assignment.care_plans.title || "Care Plan"}</h4>
+              <h4 className="font-medium mb-1">{carePlanTitle}</h4>
               <p className="text-sm text-gray-600 mb-2">
-                {assignment.care_plans.description || "No description provided"}
+                {carePlanDescription}
               </p>
               <div className="flex flex-wrap items-center gap-2 mt-2">
                 <Badge variant="outline" className="bg-gray-50">
-                  {assignment.role || "Caregiver"}
+                  {assignmentRole}
                 </Badge>
                 <Badge 
                   variant="outline" 
                   className={`
-                    ${assignment.status === 'active' ? 'bg-green-50 text-green-700 border-green-200' : 
-                      assignment.status === 'invited' ? 'bg-yellow-50 text-yellow-700 border-yellow-200' : 
+                    ${assignmentStatus === 'active' ? 'bg-green-50 text-green-700 border-green-200' : 
+                      assignmentStatus === 'invited' ? 'bg-yellow-50 text-yellow-700 border-yellow-200' : 
                       'bg-gray-50 text-gray-700 border-gray-200'}
                   `}
                 >
-                  {assignment.status === 'active' ? 'Active' :
-                    assignment.status === 'invited' ? 'Invitation Pending' : 
-                    assignment.status || "Pending"}
+                  {assignmentStatus === 'active' ? 'Active' :
+                    assignmentStatus === 'invited' ? 'Invitation Pending' : 
+                    assignmentStatus || "Pending"}
                 </Badge>
-                {assignment.care_plans.status && (
-                  <Badge variant="outline" className={getStatusColor(assignment.care_plans.status)}>
-                    Plan: {assignment.care_plans.status}
+                {carePlanStatus && (
+                  <Badge variant="outline" className={getStatusColor(carePlanStatus)}>
+                    Plan: {carePlanStatus}
                   </Badge>
                 )}
               </div>
@@ -131,22 +142,22 @@ export function CareAssignmentCard({ assignment }: CareAssignmentCardProps) {
               <div className="flex items-center gap-2 mb-2">
                 <div className="flex flex-col items-end">
                   <Badge variant="outline" className="mb-1">
-                    {familyProfile?.full_name || "Family"}
+                    {familyName}
                   </Badge>
-                  {assignment.created_at && (
+                  {createdAt && (
                     <span className="text-xs text-gray-500">
-                      Assigned: {new Date(assignment.created_at).toLocaleDateString()}
+                      Assigned: {new Date(createdAt).toLocaleDateString()}
                     </span>
                   )}
                 </div>
                 <Avatar className="h-8 w-8">
-                  <AvatarImage src={familyProfile?.avatar_url || ''} />
+                  <AvatarImage src={avatarUrl} />
                   <AvatarFallback className="bg-primary text-white text-xs">
-                    {getInitials(familyProfile?.full_name)}
+                    {getInitials(familyName)}
                   </AvatarFallback>
                 </Avatar>
               </div>
-              <Link to={`/professional/assignments/${assignment.care_plan_id}`}>
+              <Link to={`/professional/assignments/${carePlanId}`}>
                 <Button size="sm" variant="outline">
                   View Details
                 </Button>

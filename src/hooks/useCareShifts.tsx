@@ -11,8 +11,8 @@ const adaptDbShiftToCareShift = (dbShift: any): CareShift => ({
   carePlanId: dbShift.care_plan_id,
   familyId: dbShift.family_id,
   caregiverId: dbShift.caregiver_id,
-  title: dbShift.title,
-  description: dbShift.description,
+  title: dbShift.title || 'Untitled Shift',
+  description: dbShift.description || '',
   location: dbShift.location,
   status: dbShift.status as 'open' | 'assigned' | 'completed' | 'cancelled',
   startTime: dbShift.start_time,
@@ -59,9 +59,26 @@ export function useCareShifts(initialFilters?: UseCareShiftsFilters) {
       
       console.log("Fetching care shifts for user:", user.id, "with filters:", filters);
       
+      // IMPROVED QUERY: Better error handling and data validation
       let query = supabase
         .from('care_shifts')
-        .select('*')
+        .select(`
+          id,
+          care_plan_id,
+          family_id,
+          caregiver_id,
+          title,
+          description,
+          location,
+          status,
+          start_time,
+          end_time,
+          recurring_pattern,
+          recurrence_rule,
+          created_at,
+          updated_at,
+          google_calendar_event_id
+        `)
         .eq('caregiver_id', user.id);
       
       // Apply filters
@@ -91,8 +108,22 @@ export function useCareShifts(initialFilters?: UseCareShiftsFilters) {
       }
       
       // Add explicit type assertion and debug logging
+      console.log("Raw care shifts data count:", data?.length || 0);
       console.log("Raw care shifts data:", data);
-      const careShifts: CareShift[] = (data || []).map((item: any) => adaptDbShiftToCareShift(item));
+      
+      // Validate and transform each shift with better error handling
+      const careShifts: CareShift[] = [];
+      (data || []).forEach((item: any) => {
+        try {
+          const shift = adaptDbShiftToCareShift(item);
+          careShifts.push(shift);
+        } catch (err) {
+          console.error("Error transforming shift data:", err, item);
+          // Continue processing other shifts
+        }
+      });
+      
+      console.log("Transformed care shifts count:", careShifts.length);
       console.log("Transformed care shifts:", careShifts);
       setShifts(careShifts);
     } catch (err: any) {
