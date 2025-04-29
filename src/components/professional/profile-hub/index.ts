@@ -8,3 +8,4 @@ export * from './AssignmentsTab';
 export * from './CareTeamTab';
 export * from './CalendarTab';
 export * from './TrainingTab';
+export * from './DocumentsTab';
