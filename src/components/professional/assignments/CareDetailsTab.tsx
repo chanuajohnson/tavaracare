@@ -14,6 +14,8 @@ interface CareDetailsTabProps {
 }
 
 export function CareDetailsTab({ carePlan, formatDate }: CareDetailsTabProps) {
+  console.log("CareDetailsTab received carePlan:", carePlan);
+  
   return (
     <Card>
       <CardHeader>
