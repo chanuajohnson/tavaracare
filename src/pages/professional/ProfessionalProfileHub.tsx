@@ -24,7 +24,9 @@ import {
   AlertCircle,
   ChevronUp,
   ChevronDown,
-  Users
+  Users,
+  Upload,
+  Download
 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/components/providers/AuthProvider";
@@ -51,6 +53,8 @@ import { ProfessionalCalendar } from "@/components/professional/ProfessionalCale
 import { useCareShifts } from "@/hooks/useCareShifts";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { CareTeamMembersTab } from "@/components/professional/CareTeamMembersTab";
+import { DocumentsTab } from "@/components/professional/assignments/DocumentsTab";
+import { AdminAssistantTab } from "@/components/professional/assignments/AdminAssistantTab";
 
 const initialSteps = [
   { 
