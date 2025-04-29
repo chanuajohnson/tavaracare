@@ -30,6 +30,11 @@ interface CareTeamMember {
       phone_number?: string;
     };
   };
+  family?: {
+    full_name?: string;
+    avatar_url?: string;
+    phone_number?: string;
+  };
 }
 
 interface CareAssignmentCardProps {
@@ -40,10 +45,14 @@ export function CareAssignmentCard({ assignment }: CareAssignmentCardProps) {
   // Add debug logging
   console.log("Rendering CareAssignmentCard with assignment:", assignment);
 
+  // Check for required data
   if (!assignment.care_plans) {
     console.warn("Assignment missing care_plans data:", assignment.id);
     return null;
   }
+
+  // Get family data from either nested profiles or family property
+  const familyProfile = assignment.care_plans.profiles || assignment.family || {};
 
   const getInitials = (name?: string) => {
     if (!name) return "F";
@@ -118,7 +127,7 @@ export function CareAssignmentCard({ assignment }: CareAssignmentCardProps) {
               <div className="flex items-center gap-2 mb-2">
                 <div className="flex flex-col items-end">
                   <Badge variant="outline" className="mb-1">
-                    {assignment.care_plans.profiles?.full_name || "Family"}
+                    {familyProfile.full_name || "Family"}
                   </Badge>
                   {assignment.created_at && (
                     <span className="text-xs text-gray-500">
@@ -127,10 +136,10 @@ export function CareAssignmentCard({ assignment }: CareAssignmentCardProps) {
                   )}
                 </div>
                 <Avatar className="h-8 w-8">
-                  <AvatarImage src={assignment.care_plans.profiles?.avatar_url || ''} />
+                  <AvatarImage src={familyProfile.avatar_url || ''} />
                   <AvatarFallback className="bg-primary text-white text-xs">
-                    {assignment.care_plans.profiles?.full_name ? 
-                      getInitials(assignment.care_plans.profiles.full_name) : 'F'}
+                    {familyProfile.full_name ? 
+                      getInitials(familyProfile.full_name) : 'F'}
                   </AvatarFallback>
                 </Avatar>
               </div>

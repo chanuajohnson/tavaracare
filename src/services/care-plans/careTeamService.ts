@@ -32,7 +32,7 @@ export const fetchCareTeamMembers = async (planId: string): Promise<CareTeamMemb
       .from('care_team_members')
       .select(`
         *,
-        profiles:caregiver_id(
+        caregiver:caregiver_id(
           full_name,
           professional_type,
           avatar_url
@@ -46,14 +46,14 @@ export const fetchCareTeamMembers = async (planId: string): Promise<CareTeamMemb
     }
 
     return (data || []).map(member => {
-      // Ensure profiles is an object, not an array or null
-      const profileData = member.profiles || {};
+      // Access the caregiver object with proper fallback
+      const profileData = member.caregiver || {};
       
       return {
         ...adaptCareTeamMemberFromDb(member as CareTeamMemberDto),
         professionalDetails: {
-          full_name: profileData.full_name || null,
-          professional_type: profileData.professional_type || null,
+          full_name: profileData.full_name || 'Unknown Professional',
+          professional_type: profileData.professional_type || 'Care Professional',
           avatar_url: profileData.avatar_url || null
         }
       };

@@ -309,12 +309,12 @@ const ProfessionalProfileHub = () => {
             family_id,
             created_at,
             updated_at,
-            metadata,
-            profiles:family_id(
-              full_name,
-              avatar_url,
-              phone_number
-            )
+            metadata
+          ),
+          family:family_id(
+            full_name,
+            avatar_url,
+            phone_number
           )
         `)
         .eq('caregiver_id', user.id);
@@ -329,14 +329,23 @@ const ProfessionalProfileHub = () => {
       const validCarePlans = (data || []).filter(plan => plan.care_plans) || [];
       console.log("Valid care plans after filtering:", validCarePlans.length);
       
-      setCarePlans(validCarePlans);
+      const transformedCarePlans = validCarePlans.map(plan => ({
+        ...plan,
+        care_plans: {
+          ...plan.care_plans,
+          profiles: plan.family || {}
+        }
+      }));
+      
+      console.log("Transformed care plans:", transformedCarePlans);
+      setCarePlans(transformedCarePlans);
       
       const memberPromises = validCarePlans.map(async (plan) => {
         const { data: teamMembers, error: membersError } = await supabase
           .from('care_team_members')
           .select(`
             *,
-            profiles:caregiver_id(
+            caregiver:caregiver_id(
               full_name,
               professional_type,
               avatar_url
@@ -350,7 +359,7 @@ const ProfessionalProfileHub = () => {
         }
         
         return (teamMembers || []).map(member => {
-          const profile = member.profiles || {};
+          const profile = member.caregiver || {};
           
           return {
             id: member.id,
@@ -363,9 +372,9 @@ const ProfessionalProfileHub = () => {
             createdAt: member.created_at,
             updatedAt: member.updated_at,
             professionalDetails: {
-              full_name: profile.full_name,
-              professional_type: profile.professional_type,
-              avatar_url: profile.avatar_url
+              full_name: profile.full_name || 'Unknown Professional',
+              professional_type: profile.professional_type || 'Care Professional',
+              avatar_url: profile.avatar_url || null
             }
           };
         });
@@ -373,6 +382,7 @@ const ProfessionalProfileHub = () => {
       
       const allTeamMembers = await Promise.all(memberPromises);
       const flattenedMembers = allTeamMembers.flat();
+      console.log("Team members data:", flattenedMembers);
       setCareTeamMembers(flattenedMembers);
       
       setLoadingCarePlans(false);

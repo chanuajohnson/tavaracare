@@ -83,8 +83,10 @@ export function useCareShifts(initialFilters?: UseCareShiftsFilters) {
         throw error;
       }
       
-      // Use type assertion to handle the casting from database format to our domain model
+      // Add explicit type assertion and debug logging
+      console.log("Raw care shifts data:", data);
       const careShifts: CareShift[] = (data || []).map((item: any) => adaptDbShiftToCareShift(item));
+      console.log("Transformed care shifts:", careShifts);
       setShifts(careShifts);
     } catch (err: any) {
       console.error("Error fetching care shifts:", err);
