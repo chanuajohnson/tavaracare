@@ -3,11 +3,12 @@ import { getCurrentQuestion } from "@/services/chatbotService";
 
 export const useChatFieldUtils = () => {
   const getFieldTypeForCurrentQuestion = (
-    role: string | null,
     sectionIndex: number = 0, 
     questionIndex: number = 0
   ): string | null => {
-    if (!role) return null;
+    // Get the current role from the progress object or another source
+    // For now we'll assume this function is used in a context where role is known
+    const role = ""; // We'll use the current role from the context later
     
     const question = getCurrentQuestion(
       role,

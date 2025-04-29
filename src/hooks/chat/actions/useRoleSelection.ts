@@ -1,4 +1,3 @@
-
 import { syncMessagesToSupabase } from "@/services/aiService";
 import { processConversation } from "@/utils/chat/chatFlowEngine";
 import { 
@@ -166,6 +165,9 @@ export const useRoleSelection = ({
       0,
       config
     );
+    
+    const questionType = getFieldTypeForCurrentQuestion(0, 0);
+    setFieldType(questionType);
     
     // Use a cleaner transition message without redundant phrases
     const sectionTitle = getSectionTitle(roleId, 0);

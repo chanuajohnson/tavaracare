@@ -76,7 +76,7 @@ export const useMessageInput = ({
     }
     
     // Get the current question type
-    const questionType = getFieldTypeForCurrentQuestion();
+    const questionType = getFieldTypeForCurrentQuestion(currentSectionIndex, currentQuestionIndex);
     const currentQuestion = getCurrentQuestion(
       progress.role!,
       currentSectionIndex,
