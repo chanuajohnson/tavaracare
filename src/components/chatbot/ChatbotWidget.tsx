@@ -13,6 +13,7 @@ import { ChatInputForm } from "./ChatInputForm";
 import { useChatState } from "@/hooks/chat/useChatState";
 import { useChatTyping } from "@/hooks/chat/useChatTyping";
 import { useChatActions } from "@/hooks/chat/useChatActions";
+import { useIsMobile } from "@/hooks/useIsMobile";
 
 interface ChatbotWidgetProps {
   className?: string;
@@ -33,6 +34,7 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({
   const { messages, addMessage, clearMessages, setMessages: setLocalMessages } = useChatMessages(sessionId);
   const { initialRole, setInitialRole, skipIntro, setMessages: setContextMessages } = useChat();
   const { progress, updateProgress, clearProgress } = useChatProgress();
+  const isMobile = useIsMobile();
   
   useEffect(() => {
     setContextMessages(messages);
@@ -152,13 +154,16 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({
     </div>
   ) : null;
 
+  const responsiveWidth = isMobile ? "100%" : width;
+
   return (
     <div 
       className={cn(
-        "bg-background border rounded-lg shadow-xl flex flex-col z-40 h-[500px]",
+        "bg-background border rounded-lg shadow-xl flex flex-col z-40",
+        isMobile ? "h-[calc(100vh-120px)]" : "h-[500px]",
         className
       )}
-      style={{ width }}
+      style={{ width: responsiveWidth }}
     >
       <ChatHeader
         hideHeader={hideHeader}

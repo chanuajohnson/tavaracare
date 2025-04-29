@@ -1,6 +1,7 @@
 
 import React from 'react';
-import { ChatOption } from '@/data/chatIntroMessage';
+import { ChatOption } from '@/types/chatTypes';
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface OptionCardProps {
   option: ChatOption;
@@ -8,14 +9,16 @@ interface OptionCardProps {
 }
 
 export const OptionCard: React.FC<OptionCardProps> = ({ option, onClick }) => {
+  const isMobile = useIsMobile();
+  
   return (
     <div 
-      className="flex flex-col p-3 rounded-md bg-white border border-gray-200 shadow-sm hover:shadow-md transition-shadow cursor-pointer mb-2"
+      className={`flex flex-col ${isMobile ? "p-2" : "p-3"} rounded-md bg-white border border-gray-200 shadow-sm hover:shadow-md transition-shadow cursor-pointer ${isMobile ? "mb-1" : "mb-2"}`}
       onClick={() => onClick(option.id)}
     >
-      <div className="font-medium">{option.label}</div>
+      <div className={`font-medium ${isMobile ? "text-sm" : ""}`}>{option.label}</div>
       {option.subtext && (
-        <div className="text-sm text-gray-500 mt-1">{option.subtext}</div>
+        <div className={`${isMobile ? "text-xs" : "text-sm"} text-gray-500 mt-1`}>{option.subtext}</div>
       )}
     </div>
   );

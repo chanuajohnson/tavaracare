@@ -9,10 +9,11 @@ export const applyTrinidadianStyle = (message: string): string => {
   if (!message) return message;
 
   // Random chance of applying each transformation for variety
-  const shouldApplyGreeting = Math.random() < 0.4 && (message.includes('hello') || message.includes('hi') || message.match(/^(hi|hey|hello)\b/i));
-  const shouldApplyAcknowledgment = Math.random() < 0.6 && (message.includes('thank') || message.includes('great') || message.includes('good'));
-  const shouldApplyExpression = Math.random() < 0.35;
-  const shouldApplyClosing = Math.random() < 0.4;
+  // Reduced probabilities for less frequent dialect phrases
+  const shouldApplyGreeting = Math.random() < 0.25 && (message.includes('hello') || message.includes('hi') || message.match(/^(hi|hey|hello)\b/i));
+  const shouldApplyAcknowledgment = Math.random() < 0.3 && (message.includes('thank') || message.includes('great') || message.includes('good'));
+  const shouldApplyExpression = Math.random() < 0.2;
+  const shouldApplyClosing = Math.random() < 0.15;
 
   let modifiedMessage = message;
 
@@ -55,10 +56,13 @@ export const applyTrinidadianStyle = (message: string): string => {
       "Understand?"
     ];
     
-    const closing = closingOptions[Math.floor(Math.random() * closingOptions.length)];
-    
-    // Remove the ending punctuation and add the closing
-    modifiedMessage = modifiedMessage.replace(/[.!?]$/, ` ${closing}`);
+    // Don't add closings to sentences that already have one
+    if (!closingOptions.some(closing => message.includes(closing))) {
+      const closing = closingOptions[Math.floor(Math.random() * closingOptions.length)];
+      
+      // Remove the ending punctuation and add the closing
+      modifiedMessage = modifiedMessage.replace(/[.!?]$/, ` ${closing}`);
+    }
   }
 
   // Remove AI-sounding phrases
@@ -85,7 +89,7 @@ export const applyTrinidadianStyle = (message: string): string => {
   
   // Ensure we have emoji occasionally, but not too many
   const hasEmoji = /[\u{1F300}-\u{1F6FF}]/u.test(modifiedMessage);
-  if (!hasEmoji && Math.random() < 0.25) {
+  if (!hasEmoji && Math.random() < 0.15) { // Reduced probability for emojis
     const emojis = ["😊", "👋", "✨", "🌺", "💯", "🙌", "👍", "🌴", "🏝️", "☀️"];
     const emoji = emojis[Math.floor(Math.random() * emojis.length)];
     
