@@ -8,7 +8,8 @@ import { ChatResponseData } from "../types";
 export const generateNextQuestionMessage = (
   role: string,
   sectionIndex: number,
-  questionIndex: number
+  questionIndex: number,
+  isFirstQuestion: boolean = false
 ): ChatResponseData => {
   try {
     const flow = getRegistrationFlowByRole(role);
@@ -70,16 +71,15 @@ export const generateNextQuestionMessage = (
       }
     }
     
-    // Add section title for first question in section, without redundant "let's get started" phrases
-    if (questionIndex === 0) {
-      // Use a cleaner transition without redundant phrases
-      if (sectionIndex === 0) {
-        // First section in the flow
-        message = `${section.title}: ${message}`;
-      } else {
-        // Subsequent sections
-        message = `Now let's talk about ${section.title.toLowerCase()}.\n\n${message}`;
-      }
+    // Add section title handling - consider if this is the very first question after role selection
+    if (isFirstQuestion) {
+      // For the first question after role selection, use a more natural format
+      // without adding redundant greetings
+      message = `${message}`;
+    }
+    else if (questionIndex === 0) {
+      // Only add section transition for subsequent sections, not the first one after role selection
+      message = `Now let's talk about ${section.title.toLowerCase()}.\n\n${message}`;
     }
     
     return {

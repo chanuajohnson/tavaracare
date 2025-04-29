@@ -106,19 +106,16 @@ export const useRoleSelection = ({
         sessionId,
         roleId,
         0,
-        config
+        config,
+        true // Indicate this is the first question after role selection
       );
       
       const questionType = getFieldTypeForCurrentQuestion(0, 0);
       setFieldType(questionType);
       
-      // Use a cleaner transition message without redundant phrases
-      const sectionTitle = getSectionTitle(roleId, 0);
-      const introMessage = sectionTitle 
-        ? `Great! Let's collect some ${sectionTitle.toLowerCase()} information. ${response.message}`
-        : response.message;
-        
-      await simulateBotTyping(introMessage, response.options);
+      // Use a simpler greeting without redundant section introduction
+      const simpleIntro = "Great! Let's get started. ";
+      await simulateBotTyping(simpleIntro + response.message, response.options);
       setConversationStage("questions");
     } catch (error) {
       console.error("Error in role selection:", error);
@@ -163,19 +160,16 @@ export const useRoleSelection = ({
       sessionId,
       roleId,
       0,
-      config
+      config,
+      true // Indicate this is the first question after role selection
     );
     
     const questionType = getFieldTypeForCurrentQuestion(0, 0);
     setFieldType(questionType);
     
-    // Use a cleaner transition message without redundant phrases
-    const sectionTitle = getSectionTitle(roleId, 0);
-    const introMessage = sectionTitle 
-      ? `Great! Let's collect some ${sectionTitle.toLowerCase()} information. ${response.message}`
-      : response.message;
-      
-    await simulateBotTyping(introMessage, response.options);
+    // Use a simpler greeting without redundant section information
+    const simpleIntro = "Great! Let's get started. ";
+    await simulateBotTyping(simpleIntro + response.message, response.options);
     setConversationStage("questions");
   };
 
