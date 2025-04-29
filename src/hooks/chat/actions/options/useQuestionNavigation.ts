@@ -27,7 +27,7 @@ interface UseQuestionNavigationProps {
   updateChatProgress: Function;
   setFieldType: (type: string | null) => void;
   getFieldTypeForCurrentQuestion: (sectionIndex?: number, questionIndex?: number) => string | null;
-  updateProgress: (updates: any) => void; // Add this parameter
+  updateProgress: (updates: any) => void;
 }
 
 export const useQuestionNavigation = ({
@@ -46,7 +46,7 @@ export const useQuestionNavigation = ({
   updateChatProgress,
   setFieldType,
   getFieldTypeForCurrentQuestion,
-  updateProgress // Add this parameter here as well
+  updateProgress
 }: UseQuestionNavigationProps) => {
 
   const advanceToNextQuestion = async (currentQuestionId: string) => {
@@ -61,6 +61,7 @@ export const useQuestionNavigation = ({
     
     let nextSectionIndex = currentSectionIndex;
     let nextQuestionIndex = currentQuestionIndex;
+    let movingToNewSection = false;
     
     if (isLastQuestion) {
       // We've completed the entire flow
@@ -69,6 +70,7 @@ export const useQuestionNavigation = ({
       // Move to the next section
       nextSectionIndex = currentSectionIndex + 1;
       nextQuestionIndex = 0;
+      movingToNewSection = true;
     } else {
       // Move to the next question in the current section
       nextQuestionIndex = currentQuestionIndex + 1;
@@ -113,6 +115,20 @@ export const useQuestionNavigation = ({
           ]
         );
       } else {
+        // If moving to a new section, show a transition message
+        if (movingToNewSection) {
+          const nextSectionTitle = getSectionTitle(progress.role, nextSectionIndex);
+          
+          // Add a brief transition delay to improve UX
+          await new Promise(resolve => setTimeout(resolve, 300));
+          
+          await simulateBotTyping(
+            `Great! You've completed the ${getSectionTitle(progress.role, currentSectionIndex).toLowerCase()} section.\n\nNow let's move on to ${nextSectionTitle.toLowerCase()}.`,
+            [{ id: "continue", label: "Continue" }]
+          );
+          return;
+        }
+        
         const response = await processConversation(
           updatedMessages,
           sessionId,

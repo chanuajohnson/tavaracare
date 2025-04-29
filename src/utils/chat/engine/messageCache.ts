@@ -50,9 +50,14 @@ export const isRepeatMessage = (sessionId: string, message: string): boolean => 
     return true;
   }
   
-  // For intro messages containing "Let's get started", never consider them repeats
-  if (message.includes("Let's get started") || message.includes("First name")) {
-    console.log(`[messageCache] First question after role selection, allowing through`);
+  // Messages about moving to new sections should never be considered repeats
+  if (
+    message.includes("Now let's move on to") || 
+    message.includes("You've completed the") || 
+    message.includes("Let's get started") || 
+    message.includes("First name")
+  ) {
+    console.log(`[messageCache] Section transition or initial message, allowing through`);
     return false;
   }
   

@@ -16,6 +16,7 @@ import { useChatActions } from "@/hooks/chat/useChatActions";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { ChatContainer } from "./components/ChatContainer";
 import { ChatDebugPanel } from "./components/ChatDebugPanel";
+import { ChatProgressIndicator } from "./components/ChatProgressIndicator";
 
 interface ChatbotWidgetProps {
   className?: string;
@@ -66,6 +67,7 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({
   
   const config = loadChatConfig();
   const alwaysShowOptions = shouldAlwaysShowOptions();
+  const isMobile = useIsMobile();
   
   React.useEffect(() => {
     if (debugMode) {
@@ -165,6 +167,13 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({
         onReset={() => resetChat(true)}
       />
 
+      <ChatProgressIndicator 
+        role={progress.role}
+        sectionIndex={currentSectionIndex}
+        questionIndex={currentQuestionIndex}
+        conversationStage={conversationStage}
+      />
+
       <ChatMessagesList 
         messages={messages}
         isTyping={isTyping}
@@ -173,6 +182,7 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({
         handleRoleSelection={handleRoleSelection}
         handleOptionSelection={handleOptionSelection}
         alwaysShowOptions={alwaysShowOptions}
+        currentSectionIndex={currentSectionIndex}
       />
 
       <RegistrationLink 

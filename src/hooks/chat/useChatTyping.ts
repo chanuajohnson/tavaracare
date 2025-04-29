@@ -8,6 +8,7 @@ import {
   startProcessingMessage,
   finishProcessingMessage 
 } from '@/utils/chat/engine/messageCache';
+import { getRegistrationFlowByRole } from '@/data/chatRegistrationFlows';
 
 interface UseChatTypingProps {
   addMessage: (message: any) => void;
@@ -37,6 +38,27 @@ export const useChatTyping = ({
 
     // If this is a role selection follow-up question, always allow it through
     const isFirstQuestion = message.includes("Let's get started");
+    
+    // If this is the first question after role selection, add time expectation
+    if (isFirstQuestion && role) {
+      try {
+        const flow = getRegistrationFlowByRole(role);
+        const totalSections = flow.sections.length;
+        let totalQuestions = 0;
+        
+        flow.sections.forEach(section => {
+          totalQuestions += section.questions.length;
+        });
+        
+        // Estimate completion time (1 minute per 3 questions)
+        const estimatedMinutes = Math.max(Math.ceil(totalQuestions / 3), 2);
+        
+        // Add time estimation and section information to the first message
+        message = `Great! Let's get started. This will take about ${estimatedMinutes} minutes to complete across ${totalSections} sections. We'll guide you through each step.\n\n${message.replace("Great! Let's get started. ", "")}`;
+      } catch (error) {
+        console.error("[simulateBotTyping] Error adding time estimation:", error);
+      }
+    }
     
     // Mark that we're starting to process this message to avoid immediate deduplication
     if (sessionId) {
