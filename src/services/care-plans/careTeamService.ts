@@ -28,6 +28,8 @@ const adaptCareTeamMemberToDb = (member: Partial<CareTeamMember>): Partial<CareT
 
 export const fetchCareTeamMembers = async (planId: string): Promise<CareTeamMemberWithProfile[]> => {
   try {
+    console.log(`Fetching care team members for plan ID: ${planId}`);
+    
     // Use explicit column naming to avoid ambiguity with profiles
     const { data, error } = await supabase
       .from('care_team_members')
@@ -55,7 +57,7 @@ export const fetchCareTeamMembers = async (planId: string): Promise<CareTeamMemb
       throw error;
     }
 
-    console.log("Raw care team members data:", data);
+    console.log(`Retrieved ${data?.length || 0} care team members for plan ID ${planId}:`, data);
 
     return (data || []).map(member => {
       // Safely access profile data with fallbacks
@@ -78,6 +80,89 @@ export const fetchCareTeamMembers = async (planId: string): Promise<CareTeamMemb
     });
   } catch (error) {
     console.error("Error fetching care team members:", error);
+    toast.error("Failed to load care team members");
+    return [];
+  }
+};
+
+// New function to fetch care team members for all plans a professional is assigned to
+export const fetchAllCareTeamMembersForProfessional = async (professionalId: string): Promise<CareTeamMemberWithProfile[]> => {
+  try {
+    console.log(`Fetching all care team members for professional ID: ${professionalId}`);
+    
+    // First, get all care plans this professional is a member of
+    const { data: userAssignments, error: assignmentError } = await supabase
+      .from('care_team_members')
+      .select('care_plan_id')
+      .eq('caregiver_id', professionalId)
+      .not('care_plan_id', 'is', null);
+    
+    if (assignmentError) {
+      console.error("Error fetching professional's care plan assignments:", assignmentError);
+      throw assignmentError;
+    }
+    
+    console.log(`Professional is assigned to ${userAssignments?.length || 0} care plans:`, userAssignments);
+    
+    if (!userAssignments || userAssignments.length === 0) {
+      return [];
+    }
+    
+    // Extract care plan IDs
+    const carePlanIds = userAssignments.map(assignment => assignment.care_plan_id);
+    
+    console.log("Care plan IDs to fetch team members for:", carePlanIds);
+    
+    // Now fetch all team members for these care plans
+    const { data: allTeamMembers, error: teamMembersError } = await supabase
+      .from('care_team_members')
+      .select(`
+        id, 
+        care_plan_id, 
+        family_id, 
+        caregiver_id, 
+        role, 
+        status, 
+        notes, 
+        created_at, 
+        updated_at,
+        profiles:caregiver_id (
+          id,
+          full_name,
+          professional_type,
+          avatar_url
+        )
+      `)
+      .in('care_plan_id', carePlanIds);
+    
+    if (teamMembersError) {
+      console.error("Error fetching all care team members:", teamMembersError);
+      throw teamMembersError;
+    }
+    
+    console.log(`Retrieved ${allTeamMembers?.length || 0} total care team members:`, allTeamMembers);
+    
+    return (allTeamMembers || []).map(member => {
+      // Safely access profile data with fallbacks
+      const profileData = member.profiles || {};
+      
+      return {
+        ...adaptCareTeamMemberFromDb(member as CareTeamMemberDto),
+        professionalDetails: {
+          full_name: typeof profileData === 'object' && profileData !== null 
+            ? (profileData as any).full_name || 'Unknown Professional' 
+            : 'Unknown Professional',
+          professional_type: typeof profileData === 'object' && profileData !== null 
+            ? (profileData as any).professional_type || 'Care Professional' 
+            : 'Care Professional',
+          avatar_url: typeof profileData === 'object' && profileData !== null 
+            ? (profileData as any).avatar_url 
+            : null
+        }
+      };
+    });
+  } catch (error) {
+    console.error("Error fetching all care team members:", error);
     toast.error("Failed to load care team members");
     return [];
   }

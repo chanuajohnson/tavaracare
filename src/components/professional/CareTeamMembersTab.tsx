@@ -30,12 +30,13 @@ interface CareTeamMembersTabProps {
 }
 
 export function CareTeamMembersTab({ teamMembers = [], loading = false }: CareTeamMembersTabProps) {
-  // Add debug logging
+  // Enhanced debug logging
   console.log("CareTeamMembersTab rendering with:", { 
     teamMembers, 
     loading, 
     teamMembersCount: teamMembers.length,
-    firstMember: teamMembers[0] 
+    teamMembersWithDetails: teamMembers.filter(m => m.professionalDetails),
+    firstMember: teamMembers.length > 0 ? teamMembers[0] : 'No members'
   });
 
   const getInitials = (name: string) => {
@@ -78,9 +79,12 @@ export function CareTeamMembersTab({ teamMembers = [], loading = false }: CareTe
   return (
     <div className="space-y-3">
       {teamMembers.map(member => {
-        if (!member) return null;
+        if (!member) {
+          console.warn("Found null or undefined team member in array");
+          return null;
+        }
         
-        // Create a safe accessor for professionalDetails with fallbacks
+        // Ensure we have professional details with safe fallbacks
         const professionalDetails = member.professionalDetails || {
           full_name: 'Unknown Professional', 
           professional_type: 'Care Professional', 

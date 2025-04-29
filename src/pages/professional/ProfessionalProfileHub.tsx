@@ -291,20 +291,29 @@ const ProfessionalProfileHub = () => {
       setLoadingCarePlans(true);
       setLoadingCareTeamMembers(true);
       
-      console.log("Fetching care plans for professional user:", user?.id);
+      if (!user) {
+        console.log("No user found, skipping care plans fetch");
+        setLoadingCarePlans(false);
+        setLoadingCareTeamMembers(false);
+        return;
+      }
       
+      console.log("Fetching care plans for professional user:", user.id);
+      
+      // STEP 1: Get all care team assignments for this professional
       const { data: careTeamAssignments, error: teamAssignmentsError } = await supabase
         .from('care_team_members')
         .select(`
           id, 
           care_plan_id, 
           family_id, 
+          caregiver_id, 
           role, 
           status, 
           notes, 
           created_at
         `)
-        .eq('caregiver_id', user?.id);
+        .eq('caregiver_id', user.id);
       
       if (teamAssignmentsError) {
         console.error("Error fetching care team assignments:", teamAssignmentsError);
@@ -312,6 +321,7 @@ const ProfessionalProfileHub = () => {
       }
       
       console.log("Raw care team assignments:", careTeamAssignments);
+      console.log("Total care team assignments found:", careTeamAssignments?.length || 0);
       
       if (!careTeamAssignments || careTeamAssignments.length === 0) {
         console.log("No care team assignments found for user");
@@ -322,11 +332,13 @@ const ProfessionalProfileHub = () => {
         return;
       }
       
+      // STEP 2: Extract all care plan IDs from assignments
       const carePlanIds = careTeamAssignments
         .map(assignment => assignment.care_plan_id)
-        .filter(id => !!id);
+        .filter(id => id !== null) as string[];
         
       console.log("Care plan IDs to fetch:", carePlanIds);
+      console.log("Number of care plan IDs to fetch:", carePlanIds.length);
       
       if (carePlanIds.length === 0) {
         console.log("No valid care plan IDs found");
@@ -337,6 +349,7 @@ const ProfessionalProfileHub = () => {
         return;
       }
       
+      // STEP 3: Fetch care plan details
       const { data: carePlansData, error: carePlansError } = await supabase
         .from('care_plans')
         .select(`
@@ -344,12 +357,7 @@ const ProfessionalProfileHub = () => {
           title, 
           description, 
           status, 
-          family_id,
-          profiles:family_id (
-            full_name,
-            avatar_url,
-            phone_number
-          )
+          family_id
         `)
         .in('id', carePlanIds);
       
@@ -359,7 +367,31 @@ const ProfessionalProfileHub = () => {
       }
       
       console.log("Raw care plans data:", carePlansData);
+      console.log("Number of care plans retrieved:", carePlansData?.length || 0);
       
+      // STEP 4: Fetch family profiles for all care plans
+      const familyIds = [...new Set((carePlansData || []).map(plan => plan.family_id))];
+      
+      console.log("Family IDs to fetch:", familyIds);
+      
+      const { data: familyProfiles, error: familyProfilesError } = await supabase
+        .from('profiles')
+        .select(`
+          id, 
+          full_name, 
+          avatar_url, 
+          phone_number
+        `)
+        .in('id', familyIds);
+      
+      if (familyProfilesError) {
+        console.error("Error fetching family profiles:", familyProfilesError);
+        throw familyProfilesError;
+      }
+      
+      console.log("Raw family profiles data:", familyProfiles);
+      
+      // STEP 5: Combine all data into care assignments
       const transformedCarePlans = careTeamAssignments
         .filter(assignment => assignment.care_plan_id)
         .map(assignment => {
@@ -370,7 +402,11 @@ const ProfessionalProfileHub = () => {
             return null;
           }
           
-          const familyProfileData = carePlan.profiles || {};
+          const familyProfile = familyProfiles?.find(profile => profile.id === carePlan.family_id) || {
+            full_name: "Family",
+            avatar_url: null,
+            phone_number: null
+          };
           
           return {
             id: assignment.id,
@@ -386,24 +422,24 @@ const ProfessionalProfileHub = () => {
               description: carePlan.description || "No description provided",
               status: carePlan.status || "active",
               family_id: carePlan.family_id,
-              profiles: {
-                full_name: typeof familyProfileData === 'object' ? (familyProfileData as any).full_name || "Family" : "Family",
-                avatar_url: typeof familyProfileData === 'object' ? (familyProfileData as any).avatar_url : null,
-                phone_number: typeof familyProfileData === 'object' ? (familyProfileData as any).phone_number : null
-              }
+              profiles: familyProfile
             }
           };
         })
         .filter(plan => plan !== null) as any[];
       
       console.log("Transformed care plans:", transformedCarePlans);
+      console.log("Number of transformed care plans:", transformedCarePlans.length);
       setCarePlans(transformedCarePlans);
       
+      // STEP 6: Fetch ALL team members for these care plans
       const fetchCareTeamMembers = async () => {
         try {
           const allTeamMembers: any[] = [];
           
           for (const carePlanId of carePlanIds) {
+            console.log(`Fetching team members for care plan: ${carePlanId}`);
+            
             const { data: teamMembers, error: membersError } = await supabase
               .from('care_team_members')
               .select(`
@@ -430,6 +466,7 @@ const ProfessionalProfileHub = () => {
             }
             
             console.log(`Team members for plan ${carePlanId}:`, teamMembers);
+            console.log(`Number of team members for plan ${carePlanId}:`, teamMembers?.length || 0);
             
             if (teamMembers && teamMembers.length > 0) {
               const formattedMembers = teamMembers.map(member => {
@@ -458,6 +495,7 @@ const ProfessionalProfileHub = () => {
           }
           
           console.log("All team members data:", allTeamMembers);
+          console.log("Total team members count:", allTeamMembers.length);
           setCareTeamMembers(allTeamMembers);
         } catch (err) {
           console.error("Error processing team members:", err);
