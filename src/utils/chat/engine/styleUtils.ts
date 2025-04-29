@@ -10,10 +10,10 @@ export const applyTrinidadianStyle = (message: string): string => {
 
   // Random chance of applying each transformation for variety
   // Reduced probabilities for less frequent dialect phrases
-  const shouldApplyGreeting = Math.random() < 0.25 && (message.includes('hello') || message.includes('hi') || message.match(/^(hi|hey|hello)\b/i));
-  const shouldApplyAcknowledgment = Math.random() < 0.3 && (message.includes('thank') || message.includes('great') || message.includes('good'));
-  const shouldApplyExpression = Math.random() < 0.2;
-  const shouldApplyClosing = Math.random() < 0.15;
+  const shouldApplyGreeting = Math.random() < 0.15 && (message.includes('hello') || message.includes('hi') || message.match(/^(hi|hey|hello)\b/i));
+  const shouldApplyAcknowledgment = Math.random() < 0.2 && (message.includes('thank') || message.includes('great') || message.includes('good'));
+  const shouldApplyExpression = Math.random() < 0.15;
+  const shouldApplyClosing = Math.random() < 0.1;
 
   let modifiedMessage = message;
 
@@ -89,7 +89,7 @@ export const applyTrinidadianStyle = (message: string): string => {
   
   // Ensure we have emoji occasionally, but not too many
   const hasEmoji = /[\u{1F300}-\u{1F6FF}]/u.test(modifiedMessage);
-  if (!hasEmoji && Math.random() < 0.15) { // Reduced probability for emojis
+  if (!hasEmoji && Math.random() < 0.1) { // Reduced probability for emojis
     const emojis = ["😊", "👋", "✨", "🌺", "💯", "🙌", "👍", "🌴", "🏝️", "☀️"];
     const emoji = emojis[Math.floor(Math.random() * emojis.length)];
     

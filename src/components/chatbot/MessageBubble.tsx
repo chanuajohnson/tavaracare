@@ -51,9 +51,7 @@ export const MessageBubble: React.FC<MessageProps> = ({ content, isUser, timesta
         </div>
       )}
       <div
-        className={`rounded-lg px-4 py-2 ${
-          isMobile ? "max-w-[85%]" : "max-w-[80%]"
-        } ${
+        className={`rounded-lg px-4 py-2 max-w-[80vw] sm:max-w-[80%] ${
           isUser
             ? "bg-primary text-primary-foreground"
             : "bg-muted text-foreground"
