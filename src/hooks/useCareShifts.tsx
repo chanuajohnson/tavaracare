@@ -41,11 +41,14 @@ export function useCareShifts(initialFilters?: UseCareShiftsFilters) {
   useEffect(() => {
     if (user) {
       fetchShifts();
+    } else {
+      setLoading(false);
     }
   }, [user, filters]);
   
   const fetchShifts = async () => {
     if (!user) {
+      console.log("No user found, skipping care shifts fetch");
       setLoading(false);
       return;
     }
@@ -53,6 +56,8 @@ export function useCareShifts(initialFilters?: UseCareShiftsFilters) {
     try {
       setLoading(true);
       setError(null);
+      
+      console.log("Fetching care shifts for user:", user.id, "with filters:", filters);
       
       let query = supabase
         .from('care_shifts')
@@ -100,6 +105,7 @@ export function useCareShifts(initialFilters?: UseCareShiftsFilters) {
   };
   
   const updateFilters = (newFilters: Partial<UseCareShiftsFilters>) => {
+    console.log("Updating care shifts filters:", newFilters);
     setFilters(prev => ({
       ...prev,
       ...newFilters
@@ -107,6 +113,7 @@ export function useCareShifts(initialFilters?: UseCareShiftsFilters) {
   };
   
   const clearFilters = () => {
+    console.log("Clearing care shifts filters");
     setFilters({});
   };
   

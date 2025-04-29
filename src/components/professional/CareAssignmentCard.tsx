@@ -53,7 +53,7 @@ export function CareAssignmentCard({ assignment }: CareAssignmentCardProps) {
 
   // Get family data from either nested profiles or family property
   const familyProfile = assignment.care_plans.profiles || assignment.family || {
-    full_name: null,
+    full_name: "Family",
     avatar_url: null,
     phone_number: null
   };
@@ -131,7 +131,7 @@ export function CareAssignmentCard({ assignment }: CareAssignmentCardProps) {
               <div className="flex items-center gap-2 mb-2">
                 <div className="flex flex-col items-end">
                   <Badge variant="outline" className="mb-1">
-                    {familyProfile.full_name || "Family"}
+                    {familyProfile?.full_name || "Family"}
                   </Badge>
                   {assignment.created_at && (
                     <span className="text-xs text-gray-500">
@@ -140,9 +140,9 @@ export function CareAssignmentCard({ assignment }: CareAssignmentCardProps) {
                   )}
                 </div>
                 <Avatar className="h-8 w-8">
-                  <AvatarImage src={familyProfile.avatar_url || ''} />
+                  <AvatarImage src={familyProfile?.avatar_url || ''} />
                   <AvatarFallback className="bg-primary text-white text-xs">
-                    {getInitials(familyProfile.full_name)}
+                    {getInitials(familyProfile?.full_name)}
                   </AvatarFallback>
                 </Avatar>
               </div>

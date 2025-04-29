@@ -45,13 +45,19 @@ export const fetchCareTeamMembers = async (planId: string): Promise<CareTeamMemb
       throw error;
     }
 
+    console.log("Raw care team members data:", data);
+
     return (data || []).map(member => {
-      // Access the caregiver object with proper type definition
+      // Access the caregiver object with proper type casting and default values
       const profileData = member.caregiver as { 
         full_name?: string; 
         professional_type?: string; 
         avatar_url?: string | null;
-      } || {};
+      } || {
+        full_name: 'Unknown Professional',
+        professional_type: 'Care Professional',
+        avatar_url: null
+      };
       
       return {
         ...adaptCareTeamMemberFromDb(member as CareTeamMemberDto),

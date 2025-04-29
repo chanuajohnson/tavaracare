@@ -34,6 +34,7 @@ export function CareTeamMembersTab({ teamMembers = [], loading = false }: CareTe
   console.log("CareTeamMembersTab rendering with:", { teamMembers, loading });
 
   const getInitials = (name: string) => {
+    if (!name) return "?";
     return name.split(' ').map(n => n[0]).join('').toUpperCase();
   };
 
@@ -77,14 +78,14 @@ export function CareTeamMembersTab({ teamMembers = [], loading = false }: CareTe
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <Avatar className="h-10 w-10">
-                  <AvatarImage src={member.professionalDetails.avatar_url || ''} />
+                  <AvatarImage src={member.professionalDetails?.avatar_url || ''} />
                   <AvatarFallback className="bg-primary text-white">
-                    {getInitials(member.professionalDetails.full_name)}
+                    {getInitials(member.professionalDetails?.full_name || 'U')}
                   </AvatarFallback>
                 </Avatar>
                 <div>
-                  <p className="font-medium">{member.professionalDetails.full_name}</p>
-                  <p className="text-sm text-gray-500">{member.professionalDetails.professional_type}</p>
+                  <p className="font-medium">{member.professionalDetails?.full_name || 'Unknown Professional'}</p>
+                  <p className="text-sm text-gray-500">{member.professionalDetails?.professional_type || 'Care Professional'}</p>
                 </div>
               </div>
               <div className="flex flex-col items-end">
