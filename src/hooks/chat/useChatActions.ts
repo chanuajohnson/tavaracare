@@ -479,11 +479,12 @@ export const useChatActions = (
         const nextQuestionType = getFieldTypeForCurrentQuestion(nextSectionIndex, nextQuestionIndex);
         setFieldType(nextQuestionType);
 
-        // If we're starting a new section, include section title in the message
+        // If we're starting a new section, include section title in the message - without repetitive phrases
         let responseMessage = response.message;
         if (nextQuestionIndex === 0) {
           const sectionTitle = getSectionTitle(progress.role, nextSectionIndex);
-          responseMessage = `Great! Let's talk about ${sectionTitle.toLowerCase()}.\n\n${response.message}`;
+          // Use different phrasing for section transitions to avoid repetition
+          responseMessage = `Now let's move on to ${sectionTitle.toLowerCase()}.\n\n${response.message}`;
         }
         
         await simulateBotTyping(responseMessage, response.options);

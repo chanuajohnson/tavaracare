@@ -113,9 +113,10 @@ export const useRoleSelection = ({
       const questionType = getFieldTypeForCurrentQuestion(0, 0);
       setFieldType(questionType);
       
+      // Use a cleaner transition message without redundant phrases
       const sectionTitle = getSectionTitle(roleId, 0);
       const introMessage = sectionTitle 
-        ? `Great! Let's start with some ${sectionTitle.toLowerCase()}. ${response.message}`
+        ? `Great! Let's collect some ${sectionTitle.toLowerCase()} information. ${response.message}`
         : response.message;
         
       await simulateBotTyping(introMessage, response.options);
@@ -166,9 +167,10 @@ export const useRoleSelection = ({
       config
     );
     
+    // Use a cleaner transition message without redundant phrases
     const sectionTitle = getSectionTitle(roleId, 0);
     const introMessage = sectionTitle 
-      ? `Great! Let's start with some ${sectionTitle.toLowerCase()}. ${response.message}`
+      ? `Great! Let's collect some ${sectionTitle.toLowerCase()} information. ${response.message}`
       : response.message;
       
     await simulateBotTyping(introMessage, response.options);

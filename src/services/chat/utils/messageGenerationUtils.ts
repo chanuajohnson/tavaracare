@@ -52,7 +52,7 @@ export const generateNextQuestionMessage = (
       ];
     }
     
-    // Add section context to first question in each section
+    // Use just the question label without redundant intro text
     let message = question.label;
     
     // Add special prompts for specific question types
@@ -70,9 +70,16 @@ export const generateNextQuestionMessage = (
       }
     }
     
-    // Add section title for first question in section
+    // Add section title for first question in section, without redundant "let's get started" phrases
     if (questionIndex === 0) {
-      message = `Let's talk about ${section.title.toLowerCase()}.\n\n${message}`;
+      // Use a cleaner transition without redundant phrases
+      if (sectionIndex === 0) {
+        // First section in the flow
+        message = `${section.title}: ${message}`;
+      } else {
+        // Subsequent sections
+        message = `Now let's talk about ${section.title.toLowerCase()}.\n\n${message}`;
+      }
     }
     
     return {
