@@ -293,8 +293,7 @@ const ProfessionalProfileHub = () => {
       
       console.log("Fetching care plans for professional user:", user?.id);
       
-      // FIXED QUERY: Using proper column-specific join syntax with clear naming to avoid ambiguity
-      const { data: careTeamData, error: carePlansError } = await supabase
+      const { data: careTeamAssignments, error: teamAssignmentsError } = await supabase
         .from('care_team_members')
         .select(`
           id, 
@@ -303,154 +302,180 @@ const ProfessionalProfileHub = () => {
           role, 
           status, 
           notes, 
-          created_at,
-          care_plans:care_plan_id (
-            id, 
-            title, 
-            description, 
-            status, 
-            family_id
-          ),
-          family_profiles:family_id (
+          created_at
+        `)
+        .eq('caregiver_id', user?.id);
+      
+      if (teamAssignmentsError) {
+        console.error("Error fetching care team assignments:", teamAssignmentsError);
+        throw teamAssignmentsError;
+      }
+      
+      console.log("Raw care team assignments:", careTeamAssignments);
+      
+      if (!careTeamAssignments || careTeamAssignments.length === 0) {
+        console.log("No care team assignments found for user");
+        setCarePlans([]);
+        setCareTeamMembers([]);
+        setLoadingCarePlans(false);
+        setLoadingCareTeamMembers(false);
+        return;
+      }
+      
+      const carePlanIds = careTeamAssignments
+        .map(assignment => assignment.care_plan_id)
+        .filter(id => !!id);
+        
+      console.log("Care plan IDs to fetch:", carePlanIds);
+      
+      if (carePlanIds.length === 0) {
+        console.log("No valid care plan IDs found");
+        setCarePlans([]);
+        setCareTeamMembers([]);
+        setLoadingCarePlans(false);
+        setLoadingCareTeamMembers(false);
+        return;
+      }
+      
+      const { data: carePlansData, error: carePlansError } = await supabase
+        .from('care_plans')
+        .select(`
+          id, 
+          title, 
+          description, 
+          status, 
+          family_id,
+          profiles:family_id (
             full_name,
             avatar_url,
             phone_number
           )
         `)
-        .eq('caregiver_id', user?.id);
+        .in('id', carePlanIds);
       
       if (carePlansError) {
-        console.error("Error fetching care team assignments:", carePlansError);
+        console.error("Error fetching care plans:", carePlansError);
         throw carePlansError;
       }
       
-      console.log("Raw care team assignments data:", careTeamData);
+      console.log("Raw care plans data:", carePlansData);
       
-      // Improved data validation with better null checks
-      const validCarePlans = (careTeamData || []).filter(plan => {
-        if (!plan.care_plans) {
-          console.warn("Found care team entry without care_plan data:", plan.id);
-          return false;
-        }
-        return true;
-      });
-      
-      console.log("Valid care plans after filtering:", validCarePlans.length);
-      
-      // Improved data transformation to correctly structure data
-      const transformedCarePlans = validCarePlans.map(plan => {
-        // Create a properly structured object for CareAssignmentCard
-        // Using null coalescence to provide fallback values
-        const familyProfileData = plan.family_profiles || {};
-        
-        return {
-          id: plan.id,
-          care_plan_id: plan.care_plan_id,
-          family_id: plan.family_id,
-          role: plan.role || 'caregiver',
-          status: plan.status || 'pending',
-          notes: plan.notes,
-          created_at: plan.created_at,
-          care_plans: {
-            id: plan.care_plans?.id,
-            title: plan.care_plans?.title || "Untitled Care Plan",
-            description: plan.care_plans?.description || "No description provided",
-            status: plan.care_plans?.status || "active",
-            family_id: plan.care_plans?.family_id,
-            // Add required profiles information from family data
-            profiles: {
-              full_name: (familyProfileData as any).full_name || "Family",
-              avatar_url: (familyProfileData as any).avatar_url,
-              phone_number: (familyProfileData as any).phone_number
-            }
+      const transformedCarePlans = careTeamAssignments
+        .filter(assignment => assignment.care_plan_id)
+        .map(assignment => {
+          const carePlan = carePlansData?.find(plan => plan.id === assignment.care_plan_id);
+          
+          if (!carePlan) {
+            console.warn(`No care plan found for assignment ${assignment.id} with plan ID ${assignment.care_plan_id}`);
+            return null;
           }
-        };
-      });
+          
+          const familyProfileData = carePlan.profiles || {};
+          
+          return {
+            id: assignment.id,
+            care_plan_id: assignment.care_plan_id,
+            family_id: assignment.family_id,
+            role: assignment.role || 'caregiver',
+            status: assignment.status || 'pending',
+            notes: assignment.notes,
+            created_at: assignment.created_at,
+            care_plans: {
+              id: carePlan.id,
+              title: carePlan.title || "Untitled Care Plan",
+              description: carePlan.description || "No description provided",
+              status: carePlan.status || "active",
+              family_id: carePlan.family_id,
+              profiles: {
+                full_name: typeof familyProfileData === 'object' ? (familyProfileData as any).full_name || "Family" : "Family",
+                avatar_url: typeof familyProfileData === 'object' ? (familyProfileData as any).avatar_url : null,
+                phone_number: typeof familyProfileData === 'object' ? (familyProfileData as any).phone_number : null
+              }
+            }
+          };
+        })
+        .filter(plan => plan !== null) as any[];
       
       console.log("Transformed care plans:", transformedCarePlans);
       setCarePlans(transformedCarePlans);
       
-      // Load team members for each care plan
-      const memberPromises = validCarePlans.map(async (plan) => {
-        if (!plan.care_plan_id) {
-          console.warn("Missing care_plan_id for plan:", plan.id);
-          return [];
-        }
-        
+      const fetchCareTeamMembers = async () => {
         try {
-          // FIXED QUERY: Using proper column-specific join syntax with explicit naming
-          const { data: teamMembers, error: membersError } = await supabase
-            .from('care_team_members')
-            .select(`
-              id,
-              care_plan_id,
-              family_id,
-              caregiver_id,
-              role,
-              status,
-              notes,
-              created_at,
-              updated_at,
-              professional_profiles:caregiver_id (
-                full_name,
-                professional_type,
-                avatar_url
-              )
-            `)
-            .eq('care_plan_id', plan.care_plan_id);
+          const allTeamMembers: any[] = [];
           
-          if (membersError) {
-            console.error(`Error fetching team members for plan ${plan.care_plan_id}:`, membersError);
-            return [];
+          for (const carePlanId of carePlanIds) {
+            const { data: teamMembers, error: membersError } = await supabase
+              .from('care_team_members')
+              .select(`
+                id,
+                care_plan_id,
+                family_id,
+                caregiver_id,
+                role,
+                status,
+                notes,
+                created_at,
+                updated_at,
+                profiles:caregiver_id (
+                  full_name,
+                  professional_type,
+                  avatar_url
+                )
+              `)
+              .eq('care_plan_id', carePlanId);
+            
+            if (membersError) {
+              console.error(`Error fetching team members for plan ${carePlanId}:`, membersError);
+              continue;
+            }
+            
+            console.log(`Team members for plan ${carePlanId}:`, teamMembers);
+            
+            if (teamMembers && teamMembers.length > 0) {
+              const formattedMembers = teamMembers.map(member => {
+                const profileData = member.profiles || {};
+                
+                return {
+                  id: member.id,
+                  carePlanId: member.care_plan_id,
+                  familyId: member.family_id,
+                  caregiverId: member.caregiver_id,
+                  role: member.role || 'caregiver',
+                  status: member.status || 'invited',
+                  notes: member.notes,
+                  createdAt: member.created_at,
+                  updatedAt: member.updated_at,
+                  professionalDetails: {
+                    full_name: typeof profileData === 'object' ? (profileData as any).full_name || 'Unknown Professional' : 'Unknown Professional',
+                    professional_type: typeof profileData === 'object' ? (profileData as any).professional_type || 'Care Professional' : 'Care Professional',
+                    avatar_url: typeof profileData === 'object' ? (profileData as any).avatar_url : null
+                  }
+                };
+              });
+              
+              allTeamMembers.push(...formattedMembers);
+            }
           }
           
-          console.log(`Team members for plan ${plan.care_plan_id}:`, teamMembers);
-          
-          return (teamMembers || []).map(member => {
-            // Format data for the CareTeamMembersTab component
-            // Add safe access with fallbacks
-            const profileData = member.professional_profiles || {};
-            
-            return {
-              id: member.id,
-              carePlanId: member.care_plan_id,
-              familyId: member.family_id,
-              caregiverId: member.caregiver_id,
-              role: member.role || 'caregiver',
-              status: member.status || 'invited',
-              notes: member.notes,
-              createdAt: member.created_at,
-              updatedAt: member.updated_at,
-              professionalDetails: {
-                full_name: (profileData as any).full_name || 'Unknown Professional',
-                professional_type: (profileData as any).professional_type || 'Care Professional',
-                avatar_url: (profileData as any).avatar_url || null
-              }
-            };
-          });
+          console.log("All team members data:", allTeamMembers);
+          setCareTeamMembers(allTeamMembers);
         } catch (err) {
-          console.error(`Error processing team members for plan ${plan.care_plan_id}:`, err);
-          return [];
+          console.error("Error processing team members:", err);
+          setCareTeamMembers([]);
+        } finally {
+          setLoadingCareTeamMembers(false);
         }
-      });
+      };
       
-      try {
-        const allTeamMembers = await Promise.all(memberPromises);
-        const flattenedMembers = allTeamMembers.flat();
-        console.log("All team members data:", flattenedMembers);
-        setCareTeamMembers(flattenedMembers);
-      } catch (err) {
-        console.error("Error processing team members:", err);
-        setCareTeamMembers([]);
-      }
-      
+      fetchCareTeamMembers();
       setLoadingCarePlans(false);
-      setLoadingCareTeamMembers(false);
     } catch (err) {
       console.error("Error loading care plans:", err);
       toast.error("Failed to load care assignments");
       setLoadingCarePlans(false);
       setLoadingCareTeamMembers(false);
+      setCarePlans([]);
+      setCareTeamMembers([]);
     }
   };
 

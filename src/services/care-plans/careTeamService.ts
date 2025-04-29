@@ -1,3 +1,4 @@
+
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import { CareTeamMember, CareTeamMemberWithProfile, CareTeamMemberDto, CareTeamMemberInput } from "@/types/careTypes";
@@ -27,7 +28,7 @@ const adaptCareTeamMemberToDb = (member: Partial<CareTeamMember>): Partial<CareT
 
 export const fetchCareTeamMembers = async (planId: string): Promise<CareTeamMemberWithProfile[]> => {
   try {
-    // FIXED QUERY: Using proper column-specific join syntax to avoid ambiguity
+    // Use explicit column naming to avoid ambiguity with profiles
     const { data, error } = await supabase
       .from('care_team_members')
       .select(`
@@ -40,14 +41,14 @@ export const fetchCareTeamMembers = async (planId: string): Promise<CareTeamMemb
         notes, 
         created_at, 
         updated_at,
-        profiles:caregiver_id(
+        profiles:caregiver_id (
+          id,
           full_name,
           professional_type,
           avatar_url
         )
       `)
-      .eq('care_plan_id', planId)
-      .order('created_at', { ascending: true });
+      .eq('care_plan_id', planId);
 
     if (error) {
       console.error("Supabase error fetching care team members:", error);
@@ -57,19 +58,21 @@ export const fetchCareTeamMembers = async (planId: string): Promise<CareTeamMemb
     console.log("Raw care team members data:", data);
 
     return (data || []).map(member => {
-      // Access the profiles object with proper type casting and default values
-      const profileData = member.profiles || {
-        full_name: 'Unknown Professional',
-        professional_type: 'Care Professional',
-        avatar_url: null
-      };
+      // Safely access profile data with fallbacks
+      const profileData = member.profiles || {};
       
       return {
         ...adaptCareTeamMemberFromDb(member as CareTeamMemberDto),
         professionalDetails: {
-          full_name: (profileData as any).full_name || 'Unknown Professional',
-          professional_type: (profileData as any).professional_type || 'Care Professional',
-          avatar_url: (profileData as any).avatar_url || null
+          full_name: typeof profileData === 'object' && profileData !== null 
+            ? (profileData as any).full_name || 'Unknown Professional' 
+            : 'Unknown Professional',
+          professional_type: typeof profileData === 'object' && profileData !== null 
+            ? (profileData as any).professional_type || 'Care Professional' 
+            : 'Care Professional',
+          avatar_url: typeof profileData === 'object' && profileData !== null 
+            ? (profileData as any).avatar_url 
+            : null
         }
       };
     });
