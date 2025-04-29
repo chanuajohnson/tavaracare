@@ -46,8 +46,12 @@ export const fetchCareTeamMembers = async (planId: string): Promise<CareTeamMemb
     }
 
     return (data || []).map(member => {
-      // Access the caregiver object with proper fallback
-      const profileData = member.caregiver || {};
+      // Access the caregiver object with proper type definition
+      const profileData = member.caregiver as { 
+        full_name?: string; 
+        professional_type?: string; 
+        avatar_url?: string | null;
+      } || {};
       
       return {
         ...adaptCareTeamMemberFromDb(member as CareTeamMemberDto),

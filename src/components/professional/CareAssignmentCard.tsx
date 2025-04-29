@@ -25,15 +25,15 @@ interface CareTeamMember {
     updated_at: string;
     metadata?: any;
     profiles?: {
-      full_name?: string;
-      avatar_url?: string;
-      phone_number?: string;
+      full_name?: string | null;
+      avatar_url?: string | null;
+      phone_number?: string | null;
     };
   };
   family?: {
-    full_name?: string;
-    avatar_url?: string;
-    phone_number?: string;
+    full_name?: string | null;
+    avatar_url?: string | null;
+    phone_number?: string | null;
   };
 }
 
@@ -52,9 +52,13 @@ export function CareAssignmentCard({ assignment }: CareAssignmentCardProps) {
   }
 
   // Get family data from either nested profiles or family property
-  const familyProfile = assignment.care_plans.profiles || assignment.family || {};
+  const familyProfile = assignment.care_plans.profiles || assignment.family || {
+    full_name: null,
+    avatar_url: null,
+    phone_number: null
+  };
 
-  const getInitials = (name?: string) => {
+  const getInitials = (name?: string | null) => {
     if (!name) return "F";
     return name.split(' ').map(n => n[0]).join('').toUpperCase();
   };
@@ -138,8 +142,7 @@ export function CareAssignmentCard({ assignment }: CareAssignmentCardProps) {
                 <Avatar className="h-8 w-8">
                   <AvatarImage src={familyProfile.avatar_url || ''} />
                   <AvatarFallback className="bg-primary text-white text-xs">
-                    {familyProfile.full_name ? 
-                      getInitials(familyProfile.full_name) : 'F'}
+                    {getInitials(familyProfile.full_name)}
                   </AvatarFallback>
                 </Avatar>
               </div>

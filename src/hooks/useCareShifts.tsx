@@ -39,7 +39,9 @@ export function useCareShifts(initialFilters?: UseCareShiftsFilters) {
   const { user } = useAuth();
   
   useEffect(() => {
-    fetchShifts();
+    if (user) {
+      fetchShifts();
+    }
   }, [user, filters]);
   
   const fetchShifts = async () => {

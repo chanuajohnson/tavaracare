@@ -333,7 +333,7 @@ const ProfessionalProfileHub = () => {
         ...plan,
         care_plans: {
           ...plan.care_plans,
-          profiles: plan.family || {}
+          profiles: plan.family || { full_name: null, avatar_url: null, phone_number: null }
         }
       }));
       
@@ -359,7 +359,15 @@ const ProfessionalProfileHub = () => {
         }
         
         return (teamMembers || []).map(member => {
-          const profile = member.caregiver || {};
+          const profile = member.caregiver as { 
+            full_name?: string; 
+            professional_type?: string; 
+            avatar_url?: string | null;
+          } || { 
+            full_name: 'Unknown Professional', 
+            professional_type: 'Care Professional', 
+            avatar_url: null 
+          };
           
           return {
             id: member.id,
