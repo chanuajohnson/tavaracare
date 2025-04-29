@@ -1063,7 +1063,7 @@ const ProfessionalProfileHub = () => {
                           <Skeleton className="h-24 w-full" />
                         </div>
                       ) : careTeamMembers.length > 0 ? (
-                        <CareTeamMembersTab careTeamMembers={careTeamMembers} />
+                        <CareTeamMembersTab teamMembers={careTeamMembers} loading={loadingCareTeamMembers} />
                       ) : (
                         <div className="text-center py-12">
                           <Users className="h-12 w-12 text-gray-300 mx-auto mb-4" />
@@ -1129,7 +1129,8 @@ const ProfessionalProfileHub = () => {
                                 <div key={index} className="border rounded-lg overflow-hidden">
                                   <div className="bg-gray-50 p-4">
                                     <h4 className="font-medium">{module.title}</h4>
-                                    <p className="text-sm text-gray-500 mt-1">{module.description}</p>
+                                    {/* Use a valid property that exists on the TrainingModule type */}
+                                    <p className="text-sm text-gray-500 mt-1">{module.title ? `Training module focused on ${module.title}` : 'Learn more about caregiving'}</p>
                                   </div>
                                   <div className="p-4">
                                     <div className="space-y-2 mb-4">
