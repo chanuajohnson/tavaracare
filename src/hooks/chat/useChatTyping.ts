@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { ChatOption } from '@/types/chatTypes';
 import { toast } from 'sonner';
+import { isRepeatMessage, setLastMessage } from '@/utils/chat/engine/messageCache';
 
 interface UseChatTypingProps {
   addMessage: (message: any) => void;
@@ -27,6 +28,12 @@ export const useChatTyping = ({
       return;
     }
 
+    // Check if this message would be repetitive
+    if (sessionId && isRepeatMessage(sessionId, message)) {
+      console.log("[useChatTyping] Preventing repeat message:", message.substring(0, 50) + "...");
+      return;
+    }
+
     setIsTyping(true);
     
     try {
@@ -37,6 +44,11 @@ export const useChatTyping = ({
       const delay = Math.min(baseDelay + message.length * charDelay, maxDelay);
       
       await new Promise(resolve => setTimeout(resolve, delay));
+      
+      // Store the message in cache to prevent repetition in the future
+      if (sessionId) {
+        setLastMessage(sessionId, message);
+      }
       
       addMessage({
         content: message,

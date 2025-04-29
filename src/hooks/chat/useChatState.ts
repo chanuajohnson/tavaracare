@@ -13,6 +13,7 @@ export const useChatState = () => {
   const [validationError, setValidationError] = useState<string | undefined>();
   const [fieldType, setFieldType] = useState<string | null>(null);
   const chatInitializedRef = useRef(false);
+  const resumedConversationRef = useRef(false);
 
   // Validate input whenever it changes or field type changes
   useEffect(() => {
@@ -42,6 +43,14 @@ export const useChatState = () => {
     }
   }, [input, fieldType, validationError]);
   
+  // Track whether conversation has been resumed for better context awareness
+  useEffect(() => {
+    if (isResuming && !resumedConversationRef.current) {
+      resumedConversationRef.current = true;
+      console.log("[useChatState] Marked conversation as resumed");
+    }
+  }, [isResuming]);
+  
   // Custom input setter to handle input changes and validation
   const handleInputChange = (value: string) => {
     setInput(value);
@@ -63,6 +72,7 @@ export const useChatState = () => {
     setValidationError(undefined);
     setFieldType(null);
     chatInitializedRef.current = false;
+    resumedConversationRef.current = false;
   };
 
   return {
@@ -85,6 +95,7 @@ export const useChatState = () => {
     validationError,
     setValidationError,
     fieldType,
-    setFieldType
+    setFieldType,
+    isResumedConversation: resumedConversationRef.current
   };
 };

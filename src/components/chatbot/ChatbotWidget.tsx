@@ -86,7 +86,8 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({
     handleOptionSelection,
     handleSendMessage,
     resetChat,
-    initializeChat
+    initializeChat,
+    getFieldTypeForCurrentQuestion
   } = useChatActions(
     sessionId,
     messages,
@@ -115,6 +116,19 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({
     setValidationError,
     setFieldType
   );
+
+  // Set appropriate field type when section or question changes
+  useEffect(() => {
+    if (progress.role && conversationStage === "questions") {
+      const detectedFieldType = getFieldTypeForCurrentQuestion(
+        currentSectionIndex, 
+        currentQuestionIndex, 
+        progress.role
+      );
+      setFieldType(detectedFieldType);
+      console.log(`[ChatbotWidget] Set field type to ${detectedFieldType} for current question`);
+    }
+  }, [currentSectionIndex, currentQuestionIndex, progress.role, conversationStage]);
 
   const handleRegistrationClick = () => {
     if (progress.role && sessionId) {

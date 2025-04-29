@@ -1,3 +1,4 @@
+
 import { syncMessagesToSupabase } from "@/services/aiService";
 import { processConversation } from "@/utils/chat/chatFlowEngine";
 import { 
@@ -9,6 +10,7 @@ import {
 import { getRoleOptions } from "@/data/chatIntroMessage";
 import { ChatMessage } from "@/types/chatTypes";
 import { ChatConfig } from "@/utils/chat/engine/types";
+import { isRepeatMessage, setLastMessage } from "@/utils/chat/engine/messageCache";
 
 interface UseRoleSelectionProps {
   sessionId: string;
@@ -23,7 +25,7 @@ interface UseRoleSelectionProps {
   setInitialRole: (role: string | null) => void;
   simulateBotTyping: (message: string, options?: any) => Promise<void>;
   setFieldType: (type: string | null) => void;
-  getFieldTypeForCurrentQuestion: (sectionIndex?: number, questionIndex?: number) => string | null;
+  getFieldTypeForCurrentQuestion: (sectionIndex?: number, questionIndex?: number, role?: string | null) => string | null;
 }
 
 export const useRoleSelection = ({
@@ -110,12 +112,17 @@ export const useRoleSelection = ({
         true // Indicate this is the first question after role selection
       );
       
-      const questionType = getFieldTypeForCurrentQuestion(0, 0);
+      const questionType = getFieldTypeForCurrentQuestion(0, 0, roleId);
       setFieldType(questionType);
       
       // Use a simpler greeting without redundant section introduction
       const simpleIntro = "Great! Let's get started. ";
-      await simulateBotTyping(simpleIntro + response.message, response.options);
+      const finalMessage = simpleIntro + response.message;
+      
+      // Store this message in the cache to prevent repetition
+      setLastMessage(sessionId, finalMessage);
+      
+      await simulateBotTyping(finalMessage, response.options);
       setConversationStage("questions");
     } catch (error) {
       console.error("Error in role selection:", error);
@@ -164,12 +171,17 @@ export const useRoleSelection = ({
       true // Indicate this is the first question after role selection
     );
     
-    const questionType = getFieldTypeForCurrentQuestion(0, 0);
+    const questionType = getFieldTypeForCurrentQuestion(0, 0, roleId);
     setFieldType(questionType);
     
     // Use a simpler greeting without redundant section information
     const simpleIntro = "Great! Let's get started. ";
-    await simulateBotTyping(simpleIntro + response.message, response.options);
+    const finalMessage = simpleIntro + response.message;
+    
+    // Store this message in the cache to prevent repetition
+    setLastMessage(sessionId, finalMessage);
+    
+    await simulateBotTyping(finalMessage, response.options);
     setConversationStage("questions");
   };
 
@@ -190,6 +202,19 @@ export const useRoleSelection = ({
         
         setConversationStage("questions");
         
+        // Get previous responses to provide context
+        const previousResponses = await getSessionResponses(sessionId);
+        const responseCount = Object.keys(previousResponses).length;
+        
+        // Generate a personalized welcome back message
+        let welcomeBackMessage = "";
+        
+        if (responseCount > 0) {
+          welcomeBackMessage = `Welcome back! I see we were discussing ${getSectionTitle(partialProgress.role, sectionIndex).toLowerCase()}. Let's continue where we left off. `;
+        } else {
+          welcomeBackMessage = "Welcome back! Let's continue where we left off. ";
+        }
+        
         const response = await processConversation(
           messages,
           sessionId,
@@ -198,7 +223,27 @@ export const useRoleSelection = ({
           config
         );
         
-        await simulateBotTyping("Great! Let's continue where we left off. " + response.message, response.options);
+        const fieldType = getFieldTypeForCurrentQuestion(sectionIndex, questionIndex, partialProgress.role);
+        setFieldType(fieldType);
+        
+        // Only add the welcome back message if this is a new message (not cached)
+        const finalMessage = welcomeBackMessage + response.message;
+        
+        if (!isRepeatMessage(sessionId, finalMessage)) {
+          setLastMessage(sessionId, finalMessage);
+          await simulateBotTyping(finalMessage, response.options);
+        } else {
+          // If message would be repetitive, just ask the next question
+          const nextQuestion = await processConversation(
+            [...messages, { content: "Continue", isUser: true, timestamp: Date.now() }],
+            sessionId,
+            partialProgress.role,
+            partialProgress.questionIndex || 0,
+            config
+          );
+          
+          await simulateBotTyping(welcomeBackMessage + nextQuestion.message, nextQuestion.options);
+        }
       }
     } catch (error) {
       console.error("Error resuming chat:", error);

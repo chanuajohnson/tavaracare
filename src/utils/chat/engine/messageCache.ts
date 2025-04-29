@@ -10,6 +10,7 @@ const lastMessageCache = new Map<string, string>();
  */
 export const setLastMessage = (sessionId: string, message: string): void => {
   if (!sessionId || !message) return; // Prevent invalid entries
+  console.log(`[messageCache] Storing message for session ${sessionId.substring(0, 6)}...`);
   lastMessageCache.set(sessionId, message);
 };
 
@@ -24,7 +25,13 @@ export const isRepeatMessage = (sessionId: string, message: string): boolean => 
   
   // Simple string similarity check (can be improved)
   const similarity = calculateSimilarity(lastMessage, message);
-  return similarity > 0.8; // If more than 80% similar, consider a repeat
+  const isRepeat = similarity > 0.8; // If more than 80% similar, consider a repeat
+  
+  if (isRepeat) {
+    console.log(`[messageCache] Detected repeat message for session ${sessionId.substring(0, 6)}... (${(similarity * 100).toFixed(1)}% similar)`);
+  }
+  
+  return isRepeat;
 };
 
 /**
@@ -59,4 +66,12 @@ const calculateSimilarity = (str1: string, str2: string): number => {
  */
 export const clearMessageCache = (sessionId: string): void => {
   lastMessageCache.delete(sessionId);
+  console.log(`[messageCache] Cleared cache for session ${sessionId.substring(0, 6)}...`);
+};
+
+/**
+ * Get the last message for a session (for debugging)
+ */
+export const getLastMessage = (sessionId: string): string | undefined => {
+  return lastMessageCache.get(sessionId);
 };

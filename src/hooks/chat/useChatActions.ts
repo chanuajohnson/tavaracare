@@ -7,6 +7,7 @@ import { useOptionSelection } from "./actions/useOptionSelection";
 import { useMessageInput } from "./actions/useMessageInput";
 import { useChatReset } from "./actions/useChatReset";
 import { useChatFieldUtils } from "./actions/useChatFieldUtils";
+import { clearMessageCache } from "@/utils/chat/engine/messageCache";
 
 export const useChatActions = (
   sessionId: string,
@@ -105,7 +106,7 @@ export const useChatActions = (
   });
   
   // Set up chat reset hooks
-  const { resetChat, initializeChat: initializeChatHelper } = useChatReset({
+  const { resetChat: resetChatBase, initializeChat: initializeChatHelper } = useChatReset({
     sessionId,
     clearMessages,
     clearProgress,
@@ -122,6 +123,12 @@ export const useChatActions = (
       resetChat(true);
     }
     return result;
+  };
+  
+  // Enhanced reset that also clears the message cache
+  const resetChat = (manual = false) => {
+    clearMessageCache(sessionId);
+    return resetChatBase(manual);
   };
   
   // Initialize the chat
