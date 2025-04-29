@@ -923,4 +923,334 @@ const ProfessionalProfileHub = () => {
                         <div className="pt-3">
                           <Button 
                             variant="outline" 
-                            className="w-full
+                            className="w-full"
+                            onClick={() => setIsAvailabilityModalOpen(true)}
+                          >
+                            Update Availability
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="text-center py-6">
+                        <Clock className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+                        <h3 className="text-lg font-medium mb-1">No availability set</h3>
+                        <p className="text-gray-500 mb-4">
+                          Let clients know when you're available to work
+                        </p>
+                        <Button onClick={() => setIsAvailabilityModalOpen(true)}>
+                          Set Availability
+                        </Button>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </motion.div>
+              
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.3 }}
+              >
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <ListChecks className="h-5 w-5 text-primary" />
+                      Onboarding Progress
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="space-y-2">
+                      <div className="flex justify-between items-center text-sm">
+                        <span>Progress</span>
+                        <span>{completedSteps}/{steps.length} steps</span>
+                      </div>
+                      <Progress value={progress} className="h-2" />
+                    </div>
+                    
+                    <div className="space-y-4 mt-4">
+                      {steps.map((step) => (
+                        <div key={step.id} className="flex items-start gap-3">
+                          <div className="mt-0.5">
+                            {step.completed ? (
+                              <CheckCircle2 className="h-5 w-5 text-green-500" />
+                            ) : (
+                              <Circle className="h-5 w-5 text-gray-300" />
+                            )}
+                          </div>
+                          <div className="flex-1">
+                            <div className="flex justify-between">
+                              <h4 className="font-medium">{step.title}</h4>
+                              {renderActionButton(step)}
+                            </div>
+                            <p className="text-sm text-gray-500 mt-0.5">{step.description}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            </div>
+            
+            <div className="md:col-span-2">
+              <Tabs defaultValue="assignments" className="space-y-6">
+                <TabsList>
+                  <TabsTrigger value="assignments" className="flex items-center gap-2">
+                    <ClipboardList className="h-4 w-4" />
+                    <span>Care Assignments</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="team" className="flex items-center gap-2">
+                    <Users className="h-4 w-4" />
+                    <span>Care Teams</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="calendar" className="flex items-center gap-2">
+                    <Calendar className="h-4 w-4" />
+                    <span>Calendar</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="training" className="flex items-center gap-2">
+                    <GraduationCap className="h-4 w-4" />
+                    <span>Training</span>
+                  </TabsTrigger>
+                </TabsList>
+                
+                <TabsContent value="assignments" className="space-y-6">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Care Assignments</CardTitle>
+                      <CardDescription>
+                        Families and care plans you're currently assigned to
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      {loadingCarePlans ? (
+                        <div className="space-y-4">
+                          <Skeleton className="h-24 w-full" />
+                          <Skeleton className="h-24 w-full" />
+                          <Skeleton className="h-24 w-full" />
+                        </div>
+                      ) : carePlans.length > 0 ? (
+                        <div className="space-y-4">
+                          {carePlans.map((assignment) => (
+                            <CareAssignmentCard key={assignment.id} assignment={assignment} />
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="text-center py-12">
+                          <ClipboardList className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+                          <h3 className="text-lg font-medium mb-1">No care assignments yet</h3>
+                          <p className="text-gray-500 max-w-md mx-auto">
+                            You don't have any care assignments yet. 
+                            Assignments will appear here once families add you to their care team.
+                          </p>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+                
+                <TabsContent value="team" className="space-y-6">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Care Teams</CardTitle>
+                      <CardDescription>
+                        Other professionals you're working with on care plans
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      {loadingCareTeamMembers ? (
+                        <div className="space-y-4">
+                          <Skeleton className="h-24 w-full" />
+                          <Skeleton className="h-24 w-full" />
+                        </div>
+                      ) : careTeamMembers.length > 0 ? (
+                        <CareTeamMembersTab careTeamMembers={careTeamMembers} />
+                      ) : (
+                        <div className="text-center py-12">
+                          <Users className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+                          <h3 className="text-lg font-medium mb-1">No care teams yet</h3>
+                          <p className="text-gray-500 max-w-md mx-auto">
+                            You're not part of any care teams yet. 
+                            Team members will appear here once you're assigned to shared care plans.
+                          </p>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+                
+                <TabsContent value="calendar" className="space-y-6">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Care Calendar</CardTitle>
+                      <CardDescription>
+                        Your upcoming shifts and care appointments
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      {loadingShifts ? (
+                        <div className="space-y-4">
+                          <Skeleton className="h-64 w-full" />
+                        </div>
+                      ) : (
+                        <ProfessionalCalendar shifts={shifts} />
+                      )}
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+                
+                <TabsContent value="training" className="space-y-6">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Training Progress</CardTitle>
+                      <CardDescription>
+                        Your professional development and training modules
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      {loadingModules ? (
+                        <div className="space-y-4">
+                          <Skeleton className="h-24 w-full" />
+                          <Skeleton className="h-24 w-full" />
+                          <Skeleton className="h-24 w-full" />
+                        </div>
+                      ) : (
+                        <div className="space-y-6">
+                          <div className="space-y-2">
+                            <div className="flex justify-between items-center text-sm">
+                              <span>Overall Progress</span>
+                              <span>{totalProgress}% Complete</span>
+                            </div>
+                            <Progress value={totalProgress} className="h-2" />
+                          </div>
+                          
+                          {modules.length > 0 ? (
+                            <div className="space-y-4">
+                              {modules.map((module, index) => (
+                                <div key={index} className="border rounded-lg overflow-hidden">
+                                  <div className="bg-gray-50 p-4">
+                                    <h4 className="font-medium">{module.title}</h4>
+                                    <p className="text-sm text-gray-500 mt-1">{module.description}</p>
+                                  </div>
+                                  <div className="p-4">
+                                    <div className="space-y-2 mb-4">
+                                      <div className="flex justify-between items-center text-sm">
+                                        <span>{module.progress}% Complete</span>
+                                        <span>{module.completedLessons}/{module.totalLessons} Lessons</span>
+                                      </div>
+                                      <Progress value={module.progress} className="h-1.5" />
+                                    </div>
+                                    <Button asChild variant="outline" size="sm">
+                                      <Link to={`/professional/training-resources?module=${module.id}`}>
+                                        Continue Training
+                                      </Link>
+                                    </Button>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <div className="text-center py-8">
+                              <GraduationCap className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+                              <h3 className="text-lg font-medium mb-1">No training modules yet</h3>
+                              <p className="text-gray-500 max-w-md mx-auto mb-4">
+                                Training modules will be assigned to you based on your role and experience.
+                              </p>
+                              <Button asChild variant="outline">
+                                <Link to="/professional/training-resources">
+                                  Browse Training Resources
+                                </Link>
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+              </Tabs>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <Dialog open={isAvailabilityModalOpen} onOpenChange={setIsAvailabilityModalOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Set Your Availability</DialogTitle>
+            <DialogDescription>
+              Choose when you're available to work. This helps families find the right care professional.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-6 py-4">
+            <div className="space-y-2">
+              <Label>Shift Types</Label>
+              <ToggleGroup 
+                type="multiple" 
+                className="flex flex-wrap justify-start gap-2"
+                value={selectedAvailability}
+                onValueChange={(value) => setSelectedAvailability(value)}
+              >
+                <ToggleGroupItem value="Weekday Mornings" className="gap-1">
+                  <Sun className="h-4 w-4" />
+                  <span>Weekday AM</span>
+                </ToggleGroupItem>
+                <ToggleGroupItem value="Weekday Afternoons" className="gap-1">
+                  <Sun className="h-4 w-4" />
+                  <span>Weekday PM</span>
+                </ToggleGroupItem>
+                <ToggleGroupItem value="Weekday Evenings" className="gap-1">
+                  <Moon className="h-4 w-4" />
+                  <span>Weekday Eve</span>
+                </ToggleGroupItem>
+                <ToggleGroupItem value="Weekend Mornings" className="gap-1">
+                  <Sun className="h-4 w-4" />
+                  <span>Weekend AM</span>
+                </ToggleGroupItem>
+                <ToggleGroupItem value="Weekend Afternoons" className="gap-1">
+                  <Sun className="h-4 w-4" />
+                  <span>Weekend PM</span>
+                </ToggleGroupItem>
+                <ToggleGroupItem value="Weekend Evenings" className="gap-1">
+                  <Moon className="h-4 w-4" />
+                  <span>Weekend Eve</span>
+                </ToggleGroupItem>
+                <ToggleGroupItem value="Overnight" className="gap-1">
+                  <Moon className="h-4 w-4" />
+                  <span>Overnight</span>
+                </ToggleGroupItem>
+                <ToggleGroupItem value="24-Hour Care" className="gap-1">
+                  <Clock className="h-4 w-4" />
+                  <span>24-Hour</span>
+                </ToggleGroupItem>
+                <ToggleGroupItem value="On-Call" className="gap-1">
+                  <Phone className="h-4 w-4" />
+                  <span>On-Call</span>
+                </ToggleGroupItem>
+              </ToggleGroup>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="other-availability">Other Availability</Label>
+              <input
+                id="other-availability"
+                className="w-full rounded-md border border-gray-300 p-2"
+                placeholder="e.g., Only available during summer months"
+                value={otherAvailability}
+                onChange={(e) => setOtherAvailability(e.target.value)}
+              />
+            </div>
+            
+            <div className="flex justify-end space-x-2">
+              <Button variant="outline" onClick={() => setIsAvailabilityModalOpen(false)}>
+                Cancel
+              </Button>
+              <Button onClick={saveAvailability}>Save Availability</Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+};
+
+export default ProfessionalProfileHub;
