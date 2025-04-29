@@ -285,76 +285,73 @@ const ProfessionalProfileHub = () => {
     loadProfileData();
   }, [user]);
 
-  useEffect(() => {
-    const loadCarePlans = async () => {
-      if (!user) {
-        setLoadingCarePlans(false);
-        return;
+  const loadCarePlans = async () => {
+    try {
+      setLoadingCarePlans(true);
+      
+      console.log("Fetching care plans for professional user:", user.id);
+      
+      const { data, error: carePlansError } = await supabase
+        .from('care_team_members')
+        .select(`
+          id,
+          status,
+          role,
+          care_plan_id,
+          notes,
+          created_at,
+          care_plans:care_plan_id(
+            id,
+            title,
+            description,
+            status,
+            family_id,
+            created_at,
+            updated_at,
+            metadata,
+            profiles:family_id(
+              full_name,
+              avatar_url,
+              phone_number
+            )
+          )
+        `)
+        .eq('caregiver_id', user.id);
+      
+      if (carePlansError) {
+        console.error("Error fetching care plans:", carePlansError);
+        throw carePlansError;
       }
-
-      try {
-        setLoadingCarePlans(true);
-        
-        console.log("Fetching care plans for professional user:", user.id);
-        
-        const { data, error: carePlansError } = await supabase
+      
+      console.log("Loaded care plans for professional:", data);
+      
+      const validCarePlans = (data || []).filter(plan => plan.care_plans) || [];
+      console.log("Valid care plans after filtering:", validCarePlans.length);
+      
+      setCarePlans(validCarePlans);
+      
+      const memberPromises = validCarePlans.map(async (plan) => {
+        const { data: teamMembers, error: membersError } = await supabase
           .from('care_team_members')
           .select(`
-            id,
-            status,
-            role,
-            care_plan_id,
-            notes,
-            created_at,
-            care_plans(
-              id,
-              title,
-              description,
-              status,
-              family_id,
-              created_at,
-              updated_at,
-              metadata,
-              profiles:profiles!care_plans_family_id_fkey(
-                full_name,
-                avatar_url,
-                phone_number
-              )
+            *,
+            profiles:caregiver_id(
+              full_name,
+              professional_type,
+              avatar_url
             )
           `)
-          .eq('caregiver_id', user.id);
+          .eq('care_plan_id', plan.care_plan_id);
         
-        if (carePlansError) {
-          console.error("Error fetching care plans:", carePlansError);
-          throw carePlansError;
+        if (membersError) {
+          console.error(`Error fetching team members for plan ${plan.care_plan_id}:`, membersError);
+          return [];
         }
         
-        console.log("Loaded care plans for professional:", data);
-        
-        const validCarePlans = (data || []).filter(plan => plan.care_plans) || [];
-        console.log("Valid care plans after filtering:", validCarePlans.length);
-        
-        setCarePlans(validCarePlans);
-        
-        const memberPromises = validCarePlans.map(async (plan) => {
-          const { data: teamMembers, error: membersError } = await supabase
-            .from('care_team_members')
-            .select(`
-              *,
-              profiles:caregiver_id(
-                full_name,
-                professional_type,
-                avatar_url
-              )
-            `)
-            .eq('care_plan_id', plan.care_plan_id);
-            
-          if (membersError) {
-            console.error(`Error fetching team members for plan ${plan.care_plan_id}:`, membersError);
-            return [];
-          }
+        return (teamMembers || []).map(member => {
+          const profile = member.profiles || {};
           
-          return (teamMembers || []).map(member => ({
+          return {
             id: member.id,
             carePlanId: member.care_plan_id,
             familyId: member.family_id,
@@ -364,27 +361,28 @@ const ProfessionalProfileHub = () => {
             notes: member.notes,
             createdAt: member.created_at,
             updatedAt: member.updated_at,
-            carePlan: plan.care_plans,
             professionalDetails: {
-              full_name: member.profiles?.full_name,
-              professional_type: member.profiles?.professional_type,
-              avatar_url: member.profiles?.avatar_url
+              full_name: profile.full_name,
+              professional_type: profile.professional_type,
+              avatar_url: profile.avatar_url
             }
-          }));
+          };
         });
-        
-        const allTeamMembers = await Promise.all(memberPromises);
-        const flattenedMembers = allTeamMembers.flat();
-        setCareTeamMembers(flattenedMembers);
-        
-        setLoadingCarePlans(false);
-      } catch (err) {
-        console.error("Error loading care plans:", err);
-        toast.error("Failed to load care assignments");
-        setLoadingCarePlans(false);
-      }
-    };
-    
+      });
+      
+      const allTeamMembers = await Promise.all(memberPromises);
+      const flattenedMembers = allTeamMembers.flat();
+      setCareTeamMembers(flattenedMembers);
+      
+      setLoadingCarePlans(false);
+    } catch (err) {
+      console.error("Error loading care plans:", err);
+      toast.error("Failed to load care assignments");
+      setLoadingCarePlans(false);
+    }
+  };
+
+  useEffect(() => {
     loadCarePlans();
   }, [user]);
 

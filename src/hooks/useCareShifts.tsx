@@ -6,7 +6,7 @@ import { CareShift, CareShiftDto } from "@/types/careTypes";
 import { useAuth } from "@/components/providers/AuthProvider";
 
 // Adapter for converting database shifts to domain model
-const adaptDbShiftToCareShift = (dbShift: CareShiftDto): CareShift => ({
+const adaptDbShiftToCareShift = (dbShift: any): CareShift => ({
   id: dbShift.id!,
   carePlanId: dbShift.care_plan_id,
   familyId: dbShift.family_id,
@@ -83,7 +83,7 @@ export function useCareShifts(initialFilters?: UseCareShiftsFilters) {
         throw error;
       }
       
-      const careShifts: CareShift[] = (data || []).map(adaptDbShiftToCareShift);
+      const careShifts: CareShift[] = (data || []).map((item: any) => adaptDbShiftToCareShift(item));
       setShifts(careShifts);
     } catch (err: any) {
       console.error("Error fetching care shifts:", err);

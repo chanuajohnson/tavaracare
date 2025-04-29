@@ -3,7 +3,6 @@ import React, { useState } from 'react';
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
 import { 
   Calendar, 
   Users, 
@@ -64,8 +63,8 @@ export const CareTeamMembersTab: React.FC<CareTeamMembersTabProps> = ({
       
       if (!acc[member.carePlanId]) {
         acc[member.carePlanId] = {
-          planTitle: member.carePlan?.title || 'Unknown Plan',
-          planStatus: member.carePlan?.status || 'active',
+          planTitle: `Care Plan ${member.carePlanId.substring(0, 8)}`,
+          planStatus: 'active',
           members: []
         };
       }

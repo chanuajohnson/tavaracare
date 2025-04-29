@@ -45,14 +45,17 @@ export const fetchCareTeamMembers = async (planId: string): Promise<CareTeamMemb
       throw error;
     }
 
-    return (data || []).map(member => ({
-      ...adaptCareTeamMemberFromDb(member as CareTeamMemberDto),
-      professionalDetails: {
-        full_name: member.profiles?.full_name,
-        professional_type: member.profiles?.professional_type,
-        avatar_url: member.profiles?.avatar_url
-      }
-    }));
+    return (data || []).map(member => {
+      const profile = member.profiles || {};
+      return {
+        ...adaptCareTeamMemberFromDb(member as CareTeamMemberDto),
+        professionalDetails: {
+          full_name: profile.full_name,
+          professional_type: profile.professional_type,
+          avatar_url: profile.avatar_url
+        }
+      };
+    });
   } catch (error) {
     console.error("Error fetching care team members:", error);
     toast.error("Failed to load care team members");
