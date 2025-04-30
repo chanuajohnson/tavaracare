@@ -131,17 +131,24 @@ export const avoidRepetition = (message: string): string => {
  * Apply validation error message with Trinidad & Tobago style
  */
 export const stylizeValidationError = (errorType: string): string => {
-  const errorResponses = phrasings.validationResponses[errorType as keyof typeof phrasings.validationResponses];
-  if (!errorResponses || errorResponses.length === 0) {
+  // Get the array of validation responses
+  const validationResponses = phrasings.validationResponses || [];
+  
+  // Default error message if we don't have specific ones
+  if (!validationResponses || !Array.isArray(validationResponses) || validationResponses.length === 0) {
     return "That doesn't seem right. Could you check it and try again?";
   }
   
   // Apply an expression randomly
   const shouldAddExpression = Math.random() < 0.3;
-  let message = errorResponses[Math.floor(Math.random() * errorResponses.length)];
   
-  if (shouldAddExpression) {
-    const expression = phrasings.expressions[Math.floor(Math.random() * phrasings.expressions.length)];
+  // Get a random validation message
+  const randomIndex = Math.floor(Math.random() * validationResponses.length);
+  let message = validationResponses[randomIndex];
+  
+  if (shouldAddExpression && Array.isArray(phrasings.expressions) && phrasings.expressions.length > 0) {
+    const expressionIndex = Math.floor(Math.random() * phrasings.expressions.length);
+    const expression = phrasings.expressions[expressionIndex];
     message = `${expression} ${message}`;
   }
   
