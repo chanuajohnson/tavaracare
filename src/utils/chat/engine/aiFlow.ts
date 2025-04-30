@@ -1,4 +1,3 @@
-
 import { ChatMessage, ChatOption } from '@/types/chatTypes';
 import { getChatCompletion, convertToOpenAIMessages } from '@/services/aiService';
 import { phrasings } from '@/utils/chat/phrasings';
@@ -9,11 +8,10 @@ import { formatChatHistoryForAI, generatePrompt } from '../generatePrompt';
 import { getCurrentQuestion } from '@/services/chat/responseUtils';
 import { getSessionResponses, validateChatInput } from '@/services/chat/databaseUtils';
 import { toast } from 'sonner';
+import { formatDialect } from './styleUtils';
 
-/**
- * Cleans up problematic phrases from responses
- */
-const cleanupResponse = (text: string): string => {
+// Update the cleanupResponse function to use our dialect formatter
+const cleanupResponse = (text: string, fieldType: string | null = null): string => {
   // Remove "a," at the beginning of sentences
   let cleaned = text.replace(/^a,\s*/i, '');
   cleaned = cleaned.replace(/\.\s+a,\s*/g, '. ');
@@ -30,7 +28,8 @@ const cleanupResponse = (text: string): string => {
   cleaned = cleaned.replace(/\s+\!/g, '!');
   cleaned = cleaned.replace(/\s+,/g, ',');
   
-  return cleaned;
+  // Apply dialect formatting with field type context
+  return formatDialect(cleaned, 'response', fieldType);
 };
 
 /**
@@ -221,14 +220,26 @@ If the user has provided information previously, acknowledge it and don't ask fo
       // Process the AI response
       const message = response.message || "I'm here to help you with your caregiving needs.";
       console.log("Received AI response:", message);
-      
-      // Apply T&T cultural transformations
-      const styledMessage = applyTrinidadianStyle(message);
-      
-      // Clean up any problematic phrases
-      const cleanedMessage = cleanupResponse(styledMessage);
-      
-      // Check for repetition and fix if necessary
+    
+      // Determine if field validation is needed and get the field type
+      let fieldType: string | null = null;
+      if (currentQuestion) {
+        const label = (currentQuestion.label || "").toLowerCase();
+        const id = (currentQuestion.id || "").toLowerCase();
+        
+        if (label.includes("email") || id.includes("email")) {
+          fieldType = "email";
+        } else if (label.includes("phone") || id.includes("phone")) {
+          fieldType = "phone";
+        } else if (label.includes("name") || id.includes("name")) {
+          fieldType = "name";
+        }
+      }
+    
+      // Clean up the message and apply dialect formatting with field type context
+      const cleanedMessage = cleanupResponse(message, fieldType);
+    
+      // Skip the old styling logic since we're now handling it in cleanupResponse
       const finalMessage = isRepeatMessage(sessionId, cleanedMessage) 
         ? avoidRepetition(cleanedMessage)
         : cleanedMessage;
@@ -279,7 +290,7 @@ If the user has provided information previously, acknowledge it and don't ask fo
           }
         }
         
-        return { message: finalMessage, options, validationNeeded };
+        return { message: finalMessage, options, validationNeeded: fieldType || undefined };
       }
       
       return { message: finalMessage, options };

@@ -81,6 +81,63 @@ export const phrasings = {
     "Great",
     "Perfect"
   ],
+  
+  /**
+   * Trinidadian dialect words and phrases with variants
+   * Organized by type for contextual usage
+   */
+  trinidadianDialect: {
+    // For replacing "Alright" at the beginning of messages
+    alrightVariants: [
+      "Right then",
+      "Aye cool",
+      "Cool cool",
+      "Nice nice",
+      "Great then",
+      "Eh heh",
+      "Well good",
+      "Moving on",
+      "So listen",
+      "Let we go",
+      "Rightio"
+    ],
+    
+    // For replacing "Thank you" phrases
+    thankYouVariants: [
+      "Thanks plenty",
+      "Much appreciated",
+      "Thanks eh",
+      "Real thanks",
+      "That's real nice"
+    ],
+    
+    // For replacing greeting phrases
+    greetingVariants: [
+      "Yuh alright",
+      "Good day",
+      "Howdy",
+      "Whas happening",
+      "How yuh going"
+    ],
+    
+    // For replacing affirmative responses
+    affirmativeVariants: [
+      "For real",
+      "That's right",
+      "Exactly so",
+      "Yes nah",
+      "Indeed yes"
+    ],
+    
+    // For replacing confirmation phrases
+    confirmationVariants: [
+      "We good to go",
+      "All set",
+      "Looking good",
+      "We reach",
+      "All correct"
+    ]
+  },
 
   /**
    * Connection error messages
@@ -110,5 +167,26 @@ export const phrasings = {
     "I think there might be a typo. Please verify and try again.",
     "That format doesn't seem right. Could you double-check?",
     "Please provide a valid format for this field."
-  ]
+  ],
+  
+  /**
+   * Input format guidance messages
+   */
+  formatGuidance: {
+    email: [
+      "(example: yourname@example.com)",
+      "(please use format: name@domain.com)",
+      "(like: contact@example.com)"
+    ],
+    phone: [
+      "(example: +1 868 123 4567)",
+      "(please include country code, like: +1 868 555 1234)",
+      "(format: +1-868-123-4567)"
+    ],
+    name: [
+      "(your full name please)",
+      "(first and last name)",
+      "(as it appears on official documents)"
+    ]
+  }
 };

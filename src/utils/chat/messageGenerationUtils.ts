@@ -2,6 +2,7 @@
 import { getRegistrationFlowByRole } from "@/data/chatRegistrationFlows";
 import { ChatResponseData } from "@/services/chat/types";
 import { phrasings } from "@/utils/chat/phrasings";
+import { getFormatGuidance } from "@/utils/chat/engine/styleUtils";
 
 // Track the last used transition phrase to avoid repetition
 let lastUsedTransitionPhrase = '';
@@ -108,16 +109,29 @@ export const generateNextQuestionMessage = (
     // Use just the question label with random intro for variety
     let message = questionIntro + question.label;
     
-    // Add special prompts for specific question types based on question ID or label
-    // instead of comparing to question.type which has limited allowed values
+    // Detect field type for format guidance
+    let fieldType: string | null = null;
     const questionLabel = (question.label || "").toLowerCase();
     const questionId = (question.id || "").toLowerCase();
     
     if (questionId.includes("email") || questionLabel.includes("email")) {
-      message = `${questionIntro}${question.label} (example: name@example.com)`;
+      fieldType = "email";
     } else if (questionId.includes("phone") || questionLabel.includes("phone") || questionLabel.includes("contact number")) {
-      message = `${questionIntro}${question.label} (example: +1 868 123 4567)`;
-    } else if (question.id === "budget") {
+      fieldType = "phone";
+    } else if (questionId.includes("name") || questionLabel.includes("name")) {
+      fieldType = "name";
+    }
+    
+    // Add format guidance for specific field types
+    if (fieldType) {
+      const guidance = getFormatGuidance(fieldType);
+      if (guidance) {
+        message = `${message} ${guidance}`;
+      }
+    }
+    
+    // Add special prompts for specific question types based on question ID or label
+    if (question.id === "budget") {
       message = `${questionIntro}${question.label} Please specify an hourly range (e.g., $20-30/hour) or say 'Negotiable'.`;
     }
     
@@ -157,4 +171,3 @@ export const generateNextQuestionMessage = (
     };
   }
 };
-

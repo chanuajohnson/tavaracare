@@ -3,6 +3,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { User, Bot } from 'lucide-react';
 import { useIsMobile } from "@/hooks/use-mobile";
+import { formatDialect } from '@/utils/chat/engine/styleUtils';
 
 interface MessageProps {
   content: string;
@@ -17,35 +18,10 @@ export const MessageBubble: React.FC<MessageProps> = ({
   timestamp,
   isNewSection = false
 }) => {
-  // Add Trinidad & Tobago cultural flair to bot messages by replacing certain phrases
   const isMobile = useIsMobile();
   
-  const formatBotMessage = (message: string): string => {
-    if (isUser) return message;
-    
-    // Trinidad & Tobago phrases and replacements
-    const ttPhrases: Record<string, string> = {
-      'Hello': 'Good day',
-      'Hi there': 'Yuh alright',
-      'Don\'t worry': 'Doh worry',
-      'I\'m here to help': 'I got you covered',
-      'Thank you': 'Thanks plenty',
-      'Goodbye': 'Laters',
-      'See you': 'Leh we link up soon',
-      'Alright': 'Cool cool',
-      'Okay': 'Right',
-    };
-    
-    let formattedMessage = message;
-    Object.keys(ttPhrases).forEach(phrase => {
-      const regex = new RegExp(`\\b${phrase}\\b`, 'gi');
-      formattedMessage = formattedMessage.replace(regex, ttPhrases[phrase]);
-    });
-    
-    return formattedMessage;
-  };
-  
-  const displayContent = formatBotMessage(content);
+  // Apply dialect formatting only for bot messages, not user messages
+  const displayContent = isUser ? content : formatDialect(content);
   
   return (
     <motion.div
