@@ -12,6 +12,7 @@ export const useChatState = () => {
   const [showOptions, setShowOptions] = useState(true);
   const [validationError, setValidationError] = useState<string | undefined>();
   const [fieldType, setFieldType] = useState<string | null>(null);
+  const [isCompleted, setIsCompleted] = useState(false); // New state to track completion
   const chatInitializedRef = useRef(false);
   const resumedConversationRef = useRef(false);
 
@@ -61,6 +62,27 @@ export const useChatState = () => {
     }
   };
   
+  // Mark chat as completed
+  const markAsCompleted = () => {
+    setIsCompleted(true);
+    setConversationStage("completion");
+    localStorage.setItem(`tavara_chat_completed_${localStorage.getItem("tavara_chat_session")}`, "true");
+    console.log("[useChatState] Chat marked as completed");
+  };
+  
+  // Check if chat was previously completed
+  useEffect(() => {
+    const sessionId = localStorage.getItem("tavara_chat_session");
+    if (sessionId) {
+      const wasCompleted = localStorage.getItem(`tavara_chat_completed_${sessionId}`);
+      if (wasCompleted === "true") {
+        setIsCompleted(true);
+        setConversationStage("completion");
+        console.log("[useChatState] Loaded previously completed chat state");
+      }
+    }
+  }, []);
+  
   const resetChatState = () => {
     setConversationStage("intro");
     setIsResuming(false);
@@ -71,8 +93,15 @@ export const useChatState = () => {
     setShowOptions(true);
     setValidationError(undefined);
     setFieldType(null);
+    setIsCompleted(false);
     chatInitializedRef.current = false;
     resumedConversationRef.current = false;
+    
+    // Remove completion marker
+    const sessionId = localStorage.getItem("tavara_chat_session");
+    if (sessionId) {
+      localStorage.removeItem(`tavara_chat_completed_${sessionId}`);
+    }
   };
 
   return {
@@ -96,6 +125,8 @@ export const useChatState = () => {
     setValidationError,
     fieldType,
     setFieldType,
-    isResumedConversation: resumedConversationRef.current
+    isResumedConversation: resumedConversationRef.current,
+    isCompleted,
+    markAsCompleted
   };
 };

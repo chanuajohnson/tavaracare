@@ -1,4 +1,3 @@
-
 /**
  * Helper utility to read prefill data from the URL query parameter
  * This can be used in registration forms to prefill data from the chat
@@ -97,7 +96,12 @@ export const getPrefillDataFromUrl = (): Record<string, any> | null => {
  */
 export const applyPrefillDataToForm = (
   setFormValue: (field: string, value: any) => void,
-  options?: { logDataReceived?: boolean, checkAutoSubmit?: boolean, autoSubmitCallback?: () => void }
+  options?: { 
+    logDataReceived?: boolean, 
+    checkAutoSubmit?: boolean, 
+    autoSubmitCallback?: () => void,
+    formRef?: React.RefObject<HTMLFormElement>
+  }
 ): boolean => {
   try {
     const prefillData = getPrefillDataFromUrl();
@@ -130,13 +134,25 @@ export const applyPrefillDataToForm = (
     }
     
     // Check if auto-submit is requested and callback is provided
-    if (options?.checkAutoSubmit && prefillData.autoSubmit === true && options.autoSubmitCallback) {
-      // Schedule the auto-submit to happen after form is fully populated
-      setTimeout(() => {
-        console.log("Auto-submitting form based on chat prefill data");
-        options.autoSubmitCallback();
-      }, 500);
-      return true;
+    if (options?.checkAutoSubmit && prefillData.autoSubmit === true) {
+      // If we have a form reference, use it for submission
+      if (options.formRef?.current) {
+        // Schedule the auto-submit to happen after form is fully populated
+        setTimeout(() => {
+          console.log("Auto-submitting form based on chat prefill data using form reference");
+          options.formRef.current?.requestSubmit();
+        }, 800);
+        return true;
+      } 
+      // Otherwise use the callback if provided
+      else if (options.autoSubmitCallback) {
+        // Schedule the auto-submit to happen after form is fully populated
+        setTimeout(() => {
+          console.log("Auto-submitting form based on chat prefill data using callback");
+          options.autoSubmitCallback();
+        }, 800);
+        return true;
+      }
     }
     
     return true;

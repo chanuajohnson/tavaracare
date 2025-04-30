@@ -1,3 +1,4 @@
+
 import { getMultiSelectionStatus } from "@/services/chatbotService";
 import { toast } from "sonner";
 import { useCompletionHandler } from "./options/useCompletionHandler";
@@ -27,6 +28,7 @@ interface UseOptionSelectionProps {
   setValidationError: (error?: string) => void;
   setFieldType: (type: string | null) => void;
   getFieldTypeForCurrentQuestion: (sectionIndex?: number, questionIndex?: number) => string | null;
+  markAsCompleted?: () => void; // Added markAsCompleted
 }
 
 export const useOptionSelection = ({
@@ -48,7 +50,8 @@ export const useOptionSelection = ({
   updateChatProgress,
   setValidationError,
   setFieldType,
-  getFieldTypeForCurrentQuestion
+  getFieldTypeForCurrentQuestion,
+  markAsCompleted
 }: UseOptionSelectionProps) => {
   
   // Set up question navigation hook - pass updateProgress here
@@ -71,8 +74,8 @@ export const useOptionSelection = ({
     updateProgress // Pass it here!
   });
   
-  // Set up completion handler hook
-  const { handleCompletionOption } = useCompletionHandler({
+  // Set up completion handler hook with fixed handleCompletionHandler typo
+  const { handleCompletionHandler } = useCompletionHandler({
     progress,
     messages,
     simulateBotTyping
@@ -109,8 +112,14 @@ export const useOptionSelection = ({
     
     // Check for special completion options
     if (progress.conversationStage === "completion") {
-      const result = await handleCompletionOption(optionId);
-      if (result) return result;
+      const result = await handleCompletionHandler(optionId);
+      
+      // Handle completion state
+      if (result && typeof result === 'object' && result.action === 'complete' && markAsCompleted) {
+        markAsCompleted();
+      }
+      
+      return result;
     }
     
     // Check if multi-selection is in progress

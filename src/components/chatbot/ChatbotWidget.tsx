@@ -17,6 +17,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { ChatContainer } from "./components/ChatContainer";
 import { ChatDebugPanel } from "./components/ChatDebugPanel";
 import { ChatProgressIndicator } from "./components/ChatProgressIndicator";
+import { ChatCompletionMessage } from "./components/ChatCompletionMessage";
 
 interface ChatbotWidgetProps {
   className?: string;
@@ -62,7 +63,9 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({
     validationError,
     setValidationError,
     fieldType,
-    setFieldType
+    setFieldType,
+    isCompleted,
+    markAsCompleted
   } = useChatState();
   
   const config = loadChatConfig();
@@ -116,7 +119,8 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({
     skipIntro,
     setIsResuming,
     setValidationError,
-    setFieldType
+    setFieldType,
+    markAsCompleted
   );
 
   // Set appropriate field type when section or question changes
@@ -158,6 +162,25 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({
     const timer = setTimeout(setupChat, 100);
     return () => clearTimeout(timer);
   }, [messages.length, initialRole, skipIntro, progress, sessionId]);
+
+  // Show completion state if chat is completed
+  if (isCompleted) {
+    return (
+      <ChatContainer className={className} width={width}>
+        <ChatHeader
+          hideHeader={hideHeader}
+          onClose={onClose}
+          onReset={() => resetChat(true)}
+        />
+        
+        <ChatCompletionMessage 
+          role={progress.role}
+          onStartNewChat={() => resetChat(true)}
+          onClose={onClose}
+        />
+      </ChatContainer>
+    );
+  }
 
   return (
     <ChatContainer className={className} width={width}>

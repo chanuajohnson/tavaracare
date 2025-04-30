@@ -1,4 +1,3 @@
-
 import { updateChatProgress } from "@/services/chatbotService";
 import { ChatMessage } from "@/types/chatTypes";
 import { ChatConfig } from "@/utils/chat/engine/types";
@@ -35,7 +34,8 @@ export const useChatActions = (
   skipIntro: boolean,
   setIsResuming: (value: boolean) => void,
   setValidationError: (error?: string) => void,
-  setFieldType: (type: string | null) => void
+  setFieldType: (type: string | null) => void,
+  markAsCompleted?: () => void // Added markAsCompleted
 ) => {
   // Get the field type utility function
   const { getFieldTypeForCurrentQuestion } = useChatFieldUtils();
@@ -60,7 +60,8 @@ export const useChatActions = (
     updateChatProgress,
     setValidationError,
     setFieldType,
-    getFieldTypeForCurrentQuestion
+    getFieldTypeForCurrentQuestion,
+    markAsCompleted
   });
   
   // Set up message input hooks
@@ -148,10 +149,27 @@ export const useChatActions = (
     }
   };
   
+  // Enhanced option selection handler to handle completion
+  const handleEnhancedOptionSelection = async (optionId: string) => {
+    const result = await handleOptionSelection(optionId);
+    
+    // Check if we should mark the chat as completed
+    if (result && typeof result === 'object' && result.action === 'complete' && markAsCompleted) {
+      markAsCompleted();
+    }
+    
+    // Check if we should reset the chat
+    if (result && typeof result === 'object' && result.action === 'reset') {
+      resetChat(true);
+    }
+    
+    return result;
+  };
+  
   return {
     handleRoleSelection,
     handleInitialRoleSelection,
-    handleOptionSelection,
+    handleOptionSelection: handleEnhancedOptionSelection,
     handleSendMessage,
     resetChat,
     initializeChat,

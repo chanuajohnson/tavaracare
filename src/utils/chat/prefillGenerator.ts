@@ -119,6 +119,7 @@ export const preparePrefillDataAndGetRegistrationUrl = async (
     }
     
     localStorage.setItem(`tavara_chat_prefill_${sessionId}`, JSON.stringify(prefillData));
+    console.log(`Saved prefill data with autoSubmit=${autoSubmit}:`, prefillData);
     
     // Return the URL with the session parameter
     return `/registration/${role}?session=${sessionId}`;
