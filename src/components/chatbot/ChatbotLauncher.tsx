@@ -6,6 +6,7 @@ import { MessageSquare } from 'lucide-react';
 import { useChat } from './ChatProvider';
 import { ChatbotWidget } from './ChatbotWidget';
 import { cn } from '@/lib/utils';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface ChatbotLauncherProps {
   position?: 'left-of-fab' | 'bottom-right' | 'bottom-left' | 'above-fab';
@@ -33,6 +34,11 @@ const ChatbotLauncherInner: React.FC<ChatbotLauncherProps> = ({
   className
 }) => {
   const { isOpen, toggleChat, closeChat, isFullScreen } = useChat();
+  const isMobile = useIsMobile();
+  
+  // Adjust spacing for mobile
+  const mobileSpacing = isMobile ? 16 : spacing;
+  const safeBottomSpacing = isMobile ? 'env(safe-area-inset-bottom, 16px)' : '0px';
 
   // Don't render the floating chat if we're in full-screen mode
   if (isFullScreen) {
@@ -41,10 +47,10 @@ const ChatbotLauncherInner: React.FC<ChatbotLauncherProps> = ({
 
   // Calculate positions based on the selected layout
   const fabPositionClasses = {
-    'left-of-fab': 'bottom-6 right-6',
-    'bottom-right': 'bottom-6 right-6',
-    'bottom-left': 'bottom-6 left-6',
-    'above-fab': 'bottom-6 right-6',
+    'left-of-fab': `bottom-[calc(${mobileSpacing}px + ${safeBottomSpacing})] right-[calc(${mobileSpacing}px + env(safe-area-inset-right, 0px))]`,
+    'bottom-right': `bottom-[calc(${mobileSpacing}px + ${safeBottomSpacing})] right-[calc(${mobileSpacing}px + env(safe-area-inset-right, 0px))]`,
+    'bottom-left': `bottom-[calc(${mobileSpacing}px + ${safeBottomSpacing})] left-[calc(${mobileSpacing}px + env(safe-area-inset-left, 0px))]`,
+    'above-fab': `bottom-[calc(${mobileSpacing}px + ${safeBottomSpacing})] right-[calc(${mobileSpacing}px + env(safe-area-inset-right, 0px))]`,
   };
 
   // Calculate chatbot position based on the selected layout and spacing
@@ -54,15 +60,15 @@ const ChatbotLauncherInner: React.FC<ChatbotLauncherProps> = ({
     
     switch(position) {
       case 'left-of-fab':
-        return `fixed bottom-6 right-[calc(${fabWidth}px+${spacing}px)]`;
+        return `fixed bottom-[calc(${mobileSpacing}px + ${safeBottomSpacing})] right-[calc(${fabWidth}px+${mobileSpacing}px+env(safe-area-inset-right, 0px))]`;
       case 'above-fab':
-        return `fixed bottom-[calc(${fabHeight}px+${spacing}px+56px)] right-6`;
+        return `fixed bottom-[calc(${fabHeight}px+${mobileSpacing}px+56px+${safeBottomSpacing})] right-[calc(${mobileSpacing}px+env(safe-area-inset-right, 0px))]`;
       case 'bottom-right':
-        return 'fixed bottom-6 right-6';
+        return `fixed bottom-[calc(${mobileSpacing}px + ${safeBottomSpacing})] right-[calc(${mobileSpacing}px+env(safe-area-inset-right, 0px))]`;
       case 'bottom-left':
-        return 'fixed bottom-6 left-6';
+        return `fixed bottom-[calc(${mobileSpacing}px + ${safeBottomSpacing})] left-[calc(${mobileSpacing}px+env(safe-area-inset-left, 0px))]`;
       default:
-        return 'fixed bottom-6 right-6';
+        return `fixed bottom-[calc(${mobileSpacing}px + ${safeBottomSpacing})] right-[calc(${mobileSpacing}px+env(safe-area-inset-right, 0px))]`;
     }
   };
 
@@ -90,7 +96,7 @@ const ChatbotLauncherInner: React.FC<ChatbotLauncherProps> = ({
       {isOpen && !isFullScreen && (
         <div className={cn(getChatbotPositionClasses(), "z-40")}>
           <ChatbotWidget 
-            width={width}
+            width={isMobile ? "95%" : width}
             onClose={closeChat}
           />
         </div>

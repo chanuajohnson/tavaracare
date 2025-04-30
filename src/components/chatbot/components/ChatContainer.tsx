@@ -21,7 +21,7 @@ export const ChatContainer: React.FC<ChatContainerProps> = ({
     <div 
       className={cn(
         "bg-background border rounded-lg shadow-xl flex flex-col z-40",
-        isMobile ? "h-[calc(100vh-120px)]" : "h-[500px]",
+        isMobile ? "h-[calc(100vh-140px)]" : "h-[500px]", // Adjusted height for mobile
         className
       )}
       style={{ width: responsiveWidth }}

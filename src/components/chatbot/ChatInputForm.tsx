@@ -40,19 +40,19 @@ export const ChatInputForm: React.FC<ChatInputFormProps> = ({
     }
     
     if (fieldType === "email") {
-      return "Enter your email address (example: name@example.com)";
+      return "Enter your email";
     }
     
     if (fieldType === "phone") {
-      return "Enter your phone number with country code (+1 868 123 4567)";
+      return "Enter your phone number";
     }
     
     if (fieldType === "name") {
-      return "Enter your name (letters only)";
+      return "Enter your name";
     }
     
     if (fieldType === "budget") {
-      return "Enter a budget range (e.g., $15-20/hr)";
+      return "Enter budget range";
     }
     
     return "Type your message...";
@@ -82,7 +82,7 @@ export const ChatInputForm: React.FC<ChatInputFormProps> = ({
   };
 
   return (
-    <div className={`border-t ${validationError ? "border-red-300 bg-red-50" : "border-border"} p-2 flex flex-col`}>
+    <div className={`border-t ${validationError ? "border-red-300 bg-red-50" : "border-border"} p-2 flex flex-col safe-bottom`}>
       {helperText && !validationError && (
         <div className="text-xs text-muted-foreground mb-1 px-2">
           {helperText}
@@ -100,7 +100,7 @@ export const ChatInputForm: React.FC<ChatInputFormProps> = ({
       >
         <input
           type="text"
-          className={`flex-1 ${isMobile ? "text-sm" : ""} bg-background rounded-md border ${
+          className={`flex-1 ${isMobile ? "text-sm py-3" : ""} bg-background rounded-md border ${
             validationError ? "border-red-300 placeholder-red-400" : "border-input"
           } px-3 py-2 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring`}
           value={input}
@@ -115,10 +115,10 @@ export const ChatInputForm: React.FC<ChatInputFormProps> = ({
           type="submit"
           className={`rounded-md ${
             input.trim() ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
-          } p-2 transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50`}
+          } ${isMobile ? "p-3" : "p-2"} transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50`}
           disabled={!shouldShowInput || !input.trim()}
         >
-          <Send size={isMobile ? 16 : 18} />
+          <Send size={isMobile ? 20 : 18} />
         </button>
       </form>
     </div>

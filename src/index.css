@@ -32,6 +32,9 @@
   body {
     @apply bg-background text-foreground font-sans antialiased;
     font-feature-settings: "rlig" 1, "calt" 1;
+    /* Add padding for mobile devices with notches */
+    padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) 
+             env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
   }
 }
 
@@ -46,5 +49,22 @@
 
   .animated-underline {
     @apply relative after:absolute after:bottom-0 after:left-0 after:h-[2px] after:w-0 after:bg-primary-500 after:transition-all after:duration-300 hover:after:w-full;
+  }
+  
+  /* Mobile safe area utilities */
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  
+  .safe-top {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+  
+  .safe-left {
+    padding-left: env(safe-area-inset-left, 0px);
+  }
+  
+  .safe-right {
+    padding-right: env(safe-area-inset-right, 0px);
   }
 }
