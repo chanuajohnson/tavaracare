@@ -12,7 +12,8 @@ export const useChatState = () => {
   const [showOptions, setShowOptions] = useState(true);
   const [validationError, setValidationError] = useState<string | undefined>();
   const [fieldType, setFieldType] = useState<string | null>(null);
-  const [isCompleted, setIsCompleted] = useState(false); // New state to track completion
+  const [isCompleted, setIsCompleted] = useState(false);
+  const [isInputFocused, setIsInputFocused] = useState(false);
   const chatInitializedRef = useRef(false);
   const resumedConversationRef = useRef(false);
 
@@ -94,6 +95,7 @@ export const useChatState = () => {
     setValidationError(undefined);
     setFieldType(null);
     setIsCompleted(false);
+    setIsInputFocused(false);
     chatInitializedRef.current = false;
     resumedConversationRef.current = false;
     
@@ -127,6 +129,8 @@ export const useChatState = () => {
     setFieldType,
     isResumedConversation: resumedConversationRef.current,
     isCompleted,
-    markAsCompleted
+    markAsCompleted,
+    isInputFocused,
+    setIsInputFocused
   };
 };

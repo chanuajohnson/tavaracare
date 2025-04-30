@@ -1,5 +1,5 @@
 
-import React, { KeyboardEvent } from 'react';
+import React, { KeyboardEvent, useState } from 'react';
 import { Send } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 
@@ -25,6 +25,7 @@ export const ChatInputForm: React.FC<ChatInputFormProps> = ({
   fieldType
 }) => {
   const isMobile = useIsMobile();
+  const [isFocused, setIsFocused] = useState(false);
   
   // Determine if we should show input or not
   // Hide input during intro stage unless we're resuming
@@ -33,45 +34,30 @@ export const ChatInputForm: React.FC<ChatInputFormProps> = ({
     (conversationStage === "questions" && !isTyping) ||
     (isResuming && !isTyping);
 
-  // Determine placeholder based on field type
+  // Determine placeholder based on field type and focus state
   const getPlaceholder = (): string => {
     if (validationError) {
       return validationError;
     }
     
     if (fieldType === "email") {
-      return "Enter your email";
+      return isFocused ? "Enter your email" : "Enter your email (e.g., name@example.com)";
     }
     
     if (fieldType === "phone") {
-      return "Enter your phone number";
+      return isFocused ? "Enter your phone number" : "Enter phone number (e.g., +1 868 123 4567)";
     }
     
     if (fieldType === "name") {
-      return "Enter your name";
+      return isFocused ? "Enter your name" : "Enter your name (First Last)";
     }
     
     if (fieldType === "budget") {
-      return "Enter budget range";
+      return isFocused ? "Enter budget" : "Enter budget range (e.g., $20-30/hour)";
     }
     
     return "Type your message...";
   };
-
-  // Get helper text for input format guidance
-  const getHelperText = (): string | null => {
-    if (fieldType === "email") {
-      return "Format: name@example.com";
-    }
-    
-    if (fieldType === "phone") {
-      return "Format: +1 868 123 4567";
-    }
-    
-    return null;
-  };
-
-  const helperText = getHelperText();
 
   // Handle keyboard events for the input field
   const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
@@ -83,11 +69,6 @@ export const ChatInputForm: React.FC<ChatInputFormProps> = ({
 
   return (
     <div className={`border-t ${validationError ? "border-red-300 bg-red-50" : "border-border"} p-2 flex flex-col safe-bottom`}>
-      {helperText && !validationError && (
-        <div className="text-xs text-muted-foreground mb-1 px-2">
-          {helperText}
-        </div>
-      )}
       <form 
         className="flex w-full items-center gap-2" 
         onSubmit={(e) => {
@@ -110,6 +91,8 @@ export const ChatInputForm: React.FC<ChatInputFormProps> = ({
           aria-invalid={!!validationError}
           aria-describedby={validationError ? "input-error-message" : undefined}
           onKeyDown={handleKeyDown}
+          onFocus={() => setIsFocused(true)}
+          onBlur={() => setIsFocused(false)}
         />
         <button
           type="submit"
@@ -124,3 +107,4 @@ export const ChatInputForm: React.FC<ChatInputFormProps> = ({
     </div>
   );
 };
+
