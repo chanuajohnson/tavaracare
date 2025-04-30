@@ -93,8 +93,13 @@ export const generatePrefillJson = async (role: string, messages: ChatMessage[])
 /**
  * Save prefill data to local storage and prepare the registration URL
  * Returns the complete URL with session parameter
+ * @param autoSubmit Optional parameter to indicate if the form should be auto-submitted
  */
-export const preparePrefillDataAndGetRegistrationUrl = async (role: string, messages: ChatMessage[]): Promise<string> => {
+export const preparePrefillDataAndGetRegistrationUrl = async (
+  role: string, 
+  messages: ChatMessage[],
+  autoSubmit = false
+): Promise<string> => {
   const sessionId = localStorage.getItem("tavara_chat_session");
   if (!sessionId) {
     console.error("No session ID found for prefill data");
@@ -107,6 +112,12 @@ export const preparePrefillDataAndGetRegistrationUrl = async (role: string, mess
     
     // Add a flag to indicate this is a completed chat session
     prefillData.completed = true;
+    
+    // Add auto-submit flag if requested
+    if (autoSubmit) {
+      prefillData.autoSubmit = true;
+    }
+    
     localStorage.setItem(`tavara_chat_prefill_${sessionId}`, JSON.stringify(prefillData));
     
     // Return the URL with the session parameter

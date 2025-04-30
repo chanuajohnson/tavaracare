@@ -30,7 +30,7 @@ export const handleRegistrationFlow = async (
       return {
         message: `Thank you for providing all this information! This will help us get you set up with the right care services. Would you like to proceed to the registration form with this information pre-filled?`,
         options: [
-          { id: "proceed_to_registration", label: "Yes, proceed to registration" },
+          { id: "proceed_to_registration", label: "Yes, complete my registration" },
           { id: "talk_to_representative", label: "I'd like to talk to a representative first" }
         ]
       };

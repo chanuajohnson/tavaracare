@@ -97,8 +97,8 @@ export const getPrefillDataFromUrl = (): Record<string, any> | null => {
  */
 export const applyPrefillDataToForm = (
   setFormValue: (field: string, value: any) => void,
-  options?: { logDataReceived?: boolean }
-): void => {
+  options?: { logDataReceived?: boolean, checkAutoSubmit?: boolean, autoSubmitCallback?: () => void }
+): boolean => {
   try {
     const prefillData = getPrefillDataFromUrl();
     
@@ -106,7 +106,7 @@ export const applyPrefillDataToForm = (
       console.log("Attempting to apply prefill data:", prefillData);
     }
     
-    if (!prefillData) return;
+    if (!prefillData) return false;
     
     // Apply standard fields
     const standardFields = [
@@ -128,7 +128,20 @@ export const applyPrefillDataToForm = (
       // Implementation depends on your form structure
       console.log("Additional responses data available:", prefillData.responses);
     }
+    
+    // Check if auto-submit is requested and callback is provided
+    if (options?.checkAutoSubmit && prefillData.autoSubmit === true && options.autoSubmitCallback) {
+      // Schedule the auto-submit to happen after form is fully populated
+      setTimeout(() => {
+        console.log("Auto-submitting form based on chat prefill data");
+        options.autoSubmitCallback();
+      }, 500);
+      return true;
+    }
+    
+    return true;
   } catch (error) {
     console.error("Error applying prefill data to form:", error);
+    return false;
   }
 };
