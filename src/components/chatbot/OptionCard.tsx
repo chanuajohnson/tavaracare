@@ -16,10 +16,10 @@ export const OptionCard: React.FC<OptionCardProps> = ({ option, onClick, isSelec
   return (
     <div 
       className={`flex flex-col ${isMobile ? "p-2.5" : "p-3"} rounded-md bg-white border 
-        ${isSelected ? 'border-primary border-2 bg-primary/10 shadow-md' : 'border-gray-200'} 
+        ${isSelected ? 'border-primary border-2 bg-primary/10 shadow-lg' : 'border-gray-200'} 
         shadow-sm hover:shadow-md transition-all cursor-pointer 
         ${isMobile ? "mb-1.5" : "mb-2"} 
-        ${isSelected ? 'scale-[1.01]' : ''}
+        ${isSelected ? 'scale-[1.02]' : ''}
         active:scale-[0.98] hover:border-primary/50`}
       onClick={() => onClick(option.id)}
       role="button"

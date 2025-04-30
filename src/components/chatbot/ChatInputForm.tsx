@@ -40,23 +40,38 @@ export const ChatInputForm: React.FC<ChatInputFormProps> = ({
     }
     
     if (fieldType === "email") {
-      return "Enter your email address...";
+      return "Enter your email address (example: name@example.com)";
     }
     
     if (fieldType === "phone") {
-      return "Enter your phone number with country code (+1...)";
+      return "Enter your phone number with country code (+1 868 123 4567)";
     }
     
     if (fieldType === "name") {
-      return "Enter your name (letters only)...";
+      return "Enter your name (letters only)";
     }
     
     if (fieldType === "budget") {
-      return "Enter a budget range (e.g., $15-20/hr)...";
+      return "Enter a budget range (e.g., $15-20/hr)";
     }
     
     return "Type your message...";
   };
+
+  // Get helper text for input format guidance
+  const getHelperText = (): string | null => {
+    if (fieldType === "email") {
+      return "Format: name@example.com";
+    }
+    
+    if (fieldType === "phone") {
+      return "Format: +1 868 123 4567";
+    }
+    
+    return null;
+  };
+
+  const helperText = getHelperText();
 
   // Handle keyboard events for the input field
   const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
@@ -67,7 +82,12 @@ export const ChatInputForm: React.FC<ChatInputFormProps> = ({
   };
 
   return (
-    <div className={`border-t ${validationError ? "border-red-300 bg-red-50" : "border-border"} p-2 flex`}>
+    <div className={`border-t ${validationError ? "border-red-300 bg-red-50" : "border-border"} p-2 flex flex-col`}>
+      {helperText && !validationError && (
+        <div className="text-xs text-muted-foreground mb-1 px-2">
+          {helperText}
+        </div>
+      )}
       <form 
         className="flex w-full items-center gap-2" 
         onSubmit={(e) => {

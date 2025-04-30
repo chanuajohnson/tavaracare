@@ -18,11 +18,11 @@ export const SectionTransition: React.FC<SectionTransitionProps> = ({
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -10 }}
-      transition={{ duration: 0.3 }}
-      className="py-3 px-4 my-4 bg-primary/10 rounded-md border-l-4 border-primary text-center shadow-md"
+      transition={{ duration: 0.5, type: "spring", stiffness: 100 }}
+      className="py-4 px-4 my-5 bg-gradient-to-r from-primary/10 to-primary/20 rounded-md border-l-4 border-primary text-center shadow-md"
     >
       <span className="text-sm font-medium text-primary-700">
-        Moving to new section: {title}
+        New section: {title}
       </span>
     </motion.div>
   );

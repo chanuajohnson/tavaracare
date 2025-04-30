@@ -158,6 +158,21 @@ export const phrasings = {
     "Excellent progress! Next let's cover",
     "Good good! Now tell me about"
   ],
+
+  // Question introductions - new array to avoid repetitive phrases within questions
+  questionIntros: [
+    "",
+    "Let me ask you, ",
+    "I'd like to know, ",
+    "Could you share, ",
+    "Tell me, ",
+    "I'm curious, ",
+    "Would you mind sharing, ",
+    "Please tell me, ",
+    "I'd appreciate knowing, ",
+    "Can you let me know, ",
+    "Help me understand, "
+  ],
   
   // Validation error responses
   validationResponses: {
@@ -221,3 +236,4 @@ export const phrasings = {
     "oui"
   ]
 };
+

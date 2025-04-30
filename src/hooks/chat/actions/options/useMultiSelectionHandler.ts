@@ -68,6 +68,8 @@ export const useMultiSelectionHandler = ({
           currentQuestion,
           selections
         );
+        
+        console.log(`[Multi-selection] Completed with selections: ${selections.join(', ')}`);
       } catch (error) {
         console.error("Error saving multi-select response:", error);
       }
@@ -81,9 +83,14 @@ export const useMultiSelectionHandler = ({
     const multiSelectStatus = getMultiSelectionStatus();
     if (multiSelectStatus.selections.includes(optionId)) {
       removeFromMultiSelection(optionId);
+      console.log(`[Multi-selection] Removed: ${optionId}`);
     } else {
       addToMultiSelection(optionId);
+      console.log(`[Multi-selection] Added: ${optionId}`);
     }
+    
+    // We don't add any messages or proceed to next question here
+    // Instead, we wait for the user to click "done_selecting"
   };
 
   return {
