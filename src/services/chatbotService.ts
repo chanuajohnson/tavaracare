@@ -20,7 +20,9 @@ export {
   getMultiSelectionStatus,
   addToMultiSelection,
   removeFromMultiSelection,
-  completeMultiSelection
+  completeMultiSelection,
+  resetMultiSelectionState,
+  isTransitionOption
 } from './chat/utils/multiSelectionManager';
 
 // Export progress management utilities
