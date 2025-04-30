@@ -18,6 +18,7 @@ import { ChatContainer } from "./components/ChatContainer";
 import { ChatDebugPanel } from "./components/ChatDebugPanel";
 import { ChatProgressIndicator } from "./components/ChatProgressIndicator";
 import { ChatCompletionMessage } from "./components/ChatCompletionMessage";
+import { useChatFieldUtils } from "@/hooks/chat/actions/useChatFieldUtils";
 
 interface ChatbotWidgetProps {
   className?: string;
@@ -38,6 +39,7 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({
   const { messages, addMessage, clearMessages, setMessages: setLocalMessages } = useChatMessages(sessionId);
   const { initialRole, setInitialRole, skipIntro, setMessages: setContextMessages } = useChat();
   const { progress, updateProgress, clearProgress } = useChatProgress();
+  const { detectFieldTypeFromMessage } = useChatFieldUtils();
   
   useEffect(() => {
     setContextMessages(messages);
@@ -123,18 +125,57 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({
     markAsCompleted
   );
 
-  // Set appropriate field type when section or question changes
+  // Determine field type based on multiple methods
   useEffect(() => {
+    // First attempt: standard field type detection based on role and question index
     if (progress.role && conversationStage === "questions") {
+      // Get the field type from the standard method
       const detectedFieldType = getFieldTypeForCurrentQuestion(
         currentSectionIndex, 
         currentQuestionIndex, 
         progress.role
       );
-      setFieldType(detectedFieldType);
-      console.log(`[ChatbotWidget] Set field type to ${detectedFieldType} for current question`);
+      
+      // If we found a field type, use it
+      if (detectedFieldType) {
+        setFieldType(detectedFieldType);
+        console.log(`[ChatbotWidget] Set field type to ${detectedFieldType} based on question index`);
+        return;
+      }
     }
-  }, [currentSectionIndex, currentQuestionIndex, progress.role, conversationStage]);
+    
+    // Second attempt: analyze the most recent bot message if available
+    if (messages.length > 0 && !isTyping && conversationStage === "questions") {
+      // Find the most recent bot message
+      const lastBotMessage = [...messages].reverse().find(msg => !msg.isUser);
+      
+      if (lastBotMessage) {
+        // Try to detect field type from the message content
+        const messageBasedFieldType = detectFieldTypeFromMessage(lastBotMessage.content);
+        
+        if (messageBasedFieldType && fieldType !== messageBasedFieldType) {
+          setFieldType(messageBasedFieldType);
+          console.log(`[ChatbotWidget] Set field type to ${messageBasedFieldType} based on message content`);
+          return;
+        }
+      }
+    }
+  }, [
+    currentSectionIndex, 
+    currentQuestionIndex, 
+    progress.role, 
+    conversationStage, 
+    messages,
+    isTyping
+  ]);
+
+  // Debug logging for field type detection
+  useEffect(() => {
+    if (debugMode) {
+      console.log(`[ChatbotWidget] Current field type: ${fieldType || 'none'}`);
+      console.log(`[ChatbotWidget] Role: ${progress.role || 'none'}, Section: ${currentSectionIndex}, Question: ${currentQuestionIndex}`);
+    }
+  }, [fieldType, debugMode, progress.role, currentSectionIndex, currentQuestionIndex]);
 
   const handleRegistrationClick = () => {
     if (progress.role && sessionId) {

@@ -69,7 +69,61 @@ export const useChatFieldUtils = () => {
     return null;
   };
 
+  // Add fallback detection method to analyze bot message content directly
+  const detectFieldTypeFromMessage = (messageContent: string): string | null => {
+    const lowerContent = messageContent.toLowerCase();
+    
+    console.log(`[useChatFieldUtils] Analyzing message for field type: ${lowerContent.substring(0, 50)}...`);
+    
+    if (
+      lowerContent.includes("email") || 
+      lowerContent.includes("e-mail") ||
+      lowerContent.match(/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/)
+    ) {
+      console.log(`[useChatFieldUtils] Detected email field from message`);
+      return "email";
+    }
+    
+    if (
+      lowerContent.includes("phone") || 
+      lowerContent.includes("contact number") || 
+      lowerContent.includes("telephone") ||
+      lowerContent.match(/\+[0-9]{1,3}\s[0-9]{3}\s[0-9]{3,4}\s[0-9]{3,4}/)
+    ) {
+      console.log(`[useChatFieldUtils] Detected phone field from message`);
+      return "phone";
+    }
+    
+    if (
+      lowerContent.includes("name") || 
+      lowerContent.includes("full name") || 
+      lowerContent.includes("first name") || 
+      lowerContent.includes("last name")
+    ) {
+      console.log(`[useChatFieldUtils] Detected name field from message`);
+      return "name";
+    }
+    
+    if (
+      lowerContent.includes("budget") || 
+      lowerContent.includes("price") || 
+      lowerContent.includes("cost") ||
+      lowerContent.includes("$") ||
+      lowerContent.includes("dollar") ||
+      lowerContent.includes("per hour") ||
+      lowerContent.includes("/hour") ||
+      lowerContent.includes("hourly")
+    ) {
+      console.log(`[useChatFieldUtils] Detected budget field from message`);
+      return "budget";
+    }
+    
+    console.log(`[useChatFieldUtils] No specific field type detected from message`);
+    return null;
+  };
+
   return {
-    getFieldTypeForCurrentQuestion
+    getFieldTypeForCurrentQuestion,
+    detectFieldTypeFromMessage
   };
 };

@@ -8,6 +8,7 @@ import {
 import { toast } from "sonner";
 import { ChatConfig } from "@/utils/chat/engine/types";
 import { ChatMessage } from "@/types/chatTypes";
+import { useChatFieldUtils } from "@/hooks/chat/actions/useChatFieldUtils";
 
 interface UseMessageInputProps {
   sessionId: string;
@@ -47,6 +48,7 @@ export const useMessageInput = ({
   setValidationError,
   getFieldTypeForCurrentQuestion
 }: UseMessageInputProps) => {
+  const { detectFieldTypeFromMessage } = useChatFieldUtils();
   
   const handleSendMessage = async (e?: React.FormEvent, inputValue?: string) => {
     if (e) {
@@ -82,20 +84,33 @@ export const useMessageInput = ({
       return;
     }
     
-    // Get the current question type, passing the role parameter
-    const questionType = getFieldTypeForCurrentQuestion(
+    // First attempt: Get field type from question structure
+    let questionType = getFieldTypeForCurrentQuestion(
       currentSectionIndex, 
       currentQuestionIndex, 
       progress.role
     );
     
-    console.log(`[useMessageInput] Detected field type: ${questionType || 'none'}, progress.role: ${progress.role}`);
+    // Second attempt: If no field type detected, try to get it from the last bot message
+    if (!questionType && messages.length > 0) {
+      const lastBotMessage = [...messages].reverse().find(msg => !msg.isUser);
+      
+      if (lastBotMessage) {
+        const detectedType = detectFieldTypeFromMessage(lastBotMessage.content);
+        if (detectedType) {
+          questionType = detectedType;
+          console.log(`[useMessageInput] Detected field type from message: ${questionType}`);
+        }
+      }
+    }
     
-    const currentQuestion = getCurrentQuestion(
-      progress.role!,
+    console.log(`[useMessageInput] Using field type: ${questionType || 'none'}, progress.role: ${progress.role}`);
+    
+    const currentQuestion = progress.role ? getCurrentQuestion(
+      progress.role,
       currentSectionIndex,
       currentQuestionIndex
-    );
+    ) : null;
     
     // Perform field validation based on detected type
     if (questionType) {
@@ -132,13 +147,15 @@ export const useMessageInput = ({
     }));
     
     try {
-      await saveChatResponse(
-        sessionId,
-        progress.role!,
-        currentSectionIndex.toString(),
-        currentQuestionId,
-        trimmedInput
-      );
+      if (progress.role) {
+        await saveChatResponse(
+          sessionId,
+          progress.role,
+          currentSectionIndex.toString(),
+          currentQuestionId,
+          trimmedInput
+        );
+      }
     } catch (error) {
       console.error("Error saving response:", error);
     }

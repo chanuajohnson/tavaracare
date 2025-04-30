@@ -21,13 +21,14 @@ export const ChatOptionsRenderer: React.FC<ChatOptionsRendererProps> = ({
   const multiSelectionStatus = getMultiSelectionStatus();
   
   // Update selected options when multi-selection status changes
+  // Fixed by adding proper dependency array
   useEffect(() => {
     if (multiSelectionStatus.active) {
       setSelectedOptions(multiSelectionStatus.selections);
     } else {
       setSelectedOptions([]);
     }
-  }, [multiSelectionStatus]);
+  }, [multiSelectionStatus.active, multiSelectionStatus.selections.length]);
   
   // Check if this is a transition button set (e.g. single "Continue" button)
   const isTransitionButtonSet = options.length === 1 && 
