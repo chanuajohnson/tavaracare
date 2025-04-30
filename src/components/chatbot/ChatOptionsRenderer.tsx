@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import { OptionCard } from './OptionCard';
 import { ChatOption } from '@/types/chatTypes';
 import { useIsMobile } from "@/hooks/use-mobile";
-import { getMultiSelectionStatus } from '@/services/chat/utils/multiSelectionManager';
+import { getMultiSelectionStatus, isTransitionOption } from '@/services/chat/utils/multiSelectionManager';
 import { Check } from 'lucide-react';
 
 interface ChatOptionsRendererProps {
@@ -29,9 +29,14 @@ export const ChatOptionsRenderer: React.FC<ChatOptionsRendererProps> = ({
     }
   }, [multiSelectionStatus]);
   
-  // Check if this is a multi-select card set
+  // Check if this is a transition button set (e.g. single "Continue" button)
+  const isTransitionButtonSet = options.length === 1 && 
+                              isTransitionOption(options[0].id);
+  
+  // Check if this is a multi-select card set - BUT NOT a transition button set
   const isMultiSelect = multiSelectionStatus.active && 
-                       options.some(opt => opt.id === "done_selecting");
+                       options.some(opt => opt.id === "done_selecting") &&
+                       !isTransitionButtonSet;
   
   // Handle option click for multi-select
   const handleOptionClick = (optionId: string) => {

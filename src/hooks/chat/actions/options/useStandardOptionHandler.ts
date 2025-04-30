@@ -1,5 +1,5 @@
 
-import { saveChatResponse, isMultiSelectQuestion, setMultiSelectionMode } from "@/services/chatbotService";
+import { saveChatResponse, isMultiSelectQuestion, setMultiSelectionMode, isTransitionOption, resetMultiSelectionState } from "@/services/chatbotService";
 
 interface UseStandardOptionHandlerProps {
   sessionId: string;
@@ -28,6 +28,16 @@ export const useStandardOptionHandler = ({
   const handleStandardOption = async (optionId: string) => {
     const currentQuestion = `section_${currentSectionIndex}_question_${currentQuestionIndex}`;
     
+    // Check if this is a section transition option like "continue"
+    // These should never trigger multi-selection behavior
+    const isTransition = isTransitionOption(optionId);
+    
+    if (isTransition) {
+      console.log(`[handleStandardOption] Handling transition option: ${optionId}`);
+      // Reset multi-selection state when processing transition options
+      resetMultiSelectionState();
+    }
+    
     setFormData(prev => ({
       ...prev,
       [currentQuestion]: optionId
@@ -52,6 +62,13 @@ export const useStandardOptionHandler = ({
     }
     
     if (progress.role) {
+      // Skip multi-select check for transition options
+      if (isTransition) {
+        console.log(`[handleStandardOption] Processing transition option, skipping multi-select check`);
+        await advanceToNextQuestion(currentQuestion);
+        return true;
+      }
+      
       // Check if this is a multi-select question
       const isMultiSelect = isMultiSelectQuestion(progress.role, currentSectionIndex, currentQuestionIndex);
       

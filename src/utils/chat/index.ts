@@ -7,3 +7,4 @@ export { defaultChatConfig } from './engine/types';
 export { getFallbackResponse } from './engine/modules/fallbackResponses';
 export { generateSystemPrompt } from './engine/modules/promptGenerator';
 export { detectFieldType, generateQuestionOptions } from './engine/modules/fieldDetection';
+export { isTransitionOption, resetMultiSelectionState } from './engine/modules/navigationUtils';

@@ -1,10 +1,10 @@
-
 import { 
   isEndOfSection,
   getTotalSectionsForRole,
   getSectionTitle,
   isMultiSelectQuestion,
-  setMultiSelectionMode
+  setMultiSelectionMode,
+  resetMultiSelectionState
 } from "@/services/chatbotService";
 import { processConversation } from "@/utils/chat/chatFlowEngine";
 import { preparePrefillDataAndGetRegistrationUrl } from "@/utils/chat/prefillGenerator";
@@ -71,6 +71,10 @@ export const useQuestionNavigation = ({
       nextSectionIndex = currentSectionIndex + 1;
       nextQuestionIndex = 0;
       movingToNewSection = true;
+      
+      // Important: Reset multi-selection state when moving to a new section
+      resetMultiSelectionState();
+      console.log("[advanceToNextQuestion] Moving to new section, reset multi-selection state");
     } else {
       // Move to the next question in the current section
       nextQuestionIndex = currentQuestionIndex + 1;
@@ -141,6 +145,9 @@ export const useQuestionNavigation = ({
         const nextIsMultiSelect = isMultiSelectQuestion(progress.role, nextSectionIndex, nextQuestionIndex);
         if (nextIsMultiSelect) {
           setMultiSelectionMode(false, []); // Reset multi-selection mode for new question
+        } else {
+          // Ensure multi-selection is turned off for non-multi-select questions
+          resetMultiSelectionState();
         }
         
         const nextQuestionType = getFieldTypeForCurrentQuestion(nextSectionIndex, nextQuestionIndex);
@@ -150,7 +157,7 @@ export const useQuestionNavigation = ({
         let responseMessage = response.message;
         if (nextQuestionIndex === 0) {
           const sectionTitle = getSectionTitle(progress.role, nextSectionIndex);
-          responseMessage = `Now let's move on to ${sectionTitle.toLowerCase()}.\n\n${response.message}`;
+          responseMessage = `Now let's move on to ${sectionTitle.toLowerCase()}.\n\n${responseMessage}`;
         }
         
         await simulateBotTyping(responseMessage, response.options);

@@ -52,3 +52,23 @@ export const completeMultiSelection = () => {
   currentSelectedOptions = [];
   return selections;
 };
+
+/**
+ * Reset the multi-selection state completely
+ * This is needed when transitioning between sections
+ */
+export const resetMultiSelectionState = () => {
+  multiSelectionInProgress = false;
+  currentSelectedOptions = [];
+  console.log("[multiSelectionManager] Multi-selection state has been reset");
+};
+
+/**
+ * Check if an option is a section transition option
+ * These options should never trigger multi-selection
+ */
+export const isTransitionOption = (optionId: string): boolean => {
+  return optionId === "continue" || 
+         optionId === "take_break" || 
+         optionId === "restart";
+};
