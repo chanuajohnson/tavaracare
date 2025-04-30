@@ -5,7 +5,7 @@ import { applyTrinidadianStyle, avoidRepetition } from './styleUtils';
 import { isRepeatMessage, setLastMessage } from './messageCache';
 import { ChatResponse } from './types';
 import { formatChatHistoryForAI, generatePrompt } from '../generatePrompt';
-import { getCurrentQuestion } from '@/services/chat/responseUtils';
+import { getCurrentQuestion } from '@/services/chat/utils/questionUtils';
 import { getSessionResponses, validateChatInput } from '@/services/chat/databaseUtils';
 import { toast } from 'sonner';
 import { formatDialect } from './styleUtils';
@@ -74,18 +74,18 @@ export const handleAIFlow = async (
         console.log("Generated prompt result:", generatedPrompt);
         
         if (generatedPrompt && generatedPrompt.message) {
-          const currentQuestion = getCurrentQuestion(userRole, sectionIndex, sectionQuestionIndex);
+          const questionDetails = getCurrentQuestion(userRole, sectionIndex, sectionQuestionIndex);
           
           // Clean up the generated message
           const cleanedMessage = cleanupResponse(generatedPrompt.message);
           
           // Return validation information based on the question type
-          if (currentQuestion) {
+          if (questionDetails) {
             let fieldType = "";
             
             // Try to determine field type from question label or id
-            const label = currentQuestion.label.toLowerCase();
-            const id = currentQuestion.id?.toLowerCase() || "";
+            const label = questionDetails.label.toLowerCase();
+            const id = questionDetails.id?.toLowerCase() || "";
             
             if (label.includes("email") || id.includes("email")) {
               fieldType = "email";
@@ -223,16 +223,24 @@ If the user has provided information previously, acknowledge it and don't ask fo
     
       // Determine if field validation is needed and get the field type
       let fieldType: string | null = null;
-      if (currentQuestion) {
-        const label = (currentQuestion.label || "").toLowerCase();
-        const id = (currentQuestion.id || "").toLowerCase();
+      
+      // Fix: Use getCurrentQuestion to get question details
+      if (userRole) {
+        const sectionIndex = Math.floor(questionIndex / 10);
+        const sectionQuestionIndex = questionIndex % 10;
+        const questionDetails = getCurrentQuestion(userRole, sectionIndex, sectionQuestionIndex);
         
-        if (label.includes("email") || id.includes("email")) {
-          fieldType = "email";
-        } else if (label.includes("phone") || id.includes("phone")) {
-          fieldType = "phone";
-        } else if (label.includes("name") || id.includes("name")) {
-          fieldType = "name";
+        if (questionDetails) {
+          const label = (questionDetails.label || "").toLowerCase();
+          const id = (questionDetails.id || "").toLowerCase();
+          
+          if (label.includes("email") || id.includes("email")) {
+            fieldType = "email";
+          } else if (label.includes("phone") || id.includes("phone")) {
+            fieldType = "phone";
+          } else if (label.includes("name") || id.includes("name")) {
+            fieldType = "name";
+          }
         }
       }
     
@@ -260,14 +268,14 @@ If the user has provided information previously, acknowledge it and don't ask fo
         // For registration questions, check if we should provide options
         const sectionIndex = Math.floor(questionIndex / 10);
         const sectionQuestionIndex = questionIndex % 10;
-        const currentQuestion = getCurrentQuestion(userRole, sectionIndex, sectionQuestionIndex);
+        const questionDetails = getCurrentQuestion(userRole, sectionIndex, sectionQuestionIndex);
         
-        if (currentQuestion && ['select', 'multiselect', 'checkbox'].includes(currentQuestion.type)) {
-          options = currentQuestion.options?.map(option => ({
+        if (questionDetails && ['select', 'multiselect', 'checkbox'].includes(questionDetails.type)) {
+          options = questionDetails.options?.map(option => ({
             id: option,
             label: option
           }));
-        } else if (currentQuestion && currentQuestion.type === 'confirm') {
+        } else if (questionDetails && questionDetails.type === 'confirm') {
           options = [
             { id: "yes", label: "Yes" },
             { id: "no", label: "No" }
@@ -277,9 +285,9 @@ If the user has provided information previously, acknowledge it and don't ask fo
         // Determine if field validation is needed
         let validationNeeded: string | undefined;
         
-        if (currentQuestion) {
-          const label = (currentQuestion.label || "").toLowerCase();
-          const id = (currentQuestion.id || "").toLowerCase();
+        if (questionDetails) {
+          const label = (questionDetails.label || "").toLowerCase();
+          const id = (questionDetails.id || "").toLowerCase();
           
           if (label.includes("email") || id.includes("email")) {
             validationNeeded = "email";
