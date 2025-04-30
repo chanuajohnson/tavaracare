@@ -32,6 +32,8 @@ export const MessageBubble: React.FC<MessageProps> = ({
       'Thank you': 'Thanks plenty',
       'Goodbye': 'Laters',
       'See you': 'Leh we link up soon',
+      'Alright': 'Cool cool',
+      'Okay': 'Right',
     };
     
     let formattedMessage = message;

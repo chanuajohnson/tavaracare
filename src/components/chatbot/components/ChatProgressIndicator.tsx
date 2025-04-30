@@ -47,19 +47,19 @@ export const ChatProgressIndicator: React.FC<ChatProgressIndicatorProps> = ({
   const sectionName = currentSection ? currentSection.title : "";
 
   return (
-    <div className={`w-full px-4 py-2 border-b border-gray-200 bg-white/80 sticky top-0 z-10`}>
-      <div className="flex justify-between items-center mb-1">
+    <div className={`w-full px-4 py-2 border-b border-gray-200 bg-white/95 sticky top-0 z-10 shadow-sm`}>
+      <div className="flex justify-between items-center mb-1.5">
         <div className="flex items-center">
-          <span className={`font-medium ${isMobile ? "text-xs" : "text-sm"}`}>
+          <span className={`font-medium ${isMobile ? "text-xs" : "text-sm"} text-primary-700`}>
             Section {sectionIndex + 1} of {totalSections}
           </span>
           <span className={`text-gray-500 ml-2 ${isMobile ? "text-xs" : "text-sm"}`}>
             • {sectionName}
           </span>
         </div>
-        <span className={`text-gray-500 ${isMobile ? "text-xs" : "text-sm"}`}>{totalProgress}%</span>
+        <span className={`text-primary-700 font-medium ${isMobile ? "text-xs" : "text-sm"}`}>{totalProgress}%</span>
       </div>
-      <Progress value={totalProgress} className={`h-1.5 ${isMobile ? "w-full" : "w-full"}`} />
+      <Progress value={totalProgress} className={`h-1.5 ${isMobile ? "w-full" : "w-full"} bg-gray-200`} />
     </div>
   );
 };

@@ -1,6 +1,31 @@
 
 import { getRegistrationFlowByRole } from "@/data/chatRegistrationFlows";
 import { ChatResponseData } from "../types";
+import { phrasings } from "@/utils/chat/phrasings";
+
+// Track the last used transition phrase to avoid repetition
+let lastUsedTransitionPhrase = '';
+
+/**
+ * Get a random transition phrase that's not the same as the last used one
+ */
+const getRandomTransitionPhrase = (): string => {
+  if (!phrasings.transitions || phrasings.transitions.length === 0) {
+    return "Now let's talk about";
+  }
+  
+  // Filter out the last used phrase to avoid repetition
+  const availablePhrases = phrasings.transitions.filter(phrase => phrase !== lastUsedTransitionPhrase);
+  
+  // Get a random phrase from the available options
+  const randomIndex = Math.floor(Math.random() * availablePhrases.length);
+  const selectedPhrase = availablePhrases[randomIndex];
+  
+  // Store this phrase as the last used one
+  lastUsedTransitionPhrase = selectedPhrase;
+  
+  return selectedPhrase;
+};
 
 /**
  * Generate next question message based on role, section and question index
@@ -78,7 +103,8 @@ export const generateNextQuestionMessage = (
     }
     else if (questionIndex === 0) {
       // Only add section transition for subsequent sections, not the first one after role selection
-      message = `Now let's talk about ${section.title.toLowerCase()}.\n\n${message}`;
+      const transitionPhrase = getRandomTransitionPhrase();
+      message = `${transitionPhrase} ${section.title.toLowerCase()}.\n\n${message}`;
     }
     
     return {

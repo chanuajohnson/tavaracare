@@ -3,7 +3,8 @@ import {
   saveChatResponse, 
   addToMultiSelection,
   completeMultiSelection,
-  getMultiSelectionStatus
+  getMultiSelectionStatus,
+  removeFromMultiSelection
 } from "@/services/chatbotService";
 import { ChatMessage } from "@/types/chatTypes";
 
@@ -76,26 +77,13 @@ export const useMultiSelectionHandler = ({
       return;
     }
     
-    // Add or remove this option from the current selections
-    addToMultiSelection(optionId);
-    
-    // Add a temporary user message showing the selection
-    addMessage({
-      content: `Selected: ${optionId}`,
-      isUser: true,
-      timestamp: Date.now()
-    });
-    
-    // Get current selection status
+    // Toggle selection (add or remove) without showing intermediate messages
     const multiSelectStatus = getMultiSelectionStatus();
-    
-    // Show a message confirming the selection and asking for more
-    await simulateBotTyping(
-      `Added "${optionId}" to your selections. You can select more options or click "✓ Done selecting" when finished.`,
-      multiSelectStatus.selections.length > 0 ? [
-        { id: "done_selecting", label: "✓ Done selecting" }
-      ] : undefined
-    );
+    if (multiSelectStatus.selections.includes(optionId)) {
+      removeFromMultiSelection(optionId);
+    } else {
+      addToMultiSelection(optionId);
+    }
   };
 
   return {

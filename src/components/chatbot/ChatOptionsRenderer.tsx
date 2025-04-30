@@ -5,6 +5,7 @@ import { OptionCard } from './OptionCard';
 import { ChatOption } from '@/types/chatTypes';
 import { useIsMobile } from "@/hooks/use-mobile";
 import { getMultiSelectionStatus } from '@/services/chat/utils/multiSelectionManager';
+import { Check } from 'lucide-react';
 
 interface ChatOptionsRendererProps {
   options: ChatOption[];
@@ -46,6 +47,14 @@ export const ChatOptionsRenderer: React.FC<ChatOptionsRendererProps> = ({
     // Always call parent's onSelect handler
     onSelect(optionId);
   };
+
+  // Filter out "done_selecting" from regular options for multi-select
+  const regularOptions = isMultiSelect 
+    ? options.filter(opt => opt.id !== "done_selecting")
+    : options;
+  
+  // Find the "done selecting" option if it exists
+  const doneOption = options.find(opt => opt.id === "done_selecting");
   
   return (
     <motion.div
@@ -53,25 +62,18 @@ export const ChatOptionsRenderer: React.FC<ChatOptionsRendererProps> = ({
       animate={{ opacity: 1, y: 0 }}
       className={`flex flex-col space-y-${isMobile ? "1" : "2"} my-2 w-full overflow-hidden`}
     >
-      {options.map((option) => {
+      {isMultiSelect && (
+        <div className="mb-2 text-sm text-primary-700">
+          <span className="font-medium">
+            {selectedOptions.length > 0 
+              ? `${selectedOptions.length} option${selectedOptions.length > 1 ? 's' : ''} selected` 
+              : 'Select options below'}
+          </span>
+        </div>
+      )}
+      
+      {regularOptions.map((option) => {
         const isSelected = selectedOptions.includes(option.id);
-        const isDoneButton = option.id === "done_selecting";
-        
-        // Special styling for "Done selecting" button
-        if (isDoneButton) {
-          return (
-            <div key={option.id} className="mt-2">
-              <motion.div
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className={`p-2 rounded-md bg-primary text-white text-center cursor-pointer hover:bg-primary/90 transition-colors`}
-                onClick={() => handleOptionClick(option.id)}
-              >
-                {option.label}
-              </motion.div>
-            </div>
-          );
-        }
         
         return (
           <OptionCard
@@ -82,6 +84,26 @@ export const ChatOptionsRenderer: React.FC<ChatOptionsRendererProps> = ({
           />
         );
       })}
+      
+      {/* Always show the "Done selecting" button at the bottom for multi-select */}
+      {isMultiSelect && doneOption && (
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className={`sticky bottom-0 mt-2 py-2.5 px-4 rounded-md 
+            ${selectedOptions.length > 0 
+              ? 'bg-primary text-white hover:bg-primary/90' 
+              : 'bg-gray-200 text-gray-500'}
+            text-center font-medium cursor-pointer transition-colors shadow-md`}
+          onClick={() => onSelect(doneOption.id)}
+        >
+          <div className="flex items-center justify-center">
+            <Check size={16} className="mr-1.5" />
+            {doneOption.label}
+            {selectedOptions.length > 0 && ` (${selectedOptions.length})`}
+          </div>
+        </motion.div>
+      )}
     </motion.div>
   );
 };
