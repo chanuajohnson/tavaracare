@@ -1,3 +1,4 @@
+
 import { processConversation } from "@/utils/chat/chatFlowEngine";
 import { 
   validateChatInput,
@@ -183,8 +184,7 @@ export const useMessageInput = ({
             { id: "family", label: "I need care for someone" },
             { id: "professional", label: "I provide care services" },
             { id: "community", label: "I want to support the community" }
-          ] : undefined),
-          questionType
+          ] : undefined)
         );
       } catch (error) {
         console.error("Error detecting user role:", error);
