@@ -1,3 +1,4 @@
+
 /**
  * Helper utility to read prefill data from the URL query parameter
  * This can be used in registration forms to prefill data from the chat
@@ -160,4 +161,18 @@ export const applyPrefillDataToForm = (
     console.error("Error applying prefill data to form:", error);
     return false;
   }
+};
+
+/**
+ * Check if the current form navigation came from the chat
+ * Returns true if the user was directed here from the chatbot
+ */
+export const isChatRedirect = (): boolean => {
+  const urlParams = new URLSearchParams(window.location.search);
+  const sessionId = urlParams.get('session');
+  
+  if (!sessionId) return false;
+  
+  // Check if there's a transition flag in localStorage
+  return localStorage.getItem(`tavara_chat_transition_${sessionId}`) === "true";
 };

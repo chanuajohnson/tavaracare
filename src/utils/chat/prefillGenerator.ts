@@ -117,6 +117,9 @@ export const preparePrefillDataAndGetRegistrationUrl = async (
     // Add auto-submit flag if requested
     if (autoSubmit) {
       prefillData.autoSubmit = true;
+      
+      // Also mark in localStorage that this registration should auto-redirect to dashboard
+      localStorage.setItem(`tavara_chat_auto_redirect_${sessionId}`, "true");
     }
     
     localStorage.setItem(`tavara_chat_prefill_${sessionId}`, JSON.stringify(prefillData));

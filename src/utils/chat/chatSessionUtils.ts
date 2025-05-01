@@ -18,10 +18,12 @@ export const clearChatSessionData = (sessionId?: string): void => {
   // Clear chat session flags
   localStorage.removeItem(`tavara_chat_completed_${chatSessionId}`);
   localStorage.removeItem(`tavara_chat_prefill_${chatSessionId}`);
+  localStorage.removeItem(`tavara_chat_transition_${chatSessionId}`);
+  localStorage.removeItem(`tavara_chat_auto_redirect_${chatSessionId}`);
   
   // Optionally, clear the session ID itself if the chat flow is completely done
   // Uncomment this if you want to completely reset the chat flow
-  // localStorage.removeItem("tavara_chat_session");
+  localStorage.removeItem("tavara_chat_session");
   
   // Additional chat-related items that might need to be cleared
   localStorage.removeItem(`tavara_chat_role_${chatSessionId}`);

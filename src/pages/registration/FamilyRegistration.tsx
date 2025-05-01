@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { v4 as uuidv4 } from 'uuid';
@@ -48,8 +47,23 @@ const FamilyRegistration = () => {
   const [user, setUser] = useState<any>(null);
   const [authSession, setAuthSession] = useState<any>(null);
   const [prefillApplied, setPrefillApplied] = useState(false);
+  const [shouldAutoSubmit, setShouldAutoSubmit] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
   const navigate = useNavigate();
+
+  // Check for auto-redirect flag from chat
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const sessionId = urlParams.get('session');
+    
+    if (sessionId) {
+      const shouldAutoRedirect = localStorage.getItem(`tavara_chat_auto_redirect_${sessionId}`);
+      if (shouldAutoRedirect === "true") {
+        console.log("Auto-submit flag detected from chat flow");
+        setShouldAutoSubmit(true);
+      }
+    }
+  }, []);
 
   // Function to set form field values from prefill data
   const setFormValue = (field: string, value: any) => {
@@ -132,11 +146,21 @@ const FamilyRegistration = () => {
       if (hasPrefill) {
         console.log('Successfully applied prefill data to form');
         toast.success('Your chat information has been applied to this form');
+        
+        // If we should auto-submit and we have prefill data and a logged-in user, submit the form
+        if (shouldAutoSubmit && user) {
+          console.log('Auto-submitting form based on chat completion flow');
+          setTimeout(() => {
+            if (formRef.current) {
+              formRef.current.requestSubmit();
+            }
+          }, 800);
+        }
       }
       
       setPrefillApplied(true);
     }
-  }, [prefillApplied]);
+  }, [prefillApplied, shouldAutoSubmit, user]);
 
   useEffect(() => {
     ensureStorageBuckets().catch(err => {
@@ -441,8 +465,18 @@ const FamilyRegistration = () => {
       
       await updateProfile(updates);
       
-      // Clear chat session data
-      clearChatSessionData();
+      // Get session ID from URL to clear specific flags
+      const urlParams = new URLSearchParams(window.location.search);
+      const sessionId = urlParams.get('session');
+      
+      // Clear chat session data including auto-redirect flag
+      clearChatSessionData(sessionId || undefined);
+      
+      // Also clear the auto-redirect flag specifically
+      if (sessionId) {
+        localStorage.removeItem(`tavara_chat_auto_redirect_${sessionId}`);
+        localStorage.removeItem(`tavara_chat_transition_${sessionId}`);
+      }
 
       toast.success('Registration Complete! Your family caregiver profile has been updated.');
       
@@ -462,7 +496,7 @@ const FamilyRegistration = () => {
         Complete your profile to connect with professional caregivers and community resources.
       </p>
 
-      <form ref={formRef} onSubmit={handleSubmit}>
+      <form ref={formRef} onSubmit={handleSubmit} className="space-y-6">
         <Card className="mb-8">
           <CardHeader>
             <CardTitle>Personal & Contact Information</CardTitle>

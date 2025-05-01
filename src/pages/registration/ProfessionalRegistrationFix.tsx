@@ -24,6 +24,7 @@ const ProfessionalRegistrationFix = () => {
     missingColumns: string[];
   } | null>(null);
   const [prefillApplied, setPrefillApplied] = useState(false);
+  const [shouldAutoSubmit, setShouldAutoSubmit] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
 
   // Function to set form field values from prefill data
@@ -32,6 +33,20 @@ const ProfessionalRegistrationFix = () => {
     // For this simplified form, we don't need to set many fields
     // But we log it so we can see what data was received
   };
+
+  // Check for auto-redirect flag from chat
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const sessionId = urlParams.get('session');
+    
+    if (sessionId) {
+      const shouldAutoRedirect = localStorage.getItem(`tavara_chat_auto_redirect_${sessionId}`);
+      if (shouldAutoRedirect === "true") {
+        console.log("Auto-submit flag detected from chat flow");
+        setShouldAutoSubmit(true);
+      }
+    }
+  }, []);
 
   // Apply prefill data when available
   useEffect(() => {
@@ -56,11 +71,19 @@ const ProfessionalRegistrationFix = () => {
       if (hasPrefill) {
         console.log('Successfully applied prefill data to professional registration form');
         toast.success('Your chat information has been applied to this form');
+        
+        // If we should auto-submit and we have prefill data, submit the form
+        if (shouldAutoSubmit && user) {
+          console.log('Auto-submitting form based on chat completion flow');
+          setTimeout(() => {
+            handleSubmit(new Event('autosubmit') as any);
+          }, 800);
+        }
       }
       
       setPrefillApplied(true);
     }
-  }, [prefillApplied]);
+  }, [prefillApplied, shouldAutoSubmit, user]);
 
   // Check Supabase connection on component mount
   useEffect(() => {
@@ -250,8 +273,18 @@ const ProfessionalRegistrationFix = () => {
       
       console.log('Professional profile created successfully');
       
-      // Clear chat session data using the utility function
-      clearChatSessionData();
+      // Get session ID from URL to clear specific flags
+      const urlParams = new URLSearchParams(window.location.search);
+      const sessionId = urlParams.get('session');
+      
+      // Clear chat session data including auto-redirect flag
+      clearChatSessionData(sessionId || undefined);
+      
+      // Also clear the auto-redirect flag specifically
+      if (sessionId) {
+        localStorage.removeItem(`tavara_chat_auto_redirect_${sessionId}`);
+        localStorage.removeItem(`tavara_chat_transition_${sessionId}`);
+      }
       
       toast.success("Professional profile created successfully!");
       

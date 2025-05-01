@@ -1,4 +1,3 @@
-
 import { preparePrefillDataAndGetRegistrationUrl } from "@/utils/chat/prefillGenerator";
 import { toast } from "sonner";
 
@@ -18,26 +17,37 @@ export const useCompletionHandler = ({
     if (optionId === "proceed_to_registration") {
       // Handle direct navigation to registration form with auto-submit
       console.log("Preparing to redirect to registration form with auto-submit");
+      
       try {
+        // Show status message first
+        toast.success("Preparing your registration...");
+
         // Generate prefill data before redirection, enable auto-submit
         const registrationUrl = await preparePrefillDataAndGetRegistrationUrl(progress.role, messages, true);
         
-        // Show success message before redirecting
-        toast.success("Registration data prepared. Redirecting to complete your registration...");
+        // Mark that we're transitioning from chat to registration
+        const sessionId = localStorage.getItem("tavara_chat_session");
+        if (sessionId) {
+          localStorage.setItem(`tavara_chat_transition_${sessionId}`, "true");
+          
+          // Set a flag to indicate this registration should auto-redirect to dashboard
+          localStorage.setItem(`tavara_chat_auto_redirect_${sessionId}`, "true");
+        }
         
-        // Short delay to allow the toast to be seen
-        setTimeout(() => {
-          window.location.href = registrationUrl;
-        }, 1000);
-        
-        // Show a final message in the chat
+        // Add a short message to the chat before redirecting
         await simulateBotTyping(
-          "Thank you for providing your information! I'm redirecting you to complete your registration now. Your responses have been saved to make the process easier.",
+          "Thank you for providing your information! Redirecting you to complete your registration now...",
           [] // No options needed as we're redirecting
         );
         
-        // Mark chat as completed
-        return { action: "complete" }; // New return value to mark completion
+        // Redirect to registration form - critical step!
+        console.log("Redirecting to registration form:", registrationUrl);
+        window.location.href = registrationUrl;
+        
+        // Return true to indicate we've handled this option
+        // We don't return { action: "complete" } here to avoid race conditions
+        // The chat will be marked as completed after successful registration
+        return true;
       } catch (error) {
         console.error("Error preparing registration redirect:", error);
         toast.error("There was an issue preparing your registration. Please try again.");
