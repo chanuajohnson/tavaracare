@@ -103,7 +103,8 @@ export const preparePrefillDataAndGetRegistrationUrl = async (
   const sessionId = localStorage.getItem("tavara_chat_session");
   if (!sessionId) {
     console.error("No session ID found for prefill data");
-    return `/registration/${role}`;
+    // For professional role, use the fixed version
+    return role === "professional" ? `/registration/professional-fix` : `/registration/${role}`;
   }
   
   try {
@@ -122,9 +123,12 @@ export const preparePrefillDataAndGetRegistrationUrl = async (
     console.log(`Saved prefill data with autoSubmit=${autoSubmit}:`, prefillData);
     
     // Return the URL with the session parameter
-    return `/registration/${role}?session=${sessionId}`;
+    // For professional role, use the fixed version
+    const basePath = role === "professional" ? `/registration/professional-fix` : `/registration/${role}`;
+    return `${basePath}?session=${sessionId}`;
   } catch (error) {
     console.error("Error preparing prefill data:", error);
-    return `/registration/${role}`;
+    // For professional role, use the fixed version even in error case
+    return role === "professional" ? `/registration/professional-fix` : `/registration/${role}`;
   }
 };

@@ -1,7 +1,6 @@
 
 import React, { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { getSessionResponses } from "@/services/chatbotService";
 import { preparePrefillDataAndGetRegistrationUrl } from "@/utils/chat/prefillGenerator";
 import { useChat } from "./ChatProvider";
 
@@ -52,12 +51,15 @@ export const RegistrationLink: React.FC<RegistrationLinkProps> = ({
         }, 100);
       } else {
         console.log("No session ID found, redirecting without prefill data");
-        window.location.href = `/registration/${role}`;
+        // For professional role, use the fixed version
+        const basePath = role === "professional" ? `/registration/professional-fix` : `/registration/${role}`;
+        window.location.href = basePath;
       }
     } catch (error) {
       console.error("Error during registration redirect:", error);
-      // Fallback if there's an error
-      window.location.href = `/registration/${role}`;
+      // Fallback if there's an error, still use fixed version for professional
+      const basePath = role === "professional" ? `/registration/professional-fix` : `/registration/${role}`;
+      window.location.href = basePath;
     } finally {
       setIsNavigating(false);
     }
