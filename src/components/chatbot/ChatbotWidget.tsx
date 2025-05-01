@@ -39,6 +39,7 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({
   const { initialRole, setInitialRole, skipIntro, setMessages: setContextMessages } = useChat();
   const { progress, updateProgress, clearProgress } = useChatProgress();
   const { detectFieldTypeFromMessage } = useChatFieldUtils();
+  const isMobile = useIsMobile();
   
   useEffect(() => {
     setContextMessages(messages);
@@ -71,7 +72,6 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({
   
   const config = loadChatConfig();
   const alwaysShowOptions = shouldAlwaysShowOptions();
-  const isMobile = useIsMobile();
   
   React.useEffect(() => {
     if (debugMode) {
@@ -124,7 +124,7 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({
     markAsCompleted
   );
 
-  // Determine field type based on multiple methods
+  // Effect for field type detection
   useEffect(() => {
     // First attempt: standard field type detection based on role and question index
     if (progress.role && conversationStage === "questions") {
@@ -206,7 +206,7 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({
   // Show completion state if chat is completed
   if (isCompleted) {
     return (
-      <ChatContainer className={className} width={width}>
+      <ChatContainer className={className} width={isMobile ? "100%" : width}>
         <ChatHeader
           hideHeader={hideHeader}
           onClose={onClose}
@@ -223,7 +223,7 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({
   }
 
   return (
-    <ChatContainer className={className} width={width}>
+    <ChatContainer className={className} width={isMobile ? "100%" : width}>
       <ChatHeader
         hideHeader={hideHeader}
         onClose={onClose}

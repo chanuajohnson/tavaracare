@@ -106,11 +106,11 @@ const ChatbotLauncherInner: React.FC<ChatbotLauncherProps> = ({
         </motion.div>
       )}
       
-      {/* Chatbot Widget */}
+      {/* Chatbot Widget - with improved positioning and responsive width */}
       {isOpen && !isFullScreen && (
-        <div className={cn(getChatbotPositionClasses(), "z-40")}>
+        <div className={cn(getChatbotPositionClasses(), "z-40", isMobile && "left-4 right-4")}>
           <ChatbotWidget 
-            width={isMobile ? "95%" : width}
+            width={isMobile ? "100%" : width}
             onClose={closeChat}
           />
         </div>

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { HelpCircle, X, MessageSquare, FileQuestion, Phone, Loader2 } from "lucide-react";
@@ -15,6 +14,7 @@ import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import { useChat } from "@/components/chatbot/ChatProvider";
 import { ChatbotWidget } from "@/components/chatbot/ChatbotWidget";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface FabProps {
   icon?: React.ReactNode;
@@ -34,6 +34,7 @@ export const Fab = ({
   showMenu = true,
 }: FabProps) => {
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
   const [isContactFormOpen, setIsContactFormOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
@@ -394,9 +395,9 @@ export const Fab = ({
         </div>
       )}
       
-      {/* Chat widget - conditionally rendered */}
+      {/* Chat widget - improved positioning and responsiveness for mobile */}
       {isChatOpen && (
-        <div className="fixed right-6 bottom-24 z-50">
+        <div className={`fixed z-50 ${isMobile ? "inset-x-4 bottom-24" : "right-6 bottom-24"}`}>
           <div className="relative">
             <Button
               size="icon"
@@ -407,7 +408,7 @@ export const Fab = ({
               <X size={14} />
             </Button>
             <ChatbotWidget 
-              width="350px"
+              width={isMobile ? "100%" : "350px"}
               onClose={toggleChat}
             />
           </div>
