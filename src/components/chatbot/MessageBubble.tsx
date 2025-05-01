@@ -3,10 +3,10 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { User, Bot } from 'lucide-react';
 import { useIsMobile } from "@/hooks/use-mobile";
-import { formatDialect } from '@/utils/chat/engine/styleUtils';
 
 interface MessageProps {
   content: string;
+  formattedContent?: string; // Add formattedContent prop
   isUser: boolean;
   timestamp: number;
   isNewSection?: boolean;
@@ -14,14 +14,16 @@ interface MessageProps {
 
 export const MessageBubble: React.FC<MessageProps> = ({ 
   content, 
+  formattedContent,
   isUser, 
   timestamp,
   isNewSection = false
 }) => {
   const isMobile = useIsMobile();
   
-  // Apply dialect formatting only for bot messages, not user messages
-  const displayContent = isUser ? content : formatDialect(content);
+  // Use the pre-formatted content if available, otherwise use original content
+  // This ensures we're not re-formatting on every render
+  const displayContent = isUser ? content : (formattedContent || content);
   
   return (
     <motion.div

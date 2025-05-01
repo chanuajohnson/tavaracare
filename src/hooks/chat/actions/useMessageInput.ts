@@ -1,4 +1,3 @@
-
 import { processConversation } from "@/utils/chat/chatFlowEngine";
 import { 
   validateChatInput,
@@ -9,6 +8,7 @@ import { toast } from "sonner";
 import { ChatConfig } from "@/utils/chat/engine/types";
 import { ChatMessage } from "@/types/chatTypes";
 import { useChatFieldUtils } from "@/hooks/chat/actions/useChatFieldUtils";
+import { v4 as uuidv4 } from 'uuid';
 
 interface UseMessageInputProps {
   sessionId: string;
@@ -65,11 +65,14 @@ export const useMessageInput = ({
     
     // Special handling for completion stage
     if (conversationStage === "completion") {
-      addMessage({
+      const userMessage: ChatMessage = {
+        id: uuidv4(),
         content: trimmedInput,
         isUser: true,
         timestamp: Date.now()
-      });
+      };
+      
+      addMessage(userMessage);
       
       setInput("");
       
@@ -130,7 +133,8 @@ export const useMessageInput = ({
       }
     }
     
-    const userMessage = {
+    const userMessage: ChatMessage = {
+      id: uuidv4(),
       content: trimmedInput,
       isUser: true,
       timestamp: Date.now()
@@ -172,11 +176,16 @@ export const useMessageInput = ({
           config
         );
         
-        await simulateBotTyping(response.message, response.options || (alwaysShowOptions ? [
-          { id: "family", label: "I need care for someone" },
-          { id: "professional", label: "I provide care services" },
-          { id: "community", label: "I want to support the community" }
-        ] : undefined));
+        // Pass the field type to simulateBotTyping for proper formatting
+        await simulateBotTyping(
+          response.message, 
+          response.options || (alwaysShowOptions ? [
+            { id: "family", label: "I need care for someone" },
+            { id: "professional", label: "I provide care services" },
+            { id: "community", label: "I want to support the community" }
+          ] : undefined),
+          questionType
+        );
       } catch (error) {
         console.error("Error detecting user role:", error);
         await simulateBotTyping(
