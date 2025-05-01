@@ -1,5 +1,4 @@
-
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { supabase } from '@/lib/supabase';
@@ -11,6 +10,7 @@ import {
   getEnvironmentInfo, 
   verifySchemaCompatibility 
 } from '@/integrations/supabase/client';
+import { getPrefillDataFromUrl, applyPrefillDataToForm } from '@/utils/chat/prefillReader';
 
 const ProfessionalRegistrationFix = () => {
   const { user } = useAuth();
@@ -22,6 +22,44 @@ const ProfessionalRegistrationFix = () => {
     compatible: boolean;
     missingColumns: string[];
   } | null>(null);
+  const [prefillApplied, setPrefillApplied] = useState(false);
+  const formRef = useRef<HTMLFormElement>(null);
+
+  // Function to set form field values from prefill data
+  const setFormValue = (field: string, value: any) => {
+    console.log(`Professional registration received prefill data for ${field}:`, value);
+    // For this simplified form, we don't need to set many fields
+    // But we log it so we can see what data was received
+  };
+
+  // Apply prefill data when available
+  useEffect(() => {
+    // Only try to apply prefill once
+    if (!prefillApplied) {
+      console.log('Professional registration checking for prefill data...');
+      
+      // Try to apply prefill data from URL and localStorage
+      const hasPrefill = applyPrefillDataToForm(
+        setFormValue, 
+        { 
+          logDataReceived: true,
+          checkAutoSubmit: true,
+          autoSubmitCallback: () => {
+            console.log('Auto-submitting professional registration form via callback');
+            handleSubmit(new Event('autosubmit') as any);
+          },
+          formRef: formRef
+        }
+      );
+      
+      if (hasPrefill) {
+        console.log('Successfully applied prefill data to professional registration form');
+        toast.success('Your chat information has been applied to this form');
+      }
+      
+      setPrefillApplied(true);
+    }
+  }, [prefillApplied]);
 
   // Check Supabase connection on component mount
   useEffect(() => {
@@ -266,7 +304,7 @@ const ProfessionalRegistrationFix = () => {
         </div>
       )}
       
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form ref={formRef} onSubmit={handleSubmit} className="space-y-6">
         <p className="text-gray-600">
           Clicking "Complete Registration" will create your professional profile and redirect you to your dashboard.
         </p>

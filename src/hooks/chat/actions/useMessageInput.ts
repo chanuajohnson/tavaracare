@@ -177,7 +177,7 @@ export const useMessageInput = ({
           config
         );
         
-        // Pass the field type to simulateBotTyping for proper formatting
+        // Fix: Pass only the two parameters that simulateBotTyping expects
         await simulateBotTyping(
           response.message, 
           response.options || (alwaysShowOptions ? [
