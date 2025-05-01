@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { v4 as uuidv4 } from 'uuid';
@@ -15,6 +16,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '../../components/ui/avatar'
 import { toast } from 'sonner';
 import { Calendar, Sun, Moon, Clock, Home } from "lucide-react";
 import { getPrefillDataFromUrl, applyPrefillDataToForm } from '../../utils/chat/prefillReader';
+import { clearChatSessionData } from '../../utils/chat/chatSessionUtils';
 
 const FamilyRegistration = () => {
   const [loading, setLoading] = useState(false);
@@ -439,6 +441,9 @@ const FamilyRegistration = () => {
       
       await updateProfile(updates);
       
+      // Clear chat session data
+      clearChatSessionData();
+
       toast.success('Registration Complete! Your family caregiver profile has been updated.');
       
       navigate('/dashboard/family');

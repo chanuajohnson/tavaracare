@@ -15,7 +15,7 @@ export const RegistrationLink: React.FC<RegistrationLinkProps> = ({
 }) => {
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [isNavigating, setIsNavigating] = useState<boolean>(false);
-  const { messages } = useChat(); // Now using messages from context
+  const { messages } = useChat(); // Using messages from context
   
   useEffect(() => {
     // Get the session ID from localStorage
@@ -40,6 +40,9 @@ export const RegistrationLink: React.FC<RegistrationLinkProps> = ({
     try {
       if (sessionId) {
         console.log("Preparing registration redirect with session:", sessionId);
+        
+        // Mark that we're transitioning from chat to registration form
+        localStorage.setItem(`tavara_chat_transition_${sessionId}`, "true");
         
         // Ensure all responses are processed and saved before redirecting
         const url = await preparePrefillDataAndGetRegistrationUrl(role, messages);
@@ -74,7 +77,7 @@ export const RegistrationLink: React.FC<RegistrationLinkProps> = ({
         onClick={handleRegistrationClick}
         disabled={isNavigating}
       >
-        {isNavigating ? 'Preparing form...' : "I'd rather fill out a quick form →"}
+        {isNavigating ? 'Preparing registration form...' : "I'd rather fill out a quick form →"}
       </Button>
     </div>
   );

@@ -11,6 +11,7 @@ import {
   verifySchemaCompatibility 
 } from '@/integrations/supabase/client';
 import { getPrefillDataFromUrl, applyPrefillDataToForm } from '@/utils/chat/prefillReader';
+import { clearChatSessionData } from '@/utils/chat/chatSessionUtils';
 
 const ProfessionalRegistrationFix = () => {
   const { user } = useAuth();
@@ -248,6 +249,10 @@ const ProfessionalRegistrationFix = () => {
       }
       
       console.log('Professional profile created successfully');
+      
+      // Clear chat session data using the utility function
+      clearChatSessionData();
+      
       toast.success("Professional profile created successfully!");
       
       // Delay navigation slightly to ensure toast is visible
