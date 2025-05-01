@@ -7,6 +7,7 @@ import { useChat } from './ChatProvider';
 import { ChatbotWidget } from './ChatbotWidget';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { toast } from 'sonner';
 
 interface ChatbotLauncherProps {
   position?: 'left-of-fab' | 'bottom-right' | 'bottom-left' | 'above-fab';
@@ -21,8 +22,21 @@ export const ChatbotLauncher: React.FC<ChatbotLauncherProps> = (props) => {
     return <ChatbotLauncherInner {...props} />;
   } catch (error) {
     console.error("ChatbotLauncher error:", error);
-    // Return null or a fallback UI when ChatProvider is missing
-    return null;
+    return (
+      <motion.div 
+        className="fixed bottom-24 right-6 z-50"
+        initial={{ scale: 0.8, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+      >
+        <Button
+          onClick={() => toast.error("Chat system is not available. Please refresh the page.")}
+          size="icon"
+          className="h-14 w-14 rounded-full shadow-lg bg-primary hover:bg-primary/90"
+        >
+          <MessageSquare size={24} />
+        </Button>
+      </motion.div>
+    );
   }
 };
 
