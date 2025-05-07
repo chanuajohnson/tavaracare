@@ -32,7 +32,6 @@ export const ChatbotLauncher: React.FC<ChatbotLauncherProps> = (props) => {
           onClick={() => toast.error("Chat system is not available. Please refresh the page.")}
           size="icon"
           className="h-14 w-14 rounded-full shadow-lg bg-primary hover:bg-primary/90"
-          aria-label="Chat with Tavara (currently unavailable)"
         >
           <MessageSquare size={24} />
         </Button>
@@ -96,14 +95,11 @@ const ChatbotLauncherInner: React.FC<ChatbotLauncherProps> = ({
           initial={{ scale: 0.8, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           transition={{ delay: 0.5 }}
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
         >
           <Button
             onClick={toggleChat}
             size="icon"
             className={cn("h-14 w-14 rounded-full shadow-lg bg-primary hover:bg-primary/90", className)}
-            aria-label="Chat with Tavara care assistant"
           >
             <MessageSquare size={24} />
           </Button>
@@ -112,18 +108,12 @@ const ChatbotLauncherInner: React.FC<ChatbotLauncherProps> = ({
       
       {/* Chatbot Widget - with improved positioning and responsive width */}
       {isOpen && !isFullScreen && (
-        <motion.div 
-          className={cn(getChatbotPositionClasses(), "z-40", isMobile && "left-4 right-4")}
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: 10 }}
-          transition={{ duration: 0.2 }}
-        >
+        <div className={cn(getChatbotPositionClasses(), "z-40", isMobile && "left-4 right-4")}>
           <ChatbotWidget 
             width={isMobile ? "100%" : width}
             onClose={closeChat}
           />
-        </motion.div>
+        </div>
       )}
     </>
   );
