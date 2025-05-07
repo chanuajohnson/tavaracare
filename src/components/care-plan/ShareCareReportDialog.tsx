@@ -2,8 +2,7 @@
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Loader2, Download, FileText, Share, Whatsapp } from 'lucide-react';
+import { Loader2, Download, FileText, Share } from 'lucide-react';
 import { toast } from 'sonner';
 import { shareReportViaWhatsApp } from '@/services/care-plans/careReportService';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -132,7 +131,7 @@ export const ShareCareReportDialog: React.FC<ShareCareReportDialogProps> = ({
                     {isSharing ? (
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     ) : (
-                      <Whatsapp className="mr-2 h-4 w-4" />
+                      <Share className="mr-2 h-4 w-4" />
                     )}
                     Share via WhatsApp
                   </Button>

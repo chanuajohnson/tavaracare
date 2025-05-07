@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,6 +18,17 @@ import { ShareCareReportDialog } from './ShareCareReportDialog';
 import { generateCareReport } from '@/services/care-plans/careReportService';
 import { toast } from 'sonner';
 import { useCarePlanData } from "@/hooks/useCarePlanData";
+
+// Define the ShiftTypeOption interface
+interface ShiftTypeOption {
+  id: string;
+  label: string;
+  description: string;
+  timeRange: {
+    start: string;
+    end: string;
+  };
+}
 
 interface ScheduleTabProps {
   carePlanId: string;
