@@ -4,16 +4,21 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2, Download, Copy, Mail, FileText, FileImage, Share, AlertCircle } from 'lucide-react';
+import { Loader2, Download, Copy, Mail, FileText, FileImage, Share, AlertCircle, CalendarRange } from 'lucide-react';
 import { toast } from 'sonner';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { shareReportViaWhatsApp } from '@/services/care-plans/careReportService';
 import useReceiptFormat from "@/hooks/payroll/useReceiptFormat";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { format, addDays, subDays, startOfMonth, endOfMonth } from 'date-fns';
+import { DateRange } from 'react-day-picker';
+import * as pdfjs from 'pdfjs-dist';
 
-// Import pdfjs dynamically to avoid module loading issues
-let pdfjs: any = null;
+// Set up the PDF.js worker source
+pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
 
 interface ShareCareReportDialogProps {
   open: boolean;
@@ -35,6 +40,10 @@ export const ShareCareReportDialog: React.FC<ShareCareReportDialogProps> = ({
   const [email, setEmail] = useState('');
   const [isDownloading, setIsDownloading] = useState(false);
   const [isConverting, setIsConverting] = useState(false);
+  const [dateRange, setDateRange] = useState<DateRange | undefined>({
+    from: new Date(),
+    to: addDays(new Date(), 14)
+  });
   
   const { 
     fileFormat, 
@@ -44,28 +53,9 @@ export const ShareCareReportDialog: React.FC<ShareCareReportDialogProps> = ({
     setConversionError 
   } = useReceiptFormat(reportUrl);
 
-  // Load PDF.js dynamically when needed
-  React.useEffect(() => {
-    if (open && fileFormat === 'jpg' && reportUrl?.startsWith('data:application/pdf')) {
-      // Only load PDF.js when we actually need to convert a PDF
-      import('pdfjs-dist').then(module => {
-        pdfjs = module;
-        // Set the worker source URL
-        pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
-      }).catch(error => {
-        console.error('Error loading PDF.js library:', error);
-        setConversionError('Failed to load PDF conversion library. Please try again or use PDF format.');
-      });
-    }
-  }, [open, fileFormat, reportUrl, setConversionError]);
-
   const convertPdfToJpg = async (pdfData: string): Promise<string> => {
     try {
       console.log('Starting PDF to JPG conversion with PDF.js');
-      
-      if (!pdfjs) {
-        throw new Error('PDF.js library not loaded');
-      }
       
       const base64Content = pdfData.split(',')[1];
       if (!base64Content) {
@@ -331,6 +321,86 @@ export const ShareCareReportDialog: React.FC<ShareCareReportDialogProps> = ({
           </DialogHeader>
           
           <div className="flex flex-col space-y-4">
+            {/* Date Range Selection for Report */}
+            {!isGenerating && (
+              <div className="space-y-2">
+                <Label>Report Date Range</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className="w-full justify-start text-left">
+                      <CalendarRange className="mr-2 h-4 w-4" />
+                      {dateRange?.from ? (
+                        dateRange.to ? (
+                          <>
+                            {format(dateRange.from, "MMM d")} - {format(dateRange.to, "MMM d, yyyy")}
+                          </>
+                        ) : (
+                          format(dateRange.from, "MMM d, yyyy")
+                        )
+                      ) : (
+                        <span>Select date range for report</span>
+                      )}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <div className="p-2">
+                      <div className="flex space-x-2 pb-2">
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="w-full"
+                          onClick={() => {
+                            const today = new Date();
+                            setDateRange({
+                              from: today, 
+                              to: addDays(today, 6)
+                            });
+                          }}
+                        >
+                          Week
+                        </Button>
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="w-full"
+                          onClick={() => {
+                            const today = new Date();
+                            setDateRange({
+                              from: today, 
+                              to: addDays(today, 14)
+                            });
+                          }}
+                        >
+                          2 Weeks
+                        </Button>
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="w-full"
+                          onClick={() => {
+                            const today = new Date();
+                            setDateRange({
+                              from: startOfMonth(today), 
+                              to: endOfMonth(today)
+                            });
+                          }}
+                        >
+                          Month
+                        </Button>
+                      </div>
+                      <Calendar
+                        mode="range"
+                        selected={dateRange}
+                        onSelect={setDateRange}
+                        initialFocus
+                        numberOfMonths={2}
+                      />
+                    </div>
+                  </PopoverContent>
+                </Popover>
+              </div>
+            )}
+            
             {renderPreview()}
             
             {!isGenerating && previewUrl && (

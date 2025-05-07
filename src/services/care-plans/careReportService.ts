@@ -1,7 +1,6 @@
-
 import { CarePlan } from "@/types/carePlan";
 import { CareShift, CareTeamMemberWithProfile } from "@/types/careTypes";
-import { format, isSameDay, startOfWeek, endOfWeek, addDays, parseISO } from 'date-fns';
+import { format, isSameDay, startOfWeek, endOfWeek, addDays, parseISO, addWeeks, isBefore, isAfter, isSameWeek, differenceInDays } from 'date-fns';
 import { generateSupportReference } from "@/utils/chat/chatSessionUtils";
 import { toast } from "sonner";
 
@@ -11,16 +10,19 @@ import { toast } from "sonner";
  * @param carePlan The care plan data
  * @param careTeamMembers Team members associated with this care plan
  * @param careShifts All shifts for this care plan
- * @param selectedWeek The selected week for the schedule portion
+ * @param dateRange The selected date range for the schedule portion
  * @returns A data URL for the generated report
  */
 export const generateCareReport = async (
   carePlan: CarePlan,
   careTeamMembers: CareTeamMemberWithProfile[],
   careShifts: CareShift[],
-  selectedWeek: Date
+  dateRange: { from: Date, to?: Date } | undefined
 ): Promise<string> => {
   try {
+    const startDate = dateRange?.from || new Date();
+    const endDate = dateRange?.to || addDays(startDate, 6); // Default to a week if no end date
+    
     // Import jsPDF dynamically to reduce initial bundle size
     const { default: jsPDF } = await import('jspdf');
     // Optional: Import autoTable for better tables if needed
@@ -184,121 +186,164 @@ export const generateCareReport = async (
     // ---- SCHEDULE SECTION ----
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(16);
-    doc.text('Weekly Schedule', 20, yPos);
+    doc.text('Schedule', 20, yPos);
     yPos += 8;
     
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(11);
     
-    const weekStart = startOfWeek(selectedWeek, { weekStartsOn: 0 });
-    const weekEnd = endOfWeek(selectedWeek, { weekStartsOn: 0 });
-    
-    doc.text(`Week of ${format(weekStart, 'MMMM d')} - ${format(weekEnd, 'MMMM d, yyyy')}`, 20, yPos);
+    doc.text(`Date Range: ${format(startDate, 'MMMM d')} - ${format(endDate, 'MMMM d, yyyy')}`, 20, yPos);
     yPos += 10;
     
-    // Filter shifts for the selected week
-    const weekShifts = careShifts.filter(shift => {
+    // Filter shifts for the selected date range
+    const rangeShifts = careShifts.filter(shift => {
       const shiftDate = parseISO(shift.startTime);
-      return shiftDate >= weekStart && shiftDate <= weekEnd;
+      return (
+        (isAfter(shiftDate, startDate) || isSameDay(shiftDate, startDate)) && 
+        (isBefore(shiftDate, endDate) || isSameDay(shiftDate, endDate))
+      );
     });
     
-    if (weekShifts.length === 0) {
-      doc.text("No shifts scheduled for this week.", 20, yPos);
+    if (rangeShifts.length === 0) {
+      doc.text("No shifts scheduled for this date range.", 20, yPos);
       yPos += 10;
     } else {
-      // Draw schedule table header
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(11);
-      doc.text('Day', 20, yPos);
-      doc.text('Time', 60, yPos);
-      doc.text('Caregiver', 110, yPos);
-      doc.text('Location', 160, yPos);
-      yPos += 6;
+      // Calculate the number of weeks in the date range
+      const daysInRange = differenceInDays(endDate, startDate) + 1;
+      const weeksInRange = Math.ceil(daysInRange / 7);
       
-      doc.setDrawColor(200, 200, 200);
-      doc.line(20, yPos, 190, yPos);
-      yPos += 6;
-      
-      // Loop through each day of the week
-      for (let i = 0; i < 7; i++) {
-        const currentDay = addDays(weekStart, i);
+      // Process one week at a time
+      for (let weekIndex = 0; weekIndex < weeksInRange; weekIndex++) {
+        const currentWeekStart = addWeeks(startDate, weekIndex);
+        const currentWeekEnd = addDays(currentWeekStart, 6);
         
-        // Get shifts for this day
-        const shiftsForDay = weekShifts.filter(shift => 
-          isSameDay(parseISO(shift.startTime), currentDay)
-        );
-        
-        if (shiftsForDay.length > 0) {
-          // Format the day
-          const dayLabel = format(currentDay, 'EEEE, MMM d');
+        // Check if we need to add a new page
+        if (yPos > 260 && weekIndex > 0) {
+          doc.addPage();
+          yPos = 20;
           
-          shiftsForDay.forEach((shift, index) => {
+          doc.setFont('helvetica', 'bold');
+          doc.setFontSize(14);
+          doc.text(`Week ${weekIndex + 1} Schedule`, 20, yPos);
+          yPos += 10;
+        } else if (weekIndex > 0) {
+          // Add separation between weeks
+          yPos += 10;
+          doc.setFont('helvetica', 'bold');
+          doc.setFontSize(14);
+          doc.text(`Week ${weekIndex + 1} Schedule`, 20, yPos);
+          yPos += 10;
+        }
+        
+        const weekLabel = `Week of ${format(currentWeekStart, 'MMMM d')} - ${format(currentWeekEnd, 'MMMM d')}`;
+        doc.setFont('helvetica', 'italic');
+        doc.setFontSize(11);
+        doc.text(weekLabel, 20, yPos);
+        yPos += 8;
+        
+        // Draw schedule table header for this week
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(11);
+        doc.text('Day', 20, yPos);
+        doc.text('Time', 60, yPos);
+        doc.text('Caregiver', 110, yPos);
+        doc.text('Location', 160, yPos);
+        yPos += 6;
+        
+        doc.setDrawColor(200, 200, 200);
+        doc.line(20, yPos, 190, yPos);
+        yPos += 6;
+        
+        // Filter shifts for this specific week
+        const weekShifts = rangeShifts.filter(shift => {
+          const shiftDate = parseISO(shift.startTime);
+          return isSameWeek(shiftDate, currentWeekStart, { weekStartsOn: 0 });
+        });
+        
+        // Loop through each day of this week
+        for (let i = 0; i < 7; i++) {
+          const currentDay = addDays(currentWeekStart, i);
+          
+          // Skip if beyond the selected date range
+          if (isAfter(currentDay, endDate)) break;
+          
+          // Get shifts for this day
+          const shiftsForDay = weekShifts.filter(shift => 
+            isSameDay(parseISO(shift.startTime), currentDay)
+          );
+          
+          if (shiftsForDay.length > 0) {
+            // Format the day
+            const dayLabel = format(currentDay, 'EEEE, MMM d');
+            
+            shiftsForDay.forEach((shift, index) => {
+              // Check if we need to add a new page
+              if (yPos > 270) {
+                doc.addPage();
+                yPos = 20;
+                
+                // Re-add headers on new page
+                doc.setFont('helvetica', 'bold');
+                doc.setFontSize(11);
+                doc.text('Day', 20, yPos);
+                doc.text('Time', 60, yPos);
+                doc.text('Caregiver', 110, yPos);
+                doc.text('Location', 160, yPos);
+                yPos += 6;
+                
+                doc.setDrawColor(200, 200, 200);
+                doc.line(20, yPos, 190, yPos);
+                yPos += 6;
+              }
+              
+              doc.setFont('helvetica', 'normal');
+              // Only show day once per group of shifts
+              doc.text(index === 0 ? dayLabel : '', 20, yPos);
+              
+              const startTime = format(parseISO(shift.startTime), 'h:mm a');
+              const endTime = format(parseISO(shift.endTime), 'h:mm a');
+              doc.text(`${startTime} - ${endTime}`, 60, yPos);
+              
+              const caregiverName = getCaregiverName(shift.caregiverId, careTeamMembers);
+              doc.text(caregiverName, 110, yPos);
+              
+              doc.text(shift.location || "Patient's Home", 160, yPos);
+              yPos += 8;
+              
+              // Add shift title if available
+              if (shift.title) {
+                doc.setFont('helvetica', 'italic');
+                doc.setTextColor(100, 100, 100);
+                doc.text(`${shift.title}`, 60, yPos);
+                doc.setTextColor(0, 0, 0);
+                doc.setFont('helvetica', 'normal');
+                yPos += 6;
+              }
+              
+              // Add a thin separator between shifts
+              doc.setDrawColor(240, 240, 240);
+              doc.line(20, yPos, 190, yPos);
+              yPos += 4;
+            });
+          } else if (i < 5) { // Only show weekdays with "No shifts" label
+            // Format the day
+            const dayLabel = format(currentDay, 'EEEE, MMM d');
+            
             // Check if we need to add a new page
             if (yPos > 270) {
               doc.addPage();
               yPos = 20;
-              
-              // Re-add headers on new page
-              doc.setFont('helvetica', 'bold');
-              doc.setFontSize(11);
-              doc.text('Day', 20, yPos);
-              doc.text('Time', 60, yPos);
-              doc.text('Caregiver', 110, yPos);
-              doc.text('Location', 160, yPos);
-              yPos += 6;
-              
-              doc.setDrawColor(200, 200, 200);
-              doc.line(20, yPos, 190, yPos);
-              yPos += 6;
             }
             
-            doc.setFont('helvetica', 'normal');
-            // Only show day once per group of shifts
-            doc.text(index === 0 ? dayLabel : '', 20, yPos);
-            
-            const startTime = format(parseISO(shift.startTime), 'h:mm a');
-            const endTime = format(parseISO(shift.endTime), 'h:mm a');
-            doc.text(`${startTime} - ${endTime}`, 60, yPos);
-            
-            const caregiverName = getCaregiverName(shift.caregiverId, careTeamMembers);
-            doc.text(caregiverName, 110, yPos);
-            
-            doc.text(shift.location || "Patient's Home", 160, yPos);
+            doc.text(dayLabel, 20, yPos);
+            doc.text('No shifts scheduled', 60, yPos);
             yPos += 8;
             
-            // Add shift title if available
-            if (shift.title) {
-              doc.setFont('helvetica', 'italic');
-              doc.setTextColor(100, 100, 100);
-              doc.text(`${shift.title}`, 60, yPos);
-              doc.setTextColor(0, 0, 0);
-              doc.setFont('helvetica', 'normal');
-              yPos += 6;
-            }
-            
-            // Add a thin separator between shifts
+            // Add a thin separator
             doc.setDrawColor(240, 240, 240);
             doc.line(20, yPos, 190, yPos);
             yPos += 4;
-          });
-        } else if (i < 5) { // Only show weekdays with "No shifts" label
-          // Format the day
-          const dayLabel = format(currentDay, 'EEEE, MMM d');
-          
-          // Check if we need to add a new page
-          if (yPos > 270) {
-            doc.addPage();
-            yPos = 20;
           }
-          
-          doc.text(dayLabel, 20, yPos);
-          doc.text('No shifts scheduled', 60, yPos);
-          yPos += 8;
-          
-          // Add a thin separator
-          doc.setDrawColor(240, 240, 240);
-          doc.line(20, yPos, 190, yPos);
-          yPos += 4;
         }
       }
     }

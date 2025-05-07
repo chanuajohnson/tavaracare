@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -6,7 +5,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { format } from "date-fns";
+import { format, addDays } from "date-fns";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { CalendarRange, Calendar, ChevronDown, Plus, Users, FileText, Share } from "lucide-react";
 import { DateRange } from "react-day-picker";
@@ -54,6 +53,10 @@ export const ScheduleTab: React.FC<ScheduleTabProps> = ({
     from: undefined,
     to: undefined,
   });
+  const [reportDateRange, setReportDateRange] = useState<DateRange>({
+    from: new Date(),
+    to: addDays(new Date(), 14)
+  });
   const [newShift, setNewShift] = useState({
     caregiverId: "",
     title: "",
@@ -69,7 +72,7 @@ export const ScheduleTab: React.FC<ScheduleTabProps> = ({
   const [workLogFormOpen, setWorkLogFormOpen] = useState(false);
   const [selectedShift, setSelectedShift] = useState<CareShift | null>(null);
   
-  // New state for care report sharing
+  // State for care report sharing
   const [shareReportDialogOpen, setShareReportDialogOpen] = useState(false);
   const [reportUrl, setReportUrl] = useState<string | null>(null);
   const [isGeneratingReport, setIsGeneratingReport] = useState(false);
@@ -234,11 +237,12 @@ export const ScheduleTab: React.FC<ScheduleTabProps> = ({
       setShareReportDialogOpen(true);
       
       // Generate comprehensive report with plan details, team members, and schedule
+      // Pass the reportDateRange instead of just selectedWeek
       const report = await generateCareReport(
         carePlan,
         careTeamMembers,
         careShifts,
-        selectedWeek
+        reportDateRange
       );
       
       setReportUrl(report);
@@ -478,7 +482,7 @@ export const ScheduleTab: React.FC<ScheduleTabProps> = ({
               </DialogContent>
             </Dialog>
             
-            {/* New Share Care Report Dialog */}
+            {/* Share Care Report Dialog - pass the reportDateRange to the dialog */}
             <ShareCareReportDialog
               open={shareReportDialogOpen}
               onOpenChange={setShareReportDialogOpen}
