@@ -1,3 +1,4 @@
+
 import { Suspense, lazy } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { Skeleton } from "@/components/ui/skeleton";
@@ -38,6 +39,7 @@ const SubscriptionFeaturesPage = lazy(() => import("@/pages/subscription/Subscri
 const CaregiverMatchingPage = lazy(() => import("@/pages/caregiver/CaregiverMatchingPage"));
 const CaregiverHealthPage = lazy(() => import("@/pages/caregiver/CaregiverHealthPage"));
 const FamilyMatchingPage = lazy(() => import("@/pages/family/FamilyMatchingPage"));
+const FamilyCareNeedsPage = lazy(() => import("@/pages/careneeds/FamilyCareNeedsPage"));
 const NotFound = lazy(() => import("@/pages/NotFound"));
 
 // Loading fallback component for Suspense
@@ -101,6 +103,8 @@ export function AppRoutes() {
         <Route path="/caregiver-matching" element={<CaregiverMatchingPage />} />
         <Route path="/caregiver/health" element={<CaregiverHealthPage />} />
         <Route path="/family-matching" element={<FamilyMatchingPage />} />
+        <Route path="/careneeds" element={<FamilyCareNeedsPage />} />
+        <Route path="/careneeds/family" element={<FamilyCareNeedsPage />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </Suspense>

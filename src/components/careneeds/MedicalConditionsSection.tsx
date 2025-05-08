@@ -7,6 +7,7 @@ import {
   FormLabel,
   FormControl,
   FormDescription,
+  FormMessage,
 } from "@/components/ui/form";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
@@ -39,6 +40,7 @@ const MedicalConditionsSection: React.FC<MedicalConditionsSectionProps> = ({ for
                   {...field}
                 />
               </FormControl>
+              <FormMessage />
             </FormItem>
           )}
         />
