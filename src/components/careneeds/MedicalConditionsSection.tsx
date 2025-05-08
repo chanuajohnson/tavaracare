@@ -17,7 +17,7 @@ interface MedicalConditionsSectionProps {
 
 const MedicalConditionsSection: React.FC<MedicalConditionsSectionProps> = ({ form }) => {
   return (
-    <Card>
+    <Card className="shadow-sm">
       <CardHeader>
         <CardTitle>Medical & Special Conditions</CardTitle>
         <CardDescription>Describe any medical conditions and special health needs</CardDescription>
@@ -43,7 +43,7 @@ const MedicalConditionsSection: React.FC<MedicalConditionsSectionProps> = ({ for
           )}
         />
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
           <FormField
             control={form.control}
             name="equipmentUse"

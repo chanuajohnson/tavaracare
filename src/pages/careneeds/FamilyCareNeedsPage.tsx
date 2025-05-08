@@ -88,7 +88,7 @@ const FormSchema = z.object({
 });
 
 const FamilyCareNeedsPage = () => {
-  const { user, profile } = useAuth();
+  const { user } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [profileData, setProfileData] = useState<any>(null);
   const navigate = useNavigate();
@@ -157,7 +157,7 @@ const FamilyCareNeedsPage = () => {
           if (data.full_name) form.setValue('emergencyContactName', data.emergency_contact || '');
           if (data.care_recipient_name) {
             const careRecipientName = data.care_recipient_name;
-            form.setValue('diagnosedConditions', data.medical_conditions ? data.medical_conditions.join(', ') : '');
+            form.setValue('diagnosedConditions', data.special_needs ? data.special_needs.join(', ') : '');
           }
         }
       } catch (error) {

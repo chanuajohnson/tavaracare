@@ -25,9 +25,7 @@ import { CaregiverHealthCard } from "@/components/professional/CaregiverHealthCa
 
 const FamilyDashboard = () => {
   const {
-    user,
-    isProfileComplete,
-    profile
+    user
   } = useAuth();
   const breadcrumbItems = [{
     label: "Family Dashboard",
@@ -37,6 +35,29 @@ const FamilyDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const navigate = useNavigate();
+  const [profileData, setProfileData] = useState(null);
+  
+  useEffect(() => {
+    if (user) {
+      const loadProfileData = async () => {
+        try {
+          const { data, error } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', user.id)
+            .single();
+          
+          if (error) throw error;
+          setProfileData(data);
+        } catch (err) {
+          console.error("Error loading profile data:", err);
+        }
+      };
+      
+      loadProfileData();
+    }
+  }, [user]);
+  
   useEffect(() => {
     if (user) {
       fetchMessages();
@@ -44,6 +65,7 @@ const FamilyDashboard = () => {
       setLoading(false);
     }
   }, [user]);
+  
   const fetchMessages = async () => {
     try {
       setLoading(true);
@@ -67,6 +89,7 @@ const FamilyDashboard = () => {
       setLoading(false);
     }
   };
+  
   const refreshData = async () => {
     try {
       setRefreshing(true);
@@ -95,6 +118,7 @@ const FamilyDashboard = () => {
       setRefreshing(false);
     }
   };
+  
   const formatTimePosted = timestamp => {
     if (!timestamp) return "Unknown";
     const posted = new Date(timestamp);
@@ -106,6 +130,7 @@ const FamilyDashboard = () => {
     if (diffInHours < 48) return "Yesterday";
     return `${Math.floor(diffInHours / 24)} days ago`;
   };
+  
   const handleViewFullBoard = () => {
     navigate('/subscription-features', {
       state: {
@@ -114,6 +139,7 @@ const FamilyDashboard = () => {
       }
     });
   };
+  
   const handleViewAllTasks = () => {
     navigate('/subscription-features', {
       state: {
@@ -124,6 +150,7 @@ const FamilyDashboard = () => {
       }
     });
   };
+  
   return <div className="min-h-screen bg-background">
       <DashboardTracker dashboardType="family" />
       <div className="container px-4 py-8">
@@ -166,7 +193,7 @@ const FamilyDashboard = () => {
           {user && <FamilyShortcutMenuBar />}
 
           {/* New Care Needs Call to Action */}
-          {user && (profile?.onboarding_progress?.completedSteps?.care_needs !== true) && (
+          {user && profileData && (!profileData?.onboarding_progress?.completedSteps?.care_needs) && (
             <Card className="mb-6 bg-gradient-to-r from-blue-50 to-indigo-50 border-l-4 border-l-primary">
               <CardHeader>
                 <CardTitle className="text-xl">Complete Your Care Needs Profile</CardTitle>
@@ -187,7 +214,7 @@ const FamilyDashboard = () => {
               </CardContent>
             </Card>
           )}
-
+          
           <CaregiverMatchingCard />
           
           <CaregiverHealthCard className="mb-8" />

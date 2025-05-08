@@ -1,4 +1,3 @@
-
 import { supabase } from "@/lib/supabase";
 import { Profile } from "../types/profile";
 import { DbProfile, DbProfileInsert } from "../types/profile";
@@ -163,3 +162,33 @@ export class ProfileService {
 
 // Create a singleton instance
 export const profileService = new ProfileService();
+
+/**
+ * Update onboarding progress for a user
+ */
+export const updateOnboardingProgress = async (
+  profileId: string, 
+  progress: {
+    currentStep?: string;
+    completedSteps?: Record<string, boolean>;
+  }
+): Promise<boolean> => {
+  try {
+    const { error } = await supabase
+      .from('profiles')
+      .update({
+        onboarding_progress: progress
+      })
+      .eq('id', profileId);
+
+    if (error) {
+      console.error("Error updating onboarding progress:", error);
+      return false;
+    }
+    
+    return true;
+  } catch (error) {
+    console.error("Exception updating onboarding progress:", error);
+    return false;
+  }
+};
