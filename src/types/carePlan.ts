@@ -1,4 +1,3 @@
-
 import { Json } from '../utils/json';
 
 /**
@@ -87,4 +86,118 @@ export interface DbCarePlanMetadata {
     end_time: string;
     title?: string;
   }>;
+}
+
+/**
+ * Interface for family care needs
+ */
+export interface FamilyCareNeeds {
+  id?: string;
+  profileId: string;
+  
+  // Daily Living Assistance
+  assistanceBathing?: boolean;
+  assistanceDressing?: boolean;
+  assistanceToileting?: boolean;
+  assistanceOralCare?: boolean;
+  assistanceFeeding?: boolean;
+  assistanceMobility?: boolean;
+  assistanceMedication?: boolean;
+  assistanceCompanionship?: boolean;
+  assistanceNaps?: boolean;
+  
+  // Cognitive & Memory Support
+  dementiaRedirection?: boolean;
+  memoryReminders?: boolean;
+  gentleEngagement?: boolean;
+  wanderingPrevention?: boolean;
+  cognitiveNotes?: string;
+  
+  // Medical & Special Conditions
+  diagnosedConditions?: string;
+  equipmentUse?: boolean;
+  fallMonitoring?: boolean;
+  vitalsCheck?: boolean;
+  
+  // Housekeeping & Transportation
+  tidyRoom?: boolean;
+  laundrySupport?: boolean;
+  groceryRuns?: boolean;
+  mealPrep?: boolean;
+  escortToAppointments?: boolean;
+  freshAirWalks?: boolean;
+  
+  // Emergency & Communication
+  emergencyContactName?: string;
+  emergencyContactRelationship?: string;
+  emergencyContactPhone?: string;
+  communicationMethod?: string;
+  dailyReportRequired?: boolean;
+  additionalNotes?: string;
+
+  // Shift Info
+  preferredDays?: string[];
+  preferredTimeStart?: string;
+  preferredTimeEnd?: string;
+  
+  // Metadata
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+/**
+ * Interface for database care needs (snake_case)
+ */
+export interface DbFamilyCareNeeds {
+  id?: string;
+  profile_id: string;
+  
+  // Daily Living Assistance
+  assistance_bathing?: boolean;
+  assistance_dressing?: boolean;
+  assistance_toileting?: boolean;
+  assistance_oral_care?: boolean;
+  assistance_feeding?: boolean;
+  assistance_mobility?: boolean;
+  assistance_medication?: boolean;
+  assistance_companionship?: boolean;
+  assistance_naps?: boolean;
+  
+  // Cognitive & Memory Support
+  dementia_redirection?: boolean;
+  memory_reminders?: boolean;
+  gentle_engagement?: boolean;
+  wandering_prevention?: boolean;
+  cognitive_notes?: string;
+  
+  // Medical & Special Conditions
+  diagnosed_conditions?: string;
+  equipment_use?: boolean;
+  fall_monitoring?: boolean;
+  vitals_check?: boolean;
+  
+  // Housekeeping & Transportation
+  tidy_room?: boolean;
+  laundry_support?: boolean;
+  grocery_runs?: boolean;
+  meal_prep?: boolean;
+  escort_to_appointments?: boolean;
+  fresh_air_walks?: boolean;
+  
+  // Emergency & Communication
+  emergency_contact_name?: string;
+  emergency_contact_relationship?: string;
+  emergency_contact_phone?: string;
+  communication_method?: string;
+  daily_report_required?: boolean;
+  additional_notes?: string;
+
+  // Shift Info
+  preferred_days?: string[];
+  preferred_time_start?: string;
+  preferred_time_end?: string;
+  
+  // Metadata
+  created_at?: string;
+  updated_at?: string;
 }

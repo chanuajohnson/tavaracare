@@ -26,7 +26,8 @@ import { CaregiverHealthCard } from "@/components/professional/CaregiverHealthCa
 const FamilyDashboard = () => {
   const {
     user,
-    isProfileComplete
+    isProfileComplete,
+    profile
   } = useAuth();
   const breadcrumbItems = [{
     label: "Family Dashboard",
@@ -163,6 +164,29 @@ const FamilyDashboard = () => {
           <p className="text-gray-600 mb-2">Comprehensive care coordination platform.</p>
           
           {user && <FamilyShortcutMenuBar />}
+
+          {/* New Care Needs Call to Action */}
+          {user && (profile?.onboarding_progress?.completedSteps?.care_needs !== true) && (
+            <Card className="mb-6 bg-gradient-to-r from-blue-50 to-indigo-50 border-l-4 border-l-primary">
+              <CardHeader>
+                <CardTitle className="text-xl">Complete Your Care Needs Profile</CardTitle>
+                <CardDescription>
+                  Tell us about specific care needs to help match you with the right caregivers
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <p className="mb-4 text-sm text-gray-600">
+                  Step 2 of your family onboarding process is to complete your detailed care needs profile. 
+                  This will help us understand specific requirements and create a personalized care plan.
+                </p>
+                <Link to="/careneeds/family">
+                  <Button>
+                    Complete Care Needs
+                  </Button>
+                </Link>
+              </CardContent>
+            </Card>
+          )}
 
           <CaregiverMatchingCard />
           
