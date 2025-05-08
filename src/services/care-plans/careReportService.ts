@@ -1,3 +1,4 @@
+
 import { CarePlan } from "@/types/carePlan";
 import { CareShift, CareTeamMemberWithProfile } from "@/types/careTypes";
 import { format, isSameDay, startOfWeek, endOfWeek, addDays, parseISO, addWeeks, isBefore, isAfter, isSameWeek, differenceInDays } from 'date-fns';
@@ -21,7 +22,7 @@ export const generateCareReport = async (
 ): Promise<string> => {
   try {
     const startDate = dateRange?.from || new Date();
-    const endDate = dateRange?.to || addDays(startDate, 6); // Default to a week if no end date
+    const endDate = dateRange?.to || addDays(startDate, 27); // Default to 4 weeks (28 days) if no end date
     
     // Import jsPDF dynamically to reduce initial bundle size
     const { default: jsPDF } = await import('jspdf');
@@ -272,10 +273,10 @@ export const generateCareReport = async (
             isSameDay(parseISO(shift.startTime), currentDay)
           );
           
+          // Format the day
+          const dayLabel = format(currentDay, 'EEEE, MMM d');
+          
           if (shiftsForDay.length > 0) {
-            // Format the day
-            const dayLabel = format(currentDay, 'EEEE, MMM d');
-            
             shiftsForDay.forEach((shift, index) => {
               // Check if we need to add a new page
               if (yPos > 270) {
@@ -325,14 +326,25 @@ export const generateCareReport = async (
               doc.line(20, yPos, 190, yPos);
               yPos += 4;
             });
-          } else if (i < 5) { // Only show weekdays with "No shifts" label
-            // Format the day
-            const dayLabel = format(currentDay, 'EEEE, MMM d');
-            
+          } else {
+            // Show all days - Not just weekdays with "No shifts" label
             // Check if we need to add a new page
             if (yPos > 270) {
               doc.addPage();
               yPos = 20;
+              
+              // Re-add headers on new page
+              doc.setFont('helvetica', 'bold');
+              doc.setFontSize(11);
+              doc.text('Day', 20, yPos);
+              doc.text('Time', 60, yPos);
+              doc.text('Caregiver', 110, yPos);
+              doc.text('Location', 160, yPos);
+              yPos += 6;
+              
+              doc.setDrawColor(200, 200, 200);
+              doc.line(20, yPos, 190, yPos);
+              yPos += 6;
             }
             
             doc.text(dayLabel, 20, yPos);

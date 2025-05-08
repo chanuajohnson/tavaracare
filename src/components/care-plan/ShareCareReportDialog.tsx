@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,10 +15,9 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar";
 import { format, addDays, subDays, startOfMonth, endOfMonth } from 'date-fns';
 import { DateRange } from 'react-day-picker';
-import * as pdfjs from 'pdfjs-dist';
 
-// Set up the PDF.js worker source
-pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
+// Import pdfjs dynamically to avoid module loading issues
+let pdfjs: any = null;
 
 interface ShareCareReportDialogProps {
   open: boolean;
@@ -42,7 +41,7 @@ export const ShareCareReportDialog: React.FC<ShareCareReportDialogProps> = ({
   const [isConverting, setIsConverting] = useState(false);
   const [dateRange, setDateRange] = useState<DateRange | undefined>({
     from: new Date(),
-    to: addDays(new Date(), 14)
+    to: addDays(new Date(), 28) // Default to 4 weeks (28 days)
   });
   
   const { 
@@ -53,9 +52,28 @@ export const ShareCareReportDialog: React.FC<ShareCareReportDialogProps> = ({
     setConversionError 
   } = useReceiptFormat(reportUrl);
 
+  // Load PDF.js dynamically when needed
+  useEffect(() => {
+    if (open && fileFormat === 'jpg' && reportUrl?.startsWith('data:application/pdf')) {
+      // Only load PDF.js when we actually need to convert a PDF
+      import('pdfjs-dist').then(module => {
+        pdfjs = module;
+        // Set the worker source URL
+        pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
+      }).catch(error => {
+        console.error('Error loading PDF.js library:', error);
+        setConversionError('Failed to load PDF conversion library. Please try again or use PDF format.');
+      });
+    }
+  }, [open, fileFormat, reportUrl, setConversionError]);
+
   const convertPdfToJpg = async (pdfData: string): Promise<string> => {
     try {
       console.log('Starting PDF to JPG conversion with PDF.js');
+      
+      if (!pdfjs) {
+        throw new Error('PDF.js library not loaded');
+      }
       
       const base64Content = pdfData.split(',')[1];
       if (!base64Content) {
@@ -72,6 +90,8 @@ export const ShareCareReportDialog: React.FC<ShareCareReportDialogProps> = ({
       const pdf = await loadingTask.promise;
       console.log(`PDF loaded successfully. Number of pages: ${pdf.numPages}`);
       
+      // We'll only convert the first page for the JPG preview
+      // For full conversion of multi-page docs, we'd need to stitch pages together
       const page = await pdf.getPage(1);
       
       const scale = 2.0;
@@ -129,6 +149,14 @@ export const ShareCareReportDialog: React.FC<ShareCareReportDialogProps> = ({
     }
   };
 
+  const handleCopyLink = () => {
+    if (!previewUrl) return;
+    
+    navigator.clipboard.writeText(previewUrl)
+      .then(() => toast.success('Report link copied to clipboard'))
+      .catch(() => toast.error('Failed to copy link'));
+  };
+
   // Handle direct download
   const handleDownload = async () => {
     if (!reportUrl) return;
@@ -163,6 +191,7 @@ export const ShareCareReportDialog: React.FC<ShareCareReportDialogProps> = ({
       } catch (error) {
         console.error('Download error:', error);
         toast.error(`Failed to download report as ${fileFormat.toUpperCase()}`);
+        setConversionError('Failed to download the report. Please try again or use PDF format.');
       }
     } catch (error) {
       console.error('Download setup error:', error);
@@ -205,14 +234,6 @@ export const ShareCareReportDialog: React.FC<ShareCareReportDialogProps> = ({
     } finally {
       setIsSharing(false);
     }
-  };
-
-  const handleCopyLink = () => {
-    if (!previewUrl) return;
-    
-    navigator.clipboard.writeText(previewUrl)
-      .then(() => toast.success('Report link copied to clipboard'))
-      .catch(() => toast.error('Failed to copy link'));
   };
 
   const handleEmailShare = () => {
@@ -367,7 +388,7 @@ export const ShareCareReportDialog: React.FC<ShareCareReportDialogProps> = ({
                             const today = new Date();
                             setDateRange({
                               from: today, 
-                              to: addDays(today, 14)
+                              to: addDays(today, 13)
                             });
                           }}
                         >
@@ -380,12 +401,12 @@ export const ShareCareReportDialog: React.FC<ShareCareReportDialogProps> = ({
                           onClick={() => {
                             const today = new Date();
                             setDateRange({
-                              from: startOfMonth(today), 
-                              to: endOfMonth(today)
+                              from: today, 
+                              to: addDays(today, 27)
                             });
                           }}
                         >
-                          Month
+                          4 Weeks
                         </Button>
                       </div>
                       <Calendar
