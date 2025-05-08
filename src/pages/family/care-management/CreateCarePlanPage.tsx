@@ -9,14 +9,26 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ArrowLeft } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ArrowLeft, Plus, Trash2 } from "lucide-react";
 import { createCarePlan, fetchCarePlanById, updateCarePlan } from "@/services/care-plans";
 import { toast } from "sonner";
 import { CarePlanMetadata } from '@/types/carePlan';
+import { generateTimeOptions, formatTime } from '@/services/care-plans/shiftGenerationService';
 
 type PlanType = 'scheduled' | 'on-demand' | 'both';
 type WeekdayOption = '8am-4pm' | '8am-6pm' | '6am-6pm' | '6pm-8am' | 'none';
 type WeekendOption = 'yes' | 'no';
+type DayOfWeek = 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday';
+
+interface CustomShift {
+  days: DayOfWeek[];
+  startTime: string;
+  endTime: string;
+  title?: string;
+}
+
+const DAYS_OF_WEEK: DayOfWeek[] = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
 
 const CreateCarePlanPage = () => {
   const { user } = useAuth();
@@ -39,6 +51,14 @@ const CreateCarePlanPage = () => {
     weekdayEvening6pmTo8am: false,
     weekday8amTo4pm: false,
     weekday8amTo6pm: false,
+  });
+
+  // Custom shifts state
+  const [customShifts, setCustomShifts] = useState<CustomShift[]>([]);
+  const [newCustomShift, setNewCustomShift] = useState<CustomShift>({
+    days: [],
+    startTime: '',
+    endTime: ''
   });
 
   useEffect(() => {
@@ -71,6 +91,10 @@ const CreateCarePlanPage = () => {
               weekday8amTo6pm: !!plan.metadata.additionalShifts.weekday8amTo6pm,
             });
           }
+          
+          if (plan.metadata.customShifts && plan.metadata.customShifts.length > 0) {
+            setCustomShifts(plan.metadata.customShifts);
+          }
         }
       } else {
         toast.error("Care plan not found");
@@ -89,6 +113,39 @@ const CreateCarePlanPage = () => {
       ...prev,
       [shift]: !prev[shift]
     }));
+  };
+
+  // Custom shift handlers
+  const handleCustomShiftDayChange = (day: DayOfWeek, checked: boolean | 'indeterminate') => {
+    if (checked === true) {
+      setNewCustomShift(prev => ({
+        ...prev,
+        days: [...prev.days, day]
+      }));
+    } else {
+      setNewCustomShift(prev => ({
+        ...prev,
+        days: prev.days.filter(d => d !== day)
+      }));
+    }
+  };
+
+  const addCustomShift = () => {
+    if (newCustomShift.days.length > 0 && newCustomShift.startTime && newCustomShift.endTime) {
+      setCustomShifts(prev => [...prev, { ...newCustomShift }]);
+      // Reset the form
+      setNewCustomShift({
+        days: [],
+        startTime: '',
+        endTime: ''
+      });
+    } else {
+      toast.error("Please select at least one day and both start and end times");
+    }
+  };
+
+  const removeCustomShift = (index: number) => {
+    setCustomShifts(prev => prev.filter((_, i) => i !== index));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -111,12 +168,13 @@ const CreateCarePlanPage = () => {
         title,
         description,
         familyId: user.id,
-        status: 'active' as const, // Use const assertion to specify literal type
+        status: 'active' as const,
         metadata: {
           planType,
           weekdayCoverage: weekdayOption,
           weekendCoverage: weekendOption,
-          additionalShifts: shifts
+          additionalShifts: shifts,
+          customShifts: customShifts.length > 0 ? customShifts : undefined
         }
       };
       
@@ -487,6 +545,121 @@ const CreateCarePlanPage = () => {
                   </Card>
                 </>
               )}
+              
+              {/* Custom Shifts Section */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Custom Shifts</CardTitle>
+                  <CardDescription>
+                    Define your own custom recurring shifts with specific days and times
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {/* Display existing custom shifts */}
+                  {customShifts.length > 0 && (
+                    <div className="mb-6 space-y-3">
+                      <h4 className="font-medium">Your Custom Shifts</h4>
+                      {customShifts.map((shift, index) => (
+                        <div key={index} className="flex items-center justify-between p-3 border rounded-md">
+                          <div>
+                            <span className="font-medium">
+                              {shift.days.map(d => d.charAt(0).toUpperCase() + d.slice(1)).join(', ')}
+                            </span>
+                            <span className="text-muted-foreground ml-2">
+                              {formatTime(shift.startTime)} - {formatTime(shift.endTime)}
+                            </span>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => removeCustomShift(index)}
+                            className="h-8 w-8"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  
+                  {/* Form to add a new custom shift */}
+                  <div className="border rounded-md p-4">
+                    <h4 className="font-medium mb-4">Add New Custom Shift</h4>
+                    
+                    <div className="space-y-4">
+                      {/* Day selection */}
+                      <div>
+                        <Label className="mb-2 block">Select Days</Label>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                          {DAYS_OF_WEEK.map((day, index) => (
+                            <div key={day} className="flex items-center space-x-2">
+                              <Checkbox
+                                id={`day-${day}`}
+                                checked={newCustomShift.days.includes(day)}
+                                onCheckedChange={(checked) => handleCustomShiftDayChange(day, checked)}
+                              />
+                              <Label htmlFor={`day-${day}`} className="capitalize font-normal">
+                                {day}
+                              </Label>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                      
+                      {/* Time selection */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="start-time">Start Time</Label>
+                          <Select 
+                            value={newCustomShift.startTime} 
+                            onValueChange={(value) => setNewCustomShift(prev => ({ ...prev, startTime: value }))}
+                          >
+                            <SelectTrigger id="start-time">
+                              <SelectValue placeholder="Select start time" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {generateTimeOptions().map((time) => (
+                                <SelectItem key={`start-${time}`} value={time}>
+                                  {formatTime(time)}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <Label htmlFor="end-time">End Time</Label>
+                          <Select 
+                            value={newCustomShift.endTime} 
+                            onValueChange={(value) => setNewCustomShift(prev => ({ ...prev, endTime: value }))}
+                          >
+                            <SelectTrigger id="end-time">
+                              <SelectValue placeholder="Select end time" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {generateTimeOptions().map((time) => (
+                                <SelectItem key={`end-${time}`} value={time}>
+                                  {formatTime(time)}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                      
+                      <Button
+                        type="button"
+                        disabled={newCustomShift.days.length === 0 || !newCustomShift.startTime || !newCustomShift.endTime}
+                        onClick={addCustomShift}
+                        className="w-full md:w-auto"
+                      >
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add Custom Shift
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
               
               <div className="flex justify-end gap-4">
                 <Button 

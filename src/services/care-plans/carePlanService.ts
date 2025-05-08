@@ -1,8 +1,8 @@
-
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import { CarePlan, CarePlanMetadata } from "@/types/carePlan";
 import { Json } from "@/utils/json";
+import { generateShiftsFromCustomDefinitions } from './shiftGenerationService';
 
 // Define DTO types for internal use
 interface CarePlanDto {
@@ -107,7 +107,28 @@ export const createCarePlan = async (plan: CarePlanInput): Promise<CarePlan | nu
     }
 
     toast.success("Care plan created successfully");
-    return data ? adaptCarePlanFromDb(data as CarePlanDto) : null;
+    
+    if (data) {
+      const carePlan = adaptCarePlanFromDb(data as CarePlanDto);
+      
+      // Generate shifts from custom definitions if provided
+      if (carePlan.metadata?.customShifts?.length) {
+        try {
+          await generateShiftsFromCustomDefinitions(
+            carePlan.id,
+            carePlan.familyId,
+            carePlan.metadata.customShifts
+          );
+        } catch (shiftError) {
+          console.error("Error generating custom shifts:", shiftError);
+          toast.warning("Care plan created, but there was an issue creating custom shifts.");
+        }
+      }
+      
+      return carePlan;
+    }
+    
+    return null;
   } catch (error) {
     console.error("Error creating care plan:", error);
     toast.error("Failed to create care plan");
@@ -146,7 +167,28 @@ export const updateCarePlan = async (
     }
 
     toast.success("Care plan updated successfully");
-    return data ? adaptCarePlanFromDb(data as CarePlanDto) : null;
+    
+    if (data) {
+      const carePlan = adaptCarePlanFromDb(data as CarePlanDto);
+      
+      // Generate shifts from custom definitions if provided
+      if (updates.metadata?.customShifts?.length) {
+        try {
+          await generateShiftsFromCustomDefinitions(
+            carePlan.id,
+            carePlan.familyId,
+            updates.metadata.customShifts
+          );
+        } catch (shiftError) {
+          console.error("Error generating custom shifts:", shiftError);
+          toast.warning("Care plan updated, but there was an issue creating custom shifts.");
+        }
+      }
+      
+      return carePlan;
+    }
+    
+    return null;
   } catch (error) {
     console.error("Error updating care plan:", error);
     toast.error("Failed to update care plan");

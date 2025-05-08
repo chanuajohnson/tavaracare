@@ -30,6 +30,12 @@ export interface CarePlanMetadata {
     weekday8amTo4pm?: boolean;
     weekday8amTo6pm?: boolean;
   };
+  customShifts?: Array<{
+    days: Array<'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday'>;
+    startTime: string; // In 24-hour format, e.g., "12:00"
+    endTime: string; // In 24-hour format, e.g., "17:00"
+    title?: string; // Optional custom title
+  }>;
 }
 
 /**
@@ -75,4 +81,10 @@ export interface DbCarePlanMetadata {
     weekday_8am_to_4pm?: boolean;
     weekday_8am_to_6pm?: boolean;
   };
+  custom_shifts?: Array<{
+    days: Array<'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday'>;
+    start_time: string;
+    end_time: string;
+    title?: string;
+  }>;
 }
