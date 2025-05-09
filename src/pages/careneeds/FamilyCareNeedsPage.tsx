@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
@@ -153,6 +154,7 @@ const FamilyCareNeedsPage = () => {
         }
         
         if (data) {
+          console.log("Retrieved profile data:", data);
           setProfileData(data);
           
           // Set form values from profile
@@ -201,9 +203,25 @@ const FamilyCareNeedsPage = () => {
     
     if (!hasWeekends) return "none";
     
+    console.log("Determining weekend schedule type from:", { availability, careSchedule });
+    
     // Check care_schedule for weekend specific options
     if (Array.isArray(careSchedule)) {
       // Check for specific weekend schedule options
+      if (careSchedule.includes('weekend_standard') || 
+          careSchedule.includes('weekend_8am_6pm')) {
+        return "8am-6pm";
+      }
+      
+      if (careSchedule.includes('weekend_day') || 
+          careSchedule.includes('weekend_6am_6pm') || 
+          careSchedule.includes('weekend_full')) {
+        return "6am-6pm";
+      }
+    }
+    
+    // If care_schedule is a string and contains specific weekend options
+    if (typeof careSchedule === 'string') {
       if (careSchedule.includes('weekend_standard') || 
           careSchedule.includes('weekend_8am_6pm')) {
         return "8am-6pm";
@@ -278,6 +296,11 @@ const FamilyCareNeedsPage = () => {
     
     setIsLoading(true);
     console.log("Form submission started with data:", formData);
+    console.log("Schedule data being submitted:", { 
+      weekdayCoverage: careSchedule || "none", 
+      weekendCoverage: weekendCoverage === "none" ? 'no' : 'yes',
+      weekendScheduleType: weekendCoverage 
+    });
     
     try {
       // Save the care needs data

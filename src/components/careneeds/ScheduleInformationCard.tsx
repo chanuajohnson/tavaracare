@@ -19,6 +19,8 @@ const ScheduleInformationCard: React.FC<ScheduleInformationCardProps> = ({
   careSchedule, 
   weekendCoverage 
 }) => {
+  console.log("ScheduleInformationCard props:", { careSchedule, weekendCoverage });
+  
   // Helper function to get a human-readable schedule description
   const getScheduleDescription = (schedule: CareScheduleType | undefined): string => {
     switch(schedule) {
@@ -37,6 +39,8 @@ const ScheduleInformationCard: React.FC<ScheduleInformationCardProps> = ({
 
   // Helper function to get a human-readable weekend schedule description
   const getWeekendScheduleDescription = (schedule: WeekendScheduleType | boolean | undefined): string => {
+    console.log("Getting weekend schedule description for:", schedule);
+    
     // Handle boolean for backward compatibility
     if (typeof schedule === 'boolean') {
       return schedule ? 'Saturday - Sunday, 6 AM - 6 PM (Daytime weekend coverage)' : 'No weekend coverage selected';

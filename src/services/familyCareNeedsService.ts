@@ -20,6 +20,7 @@ export const fetchFamilyCareNeeds = async (profileId: string): Promise<FamilyCar
       throw error;
     }
 
+    console.log("Fetched care needs data:", data);
     return data ? adaptFamilyCareNeedsFromDb(data) : null;
   } catch (error) {
     console.error("Error fetching family care needs:", error);
@@ -34,6 +35,7 @@ export const fetchFamilyCareNeeds = async (profileId: string): Promise<FamilyCar
 export const saveFamilyCareNeeds = async (careNeeds: FamilyCareNeeds): Promise<FamilyCareNeeds | null> => {
   try {
     const dbCareNeeds = adaptFamilyCareNeedsToDb(careNeeds);
+    console.log("Saving care needs to DB:", dbCareNeeds);
 
     // Check if record exists
     const { data: existingData, error: checkError } = await supabase
@@ -50,6 +52,7 @@ export const saveFamilyCareNeeds = async (careNeeds: FamilyCareNeeds): Promise<F
 
     if (existingData) {
       // Update existing record
+      console.log("Updating existing care needs with ID:", existingData.id);
       const { data, error } = await supabase
         .from('care_needs_family')
         .update(dbCareNeeds)
@@ -64,6 +67,7 @@ export const saveFamilyCareNeeds = async (careNeeds: FamilyCareNeeds): Promise<F
       result = data;
     } else {
       // Insert new record
+      console.log("Creating new care needs record");
       const { data, error } = await supabase
         .from('care_needs_family')
         .insert([dbCareNeeds])
@@ -76,6 +80,8 @@ export const saveFamilyCareNeeds = async (careNeeds: FamilyCareNeeds): Promise<F
       
       result = data;
     }
+
+    console.log("Saved care needs result:", result);
 
     // Update onboarding progress
     try {
@@ -118,6 +124,7 @@ export const generateDraftCarePlanFromCareNeeds = (
   metadata: {
     weekdayCoverage?: string;
     weekendCoverage?: string;
+    weekendScheduleType?: string;
     customShifts?: Array<{
       days: Array<'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday'>;
       startTime: string;
@@ -143,6 +150,12 @@ export const generateDraftCarePlanFromCareNeeds = (
   if (careNeeds.dementiaRedirection) specialCare.push('dementia care');
   if (careNeeds.memoryReminders) specialCare.push('memory support');
   if (careNeeds.fallMonitoring) specialCare.push('fall prevention');
+
+  console.log("Generating care plan with schedule data:", {
+    weekdayCoverage: careNeeds.weekdayCoverage,
+    weekendCoverage: careNeeds.weekendCoverage,
+    weekendScheduleType: careNeeds.weekendScheduleType
+  });
 
   // Create a description from the care needs - structured format that will be parsed by the UI
   let description = `Care plan for ${recipientName}`;
@@ -190,6 +203,7 @@ export const generateDraftCarePlanFromCareNeeds = (
     metadata: {
       weekdayCoverage: careNeeds.weekdayCoverage,
       weekendCoverage: careNeeds.weekendCoverage,
+      weekendScheduleType: careNeeds.weekendScheduleType,
       customShifts: []  // We don't need custom shifts from care needs anymore
     }
   };

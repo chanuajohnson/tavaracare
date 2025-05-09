@@ -95,6 +95,7 @@ export type Database = {
           wandering_prevention: boolean | null
           weekday_coverage: string | null
           weekend_coverage: string | null
+          weekend_schedule_type: string | null
         }
         Insert: {
           additional_notes?: string | null
@@ -137,6 +138,7 @@ export type Database = {
           wandering_prevention?: boolean | null
           weekday_coverage?: string | null
           weekend_coverage?: string | null
+          weekend_schedule_type?: string | null
         }
         Update: {
           additional_notes?: string | null
@@ -179,6 +181,7 @@ export type Database = {
           wandering_prevention?: boolean | null
           weekday_coverage?: string | null
           weekend_coverage?: string | null
+          weekend_schedule_type?: string | null
         }
         Relationships: [
           {

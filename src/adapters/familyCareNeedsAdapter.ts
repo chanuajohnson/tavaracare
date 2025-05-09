@@ -54,6 +54,7 @@ export function adaptFamilyCareNeedsToDb(careNeeds: FamilyCareNeeds): DbFamilyCa
     preferred_time_end: careNeeds.preferredTimeEnd,
     weekday_coverage: careNeeds.weekdayCoverage,
     weekend_coverage: careNeeds.weekendCoverage,
+    weekend_schedule_type: careNeeds.weekendScheduleType,
     plan_type: careNeeds.planType
   };
 }
@@ -112,6 +113,7 @@ export function adaptFamilyCareNeedsFromDb(dbCareNeeds: DbFamilyCareNeeds): Fami
     preferredTimeEnd: dbCareNeeds.preferred_time_end,
     weekdayCoverage: dbCareNeeds.weekday_coverage as FamilyCareNeeds['weekdayCoverage'],
     weekendCoverage: dbCareNeeds.weekend_coverage as FamilyCareNeeds['weekendCoverage'],
+    weekendScheduleType: dbCareNeeds.weekend_schedule_type as FamilyCareNeeds['weekendScheduleType'],
     planType: dbCareNeeds.plan_type as FamilyCareNeeds['planType'],
     
     // Metadata
