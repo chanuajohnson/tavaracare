@@ -33,7 +33,7 @@ const ShiftPreferencesSection: React.FC<ShiftPreferencesSectionProps> = ({ form 
         <CardDescription>Tell us when you need care assistance</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        <Alert variant="info" className="bg-blue-50 text-blue-800 border-blue-200">
+        <Alert variant="default" className="bg-blue-50 text-blue-800 border-blue-200">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
             Your schedule preferences will be used to create your initial care plan. You can customize your care plan further after it's created.
