@@ -48,17 +48,17 @@ export const FamilyNextStepsPanel = () => {
     },
     { 
       id: 4, 
-      title: "Complete initial care assessment", 
-      description: "Help us understand your care needs better", 
+      title: "Create New Care Plan", 
+      description: "Create the plan that guides your loved one's care", 
       completed: false, 
-      link: "/family/features-overview" 
+      link: "/family/care-management" 
     },
     { 
       id: 5, 
-      title: "Connect with caregivers", 
-      description: "Start building your care team", 
+      title: "Active Care with TAVARA.CARE", 
+      description: "Your loved one is actively being cared for by TAVARA.CARE", 
       completed: false, 
-      link: "/family/features-overview" 
+      link: "/family/care-management/team" 
     }
   ]);
 
@@ -192,11 +192,11 @@ export const FamilyNextStepsPanel = () => {
                   </div>
                   <p className="text-sm text-gray-500">{step.description}</p>
                 </div>
-                {/* Modified condition to show button for steps 1, 2, and 3 regardless of completion status */}
-                {(!step.completed || step.id === 1 || step.id === 2 || step.id === 3) && (
+                {/* Show Edit button for completed steps 1-5, and Complete button for incomplete steps */}
+                {(!step.completed || step.id === 1 || step.id === 2 || step.id === 3 || step.id === 4 || step.id === 5) && (
                   <Link to={step.link}>
                     <Button variant="ghost" size="sm" className="p-0 h-6 text-primary hover:text-primary-600">
-                      {(step.id === 1 || step.id === 2 || step.id === 3) && step.completed ? "Edit" : "Complete"}
+                      {(step.id === 1 || step.id === 2 || step.id === 3 || step.id === 4 || step.id === 5) && step.completed ? "Edit" : "Complete"}
                       <ArrowRight className="ml-1 h-3 w-3" />
                     </Button>
                   </Link>
