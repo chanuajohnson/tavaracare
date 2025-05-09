@@ -55,8 +55,8 @@ export const FamilyNextStepsPanel = () => {
     },
     { 
       id: 5, 
-      title: "Active Care with TAVARA.CARE", 
-      description: "Your loved one is actively being cared for by TAVARA.CARE", 
+      title: "Create Care Team", 
+      description: "Assign care team members to implement the care plan", 
       completed: false, 
       link: "/family/care-management/team" 
     }
