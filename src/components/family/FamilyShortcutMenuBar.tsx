@@ -1,15 +1,38 @@
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Container } from "@/components/ui/container";
 import { Clipboard, ArrowRight, ClipboardEdit, ClipboardCheck, Mail, UserCircle } from "lucide-react";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useTracking } from "@/hooks/useTracking";
+import { supabase } from "@/lib/supabase";
 
 export function FamilyShortcutMenuBar() {
   const { isProfileComplete, user } = useAuth();
   const { trackEngagement } = useTracking();
+  const [careNeedsComplete, setCareNeedsComplete] = useState(false);
+
+  useEffect(() => {
+    if (user?.id) {
+      const checkCareNeedsStatus = async () => {
+        try {
+          const { data } = await supabase
+            .from('profiles')
+            .select('onboarding_progress')
+            .eq('id', user.id)
+            .single();
+          
+          const isComplete = data?.onboarding_progress?.completedSteps?.care_needs === true;
+          setCareNeedsComplete(isComplete);
+        } catch (error) {
+          console.error("Error checking care needs status:", error);
+        }
+      };
+      
+      checkCareNeedsStatus();
+    }
+  }, [user]);
 
   const handleTrackButtonClick = (actionType: string, buttonName: string) => {
     trackEngagement(actionType, { button_name: buttonName });
@@ -54,6 +77,7 @@ export function FamilyShortcutMenuBar() {
               </Link>
             )}
             
+            {/* Show "Care Needs" button based on completion status */}
             <Link 
               to="/careneeds/family"
               onClick={() => handleTrackButtonClick('navigation_click', 'care_needs')}

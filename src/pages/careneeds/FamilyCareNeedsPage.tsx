@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
@@ -10,6 +11,7 @@ import { FamilyCareNeeds } from "@/types/carePlan";
 import { applyPrefillDataToForm, getPrefillDataFromUrl } from "@/utils/chat/prefillReader";
 import { saveFamilyCareNeeds, generateDraftCarePlanFromCareNeeds } from "@/services/familyCareNeedsService";
 import { createCarePlan } from "@/services/care-plans/carePlanService";
+import { useTracking } from "@/hooks/useTracking";
 
 // Components
 import { Button } from "@/components/ui/button";
@@ -92,7 +94,8 @@ const FamilyCareNeedsPage = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [profileData, setProfileData] = useState<any>(null);
   const navigate = useNavigate();
-
+  const { trackEngagement } = useTracking();
+  
   const form = useForm<z.infer<typeof FormSchema>>({
     resolver: zodResolver(FormSchema),
     defaultValues: {
@@ -236,6 +239,11 @@ const FamilyCareNeedsPage = () => {
         console.log("Care plan created successfully with ID:", createdPlan.id);
         toast.success("Care plan created successfully!");
         
+        // Track care needs completion
+        await trackEngagement('care_needs_completed', {
+          care_plan_id: createdPlan.id
+        });
+        
         // Navigate directly to the care plan detail page
         navigate(`/family/care-management/${createdPlan.id}`);
       } else {
@@ -250,6 +258,20 @@ const FamilyCareNeedsPage = () => {
       setIsLoading(false);
     }
   };
+  
+  const handleLaterClick = async () => {
+    if (!user?.id) return;
+    
+    try {
+      // Track that the user chose "Later"
+      await trackEngagement('care_needs_deferred', {});
+      
+      // Navigate back to the dashboard
+      navigate('/dashboard/family');
+    } catch (error) {
+      console.error("Error handling 'Later' click:", error);
+    }
+  };
 
   return (
     <div className="container mx-auto p-4 md:p-8 max-w-4xl">
@@ -259,6 +281,22 @@ const FamilyCareNeedsPage = () => {
         transition={{ duration: 0.5 }}
         className="space-y-6"
       >
+        {/* New Care Needs Introduction Card */}
+        <Card className="border-l-4 border-l-primary bg-gradient-to-r from-blue-50 to-indigo-50">
+          <CardHeader>
+            <CardTitle className="text-xl">Complete Your Care Needs Profile</CardTitle>
+            <CardDescription>
+              Tell us about specific care needs to help match you with the right caregivers
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-gray-600 mb-4">
+              Your care needs profile helps us understand your requirements and create a personalized care plan.
+              This information will be used to match you with caregivers who have the right skills and experience.
+            </p>
+          </CardContent>
+        </Card>
+        
         <div className="text-center space-y-2">
           <h1 className="text-3xl font-bold">Family Care Needs</h1>
           <p className="text-gray-500">
@@ -280,9 +318,9 @@ const FamilyCareNeedsPage = () => {
               <Button 
                 type="button" 
                 variant="outline" 
-                onClick={() => navigate('/dashboard/family')}
+                onClick={handleLaterClick}
               >
-                Back to Dashboard
+                Later
               </Button>
               <Button 
                 type="submit" 

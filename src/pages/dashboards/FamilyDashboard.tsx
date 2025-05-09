@@ -1,3 +1,4 @@
+
 import { motion } from "framer-motion";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -214,6 +215,9 @@ const FamilyDashboard = () => {
               </CardContent>
             </Card>
           )}
+          
+          {/* Next Steps Panel moved above CaregiverMatchingCard */}
+          <FamilyNextStepsPanel />
           
           <CaregiverMatchingCard />
           
