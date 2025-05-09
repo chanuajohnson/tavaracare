@@ -141,6 +141,7 @@ export interface FamilyCareNeeds {
   preferredTimeEnd?: string;
   weekdayCoverage?: '8am-4pm' | '8am-6pm' | '6am-6pm' | '6pm-8am' | 'none';
   weekendCoverage?: 'yes' | 'no';
+  planType?: 'scheduled' | 'on-demand' | 'both';
   
   // Metadata
   createdAt?: string;
@@ -200,6 +201,7 @@ export interface DbFamilyCareNeeds {
   preferred_time_end?: string;
   weekday_coverage?: string;
   weekend_coverage?: string;
+  plan_type?: string;
   
   // Metadata
   created_at?: string;

@@ -172,11 +172,15 @@ export const generateDraftCarePlanFromCareNeeds = (
   }
 
   // Determine plan type based on preferences
-  let planType: 'scheduled' | 'on-demand' | 'both' = 'scheduled';
+  // Use the explicitly selected plan type if available, otherwise infer from coverage preferences
+  let planType: 'scheduled' | 'on-demand' | 'both' = careNeeds.planType || 'scheduled';
   
-  // Default to scheduled care unless explicitly set to on-demand
-  if (careNeeds.weekdayCoverage === 'none' && careNeeds.weekendCoverage === 'no') {
-    planType = 'on-demand';
+  // Only infer plan type if not explicitly selected
+  if (!careNeeds.planType) {
+    // Default to scheduled care unless explicitly set to on-demand
+    if (careNeeds.weekdayCoverage === 'none' && careNeeds.weekendCoverage === 'no') {
+      planType = 'on-demand';
+    }
   }
 
   return {

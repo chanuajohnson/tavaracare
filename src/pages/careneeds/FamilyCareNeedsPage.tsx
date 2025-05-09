@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
@@ -83,6 +82,7 @@ const FormSchema = z.object({
   additionalNotes: z.string().optional(),
 
   // Shift preferences - updated to match care plan creation
+  planType: z.enum(['scheduled', 'on-demand', 'both']).default('scheduled'),
   weekdayCoverage: z.enum(['8am-4pm', '8am-6pm', '6am-6pm', '6pm-8am', 'none']).default('none'),
   weekendCoverage: z.enum(['yes', 'no']).default('no'),
 });
@@ -119,6 +119,7 @@ const FamilyCareNeedsPage = () => {
       escortToAppointments: false,
       freshAirWalks: false,
       dailyReportRequired: false,
+      planType: 'scheduled',
       weekdayCoverage: 'none',
       weekendCoverage: 'no',
     }
@@ -223,7 +224,7 @@ const FamilyCareNeedsPage = () => {
         familyId: user.id,
         status: 'active',
         metadata: {
-          planType: draftPlan.planType,
+          planType: formData.planType || draftPlan.planType,
           weekdayCoverage: formData.weekdayCoverage,
           weekendCoverage: formData.weekendCoverage,
           // We don't need custom shifts from care needs anymore
