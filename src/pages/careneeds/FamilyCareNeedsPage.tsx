@@ -40,7 +40,7 @@ import CognitiveMemorySection from "@/components/careneeds/CognitiveMemorySectio
 import MedicalConditionsSection from "@/components/careneeds/MedicalConditionsSection";
 import HousekeepingSection from "@/components/careneeds/HousekeepingSection";
 import EmergencySection from "@/components/careneeds/EmergencySection";
-import ShiftPreferencesSection from "@/components/careneeds/ShiftPreferencesSection";
+import ScheduleInformationCard from "@/components/careneeds/ScheduleInformationCard";
 
 const FormSchema = z.object({
   // Daily Living Assistance
@@ -82,17 +82,14 @@ const FormSchema = z.object({
   communicationMethod: z.string().optional(),
   dailyReportRequired: z.boolean().optional(),
   additionalNotes: z.string().optional(),
-
-  // Shift preferences - updated to match care plan creation
-  planType: z.enum(['scheduled', 'on-demand', 'both']).default('scheduled'),
-  weekdayCoverage: z.enum(['8am-4pm', '8am-6pm', '6am-6pm', '6pm-8am', 'none']).default('none'),
-  weekendCoverage: z.enum(['yes', 'no']).default('no'),
 });
 
 const FamilyCareNeedsPage = () => {
   const { user } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [profileData, setProfileData] = useState<any>(null);
+  const [careSchedule, setCareSchedule] = useState<string | null>(null);
+  const [weekendCoverage, setWeekendCoverage] = useState<boolean>(false);
   const navigate = useNavigate();
   const { trackEngagement } = useTracking();
   
@@ -122,9 +119,6 @@ const FamilyCareNeedsPage = () => {
       escortToAppointments: false,
       freshAirWalks: false,
       dailyReportRequired: false,
-      planType: 'scheduled',
-      weekdayCoverage: 'none',
-      weekendCoverage: 'no',
     }
   });
   
@@ -165,12 +159,18 @@ const FamilyCareNeedsPage = () => {
             form.setValue('diagnosedConditions', data.special_needs ? data.special_needs.join(', ') : '');
           }
           
-          // Set shift preferences from profile if available
-          if (data.care_schedule === '8am-4pm' || 
-              data.care_schedule === '8am-6pm' || 
-              data.care_schedule === '6am-6pm' || 
-              data.care_schedule === '6pm-8am') {
-            form.setValue('weekdayCoverage', data.care_schedule);
+          // Extract schedule data from profile
+          if (data.care_schedule) {
+            setCareSchedule(data.care_schedule);
+          }
+          
+          // Check if weekend coverage is needed (based on whatever data we have)
+          // In a real application, we'd have a specific field for this
+          if (data.availability && Array.isArray(data.availability)) {
+            const hasWeekends = data.availability.some(
+              (day: string) => day === 'saturday' || day === 'sunday'
+            );
+            setWeekendCoverage(hasWeekends);
           }
         }
       } catch (error) {
@@ -196,6 +196,10 @@ const FamilyCareNeedsPage = () => {
       const careNeedsData: FamilyCareNeeds = {
         ...formData,
         profileId: user.id,
+        // Use the schedule data from the profile
+        weekdayCoverage: careSchedule as any || 'none',
+        weekendCoverage: weekendCoverage ? 'yes' : 'no',
+        planType: 'scheduled' // Default to scheduled
       };
       
       console.log("Sending care needs data to backend:", careNeedsData);
@@ -227,9 +231,9 @@ const FamilyCareNeedsPage = () => {
         familyId: user.id,
         status: 'active',
         metadata: {
-          planType: formData.planType || draftPlan.planType,
-          weekdayCoverage: formData.weekdayCoverage,
-          weekendCoverage: formData.weekendCoverage,
+          planType: careSchedule ? 'scheduled' : 'on-demand',
+          weekdayCoverage: careSchedule || 'none',
+          weekendCoverage: weekendCoverage ? 'yes' : 'no',
           // We don't need custom shifts from care needs anymore
           customShifts: []
         }
@@ -312,7 +316,9 @@ const FamilyCareNeedsPage = () => {
             <MedicalConditionsSection form={form} />
             <HousekeepingSection form={form} />
             <EmergencySection form={form} />
-            <ShiftPreferencesSection form={form} />
+            
+            {/* Display schedule information from registration instead of ShiftPreferencesSection */}
+            <ScheduleInformationCard careSchedule={careSchedule || undefined} weekendCoverage={weekendCoverage} />
             
             <div className="flex flex-col gap-4 sm:flex-row sm:justify-between">
               <Button 
