@@ -82,10 +82,12 @@ const FormSchema = z.object({
   dailyReportRequired: z.boolean().optional(),
   additionalNotes: z.string().optional(),
 
-  // Shift preferences
+  // Shift preferences - updated to match care plan creation
   preferredDays: z.array(z.string()).optional(),
   preferredTimeStart: z.string().optional(),
   preferredTimeEnd: z.string().optional(),
+  weekdayCoverage: z.enum(['8am-4pm', '8am-6pm', '6am-6pm', '6pm-8am', 'none']).optional(),
+  weekendCoverage: z.enum(['yes', 'no']).optional(),
 });
 
 const FamilyCareNeedsPage = () => {
@@ -121,6 +123,8 @@ const FamilyCareNeedsPage = () => {
       freshAirWalks: false,
       dailyReportRequired: false,
       preferredDays: [],
+      weekdayCoverage: 'none',
+      weekendCoverage: 'no',
     }
   });
   
@@ -179,6 +183,8 @@ const FamilyCareNeedsPage = () => {
     setIsLoading(true);
     
     try {
+      console.log("Form data being submitted:", formData);
+      
       // Save the care needs data
       const careNeedsData: FamilyCareNeeds = {
         ...formData,
@@ -191,6 +197,8 @@ const FamilyCareNeedsPage = () => {
         throw new Error("Failed to save care needs");
       }
       
+      console.log("Saved care needs:", savedCareNeeds);
+      
       // Generate draft care plan
       const draftPlan = generateDraftCarePlanFromCareNeeds(
         savedCareNeeds,
@@ -201,6 +209,8 @@ const FamilyCareNeedsPage = () => {
         }
       );
       
+      console.log("Draft care plan generated:", draftPlan);
+      
       // Create care plan in database
       const createdPlan = await createCarePlan({
         title: draftPlan.title,
@@ -209,6 +219,8 @@ const FamilyCareNeedsPage = () => {
         status: 'active',
         metadata: {
           planType: draftPlan.planType,
+          weekdayCoverage: formData.weekdayCoverage,
+          weekendCoverage: formData.weekendCoverage,
           customShifts: draftPlan.metadata.customShifts
         }
       });

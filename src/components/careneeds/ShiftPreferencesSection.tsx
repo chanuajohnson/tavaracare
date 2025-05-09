@@ -11,6 +11,7 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { generateTimeOptions } from "@/services/care-plans/shiftGenerationService";
 import { Checkbox } from "@/components/ui/checkbox";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 interface ShiftPreferencesSectionProps {
   form: any;
@@ -24,6 +25,15 @@ const days = [
   { id: "friday", label: "Friday" },
   { id: "saturday", label: "Saturday" },
   { id: "sunday", label: "Sunday" },
+];
+
+// Standard care coverage options that match the care plan creation page
+const weekdayCoverageOptions = [
+  { value: "8am-4pm", label: "8AM-4PM" },
+  { value: "8am-6pm", label: "8AM-6PM" },
+  { value: "6am-6pm", label: "6AM-6PM" },
+  { value: "6pm-8am", label: "6PM-8AM (Overnight)" },
+  { value: "none", label: "No Regular Coverage" }
 ];
 
 const ShiftPreferencesSection: React.FC<ShiftPreferencesSectionProps> = ({ form }) => {
@@ -72,13 +82,88 @@ const ShiftPreferencesSection: React.FC<ShiftPreferencesSectionProps> = ({ form 
           )}
         />
 
+        <FormField
+          control={form.control}
+          name="weekdayCoverage"
+          render={({ field }) => (
+            <FormItem className="space-y-3">
+              <FormLabel>Weekday Coverage</FormLabel>
+              <FormDescription>
+                Select your preferred time range for weekday care
+              </FormDescription>
+              <FormControl>
+                <RadioGroup
+                  onValueChange={field.onChange}
+                  defaultValue={field.value}
+                  className="flex flex-col space-y-1"
+                >
+                  {weekdayCoverageOptions.map((option) => (
+                    <FormItem
+                      key={option.value}
+                      className="flex items-center space-x-3 space-y-0 rounded-md border p-3"
+                    >
+                      <FormControl>
+                        <RadioGroupItem value={option.value} />
+                      </FormControl>
+                      <FormLabel className="font-normal">
+                        {option.label}
+                      </FormLabel>
+                    </FormItem>
+                  ))}
+                </RadioGroup>
+              </FormControl>
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="weekendCoverage"
+          render={({ field }) => (
+            <FormItem className="space-y-3">
+              <FormLabel>Weekend Coverage</FormLabel>
+              <FormDescription>
+                Do you need care coverage on weekends?
+              </FormDescription>
+              <FormControl>
+                <RadioGroup
+                  onValueChange={field.onChange}
+                  defaultValue={field.value}
+                  className="flex flex-col space-y-1"
+                >
+                  <FormItem
+                    className="flex items-center space-x-3 space-y-0 rounded-md border p-3"
+                  >
+                    <FormControl>
+                      <RadioGroupItem value="yes" />
+                    </FormControl>
+                    <FormLabel className="font-normal">
+                      Yes (6AM-6PM)
+                    </FormLabel>
+                  </FormItem>
+                  <FormItem
+                    className="flex items-center space-x-3 space-y-0 rounded-md border p-3"
+                  >
+                    <FormControl>
+                      <RadioGroupItem value="no" />
+                    </FormControl>
+                    <FormLabel className="font-normal">
+                      No
+                    </FormLabel>
+                  </FormItem>
+                </RadioGroup>
+              </FormControl>
+            </FormItem>
+          )}
+        />
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <FormField
             control={form.control}
             name="preferredTimeStart"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Preferred Start Time</FormLabel>
+                <FormLabel>Custom Start Time (Optional)</FormLabel>
                 <Select
                   onValueChange={field.onChange}
                   defaultValue={field.value}
@@ -105,7 +190,7 @@ const ShiftPreferencesSection: React.FC<ShiftPreferencesSectionProps> = ({ form 
             name="preferredTimeEnd"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Preferred End Time</FormLabel>
+                <FormLabel>Custom End Time (Optional)</FormLabel>
                 <Select
                   onValueChange={field.onChange}
                   defaultValue={field.value}

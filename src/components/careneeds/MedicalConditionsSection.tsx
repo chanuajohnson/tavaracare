@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/form";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
+import { Separator } from "@/components/ui/separator";
 
 interface MedicalConditionsSectionProps {
   form: any;
@@ -45,69 +46,74 @@ const MedicalConditionsSection: React.FC<MedicalConditionsSectionProps> = ({ for
           )}
         />
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-          <FormField
-            control={form.control}
-            name="equipmentUse"
-            render={({ field }) => (
-              <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
-                <FormControl>
-                  <Checkbox
-                    checked={field.value}
-                    onCheckedChange={field.onChange}
-                  />
-                </FormControl>
-                <div className="space-y-1 leading-none">
-                  <FormLabel>Equipment Use</FormLabel>
-                  <FormDescription>
-                    Needs help with medical equipment
-                  </FormDescription>
-                </div>
-              </FormItem>
-            )}
-          />
+        <Separator className="my-3" />
+        
+        <div>
+          <h4 className="text-sm font-medium mb-3">Care Monitoring Requirements</h4>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+            <FormField
+              control={form.control}
+              name="equipmentUse"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                  <FormControl>
+                    <Checkbox
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
+                  <div className="space-y-1 leading-none">
+                    <FormLabel>Equipment Use</FormLabel>
+                    <FormDescription>
+                      Needs help with medical equipment
+                    </FormDescription>
+                  </div>
+                </FormItem>
+              )}
+            />
 
-          <FormField
-            control={form.control}
-            name="fallMonitoring"
-            render={({ field }) => (
-              <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
-                <FormControl>
-                  <Checkbox
-                    checked={field.value}
-                    onCheckedChange={field.onChange}
-                  />
-                </FormControl>
-                <div className="space-y-1 leading-none">
-                  <FormLabel>Fall Risk</FormLabel>
-                  <FormDescription>
-                    Requires monitoring for fall prevention
-                  </FormDescription>
-                </div>
-              </FormItem>
-            )}
-          />
+            <FormField
+              control={form.control}
+              name="fallMonitoring"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                  <FormControl>
+                    <Checkbox
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
+                  <div className="space-y-1 leading-none">
+                    <FormLabel>Fall Risk</FormLabel>
+                    <FormDescription>
+                      Requires monitoring for fall prevention
+                    </FormDescription>
+                  </div>
+                </FormItem>
+              )}
+            />
 
-          <FormField
-            control={form.control}
-            name="vitalsCheck"
-            render={({ field }) => (
-              <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
-                <FormControl>
-                  <Checkbox
-                    checked={field.value}
-                    onCheckedChange={field.onChange}
-                  />
-                </FormControl>
-                <div className="space-y-1 leading-none">
-                  <FormLabel>Vitals Monitoring</FormLabel>
-                  <FormDescription>
-                    Regular monitoring of vital signs
-                  </FormDescription>
-                </div>
-              </FormItem>
-            )}
-          />
+            <FormField
+              control={form.control}
+              name="vitalsCheck"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                  <FormControl>
+                    <Checkbox
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
+                  <div className="space-y-1 leading-none">
+                    <FormLabel>Vitals Monitoring</FormLabel>
+                    <FormDescription>
+                      Regular monitoring of vital signs
+                    </FormDescription>
+                  </div>
+                </FormItem>
+              )}
+            />
+          </div>
         </div>
       </CardContent>
     </Card>

@@ -142,7 +142,7 @@ export const generateDraftCarePlanFromCareNeeds = (
   if (careNeeds.memoryReminders) specialCare.push('memory support');
   if (careNeeds.fallMonitoring) specialCare.push('fall prevention');
 
-  // Create a description from the care needs
+  // Create a description from the care needs - structured format that will be parsed by the UI
   let description = `Care plan for ${recipientName}`;
   if (profileData.relationship) {
     description += ` (${profileData.relationship})`;
@@ -171,20 +171,33 @@ export const generateDraftCarePlanFromCareNeeds = (
 
   // Determine plan type based on preferences
   let planType: 'scheduled' | 'on-demand' | 'both' = 'scheduled';
-  if (careNeeds.preferredDays && careNeeds.preferredDays.length === 0) {
+  
+  // Default to scheduled care unless explicitly set to on-demand
+  if (careNeeds.weekdayCoverage === 'none' && 
+      careNeeds.weekendCoverage === 'no' && 
+      (!careNeeds.preferredDays || careNeeds.preferredDays.length === 0)) {
     planType = 'on-demand';
-  } else if (careNeeds.preferredDays && careNeeds.preferredDays.length > 0 && (!careNeeds.preferredTimeStart || !careNeeds.preferredTimeEnd)) {
+  } else if (careNeeds.preferredDays && careNeeds.preferredDays.length > 0 && 
+           (!careNeeds.preferredTimeStart || !careNeeds.preferredTimeEnd)) {
     planType = 'both';
   }
 
+  console.log("Care plan type determined as:", planType);
+
   // Create custom shifts if time preferences are specified
   const customShifts = [];
+  
+  // If we have specific days and times, create custom shifts
   if (careNeeds.preferredDays && careNeeds.preferredDays.length > 0 && 
       careNeeds.preferredTimeStart && careNeeds.preferredTimeEnd) {
     
     const mappedDays = careNeeds.preferredDays.map(day => 
       day.toLowerCase() as 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday'
     );
+    
+    console.log("Creating custom shift for days:", mappedDays, 
+                "from", careNeeds.preferredTimeStart, 
+                "to", careNeeds.preferredTimeEnd);
     
     customShifts.push({
       days: mappedDays,
@@ -193,6 +206,8 @@ export const generateDraftCarePlanFromCareNeeds = (
       title: `${recipientName}'s Care`
     });
   }
+
+  console.log("Generated custom shifts:", customShifts);
 
   return {
     title: `${recipientName}'s Weekly Care Plan`,
