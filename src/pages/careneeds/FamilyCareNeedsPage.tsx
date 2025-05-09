@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
@@ -12,6 +11,7 @@ import { applyPrefillDataToForm, getPrefillDataFromUrl } from "@/utils/chat/pref
 import { saveFamilyCareNeeds, generateDraftCarePlanFromCareNeeds } from "@/services/familyCareNeedsService";
 import { createCarePlan } from "@/services/care-plans/carePlanService";
 import { useTracking } from "@/hooks/useTracking";
+import { parseScheduleString, determineWeekdayCoverage, determineWeekendCoverage, determineWeekendScheduleType } from "@/utils/scheduleUtils";
 
 // Components
 import { Button } from "@/components/ui/button";
@@ -164,22 +164,31 @@ const FamilyCareNeedsPage = () => {
             form.setValue('diagnosedConditions', data.special_needs ? data.special_needs.join(', ') : '');
           }
           
-          // Extract schedule data from profile
+          // Extract schedule data from profile using new utility functions
           console.log("Care schedule from profile:", data.care_schedule);
           
           if (data.care_schedule) {
-            // Validate and convert the care schedule to the correct type
-            const validScheduleValue = validateCareSchedule(data.care_schedule);
-            console.log("Converted care schedule:", validScheduleValue);
-            setCareSchedule(validScheduleValue);
-          }
-          
-          // Check and determine weekend coverage options
-          if (data.availability && Array.isArray(data.availability)) {
-            // Extract weekend schedule type
-            const weekendScheduleType = determineWeekendScheduleType(data.availability, data.care_schedule);
-            console.log("Weekend schedule type determined:", weekendScheduleType);
-            setWeekendCoverage(weekendScheduleType);
+            // Parse the comma-separated string into an array
+            const scheduleValues = parseScheduleString(data.care_schedule);
+            console.log("Parsed schedule values:", scheduleValues);
+            
+            // Determine weekday coverage
+            const weekdayCoverageValue = determineWeekdayCoverage(scheduleValues);
+            console.log("Determined weekday coverage:", weekdayCoverageValue);
+            setCareSchedule(weekdayCoverageValue);
+            
+            // Determine weekend coverage
+            const hasWeekends = determineWeekendCoverage(scheduleValues);
+            console.log("Has weekend coverage:", hasWeekends);
+            
+            // Determine weekend schedule type if weekend coverage is enabled
+            if (hasWeekends === 'yes') {
+              const weekendType = determineWeekendScheduleType(scheduleValues);
+              console.log("Weekend schedule type:", weekendType);
+              setWeekendCoverage(weekendType);
+            } else {
+              setWeekendCoverage('none');
+            }
           }
         }
       } catch (error) {
@@ -190,103 +199,6 @@ const FamilyCareNeedsPage = () => {
     
     loadProfileData();
   }, [user?.id, form]);
-  
-  // Helper function to determine weekend schedule type from availability and care_schedule
-  const determineWeekendScheduleType = (
-    availability: string[], 
-    careSchedule?: string | string[]
-  ): WeekendScheduleType => {
-    // Check if no weekend coverage is selected
-    const hasWeekends = availability.some(
-      day => day === 'saturday' || day === 'sunday'
-    );
-    
-    if (!hasWeekends) return "none";
-    
-    console.log("Determining weekend schedule type from:", { availability, careSchedule });
-    
-    // Check care_schedule for weekend specific options
-    if (Array.isArray(careSchedule)) {
-      // Check for specific weekend schedule options
-      if (careSchedule.includes('weekend_standard') || 
-          careSchedule.includes('weekend_8am_6pm')) {
-        return "8am-6pm";
-      }
-      
-      if (careSchedule.includes('weekend_day') || 
-          careSchedule.includes('weekend_6am_6pm') || 
-          careSchedule.includes('weekend_full')) {
-        return "6am-6pm";
-      }
-    }
-    
-    // If care_schedule is a string and contains specific weekend options
-    if (typeof careSchedule === 'string') {
-      if (careSchedule.includes('weekend_standard') || 
-          careSchedule.includes('weekend_8am_6pm')) {
-        return "8am-6pm";
-      }
-      
-      if (careSchedule.includes('weekend_day') || 
-          careSchedule.includes('weekend_6am_6pm') || 
-          careSchedule.includes('weekend_full')) {
-        return "6am-6pm";
-      }
-    }
-    
-    // Default to 6am-6pm for backward compatibility
-    return "6am-6pm";
-  };
-  
-  // Helper function to validate and convert care schedule to valid type
-  const validateCareSchedule = (schedule: string | string[]): CareScheduleType => {
-    console.log("Validating care schedule:", schedule);
-    const validSchedules: CareScheduleType[] = ["8am-4pm", "8am-6pm", "6am-6pm", "6pm-8am", "none"];
-    
-    // Handle case when schedule is an array (from registration form)
-    if (Array.isArray(schedule)) {
-      // Priority order: give preference to longer hours if multiple are selected
-      if (schedule.includes('weekday_full') || schedule.includes('6am-6pm')) return '6am-6pm';
-      if (schedule.includes('weekday_extended') || schedule.includes('8am-6pm')) return '8am-6pm';
-      if (schedule.includes('weekday_standard') || schedule.includes('8am-4pm')) return '8am-4pm';
-      if (schedule.includes('weekday_overnight') || schedule.includes('6pm-8am')) return '6pm-8am';
-      
-      // If nothing specific found in array but not empty, take first applicable value
-      for (const item of schedule) {
-        const mappedValue = mapScheduleValue(item);
-        if (mappedValue !== 'none') return mappedValue;
-      }
-      
-      return 'none';
-    }
-    
-    // Handle string case
-    return mapScheduleValue(schedule);
-  };
-  
-  // Helper function to map various schedule formats to our valid types
-  const mapScheduleValue = (value: string): CareScheduleType => {
-    // Direct match with our types
-    if (["8am-4pm", "8am-6pm", "6am-6pm", "6pm-8am", "none"].includes(value)) {
-      return value as CareScheduleType;
-    }
-    
-    // Map registration form values to our types
-    switch (value) {
-      case 'weekday_standard':
-        return '8am-4pm';
-      case 'weekday_extended': 
-        return '8am-6pm';
-      case 'weekday_full':
-        return '6am-6pm';
-      case 'weekday_night':
-      case 'weekday_overnight':
-        return '6pm-8am';
-      default:
-        console.warn(`Invalid care schedule value: ${value}, defaulting to 'none'`);
-        return 'none';
-    }
-  };
   
   const onSubmit = async (formData: z.infer<typeof FormSchema>) => {
     if (!user) {
@@ -430,7 +342,7 @@ const FamilyCareNeedsPage = () => {
             <HousekeepingSection form={form} />
             <EmergencySection form={form} />
             
-            {/* Display schedule information from registration instead of ShiftPreferencesSection */}
+            {/* Display schedule information from registration */}
             <ScheduleInformationCard careSchedule={careSchedule || undefined} weekendCoverage={weekendCoverage} />
             
             <div className="flex flex-col gap-4 sm:flex-row sm:justify-between">
