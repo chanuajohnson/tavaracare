@@ -216,9 +216,11 @@ const FamilyCareNeedsPage = () => {
       if (createdPlan) {
         console.log("Care plan created successfully with ID:", createdPlan.id);
         toast.success("Care plan draft created successfully");
+        
         // Fix the navigation path - use the correct route format
+        console.log("Preparing to navigate to care plan detail page");
         navigate(`/family/care-management/${createdPlan.id}`);
-        console.log("Navigating to:", `/family/care-management/${createdPlan.id}`);
+        console.log("Navigation triggered to:", `/family/care-management/${createdPlan.id}`);
       } else {
         console.log("Plan creation returned null or undefined, redirecting to create page");
         // If plan creation fails, still redirect to create page
