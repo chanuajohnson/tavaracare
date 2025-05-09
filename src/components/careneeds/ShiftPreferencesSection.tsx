@@ -8,24 +8,13 @@ import {
   FormControl,
   FormDescription,
 } from "@/components/ui/form";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { generateTimeOptions } from "@/services/care-plans/shiftGenerationService";
-import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { AlertCircle } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface ShiftPreferencesSectionProps {
   form: any;
 }
-
-const days = [
-  { id: "monday", label: "Monday" },
-  { id: "tuesday", label: "Tuesday" },
-  { id: "wednesday", label: "Wednesday" },
-  { id: "thursday", label: "Thursday" },
-  { id: "friday", label: "Friday" },
-  { id: "saturday", label: "Saturday" },
-  { id: "sunday", label: "Sunday" },
-];
 
 // Standard care coverage options that match the care plan creation page exactly
 const weekdayCoverageOptions = [
@@ -37,8 +26,6 @@ const weekdayCoverageOptions = [
 ];
 
 const ShiftPreferencesSection: React.FC<ShiftPreferencesSectionProps> = ({ form }) => {
-  const timeOptions = generateTimeOptions();
-  
   return (
     <Card>
       <CardHeader>
@@ -46,19 +33,12 @@ const ShiftPreferencesSection: React.FC<ShiftPreferencesSectionProps> = ({ form 
         <CardDescription>Tell us when you need care assistance</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        <div className="space-y-4">
-          <h3 className="text-lg font-medium">Plan Type</h3>
-          <p className="text-sm text-muted-foreground">Choose how you want to schedule care</p>
-          
-          {/* This would be implemented as a radio group in actual care plan creation, 
-              but we'll capture data through individual preferences in this form */}
-          <div className="bg-muted/50 p-4 rounded-md">
-            <p className="text-sm text-muted-foreground">
-              Based on your schedule preferences below, we'll recommend the most appropriate plan type
-              (Scheduled Care Plan, On-Demand Care, or Both) when creating your care plan.
-            </p>
-          </div>
-        </div>
+        <Alert variant="info" className="bg-blue-50 text-blue-800 border-blue-200">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            Your schedule preferences will be used to create your initial care plan. You can customize your care plan further after it's created.
+          </AlertDescription>
+        </Alert>
 
         <FormField
           control={form.control}
@@ -155,102 +135,6 @@ const ShiftPreferencesSection: React.FC<ShiftPreferencesSectionProps> = ({ form 
             </FormItem>
           )}
         />
-
-        <div className="space-y-4">
-          <h3 className="text-lg font-medium">Custom Shifts</h3>
-          <p className="text-sm text-muted-foreground">Define your own custom recurring shifts with specific days and times</p>
-        </div>
-
-        <FormField
-          control={form.control}
-          name="preferredDays"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Select Days</FormLabel>
-              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-7 gap-2 mt-2">
-                {days.map((day) => (
-                  <FormItem
-                    key={day.id}
-                    className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-3"
-                  >
-                    <FormControl>
-                      <Checkbox
-                        checked={field.value?.includes(day.id)}
-                        onCheckedChange={(checked) => {
-                          const currentValue = field.value || [];
-                          if (checked) {
-                            field.onChange([...currentValue, day.id]);
-                          } else {
-                            field.onChange(
-                              currentValue.filter((value: string) => value !== day.id)
-                            );
-                          }
-                        }}
-                      />
-                    </FormControl>
-                    <FormLabel className="font-normal">{day.label}</FormLabel>
-                  </FormItem>
-                ))}
-              </div>
-            </FormItem>
-          )}
-        />
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <FormField
-            control={form.control}
-            name="preferredTimeStart"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Start Time</FormLabel>
-                <Select
-                  onValueChange={field.onChange}
-                  defaultValue={field.value}
-                >
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select start time" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {timeOptions.map((time) => (
-                      <SelectItem key={time} value={time}>
-                        {time}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="preferredTimeEnd"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>End Time</FormLabel>
-                <Select
-                  onValueChange={field.onChange}
-                  defaultValue={field.value}
-                >
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select end time" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {timeOptions.map((time) => (
-                      <SelectItem key={time} value={time}>
-                        {time}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </FormItem>
-            )}
-          />
-        </div>
       </CardContent>
     </Card>
   );

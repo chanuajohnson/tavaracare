@@ -80,7 +80,7 @@ export const saveFamilyCareNeeds = async (careNeeds: FamilyCareNeeds): Promise<F
     // Update onboarding progress
     try {
       await updateOnboardingProgress(dbCareNeeds.profile_id, {
-        currentStep: 'care_needs',
+        currentStep: 'care_plan',
         completedSteps: {
           care_needs: true
         }
@@ -175,50 +175,18 @@ export const generateDraftCarePlanFromCareNeeds = (
   let planType: 'scheduled' | 'on-demand' | 'both' = 'scheduled';
   
   // Default to scheduled care unless explicitly set to on-demand
-  if (careNeeds.weekdayCoverage === 'none' && 
-      careNeeds.weekendCoverage === 'no' && 
-      (!careNeeds.preferredDays || careNeeds.preferredDays.length === 0)) {
+  if (careNeeds.weekdayCoverage === 'none' && careNeeds.weekendCoverage === 'no') {
     planType = 'on-demand';
-  } else if (careNeeds.preferredDays && careNeeds.preferredDays.length > 0 && 
-           (!careNeeds.preferredTimeStart || !careNeeds.preferredTimeEnd)) {
-    planType = 'both';
   }
-
-  console.log("Care plan type determined as:", planType);
-
-  // Create custom shifts if time preferences are specified
-  const customShifts = [];
-  
-  // If we have specific days and times, create custom shifts
-  if (careNeeds.preferredDays && careNeeds.preferredDays.length > 0 && 
-      careNeeds.preferredTimeStart && careNeeds.preferredTimeEnd) {
-    
-    const mappedDays = careNeeds.preferredDays.map(day => 
-      day.toLowerCase() as 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday'
-    );
-    
-    console.log("Creating custom shift for days:", mappedDays, 
-                "from", careNeeds.preferredTimeStart, 
-                "to", careNeeds.preferredTimeEnd);
-    
-    customShifts.push({
-      days: mappedDays,
-      startTime: careNeeds.preferredTimeStart,
-      endTime: careNeeds.preferredTimeEnd,
-      title: `${recipientName}'s Care`
-    });
-  }
-
-  console.log("Generated custom shifts:", customShifts);
 
   return {
-    title: `${recipientName}'s Weekly Care Plan`,
+    title: `Care Plan for ${recipientName}`,
     description: description,
     planType: planType,
     metadata: {
       weekdayCoverage: careNeeds.weekdayCoverage,
       weekendCoverage: careNeeds.weekendCoverage,
-      customShifts: customShifts.length > 0 ? customShifts : undefined
+      customShifts: []  // We don't need custom shifts from care needs anymore
     }
   };
 };

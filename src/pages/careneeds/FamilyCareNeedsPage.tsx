@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
@@ -82,11 +83,8 @@ const FormSchema = z.object({
   additionalNotes: z.string().optional(),
 
   // Shift preferences - updated to match care plan creation
-  preferredDays: z.array(z.string()).optional(),
-  preferredTimeStart: z.string().optional(),
-  preferredTimeEnd: z.string().optional(),
-  weekdayCoverage: z.enum(['8am-4pm', '8am-6pm', '6am-6pm', '6pm-8am', 'none']).optional(),
-  weekendCoverage: z.enum(['yes', 'no']).optional(),
+  weekdayCoverage: z.enum(['8am-4pm', '8am-6pm', '6am-6pm', '6pm-8am', 'none']).default('none'),
+  weekendCoverage: z.enum(['yes', 'no']).default('no'),
 });
 
 const FamilyCareNeedsPage = () => {
@@ -121,7 +119,6 @@ const FamilyCareNeedsPage = () => {
       escortToAppointments: false,
       freshAirWalks: false,
       dailyReportRequired: false,
-      preferredDays: [],
       weekdayCoverage: 'none',
       weekendCoverage: 'no',
     }
@@ -163,6 +160,14 @@ const FamilyCareNeedsPage = () => {
             const careRecipientName = data.care_recipient_name;
             form.setValue('diagnosedConditions', data.special_needs ? data.special_needs.join(', ') : '');
           }
+          
+          // Set shift preferences from profile if available
+          if (data.care_schedule === '8am-4pm' || 
+              data.care_schedule === '8am-6pm' || 
+              data.care_schedule === '6am-6pm' || 
+              data.care_schedule === '6pm-8am') {
+            form.setValue('weekdayCoverage', data.care_schedule);
+          }
         }
       } catch (error) {
         console.error("Error loading profile data:", error);
@@ -180,10 +185,9 @@ const FamilyCareNeedsPage = () => {
     }
     
     setIsLoading(true);
+    console.log("Form submission started with data:", formData);
     
     try {
-      console.log("Form data being submitted:", formData);
-      
       // Save the care needs data
       const careNeedsData: FamilyCareNeeds = {
         ...formData,
@@ -222,26 +226,25 @@ const FamilyCareNeedsPage = () => {
           planType: draftPlan.planType,
           weekdayCoverage: formData.weekdayCoverage,
           weekendCoverage: formData.weekendCoverage,
-          customShifts: draftPlan.metadata.customShifts
+          // We don't need custom shifts from care needs anymore
+          customShifts: []
         }
       });
       
       if (createdPlan) {
         console.log("Care plan created successfully with ID:", createdPlan.id);
-        toast.success("Care plan draft created successfully");
+        toast.success("Care plan created successfully!");
         
-        // Fix the navigation path - use the correct route format
-        console.log("Preparing to navigate to care plan detail page");
+        // Navigate directly to the care plan detail page
         navigate(`/family/care-management/${createdPlan.id}`);
-        console.log("Navigation triggered to:", `/family/care-management/${createdPlan.id}`);
       } else {
         console.error("Plan creation returned null or undefined");
         toast.error("Failed to create care plan");
-        navigate('/family/care-management/create');
+        navigate('/family/care-management');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error on form submission:", error);
-      toast.error("There was a problem submitting the form");
+      toast.error(error.message || "There was a problem submitting the form");
     } finally {
       setIsLoading(false);
     }
@@ -285,7 +288,7 @@ const FamilyCareNeedsPage = () => {
                 disabled={isLoading}
                 className="bg-primary hover:bg-primary/90"
               >
-                {isLoading ? "Saving..." : "Save and Continue"}
+                {isLoading ? "Creating Care Plan..." : "Create Care Plan"}
               </Button>
             </div>
           </form>
