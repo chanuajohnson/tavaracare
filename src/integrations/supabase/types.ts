@@ -84,6 +84,7 @@ export type Database = {
           laundry_support: boolean | null
           meal_prep: boolean | null
           memory_reminders: boolean | null
+          plan_type: string | null
           preferred_days: string[] | null
           preferred_time_end: string | null
           preferred_time_start: string | null
@@ -125,6 +126,7 @@ export type Database = {
           laundry_support?: boolean | null
           meal_prep?: boolean | null
           memory_reminders?: boolean | null
+          plan_type?: string | null
           preferred_days?: string[] | null
           preferred_time_end?: string | null
           preferred_time_start?: string | null
@@ -166,6 +168,7 @@ export type Database = {
           laundry_support?: boolean | null
           meal_prep?: boolean | null
           memory_reminders?: boolean | null
+          plan_type?: string | null
           preferred_days?: string[] | null
           preferred_time_end?: string | null
           preferred_time_start?: string | null
