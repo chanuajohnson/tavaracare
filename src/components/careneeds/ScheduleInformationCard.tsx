@@ -22,7 +22,7 @@ const ScheduleInformationCard: React.FC<ScheduleInformationCardProps> = ({
       case '8am-4pm':
         return 'Monday - Friday, 8 AM - 4 PM (Standard daytime coverage)';
       case '8am-6pm':
-        return 'Monday - Friday, 8 AM - 6 PM (Extended daytime coverage)';
+        return 'Monday - Friday, 8 AM - 6 PM (Extended evening coverage)';
       case '6am-6pm':
         return 'Monday - Friday, 6 AM - 6 PM (Full daytime coverage)';
       case '6pm-8am':

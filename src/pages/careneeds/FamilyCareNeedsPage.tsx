@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
@@ -163,9 +162,12 @@ const FamilyCareNeedsPage = () => {
           }
           
           // Extract schedule data from profile
+          console.log("Care schedule from profile:", data.care_schedule);
+          
           if (data.care_schedule) {
             // Validate and convert the care schedule to the correct type
             const validScheduleValue = validateCareSchedule(data.care_schedule);
+            console.log("Converted care schedule:", validScheduleValue);
             setCareSchedule(validScheduleValue);
           }
           
@@ -174,6 +176,7 @@ const FamilyCareNeedsPage = () => {
             const hasWeekends = data.availability.some(
               (day: string) => day === 'saturday' || day === 'sunday'
             );
+            console.log("Weekend coverage detected:", hasWeekends);
             setWeekendCoverage(hasWeekends);
           }
         }
@@ -187,22 +190,53 @@ const FamilyCareNeedsPage = () => {
   }, [user?.id, form]);
   
   // Helper function to validate and convert care schedule to valid type
-  const validateCareSchedule = (schedule: string): CareScheduleType => {
+  const validateCareSchedule = (schedule: string | string[]): CareScheduleType => {
+    console.log("Validating care schedule:", schedule);
     const validSchedules: CareScheduleType[] = ["8am-4pm", "8am-6pm", "6am-6pm", "6pm-8am", "none"];
     
-    // Return the schedule if it's a valid type, otherwise default to 'none'
-    if (validSchedules.includes(schedule as CareScheduleType)) {
-      return schedule as CareScheduleType;
+    // Handle case when schedule is an array (from registration form)
+    if (Array.isArray(schedule)) {
+      // Priority order: give preference to longer hours if multiple are selected
+      if (schedule.includes('weekday_full') || schedule.includes('6am-6pm')) return '6am-6pm';
+      if (schedule.includes('weekday_extended') || schedule.includes('8am-6pm')) return '8am-6pm';
+      if (schedule.includes('weekday_standard') || schedule.includes('8am-4pm')) return '8am-4pm';
+      if (schedule.includes('weekday_overnight') || schedule.includes('6pm-8am')) return '6pm-8am';
+      
+      // If nothing specific found in array but not empty, take first applicable value
+      for (const item of schedule) {
+        const mappedValue = mapScheduleValue(item);
+        if (mappedValue !== 'none') return mappedValue;
+      }
+      
+      return 'none';
     }
     
-    // Map any common variations to valid types
-    if (schedule === "weekday_standard") return "8am-4pm";
-    if (schedule === "weekday_extended") return "8am-6pm";
-    if (schedule === "weekday_full") return "6am-6pm";
-    if (schedule === "weekday_overnight") return "6pm-8am";
+    // Handle string case
+    return mapScheduleValue(schedule);
+  };
+  
+  // Helper function to map various schedule formats to our valid types
+  const mapScheduleValue = (value: string): CareScheduleType => {
+    // Direct match with our types
+    if (["8am-4pm", "8am-6pm", "6am-6pm", "6pm-8am", "none"].includes(value)) {
+      return value as CareScheduleType;
+    }
     
-    console.warn(`Invalid care schedule value: ${schedule}, defaulting to 'none'`);
-    return "none";
+    // Map registration form values to our types
+    switch (value) {
+      case 'weekday_standard':
+        return '8am-4pm';
+      case 'weekday_extended': 
+        return '8am-6pm';
+      case 'weekday_full':
+        return '6am-6pm';
+      case 'weekday_night':
+      case 'weekday_overnight':
+        return '6pm-8am';
+      default:
+        console.warn(`Invalid care schedule value: ${value}, defaulting to 'none'`);
+        return 'none';
+    }
   };
   
   const onSubmit = async (formData: z.infer<typeof FormSchema>) => {
