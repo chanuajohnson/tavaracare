@@ -29,9 +29,12 @@ const ProfessionalSchedulePage = lazy(() => import("@/pages/professional/Profess
 const ModuleViewerPage = lazy(() => import("@/pages/professional/ModuleViewerPage"));
 const FamilyFeaturesOverview = lazy(() => import("@/pages/family/FamilyFeaturesOverview"));
 const FamilyStoryPage = lazy(() => import("@/pages/family/FamilyStoryPage"));
-const CareManagementPage = lazy(() => import("@/pages/family/care-management/CareManagementPage"));
+
+// Import CareManagementPage directly instead of lazy loading to troubleshoot the issue
+import CareManagementPage from "@/pages/family/care-management/CareManagementPage";
 const CreateCarePlanPage = lazy(() => import("@/pages/family/care-management/CreateCarePlanPage"));
 const CarePlanDetailPage = lazy(() => import("@/pages/family/care-management/CarePlanDetailPage"));
+
 const LegacyStoriesPage = lazy(() => import("@/pages/legacy/LegacyStoriesPage"));
 const FAQPage = lazy(() => import("@/pages/support/FAQPage"));
 const SubscriptionPage = lazy(() => import("@/pages/subscription/SubscriptionPage"));
@@ -92,10 +95,13 @@ export function AppRoutes() {
         <Route path="/family/features-overview" element={<FamilyFeaturesOverview />} />
         <Route path="/family/message-board" element={<MessageBoardPage />} />
         <Route path="/family/story" element={<FamilyStoryPage />} />
+        
+        {/* Render CareManagementPage directly instead of lazy loading it */}
         <Route path="/family/care-management" element={<CareManagementPage />} />
         <Route path="/family/care-management/create" element={<CreateCarePlanPage />} />
         <Route path="/family/care-management/create/:id" element={<CreateCarePlanPage />} />
         <Route path="/family/care-management/:id" element={<CarePlanDetailPage />} />
+        
         <Route path="/legacy-stories" element={<LegacyStoriesPage />} />
         <Route path="/faq" element={<FAQPage />} />
         <Route path="/subscription" element={<SubscriptionPage />} />

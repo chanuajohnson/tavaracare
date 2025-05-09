@@ -28,6 +28,7 @@ const CareManagementPage = () => {
     try {
       setLoading(true);
       const plans = await fetchCarePlans(userId);
+      console.log("Fetched care plans:", plans);
       setCarePlans(plans);
     } catch (error) {
       console.error("Error fetching care plans:", error);
