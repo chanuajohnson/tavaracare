@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { Container } from "@/components/ui/container";
@@ -18,6 +18,7 @@ import { CarePlanNotFound } from "@/components/care-plan/CarePlanNotFound";
 import { RemoveTeamMemberDialog } from "@/components/care-plan/RemoveTeamMemberDialog";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
+import { fetchFamilyCareNeeds } from "@/services/familyCareNeedsService";
 
 const CarePlanDetailPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -25,6 +26,7 @@ const CarePlanDetailPage = () => {
   const { user } = useAuth();
   const [confirmRemoveDialogOpen, setConfirmRemoveDialogOpen] = useState(false);
   const [memberToRemove, setMemberToRemove] = useState<CareTeamMemberWithProfile | null>(null);
+  const [careNeeds, setCareNeeds] = useState<any>(null);
 
   const {
     loading,
@@ -40,6 +42,22 @@ const CarePlanDetailPage = () => {
     carePlanId: id!,
     userId: user!.id,
   });
+
+  useEffect(() => {
+    // Load family care needs data if needed
+    const loadCareNeeds = async () => {
+      if (user?.id) {
+        try {
+          const needsData = await fetchFamilyCareNeeds(user.id);
+          setCareNeeds(needsData);
+        } catch (err) {
+          console.error("Error fetching care needs:", err);
+        }
+      }
+    };
+    
+    loadCareNeeds();
+  }, [user?.id]);
 
   if (loading) {
     return <CarePlanLoadingState />;
