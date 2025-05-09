@@ -116,6 +116,8 @@ export const generateDraftCarePlanFromCareNeeds = (
   description: string;
   planType: 'scheduled' | 'on-demand' | 'both';
   metadata: {
+    weekdayCoverage?: string;
+    weekendCoverage?: string;
     customShifts?: Array<{
       days: Array<'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday'>;
       startTime: string;
@@ -214,6 +216,8 @@ export const generateDraftCarePlanFromCareNeeds = (
     description: description,
     planType: planType,
     metadata: {
+      weekdayCoverage: careNeeds.weekdayCoverage,
+      weekendCoverage: careNeeds.weekendCoverage,
       customShifts: customShifts.length > 0 ? customShifts : undefined
     }
   };

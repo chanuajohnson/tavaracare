@@ -1,3 +1,4 @@
+
 import { FamilyCareNeeds, DbFamilyCareNeeds } from "../types/carePlan";
 
 /**
@@ -50,7 +51,9 @@ export function adaptFamilyCareNeedsToDb(careNeeds: FamilyCareNeeds): DbFamilyCa
     // Shift Info
     preferred_days: careNeeds.preferredDays,
     preferred_time_start: careNeeds.preferredTimeStart,
-    preferred_time_end: careNeeds.preferredTimeEnd
+    preferred_time_end: careNeeds.preferredTimeEnd,
+    weekday_coverage: careNeeds.weekdayCoverage,
+    weekend_coverage: careNeeds.weekendCoverage
   };
 }
 
@@ -106,6 +109,8 @@ export function adaptFamilyCareNeedsFromDb(dbCareNeeds: DbFamilyCareNeeds): Fami
     preferredDays: dbCareNeeds.preferred_days,
     preferredTimeStart: dbCareNeeds.preferred_time_start,
     preferredTimeEnd: dbCareNeeds.preferred_time_end,
+    weekdayCoverage: dbCareNeeds.weekday_coverage as FamilyCareNeeds['weekdayCoverage'],
+    weekendCoverage: dbCareNeeds.weekend_coverage as FamilyCareNeeds['weekendCoverage'],
     
     // Metadata
     createdAt: dbCareNeeds.created_at,

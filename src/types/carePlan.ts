@@ -139,6 +139,8 @@ export interface FamilyCareNeeds {
   preferredDays?: string[];
   preferredTimeStart?: string;
   preferredTimeEnd?: string;
+  weekdayCoverage?: '8am-4pm' | '8am-6pm' | '6am-6pm' | '6pm-8am' | 'none';
+  weekendCoverage?: 'yes' | 'no';
   
   // Metadata
   createdAt?: string;
@@ -146,7 +148,7 @@ export interface FamilyCareNeeds {
 }
 
 /**
- * Interface for database care needs (snake_case)
+ * Database model for family care needs
  */
 export interface DbFamilyCareNeeds {
   id?: string;
@@ -196,6 +198,8 @@ export interface DbFamilyCareNeeds {
   preferred_days?: string[];
   preferred_time_start?: string;
   preferred_time_end?: string;
+  weekday_coverage?: string;
+  weekend_coverage?: string;
   
   // Metadata
   created_at?: string;
