@@ -7,6 +7,16 @@ import { Clipboard, ArrowRight, ClipboardEdit, ClipboardCheck, Mail, UserCircle 
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useTracking } from "@/hooks/useTracking";
 import { supabase } from "@/lib/supabase";
+import { Json } from "@/utils/json";
+
+// Type for onboarding progress structure
+interface OnboardingProgress {
+  currentStep?: string;
+  completedSteps?: {
+    care_needs?: boolean;
+    [key: string]: boolean | undefined;
+  };
+}
 
 export function FamilyShortcutMenuBar() {
   const { isProfileComplete, user } = useAuth();
@@ -23,7 +33,9 @@ export function FamilyShortcutMenuBar() {
             .eq('id', user.id)
             .single();
           
-          const isComplete = data?.onboarding_progress?.completedSteps?.care_needs === true;
+          // Safely check the structure of onboarding_progress
+          const onboardingProgress = data?.onboarding_progress as OnboardingProgress | null;
+          const isComplete = !!onboardingProgress?.completedSteps?.care_needs;
           setCareNeedsComplete(isComplete);
         } catch (error) {
           console.error("Error checking care needs status:", error);
