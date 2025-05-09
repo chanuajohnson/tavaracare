@@ -332,7 +332,7 @@ const FamilyDashboard = () => {
             </CardContent>
           </Card>
 
-          <FamilyNextStepsPanel />
+          {/* Removed duplicated FamilyNextStepsPanel */}
 
           <div className="space-y-6 mb-8">
             <Card className="mb-2">
