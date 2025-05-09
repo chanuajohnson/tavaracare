@@ -43,6 +43,7 @@ import ScheduleInformationCard from "@/components/careneeds/ScheduleInformationC
 
 // Define valid care schedule types for type safety
 type CareScheduleType = "8am-4pm" | "8am-6pm" | "6am-6pm" | "6pm-8am" | "none";
+type WeekendScheduleType = "8am-6pm" | "6am-6pm" | "none";
 
 const FormSchema = z.object({
   // Daily Living Assistance
@@ -91,7 +92,7 @@ const FamilyCareNeedsPage = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [profileData, setProfileData] = useState<any>(null);
   const [careSchedule, setCareSchedule] = useState<CareScheduleType | null>(null);
-  const [weekendCoverage, setWeekendCoverage] = useState<boolean>(false);
+  const [weekendCoverage, setWeekendCoverage] = useState<WeekendScheduleType>("none");
   const navigate = useNavigate();
   const { trackEngagement } = useTracking();
   
@@ -171,13 +172,12 @@ const FamilyCareNeedsPage = () => {
             setCareSchedule(validScheduleValue);
           }
           
-          // Check if weekend coverage is needed (based on whatever data we have)
+          // Check and determine weekend coverage options
           if (data.availability && Array.isArray(data.availability)) {
-            const hasWeekends = data.availability.some(
-              (day: string) => day === 'saturday' || day === 'sunday'
-            );
-            console.log("Weekend coverage detected:", hasWeekends);
-            setWeekendCoverage(hasWeekends);
+            // Extract weekend schedule type
+            const weekendScheduleType = determineWeekendScheduleType(data.availability, data.care_schedule);
+            console.log("Weekend schedule type determined:", weekendScheduleType);
+            setWeekendCoverage(weekendScheduleType);
           }
         }
       } catch (error) {
@@ -188,6 +188,37 @@ const FamilyCareNeedsPage = () => {
     
     loadProfileData();
   }, [user?.id, form]);
+  
+  // Helper function to determine weekend schedule type from availability and care_schedule
+  const determineWeekendScheduleType = (
+    availability: string[], 
+    careSchedule?: string | string[]
+  ): WeekendScheduleType => {
+    // Check if no weekend coverage is selected
+    const hasWeekends = availability.some(
+      day => day === 'saturday' || day === 'sunday'
+    );
+    
+    if (!hasWeekends) return "none";
+    
+    // Check care_schedule for weekend specific options
+    if (Array.isArray(careSchedule)) {
+      // Check for specific weekend schedule options
+      if (careSchedule.includes('weekend_standard') || 
+          careSchedule.includes('weekend_8am_6pm')) {
+        return "8am-6pm";
+      }
+      
+      if (careSchedule.includes('weekend_day') || 
+          careSchedule.includes('weekend_6am_6pm') || 
+          careSchedule.includes('weekend_full')) {
+        return "6am-6pm";
+      }
+    }
+    
+    // Default to 6am-6pm for backward compatibility
+    return "6am-6pm";
+  };
   
   // Helper function to validate and convert care schedule to valid type
   const validateCareSchedule = (schedule: string | string[]): CareScheduleType => {
@@ -253,9 +284,10 @@ const FamilyCareNeedsPage = () => {
       const careNeedsData: FamilyCareNeeds = {
         ...formData,
         profileId: user.id,
-        // Use the schedule data from the profile with proper typing
+        // Use the schedule data with proper typing
         weekdayCoverage: careSchedule || "none",
-        weekendCoverage: weekendCoverage ? 'yes' : 'no',
+        weekendCoverage: weekendCoverage === "none" ? 'no' : 'yes',
+        weekendScheduleType: weekendCoverage, // Add the specific weekend schedule type
         planType: 'scheduled' // Default to scheduled
       };
       
@@ -290,7 +322,8 @@ const FamilyCareNeedsPage = () => {
         metadata: {
           planType: careSchedule ? 'scheduled' : 'on-demand',
           weekdayCoverage: careSchedule || 'none',
-          weekendCoverage: weekendCoverage ? 'yes' : 'no',
+          weekendCoverage: weekendCoverage !== "none" ? 'yes' : 'no',
+          weekendScheduleType: weekendCoverage, // Add the specific weekend schedule type
           // We don't need custom shifts from care needs anymore
           customShifts: []
         }

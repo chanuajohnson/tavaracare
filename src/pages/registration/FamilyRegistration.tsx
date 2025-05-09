@@ -774,7 +774,17 @@ const FamilyRegistration = () => {
                         onCheckedChange={() => handleCareScheduleChange('weekday_extended')}
                       />
                       <Label htmlFor="weekday-extended" className="font-normal">
-                        🕕 Monday – Friday, 6 AM – 6 PM (Extended daytime coverage)
+                        🕕 Monday – Friday, 8 AM – 6 PM (Extended evening coverage)
+                      </Label>
+                    </div>
+                    <div className="flex items-start space-x-2">
+                      <Checkbox 
+                        id="weekday-full" 
+                        checked={careSchedule.includes('weekday_full')}
+                        onCheckedChange={() => handleCareScheduleChange('weekday_full')}
+                      />
+                      <Label htmlFor="weekday-full" className="font-normal">
+                        🕕 Monday – Friday, 6 AM – 6 PM (Full daytime coverage)
                       </Label>
                     </div>
                     <div className="flex items-start space-x-2">
@@ -798,12 +808,22 @@ const FamilyRegistration = () => {
                   <div className="pl-7 space-y-3">
                     <div className="flex items-start space-x-2">
                       <Checkbox 
+                        id="weekend-standard" 
+                        checked={careSchedule.includes('weekend_standard')}
+                        onCheckedChange={() => handleCareScheduleChange('weekend_standard')}
+                      />
+                      <Label htmlFor="weekend-standard" className="font-normal">
+                        🌞 Saturday – Sunday, 8 AM – 6 PM (Daytime weekend coverage)
+                      </Label>
+                    </div>
+                    <div className="flex items-start space-x-2">
+                      <Checkbox 
                         id="weekend-day" 
                         checked={careSchedule.includes('weekend_day')}
                         onCheckedChange={() => handleCareScheduleChange('weekend_day')}
                       />
                       <Label htmlFor="weekend-day" className="font-normal">
-                        🌞 Saturday – Sunday, 6 AM – 6 PM (Daytime weekend coverage)
+                        🌞 Saturday – Sunday, 6 AM – 6 PM (Full daytime weekend coverage)
                       </Label>
                     </div>
                   </div>

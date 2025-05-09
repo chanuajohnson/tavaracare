@@ -7,9 +7,12 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 // Define the valid care schedule types
 type CareScheduleType = "8am-4pm" | "8am-6pm" | "6am-6pm" | "6pm-8am" | "none";
 
+// Define the valid weekend schedule types
+type WeekendScheduleType = "8am-6pm" | "6am-6pm" | "none";
+
 interface ScheduleInformationCardProps {
   careSchedule?: CareScheduleType;
-  weekendCoverage?: boolean;
+  weekendCoverage?: WeekendScheduleType | boolean; // Support both boolean for backward compatibility and specific types
 }
 
 const ScheduleInformationCard: React.FC<ScheduleInformationCardProps> = ({ 
@@ -29,6 +32,26 @@ const ScheduleInformationCard: React.FC<ScheduleInformationCardProps> = ({
         return 'Monday - Friday, 6 PM - 8 AM (Overnight coverage)';
       default:
         return 'No specific schedule selected';
+    }
+  };
+
+  // Helper function to get a human-readable weekend schedule description
+  const getWeekendScheduleDescription = (schedule: WeekendScheduleType | boolean | undefined): string => {
+    // Handle boolean for backward compatibility
+    if (typeof schedule === 'boolean') {
+      return schedule ? 'Saturday - Sunday, 6 AM - 6 PM (Daytime weekend coverage)' : 'No weekend coverage selected';
+    }
+    
+    // Handle specific weekend schedule types
+    switch(schedule) {
+      case '8am-6pm':
+        return 'Saturday - Sunday, 8 AM - 6 PM (Daytime weekend coverage)';
+      case '6am-6pm':
+        return 'Saturday - Sunday, 6 AM - 6 PM (Full daytime weekend coverage)';
+      case 'none':
+        return 'No weekend coverage selected';
+      default:
+        return 'No specific weekend schedule selected';
     }
   };
 
@@ -62,7 +85,7 @@ const ScheduleInformationCard: React.FC<ScheduleInformationCardProps> = ({
         <div className="space-y-2">
           <h4 className="text-sm font-medium">Weekend Coverage:</h4>
           <p className="text-sm rounded-md bg-gray-50 p-3 border">
-            {weekendCoverage ? 'Saturday - Sunday, 6 AM - 6 PM' : 'No weekend coverage selected'}
+            {getWeekendScheduleDescription(weekendCoverage)}
           </p>
         </div>
       </CardContent>

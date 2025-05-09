@@ -21,6 +21,7 @@ export interface CarePlanMetadata {
   planType: 'scheduled' | 'on-demand' | 'both';
   weekdayCoverage?: '8am-4pm' | '8am-6pm' | '6am-6pm' | '6pm-8am' | 'none';
   weekendCoverage?: 'yes' | 'no';
+  weekendScheduleType?: '8am-6pm' | '6am-6pm' | 'none'; // New field to specify weekend schedule type
   additionalShifts?: {
     weekdayEvening4pmTo6am?: boolean;
     weekdayEvening4pmTo8am?: boolean;
@@ -72,6 +73,7 @@ export interface DbCarePlanMetadata {
   plan_type: 'scheduled' | 'on-demand' | 'both';
   weekday_coverage?: '8am-4pm' | '8am-6pm' | '6am-6pm' | '6pm-8am' | 'none';
   weekend_coverage?: 'yes' | 'no';
+  weekend_schedule_type?: '8am-6pm' | '6am-6pm' | 'none'; // New field to specify weekend schedule type
   additional_shifts?: {
     weekday_evening_4pm_to_6am?: boolean;
     weekday_evening_4pm_to_8am?: boolean;
@@ -141,6 +143,7 @@ export interface FamilyCareNeeds {
   preferredTimeEnd?: string;
   weekdayCoverage?: '8am-4pm' | '8am-6pm' | '6am-6pm' | '6pm-8am' | 'none';
   weekendCoverage?: 'yes' | 'no';
+  weekendScheduleType?: '8am-6pm' | '6am-6pm' | 'none'; // New field to specify weekend schedule type
   planType?: 'scheduled' | 'on-demand' | 'both';
   
   // Metadata
@@ -201,6 +204,7 @@ export interface DbFamilyCareNeeds {
   preferred_time_end?: string;
   weekday_coverage?: string;
   weekend_coverage?: string;
+  weekend_schedule_type?: string; // New field to specify weekend schedule type
   plan_type?: string;
   
   // Metadata
