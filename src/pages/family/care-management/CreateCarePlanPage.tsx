@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import { carePlanService } from "@/services/carePlanService";
 import { fetchFamilyCareNeeds, generateDraftCarePlanFromCareNeeds } from "@/services/familyCareNeedsService";
 import { DescriptionInput } from "@/components/care-plan/DescriptionInput";
+import { CarePlanMetadata } from "@/types/carePlan";
 
 const CreateCarePlanPage = () => {
   const navigate = useNavigate();
@@ -32,9 +33,11 @@ const CreateCarePlanPage = () => {
           // Generate a draft title, but don't auto-fill the description
           // to encourage the user to write their own concise summary
           if (needsData) {
+            // Check if user.profile exists before accessing care_recipient_name
+            const userProfile = user as any; // Cast to any to access profile property
             const draftPlan = generateDraftCarePlanFromCareNeeds(
               needsData, 
-              { careRecipientName: user.profile?.care_recipient_name }
+              { careRecipientName: userProfile.profile?.care_recipient_name }
             );
             setTitle(draftPlan.title);
           }
@@ -59,7 +62,10 @@ const CreateCarePlanPage = () => {
     
     try {
       // Generate metadata from care needs if available
-      let planMetadata = {};
+      let planMetadata: CarePlanMetadata = {
+        planType: 'scheduled' // Default value
+      };
+      
       if (careNeeds) {
         planMetadata = {
           planType: careNeeds.planType || 'scheduled',
