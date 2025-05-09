@@ -42,6 +42,9 @@ import HousekeepingSection from "@/components/careneeds/HousekeepingSection";
 import EmergencySection from "@/components/careneeds/EmergencySection";
 import ScheduleInformationCard from "@/components/careneeds/ScheduleInformationCard";
 
+// Define valid care schedule types for type safety
+type CareScheduleType = "8am-4pm" | "8am-6pm" | "6am-6pm" | "6pm-8am" | "none";
+
 const FormSchema = z.object({
   // Daily Living Assistance
   assistanceBathing: z.boolean().optional(),
@@ -88,7 +91,7 @@ const FamilyCareNeedsPage = () => {
   const { user } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [profileData, setProfileData] = useState<any>(null);
-  const [careSchedule, setCareSchedule] = useState<string | null>(null);
+  const [careSchedule, setCareSchedule] = useState<CareScheduleType | null>(null);
   const [weekendCoverage, setWeekendCoverage] = useState<boolean>(false);
   const navigate = useNavigate();
   const { trackEngagement } = useTracking();
@@ -161,11 +164,12 @@ const FamilyCareNeedsPage = () => {
           
           // Extract schedule data from profile
           if (data.care_schedule) {
-            setCareSchedule(data.care_schedule);
+            // Validate and convert the care schedule to the correct type
+            const validScheduleValue = validateCareSchedule(data.care_schedule);
+            setCareSchedule(validScheduleValue);
           }
           
           // Check if weekend coverage is needed (based on whatever data we have)
-          // In a real application, we'd have a specific field for this
           if (data.availability && Array.isArray(data.availability)) {
             const hasWeekends = data.availability.some(
               (day: string) => day === 'saturday' || day === 'sunday'
@@ -182,6 +186,25 @@ const FamilyCareNeedsPage = () => {
     loadProfileData();
   }, [user?.id, form]);
   
+  // Helper function to validate and convert care schedule to valid type
+  const validateCareSchedule = (schedule: string): CareScheduleType => {
+    const validSchedules: CareScheduleType[] = ["8am-4pm", "8am-6pm", "6am-6pm", "6pm-8am", "none"];
+    
+    // Return the schedule if it's a valid type, otherwise default to 'none'
+    if (validSchedules.includes(schedule as CareScheduleType)) {
+      return schedule as CareScheduleType;
+    }
+    
+    // Map any common variations to valid types
+    if (schedule === "weekday_standard") return "8am-4pm";
+    if (schedule === "weekday_extended") return "8am-6pm";
+    if (schedule === "weekday_full") return "6am-6pm";
+    if (schedule === "weekday_overnight") return "6pm-8am";
+    
+    console.warn(`Invalid care schedule value: ${schedule}, defaulting to 'none'`);
+    return "none";
+  };
+  
   const onSubmit = async (formData: z.infer<typeof FormSchema>) => {
     if (!user) {
       toast.error("You must be logged in to submit this form");
@@ -196,8 +219,8 @@ const FamilyCareNeedsPage = () => {
       const careNeedsData: FamilyCareNeeds = {
         ...formData,
         profileId: user.id,
-        // Use the schedule data from the profile
-        weekdayCoverage: careSchedule as any || 'none',
+        // Use the schedule data from the profile with proper typing
+        weekdayCoverage: careSchedule || "none",
         weekendCoverage: weekendCoverage ? 'yes' : 'no',
         planType: 'scheduled' // Default to scheduled
       };

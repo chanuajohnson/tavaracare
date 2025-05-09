@@ -4,8 +4,11 @@ import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/com
 import { AlertCircle, Clock } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
+// Define the valid care schedule types
+type CareScheduleType = "8am-4pm" | "8am-6pm" | "6am-6pm" | "6pm-8am" | "none";
+
 interface ScheduleInformationCardProps {
-  careSchedule?: string;
+  careSchedule?: CareScheduleType;
   weekendCoverage?: boolean;
 }
 
@@ -14,7 +17,7 @@ const ScheduleInformationCard: React.FC<ScheduleInformationCardProps> = ({
   weekendCoverage 
 }) => {
   // Helper function to get a human-readable schedule description
-  const getScheduleDescription = (schedule: string | undefined): string => {
+  const getScheduleDescription = (schedule: CareScheduleType | undefined): string => {
     switch(schedule) {
       case '8am-4pm':
         return 'Monday - Friday, 8 AM - 4 PM (Standard daytime coverage)';
