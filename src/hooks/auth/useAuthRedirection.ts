@@ -62,6 +62,8 @@ export const useAuthRedirection = (
       const locationState = location.state as { returnPath?: string; action?: string } | null;
       if (locationState?.returnPath === "/family/story" && locationState?.action === "tellStory") {
         safeNavigate('/family/story', { skipCheck: true });
+        // Scroll to top of the page after navigation
+        window.scrollTo(0, 0);
         isRedirectingRef.current = false;
         return;
       }
@@ -86,8 +88,12 @@ export const useAuthRedirection = (
         };
         
         safeNavigate(dashboardRoutes[effectiveRole], { skipCheck: true });
+        // Scroll to top of the page after navigation
+        window.scrollTo(0, 0);
       } else {
         safeNavigate('/', { skipCheck: true });
+        // Scroll to top of the page after navigation
+        window.scrollTo(0, 0);
       }
     } catch (error) {
       console.error('[AuthProvider] Error during post-login redirection:', error);

@@ -43,6 +43,9 @@ export function RedirectHandler() {
           // We don't navigate immediately to give time for Supabase's automatic session handling to work
           navigate(dashboardRoute, { replace: true });
           toast.success('Email verified! Welcome to your dashboard.');
+          
+          // Scroll to top of the page after navigation
+          window.scrollTo(0, 0);
         }, 1000);
         
         return;

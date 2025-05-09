@@ -55,7 +55,7 @@ export const FamilyNextStepsPanel = () => {
     },
     { 
       id: 5, 
-      title: "Create Care Team", 
+      title: "Assign Care Team", 
       description: "Assign care team members to implement the care plan", 
       completed: false, 
       link: "/family/care-management/team" 
