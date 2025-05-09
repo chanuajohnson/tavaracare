@@ -1,8 +1,10 @@
+
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import { CarePlan, CarePlanMetadata } from "@/types/carePlan";
 import { Json } from "@/utils/json";
 import { generateShiftsFromCustomDefinitions } from './shiftGenerationService';
+import { v4 as uuidv4 } from 'uuid'; // Add the missing import
 
 // Define DTO types for internal use
 interface CarePlanDto {
@@ -41,7 +43,7 @@ export const adaptCarePlanToDb = (plan: Partial<CarePlan>): Partial<CarePlanDto>
   family_id: plan.familyId,
   title: plan.title,
   description: plan.description,
-  status: plan.status,
+  status: plan.status as 'active' | 'completed' | 'cancelled',
   metadata: plan.metadata as unknown as Json
 });
 
@@ -94,13 +96,13 @@ export const createCarePlan = async (carePlan: Omit<CarePlan, 'id' | 'createdAt'
     const dbCarePlan = adaptCarePlanToDb({
       ...carePlan,
       id
-    });
+    }) as CarePlanDto; // Force type as CarePlanDto to ensure required fields are present
     
     console.log("Creating care plan with data:", dbCarePlan);
     
     const { data, error } = await supabase
       .from('care_plans')
-      .insert([dbCarePlan])
+      .insert(dbCarePlan) // Fix: Use a single object instead of array
       .select()
       .single();
       
@@ -115,7 +117,7 @@ export const createCarePlan = async (carePlan: Omit<CarePlan, 'id' | 'createdAt'
       return null;
     }
     
-    const createdPlan = adaptCarePlanFromDb(data);
+    const createdPlan = adaptCarePlanFromDb(data as CarePlanDto); // Add explicit cast
     console.log("Successfully created care plan:", createdPlan);
     return createdPlan;
   } catch (error) {
