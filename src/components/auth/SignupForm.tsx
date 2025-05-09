@@ -41,7 +41,7 @@ export function SignupForm({ onSubmit, isLoading }: SignupFormProps) {
       setSubmissionStatus("submitting");
       console.log('SignupForm submitting with role:', role);
       
-      // Store the registration role in localStorage for redirect handling after email verification
+      // Consistently store the registration role in localStorage with both keys for redundancy
       localStorage.setItem('registeringAs', role);
       localStorage.setItem('registrationRole', role);
       

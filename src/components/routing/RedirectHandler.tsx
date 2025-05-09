@@ -1,6 +1,8 @@
 
 import { useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { supabase } from '@/lib/supabase';
+import { toast } from 'sonner';
 
 export function RedirectHandler() {
   const navigate = useNavigate();
@@ -13,8 +15,41 @@ export function RedirectHandler() {
       hash: location.hash
     });
     
-    // Handle general redirects from query params
+    // Handle auth redirects from email verification
     const params = new URLSearchParams(location.search);
+    const isAuthRedirect = params.get('auth_redirect') === 'true';
+    const accessToken = params.get('access_token');
+    const refreshToken = params.get('refresh_token');
+    const type = params.get('type');
+    
+    // Handle email verification redirects
+    if (isAuthRedirect || accessToken || type === 'signup') {
+      console.log('[RedirectHandler] Email verification detected');
+      
+      // Clear any flags that might prevent redirection
+      sessionStorage.removeItem('skipPostLoginRedirect');
+      
+      // Get the role from localStorage (set during signup)
+      const role = localStorage.getItem('registeringAs') || localStorage.getItem('registrationRole');
+      console.log('[RedirectHandler] Stored role:', role);
+      
+      if (role) {
+        // Construct the dashboard URL based on the user's role
+        const dashboardRoute = `/dashboard/${role}`;
+        console.log(`[RedirectHandler] Will redirect to dashboard: ${dashboardRoute}`);
+        
+        // Set a small delay to allow auth state to update first
+        setTimeout(() => {
+          // We don't navigate immediately to give time for Supabase's automatic session handling to work
+          navigate(dashboardRoute, { replace: true });
+          toast.success('Email verified! Welcome to your dashboard.');
+        }, 1000);
+        
+        return;
+      }
+    }
+    
+    // Handle general redirects from query params
     const routeParam = params.get('route');
     
     // Handle regular route redirects

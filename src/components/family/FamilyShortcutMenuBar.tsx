@@ -3,17 +3,19 @@ import React from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Container } from "@/components/ui/container";
-import { Clipboard, ArrowRight, ClipboardEdit, ClipboardCheck } from "lucide-react";
+import { Clipboard, ArrowRight, ClipboardEdit, ClipboardCheck, Mail, UserCircle } from "lucide-react";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useTracking } from "@/hooks/useTracking";
 
 export function FamilyShortcutMenuBar() {
-  const { isProfileComplete } = useAuth();
+  const { isProfileComplete, user } = useAuth();
   const { trackEngagement } = useTracking();
 
   const handleTrackButtonClick = (actionType: string, buttonName: string) => {
     trackEngagement(actionType, { button_name: buttonName });
   };
+
+  const isEmailVerified = user?.email_confirmed_at || user?.confirmed_at;
 
   return (
     <div className="bg-muted py-2 border-y">
@@ -22,6 +24,21 @@ export function FamilyShortcutMenuBar() {
           <span className="text-sm font-medium text-muted-foreground mb-2 sm:mb-0 sm:mr-2">Quick Access:</span>
           
           <div className="grid grid-cols-1 sm:grid-cols-auto gap-2 sm:flex sm:flex-row sm:flex-wrap w-full">
+            {/* Show email verification button if email is not verified */}
+            {user && !isEmailVerified && (
+              <Link 
+                to="/auth"
+                onClick={() => handleTrackButtonClick('navigation_click', 'verify_email')}
+                className="w-full sm:w-auto"
+              >
+                <Button variant="outline" size="sm" className="flex items-center gap-1 w-full">
+                  <Mail className="h-4 w-4" />
+                  <span>Verify Email</span>
+                  <ArrowRight className="h-3 w-3 ml-1" />
+                </Button>
+              </Link>
+            )}
+            
             {/* Only show the Complete Registration button if registration is not complete */}
             {!isProfileComplete && (
               <Link 
@@ -30,8 +47,8 @@ export function FamilyShortcutMenuBar() {
                 className="w-full sm:w-auto"
               >
                 <Button variant="outline" size="sm" className="flex items-center gap-1 w-full">
-                  <ClipboardEdit className="h-4 w-4" />
-                  <span>Complete Registration</span>
+                  <UserCircle className="h-4 w-4" />
+                  <span>Complete Profile</span>
                   <ArrowRight className="h-3 w-3 ml-1" />
                 </Button>
               </Link>

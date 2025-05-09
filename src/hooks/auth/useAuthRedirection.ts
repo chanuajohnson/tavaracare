@@ -22,8 +22,19 @@ export const useAuthRedirection = (
       return;
     }
 
+    // Check for email verification callback parameters
+    const isEmailVerification = location.search.includes('access_token=') || 
+                               location.search.includes('type=signup') || 
+                               location.search.includes('auth_redirect=true');
+                               
+    if (isEmailVerification) {
+      console.log('[AuthProvider] Email verification detected in URL parameters');
+      // Make sure to clear any flags that might prevent redirection
+      sessionStorage.removeItem('skipPostLoginRedirect');
+    }
+
     const skipRedirect = sessionStorage.getItem('skipPostLoginRedirect');
-    if (skipRedirect) {
+    if (skipRedirect && !isEmailVerification) {
       console.log('[AuthProvider] Skipping post-login redirect due to skipPostLoginRedirect flag');
       return;
     }
@@ -37,6 +48,15 @@ export const useAuthRedirection = (
       if (!effectiveRole && user.user_metadata?.role) {
         console.log('[AuthProvider] Setting user role from metadata:', user.user_metadata.role);
         effectiveRole = user.user_metadata.role;
+      }
+
+      // If still no role, try to get it from localStorage (from registration)
+      if (!effectiveRole) {
+        const storedRole = localStorage.getItem('registeringAs') || localStorage.getItem('registrationRole');
+        if (storedRole) {
+          console.log('[AuthProvider] Setting user role from localStorage:', storedRole);
+          effectiveRole = storedRole as UserRole;
+        }
       }
 
       const locationState = location.state as { returnPath?: string; action?: string } | null;

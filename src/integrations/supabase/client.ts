@@ -1,4 +1,3 @@
-
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 
@@ -36,7 +35,7 @@ export const supabase = createClient<Database>(
   finalSupabaseKey, 
   {
     auth: {
-      detectSessionInUrl: false, // Disable automatic token handling
+      detectSessionInUrl: true, // Enable automatic token handling
       persistSession: true,
       autoRefreshToken: true,
     },
