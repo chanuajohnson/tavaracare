@@ -1,3 +1,4 @@
+
 import { CarePlan } from "@/types/carePlan";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -158,8 +159,16 @@ export function PlanDetailsTab({ carePlan }: PlanDetailsTabProps) {
         <CardContent>
           <div className="space-y-4">
             <div>
-              <h3 className="text-base font-medium mb-1">Plan Description</h3>
-              <p className="text-gray-600">{carePlan.description || "No description provided."}</p>
+              <h3 className="text-base font-medium mb-2">Plan Description</h3>
+              {carePlan.description ? (
+                <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                  <p className="text-gray-700 italic">
+                    "{carePlan.description}"
+                  </p>
+                </div>
+              ) : (
+                <p className="text-gray-500">No description provided.</p>
+              )}
             </div>
           </div>
         </CardContent>

@@ -131,8 +131,8 @@ const CreateCarePlanPage = () => {
                 onChange={setDescription}
                 maxLength={150}
                 label="Care Plan Description"
-                helpText="Provide a brief summary of this care plan (1-2 sentences)"
-                placeholder="Enter a concise description of this care plan..."
+                helpText="Write a brief, personal summary of this care plan (1-2 short sentences max)"
+                placeholder="Example: Primary home care plan for Dad focusing on mobility assistance and medication management."
               />
               
               <div className="flex justify-end space-x-2">

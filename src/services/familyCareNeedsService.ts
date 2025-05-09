@@ -1,4 +1,3 @@
-
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import { FamilyCareNeeds } from "@/types/carePlan";
@@ -138,50 +137,35 @@ export const generateDraftCarePlanFromCareNeeds = (
     ? profileData.careRecipientName.split(' ')[0] 
     : 'Care Recipient';
 
-  // Build descriptive elements based on selected needs
-  const adlNeeds = [];
-  if (careNeeds.assistanceBathing) adlNeeds.push('bathing');
-  if (careNeeds.assistanceDressing) adlNeeds.push('dressing');
-  if (careNeeds.assistanceToileting) adlNeeds.push('toileting');
-  if (careNeeds.assistanceFeeding) adlNeeds.push('feeding');
-  if (careNeeds.assistanceMobility) adlNeeds.push('mobility assistance');
-  
-  const specialCare = [];
-  if (careNeeds.dementiaRedirection) specialCare.push('dementia care');
-  if (careNeeds.memoryReminders) specialCare.push('memory support');
-  if (careNeeds.fallMonitoring) specialCare.push('fall prevention');
-
   console.log("Generating care plan with schedule data:", {
     weekdayCoverage: careNeeds.weekdayCoverage,
     weekendCoverage: careNeeds.weekendCoverage,
     weekendScheduleType: careNeeds.weekendScheduleType
   });
 
-  // Create a description from the care needs - structured format that will be parsed by the UI
-  let description = `Care plan for ${recipientName}`;
-  if (profileData.relationship) {
-    description += ` (${profileData.relationship})`;
-  }
-  description += ". ";
+  // Create a focused, concise description instead of including all details
+  let description = "";
   
-  if (careNeeds.diagnosedConditions) {
-    description += `Medical conditions: ${careNeeds.diagnosedConditions}. `;
-  }
+  // Identify main care focuses (limit to top 2-3)
+  const careFocuses = [];
   
-  if (adlNeeds.length > 0) {
-    description += `Assistance needed with: ${adlNeeds.join(', ')}. `;
-  }
+  if (careNeeds.assistanceMobility) careFocuses.push("mobility assistance");
+  if (careNeeds.assistanceMedication) careFocuses.push("medication management");
+  if (careNeeds.dementiaRedirection) careFocuses.push("memory care");
+  if (careNeeds.assistanceBathing || careNeeds.assistanceDressing) careFocuses.push("personal care");
+  if (careNeeds.fallMonitoring) careFocuses.push("fall prevention");
   
-  if (specialCare.length > 0) {
-    description += `Special care: ${specialCare.join(', ')}. `;
-  }
-  
-  if (careNeeds.cognitiveNotes) {
-    description += `Cognitive notes: ${careNeeds.cognitiveNotes}. `;
+  // Create a short, personalized description
+  if (careFocuses.length > 0) {
+    const focusText = careFocuses.slice(0, 2).join(" and ");
+    description = `Care plan for ${recipientName} focusing on ${focusText}.`;
+  } else {
+    description = `Care plan for ${recipientName}.`;
   }
   
-  if (careNeeds.additionalNotes) {
-    description += `Additional notes: ${careNeeds.additionalNotes}`;
+  // Add relationship if available, but keep it concise
+  if (profileData.relationship && description.length < 100) {
+    description = description.replace(`.`, ` (${profileData.relationship}).`);
   }
 
   // Determine plan type based on preferences
@@ -204,7 +188,7 @@ export const generateDraftCarePlanFromCareNeeds = (
       weekdayCoverage: careNeeds.weekdayCoverage,
       weekendCoverage: careNeeds.weekendCoverage,
       weekendScheduleType: careNeeds.weekendScheduleType,
-      customShifts: []  // We don't need custom shifts from care needs anymore
+      customShifts: []
     }
   };
 };
