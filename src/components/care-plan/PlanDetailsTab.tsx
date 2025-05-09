@@ -1,231 +1,164 @@
 
-import React from 'react';
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Edit, Clipboard, Calendar, Heart, Home, Clock } from "lucide-react";
 import { CarePlan } from "@/types/carePlan";
-import { useNavigate } from "react-router-dom";
-import { Separator } from "@/components/ui/separator";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { CalendarDays, Clock, Info, Users } from "lucide-react";
+import { formatDistanceToNow } from "date-fns";
 
 interface PlanDetailsTabProps {
   carePlan: CarePlan;
 }
 
-export const PlanDetailsTab: React.FC<PlanDetailsTabProps> = ({ carePlan }) => {
-  const navigate = useNavigate();
-  
-  const getPlanTypeDisplay = (plan: CarePlan) => {
-    if (!plan.metadata?.planType) return "Not specified";
-    
-    switch (plan.metadata.planType) {
-      case 'scheduled':
-        return "Scheduled Care";
-      case 'on-demand':
-        return "On-demand Care";
-      case 'both':
-        return "Scheduled & On-demand";
+export function PlanDetailsTab({ carePlan }: PlanDetailsTabProps) {
+  // Helper function to get a human-readable schedule description
+  const getScheduleDescription = (schedule?: string): string => {
+    switch(schedule) {
+      case '8am-4pm':
+        return 'Monday - Friday, 8 AM - 4 PM (Standard daytime coverage)';
+      case '8am-6pm':
+        return 'Monday - Friday, 8 AM - 6 PM (Extended evening coverage)';
+      case '6am-6pm':
+        return 'Monday - Friday, 6 AM - 6 PM (Full daytime coverage)';
+      case '6pm-8am':
+        return 'Monday - Friday, 6 PM - 8 AM (Overnight coverage)';
+      case 'none':
+        return 'No weekday coverage selected';
       default:
-        return "Not specified";
+        return 'Custom schedule (see details)';
     }
   };
 
-  const handleEdit = () => {
-    navigate(`/family/care-management/create/${carePlan.id}`);
+  // Helper function to get a human-readable weekend schedule description
+  const getWeekendScheduleDescription = (coverage?: string, scheduleType?: string): string => {
+    if (coverage !== 'yes') {
+      return 'No weekend coverage';
+    }
+    
+    // Handle specific weekend schedule types
+    switch(scheduleType) {
+      case '8am-6pm':
+        return 'Saturday - Sunday, 8 AM - 6 PM (Standard weekend coverage)';
+      case '6am-6pm':
+        return 'Saturday - Sunday, 6 AM - 6 PM (Full daytime weekend coverage)';
+      default:
+        return 'Saturday - Sunday, 6 AM - 6 PM (Default weekend coverage)';
+    }
   };
 
-  // Helper function to parse and format the description into sections
-  const renderFormattedDescription = () => {
-    if (!carePlan.description) return null;
-
-    // Split the description by periods to extract different sections
-    const sections = carePlan.description.split('. ').filter(Boolean);
-    
-    // Initialize section containers
-    let medicalConditions = '';
-    let assistanceNeeds = '';
-    let specialCare = '';
-    let cognitiveNotes = '';
-    let additionalNotes = '';
-    
-    // Parse content into appropriate sections
-    sections.forEach(section => {
-      if (section.includes('Medical conditions:')) {
-        medicalConditions = section.replace('Medical conditions:', '').trim();
-      } else if (section.includes('Assistance needed with:')) {
-        assistanceNeeds = section.replace('Assistance needed with:', '').trim();
-      } else if (section.includes('Special care:')) {
-        specialCare = section.replace('Special care:', '').trim();
-      } else if (section.includes('Cognitive notes:')) {
-        cognitiveNotes = section.replace('Cognitive notes:', '').trim();
-      } else if (section.includes('Additional notes:')) {
-        additionalNotes = section.replace('Additional notes:', '').trim();
-      }
-    });
-
-    return (
-      <div className="space-y-4">
-        {medicalConditions && (
-          <div className="rounded-md border p-3 bg-background">
-            <div className="flex items-center mb-2">
-              <Heart className="h-4 w-4 mr-2 text-red-500" />
-              <h4 className="font-medium">Medical Conditions</h4>
-            </div>
-            <p className="text-sm text-muted-foreground">{medicalConditions}</p>
-          </div>
-        )}
-
-        {assistanceNeeds && (
-          <div className="rounded-md border p-3 bg-background">
-            <div className="flex items-center mb-2">
-              <Home className="h-4 w-4 mr-2 text-blue-500" />
-              <h4 className="font-medium">Daily Assistance Needs</h4>
-            </div>
-            <p className="text-sm text-muted-foreground">{assistanceNeeds}</p>
-          </div>
-        )}
-
-        {specialCare && (
-          <div className="rounded-md border p-3 bg-background">
-            <div className="flex items-center mb-2">
-              <Clipboard className="h-4 w-4 mr-2 text-purple-500" />
-              <h4 className="font-medium">Special Care</h4>
-            </div>
-            <p className="text-sm text-muted-foreground">{specialCare}</p>
-          </div>
-        )}
-
-        {cognitiveNotes && (
-          <div className="rounded-md border p-3 bg-background">
-            <div className="flex items-center mb-2">
-              <Calendar className="h-4 w-4 mr-2 text-amber-500" />
-              <h4 className="font-medium">Cognitive Support</h4>
-            </div>
-            <p className="text-sm text-muted-foreground">{cognitiveNotes}</p>
-          </div>
-        )}
-
-        {additionalNotes && (
-          <div className="rounded-md border p-3 bg-background">
-            <div className="flex items-center mb-2">
-              <Clock className="h-4 w-4 mr-2 text-green-500" />
-              <h4 className="font-medium">Additional Notes</h4>
-            </div>
-            <p className="text-sm text-muted-foreground">{additionalNotes}</p>
-          </div>
-        )}
-      </div>
-    );
-  };
-
-  // Extract schedule coverage information
-  const getScheduleCoverage = () => {
-    const { metadata } = carePlan;
-    if (!metadata) return null;
-    
-    const scheduleItems = [];
-    
-    // Check weekday coverage
-    if (metadata.weekdayCoverage && metadata.weekdayCoverage !== 'none') {
-      scheduleItems.push(`Weekdays: ${metadata.weekdayCoverage}`);
+  const getPlanTypeBadge = (type?: string) => {
+    switch(type) {
+      case 'scheduled':
+        return <Badge className="bg-blue-500">Scheduled Care</Badge>;
+      case 'on-demand':
+        return <Badge className="bg-purple-500">On-Demand Care</Badge>;
+      case 'both':
+        return <Badge className="bg-teal-500">Scheduled + On-Demand</Badge>;
+      default:
+        return <Badge>Care Plan</Badge>;
     }
-    
-    // Check weekend coverage
-    if (metadata.weekendCoverage === 'yes') {
-      scheduleItems.push(`Weekends: 6AM-6PM`);
-    }
-    
-    // Check custom shifts
-    if (metadata.customShifts && metadata.customShifts.length > 0) {
-      metadata.customShifts.forEach(shift => {
-        const days = shift.days.map(d => d.charAt(0).toUpperCase() + d.slice(1)).join(', ');
-        scheduleItems.push(`${days}: ${shift.startTime}-${shift.endTime}`);
-      });
-    }
-    
-    return scheduleItems;
   };
 
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
-        <div>
-          <CardTitle>Care Plan Details</CardTitle>
-          <CardDescription>
-            Information about this care plan
+    <div className="grid gap-6">
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-xl">{carePlan.title}</CardTitle>
+          <CardDescription className="flex items-center gap-2">
+            <span>Created {formatDistanceToNow(new Date(carePlan.createdAt), { addSuffix: true })}</span>
+            {getPlanTypeBadge(carePlan.metadata?.planType)}
+            <Badge variant={carePlan.status === 'active' ? 'default' : 'outline'}>
+              {carePlan.status.charAt(0).toUpperCase() + carePlan.status.slice(1)}
+            </Badge>
           </CardDescription>
-        </div>
-        <Button variant="outline" size="sm" onClick={handleEdit}>
-          <Edit className="h-4 w-4 mr-2" />
-          Edit
-        </Button>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <h3 className="text-sm font-medium text-muted-foreground mb-2">Plan Type</h3>
-            <p className="font-medium">{getPlanTypeDisplay(carePlan)}</p>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <div>
+              <h3 className="text-base font-semibold">Plan Description</h3>
+              <p className="text-gray-600 mt-1">{carePlan.description || "No description provided."}</p>
+            </div>
+            
+            {carePlan.metadata?.planType !== 'on-demand' && (
+              <div className="grid gap-4">
+                <h3 className="text-base font-semibold flex items-center">
+                  <Clock className="mr-2 h-4 w-4" /> Schedule Information
+                </h3>
+                {carePlan.metadata?.weekdayCoverage && carePlan.metadata.weekdayCoverage !== 'none' && (
+                  <Card className="bg-gray-50 border">
+                    <CardContent className="p-4">
+                      <h4 className="font-medium mb-1">Weekday Schedule:</h4>
+                      <p className="text-gray-600 text-sm">
+                        {getScheduleDescription(carePlan.metadata.weekdayCoverage)}
+                      </p>
+                    </CardContent>
+                  </Card>
+                )}
+                
+                <Card className="bg-gray-50 border">
+                  <CardContent className="p-4">
+                    <h4 className="font-medium mb-1">Weekend Schedule:</h4>
+                    <p className="text-gray-600 text-sm">
+                      {getWeekendScheduleDescription(
+                        carePlan.metadata?.weekendCoverage,
+                        carePlan.metadata?.weekendScheduleType
+                      )}
+                    </p>
+                  </CardContent>
+                </Card>
+                
+                {carePlan.metadata?.customShifts && carePlan.metadata.customShifts.length > 0 && (
+                  <Card className="bg-gray-50 border">
+                    <CardContent className="p-4">
+                      <h4 className="font-medium mb-2">Custom Shifts:</h4>
+                      <ul className="space-y-2 text-sm">
+                        {carePlan.metadata.customShifts.map((shift, index) => (
+                          <li key={index} className="border-b pb-2 last:border-0 last:pb-0">
+                            <span className="font-medium">
+                              {shift.days
+                                .map(d => d.charAt(0).toUpperCase() + d.slice(1))
+                                .join(', ')}
+                            </span>
+                            <span className="text-gray-600 ml-2">
+                              {shift.startTime} - {shift.endTime}
+                            </span>
+                            {shift.title && (
+                              <span className="block text-xs text-gray-500 mt-1">{shift.title}</span>
+                            )}
+                          </li>
+                        ))}
+                      </ul>
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
+            )}
           </div>
-          
-          <div>
-            <h3 className="text-sm font-medium text-muted-foreground mb-2">Created On</h3>
-            <p className="font-medium">{new Date(carePlan.createdAt).toLocaleDateString()}</p>
-          </div>
-          
-          <div>
-            <h3 className="text-sm font-medium text-muted-foreground mb-2">Last Updated</h3>
-            <p className="font-medium">{new Date(carePlan.updatedAt).toLocaleDateString()}</p>
-          </div>
-        </div>
-        
-        {getScheduleCoverage()?.length > 0 && (
-          <div>
-            <Separator className="my-4" />
-            <h3 className="text-sm font-medium mb-3">Schedule Coverage</h3>
-            <div className="space-y-2">
-              {getScheduleCoverage()?.map((item, index) => (
-                <div key={index} className="flex items-center">
-                  <Calendar className="h-4 w-4 mr-2 text-blue-500" />
-                  <span className="text-sm">{item}</span>
-                </div>
-              ))}
+        </CardContent>
+      </Card>
+      
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Info className="h-5 w-5" />
+            Care Plan Details
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-4">
+            <div>
+              <h3 className="text-sm font-medium">Plan ID</h3>
+              <p className="text-xs text-gray-500 mt-1 font-mono">{carePlan.id}</p>
+            </div>
+            
+            <div>
+              <h3 className="text-sm font-medium">Last Updated</h3>
+              <p className="text-sm text-gray-600 mt-1">
+                {formatDistanceToNow(new Date(carePlan.updatedAt), { addSuffix: true })}
+              </p>
             </div>
           </div>
-        )}
-        
-        {carePlan.metadata?.additionalShifts && (
-          <div className="mt-2">
-            <h3 className="text-sm font-medium mb-2">Additional Shifts</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              {carePlan.metadata.additionalShifts.weekdayEvening4pmTo6am && (
-                <Badge variant="outline" className="justify-start">Weekday Evening (4PM-6AM)</Badge>
-              )}
-              {carePlan.metadata.additionalShifts.weekdayEvening4pmTo8am && (
-                <Badge variant="outline" className="justify-start">Weekday Evening (4PM-8AM)</Badge>
-              )}
-              {carePlan.metadata.additionalShifts.weekdayEvening6pmTo6am && (
-                <Badge variant="outline" className="justify-start">Weekday Evening (6PM-6AM)</Badge>
-              )}
-              {carePlan.metadata.additionalShifts.weekdayEvening6pmTo8am && (
-                <Badge variant="outline" className="justify-start">Weekday Evening (6PM-8AM)</Badge>
-              )}
-              {carePlan.metadata.additionalShifts.weekday8amTo4pm && (
-                <Badge variant="outline" className="justify-start">Weekday (8AM-4PM)</Badge>
-              )}
-              {carePlan.metadata.additionalShifts.weekday8amTo6pm && (
-                <Badge variant="outline" className="justify-start">Weekday (8AM-6PM)</Badge>
-              )}
-            </div>
-          </div>
-        )}
-        
-        <Separator className="my-4" />
-        
-        <div className="mt-4">
-          <h3 className="text-sm font-medium mb-3">Care Details</h3>
-          {renderFormattedDescription()}
-        </div>
-      </CardContent>
-    </Card>
+        </CardContent>
+      </Card>
+    </div>
   );
-};
+}

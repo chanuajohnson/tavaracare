@@ -32,6 +32,8 @@ const ScheduleInformationCard: React.FC<ScheduleInformationCardProps> = ({
         return 'Monday - Friday, 6 AM - 6 PM (Full daytime coverage)';
       case '6pm-8am':
         return 'Monday - Friday, 6 PM - 8 AM (Overnight coverage)';
+      case 'none':
+        return 'No weekday coverage selected';
       default:
         return 'No specific schedule selected';
     }
@@ -49,7 +51,7 @@ const ScheduleInformationCard: React.FC<ScheduleInformationCardProps> = ({
     // Handle specific weekend schedule types
     switch(schedule) {
       case '8am-6pm':
-        return 'Saturday - Sunday, 8 AM - 6 PM (Daytime weekend coverage)';
+        return 'Saturday - Sunday, 8 AM - 6 PM (Standard weekend coverage)';
       case '6am-6pm':
         return 'Saturday - Sunday, 6 AM - 6 PM (Full daytime weekend coverage)';
       case 'none':

@@ -27,16 +27,26 @@ interface CarePlanInput {
 }
 
 // Adapters for converting between domain and database models
-export const adaptCarePlanFromDb = (dbPlan: CarePlanDto): CarePlan => ({
-  id: dbPlan.id!,
-  familyId: dbPlan.family_id,
-  title: dbPlan.title,
-  description: dbPlan.description || "",
-  status: dbPlan.status || 'active',
-  createdAt: dbPlan.created_at || new Date().toISOString(),
-  updatedAt: dbPlan.updated_at || new Date().toISOString(),
-  metadata: dbPlan.metadata as unknown as CarePlanMetadata
-});
+export const adaptCarePlanFromDb = (dbPlan: CarePlanDto): CarePlan => {
+  // Parse the metadata and ensure weekend_schedule_type is included
+  const metadata = dbPlan.metadata as unknown as CarePlanMetadata;
+  
+  // If weekend coverage is yes but no type is specified, set a default
+  if (metadata && metadata.weekendCoverage === 'yes' && !metadata.weekendScheduleType) {
+    metadata.weekendScheduleType = '6am-6pm'; // Default to full day coverage
+  }
+  
+  return {
+    id: dbPlan.id!,
+    familyId: dbPlan.family_id,
+    title: dbPlan.title,
+    description: dbPlan.description || "",
+    status: dbPlan.status || 'active',
+    createdAt: dbPlan.created_at || new Date().toISOString(),
+    updatedAt: dbPlan.updated_at || new Date().toISOString(),
+    metadata: metadata
+  };
+};
 
 export const adaptCarePlanToDb = (plan: Partial<CarePlan>): Partial<CarePlanDto> => ({
   id: plan.id,
@@ -93,16 +103,22 @@ export const fetchCarePlanById = async (planId: string): Promise<CarePlan | null
 export const createCarePlan = async (carePlan: Omit<CarePlan, 'id' | 'createdAt' | 'updatedAt'>): Promise<CarePlan | null> => {
   try {
     const id = uuidv4();
+    
+    // Ensure the metadata has valid weekend schedule type if weekend coverage is enabled
+    if (carePlan.metadata && carePlan.metadata.weekendCoverage === 'yes' && !carePlan.metadata.weekendScheduleType) {
+      carePlan.metadata.weekendScheduleType = '6am-6pm'; // Default to full day coverage
+    }
+    
     const dbCarePlan = adaptCarePlanToDb({
       ...carePlan,
       id
-    }) as CarePlanDto; // Force type as CarePlanDto to ensure required fields are present
+    }) as CarePlanDto;
     
     console.log("Creating care plan with data:", dbCarePlan);
     
     const { data, error } = await supabase
       .from('care_plans')
-      .insert(dbCarePlan) // Fix: Use a single object instead of array
+      .insert(dbCarePlan)
       .select()
       .single();
       
@@ -117,7 +133,25 @@ export const createCarePlan = async (carePlan: Omit<CarePlan, 'id' | 'createdAt'
       return null;
     }
     
-    const createdPlan = adaptCarePlanFromDb(data as CarePlanDto); // Add explicit cast
+    // Update onboarding progress to mark care plan as completed
+    try {
+      await supabase
+        .from('profiles')
+        .update({
+          onboarding_progress: {
+            currentStep: 'care_team',
+            completedSteps: {
+              care_needs: true,
+              care_plan: true
+            }
+          }
+        })
+        .eq('id', carePlan.familyId);
+    } catch (progressError) {
+      console.warn("Could not update onboarding progress:", progressError);
+    }
+    
+    const createdPlan = adaptCarePlanFromDb(data as CarePlanDto);
     console.log("Successfully created care plan:", createdPlan);
     return createdPlan;
   } catch (error) {

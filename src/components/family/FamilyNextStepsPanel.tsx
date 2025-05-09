@@ -15,6 +15,8 @@ interface OnboardingProgress {
   currentStep?: string;
   completedSteps?: {
     care_needs?: boolean;
+    care_plan?: boolean;
+    care_recipient_story?: boolean;
     [key: string]: boolean | undefined;
   };
 }
@@ -83,15 +85,49 @@ export const FamilyNextStepsPanel = () => {
         // Mark first step as completed if user exists
         updatedSteps[0].completed = true;
         
-        // Mark care needs step as completed based on database status
+        // Get onboarding progress from profile data
         const onboardingProgress = profileData?.onboarding_progress as OnboardingProgress | null;
+        
+        // Mark care needs step as completed based on database status
         if (onboardingProgress?.completedSteps?.care_needs) {
           updatedSteps[1].completed = true;
         }
         
-        // For now, leave the story step with a dummy value
-        // This could be updated based on real data in the future
-        updatedSteps[2].completed = Math.random() > 0.7;
+        // Check if user has created care recipient story
+        if (onboardingProgress?.completedSteps?.care_recipient_story) {
+          updatedSteps[2].completed = true;
+        } else {
+          // Check if care recipient profile exists as another way to verify the story
+          const { data: recipientProfile } = await supabase
+            .from('care_recipient_profiles')
+            .select('id')
+            .eq('user_id', user.id)
+            .maybeSingle();
+            
+          updatedSteps[2].completed = !!recipientProfile;
+        }
+        
+        // Check if there are any care plans created
+        if (onboardingProgress?.completedSteps?.care_plan) {
+          updatedSteps[3].completed = true;
+        } else {
+          const { data: carePlans } = await supabase
+            .from('care_plans')
+            .select('id')
+            .eq('family_id', user.id)
+            .limit(1);
+            
+          updatedSteps[3].completed = carePlans && carePlans.length > 0;
+        }
+        
+        // Check if care team members exist
+        const { data: careTeamMembers } = await supabase
+          .from('care_team_members')
+          .select('id')
+          .eq('family_id', user.id)
+          .limit(1);
+          
+        updatedSteps[4].completed = careTeamMembers && careTeamMembers.length > 0;
         
         setSteps(updatedSteps);
       } catch (err) {
