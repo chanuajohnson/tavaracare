@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
@@ -213,9 +214,13 @@ const FamilyCareNeedsPage = () => {
       });
       
       if (createdPlan) {
+        console.log("Care plan created successfully with ID:", createdPlan.id);
         toast.success("Care plan draft created successfully");
-        navigate(`/family/care-management/care-plan/${createdPlan.id}`);
+        // Fix the navigation path - use the correct route format
+        navigate(`/family/care-management/${createdPlan.id}`);
+        console.log("Navigating to:", `/family/care-management/${createdPlan.id}`);
       } else {
+        console.log("Plan creation returned null or undefined, redirecting to create page");
         // If plan creation fails, still redirect to create page
         navigate('/family/care-management/create');
       }
