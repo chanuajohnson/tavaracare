@@ -16,6 +16,8 @@ import { CarePlanHeader } from "@/components/care-plan/CarePlanHeader";
 import { CarePlanLoadingState } from "@/components/care-plan/CarePlanLoadingState";
 import { CarePlanNotFound } from "@/components/care-plan/CarePlanNotFound";
 import { RemoveTeamMemberDialog } from "@/components/care-plan/RemoveTeamMemberDialog";
+import { Button } from "@/components/ui/button";
+import { ArrowLeft } from "lucide-react";
 
 const CarePlanDetailPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -52,6 +54,15 @@ const CarePlanDetailPage = () => {
       <PageViewTracker actionType="family_care_plan_view" additionalData={{ plan_id: id }} />
       
       <Container className="py-8">
+        <Button 
+          variant="ghost" 
+          className="mb-6" 
+          onClick={() => navigate("/family/care-management")}
+        >
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Back to Care Management
+        </Button>
+        
         <CarePlanHeader carePlan={carePlan} />
 
         <Tabs defaultValue="details" className="w-full">

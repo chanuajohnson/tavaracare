@@ -4,7 +4,10 @@ import { toast } from "sonner";
 import { CarePlan, CarePlanMetadata } from "@/types/carePlan";
 import { Json } from "@/utils/json";
 import { generateShiftsFromCustomDefinitions } from './shiftGenerationService';
-import { v4 as uuidv4 } from 'uuid'; // Add the missing import
+import { v4 as uuidv4 } from 'uuid';
+
+// Constants
+const MAX_DESCRIPTION_LENGTH = 150;
 
 // Define DTO types for internal use
 interface CarePlanDto {
@@ -25,6 +28,12 @@ interface CarePlanInput {
   status?: 'active' | 'completed' | 'cancelled';
   metadata?: CarePlanMetadata;
 }
+
+// Helper function to validate and trim description
+const validateAndTrimDescription = (description?: string): string => {
+  if (!description) return "";
+  return description.trim().substring(0, MAX_DESCRIPTION_LENGTH);
+};
 
 // Adapters for converting between domain and database models
 export const adaptCarePlanFromDb = (dbPlan: CarePlanDto): CarePlan => {
@@ -48,14 +57,21 @@ export const adaptCarePlanFromDb = (dbPlan: CarePlanDto): CarePlan => {
   };
 };
 
-export const adaptCarePlanToDb = (plan: Partial<CarePlan>): Partial<CarePlanDto> => ({
-  id: plan.id,
-  family_id: plan.familyId,
-  title: plan.title,
-  description: plan.description,
-  status: plan.status as 'active' | 'completed' | 'cancelled',
-  metadata: plan.metadata as unknown as Json
-});
+export const adaptCarePlanToDb = (plan: Partial<CarePlan>): Partial<CarePlanDto> => {
+  // Ensure description is validated if provided
+  const processedDescription = plan.description !== undefined
+    ? validateAndTrimDescription(plan.description)
+    : undefined;
+
+  return {
+    id: plan.id,
+    family_id: plan.familyId,
+    title: plan.title,
+    description: processedDescription,
+    status: plan.status as 'active' | 'completed' | 'cancelled',
+    metadata: plan.metadata as unknown as Json
+  };
+};
 
 export const fetchCarePlans = async (familyId: string): Promise<CarePlan[]> => {
   try {
@@ -109,8 +125,14 @@ export const createCarePlan = async (carePlan: Omit<CarePlan, 'id' | 'createdAt'
       carePlan.metadata.weekendScheduleType = '6am-6pm'; // Default to full day coverage
     }
     
-    const dbCarePlan = adaptCarePlanToDb({
+    // Process and validate the description
+    const validatedCarePlan = {
       ...carePlan,
+      description: validateAndTrimDescription(carePlan.description)
+    };
+    
+    const dbCarePlan = adaptCarePlanToDb({
+      ...validatedCarePlan,
       id
     }) as CarePlanDto;
     
@@ -166,6 +188,11 @@ export const updateCarePlan = async (
   updates: Partial<CarePlanInput>
 ): Promise<CarePlan | null> => {
   try {
+    // If description is being updated, validate and trim it
+    if (updates.description !== undefined) {
+      updates.description = validateAndTrimDescription(updates.description);
+    }
+    
     // Convert from domain model input to database model
     const dbUpdates: Partial<CarePlanDto> = {
       title: updates.title,

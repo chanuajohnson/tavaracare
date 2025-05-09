@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/components/providers/AuthProvider";
@@ -60,9 +61,27 @@ const CareManagementPage = () => {
   };
 
   const getWeekdayCoverageDisplay = (plan: CarePlan) => {
-    if (!plan.metadata?.weekdayCoverage) return "None";
+    if (!plan.metadata?.weekdayCoverage || plan.metadata.weekdayCoverage === 'none') return "None";
     
-    return plan.metadata.weekdayCoverage;
+    switch (plan.metadata.weekdayCoverage) {
+      case '8am-4pm':
+        return "Standard (8AM-4PM)";
+      case '8am-6pm':
+        return "Extended (8AM-6PM)";
+      case '6am-6pm':
+        return "Full day (6AM-6PM)";
+      case '6pm-8am':
+        return "Overnight (6PM-8AM)";
+      default:
+        return plan.metadata.weekdayCoverage;
+    }
+  };
+
+  // Truncate description to a reasonable length
+  const truncateDescription = (description: string, maxLength: number = 60) => {
+    if (!description) return "No description provided";
+    if (description.length <= maxLength) return description;
+    return `${description.substring(0, maxLength)}...`;
   };
 
   return (
@@ -107,36 +126,47 @@ const CareManagementPage = () => {
                 className="cursor-pointer hover:shadow-md transition-shadow" 
                 onClick={() => handleViewPlan(plan.id)}
               >
-                <CardHeader>
+                <CardHeader className="pb-3">
                   <CardTitle className="flex items-center gap-2">
                     <FileText className="h-5 w-5 text-primary" />
                     {plan.title}
                   </CardTitle>
-                  <CardDescription>
-                    {plan.description || "No description provided"}
+                  <CardDescription className="line-clamp-2">
+                    {truncateDescription(plan.description)}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
-                    <div className="flex items-center text-sm">
-                      <Clock className="h-4 w-4 mr-2 text-muted-foreground" />
-                      <span className="text-muted-foreground">Type: </span>
-                      <span className="ml-2 font-medium">{getPlanTypeDisplay(plan)}</span>
+                    <div className="grid grid-cols-2 gap-2 text-sm">
+                      <div className="flex items-center">
+                        <Clock className="h-4 w-4 mr-2 text-muted-foreground" />
+                        <span className="text-muted-foreground mr-1">Type:</span>
+                        <span className="font-medium truncate">{getPlanTypeDisplay(plan)}</span>
+                      </div>
+                      
+                      {plan.metadata?.planType !== 'on-demand' && (
+                        <div className="flex items-center">
+                          <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
+                          <span className="text-muted-foreground mr-1">Coverage:</span>
+                          <span className="font-medium truncate">{getWeekdayCoverageDisplay(plan)}</span>
+                        </div>
+                      )}
                     </div>
                     
-                    {plan.metadata?.planType !== 'on-demand' && (
-                      <div className="flex items-center text-sm">
-                        <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
-                        <span className="text-muted-foreground">Weekday Coverage: </span>
-                        <span className="ml-2 font-medium">{getWeekdayCoverageDisplay(plan)}</span>
-                      </div>
-                    )}
-                    
                     <div className="flex justify-between text-sm text-muted-foreground pt-2 border-t">
-                      <div>Status: <span className={`font-medium ${plan.status === 'active' ? 'text-green-600' : plan.status === 'completed' ? 'text-blue-600' : 'text-orange-600'}`}>
-                        {plan.status.charAt(0).toUpperCase() + plan.status.slice(1)}
-                      </span></div>
-                      <div>Updated: {new Date(plan.updatedAt).toLocaleDateString()}</div>
+                      <div className="flex items-center">
+                        <span>Status: </span>
+                        <span className={`ml-1 font-medium ${
+                          plan.status === 'active' ? 'text-green-600' : 
+                          plan.status === 'completed' ? 'text-blue-600' : 
+                          'text-orange-600'
+                        }`}>
+                          {plan.status.charAt(0).toUpperCase() + plan.status.slice(1)}
+                        </span>
+                      </div>
+                      <div className="text-xs">
+                        Updated {new Date(plan.updatedAt).toLocaleDateString()}
+                      </div>
                     </div>
                   </div>
                 </CardContent>
