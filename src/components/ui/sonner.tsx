@@ -1,33 +1,35 @@
 
-import { Toaster as Sonner } from "sonner"
-import { cn } from "@/lib/utils"
-import type { ComponentProps } from "react"
+import React from 'react';
 
-type ToasterProps = ComponentProps<typeof Sonner>
-
-const Toaster = ({ ...props }: ToasterProps) => {
-  return (
-    <Sonner
-      theme="system"
-      className={cn("toaster group", props.className)}
-      toastOptions={{
-        classNames: {
-          toast:
-            "group toast group-[.toaster]:bg-background group-[.toaster]:text-foreground group-[.toaster]:border-border group-[.toaster]:shadow-lg",
-          description: "group-[.toast]:text-muted-foreground",
-          actionButton:
-            "group-[.toast]:bg-primary group-[.toast]:text-primary-foreground",
-          cancelButton:
-            "group-[.toast]:bg-muted group-[.toast]:text-muted-foreground",
-          success: "group-[.toast]:border-l-4 group-[.toast]:border-l-green-500",
-          error: "group-[.toast]:border-l-4 group-[.toast]:border-l-red-500",
-          warning: "group-[.toast]:border-l-4 group-[.toast]:border-l-yellow-500",
-          info: "group-[.toast]:border-l-4 group-[.toast]:border-l-blue-500",
-        },
-      }}
-      {...props}
-    />
-  )
+export function toast(message: string | { title?: string; description?: string; variant?: 'default' | 'destructive' }) {
+  // In a real application, this would display a toast notification
+  if (typeof message === 'string') {
+    console.log(`[TOAST] ${message}`);
+  } else {
+    console.log(`[TOAST] ${message.title}: ${message.description} (${message.variant || 'default'})`);
+  }
+  
+  return {
+    dismiss: () => {},
+    success: (msg: string) => {
+      console.log(`[TOAST:SUCCESS] ${msg}`);
+    },
+    error: (msg: string) => {
+      console.log(`[TOAST:ERROR] ${msg}`);
+    },
+    info: (msg: string) => {
+      console.log(`[TOAST:INFO] ${msg}`);
+    },
+    loading: (msg: string) => {
+      console.log(`[TOAST:LOADING] ${msg}`);
+    }
+  };
 }
 
-export { Toaster }
+export const Toaster = () => {
+  return (
+    <div id="toaster-container" className="fixed top-4 right-4 z-50">
+      {/* This would render toast notifications in a real implementation */}
+    </div>
+  );
+};

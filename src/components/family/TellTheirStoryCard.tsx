@@ -26,7 +26,7 @@ export const TellTheirStoryCard = () => {
       
       // Check if user is authenticated, and if not, use the requireAuth function
       if (!user) {
-        requireAuth('tell their story', '/family/story');
+        requireAuth('tell their story', '/family/story'); // Use correct params
         setIsLoading(false);
         return;
       }

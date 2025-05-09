@@ -1,7 +1,6 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
-import { User } from '@supabase/supabase-js';
 
 // Extended User type to match what components expect
 type ExtendedUser = {
@@ -12,6 +11,7 @@ type ExtendedUser = {
     full_name?: string;
     first_name?: string;
     last_name?: string;
+    role?: string;
   };
   email_confirmed_at?: string;
   confirmed_at?: string;
@@ -22,9 +22,9 @@ interface AuthContextType {
   isLoading: boolean;
   userRole: string | null;
   isProfileComplete: boolean;
-  isLoggedIn: boolean; // Added property
-  clearLastAction: () => void; // Added method
-  requireAuth: () => boolean; // Added method
+  isLoggedIn: boolean;
+  clearLastAction: () => void;
+  requireAuth: (action?: string, returnPath?: string) => boolean;
   signIn: (email: string, password: string) => Promise<any>;
   signOut: () => Promise<void>;
 }
@@ -141,8 +141,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     localStorage.removeItem('pendingProfileUpdate');
   };
   
-  const requireAuth = () => {
+  const requireAuth = (action?: string, returnPath?: string) => {
     if (!user && !isLoading) {
+      if (action) {
+        localStorage.setItem('lastAction', action);
+      }
+      if (returnPath) {
+        localStorage.setItem('lastPath', returnPath);
+      }
       return false;
     }
     return true;
