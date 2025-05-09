@@ -1,118 +1,113 @@
+// This file is a compatibility layer that forwards to our standardized implementation
+// Import the supabase client from the standard location
+import { 
+  supabase,
+  getCurrentEnvironment, 
+  isDevelopment, 
+  isProduction, 
+  getEnvironmentInfo, 
+  verifySchemaCompatibility, 
+  resetAuthState,
+  debugSupabaseConnection
+} from '@/integrations/supabase/client';
 
-import { createClient } from '@supabase/supabase-js';
-
-// This is a placeholder setup - in a real application, you would use environment variables
-const supabaseUrl = 'https://cpdfmyemjrefnhddyrck.supabase.co';
-const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNwZGZteWVtanJlZm5oZGR5cmNrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mzk4MjcwODAsImV4cCI6MjA1NTQwMzA4MH0.9LwhYWSuTbiqvSGGPAT7nfz8IFZIgnNzYoa_hLQ_2PY';
-
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
-
-// Environment utility functions
-export const getEnvironmentInfo = () => {
-  // Extract the project ID from the URL if possible
-  const projectIdMatch = supabaseUrl?.match(/https:\/\/(.+)\.supabase\.co/);
-  const projectId = projectIdMatch ? projectIdMatch[1] : 'unknown';
-  
-  return {
-    environment: process.env.NODE_ENV || 'development',
-    supabaseUrl: projectId ? `${projectId}.supabase.co` : 'None set',
-    projectId,
-    usingFallbacks: false,
-  };
-};
-
-// User deletion utility
-export const deleteUserWithCleanup = async (userId: string) => {
+// Create a function to get user role from the profiles table
+export const getUserRole = async () => {
   try {
-    // In a real application, this would delete the user and clean up related data
-    // For now, just a placeholder
-    console.log(`Deleting user ${userId}`);
-    const { error } = await supabase.auth.admin.deleteUser(userId);
+    const { data: { user } } = await supabase.auth.getUser();
     
-    if (error) {
-      return { success: false, error: error.message };
-    }
+    if (!user) return null;
     
-    return { success: true };
-  } catch (error: any) {
-    return { success: false, error: error.message };
-  }
-};
-
-// Auth state management
-export const resetAuthState = async () => {
-  try {
-    await supabase.auth.signOut();
-    localStorage.removeItem('supabase.auth.token');
-    return { success: true };
-  } catch (error) {
-    console.error('Error resetting auth state:', error);
-    return { success: false, error };
-  }
-};
-
-// Debug connection utility
-export const debugSupabaseConnection = async () => {
-  try {
-    // Check basic connection
-    const { data, error } = await supabase
+    const { data: profile, error } = await supabase
       .from('profiles')
-      .select('count')
-      .limit(1);
+      .select('role')
+      .eq('id', user.id)
+      .maybeSingle();
     
     if (error) {
-      console.error('Connection error:', error);
-      return {
-        connected: false,
-        message: error.message,
-        details: error,
-        timestamp: new Date().toISOString()
-      };
+      console.error('[getUserRole] Error fetching user role:', error);
+      return null;
     }
     
-    // If we get here, connection is working
-    return {
-      connected: true,
-      message: 'Successfully connected to Supabase',
-      environmentInfo: getEnvironmentInfo(),
-      timestamp: new Date().toISOString()
-    };
+    return profile?.role || null;
   } catch (err) {
-    console.error('Unexpected error during connection check:', err);
-    return {
-      connected: false,
-      message: err instanceof Error ? err.message : 'Unknown error',
-      details: err,
-      timestamp: new Date().toISOString()
-    };
+    console.error('[getUserRole] Error:', err);
+    return null;
   }
 };
 
-// Supabase initialization
-export const initializeSupabase = async () => {
+// Function to ensure auth context is valid
+export const ensureAuthContext = async () => {
   try {
-    const { data, error } = await supabase.from('profiles').select('count').limit(1);
-    return !error;
-  } catch (error) {
-    console.error('Failed to initialize Supabase:', error);
+    const { data: { session } } = await supabase.auth.getSession();
+    return !!session?.user;
+  } catch (err) {
+    console.error('[ensureAuthContext] Error:', err);
     return false;
   }
 };
 
-// Check if Supabase is experiencing issues
+// Function to ensure storage buckets exist
+export const ensureStorageBuckets = async () => {
+  // This is a placeholder - in real apps, you'd check or create storage buckets
+  // This would typically be done via admin API, not client-side
+  return true;
+};
+
+// Function to delete a user with cleanup
+export const deleteUserWithCleanup = async (userId: string): Promise<{ success: boolean; error?: string }> => {
+  try {
+    // This would normally call the admin function
+    const { error } = await supabase.rpc('admin_delete_user', {
+      target_user_id: userId
+    });
+    
+    if (error) throw error;
+    return { success: true };
+  } catch (err: any) {
+    console.error('[deleteUserWithCleanup] Error:', err);
+    return { success: false, error: err.message };
+  }
+};
+
+// Initialize supabase function to verify connection on app start
+export const initializeSupabase = async () => {
+  try {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('count')
+      .limit(1);
+      
+    return !error;
+  } catch (err) {
+    console.error('[initializeSupabase] Error:', err);
+    return false;
+  }
+};
+
+// Check if supabase is experiencing issues
 export const isSupabaseExperiencingIssues = () => {
-  // This would be implemented with actual checks in a real app
+  // This is a basic implementation - in a real app, you might
+  // check for patterns of errors or use a dedicated status endpoint
+  const recentErrors = localStorage.getItem('supabase_recent_errors');
+  if (recentErrors) {
+    const errors = JSON.parse(recentErrors);
+    return errors.length > 3;  // If more than 3 recent errors, report issues
+  }
   return false;
 };
 
-// Storage bucket functions
-export const ensureStorageBuckets = async () => {
-  // Placeholder function
-  return { success: true };
+// Re-export everything
+export { 
+  supabase, 
+  getCurrentEnvironment,
+  isDevelopment,
+  isProduction, 
+  getEnvironmentInfo,
+  verifySchemaCompatibility, 
+  resetAuthState,
+  debugSupabaseConnection
 };
 
-// Auth context functions
-export const ensureAuthContext = async () => {
-  // Placeholder function
-  return { success: true };
-};
+// For backwards compatibility
+export default supabase;

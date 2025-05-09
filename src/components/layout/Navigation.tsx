@@ -1,4 +1,3 @@
-
 import { Link, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/components/providers/AuthProvider';
@@ -6,13 +5,37 @@ import {
   LogOut,
   LogIn,
   LayoutDashboard,
+  ChevronDown,
   Loader2,
+  BarChart,
+  Users,
+  UserPlus,
+  Home,
+  HeartPulse,
+  BookOpen,
+  MessageSquare,
+  Calendar,
+  UserCircle,
+  LifeBuoy,
+  Building2,
+  FileText,
+  CreditCard,
+  Info,
   Menu,
 } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+  DropdownMenuGroup,
+  DropdownMenuLabel,
+} from "@/components/ui/dropdown-menu";
+import { toast } from 'sonner';
 import { resetAuthState } from '@/lib/supabase';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useState } from 'react';
-import { toast } from 'sonner';
 
 export function Navigation() {
   const { user, signOut, isLoading, userRole } = useAuth();
@@ -28,8 +51,7 @@ export function Navigation() {
     userDetails: user ? {
       id: user.id,
       email: user.email,
-      // Fixed type error here - safely accessing nested property
-      hasMetadataRole: !!(user.user_metadata && user.user_metadata.role)
+      hasMetadataRole: !!user.user_metadata?.role
     } : null
   });
 
@@ -101,7 +123,7 @@ export function Navigation() {
           </Button>
         )}
         
-        {/* Navigation links */}
+        {/* Navigation links - shown on desktop or when menu is open on mobile */}
         <div className={`${isMobile ? (isMenuOpen ? "flex flex-col absolute top-16 left-0 right-0 bg-background border-b z-50 p-4 space-y-3" : "hidden") : "flex items-center gap-4"}`}>
           {(!isMobile || isMenuOpen) && (
             <>
@@ -113,14 +135,35 @@ export function Navigation() {
                 Features
               </Link>
               
-              {user && dashboardPath && (
+              {isSpecificUser && (
+                <Link to="/admin/user-journey" className="flex items-center gap-1 text-indigo-600 hover:text-indigo-700">
+                  <BarChart className="h-4 w-4" />
+                  <span className="hidden sm:inline">User Journey</span>
+                </Link>
+              )}
+              
+              {user && dashboardPath ? (
                 <Link to={dashboardPath} className="flex items-center gap-1 text-gray-700 hover:text-primary">
                   <LayoutDashboard className="h-4 w-4" />
                   <span className={isMobile ? "inline" : "hidden sm:inline"}>
                     {userRole ? `${userRole.charAt(0).toUpperCase() + userRole.slice(1)} Dashboard` : 'Dashboard'}
                   </span>
                 </Link>
-              )}
+              ) : !user ? (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="sm" className="flex items-center gap-1">
+                      <LayoutDashboard className="h-4 w-4" />
+                      <span className={isMobile ? "inline" : "hidden sm:inline"}>Navigation</span>
+                      <ChevronDown className="h-3 w-3" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-56">
+                    {/* Keep existing dropdown menu content */}
+                    {/* ... keep existing code (dropdown menu groups and items) */}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              ) : null}
               
               {isLoading ? (
                 <Button variant="outline" size="sm" disabled className="flex items-center gap-2">
@@ -150,4 +193,4 @@ export function Navigation() {
       </div>
     </nav>
   );
-}
+};

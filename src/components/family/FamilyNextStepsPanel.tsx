@@ -2,22 +2,12 @@
 import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { CheckCircle2, Circle, List, ArrowRight, Clock, Edit, PenSquare } from "lucide-react";
+import { CheckCircle2, Circle, List, ArrowRight, Clock } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { SubscriptionFeatureLink } from "@/components/subscription/SubscriptionFeatureLink";
-import { supabase } from "@/lib/supabase";
-
-// Type for onboarding progress structure
-interface OnboardingProgress {
-  currentStep?: string;
-  completedSteps?: {
-    care_needs?: boolean;
-    [key: string]: boolean | undefined;
-  };
-}
 
 export const FamilyNextStepsPanel = () => {
   const { user } = useAuth();
@@ -28,96 +18,60 @@ export const FamilyNextStepsPanel = () => {
       title: "Complete your profile", 
       description: "Add your contact information and preferences", 
       completed: false, 
-      link: "/registration/family",
-      buttonText: "Complete"
+      link: "/registration/family" 
     },
     { 
       id: 2, 
-      title: "Complete your loved one's Care Needs", 
-      description: "Help us understand specific care requirements", 
+      title: "Complete your loved one's profile", 
+      description: "Add details about your care recipient", 
       completed: false, 
-      link: "/careneeds/family",
-      buttonText: "Complete"
+      link: "/registration/family" 
     },
     { 
       id: 3, 
-      title: "Tell Your Loved One's Legacy Story", 
-      description: "Share their life story to help caregivers connect better", 
+      title: "Set care type preferences", 
+      description: "Specify the types of care needed", 
       completed: false, 
-      link: "/family/legacy-stories",
-      buttonText: "Complete"
+      link: "/registration/family" 
     },
     { 
       id: 4, 
+      title: "Complete initial care assessment", 
+      description: "Help us understand your care needs better", 
+      completed: false, 
+      link: "/family/features-overview" 
+    },
+    { 
+      id: 5, 
       title: "Connect with caregivers", 
       description: "Start building your care team", 
       completed: false, 
-      link: "/family/caregiver-matching",
-      buttonText: "Connect"
+      link: "/family/features-overview" 
     }
   ]);
 
-  // Check profile status including care needs and legacy stories
+  // This would normally be fetched from the backend
+  // Mock user profile completeness for demonstration purposes
   useEffect(() => {
-    const checkProfileStatus = async () => {
-      if (!user?.id) return;
-
-      try {
-        // Get profile data
-        const { data: profileData, error: profileError } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', user.id)
-          .single();
-          
-        if (profileError) {
-          console.error("Error fetching profile:", profileError);
-          return;
-        }
-        
-        // Check if legacy story exists
-        const { data: storyData, error: storyError } = await supabase
-          .from('care_recipient_profiles')
-          .select('id')
-          .eq('user_id', user.id)
-          .single();
-        
-        if (storyError && !storyError.message.includes('No rows found')) {
-          console.error("Error checking legacy story:", storyError);
-        }
-        
-        const hasLegacyStory = !!storyData;
-        
-        // Safely check onboarding progress
-        const onboardingProgress = profileData?.onboarding_progress as OnboardingProgress | null;
-        const careNeedsComplete = !!onboardingProgress?.completedSteps?.care_needs;
-        
-        const updatedSteps = [...steps];
-        
-        // Mark steps as completed based on actual data
-        if (profileData) {
-          // Step 1: Profile completed if basic info exists
-          const profileComplete = !!(profileData.full_name || (profileData.first_name && profileData.last_name));
-          updatedSteps[0].completed = profileComplete;
-          updatedSteps[0].buttonText = profileComplete ? "Edit" : "Complete";
-          
-          // Step 2: Care needs
-          updatedSteps[1].completed = careNeedsComplete;
-          updatedSteps[1].buttonText = careNeedsComplete ? "Edit" : "Complete";
-          
-          // Step 3: Legacy story
-          updatedSteps[2].completed = hasLegacyStory;
-          updatedSteps[2].buttonText = hasLegacyStory ? "Edit" : "Complete";
-        }
-        
-        setSteps(updatedSteps);
-      } catch (error) {
-        console.error("Error checking profile status:", error);
+    // Simulate checking profile status
+    const checkProfileStatus = () => {
+      const updatedSteps = [...steps];
+      // Mark first step as completed if user exists
+      if (user) {
+        updatedSteps[0].completed = true;
       }
+      
+      // Randomly mark some steps as completed for demonstration
+      if (user) {
+        updatedSteps[1].completed = Math.random() > 0.5;
+        updatedSteps[2].completed = Math.random() > 0.7;
+      }
+      
+      setSteps(updatedSteps);
     };
     
     checkProfileStatus();
-  }, [user, steps]);
+  }, [user]);
 
   const completedSteps = steps.filter(step => step.completed).length;
   const progress = Math.round((completedSteps / steps.length) * 100);
@@ -173,20 +127,14 @@ export const FamilyNextStepsPanel = () => {
                   </div>
                   <p className="text-sm text-gray-500">{step.description}</p>
                 </div>
-                <Link to={step.link}>
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    className="p-0 h-6 text-primary hover:text-primary-600"
-                  >
-                    {step.buttonText}
-                    {step.buttonText === "Edit" ? (
-                      <PenSquare className="ml-1 h-3 w-3" />
-                    ) : (
+                {!step.completed && (
+                  <Link to={step.link}>
+                    <Button variant="ghost" size="sm" className="p-0 h-6 text-primary hover:text-primary-600">
+                      Complete
                       <ArrowRight className="ml-1 h-3 w-3" />
-                    )}
-                  </Button>
-                </Link>
+                    </Button>
+                  </Link>
+                )}
               </li>
             ))}
           </ul>
