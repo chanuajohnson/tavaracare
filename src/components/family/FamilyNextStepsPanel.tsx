@@ -127,10 +127,11 @@ export const FamilyNextStepsPanel = () => {
                   </div>
                   <p className="text-sm text-gray-500">{step.description}</p>
                 </div>
-                {!step.completed && (
+                {/* Modified condition to always show button for the first step regardless of completion status */}
+                {(!step.completed || step.id === 1) && (
                   <Link to={step.link}>
                     <Button variant="ghost" size="sm" className="p-0 h-6 text-primary hover:text-primary-600">
-                      Complete
+                      {step.id === 1 && step.completed ? "Edit" : "Complete"}
                       <ArrowRight className="ml-1 h-3 w-3" />
                     </Button>
                   </Link>
