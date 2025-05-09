@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
@@ -191,6 +190,8 @@ const FamilyCareNeedsPage = () => {
         profileId: user.id,
       };
       
+      console.log("Sending care needs data to backend:", careNeedsData);
+      
       const savedCareNeeds = await saveFamilyCareNeeds(careNeedsData);
       
       if (!savedCareNeeds) {
@@ -234,8 +235,8 @@ const FamilyCareNeedsPage = () => {
         navigate(`/family/care-management/${createdPlan.id}`);
         console.log("Navigation triggered to:", `/family/care-management/${createdPlan.id}`);
       } else {
-        console.log("Plan creation returned null or undefined, redirecting to create page");
-        // If plan creation fails, still redirect to create page
+        console.error("Plan creation returned null or undefined");
+        toast.error("Failed to create care plan");
         navigate('/family/care-management/create');
       }
     } catch (error) {

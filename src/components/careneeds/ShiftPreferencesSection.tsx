@@ -27,13 +27,13 @@ const days = [
   { id: "sunday", label: "Sunday" },
 ];
 
-// Standard care coverage options that match the care plan creation page
+// Standard care coverage options that match the care plan creation page exactly
 const weekdayCoverageOptions = [
-  { value: "8am-4pm", label: "8AM-4PM" },
-  { value: "8am-6pm", label: "8AM-6PM" },
-  { value: "6am-6pm", label: "6AM-6PM" },
-  { value: "6pm-8am", label: "6PM-8AM (Overnight)" },
-  { value: "none", label: "No Regular Coverage" }
+  { value: "8am-4pm", label: "Option 1: Monday - Friday, 8 AM - 4 PM", description: "Standard daytime coverage during business hours." },
+  { value: "8am-6pm", label: "Option 2: Monday - Friday, 8 AM - 6 PM", description: "Extended daytime coverage with later end time." },
+  { value: "6am-6pm", label: "Option 3: Monday - Friday, 6 AM - 6 PM", description: "Extended daytime coverage for more comprehensive care." },
+  { value: "6pm-8am", label: "Option 4: Monday - Friday, 6 PM - 8 AM", description: "Extended nighttime coverage to relieve standard daytime coverage." },
+  { value: "none", label: "No Weekday Coverage", description: "Skip weekday coverage and use on-demand or other shifts." }
 ];
 
 const ShiftPreferencesSection: React.FC<ShiftPreferencesSectionProps> = ({ form }) => {
@@ -46,14 +46,128 @@ const ShiftPreferencesSection: React.FC<ShiftPreferencesSectionProps> = ({ form 
         <CardDescription>Tell us when you need care assistance</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
+        <div className="space-y-4">
+          <h3 className="text-lg font-medium">Plan Type</h3>
+          <p className="text-sm text-muted-foreground">Choose how you want to schedule care</p>
+          
+          {/* This would be implemented as a radio group in actual care plan creation, 
+              but we'll capture data through individual preferences in this form */}
+          <div className="bg-muted/50 p-4 rounded-md">
+            <p className="text-sm text-muted-foreground">
+              Based on your schedule preferences below, we'll recommend the most appropriate plan type
+              (Scheduled Care Plan, On-Demand Care, or Both) when creating your care plan.
+            </p>
+          </div>
+        </div>
+
+        <FormField
+          control={form.control}
+          name="weekdayCoverage"
+          render={({ field }) => (
+            <FormItem className="space-y-3">
+              <FormLabel className="text-lg font-medium">Primary Weekday Coverage</FormLabel>
+              <FormDescription>
+                Select your preferred weekday caregiver schedule
+              </FormDescription>
+              <FormControl>
+                <RadioGroup
+                  onValueChange={field.onChange}
+                  defaultValue={field.value}
+                  className="flex flex-col space-y-2"
+                >
+                  {weekdayCoverageOptions.map((option) => (
+                    <FormItem
+                      key={option.value}
+                      className="flex flex-col items-start space-x-0 space-y-1 rounded-md border p-4"
+                    >
+                      <div className="flex items-center space-x-3 w-full">
+                        <FormControl>
+                          <RadioGroupItem value={option.value} />
+                        </FormControl>
+                        <div className="space-y-0.5 w-full">
+                          <FormLabel className="font-medium">
+                            {option.label}
+                          </FormLabel>
+                          <FormDescription>
+                            {option.description}
+                          </FormDescription>
+                        </div>
+                      </div>
+                    </FormItem>
+                  ))}
+                </RadioGroup>
+              </FormControl>
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="weekendCoverage"
+          render={({ field }) => (
+            <FormItem className="space-y-3">
+              <FormLabel className="text-lg font-medium">Weekend Coverage</FormLabel>
+              <FormDescription>
+                Do you need a primary weekend caregiver?
+              </FormDescription>
+              <FormControl>
+                <RadioGroup
+                  onValueChange={field.onChange}
+                  defaultValue={field.value}
+                  className="flex flex-col space-y-2"
+                >
+                  <FormItem
+                    className="flex flex-col items-start space-x-0 space-y-1 rounded-md border p-4"
+                  >
+                    <div className="flex items-center space-x-3 w-full">
+                      <FormControl>
+                        <RadioGroupItem value="yes" />
+                      </FormControl>
+                      <div className="space-y-0.5 w-full">
+                        <FormLabel className="font-medium">
+                          Yes: Saturday - Sunday, 6 AM - 6 PM
+                        </FormLabel>
+                        <FormDescription>
+                          Daytime weekend coverage with a dedicated caregiver.
+                        </FormDescription>
+                      </div>
+                    </div>
+                  </FormItem>
+                  <FormItem
+                    className="flex flex-col items-start space-x-0 space-y-1 rounded-md border p-4"
+                  >
+                    <div className="flex items-center space-x-3 w-full">
+                      <FormControl>
+                        <RadioGroupItem value="no" />
+                      </FormControl>
+                      <div className="space-y-0.5 w-full">
+                        <FormLabel className="font-medium">
+                          No Weekend Coverage
+                        </FormLabel>
+                        <FormDescription>
+                          Skip regular weekend coverage.
+                        </FormDescription>
+                      </div>
+                    </div>
+                  </FormItem>
+                </RadioGroup>
+              </FormControl>
+            </FormItem>
+          )}
+        />
+
+        <div className="space-y-4">
+          <h3 className="text-lg font-medium">Custom Shifts</h3>
+          <p className="text-sm text-muted-foreground">Define your own custom recurring shifts with specific days and times</p>
+        </div>
+
         <FormField
           control={form.control}
           name="preferredDays"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Preferred Days</FormLabel>
-              <FormDescription>Select the days when care is needed</FormDescription>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mt-2">
+              <FormLabel>Select Days</FormLabel>
+              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-7 gap-2 mt-2">
                 {days.map((day) => (
                   <FormItem
                     key={day.id}
@@ -82,88 +196,13 @@ const ShiftPreferencesSection: React.FC<ShiftPreferencesSectionProps> = ({ form 
           )}
         />
 
-        <FormField
-          control={form.control}
-          name="weekdayCoverage"
-          render={({ field }) => (
-            <FormItem className="space-y-3">
-              <FormLabel>Weekday Coverage</FormLabel>
-              <FormDescription>
-                Select your preferred time range for weekday care
-              </FormDescription>
-              <FormControl>
-                <RadioGroup
-                  onValueChange={field.onChange}
-                  defaultValue={field.value}
-                  className="flex flex-col space-y-1"
-                >
-                  {weekdayCoverageOptions.map((option) => (
-                    <FormItem
-                      key={option.value}
-                      className="flex items-center space-x-3 space-y-0 rounded-md border p-3"
-                    >
-                      <FormControl>
-                        <RadioGroupItem value={option.value} />
-                      </FormControl>
-                      <FormLabel className="font-normal">
-                        {option.label}
-                      </FormLabel>
-                    </FormItem>
-                  ))}
-                </RadioGroup>
-              </FormControl>
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="weekendCoverage"
-          render={({ field }) => (
-            <FormItem className="space-y-3">
-              <FormLabel>Weekend Coverage</FormLabel>
-              <FormDescription>
-                Do you need care coverage on weekends?
-              </FormDescription>
-              <FormControl>
-                <RadioGroup
-                  onValueChange={field.onChange}
-                  defaultValue={field.value}
-                  className="flex flex-col space-y-1"
-                >
-                  <FormItem
-                    className="flex items-center space-x-3 space-y-0 rounded-md border p-3"
-                  >
-                    <FormControl>
-                      <RadioGroupItem value="yes" />
-                    </FormControl>
-                    <FormLabel className="font-normal">
-                      Yes (6AM-6PM)
-                    </FormLabel>
-                  </FormItem>
-                  <FormItem
-                    className="flex items-center space-x-3 space-y-0 rounded-md border p-3"
-                  >
-                    <FormControl>
-                      <RadioGroupItem value="no" />
-                    </FormControl>
-                    <FormLabel className="font-normal">
-                      No
-                    </FormLabel>
-                  </FormItem>
-                </RadioGroup>
-              </FormControl>
-            </FormItem>
-          )}
-        />
-
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <FormField
             control={form.control}
             name="preferredTimeStart"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Custom Start Time (Optional)</FormLabel>
+                <FormLabel>Start Time</FormLabel>
                 <Select
                   onValueChange={field.onChange}
                   defaultValue={field.value}
@@ -190,7 +229,7 @@ const ShiftPreferencesSection: React.FC<ShiftPreferencesSectionProps> = ({ form 
             name="preferredTimeEnd"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Custom End Time (Optional)</FormLabel>
+                <FormLabel>End Time</FormLabel>
                 <Select
                   onValueChange={field.onChange}
                   defaultValue={field.value}

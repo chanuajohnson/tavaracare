@@ -85,53 +85,42 @@ export const fetchCarePlanById = async (planId: string): Promise<CarePlan | null
   }
 };
 
-export const createCarePlan = async (plan: CarePlanInput): Promise<CarePlan | null> => {
+/**
+ * Create a new care plan
+ */
+export const createCarePlan = async (carePlan: Omit<CarePlan, 'id' | 'createdAt' | 'updatedAt'>): Promise<CarePlan | null> => {
   try {
-    // Convert from domain model input to database model
-    const dbPlan: CarePlanDto = {
-      family_id: plan.familyId,
-      title: plan.title,
-      description: plan.description,
-      status: plan.status || 'active',
-      metadata: plan.metadata as unknown as Json
-    };
-
+    const id = uuidv4();
+    const dbCarePlan = adaptCarePlanToDb({
+      ...carePlan,
+      id
+    });
+    
+    console.log("Creating care plan with data:", dbCarePlan);
+    
     const { data, error } = await supabase
       .from('care_plans')
-      .insert([dbPlan])
+      .insert([dbCarePlan])
       .select()
       .single();
-
+      
     if (error) {
-      throw error;
-    }
-
-    toast.success("Care plan created successfully");
-    
-    if (data) {
-      const carePlan = adaptCarePlanFromDb(data as CarePlanDto);
-      
-      // Generate shifts from custom definitions if provided
-      if (carePlan.metadata?.customShifts?.length) {
-        try {
-          await generateShiftsFromCustomDefinitions(
-            carePlan.id,
-            carePlan.familyId,
-            carePlan.metadata.customShifts
-          );
-        } catch (shiftError) {
-          console.error("Error generating custom shifts:", shiftError);
-          toast.warning("Care plan created, but there was an issue creating custom shifts.");
-        }
-      }
-      
-      return carePlan;
+      console.error("[carePlanService] createCarePlan error:", error);
+      toast.error("Failed to create care plan");
+      return null;
     }
     
-    return null;
+    if (!data) {
+      console.error(`[carePlanService] Inserted care plan with ID ${id} not found`);
+      return null;
+    }
+    
+    const createdPlan = adaptCarePlanFromDb(data);
+    console.log("Successfully created care plan:", createdPlan);
+    return createdPlan;
   } catch (error) {
-    console.error("Error creating care plan:", error);
-    toast.error("Failed to create care plan");
+    console.error("[carePlanService] createCarePlan exception:", error);
+    toast.error("An unexpected error occurred when creating the care plan");
     return null;
   }
 };
