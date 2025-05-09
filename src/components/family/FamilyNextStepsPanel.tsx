@@ -22,10 +22,10 @@ export const FamilyNextStepsPanel = () => {
     },
     { 
       id: 2, 
-      title: "Set care type preferences", 
+      title: "Complete your loved one's care needs", 
       description: "Specify the types of care needed", 
       completed: false, 
-      link: "/registration/family" 
+      link: "/careneeds/family" 
     },
     { 
       id: 3, 
@@ -127,11 +127,11 @@ export const FamilyNextStepsPanel = () => {
                   </div>
                   <p className="text-sm text-gray-500">{step.description}</p>
                 </div>
-                {/* Modified condition to show button for step 1 and step 3 regardless of completion status */}
-                {(!step.completed || step.id === 1 || step.id === 3) && (
+                {/* Modified condition to show button for steps 1, 2, and 3 regardless of completion status */}
+                {(!step.completed || step.id === 1 || step.id === 2 || step.id === 3) && (
                   <Link to={step.link}>
                     <Button variant="ghost" size="sm" className="p-0 h-6 text-primary hover:text-primary-600">
-                      {(step.id === 1 || step.id === 3) && step.completed ? "Edit" : "Complete"}
+                      {(step.id === 1 || step.id === 2 || step.id === 3) && step.completed ? "Edit" : "Complete"}
                       <ArrowRight className="ml-1 h-3 w-3" />
                     </Button>
                   </Link>
