@@ -3,11 +3,10 @@ import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Container } from "@/components/ui/container";
-import { Clipboard, ArrowRight, ClipboardEdit, ClipboardCheck, Mail, UserCircle } from "lucide-react";
+import { Clipboard, ArrowRight, ClipboardEdit, ClipboardCheck, Mail, UserCircle, Edit } from "lucide-react";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useTracking } from "@/hooks/useTracking";
 import { supabase } from "@/lib/supabase";
-import { Json } from "@/utils/json";
 
 // Type for onboarding progress structure
 interface OnboardingProgress {
@@ -89,18 +88,21 @@ export function FamilyShortcutMenuBar() {
               </Link>
             )}
             
-            {/* Show "Care Needs" button based on completion status */}
-            <Link 
-              to="/careneeds/family"
-              onClick={() => handleTrackButtonClick('navigation_click', 'care_needs')}
-              className="w-full sm:w-auto"
-            >
-              <Button variant="outline" size="sm" className="flex items-center gap-1 w-full">
-                <ClipboardCheck className="h-4 w-4" />
-                <span>Care Needs</span>
-                <ArrowRight className="h-3 w-3 ml-1" />
-              </Button>
-            </Link>
+            {/* Show "Care Needs" button based on completion status - 
+                when complete, change to "Edit Care Needs" or hide completely */}
+            {!careNeedsComplete ? (
+              <Link 
+                to="/careneeds/family"
+                onClick={() => handleTrackButtonClick('navigation_click', 'care_needs')}
+                className="w-full sm:w-auto"
+              >
+                <Button variant="outline" size="sm" className="flex items-center gap-1 w-full">
+                  <ClipboardCheck className="h-4 w-4" />
+                  <span>Care Needs</span>
+                  <ArrowRight className="h-3 w-3 ml-1" />
+                </Button>
+              </Link>
+            ) : null}
             
             <Link 
               to="/family/care-management"

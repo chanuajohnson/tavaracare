@@ -8,6 +8,16 @@ import { useAuth } from "@/components/providers/AuthProvider";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { SubscriptionFeatureLink } from "@/components/subscription/SubscriptionFeatureLink";
+import { supabase } from "@/lib/supabase";
+
+// Type for onboarding progress structure
+interface OnboardingProgress {
+  currentStep?: string;
+  completedSteps?: {
+    care_needs?: boolean;
+    [key: string]: boolean | undefined;
+  };
+}
 
 export const FamilyNextStepsPanel = () => {
   const { user } = useAuth();
@@ -50,24 +60,43 @@ export const FamilyNextStepsPanel = () => {
     }
   ]);
 
-  // This would normally be fetched from the backend
-  // Mock user profile completeness for demonstration purposes
+  // Get the actual completion status from the database
   useEffect(() => {
-    // Simulate checking profile status
-    const checkProfileStatus = () => {
-      const updatedSteps = [...steps];
-      // Mark first step as completed if user exists
-      if (user) {
+    const checkProfileStatus = async () => {
+      if (!user) return;
+
+      try {
+        // Get profile data from Supabase
+        const { data: profileData, error } = await supabase
+          .from('profiles')
+          .select('onboarding_progress')
+          .eq('id', user.id)
+          .single();
+          
+        if (error) {
+          console.error("Error fetching profile data:", error);
+          return;
+        }
+        
+        const updatedSteps = [...steps];
+        
+        // Mark first step as completed if user exists
         updatedSteps[0].completed = true;
-      }
-      
-      // Randomly mark some steps as completed for demonstration
-      if (user) {
-        updatedSteps[1].completed = Math.random() > 0.5;
+        
+        // Mark care needs step as completed based on database status
+        const onboardingProgress = profileData?.onboarding_progress as OnboardingProgress | null;
+        if (onboardingProgress?.completedSteps?.care_needs) {
+          updatedSteps[1].completed = true;
+        }
+        
+        // For now, leave the story step with a dummy value
+        // This could be updated based on real data in the future
         updatedSteps[2].completed = Math.random() > 0.7;
+        
+        setSteps(updatedSteps);
+      } catch (err) {
+        console.error("Error checking profile status:", err);
       }
-      
-      setSteps(updatedSteps);
     };
     
     checkProfileStatus();
