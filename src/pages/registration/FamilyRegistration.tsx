@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { v4 as uuidv4 } from 'uuid';
 import { supabase, ensureStorageBuckets, ensureAuthContext } from '../../lib/supabase';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '../../components/ui/card';
@@ -50,6 +50,29 @@ const FamilyRegistration = () => {
   const [shouldAutoSubmit, setShouldAutoSubmit] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [carePlanId, setCarePlanId] = useState<string | null>(null);
+
+  // Check for edit mode based on URL parameters
+  useEffect(() => {
+    const isEdit = searchParams.get('edit') === 'true';
+    const planId = searchParams.get('careplan');
+    
+    if (isEdit && planId) {
+      setIsEditMode(true);
+      setCarePlanId(planId);
+      console.log("Edit mode activated for care plan:", planId);
+    } else {
+      // Also check local storage as a fallback
+      const storedPlanId = localStorage.getItem("edit_care_plan_id");
+      if (storedPlanId) {
+        setIsEditMode(true);
+        setCarePlanId(storedPlanId);
+        console.log("Edit mode activated from local storage for care plan:", storedPlanId);
+      }
+    }
+  }, [searchParams]);
 
   // Check for auto-redirect flag from chat
   useEffect(() => {
@@ -470,17 +493,29 @@ const FamilyRegistration = () => {
       const sessionId = urlParams.get('session');
       
       // Clear chat session data including auto-redirect flag
-      clearChatSessionData(sessionId || undefined);
-      
-      // Also clear the auto-redirect flag specifically
-      if (sessionId) {
-        localStorage.removeItem(`tavara_chat_auto_redirect_${sessionId}`);
-        localStorage.removeItem(`tavara_chat_transition_${sessionId}`);
+      if (!isEditMode) {
+        clearChatSessionData(sessionId || undefined);
+        
+        // Also clear the auto-redirect flag specifically
+        if (sessionId) {
+          localStorage.removeItem(`tavara_chat_auto_redirect_${sessionId}`);
+          localStorage.removeItem(`tavara_chat_transition_${sessionId}`);
+        }
       }
 
-      toast.success('Registration Complete! Your family caregiver profile has been updated.');
-      
-      navigate('/dashboard/family');
+      // Handle differently based on edit mode
+      if (isEditMode && carePlanId) {
+        toast.success('Profile information updated successfully!');
+        
+        // Clear the stored edit ID
+        localStorage.removeItem("edit_care_plan_id");
+        
+        // Navigate back to the care plan
+        navigate(`/family/care-management/${carePlanId}`);
+      } else {
+        toast.success('Registration Complete! Your family caregiver profile has been updated.');
+        navigate('/dashboard/family');
+      }
     } catch (error: any) {
       console.error('Error updating profile:', error);
       toast.error(error.message || 'Failed to update profile. Please try again.');
@@ -491,9 +526,14 @@ const FamilyRegistration = () => {
 
   return (
     <div className="container max-w-4xl py-10">
-      <h1 className="text-3xl font-bold mb-6">Family Member Registration</h1>
+      <h1 className="text-3xl font-bold mb-6">
+        {isEditMode ? "Update Profile Information" : "Family Member Registration"}
+      </h1>
       <p className="text-gray-500 mb-8">
-        Complete your profile to connect with professional caregivers and community resources.
+        {isEditMode 
+          ? "Update your profile to ensure we have the most up-to-date information."
+          : "Complete your profile to connect with professional caregivers and community resources."
+        }
       </p>
 
       <form ref={formRef} onSubmit={handleSubmit} className="space-y-6">
@@ -991,12 +1031,20 @@ const FamilyRegistration = () => {
           </CardContent>
         </Card>
 
-        <div className="flex justify-end gap-4">
-          <Button type="button" variant="outline" onClick={() => navigate('/')}>
-            Cancel
-          </Button>
-          <Button type="submit" disabled={loading}>
-            {loading ? 'Submitting...' : 'Complete Registration'}
+        <div className="flex justify-end mt-8">
+          <Button 
+            type="submit" 
+            className="bg-primary text-white px-8 py-2 rounded hover:bg-primary/90" 
+            disabled={loading}
+          >
+            {loading ? (
+              <div className="flex items-center">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                {isEditMode ? "Updating..." : "Saving..."}
+              </div>
+            ) : (
+              isEditMode ? "Update Profile" : "Complete Registration"
+            )}
           </Button>
         </div>
       </form>

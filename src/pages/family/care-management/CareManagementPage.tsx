@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/components/providers/AuthProvider";
@@ -5,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Container } from "@/components/ui/container";
 import { PageViewTracker } from "@/components/tracking/PageViewTracker";
-import { FileText, Plus, Users, Calendar, ArrowLeft, Clock, Edit, Settings } from "lucide-react";
+import { FileText, Plus, Users, Calendar, ArrowLeft, Clock, Edit, Pencil, Wheel, Activity } from "lucide-react";
 import { fetchCarePlans, CarePlan } from "@/services/care-plans";
 import { toast } from "sonner";
 
@@ -45,14 +46,32 @@ const CareManagementPage = () => {
     navigate(`/family/care-management/${planId}`);
   };
 
-  const handleEditPlan = (e: React.MouseEvent, planId: string) => {
+  // Edit plan details (title, description, status, schedule)
+  const handleEditPlanDetails = (e: React.MouseEvent, planId: string) => {
     e.stopPropagation(); // Prevent triggering the card click
     navigate(`/family/care-management/create/${planId}`);
   };
 
-  const handleEditCompletePlan = (e: React.MouseEvent, planId: string) => {
+  // Edit registration/profile information
+  const handleEditRegistration = (e: React.MouseEvent, planId: string, familyId: string) => {
     e.stopPropagation(); // Prevent triggering the card click
-    navigate(`/family/care-management/edit-complete/${planId}`);
+    
+    // Store the plan ID in local storage for reference
+    localStorage.setItem("edit_care_plan_id", planId);
+    
+    // Navigate to the registration page with edit parameter
+    navigate(`/registration/family?edit=true&careplan=${planId}`);
+  };
+
+  // Edit care needs information 
+  const handleEditCareNeeds = (e: React.MouseEvent, planId: string, familyId: string) => {
+    e.stopPropagation(); // Prevent triggering the card click
+    
+    // Store the plan ID in local storage for reference
+    localStorage.setItem("edit_care_plan_id", planId);
+    
+    // Navigate to the care needs page with edit parameter
+    navigate(`/careneeds/family?edit=true&careplan=${planId}`);
   };
 
   const getPlanTypeDisplay = (plan: CarePlan) => {
@@ -141,19 +160,28 @@ const CareManagementPage = () => {
                     variant="ghost"
                     size="icon"
                     className="h-8 w-8"
-                    onClick={(e) => handleEditPlan(e, plan.id)}
+                    onClick={(e) => handleEditPlanDetails(e, plan.id)}
                     title="Edit plan details"
                   >
-                    <Edit className="h-4 w-4" />
+                    <Pencil className="h-4 w-4" />
                   </Button>
                   <Button
                     variant="ghost"
                     size="icon"
                     className="h-8 w-8"
-                    onClick={(e) => handleEditCompletePlan(e, plan.id)}
-                    title="Edit complete plan"
+                    onClick={(e) => handleEditRegistration(e, plan.id, plan.family_id)}
+                    title="Edit profile information"
                   >
-                    <Settings className="h-4 w-4" />
+                    <Wheel className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={(e) => handleEditCareNeeds(e, plan.id, plan.family_id)}
+                    title="Edit care needs"
+                  >
+                    <Activity className="h-4 w-4" />
                   </Button>
                 </div>
                 

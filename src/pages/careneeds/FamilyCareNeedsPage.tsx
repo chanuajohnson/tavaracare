@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { motion } from "framer-motion";
@@ -8,8 +8,8 @@ import { useAuth } from "@/components/providers/AuthProvider";
 import { supabase } from "@/lib/supabase";
 import { FamilyCareNeeds } from "@/types/carePlan";
 import { applyPrefillDataToForm, getPrefillDataFromUrl } from "@/utils/chat/prefillReader";
-import { saveFamilyCareNeeds, generateDraftCarePlanFromCareNeeds } from "@/services/familyCareNeedsService";
-import { createCarePlan } from "@/services/care-plans/carePlanService";
+import { saveFamilyCareNeeds, fetchFamilyCareNeeds, generateDraftCarePlanFromCareNeeds } from "@/services/familyCareNeedsService";
+import { createCarePlan, updateCarePlan, fetchCarePlanById } from "@/services/care-plans/carePlanService";
 import { useTracking } from "@/hooks/useTracking";
 import { parseScheduleString, determineWeekdayCoverage, determineWeekendCoverage, determineWeekendScheduleType } from "@/utils/scheduleUtils";
 
@@ -96,6 +96,9 @@ const FamilyCareNeedsPage = () => {
   const [weekendCoverage, setWeekendCoverage] = useState<WeekendScheduleType>("none");
   const navigate = useNavigate();
   const { trackEngagement } = useTracking();
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [carePlanId, setCarePlanId] = useState<string | null>(null);
+  const [searchParams] = useSearchParams();
   
   const form = useForm<z.infer<typeof FormSchema>>({
     resolver: zodResolver(FormSchema),
@@ -125,6 +128,61 @@ const FamilyCareNeedsPage = () => {
       dailyReportRequired: false,
     }
   });
+  
+  // Check for edit mode based on URL parameters
+  useEffect(() => {
+    const isEdit = searchParams.get('edit') === 'true';
+    const planId = searchParams.get('careplan');
+    
+    if (isEdit && planId) {
+      setIsEditMode(true);
+      setCarePlanId(planId);
+      console.log("Edit mode activated for care plan:", planId);
+    } else {
+      // Also check local storage as a fallback
+      const storedPlanId = localStorage.getItem("edit_care_plan_id");
+      if (storedPlanId) {
+        setIsEditMode(true);
+        setCarePlanId(storedPlanId);
+        console.log("Edit mode activated from local storage for care plan:", storedPlanId);
+      }
+    }
+  }, [searchParams]);
+  
+  // Load existing care needs data when in edit mode
+  useEffect(() => {
+    const loadExistingCareNeeds = async () => {
+      if (!user?.id || !isEditMode) return;
+      
+      setIsLoading(true);
+      try {
+        const careNeeds = await fetchFamilyCareNeeds(user.id);
+        console.log("Loaded existing care needs:", careNeeds);
+        
+        if (careNeeds) {
+          // Set weekday and weekend coverage settings
+          setCareSchedule(careNeeds.weekdayCoverage as CareScheduleType || null);
+          setWeekendCoverage(careNeeds.weekendScheduleType as WeekendScheduleType || "none");
+          
+          // Populate form fields
+          Object.entries(careNeeds).forEach(([key, value]) => {
+            if (form.getValues(key as any) !== undefined) {
+              form.setValue(key as any, value);
+            }
+          });
+          
+          toast.success("Loaded existing care needs data for editing");
+        }
+      } catch (error) {
+        console.error("Error loading existing care needs:", error);
+        toast.error("Could not load existing care needs data");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    loadExistingCareNeeds();
+  }, [user?.id, isEditMode, form]);
   
   // Load data from previous registration
   useEffect(() => {
@@ -219,10 +277,9 @@ const FamilyCareNeedsPage = () => {
       const careNeedsData: FamilyCareNeeds = {
         ...formData,
         profileId: user.id,
-        // Use the schedule data with proper typing
         weekdayCoverage: careSchedule || "none",
         weekendCoverage: weekendCoverage === "none" ? 'no' : 'yes',
-        weekendScheduleType: weekendCoverage, // Add the specific weekend schedule type
+        weekendScheduleType: weekendCoverage,
         planType: 'scheduled' // Default to scheduled
       };
       
@@ -236,49 +293,84 @@ const FamilyCareNeedsPage = () => {
       
       console.log("Saved care needs:", savedCareNeeds);
       
-      // Generate draft care plan
-      const draftPlan = generateDraftCarePlanFromCareNeeds(
-        savedCareNeeds,
-        {
-          careRecipientName: profileData?.care_recipient_name,
-          relationship: profileData?.relationship,
-          careTypes: profileData?.care_types
+      // Check if we're in edit mode
+      if (isEditMode && carePlanId) {
+        // Get the existing care plan
+        const existingPlan = await fetchCarePlanById(carePlanId);
+        if (!existingPlan) {
+          throw new Error("Could not find the existing care plan");
         }
-      );
-      
-      console.log("Draft care plan generated:", draftPlan);
-      
-      // Create care plan in database
-      const createdPlan = await createCarePlan({
-        title: draftPlan.title,
-        description: draftPlan.description,
-        familyId: user.id,
-        status: 'active',
-        metadata: {
-          planType: careSchedule ? 'scheduled' : 'on-demand',
-          weekdayCoverage: careSchedule || 'none',
-          weekendCoverage: weekendCoverage !== "none" ? 'yes' : 'no',
-          weekendScheduleType: weekendCoverage, // Add the specific weekend schedule type
-          // We don't need custom shifts from care needs anymore
-          customShifts: []
-        }
-      });
-      
-      if (createdPlan) {
-        console.log("Care plan created successfully with ID:", createdPlan.id);
-        toast.success("Care plan created successfully!");
         
-        // Track care needs completion
-        await trackEngagement('care_needs_completed', {
-          care_plan_id: createdPlan.id
+        // Update plan with the new metadata while preserving other fields
+        await updateCarePlan(carePlanId, {
+          ...existingPlan,
+          metadata: {
+            ...existingPlan.metadata,
+            planType: careSchedule ? 'scheduled' : 'on-demand',
+            weekdayCoverage: careSchedule || 'none',
+            weekendCoverage: weekendCoverage !== "none" ? 'yes' : 'no',
+            weekendScheduleType: weekendCoverage
+          }
         });
         
-        // Navigate directly to the care plan detail page
-        navigate(`/family/care-management/${createdPlan.id}`);
+        console.log("Updated care plan metadata for care plan:", carePlanId);
+        
+        // Clear the stored edit ID
+        localStorage.removeItem("edit_care_plan_id");
+        
+        toast.success("Care needs and plan updated successfully!");
+        
+        // Track care needs update
+        await trackEngagement('care_needs_updated', {
+          care_plan_id: carePlanId
+        });
+        
+        // Navigate back to care plan detail
+        navigate(`/family/care-management/${carePlanId}`);
       } else {
-        console.error("Plan creation returned null or undefined");
-        toast.error("Failed to create care plan");
-        navigate('/family/care-management');
+        // Generate draft care plan (original create flow)
+        const draftPlan = generateDraftCarePlanFromCareNeeds(
+          savedCareNeeds,
+          {
+            careRecipientName: profileData?.care_recipient_name,
+            relationship: profileData?.relationship,
+            careTypes: profileData?.care_types
+          }
+        );
+        
+        console.log("Draft care plan generated:", draftPlan);
+        
+        // Create care plan in database
+        const createdPlan = await createCarePlan({
+          title: draftPlan.title,
+          description: draftPlan.description,
+          familyId: user.id,
+          status: 'active',
+          metadata: {
+            planType: careSchedule ? 'scheduled' : 'on-demand',
+            weekdayCoverage: careSchedule || 'none',
+            weekendCoverage: weekendCoverage !== "none" ? 'yes' : 'no',
+            weekendScheduleType: weekendCoverage,
+            customShifts: []
+          }
+        });
+        
+        if (createdPlan) {
+          console.log("Care plan created successfully with ID:", createdPlan.id);
+          toast.success("Care plan created successfully!");
+          
+          // Track care needs completion
+          await trackEngagement('care_needs_completed', {
+            care_plan_id: createdPlan.id
+          });
+          
+          // Navigate directly to the care plan detail page
+          navigate(`/family/care-management/${createdPlan.id}`);
+        } else {
+          console.error("Plan creation returned null or undefined");
+          toast.error("Failed to create care plan");
+          navigate('/family/care-management');
+        }
       }
     } catch (error: any) {
       console.error("Error on form submission:", error);
@@ -292,10 +384,15 @@ const FamilyCareNeedsPage = () => {
     if (!user?.id) return;
     
     try {
-      // Track that the user chose "Later"
-      await trackEngagement('care_needs_deferred', {});
+      // If in edit mode, just go back to the care plan
+      if (isEditMode && carePlanId) {
+        localStorage.removeItem("edit_care_plan_id");
+        navigate(`/family/care-management/${carePlanId}`);
+        return;
+      }
       
-      // Navigate back to the dashboard
+      // Original behavior for non-edit mode
+      await trackEngagement('care_needs_deferred', {});
       navigate('/dashboard/family');
     } catch (error) {
       console.error("Error handling 'Later' click:", error);
@@ -310,12 +407,17 @@ const FamilyCareNeedsPage = () => {
         transition={{ duration: 0.5 }}
         className="space-y-6"
       >
-        {/* New Care Needs Introduction Card */}
+        {/* Title Card */}
         <Card className="border-l-4 border-l-primary bg-gradient-to-r from-blue-50 to-indigo-50">
           <CardHeader>
-            <CardTitle className="text-xl">Complete Your Care Needs Profile</CardTitle>
+            <CardTitle className="text-xl">
+              {isEditMode ? "Edit Care Needs" : "Complete Your Care Needs Profile"}
+            </CardTitle>
             <CardDescription>
-              Tell us about specific care needs to help match you with the right caregivers
+              {isEditMode 
+                ? "Update the care needs for this care plan" 
+                : "Tell us about specific care needs to help match you with the right caregivers"
+              }
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -329,7 +431,10 @@ const FamilyCareNeedsPage = () => {
         <div className="text-center space-y-2">
           <h1 className="text-3xl font-bold">Family Care Needs</h1>
           <p className="text-gray-500">
-            Tell us about specific care needs to help us create your personalized care plan
+            {isEditMode 
+              ? "Update the specific care needs for your personalized care plan" 
+              : "Tell us about specific care needs to help us create your personalized care plan"
+            }
           </p>
           <Separator className="my-6" />
         </div>
@@ -351,14 +456,17 @@ const FamilyCareNeedsPage = () => {
                 variant="outline" 
                 onClick={handleLaterClick}
               >
-                Later
+                {isEditMode ? "Cancel" : "Later"}
               </Button>
               <Button 
                 type="submit" 
                 disabled={isLoading}
                 className="bg-primary hover:bg-primary/90"
               >
-                {isLoading ? "Creating Care Plan..." : "Create Care Plan"}
+                {isLoading 
+                  ? (isEditMode ? "Updating Care Needs..." : "Creating Care Plan...") 
+                  : (isEditMode ? "Update Care Needs" : "Create Care Plan")
+                }
               </Button>
             </div>
           </form>
