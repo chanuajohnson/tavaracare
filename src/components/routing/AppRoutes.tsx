@@ -34,6 +34,7 @@ const FamilyStoryPage = lazy(() => import("@/pages/family/FamilyStoryPage"));
 import CareManagementPage from "@/pages/family/care-management/CareManagementPage";
 const CreateCarePlanPage = lazy(() => import("@/pages/family/care-management/CreateCarePlanPage"));
 const CarePlanDetailPage = lazy(() => import("@/pages/family/care-management/CarePlanDetailPage"));
+const EditCompleteCareplanPage = lazy(() => import("@/pages/family/care-management/EditCompleteCareplanPage"));
 
 const LegacyStoriesPage = lazy(() => import("@/pages/legacy/LegacyStoriesPage"));
 const FAQPage = lazy(() => import("@/pages/support/FAQPage"));
@@ -101,6 +102,9 @@ export function AppRoutes() {
         <Route path="/family/care-management/create" element={<CreateCarePlanPage />} />
         <Route path="/family/care-management/create/:id" element={<CreateCarePlanPage />} />
         <Route path="/family/care-management/:id" element={<CarePlanDetailPage />} />
+        
+        {/* New route for comprehensive care plan editing */}
+        <Route path="/family/care-management/edit-complete/:id" element={<EditCompleteCareplanPage />} />
         
         <Route path="/legacy-stories" element={<LegacyStoriesPage />} />
         <Route path="/faq" element={<FAQPage />} />

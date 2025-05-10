@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/components/providers/AuthProvider";
@@ -6,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Container } from "@/components/ui/container";
 import { PageViewTracker } from "@/components/tracking/PageViewTracker";
-import { FileText, Plus, Users, Calendar, ArrowLeft, Clock, Edit } from "lucide-react";
+import { FileText, Plus, Users, Calendar, ArrowLeft, Clock, Edit, Settings } from "lucide-react";
 import { fetchCarePlans, CarePlan } from "@/services/care-plans";
 import { toast } from "sonner";
 
@@ -49,6 +48,11 @@ const CareManagementPage = () => {
   const handleEditPlan = (e: React.MouseEvent, planId: string) => {
     e.stopPropagation(); // Prevent triggering the card click
     navigate(`/family/care-management/create/${planId}`);
+  };
+
+  const handleEditCompletePlan = (e: React.MouseEvent, planId: string) => {
+    e.stopPropagation(); // Prevent triggering the card click
+    navigate(`/family/care-management/edit-complete/${planId}`);
   };
 
   const getPlanTypeDisplay = (plan: CarePlan) => {
@@ -132,15 +136,26 @@ const CareManagementPage = () => {
                 className="cursor-pointer hover:shadow-md transition-shadow relative" 
                 onClick={() => handleViewPlan(plan.id)}
               >
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="absolute top-2 right-2 z-10 h-8 w-8"
-                  onClick={(e) => handleEditPlan(e, plan.id)}
-                  title="Edit care plan"
-                >
-                  <Edit className="h-4 w-4" />
-                </Button>
+                <div className="absolute top-2 right-2 z-10 flex gap-1">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={(e) => handleEditPlan(e, plan.id)}
+                    title="Edit plan details"
+                  >
+                    <Edit className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={(e) => handleEditCompletePlan(e, plan.id)}
+                    title="Edit complete plan"
+                  >
+                    <Settings className="h-4 w-4" />
+                  </Button>
+                </div>
                 
                 <CardHeader className="pb-3">
                   <CardTitle className="flex items-center gap-2">
