@@ -28,6 +28,12 @@ const CarePlanDetailPage = () => {
   const [memberToRemove, setMemberToRemove] = useState<CareTeamMemberWithProfile | null>(null);
   const [careNeeds, setCareNeeds] = useState<any>(null);
 
+  // Ensure we have user and id before proceeding
+  if (!user || !id) {
+    console.error("Missing required data:", { user: !!user, id });
+    return <CarePlanLoadingState />;
+  }
+
   const {
     loading,
     carePlan,
@@ -39,8 +45,8 @@ const CarePlanDetailPage = () => {
     reloadCareTeamMembers,
     reloadCareShifts,
   } = useCarePlanData({
-    carePlanId: id!,
-    userId: user!.id,
+    carePlanId: id,
+    userId: user.id,
   });
 
   useEffect(() => {
@@ -97,8 +103,8 @@ const CarePlanDetailPage = () => {
           
           <TabsContent value="team">
             <CareTeamTab 
-              carePlanId={id!}
-              familyId={user!.id}
+              carePlanId={id}
+              familyId={user.id}
               careTeamMembers={careTeamMembers}
               professionals={professionals}
               onMemberAdded={reloadCareTeamMembers}
@@ -111,8 +117,8 @@ const CarePlanDetailPage = () => {
           
           <TabsContent value="schedule">
             <ScheduleTab
-              carePlanId={id!}
-              familyId={user!.id}
+              carePlanId={id}
+              familyId={user.id}
               careShifts={careShifts}
               careTeamMembers={careTeamMembers}
               onShiftUpdated={reloadCareShifts}
@@ -121,7 +127,7 @@ const CarePlanDetailPage = () => {
           </TabsContent>
           
           <TabsContent value="payroll">
-            <PayrollTab carePlanId={id!} />
+            <PayrollTab carePlanId={id} />
           </TabsContent>
         </Tabs>
       </Container>

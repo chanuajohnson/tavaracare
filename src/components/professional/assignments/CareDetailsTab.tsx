@@ -47,6 +47,20 @@ export function CareDetailsTab({ carePlan, formatDate }: CareDetailsTabProps) {
     }
   };
   
+  // Determine which metadata key to use for consistent access
+  const getMetadataValue = (key: string, alternativeKey?: string) => {
+    if (!carePlan?.metadata) return null;
+    return carePlan.metadata[key] !== undefined ? carePlan.metadata[key] : 
+           (alternativeKey && carePlan.metadata[alternativeKey] !== undefined ? carePlan.metadata[alternativeKey] : null);
+  };
+
+  // Get weekend coverage using both potential keys
+  const weekendCoverage = getMetadataValue('weekendCoverage', 'weekend_coverage');
+  const weekdayCoverage = getMetadataValue('weekdayCoverage', 'weekday_coverage');
+  const weekendScheduleType = getMetadataValue('weekendScheduleType');
+  const planType = getMetadataValue('planType', 'plan_type');
+  const customShifts = getMetadataValue('customShifts', 'custom_shifts') || [];
+  
   return (
     <Card>
       <CardHeader>
@@ -74,13 +88,13 @@ export function CareDetailsTab({ carePlan, formatDate }: CareDetailsTabProps) {
             <h3 className="font-medium mb-2">Care Requirements</h3>
             
             {/* If planType exists, show it in a nicely formatted way */}
-            {carePlan.metadata.planType && (
+            {planType && (
               <div className="mb-3 border rounded-md p-3 bg-gray-50">
                 <p className="text-sm font-medium">Plan Type</p>
                 <p className="text-sm text-gray-600 capitalize">
-                  {carePlan.metadata.planType === 'both' 
+                  {planType === 'both' 
                     ? 'Both Scheduled & On-Demand' 
-                    : carePlan.metadata.planType === 'scheduled'
+                    : planType === 'scheduled'
                       ? 'Scheduled Care'
                       : 'On-Demand Care'
                   }
@@ -89,37 +103,37 @@ export function CareDetailsTab({ carePlan, formatDate }: CareDetailsTabProps) {
             )}
             
             {/* Group schedule information together if scheduled care */}
-            {(carePlan.metadata.planType === 'scheduled' || carePlan.metadata.planType === 'both') && (
+            {(planType === 'scheduled' || planType === 'both') && (
               <div className="mb-3 border rounded-md divide-y">
                 {/* Weekday schedule */}
-                {carePlan.metadata.weekdayCoverage && carePlan.metadata.weekdayCoverage !== 'none' && (
+                {weekdayCoverage && weekdayCoverage !== 'none' && (
                   <div className="p-3 bg-gray-50">
                     <p className="text-sm font-medium">Weekday Schedule</p>
                     <p className="text-sm text-gray-600">
-                      {getScheduleDescription(carePlan.metadata.weekdayCoverage)}
+                      {getScheduleDescription(weekdayCoverage)}
                     </p>
                   </div>
                 )}
                 
                 {/* Only show weekend schedule when it's enabled */}
-                {carePlan.metadata.weekendCoverage === 'yes' && (
+                {weekendCoverage === 'yes' && (
                   <div className="p-3 bg-gray-50">
                     <p className="text-sm font-medium">Weekend Schedule</p>
                     <p className="text-sm text-gray-600">
                       {getWeekendDescription(
-                        carePlan.metadata.weekendCoverage, 
-                        carePlan.metadata.weekendScheduleType
+                        weekendCoverage, 
+                        weekendScheduleType
                       )}
                     </p>
                   </div>
                 )}
                 
                 {/* Custom shifts if available */}
-                {carePlan.metadata.customShifts && carePlan.metadata.customShifts.length > 0 && (
+                {Array.isArray(customShifts) && customShifts.length > 0 && (
                   <div className="p-3 bg-gray-50">
                     <p className="text-sm font-medium">Custom Schedules</p>
                     <ul className="text-sm text-gray-600 space-y-1 mt-1">
-                      {carePlan.metadata.customShifts.map((shift: any, index: number) => (
+                      {customShifts.map((shift: any, index: number) => (
                         <li key={index}>
                           {shift.title || `Custom schedule ${index + 1}`}
                         </li>
@@ -134,7 +148,9 @@ export function CareDetailsTab({ carePlan, formatDate }: CareDetailsTabProps) {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {Object.entries(carePlan.metadata)
                 .filter(([key]) => 
-                  !['planType', 'weekdayCoverage', 'weekendCoverage', 'weekendScheduleType', 'customShifts'].includes(key)
+                  !['planType', 'plan_type', 'weekdayCoverage', 'weekday_coverage', 
+                    'weekendCoverage', 'weekend_coverage', 'weekendScheduleType', 
+                    'customShifts', 'custom_shifts'].includes(key)
                 )
                 .map(([key, value]) => (
                   <div key={key} className="border rounded-md p-3 bg-gray-50">
