@@ -372,7 +372,8 @@ const FamilyCareNeedsPage = () => {
             planType: careSchedule && careSchedule !== 'none' ? 'scheduled' : 'on-demand',
             weekdayCoverage: careSchedule || 'none',
             weekendCoverage: weekendCoverage !== "none" ? 'yes' : 'no',
-            weekendScheduleType: weekendCoverage
+            weekendScheduleType: weekendCoverage,
+            customShifts: []
           }
         });
         

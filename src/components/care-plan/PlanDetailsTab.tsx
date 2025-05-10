@@ -1,4 +1,3 @@
-
 import { CarePlan } from "@/types/carePlan";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -207,20 +206,24 @@ export function PlanDetailsTab({ carePlan }: PlanDetailsTabProps) {
               
               {carePlan.metadata?.customShifts && carePlan.metadata.customShifts.length > 0 && (
                 <div className="bg-gray-50 border rounded-md p-4">
-                  <h4 className="font-medium text-sm text-gray-700 mb-2">Custom Shifts</h4>
+                  <h4 className="font-medium text-sm text-gray-700 mb-2">Custom Schedules</h4>
                   <ul className="space-y-2 divide-y divide-gray-200">
-                    {carePlan.metadata.customShifts.map((shift, index) => (
+                    {carePlan.metadata.customShifts.map((shift: any, index: number) => (
                       <li key={index} className="pt-2 first:pt-0">
                         <div className="flex flex-col">
-                          <div className="flex items-center">
+                          <div className="flex items-center gap-2">
                             <span className="font-medium">
-                              {shift.days
-                                .map(d => d.charAt(0).toUpperCase() + d.slice(1))
-                                .join(', ')}
+                              {Array.isArray(shift.days) && shift.days.length > 0 ? 
+                                shift.days
+                                  .map((d: string) => d.charAt(0).toUpperCase() + d.slice(1))
+                                  .join(', ')
+                                : 'Custom days'}
                             </span>
-                            <span className="text-gray-600 ml-2">
-                              {shift.startTime} - {shift.endTime}
-                            </span>
+                            {(shift.startTime && shift.endTime) && (
+                              <span className="text-gray-600">
+                                {shift.startTime} - {shift.endTime}
+                              </span>
+                            )}
                           </div>
                           {shift.title && (
                             <span className="text-xs text-gray-500 mt-1">{shift.title}</span>

@@ -423,21 +423,33 @@ const FamilyRegistration = () => {
         ? determineWeekendScheduleType(careScheduleData)
         : 'none';
       
+      // Check if there's a custom schedule
+      const hasCustomSchedule = careScheduleData.includes('custom');
+      
       console.log("Calculated schedule values:", {
         weekdayCoverage,
         weekendCoverage: weekendCoverageValue,
-        weekendScheduleType
+        weekendScheduleType,
+        hasCustomSchedule
       });
+      
+      // Parse custom schedule if provided
+      let customShifts = [];
+      if (hasCustomSchedule && customSchedule) {
+        customShifts = parseCustomScheduleText(customSchedule);
+        console.log("Parsed custom schedule:", customShifts);
+      }
       
       // Update the care plan metadata with new schedule information
       await updateCarePlan(planId, {
         ...carePlan,
         metadata: {
           ...(carePlan.metadata || {}),
-          planType: weekdayCoverage !== 'none' ? 'scheduled' : 'on-demand',
+          planType: weekdayCoverage !== 'none' || hasCustomSchedule ? 'scheduled' : 'on-demand',
           weekdayCoverage,
           weekendCoverage: weekendCoverageValue,
-          weekendScheduleType
+          weekendScheduleType,
+          customShifts: customShifts.length > 0 ? customShifts : carePlan.metadata?.customShifts
         }
       });
       

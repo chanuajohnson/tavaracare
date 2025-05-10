@@ -76,42 +76,81 @@ const EditCompleteCareplanPage = () => {
     try {
       console.log("Saving all care plan data");
       
+      // Extract custom schedule
+      const customSchedule = profile.customSchedule || profile.custom_schedule || '';
+      const hasCustomSchedule = customSchedule && customSchedule.trim() !== '';
+      
+      // Determine if care schedule includes the custom flag
+      const careScheduleArray = Array.isArray(profile.careSchedule) 
+        ? profile.careSchedule 
+        : parseScheduleString(profile.careSchedule);
+      
+      // Add 'custom' flag if not already there
+      if (hasCustomSchedule && !careScheduleArray.includes('custom')) {
+        careScheduleArray.push('custom');
+      }
+      
       // Update profile with schedule from care plan if available
       if (carePlan.metadata && (carePlan.metadata.weekdayCoverage || carePlan.metadata.weekendCoverage)) {
         // Convert care plan metadata schedule format to profile care_schedule format
         const scheduleArray = convertMetadataToProfileSchedule(carePlan.metadata);
         
         // Update the profile object before saving
-        if (scheduleArray.length > 0) {
-          profile.careSchedule = scheduleArray;
-          console.log("Updated profile care schedule from metadata:", scheduleArray);
-        }
+        profile.careSchedule = scheduleArray;
+        profile.care_schedule = scheduleArray;
+        console.log("Updated profile care schedule from metadata:", scheduleArray);
+      }
+      
+      // Parse any custom schedule text if available
+      let customShifts = [];
+      if (hasCustomSchedule) {
+        customShifts = parseCustomScheduleText(customSchedule);
+        console.log("Parsed custom schedule text:", customShifts);
       }
       
       // Save profile updates
-      await profileService.saveProfile(profile);
+      await profileService.saveProfile({
+        ...profile,
+        care_schedule: profile.careSchedule,
+        custom_schedule: customSchedule
+      });
       console.log("Profile data saved");
       
+      // Determine schedule types
+      const weekdayCoverage = determineWeekdayCoverage(careScheduleArray);
+      const weekendCoverageValue = determineWeekendCoverage(careScheduleArray);
+      const weekendScheduleType = weekendCoverageValue === 'yes'
+        ? determineWeekendScheduleType(careScheduleArray)
+        : 'none';
+      
       // Update care needs with schedule from care plan metadata
-      if (carePlan.metadata) {
-        careNeeds.weekdayCoverage = carePlan.metadata.weekdayCoverage || 'none';
-        careNeeds.weekendCoverage = carePlan.metadata.weekendCoverage || 'no';
-        careNeeds.weekendScheduleType = carePlan.metadata.weekendScheduleType || 'none';
-        careNeeds.planType = carePlan.metadata.planType || 'scheduled';
-      }
+      careNeeds.weekdayCoverage = weekdayCoverage;
+      careNeeds.weekendCoverage = weekendCoverageValue;
+      careNeeds.weekendScheduleType = weekendScheduleType;
+      careNeeds.planType = carePlan.metadata?.planType || 'scheduled';
       
       // Save care needs updates
       await saveFamilyCareNeeds(careNeeds);
       console.log("Care needs data saved");
       
+      // Update care plan metadata
+      const updatedMetadata = {
+        ...(carePlan.metadata || {}),
+        planType: weekdayCoverage !== 'none' || hasCustomSchedule ? 'scheduled' : 'on-demand',
+        weekdayCoverage,
+        weekendCoverage: weekendCoverageValue,
+        weekendScheduleType,
+        customShifts: customShifts.length > 0 ? customShifts : carePlan.metadata?.customShifts
+      };
+      
       // Save care plan updates
       await updateCarePlan(carePlan.id, {
         title: carePlan.title,
         description: carePlan.description,
-        metadata: carePlan.metadata,
+        metadata: updatedMetadata,
         status: carePlan.status
       });
-      console.log("Care plan data saved");
+      console.log("Care plan data saved with updated metadata:", updatedMetadata);
       
       toast.success("All care plan data updated successfully!");
       navigate(`/family/care-management/${carePlan.id}`);

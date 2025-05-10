@@ -102,6 +102,7 @@ export function determineWeekendScheduleType(
 
 /**
  * Converts care plan metadata schedule format to profile care_schedule format
+ * Returns array of strings
  */
 export function convertMetadataToProfileSchedule(metadata: any): string[] {
   if (!metadata) return [];
@@ -116,6 +117,11 @@ export function convertMetadataToProfileSchedule(metadata: any): string[] {
   // Add weekend coverage if enabled
   if (metadata.weekendCoverage === 'yes' && metadata.weekendScheduleType && metadata.weekendScheduleType !== 'none') {
     scheduleArray.push(`weekend_${metadata.weekendScheduleType.replace('-', '_')}`);
+  }
+  
+  // Add custom schedule flag if custom shifts are defined
+  if (metadata.customShifts && metadata.customShifts.length > 0) {
+    scheduleArray.push('custom');
   }
   
   return scheduleArray;
@@ -143,5 +149,91 @@ export async function syncProfileScheduleWithCarePlan(userId: string, carePlanMe
   } catch (error) {
     console.error("Error syncing profile schedule with care plan:", error);
     return false;
+  }
+}
+
+/**
+ * Parse custom schedule text into structured data
+ * Handles formats like "Monday - Friday 9 AM - 5 PM" or similar descriptions
+ */
+export function parseCustomScheduleText(customText: string): Array<{
+  days: string[];
+  startTime: string;
+  endTime: string;
+  title?: string;
+}> {
+  if (!customText || customText.trim() === '') {
+    return [];
+  }
+  
+  try {
+    // Split by comma to handle multiple schedule entries
+    const scheduleEntries = customText.split(',').map(entry => entry.trim());
+    
+    return scheduleEntries.map(entry => {
+      // Try to extract days and times
+      // Common format: "Day - Day, HH:MM AM/PM - HH:MM AM/PM"
+      const dayTimeMatch = entry.match(/([A-Za-z\s-]+)(?:\s+)(\d{1,2}(?::\d{2})?\s*[AP]M)\s*-\s*(\d{1,2}(?::\d{2})?\s*[AP]M)/i);
+      
+      if (dayTimeMatch) {
+        // Extract days, parse into array
+        const daysText = dayTimeMatch[1].trim();
+        const days: string[] = [];
+        
+        // Handle ranges like "Monday - Friday"
+        if (daysText.includes('-')) {
+          const [startDay, endDay] = daysText.split('-').map(d => d.trim().toLowerCase());
+          const weekdays = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+          
+          const startIndex = weekdays.indexOf(startDay);
+          const endIndex = weekdays.indexOf(endDay);
+          
+          if (startIndex >= 0 && endIndex >= 0) {
+            // Get the range of days
+            const dayRange = weekdays.slice(
+              Math.min(startIndex, endIndex),
+              Math.max(startIndex, endIndex) + 1
+            );
+            days.push(...dayRange);
+          } else {
+            // If we couldn't parse properly, just use the original text
+            days.push(startDay, endDay);
+          }
+        } else {
+          // Handle comma-separated days or single day
+          daysText.split(/[,&]/).forEach(day => {
+            const cleanDay = day.trim().toLowerCase();
+            if (cleanDay) days.push(cleanDay);
+          });
+        }
+        
+        // Format times consistently
+        const startTime = dayTimeMatch[2].trim();
+        const endTime = dayTimeMatch[3].trim();
+        
+        return {
+          days,
+          startTime,
+          endTime,
+          title: `Custom schedule: ${entry}`
+        };
+      } else {
+        // If we couldn't parse properly, use the custom text as is
+        return {
+          days: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'],
+          startTime: 'Custom',
+          endTime: 'Custom',
+          title: entry
+        };
+      }
+    });
+  } catch (error) {
+    console.error("Error parsing custom schedule text:", error);
+    return [{
+      days: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'],
+      startTime: 'Custom',
+      endTime: 'Custom',
+      title: customText
+    }];
   }
 }
