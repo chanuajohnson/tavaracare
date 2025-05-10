@@ -137,11 +137,14 @@ export async function syncProfileScheduleWithCarePlan(userId: string, carePlanMe
     // Convert metadata to schedule array
     const scheduleArray = convertMetadataToProfileSchedule(carePlanMetadata);
     
+    // Convert array to string for database compatibility
+    const scheduleString = Array.isArray(scheduleArray) ? scheduleArray.join(',') : scheduleArray;
+    
     // Update profile
     await supabase
       .from('profiles')
       .update({
-        care_schedule: scheduleArray // This is now properly typed as string[]
+        care_schedule: scheduleString
       })
       .eq('id', userId);
       
@@ -237,3 +240,4 @@ export function parseCustomScheduleText(customText: string): Array<{
     }];
   }
 }
+

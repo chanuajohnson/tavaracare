@@ -101,10 +101,13 @@ const EditCompleteCareplanPage = () => {
         // Convert care plan metadata schedule format to profile care_schedule format
         const scheduleArray = convertMetadataToProfileSchedule(carePlan.metadata);
         
+        // Convert array to string for database compatibility
+        const scheduleString = scheduleArray.join(',');
+        
         // Update the profile object before saving
-        profile.careSchedule = scheduleArray;
-        profile.care_schedule = scheduleArray;
-        console.log("Updated profile care schedule from metadata:", scheduleArray);
+        profile.careSchedule = scheduleString;
+        profile.care_schedule = scheduleString;
+        console.log("Updated profile care schedule from metadata:", scheduleArray, "as string:", scheduleString);
       }
       
       // Parse any custom schedule text if available

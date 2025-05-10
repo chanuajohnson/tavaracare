@@ -343,10 +343,13 @@ const FamilyCareNeedsPage = () => {
         
         console.log("Updating profile with schedule array:", scheduleArray);
         
+        // Convert array to string for database compatibility
+        const scheduleString = scheduleArray.join(',');
+        
         await supabase
           .from('profiles')
           .update({
-            care_schedule: scheduleArray
+            care_schedule: scheduleString
           })
           .eq('id', user.id);
           

@@ -1,4 +1,3 @@
-
 export type UserRole = 'family' | 'professional' | 'community' | 'admin';
 
 export interface Profile {
@@ -20,7 +19,7 @@ export interface Profile {
   other_special_needs?: string;
   caregiver_type?: string;
   preferred_contact_method?: string;
-  care_schedule?: string | string[]; // Updated to accept both string and string[]
+  care_schedule?: string;  // Changed from string | string[] to string for database compatibility
   budget_preferences?: string;
   caregiver_preferences?: string;
   additional_notes?: string;

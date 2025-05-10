@@ -11,7 +11,7 @@ export interface FamilyProfileFields {
   otherSpecialNeeds?: string;
   caregiverType?: string;
   preferredContactMethod?: string;
-  careSchedule?: string | string[];
+  careSchedule?: string;  // Changed from string | string[] to string for database compatibility
   budgetPreferences?: string;
   caregiverPreferences?: string;
   additionalNotes?: string;
@@ -29,7 +29,7 @@ export interface DbFamilyProfileFields {
   other_special_needs?: string;
   caregiver_type?: string;
   preferred_contact_method?: string;
-  care_schedule?: string | string[];
+  care_schedule?: string;  // Changed from string | string[] to string for database compatibility
   budget_preferences?: string;
   caregiver_preferences?: string;
   additional_notes?: string;
