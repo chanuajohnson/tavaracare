@@ -1,3 +1,4 @@
+
 import { CarePlan } from "@/types/carePlan";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -194,15 +195,18 @@ export function PlanDetailsTab({ carePlan }: PlanDetailsTabProps) {
                 </div>
               )}
               
-              <div className="bg-gray-50 border rounded-md p-4">
-                <h4 className="font-medium text-sm text-gray-700 mb-2">Weekend Schedule</h4>
-                <p className="text-gray-600">
-                  {getWeekendScheduleDescription(
-                    carePlan.metadata?.weekendCoverage,
-                    carePlan.metadata?.weekendScheduleType
-                  )}
-                </p>
-              </div>
+              {/* Only show weekend schedule when weekend coverage is enabled */}
+              {carePlan.metadata?.weekendCoverage === 'yes' && (
+                <div className="bg-gray-50 border rounded-md p-4">
+                  <h4 className="font-medium text-sm text-gray-700 mb-2">Weekend Schedule</h4>
+                  <p className="text-gray-600">
+                    {getWeekendScheduleDescription(
+                      carePlan.metadata?.weekendCoverage,
+                      carePlan.metadata?.weekendScheduleType
+                    )}
+                  </p>
+                </div>
+              )}
               
               {carePlan.metadata?.customShifts && carePlan.metadata.customShifts.length > 0 && (
                 <div className="bg-gray-50 border rounded-md p-4">

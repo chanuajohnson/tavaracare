@@ -157,7 +157,7 @@ export async function syncProfileScheduleWithCarePlan(userId: string, carePlanMe
 
 /**
  * Parse custom schedule text into structured data
- * Handles formats like "Monday - Friday 9 AM - 5 PM" or similar descriptions
+ * Handles formats like "Monday - Friday 9 AM - 5 PM" or simple time ranges like "12 pm to 5pm"
  */
 export function parseCustomScheduleText(customText: string): Array<{
   days: string[];
@@ -175,7 +175,7 @@ export function parseCustomScheduleText(customText: string): Array<{
     
     return scheduleEntries.map(entry => {
       // Try to extract days and times
-      // Common format: "Day - Day, HH:MM AM/PM - HH:MM AM/PM"
+      // Try complex format first: "Day - Day, HH:MM AM/PM - HH:MM AM/PM"
       const dayTimeMatch = entry.match(/([A-Za-z\s-]+)(?:\s+)(\d{1,2}(?::\d{2})?\s*[AP]M)\s*-\s*(\d{1,2}(?::\d{2})?\s*[AP]M)/i);
       
       if (dayTimeMatch) {
@@ -221,13 +221,29 @@ export function parseCustomScheduleText(customText: string): Array<{
           title: `Custom schedule: ${entry}`
         };
       } else {
-        // If we couldn't parse properly, use the custom text as is
-        return {
-          days: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'],
-          startTime: 'Custom',
-          endTime: 'Custom',
-          title: entry
-        };
+        // Try simple time range format: "XX am/pm to YY am/pm" or "XX am/pm - YY am/pm"
+        const simpleTimeMatch = entry.match(/(\d{1,2}(?::\d{2})?\s*[AP]M)\s*(?:to|\-)\s*(\d{1,2}(?::\d{2})?\s*[AP]M)/i);
+        
+        if (simpleTimeMatch) {
+          const startTime = simpleTimeMatch[1].trim();
+          const endTime = simpleTimeMatch[2].trim();
+          
+          // Default to weekdays for simple time expressions
+          return {
+            days: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'],
+            startTime,
+            endTime,
+            title: `Weekdays ${startTime} - ${endTime}`
+          };
+        } else {
+          // If we can't parse it, just use as-is
+          return {
+            days: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'],
+            startTime: 'Custom',
+            endTime: 'Custom',
+            title: entry
+          };
+        }
       }
     });
   } catch (error) {
@@ -240,4 +256,3 @@ export function parseCustomScheduleText(customText: string): Array<{
     }];
   }
 }
-
