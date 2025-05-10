@@ -61,12 +61,23 @@ export const PlanDetailsTab: React.FC<PlanDetailsTabProps> = ({ carePlan }) => {
             </div>
           )}
           
-          {carePlan.metadata?.planType !== 'on-demand' && (
-            <div>
-              <h3 className="text-sm font-medium text-muted-foreground mb-2">Weekend Coverage</h3>
-              <p className="font-medium">{carePlan.metadata?.weekendCoverage === 'yes' ? "6AM-6PM" : "None"}</p>
-            </div>
-          )}
+          //{carePlan.metadata?.planType !== 'on-demand' && (
+          //  <div>
+            //  <h3 className="text-sm font-medium text-muted-foreground mb-2">Weekend Coverage</h3>
+              //<p className="font-medium">{carePlan.metadata?.weekendCoverage === 'yes' ? "6AM-6PM" : "None"}</p>
+            //</div>
+         // )}*/
+          {carePlan.metadata?.weekendCoverage === 'yes' && (
+  <div className="bg-gray-50 border rounded-md p-4">
+    <h4 className="font-medium text-sm text-gray-700 mb-2">Weekend Schedule</h4>
+    <p className="text-gray-600">
+      {getWeekendScheduleDescription(
+        carePlan.metadata?.weekendCoverage,
+        carePlan.metadata?.weekendScheduleType
+      )}
+    </p>
+  </div>
+)}
           
           <div>
             <h3 className="text-sm font-medium text-muted-foreground mb-2">Created On</h3>
