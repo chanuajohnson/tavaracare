@@ -222,12 +222,22 @@ const FamilyCareNeedsPage = () => {
             form.setValue('diagnosedConditions', data.special_needs ? data.special_needs.join(', ') : '');
           }
           
-          // Extract schedule data from profile using new utility functions
+          // Extract schedule data from profile using utility functions
           console.log("Care schedule from profile:", data.care_schedule);
           
           if (data.care_schedule) {
-            // Parse the comma-separated string into an array
-            const scheduleValues = parseScheduleString(data.care_schedule);
+            // Parse the schedule data to ensure consistent format
+            let scheduleValues = [];
+            
+            // Handle various formats that might be stored in the database
+            if (typeof data.care_schedule === 'string') {
+              // If it's a comma-separated string
+              scheduleValues = parseScheduleString(data.care_schedule);
+            } else if (Array.isArray(data.care_schedule)) {
+              // If it's already an array
+              scheduleValues = data.care_schedule;
+            }
+            
             console.log("Parsed schedule values:", scheduleValues);
             
             // Determine weekday coverage
@@ -248,6 +258,29 @@ const FamilyCareNeedsPage = () => {
               setWeekendCoverage('none');
             }
           }
+
+          // If we're in edit mode, see if we can get the schedule information from care plan directly
+          if (isEditMode && carePlanId) {
+            try {
+              const carePlan = await fetchCarePlanById(carePlanId);
+              if (carePlan && carePlan.metadata) {
+                console.log("Retrieved care plan metadata for schedule:", carePlan.metadata);
+                
+                // Set the schedule data from care plan metadata (higher priority than profile)
+                if (carePlan.metadata.weekdayCoverage) {
+                  setCareSchedule(carePlan.metadata.weekdayCoverage as any);
+                }
+                
+                if (carePlan.metadata.weekendCoverage === 'yes' && carePlan.metadata.weekendScheduleType) {
+                  setWeekendCoverage(carePlan.metadata.weekendScheduleType as any);
+                } else {
+                  setWeekendCoverage('none');
+                }
+              }
+            } catch (err) {
+              console.error("Error fetching care plan schedule data:", err);
+            }
+          }
         }
       } catch (error) {
         console.error("Error loading profile data:", error);
@@ -256,7 +289,7 @@ const FamilyCareNeedsPage = () => {
     };
     
     loadProfileData();
-  }, [user?.id, form]);
+  }, [user?.id, form, isEditMode, carePlanId]);
   
   const onSubmit = async (formData: z.infer<typeof FormSchema>) => {
     if (!user) {
@@ -280,7 +313,7 @@ const FamilyCareNeedsPage = () => {
         weekdayCoverage: careSchedule || "none",
         weekendCoverage: weekendCoverage === "none" ? 'no' : 'yes',
         weekendScheduleType: weekendCoverage,
-        planType: 'scheduled' // Default to scheduled
+        planType: careSchedule ? 'scheduled' : 'on-demand'
       };
       
       console.log("Sending care needs data to backend:", careNeedsData);
@@ -292,6 +325,36 @@ const FamilyCareNeedsPage = () => {
       }
       
       console.log("Saved care needs:", savedCareNeeds);
+      
+      // Update the user's profile with the care schedule information for consistency
+      try {
+        // Convert the schedule information to the array format used in profiles
+        const scheduleArray: string[] = [];
+        
+        // Add weekday coverage to the schedule array
+        if (careSchedule && careSchedule !== 'none') {
+          scheduleArray.push(careSchedule);
+        }
+        
+        // Add weekend coverage if enabled
+        if (weekendCoverage && weekendCoverage !== 'none') {
+          scheduleArray.push(`weekend_${weekendCoverage.replace('-', '_')}`);
+        }
+        
+        console.log("Updating profile with schedule array:", scheduleArray);
+        
+        await supabase
+          .from('profiles')
+          .update({
+            care_schedule: scheduleArray
+          })
+          .eq('id', user.id);
+          
+        console.log("Updated profile care_schedule");
+      } catch (profileError) {
+        console.error("Could not update profile schedule data:", profileError);
+        // Non-blocking error, continue with the care plan updates
+      }
       
       // Check if we're in edit mode
       if (isEditMode && carePlanId) {
@@ -306,7 +369,7 @@ const FamilyCareNeedsPage = () => {
           ...existingPlan,
           metadata: {
             ...existingPlan.metadata,
-            planType: careSchedule ? 'scheduled' : 'on-demand',
+            planType: careSchedule && careSchedule !== 'none' ? 'scheduled' : 'on-demand',
             weekdayCoverage: careSchedule || 'none',
             weekendCoverage: weekendCoverage !== "none" ? 'yes' : 'no',
             weekendScheduleType: weekendCoverage

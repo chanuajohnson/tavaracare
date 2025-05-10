@@ -16,6 +16,16 @@ export function EditPlanDetailsSection({ data, onChange }: EditPlanDetailsSectio
   useEffect(() => {
     if (data) {
       setLocalData(data);
+      
+      // Make sure metadata is initialized
+      if (!data.metadata) {
+        handleChange("metadata", {
+          planType: "scheduled",
+          weekdayCoverage: "none",
+          weekendCoverage: "no",
+          weekendScheduleType: "none"
+        });
+      }
     }
   }, [data]);
   
@@ -30,7 +40,19 @@ export function EditPlanDetailsSection({ data, onChange }: EditPlanDetailsSectio
       ...(localData.metadata || {}), 
       [field]: value 
     };
+    
+    // Handle special case for switching plan type to on-demand
+    if (field === "planType" && value === "on-demand") {
+      // Reset schedule values if switching to on-demand
+      updatedMetadata.weekdayCoverage = "none";
+      updatedMetadata.weekendCoverage = "no";
+      updatedMetadata.weekendScheduleType = "none";
+    }
+    
     handleChange("metadata", updatedMetadata);
+    
+    // Log changes for debugging
+    console.log(`Updated ${field} to ${value}`, updatedMetadata);
   };
 
   if (!data) return null;

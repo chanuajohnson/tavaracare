@@ -16,6 +16,7 @@ import { EditRegistrationSection } from "@/components/care-plan/EditRegistration
 import { EditCareNeedsSection } from "@/components/care-plan/EditCareNeedsSection";
 import { EditPlanDetailsSection } from "@/components/care-plan/EditPlanDetailsSection";
 import { PageViewTracker } from "@/components/tracking/PageViewTracker";
+import { convertMetadataToProfileSchedule } from "@/utils/scheduleUtils";
 
 const EditCompleteCareplanPage = () => {
   const navigate = useNavigate();
@@ -75,9 +76,29 @@ const EditCompleteCareplanPage = () => {
     try {
       console.log("Saving all care plan data");
       
+      // Update profile with schedule from care plan if available
+      if (carePlan.metadata && (carePlan.metadata.weekdayCoverage || carePlan.metadata.weekendCoverage)) {
+        // Convert care plan metadata schedule format to profile care_schedule format
+        const scheduleArray = convertMetadataToProfileSchedule(carePlan.metadata);
+        
+        // Update the profile object before saving
+        if (scheduleArray.length > 0) {
+          profile.careSchedule = scheduleArray;
+          console.log("Updated profile care schedule from metadata:", scheduleArray);
+        }
+      }
+      
       // Save profile updates
       await profileService.saveProfile(profile);
       console.log("Profile data saved");
+      
+      // Update care needs with schedule from care plan metadata
+      if (carePlan.metadata) {
+        careNeeds.weekdayCoverage = carePlan.metadata.weekdayCoverage || 'none';
+        careNeeds.weekendCoverage = carePlan.metadata.weekendCoverage || 'no';
+        careNeeds.weekendScheduleType = carePlan.metadata.weekendScheduleType || 'none';
+        careNeeds.planType = carePlan.metadata.planType || 'scheduled';
+      }
       
       // Save care needs updates
       await saveFamilyCareNeeds(careNeeds);
@@ -195,7 +216,35 @@ const EditCompleteCareplanPage = () => {
                   {careNeeds && (
                     <EditCareNeedsSection 
                       data={careNeeds} 
-                      onChange={(updatedNeeds) => setCareNeeds({ ...careNeeds, ...updatedNeeds })} 
+                      onChange={(updatedNeeds) => {
+                        const newNeeds = { ...careNeeds, ...updatedNeeds };
+                        
+                        // If care needs schedule is updated, sync to care plan metadata
+                        if ('weekdayCoverage' in updatedNeeds || 
+                            'weekendCoverage' in updatedNeeds ||
+                            'weekendScheduleType' in updatedNeeds) {
+                          
+                          // Update care plan metadata with the new schedule
+                          const updatedMetadata = {
+                            ...(carePlan.metadata || {}),
+                            weekdayCoverage: newNeeds.weekdayCoverage || 'none',
+                            weekendCoverage: newNeeds.weekendCoverage || 'no',
+                            weekendScheduleType: newNeeds.weekendScheduleType || 'none',
+                            planType: newNeeds.weekdayCoverage && newNeeds.weekdayCoverage !== 'none' ? 'scheduled' : 'on-demand'
+                          };
+                          
+                          // Update the care plan state
+                          setCarePlan({
+                            ...carePlan,
+                            metadata: updatedMetadata
+                          });
+                          
+                          console.log("Synchronized care plan metadata with care needs schedule:", updatedMetadata);
+                        }
+                        
+                        // Update care needs state
+                        setCareNeeds(newNeeds);
+                      }} 
                     />
                   )}
                 </CardContent>
@@ -214,7 +263,29 @@ const EditCompleteCareplanPage = () => {
                   {carePlan && (
                     <EditPlanDetailsSection 
                       data={carePlan} 
-                      onChange={(updatedPlan) => setCarePlan({ ...carePlan, ...updatedPlan })} 
+                      onChange={(updatedPlan) => {
+                        const newPlan = { ...carePlan, ...updatedPlan };
+                        
+                        // If care plan metadata is updated, sync to care needs
+                        if (newPlan.metadata) {
+                          // Update care needs with the new schedule
+                          const updatedNeeds = {
+                            ...careNeeds,
+                            weekdayCoverage: newPlan.metadata.weekdayCoverage || 'none',
+                            weekendCoverage: newPlan.metadata.weekendCoverage || 'no',
+                            weekendScheduleType: newPlan.metadata.weekendScheduleType || 'none',
+                            planType: newPlan.metadata.planType || 'scheduled'
+                          };
+                          
+                          // Update the care needs state
+                          setCareNeeds(updatedNeeds);
+                          
+                          console.log("Synchronized care needs with care plan metadata:", newPlan.metadata);
+                        }
+                        
+                        // Update care plan state
+                        setCarePlan(newPlan);
+                      }} 
                     />
                   )}
                 </CardContent>

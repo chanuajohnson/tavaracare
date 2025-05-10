@@ -16,6 +16,8 @@ import { toast } from 'sonner';
 import { Calendar, Sun, Moon, Clock, Home } from "lucide-react";
 import { getPrefillDataFromUrl, applyPrefillDataToForm } from '../../utils/chat/prefillReader';
 import { clearChatSessionData } from '../../utils/chat/chatSessionUtils';
+import { fetchCarePlanById, updateCarePlan } from '@/services/care-plans/carePlanService';
+import { parseScheduleString, determineWeekdayCoverage, determineWeekendCoverage, determineWeekendScheduleType } from '@/utils/scheduleUtils';
 
 const FamilyRegistration = () => {
   const [loading, setLoading] = useState(false);
@@ -400,6 +402,53 @@ const FamilyRegistration = () => {
     }
   };
 
+  // Handle updating care plan metadata when in edit mode
+  const updateCarePlanMetadata = async (planId: string, careScheduleData: string[]) => {
+    try {
+      if (!planId) return;
+  
+      console.log("Updating care plan metadata with schedule:", careScheduleData);
+      
+      // Get current care plan first
+      const carePlan = await fetchCarePlanById(planId);
+      if (!carePlan) {
+        console.error("Could not find care plan to update");
+        return false;
+      }
+      
+      // Determine schedule values using utility functions
+      const weekdayCoverage = determineWeekdayCoverage(careScheduleData);
+      const weekendCoverageValue = determineWeekendCoverage(careScheduleData);
+      const weekendScheduleType = weekendCoverageValue === 'yes' 
+        ? determineWeekendScheduleType(careScheduleData)
+        : 'none';
+      
+      console.log("Calculated schedule values:", {
+        weekdayCoverage,
+        weekendCoverage: weekendCoverageValue,
+        weekendScheduleType
+      });
+      
+      // Update the care plan metadata with new schedule information
+      await updateCarePlan(planId, {
+        ...carePlan,
+        metadata: {
+          ...(carePlan.metadata || {}),
+          planType: weekdayCoverage !== 'none' ? 'scheduled' : 'on-demand',
+          weekdayCoverage,
+          weekendCoverage: weekendCoverageValue,
+          weekendScheduleType
+        }
+      });
+      
+      console.log("Successfully updated care plan metadata");
+      return true;
+    } catch (error) {
+      console.error("Error updating care plan metadata:", error);
+      return false;
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -459,6 +508,12 @@ const FamilyRegistration = () => {
         }
       }
 
+      // Prepare the care schedule array or convert to string as needed
+      const processedCareSchedule = Array.isArray(careSchedule) ? careSchedule : 
+        careSchedule ? [careSchedule] : [];
+        
+      console.log("Processed care schedule for saving:", processedCareSchedule);
+
       const fullName = `${firstName} ${lastName}`.trim();
       const updates = {
         id: user.id,
@@ -476,7 +531,7 @@ const FamilyRegistration = () => {
         other_special_needs: otherSpecialNeeds || '',
         caregiver_type: caregiverType || '',
         preferred_contact_method: preferredContactMethod || '',
-        care_schedule: careSchedule || [],
+        care_schedule: processedCareSchedule,
         custom_schedule: customSchedule || '',
         budget_preferences: budgetPreferences || '',
         caregiver_preferences: caregiverPreferences || '',
@@ -487,6 +542,14 @@ const FamilyRegistration = () => {
       console.log('Updating profile with data:', updates);
       
       await updateProfile(updates);
+      
+      // If in edit mode, also update the care plan metadata
+      if (isEditMode && carePlanId) {
+        const metadataUpdated = await updateCarePlanMetadata(carePlanId, processedCareSchedule);
+        if (!metadataUpdated) {
+          toast.warning("Profile information updated, but could not update care plan schedule");
+        }
+      }
       
       // Get session ID from URL to clear specific flags
       const urlParams = new URLSearchParams(window.location.search);
