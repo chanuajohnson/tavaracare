@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Container } from "@/components/ui/container";
 import { PageViewTracker } from "@/components/tracking/PageViewTracker";
-import { FileText, Plus, Users, Calendar, ArrowLeft, Clock, Edit, Pencil, Wheel, Activity } from "lucide-react";
+import { FileText, Plus, Users, Calendar, ArrowLeft, Clock, Edit, Pencil, Settings, Activity } from "lucide-react";
 import { fetchCarePlans, CarePlan } from "@/services/care-plans";
 import { toast } from "sonner";
 
@@ -169,16 +169,16 @@ const CareManagementPage = () => {
                     variant="ghost"
                     size="icon"
                     className="h-8 w-8"
-                    onClick={(e) => handleEditRegistration(e, plan.id, plan.family_id)}
+                    onClick={(e) => handleEditRegistration(e, plan.id, plan.familyId)}
                     title="Edit profile information"
                   >
-                    <Wheel className="h-4 w-4" />
+                    <Settings className="h-4 w-4" />
                   </Button>
                   <Button
                     variant="ghost"
                     size="icon"
                     className="h-8 w-8"
-                    onClick={(e) => handleEditCareNeeds(e, plan.id, plan.family_id)}
+                    onClick={(e) => handleEditCareNeeds(e, plan.id, plan.familyId)}
                     title="Edit care needs"
                   >
                     <Activity className="h-4 w-4" />
