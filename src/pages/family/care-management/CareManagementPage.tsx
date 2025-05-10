@@ -9,12 +9,14 @@ import { PageViewTracker } from "@/components/tracking/PageViewTracker";
 import { FileText, Plus, Users, Calendar, ArrowLeft, Clock, Edit, Pencil, Settings, Activity } from "lucide-react";
 import { fetchCarePlans, CarePlan } from "@/services/care-plans";
 import { toast } from "sonner";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const CareManagementPage = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [carePlans, setCarePlans] = useState<CarePlan[]>([]);
   const [loading, setLoading] = useState(true);
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     if (user) {
@@ -148,18 +150,18 @@ const CareManagementPage = () => {
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
           </div>
         ) : carePlans.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
             {carePlans.map((plan) => (
               <Card 
                 key={plan.id} 
-                className="cursor-pointer hover:shadow-md transition-shadow relative" 
+                className="cursor-pointer hover:shadow-md transition-shadow relative overflow-hidden" 
                 onClick={() => handleViewPlan(plan.id)}
               >
-                <div className="absolute top-2 right-2 z-10 flex gap-1">
+                <div className="absolute top-3 right-3 z-10 flex gap-2">
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-8 w-8"
+                    className="h-8 w-8 bg-white/70 hover:bg-white shadow-sm"
                     onClick={(e) => handleEditPlanDetails(e, plan.id)}
                     title="Edit plan details"
                   >
@@ -168,7 +170,7 @@ const CareManagementPage = () => {
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-8 w-8"
+                    className="h-8 w-8 bg-white/70 hover:bg-white shadow-sm"
                     onClick={(e) => handleEditRegistration(e, plan.id, plan.familyId)}
                     title="Edit profile information"
                   >
@@ -177,7 +179,7 @@ const CareManagementPage = () => {
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-8 w-8"
+                    className="h-8 w-8 bg-white/70 hover:bg-white shadow-sm"
                     onClick={(e) => handleEditCareNeeds(e, plan.id, plan.familyId)}
                     title="Edit care needs"
                   >
@@ -185,28 +187,28 @@ const CareManagementPage = () => {
                   </Button>
                 </div>
                 
-                <CardHeader className="pb-3">
-                  <CardTitle className="flex items-center gap-2">
-                    <FileText className="h-5 w-5 text-primary" />
-                    {plan.title}
+                <CardHeader className={`pb-2 ${isMobile ? 'p-4' : 'p-6'}`}>
+                  <CardTitle className="flex items-center gap-2 text-xl">
+                    <FileText className="h-5 w-5 text-primary flex-shrink-0" />
+                    <span className="truncate">{plan.title}</span>
                   </CardTitle>
-                  <CardDescription className="line-clamp-2">
-                    {truncateDescription(plan.description)}
+                  <CardDescription className="line-clamp-2 mt-1">
+                    {truncateDescription(plan.description, isMobile ? 40 : 60)}
                   </CardDescription>
                 </CardHeader>
-                <CardContent>
+                <CardContent className={`${isMobile ? 'p-4 pt-1' : 'p-6 pt-2'}`}>
                   <div className="space-y-3">
-                    <div className="grid grid-cols-2 gap-2 text-sm">
+                    <div className={`${isMobile ? 'flex flex-col space-y-2' : 'grid grid-cols-2 gap-2'} text-sm`}>
                       <div className="flex items-center">
-                        <Clock className="h-4 w-4 mr-2 text-muted-foreground" />
-                        <span className="text-muted-foreground mr-1">Type:</span>
+                        <Clock className="h-4 w-4 mr-2 text-muted-foreground flex-shrink-0" />
+                        <span className="text-muted-foreground mr-1 whitespace-nowrap">Type:</span>
                         <span className="font-medium truncate">{getPlanTypeDisplay(plan)}</span>
                       </div>
                       
                       {plan.metadata?.planType !== 'on-demand' && (
                         <div className="flex items-center">
-                          <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
-                          <span className="text-muted-foreground mr-1">Coverage:</span>
+                          <Calendar className="h-4 w-4 mr-2 text-muted-foreground flex-shrink-0" />
+                          <span className="text-muted-foreground mr-1 whitespace-nowrap">Coverage:</span>
                           <span className="font-medium truncate">{getWeekdayCoverageDisplay(plan)}</span>
                         </div>
                       )}
@@ -250,7 +252,7 @@ const CareManagementPage = () => {
           </Card>
         )}
 
-        <div className="mt-10 grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="mt-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -292,7 +294,7 @@ const CareManagementPage = () => {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="sm:col-span-2 lg:col-span-1">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Calendar className="h-5 w-5 text-primary" />
