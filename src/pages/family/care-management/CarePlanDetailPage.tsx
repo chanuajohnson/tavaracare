@@ -19,6 +19,7 @@ import { RemoveTeamMemberDialog } from "@/components/care-plan/RemoveTeamMemberD
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import { fetchFamilyCareNeeds } from "@/services/familyCareNeedsService";
+import { CarePlanMetadata } from "@/types/carePlan";
 
 const CarePlanDetailPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -86,10 +87,19 @@ const CarePlanDetailPage = () => {
     return <div className="p-8 text-center">Error loading professionals data. Please refresh the page.</div>;
   }
 
-  // Create safer version of care plan by ensuring metadata exists
+  // Create safer version of care plan by ensuring metadata exists with required fields
+  const defaultMetadata: CarePlanMetadata = {
+    planType: 'scheduled', // Default value for required field
+    weekdayCoverage: 'none',
+    weekendCoverage: 'no',
+  };
+
   const safePlan = {
     ...carePlan,
-    metadata: carePlan.metadata || {},
+    metadata: {
+      ...defaultMetadata,
+      ...(carePlan.metadata || {})
+    }
   };
 
   return (
