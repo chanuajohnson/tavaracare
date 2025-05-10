@@ -1,5 +1,6 @@
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { getMetadata } from "@/utils/scheduleUtils";
 
 interface CarePlan {
   created_at?: string;
@@ -27,7 +28,7 @@ export function CareDetailsTab({ carePlan, formatDate }: CareDetailsTabProps) {
         return 'Monday - Friday, 6 PM - 8 AM (Overnight)';
       case 'none':
       default:
-        return 'Not specified';
+        return schedule ? `Custom schedule: ${schedule}` : 'Not specified';
     }
   };
 
@@ -47,19 +48,12 @@ export function CareDetailsTab({ carePlan, formatDate }: CareDetailsTabProps) {
     }
   };
   
-  // Determine which metadata key to use for consistent access
-  const getMetadataValue = (key: string, alternativeKey?: string) => {
-    if (!carePlan?.metadata) return null;
-    return carePlan.metadata[key] !== undefined ? carePlan.metadata[key] : 
-           (alternativeKey && carePlan.metadata[alternativeKey] !== undefined ? carePlan.metadata[alternativeKey] : null);
-  };
-
-  // Get weekend coverage using both potential keys
-  const weekendCoverage = getMetadataValue('weekendCoverage', 'weekend_coverage');
-  const weekdayCoverage = getMetadataValue('weekdayCoverage', 'weekday_coverage');
-  const weekendScheduleType = getMetadataValue('weekendScheduleType');
-  const planType = getMetadataValue('planType', 'plan_type');
-  const customShifts = getMetadataValue('customShifts', 'custom_shifts') || [];
+  // Use the normalized metadata helper function to get values
+  const weekendCoverage = carePlan ? getMetadata(carePlan.metadata, 'weekendCoverage') : null;
+  const weekdayCoverage = carePlan ? getMetadata(carePlan.metadata, 'weekdayCoverage') : null;
+  const weekendScheduleType = carePlan ? getMetadata(carePlan.metadata, 'weekendScheduleType') : null;
+  const planType = carePlan ? getMetadata(carePlan.metadata, 'planType') : null;
+  const customShifts = carePlan ? getMetadata(carePlan.metadata, 'customShifts') || [] : [];
   
   return (
     <Card>
@@ -115,7 +109,7 @@ export function CareDetailsTab({ carePlan, formatDate }: CareDetailsTabProps) {
                   </div>
                 )}
                 
-                {/* Only show weekend schedule when it's enabled */}
+                {/* Only show weekend schedule when weekend coverage is explicitly set to "yes" */}
                 {weekendCoverage === 'yes' && (
                   <div className="p-3 bg-gray-50">
                     <p className="text-sm font-medium">Weekend Schedule</p>
@@ -128,7 +122,7 @@ export function CareDetailsTab({ carePlan, formatDate }: CareDetailsTabProps) {
                   </div>
                 )}
                 
-                {/* Custom shifts if available */}
+                {/* Custom shifts if available - only show when shifts exist and have length > 0 */}
                 {Array.isArray(customShifts) && customShifts.length > 0 && (
                   <div className="p-3 bg-gray-50">
                     <p className="text-sm font-medium">Custom Schedules</p>
@@ -149,7 +143,7 @@ export function CareDetailsTab({ carePlan, formatDate }: CareDetailsTabProps) {
               {Object.entries(carePlan.metadata)
                 .filter(([key]) => 
                   !['planType', 'plan_type', 'weekdayCoverage', 'weekday_coverage', 
-                    'weekendCoverage', 'weekend_coverage', 'weekendScheduleType', 
+                    'weekendCoverage', 'weekend_coverage', 'weekendScheduleType', 'weekend_schedule_type',
                     'customShifts', 'custom_shifts'].includes(key)
                 )
                 .map(([key, value]) => (

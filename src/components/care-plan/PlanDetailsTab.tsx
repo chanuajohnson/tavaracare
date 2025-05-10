@@ -1,4 +1,3 @@
-
 import { CarePlan } from "@/types/carePlan";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -8,6 +7,7 @@ import { Separator } from "@/components/ui/separator";
 import { useState, useEffect } from "react";
 import { fetchFamilyCareNeeds } from "@/services/familyCareNeedsService";
 import { DescriptionInput } from "./DescriptionInput";
+import { getMetadata } from "@/utils/scheduleUtils";
 
 interface PlanDetailsTabProps {
   carePlan: CarePlan;
@@ -50,7 +50,7 @@ export function PlanDetailsTab({ carePlan }: PlanDetailsTabProps) {
       case 'none':
         return 'No weekday coverage selected';
       default:
-        return 'Custom schedule (see details)';
+        return schedule ? `Custom schedule: ${schedule}` : 'No weekday coverage selected';
     }
   };
 
@@ -67,7 +67,7 @@ export function PlanDetailsTab({ carePlan }: PlanDetailsTabProps) {
       case '6am-6pm':
         return 'Saturday - Sunday, 6 AM - 6 PM (Full daytime weekend coverage)';
       default:
-        return 'Saturday - Sunday, 6 AM - 6 PM (Default weekend coverage)';
+        return 'Saturday - Sunday (Weekend coverage)';
     }
   };
 
@@ -94,6 +94,13 @@ export function PlanDetailsTab({ carePlan }: PlanDetailsTabProps) {
         return <Info className="h-4 w-4 text-gray-500 mr-1" />;
     }
   };
+
+  // Get normalized metadata values using the new helper function
+  const planType = getMetadata(carePlan.metadata, 'planType');
+  const weekdayCoverage = getMetadata(carePlan.metadata, 'weekdayCoverage');
+  const weekendCoverage = getMetadata(carePlan.metadata, 'weekendCoverage');
+  const weekendScheduleType = getMetadata(carePlan.metadata, 'weekendScheduleType');
+  const customShifts = getMetadata(carePlan.metadata, 'customShifts') || [];
 
   // Create sections for care needs if data is available
   const hasDailyLivingNeeds = careNeeds && (
@@ -145,7 +152,7 @@ export function PlanDetailsTab({ carePlan }: PlanDetailsTabProps) {
           <div className="flex items-center justify-between">
             <CardTitle className="text-xl">{carePlan.title}</CardTitle>
             <div className="flex gap-2">
-              {getPlanTypeBadge(carePlan.metadata?.planType)}
+              {getPlanTypeBadge(planType)}
               <Badge variant={carePlan.status === 'active' ? 'default' : 'outline'} className="flex items-center">
                 {getStatusIcon(carePlan.status)}
                 {carePlan.status.charAt(0).toUpperCase() + carePlan.status.slice(1)}
@@ -175,7 +182,7 @@ export function PlanDetailsTab({ carePlan }: PlanDetailsTabProps) {
       </Card>
       
       {/* Schedule Information Card */}
-      {carePlan.metadata?.planType !== 'on-demand' && (
+      {planType !== 'on-demand' && (
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-lg flex items-center">
@@ -186,33 +193,34 @@ export function PlanDetailsTab({ carePlan }: PlanDetailsTabProps) {
           </CardHeader>
           <CardContent>
             <div className="grid gap-4">
-              {carePlan.metadata?.weekdayCoverage && carePlan.metadata.weekdayCoverage !== 'none' && (
+              {weekdayCoverage && weekdayCoverage !== 'none' && (
                 <div className="bg-gray-50 border rounded-md p-4">
                   <h4 className="font-medium text-sm text-gray-700 mb-2">Weekday Schedule</h4>
                   <p className="text-gray-600">
-                    {getScheduleDescription(carePlan.metadata.weekdayCoverage)}
+                    {getScheduleDescription(weekdayCoverage)}
                   </p>
                 </div>
               )}
               
-              {/* Only show weekend schedule when weekend coverage is enabled */}
-              {carePlan.metadata?.weekendCoverage === 'yes' && (
+              {/* Only show weekend schedule when weekend coverage is explicitly set to "yes" */}
+              {weekendCoverage === 'yes' && (
                 <div className="bg-gray-50 border rounded-md p-4">
                   <h4 className="font-medium text-sm text-gray-700 mb-2">Weekend Schedule</h4>
                   <p className="text-gray-600">
                     {getWeekendScheduleDescription(
-                      carePlan.metadata?.weekendCoverage,
-                      carePlan.metadata?.weekendScheduleType
+                      weekendCoverage,
+                      weekendScheduleType
                     )}
                   </p>
                 </div>
               )}
               
-              {carePlan.metadata?.customShifts && carePlan.metadata.customShifts.length > 0 && (
+              {/* Only show custom shifts section when shifts exist and have length > 0 */}
+              {Array.isArray(customShifts) && customShifts.length > 0 && (
                 <div className="bg-gray-50 border rounded-md p-4">
                   <h4 className="font-medium text-sm text-gray-700 mb-2">Custom Schedules</h4>
                   <ul className="space-y-2 divide-y divide-gray-200">
-                    {carePlan.metadata.customShifts.map((shift: any, index: number) => (
+                    {customShifts.map((shift: any, index: number) => (
                       <li key={index} className="pt-2 first:pt-0">
                         <div className="flex flex-col">
                           <div className="flex items-center gap-2">

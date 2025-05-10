@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { getMetadata } from "@/utils/scheduleUtils";
 
 interface EditPlanDetailsSectionProps {
   data: any;
@@ -15,7 +16,31 @@ export function EditPlanDetailsSection({ data, onChange }: EditPlanDetailsSectio
   
   useEffect(() => {
     if (data) {
-      setLocalData(data);
+      // Normalize the data using our metadata helper
+      const normalizedData = {
+        ...data,
+        metadata: data.metadata || {},
+      };
+      
+      // Ensure metadata keys are consistent
+      if (normalizedData.metadata) {
+        // Get key values with our helper function
+        const planType = getMetadata(normalizedData.metadata, 'planType') || 'scheduled';
+        const weekdayCoverage = getMetadata(normalizedData.metadata, 'weekdayCoverage') || 'none';
+        const weekendCoverage = getMetadata(normalizedData.metadata, 'weekendCoverage') || 'no';
+        const weekendScheduleType = getMetadata(normalizedData.metadata, 'weekendScheduleType') || 'none';
+        
+        // Set normalized metadata with consistent camelCase keys
+        normalizedData.metadata = {
+          ...normalizedData.metadata,
+          planType,
+          weekdayCoverage,
+          weekendCoverage,
+          weekendScheduleType,
+        };
+      }
+      
+      setLocalData(normalizedData);
       
       // Make sure metadata is initialized
       if (!data.metadata) {

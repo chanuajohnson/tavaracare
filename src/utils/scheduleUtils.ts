@@ -1,8 +1,34 @@
-
 /**
  * Utility functions for handling care schedule data
  * These functions ensure consistent schedule formats across registration, care needs, and care plans
  */
+
+/**
+ * Gets a metadata value, handling both camelCase and snake_case keys
+ * This helps with consistency between database and frontend formats
+ */
+export function getMetadata(metadata: any, key: string): any {
+  if (!metadata) return undefined;
+  
+  // Try camelCase first
+  if (metadata[key] !== undefined) {
+    return metadata[key];
+  }
+  
+  // Try snake_case version
+  const snakeKey = key.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
+  if (metadata[snakeKey] !== undefined) {
+    return metadata[snakeKey];
+  }
+  
+  // Try camelCase version of a snake_case key
+  const camelKey = key.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
+  if (metadata[camelKey] !== undefined) {
+    return metadata[camelKey];
+  }
+  
+  return undefined;
+}
 
 /**
  * Parses a comma-separated schedule string into an array of schedule values

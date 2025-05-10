@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { Container } from "@/components/ui/container";
@@ -27,6 +27,7 @@ const CarePlanDetailPage = () => {
   const [confirmRemoveDialogOpen, setConfirmRemoveDialogOpen] = useState(false);
   const [memberToRemove, setMemberToRemove] = useState<CareTeamMemberWithProfile | null>(null);
   const [careNeeds, setCareNeeds] = useState<any>(null);
+  const [error, setError] = useState<string | null>(null);
 
   // Ensure we have user and id before proceeding
   if (!user || !id) {
@@ -58,6 +59,7 @@ const CarePlanDetailPage = () => {
           setCareNeeds(needsData);
         } catch (err) {
           console.error("Error fetching care needs:", err);
+          setError("Failed to load care needs data");
         }
       }
     };
@@ -73,6 +75,23 @@ const CarePlanDetailPage = () => {
     return <CarePlanNotFound />;
   }
 
+  // Add safety checks for required data before rendering
+  if (!careTeamMembers) {
+    console.error("Missing careTeamMembers data");
+    return <div className="p-8 text-center">Error loading care team data. Please refresh the page.</div>;
+  }
+
+  if (!professionals) {
+    console.error("Missing professionals data");
+    return <div className="p-8 text-center">Error loading professionals data. Please refresh the page.</div>;
+  }
+
+  // Create safer version of care plan by ensuring metadata exists
+  const safePlan = {
+    ...carePlan,
+    metadata: carePlan.metadata || {},
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <PageViewTracker actionType="family_care_plan_view" additionalData={{ plan_id: id }} />
@@ -87,7 +106,7 @@ const CarePlanDetailPage = () => {
           Back to Care Management
         </Button>
         
-        <CarePlanHeader carePlan={carePlan} />
+        <CarePlanHeader carePlan={safePlan} />
 
         <Tabs defaultValue="details" className="w-full">
           <TabsList className="mb-6">
@@ -97,38 +116,40 @@ const CarePlanDetailPage = () => {
             <TabsTrigger value="payroll">Payroll & Hours</TabsTrigger>
           </TabsList>
           
-          <TabsContent value="details">
-            <PlanDetailsTab carePlan={carePlan} />
-          </TabsContent>
-          
-          <TabsContent value="team">
-            <CareTeamTab 
-              carePlanId={id}
-              familyId={user.id}
-              careTeamMembers={careTeamMembers}
-              professionals={professionals}
-              onMemberAdded={reloadCareTeamMembers}
-              onMemberRemoveRequest={(member) => {
-                setMemberToRemove(member);
-                setConfirmRemoveDialogOpen(true);
-              }}
-            />
-          </TabsContent>
-          
-          <TabsContent value="schedule">
-            <ScheduleTab
-              carePlanId={id}
-              familyId={user.id}
-              careShifts={careShifts}
-              careTeamMembers={careTeamMembers}
-              onShiftUpdated={reloadCareShifts}
-              onDeleteShift={handleDeleteShift}
-            />
-          </TabsContent>
-          
-          <TabsContent value="payroll">
-            <PayrollTab carePlanId={id} />
-          </TabsContent>
+          <Suspense fallback={<div className="p-8">Loading tab content...</div>}>
+            <TabsContent value="details">
+              <PlanDetailsTab carePlan={safePlan} />
+            </TabsContent>
+            
+            <TabsContent value="team">
+              <CareTeamTab 
+                carePlanId={id}
+                familyId={user.id}
+                careTeamMembers={careTeamMembers}
+                professionals={professionals}
+                onMemberAdded={reloadCareTeamMembers}
+                onMemberRemoveRequest={(member) => {
+                  setMemberToRemove(member);
+                  setConfirmRemoveDialogOpen(true);
+                }}
+              />
+            </TabsContent>
+            
+            <TabsContent value="schedule">
+              <ScheduleTab
+                carePlanId={id}
+                familyId={user.id}
+                careShifts={careShifts || []}
+                careTeamMembers={careTeamMembers}
+                onShiftUpdated={reloadCareShifts}
+                onDeleteShift={handleDeleteShift}
+              />
+            </TabsContent>
+            
+            <TabsContent value="payroll">
+              <PayrollTab carePlanId={id} />
+            </TabsContent>
+          </Suspense>
         </Tabs>
       </Container>
 
