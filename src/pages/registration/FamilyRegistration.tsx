@@ -17,7 +17,13 @@ import { Calendar, Sun, Moon, Clock, Home } from "lucide-react";
 import { getPrefillDataFromUrl, applyPrefillDataToForm } from '../../utils/chat/prefillReader';
 import { clearChatSessionData } from '../../utils/chat/chatSessionUtils';
 import { fetchCarePlanById, updateCarePlan } from '@/services/care-plans/carePlanService';
-import { parseScheduleString, determineWeekdayCoverage, determineWeekendCoverage, determineWeekendScheduleType } from '@/utils/scheduleUtils';
+import { 
+  parseScheduleString, 
+  determineWeekdayCoverage, 
+  determineWeekendCoverage, 
+  determineWeekendScheduleType,
+  parseCustomScheduleText
+} from '@/utils/scheduleUtils';
 
 const FamilyRegistration = () => {
   const [loading, setLoading] = useState(false);

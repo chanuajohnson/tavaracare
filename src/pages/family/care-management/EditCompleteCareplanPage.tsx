@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "@/components/providers/AuthProvider";
@@ -16,7 +15,14 @@ import { EditRegistrationSection } from "@/components/care-plan/EditRegistration
 import { EditCareNeedsSection } from "@/components/care-plan/EditCareNeedsSection";
 import { EditPlanDetailsSection } from "@/components/care-plan/EditPlanDetailsSection";
 import { PageViewTracker } from "@/components/tracking/PageViewTracker";
-import { convertMetadataToProfileSchedule } from "@/utils/scheduleUtils";
+import { 
+  convertMetadataToProfileSchedule, 
+  parseScheduleString, 
+  parseCustomScheduleText,
+  determineWeekdayCoverage, 
+  determineWeekendCoverage, 
+  determineWeekendScheduleType 
+} from "@/utils/scheduleUtils";
 
 const EditCompleteCareplanPage = () => {
   const navigate = useNavigate();

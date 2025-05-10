@@ -141,7 +141,7 @@ export async function syncProfileScheduleWithCarePlan(userId: string, carePlanMe
     await supabase
       .from('profiles')
       .update({
-        care_schedule: scheduleArray
+        care_schedule: scheduleArray // This is now properly typed as string[]
       })
       .eq('id', userId);
       
