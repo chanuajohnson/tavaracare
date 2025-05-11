@@ -1,4 +1,6 @@
 
+import { Json } from '../utils/json';
+
 export type UserRole = 'family' | 'professional' | 'community' | 'admin';
 
 export interface OnboardingProgress {
@@ -20,7 +22,7 @@ export interface Profile {
   avatar_url?: string;
   phone_number?: string;
   address?: string;
-  onboarding_progress?: OnboardingProgress;
+  onboarding_progress?: Json;
   
   // Family-specific fields
   care_recipient_name?: string;

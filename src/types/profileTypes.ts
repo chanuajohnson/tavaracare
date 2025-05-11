@@ -45,7 +45,7 @@ interface DbBaseProfileFields {
   avatar_url?: string;
   phone_number?: string;
   address?: string;
-  onboarding_progress?: OnboardingProgress;
+  onboarding_progress?: Json;
 }
 
 /**
