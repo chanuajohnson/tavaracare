@@ -1,4 +1,15 @@
+
 export type UserRole = 'family' | 'professional' | 'community' | 'admin';
+
+export interface OnboardingProgress {
+  currentStep?: string;
+  completedSteps?: {
+    care_needs?: boolean;
+    care_plan?: boolean;
+    care_recipient_story?: boolean;
+    [key: string]: boolean | undefined;
+  };
+}
 
 export interface Profile {
   id: string;
@@ -9,6 +20,7 @@ export interface Profile {
   avatar_url?: string;
   phone_number?: string;
   address?: string;
+  onboarding_progress?: OnboardingProgress;
   
   // Family-specific fields
   care_recipient_name?: string;
