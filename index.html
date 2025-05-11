@@ -13,8 +13,9 @@
 
   <body>
     <div id="root"></div>
-    <!-- IMPORTANT: DO NOT REMOVE THIS SCRIPT TAG OR THIS VERY COMMENT! -->
-    <script src="https://cdn.gpteng.co/gptengineer.js" type="module"></script>
+    <!-- Load the main app script first to ensure React is initialized -->
     <script type="module" src="/src/main.tsx"></script>
+    <!-- IMPORTANT: DO NOT REMOVE THIS SCRIPT TAG OR THIS VERY COMMENT! -->
+    <script src="https://cdn.gpteng.co/gptengineer.js" type="module" defer></script>
   </body>
 </html>
