@@ -157,40 +157,42 @@ const CareManagementPage = () => {
                 className="cursor-pointer hover:shadow-md transition-shadow relative overflow-hidden" 
                 onClick={() => handleViewPlan(plan.id)}
               >
-                <div className="absolute top-3 right-3 z-10 flex gap-2">
+                {/* Updated button position with more spacing and better z-index */}
+                <div className="absolute top-4 right-4 z-10 flex gap-2">
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-8 w-8 bg-white/70 hover:bg-white shadow-sm"
+                    className={`${isMobile ? 'h-7 w-7' : 'h-8 w-8'} bg-white/70 hover:bg-white shadow-sm`}
                     onClick={(e) => handleEditPlanDetails(e, plan.id)}
                     title="Edit plan details"
                   >
-                    <Pencil className="h-4 w-4" />
+                    <Pencil className={`${isMobile ? 'h-3.5 w-3.5' : 'h-4 w-4'}`} />
                   </Button>
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-8 w-8 bg-white/70 hover:bg-white shadow-sm"
+                    className={`${isMobile ? 'h-7 w-7' : 'h-8 w-8'} bg-white/70 hover:bg-white shadow-sm`}
                     onClick={(e) => handleEditRegistration(e, plan.id, plan.familyId)}
                     title="Edit profile information"
                   >
-                    <Settings className="h-4 w-4" />
+                    <Settings className={`${isMobile ? 'h-3.5 w-3.5' : 'h-4 w-4'}`} />
                   </Button>
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-8 w-8 bg-white/70 hover:bg-white shadow-sm"
+                    className={`${isMobile ? 'h-7 w-7' : 'h-8 w-8'} bg-white/70 hover:bg-white shadow-sm`}
                     onClick={(e) => handleEditCareNeeds(e, plan.id, plan.familyId)}
                     title="Edit care needs"
                   >
-                    <Activity className="h-4 w-4" />
+                    <Activity className={`${isMobile ? 'h-3.5 w-3.5' : 'h-4 w-4'}`} />
                   </Button>
                 </div>
                 
                 <CardHeader className={`pb-2 ${isMobile ? 'p-4' : 'p-6'}`}>
-                  <CardTitle className="flex items-center gap-2 text-xl">
+                  {/* Added right padding to prevent title overlap with buttons */}
+                  <CardTitle className="flex items-center gap-2 text-xl pr-24">
                     <FileText className="h-5 w-5 text-primary flex-shrink-0" />
-                    <span className="truncate">{plan.title}</span>
+                    <span className="truncate max-w-[calc(100%-2rem)]">{plan.title}</span>
                   </CardTitle>
                   <CardDescription className="line-clamp-2 mt-1">
                     {truncateDescription(plan.description, isMobile ? 40 : 60)}
