@@ -12,16 +12,10 @@ const AboutPage = lazy(() => import("@/pages/about/AboutPage"));
 const AdminDashboard = lazy(() => import("@/pages/admin/AdminDashboard"));
 const UserJourneyPage = lazy(() => import("@/pages/admin/UserJourneyPage"));
 
-// Import dashboards with specific chunk name
-const FamilyDashboard = lazy(() => 
-  import(/* webpackChunkName: "family-dashboard" */ "@/pages/dashboards/FamilyDashboard")
-);
-const CommunityDashboard = lazy(() => 
-  import(/* webpackChunkName: "community-dashboard" */ "@/pages/dashboards/CommunityDashboard")
-);
-const ProfessionalDashboard = lazy(() => 
-  import(/* webpackChunkName: "professional-dashboard" */ "@/pages/dashboards/ProfessionalDashboard")
-);
+// Import dashboards without webpack chunk names
+const FamilyDashboard = lazy(() => import("@/pages/dashboards/FamilyDashboard"));
+const CommunityDashboard = lazy(() => import("@/pages/dashboards/CommunityDashboard"));
+const ProfessionalDashboard = lazy(() => import("@/pages/dashboards/ProfessionalDashboard"));
 
 const FamilyRegistration = lazy(() => import("@/pages/registration/FamilyRegistration"));
 const ProfessionalRegistration = lazy(() => import("@/pages/registration/ProfessionalRegistration"));

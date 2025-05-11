@@ -14,6 +14,10 @@ function AppContent() {
   
   useEffect(() => {
     console.log('[App] Route changed to:', location.pathname);
+    // Add additional debugging for the family dashboard path
+    if (location.pathname === '/dashboard/family') {
+      console.log('[App] Family dashboard route detected - ensuring module is loaded');
+    }
   }, [location.pathname]);
   
   return (
