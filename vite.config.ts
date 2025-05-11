@@ -1,4 +1,3 @@
-
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
@@ -20,23 +19,39 @@ export default defineConfig(({ mode }) => {
       port: 8080,
     },
     plugins: [
-      react(),
+      react({
+        // Ensure React is external and always available
+        jsxRuntime: 'automatic'
+      }),
       mode === 'development' &&
       componentTagger(),
     ].filter(Boolean),
     resolve: {
       alias: {
         "@": path.resolve(__dirname, "./src"),
+        // Ensure React is properly resolved
+        "react": path.resolve(__dirname, "./node_modules/react"),
+        "react-dom": path.resolve(__dirname, "./node_modules/react-dom"),
       },
     },
     build: {
       outDir: "dist", // Output to 'dist' directory
       sourcemap: mode === 'development', // Enable sourcemaps in development
       chunkSizeWarningLimit: 1600, // Increase chunk size warning limit for larger components
+      commonjsOptions: {
+        // Handle non-ESM modules more carefully
+        transformMixedEsModules: true,
+      },
       rollupOptions: {
         output: {
-          // Use a function-based manualChunks configuration for more flexibility
+          // Ensure React loads before anything else
           manualChunks: (id) => {
+            // React core and DOM must be in the first chunk
+            if (id.includes('node_modules/react') || id.includes('node_modules/react-dom') || 
+                id.includes('node_modules/scheduler')) {
+              return 'react-core';
+            }
+            
             // Dashboard specific chunks
             if (id.includes('/pages/dashboards/FamilyDashboard')) {
               return 'family-dashboard';
@@ -48,11 +63,8 @@ export default defineConfig(({ mode }) => {
               return 'community-dashboard';
             }
             
-            // Vendor chunks
+            // Other vendor chunks
             if (id.includes('node_modules')) {
-              if (id.includes('react') || id.includes('react-dom')) {
-                return 'vendor-react';
-              }
               if (id.includes('framer-motion')) {
                 return 'vendor-animations';
               }
@@ -66,6 +78,15 @@ export default defineConfig(({ mode }) => {
             
             // Default chunk handling by Vite
             return undefined;
+          },
+          // Configure entry points to ensure React loads first
+          entryFileNames: 'assets/[name]-[hash].js',
+          chunkFileNames: (chunkInfo) => {
+            // Ensure react-core chunk has the highest priority (loads first)
+            if (chunkInfo.name === 'react-core') {
+              return 'assets/react-core-[hash].js';
+            }
+            return 'assets/[name]-[hash].js';
           }
         }
       }

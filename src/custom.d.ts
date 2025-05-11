@@ -3,8 +3,12 @@
 
 import React from 'react';
 
+// Make React available globally on window object
 declare global {
   interface Window {
-    React?: typeof React;
+    React: typeof React;
   }
 }
+
+// Export empty object to make this a proper module
+export {};

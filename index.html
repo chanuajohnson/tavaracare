@@ -9,20 +9,32 @@
     <meta name="author" content="Lovable" />
     <meta property="og:image" content="/og-image.png" />
     <link rel="icon" href="/favicon-new.ico" type="image/x-icon">
+    <script>
+      // Synchronously declare React in the global scope to prevent initialization issues
+      window.React = window.React || {};
+    </script>
   </head>
 
   <body>
     <div id="root"></div>
-    <!-- Create a sequence where React is guaranteed to initialize first -->
+    <!-- GPT Engineer script tag must load as a regular script, not a module -->
+    <script src="https://cdn.gpteng.co/gptengineer.js"></script>
+    <!-- Main application loading -->
     <script type="module">
-      // Explicitly import React first to ensure it's initialized
-      import React from 'react';
-      window.React = React;
-      
-      // Then dynamically import the main app
-      import('./src/main.tsx').catch(e => console.error('Error loading app:', e));
+      try {
+        // Import React first and ensure it's globally available
+        import React from 'react';
+        window.React = React;
+        
+        // Then import the main application
+        import('./src/main.tsx').catch(e => {
+          console.error('Error loading application:', e);
+          document.getElementById('root').innerHTML = '<div style="color:red;padding:20px;">Failed to load application. Please refresh the page or contact support.</div>';
+        });
+      } catch (error) {
+        console.error('Critical initialization error:', error);
+        document.getElementById('root').innerHTML = '<div style="color:red;padding:20px;">Failed to initialize application. Please refresh the page or contact support.</div>';
+      }
     </script>
-    <!-- IMPORTANT: DO NOT REMOVE THIS SCRIPT TAG OR THIS VERY COMMENT! -->
-    <script src="https://cdn.gpteng.co/gptengineer.js" defer></script>
   </body>
 </html>
