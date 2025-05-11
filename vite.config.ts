@@ -32,6 +32,32 @@ export default defineConfig(({ mode }) => {
     build: {
       outDir: "dist", // Output to 'dist' directory
       sourcemap: mode === 'development', // Enable sourcemaps in development
+      chunkSizeWarningLimit: 1600, // Increase chunk size warning limit for larger components
+      rollupOptions: {
+        output: {
+          manualChunks: {
+            // Group larger dashboard components together
+            'dashboards': [
+              'src/pages/dashboards/FamilyDashboard.tsx',
+              'src/pages/dashboards/ProfessionalDashboard.tsx',
+              'src/pages/dashboards/CommunityDashboard.tsx'
+            ],
+            // Group shared UI components together
+            'ui': [
+              'src/components/ui/button.tsx',
+              'src/components/ui/card.tsx',
+              'src/components/dashboard/DashboardHeader.tsx'
+            ],
+            // Split vendor dependencies 
+            'vendor': [
+              'react',
+              'react-dom',
+              'react-router-dom',
+              'framer-motion'
+            ]
+          }
+        }
+      }
     },
     define: {
       // Make environment variables available to client code
@@ -42,5 +68,12 @@ export default defineConfig(({ mode }) => {
     envPrefix: envPrefix,
     // Make Vite load the correct .env file based on mode
     envDir: process.cwd(),
+    optimizeDeps: {
+      include: ['react', 'react-dom', 'react-router-dom', 'framer-motion'],
+      esbuildOptions: {
+        // Increase build memory limit to handle large components
+        treeShaking: true,
+      }
+    }
   }
 });
