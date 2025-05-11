@@ -22,7 +22,8 @@ import {
   determineWeekdayCoverage, 
   determineWeekendCoverage, 
   determineWeekendScheduleType,
-  parseCustomScheduleText
+  parseCustomScheduleText,
+  convertMetadataToProfileSchedule
 } from '@/utils/scheduleUtils';
 
 const FamilyRegistration = () => {
@@ -81,6 +82,52 @@ const FamilyRegistration = () => {
       }
     }
   }, [searchParams]);
+
+  // New effect to load care plan schedule data when in edit mode
+  useEffect(() => {
+    const loadCarePlanScheduleData = async () => {
+      try {
+        if (isEditMode && carePlanId) {
+          console.log("Loading care plan schedule data for plan:", carePlanId);
+          
+          // Fetch the care plan data
+          const carePlan = await fetchCarePlanById(carePlanId);
+          if (!carePlan || !carePlan.metadata) {
+            console.warn("No care plan or metadata found for ID:", carePlanId);
+            return;
+          }
+          
+          console.log("Care plan metadata:", carePlan.metadata);
+          
+          // Convert the care plan metadata to schedule array format
+          const scheduleArray = convertMetadataToProfileSchedule(carePlan.metadata);
+          console.log("Converted schedule array:", scheduleArray);
+          
+          // Set the schedule in the form
+          if (scheduleArray && scheduleArray.length > 0) {
+            setCareSchedule(scheduleArray);
+          }
+          
+          // Also set custom schedule text if available
+          if (carePlan.metadata.customShifts && carePlan.metadata.customShifts.length > 0) {
+            // Extract custom schedule description from the first custom shift
+            const customShiftDescriptions = carePlan.metadata.customShifts
+              .map(shift => shift.title || `${shift.days.join(', ')} ${shift.startTime} - ${shift.endTime}`)
+              .join(', ');
+              
+            setCustomSchedule(customShiftDescriptions);
+          }
+        }
+      } catch (error) {
+        console.error("Error loading care plan schedule data:", error);
+      }
+    };
+
+    // Only load schedule data after user data has loaded
+    if (user) {
+      loadCarePlanScheduleData();
+    }
+  }, [isEditMode, carePlanId, user]);
 
   // Check for auto-redirect flag from chat
   useEffect(() => {
