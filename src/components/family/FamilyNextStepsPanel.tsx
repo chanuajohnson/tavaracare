@@ -11,6 +11,7 @@ import { SubscriptionFeatureLink } from "@/components/subscription/SubscriptionF
 import { supabase } from "@/lib/supabase";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
+import { CarePlanMetadata } from "@/types/profile";
 
 // Define the types for step status
 type StepStatus = 'completed' | 'in_progress' | 'pending_admin' | 'scheduled' | 'not_started';
@@ -35,11 +36,7 @@ interface OnboardingProgress {
 // Type for care plan with metadata
 interface CarePlan {
   id: string;
-  metadata?: {
-    site_visit_status?: SiteVisitStatus;
-    care_plan_status?: CarePlanStatus;
-    [key: string]: any;
-  };
+  metadata?: CarePlanMetadata;
 }
 
 // Step definition interface
@@ -210,8 +207,9 @@ export const FamilyNextStepsPanel = () => {
           updatedSteps[4].visible = true;
           
           // Step 5: Tavara Admin Site Visit Status
-          if (latestCarePlan?.metadata?.site_visit_status) {
-            const siteVisitStatus = latestCarePlan.metadata.site_visit_status as SiteVisitStatus;
+          if (latestCarePlan?.metadata) {
+            const metadata = latestCarePlan.metadata as CarePlanMetadata;
+            const siteVisitStatus = metadata.site_visit_status as SiteVisitStatus;
             
             if (siteVisitStatus === 'scheduled') {
               updatedSteps[4].status = 'scheduled';
@@ -244,8 +242,9 @@ export const FamilyNextStepsPanel = () => {
             updatedSteps[6].visible = true;
             
             // Step 7: Care plan active status
-            if (latestCarePlan?.metadata?.care_plan_status) {
-              const carePlanStatus = latestCarePlan.metadata.care_plan_status as CarePlanStatus;
+            if (latestCarePlan?.metadata) {
+              const metadata = latestCarePlan.metadata as CarePlanMetadata;
+              const carePlanStatus = metadata.care_plan_status as CarePlanStatus;
               
               if (carePlanStatus === 'active') {
                 updatedSteps[6].status = 'completed';
