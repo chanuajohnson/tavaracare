@@ -1,5 +1,17 @@
 
+import { Json } from '../utils/json';
+
 export type UserRole = 'family' | 'professional' | 'community' | 'admin';
+
+export interface OnboardingProgress {
+  currentStep?: string;
+  completedSteps?: {
+    care_needs?: boolean;
+    care_plan?: boolean;
+    care_recipient_story?: boolean;
+    [key: string]: boolean | undefined;
+  };
+}
 
 export interface Profile {
   id: string;
@@ -10,6 +22,7 @@ export interface Profile {
   avatar_url?: string;
   phone_number?: string;
   address?: string;
+  onboarding_progress?: Json;
   
   // Family-specific fields
   care_recipient_name?: string;
@@ -20,7 +33,7 @@ export interface Profile {
   other_special_needs?: string;
   caregiver_type?: string;
   preferred_contact_method?: string;
-  care_schedule?: string | string[]; // Updated to accept both string and string[]
+  care_schedule?: string;  // Changed from string | string[] to string for database compatibility
   budget_preferences?: string;
   caregiver_preferences?: string;
   additional_notes?: string;

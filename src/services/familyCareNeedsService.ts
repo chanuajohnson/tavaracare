@@ -1,0 +1,194 @@
+import { supabase } from "@/lib/supabase";
+import { toast } from "sonner";
+import { FamilyCareNeeds } from "@/types/carePlan";
+import { adaptFamilyCareNeedsFromDb, adaptFamilyCareNeedsToDb } from "@/adapters/familyCareNeedsAdapter";
+import { updateOnboardingProgress } from "@/services/profileService";
+
+/**
+ * Fetch care needs for a family profile
+ */
+export const fetchFamilyCareNeeds = async (profileId: string): Promise<FamilyCareNeeds | null> => {
+  try {
+    const { data, error } = await supabase
+      .from('care_needs_family')
+      .select('*')
+      .eq('profile_id', profileId)
+      .maybeSingle();
+
+    if (error) {
+      throw error;
+    }
+
+    console.log("Fetched care needs data:", data);
+    return data ? adaptFamilyCareNeedsFromDb(data) : null;
+  } catch (error) {
+    console.error("Error fetching family care needs:", error);
+    toast.error("Failed to load care needs data");
+    return null;
+  }
+};
+
+/**
+ * Save care needs for a family profile
+ */
+export const saveFamilyCareNeeds = async (careNeeds: FamilyCareNeeds): Promise<FamilyCareNeeds | null> => {
+  try {
+    const dbCareNeeds = adaptFamilyCareNeedsToDb(careNeeds);
+    console.log("Saving care needs to DB:", dbCareNeeds);
+
+    // Check if record exists
+    const { data: existingData, error: checkError } = await supabase
+      .from('care_needs_family')
+      .select('id')
+      .eq('profile_id', dbCareNeeds.profile_id)
+      .maybeSingle();
+
+    if (checkError) {
+      throw checkError;
+    }
+
+    let result;
+
+    if (existingData) {
+      // Update existing record
+      console.log("Updating existing care needs with ID:", existingData.id);
+      const { data, error } = await supabase
+        .from('care_needs_family')
+        .update(dbCareNeeds)
+        .eq('id', existingData.id)
+        .select()
+        .single();
+
+      if (error) {
+        throw error;
+      }
+      
+      result = data;
+    } else {
+      // Insert new record
+      console.log("Creating new care needs record");
+      const { data, error } = await supabase
+        .from('care_needs_family')
+        .insert([dbCareNeeds])
+        .select()
+        .single();
+
+      if (error) {
+        throw error;
+      }
+      
+      result = data;
+    }
+
+    console.log("Saved care needs result:", result);
+
+    // Update onboarding progress
+    try {
+      await updateOnboardingProgress(dbCareNeeds.profile_id, {
+        currentStep: 'care_plan',
+        completedSteps: {
+          care_needs: true
+        }
+      });
+    } catch (progressError) {
+      console.warn("Could not update onboarding progress:", progressError);
+    }
+
+    toast.success("Care needs saved successfully");
+    return adaptFamilyCareNeedsFromDb(result);
+  } catch (error) {
+    console.error("Error saving family care needs:", error);
+    toast.error("Failed to save care needs data");
+    return null;
+  }
+};
+
+/**
+ * Create a draft care plan from family care needs
+ * 
+ * @param careNeeds - The family care needs data
+ * @param profileData - Additional profile data like care recipient name
+ */
+export const generateDraftCarePlanFromCareNeeds = (
+  careNeeds: FamilyCareNeeds, 
+  profileData: { 
+    careRecipientName?: string;
+    relationship?: string;
+    careTypes?: string[];
+  }
+): {
+  title: string;
+  description: string;
+  planType: 'scheduled' | 'on-demand' | 'both';
+  metadata: {
+    weekdayCoverage?: string;
+    weekendCoverage?: string;
+    weekendScheduleType?: string;
+    customShifts?: Array<{
+      days: Array<'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday'>;
+      startTime: string;
+      endTime: string;
+      title?: string;
+    }>;
+  };
+} => {
+  // Extract first name if full name is provided
+  const recipientName = profileData.careRecipientName 
+    ? profileData.careRecipientName.split(' ')[0] 
+    : 'Care Recipient';
+
+  console.log("Generating care plan with schedule data:", {
+    weekdayCoverage: careNeeds.weekdayCoverage,
+    weekendCoverage: careNeeds.weekendCoverage,
+    weekendScheduleType: careNeeds.weekendScheduleType
+  });
+
+  // Create a focused, concise description instead of including all details
+  let description = "";
+  
+  // Identify main care focuses (limit to top 2-3)
+  const careFocuses = [];
+  
+  if (careNeeds.assistanceMobility) careFocuses.push("mobility assistance");
+  if (careNeeds.assistanceMedication) careFocuses.push("medication management");
+  if (careNeeds.dementiaRedirection) careFocuses.push("memory care");
+  if (careNeeds.assistanceBathing || careNeeds.assistanceDressing) careFocuses.push("personal care");
+  if (careNeeds.fallMonitoring) careFocuses.push("fall prevention");
+  
+  // Create a short, personalized description
+  if (careFocuses.length > 0) {
+    const focusText = careFocuses.slice(0, 2).join(" and ");
+    description = `Care plan for ${recipientName} focusing on ${focusText}.`;
+  } else {
+    description = `Care plan for ${recipientName}.`;
+  }
+  
+  // Add relationship if available, but keep it concise
+  if (profileData.relationship && description.length < 100) {
+    description = description.replace(`.`, ` (${profileData.relationship}).`);
+  }
+
+  // Determine plan type based on preferences
+  // Use the explicitly selected plan type if available, otherwise infer from coverage preferences
+  let planType: 'scheduled' | 'on-demand' | 'both' = careNeeds.planType || 'scheduled';
+  
+  // Only infer plan type if not explicitly selected
+  if (!careNeeds.planType) {
+    // Default to scheduled care unless explicitly set to on-demand
+    if (careNeeds.weekdayCoverage === 'none' && careNeeds.weekendCoverage === 'no') {
+      planType = 'on-demand';
+    }
+  }
+
+  return {
+    title: `Care Plan for ${recipientName}`,
+    description: description,
+    planType: planType,
+    metadata: {
+      weekdayCoverage: careNeeds.weekdayCoverage,
+      weekendCoverage: careNeeds.weekendCoverage,
+      weekendScheduleType: careNeeds.weekendScheduleType,
+      customShifts: []
+    }
+  };
+};

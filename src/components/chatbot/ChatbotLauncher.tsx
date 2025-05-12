@@ -24,7 +24,7 @@ export const ChatbotLauncher: React.FC<ChatbotLauncherProps> = (props) => {
     console.error("ChatbotLauncher error:", error);
     return (
       <motion.div 
-        className="fixed bottom-24 right-6 z-50 safe-bottom"
+        className="fixed bottom-24 right-6 z-50"
         initial={{ scale: 0.8, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
       >
@@ -32,6 +32,7 @@ export const ChatbotLauncher: React.FC<ChatbotLauncherProps> = (props) => {
           onClick={() => toast.error("Chat system is not available. Please refresh the page.")}
           size="icon"
           className="h-14 w-14 rounded-full shadow-lg bg-primary hover:bg-primary/90"
+          aria-label="Chat with Tavara (currently unavailable)"
         >
           <MessageSquare size={24} />
         </Button>
@@ -74,15 +75,15 @@ const ChatbotLauncherInner: React.FC<ChatbotLauncherProps> = ({
     
     switch(position) {
       case 'left-of-fab':
-        return `fixed bottom-[calc(${mobileSpacing}px + ${safeBottomSpacing})] right-[calc(${fabWidth + mobileSpacing * 2}px + env(safe-area-inset-right, 0px))]`;
+        return `fixed bottom-[calc(${mobileSpacing}px + ${safeBottomSpacing})] right-[calc(${fabWidth}px+${mobileSpacing}px+env(safe-area-inset-right, 0px))]`;
       case 'above-fab':
-        return `fixed bottom-[calc(${fabHeight + mobileSpacing * 2}px + ${safeBottomSpacing})] right-[calc(${mobileSpacing}px + env(safe-area-inset-right, 0px))]`;
+        return `fixed bottom-[calc(${fabHeight}px+${mobileSpacing}px+56px+${safeBottomSpacing})] right-[calc(${mobileSpacing}px+env(safe-area-inset-right, 0px))]`;
       case 'bottom-right':
-        return `fixed bottom-[calc(${mobileSpacing}px + ${safeBottomSpacing})] right-[calc(${mobileSpacing}px + env(safe-area-inset-right, 0px))]`;
+        return `fixed bottom-[calc(${mobileSpacing}px + ${safeBottomSpacing})] right-[calc(${mobileSpacing}px+env(safe-area-inset-right, 0px))]`;
       case 'bottom-left':
-        return `fixed bottom-[calc(${mobileSpacing}px + ${safeBottomSpacing})] left-[calc(${mobileSpacing}px + env(safe-area-inset-left, 0px))]`;
+        return `fixed bottom-[calc(${mobileSpacing}px + ${safeBottomSpacing})] left-[calc(${mobileSpacing}px+env(safe-area-inset-left, 0px))]`;
       default:
-        return `fixed bottom-[calc(${mobileSpacing}px + ${safeBottomSpacing})] right-[calc(${mobileSpacing}px + env(safe-area-inset-right, 0px))]`;
+        return `fixed bottom-[calc(${mobileSpacing}px + ${safeBottomSpacing})] right-[calc(${mobileSpacing}px+env(safe-area-inset-right, 0px))]`;
     }
   };
 
@@ -95,11 +96,14 @@ const ChatbotLauncherInner: React.FC<ChatbotLauncherProps> = ({
           initial={{ scale: 0.8, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           transition={{ delay: 0.5 }}
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
         >
           <Button
             onClick={toggleChat}
             size="icon"
             className={cn("h-14 w-14 rounded-full shadow-lg bg-primary hover:bg-primary/90", className)}
+            aria-label="Chat with Tavara care assistant"
           >
             <MessageSquare size={24} />
           </Button>
@@ -108,12 +112,18 @@ const ChatbotLauncherInner: React.FC<ChatbotLauncherProps> = ({
       
       {/* Chatbot Widget - with improved positioning and responsive width */}
       {isOpen && !isFullScreen && (
-        <div className={cn(getChatbotPositionClasses(), "z-40", isMobile && "left-4 right-4")}>
+        <motion.div 
+          className={cn(getChatbotPositionClasses(), "z-40", isMobile && "left-4 right-4")}
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: 10 }}
+          transition={{ duration: 0.2 }}
+        >
           <ChatbotWidget 
             width={isMobile ? "100%" : width}
             onClose={closeChat}
           />
-        </div>
+        </motion.div>
       )}
     </>
   );

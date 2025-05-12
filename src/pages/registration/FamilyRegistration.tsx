@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { v4 as uuidv4 } from 'uuid';
 import { supabase, ensureStorageBuckets, ensureAuthContext } from '../../lib/supabase';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '../../components/ui/card';
@@ -16,6 +16,15 @@ import { toast } from 'sonner';
 import { Calendar, Sun, Moon, Clock, Home } from "lucide-react";
 import { getPrefillDataFromUrl, applyPrefillDataToForm } from '../../utils/chat/prefillReader';
 import { clearChatSessionData } from '../../utils/chat/chatSessionUtils';
+import { fetchCarePlanById, updateCarePlan } from '@/services/care-plans/carePlanService';
+import { 
+  parseScheduleString, 
+  determineWeekdayCoverage, 
+  determineWeekendCoverage, 
+  determineWeekendScheduleType,
+  parseCustomScheduleText,
+  convertMetadataToProfileSchedule
+} from '@/utils/scheduleUtils';
 
 const FamilyRegistration = () => {
   const [loading, setLoading] = useState(false);
@@ -50,6 +59,75 @@ const FamilyRegistration = () => {
   const [shouldAutoSubmit, setShouldAutoSubmit] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [carePlanId, setCarePlanId] = useState<string | null>(null);
+
+  // Check for edit mode based on URL parameters
+  useEffect(() => {
+    const isEdit = searchParams.get('edit') === 'true';
+    const planId = searchParams.get('careplan');
+    
+    if (isEdit && planId) {
+      setIsEditMode(true);
+      setCarePlanId(planId);
+      console.log("Edit mode activated for care plan:", planId);
+    } else {
+      // Also check local storage as a fallback
+      const storedPlanId = localStorage.getItem("edit_care_plan_id");
+      if (storedPlanId) {
+        setIsEditMode(true);
+        setCarePlanId(storedPlanId);
+        console.log("Edit mode activated from local storage for care plan:", storedPlanId);
+      }
+    }
+  }, [searchParams]);
+
+  // New effect to load care plan schedule data when in edit mode
+  useEffect(() => {
+    const loadCarePlanScheduleData = async () => {
+      try {
+        if (isEditMode && carePlanId) {
+          console.log("Loading care plan schedule data for plan:", carePlanId);
+          
+          // Fetch the care plan data
+          const carePlan = await fetchCarePlanById(carePlanId);
+          if (!carePlan || !carePlan.metadata) {
+            console.warn("No care plan or metadata found for ID:", carePlanId);
+            return;
+          }
+          
+          console.log("Care plan metadata:", carePlan.metadata);
+          
+          // Convert the care plan metadata to schedule array format
+          const scheduleArray = convertMetadataToProfileSchedule(carePlan.metadata);
+          console.log("Converted schedule array:", scheduleArray);
+          
+          // Set the schedule in the form
+          if (scheduleArray && scheduleArray.length > 0) {
+            setCareSchedule(scheduleArray);
+          }
+          
+          // Also set custom schedule text if available
+          if (carePlan.metadata.customShifts && carePlan.metadata.customShifts.length > 0) {
+            // Extract custom schedule description from the first custom shift
+            const customShiftDescriptions = carePlan.metadata.customShifts
+              .map(shift => shift.title || `${shift.days.join(', ')} ${shift.startTime} - ${shift.endTime}`)
+              .join(', ');
+              
+            setCustomSchedule(customShiftDescriptions);
+          }
+        }
+      } catch (error) {
+        console.error("Error loading care plan schedule data:", error);
+      }
+    };
+
+    // Only load schedule data after user data has loaded
+    if (user) {
+      loadCarePlanScheduleData();
+    }
+  }, [isEditMode, carePlanId, user]);
 
   // Check for auto-redirect flag from chat
   useEffect(() => {
@@ -377,6 +455,65 @@ const FamilyRegistration = () => {
     }
   };
 
+  // Handle updating care plan metadata when in edit mode
+  const updateCarePlanMetadata = async (planId: string, careScheduleData: string[]) => {
+    try {
+      if (!planId) return;
+  
+      console.log("Updating care plan metadata with schedule:", careScheduleData);
+      
+      // Get current care plan first
+      const carePlan = await fetchCarePlanById(planId);
+      if (!carePlan) {
+        console.error("Could not find care plan to update");
+        return false;
+      }
+      
+      // Determine schedule values using utility functions
+      const weekdayCoverage = determineWeekdayCoverage(careScheduleData);
+      const weekendCoverageValue = determineWeekendCoverage(careScheduleData);
+      const weekendScheduleType = weekendCoverageValue === 'yes' 
+        ? determineWeekendScheduleType(careScheduleData)
+        : 'none';
+      
+      // Check if there's a custom schedule
+      const hasCustomSchedule = careScheduleData.includes('custom');
+      
+      console.log("Calculated schedule values:", {
+        weekdayCoverage,
+        weekendCoverage: weekendCoverageValue,
+        weekendScheduleType,
+        hasCustomSchedule
+      });
+      
+      // Parse custom schedule if provided
+      let customShifts = [];
+      if (hasCustomSchedule && customSchedule) {
+        customShifts = parseCustomScheduleText(customSchedule);
+        console.log("Parsed custom schedule:", customShifts);
+      }
+      
+      // Update the care plan metadata with new schedule information
+      await updateCarePlan(planId, {
+        ...carePlan,
+        metadata: {
+          ...(carePlan.metadata || {}),
+          planType: weekdayCoverage !== 'none' || hasCustomSchedule ? 'scheduled' : 'on-demand',
+          weekdayCoverage,
+          weekendCoverage: weekendCoverageValue,
+          weekendScheduleType,
+          customShifts: customShifts.length > 0 ? customShifts : carePlan.metadata?.customShifts
+        }
+      });
+      
+      console.log("Successfully updated care plan metadata");
+      return true;
+    } catch (error) {
+      console.error("Error updating care plan metadata:", error);
+      return false;
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -436,6 +573,12 @@ const FamilyRegistration = () => {
         }
       }
 
+      // Prepare the care schedule array or convert to string as needed
+      const processedCareSchedule = Array.isArray(careSchedule) ? careSchedule : 
+        careSchedule ? [careSchedule] : [];
+        
+      console.log("Processed care schedule for saving:", processedCareSchedule);
+
       const fullName = `${firstName} ${lastName}`.trim();
       const updates = {
         id: user.id,
@@ -453,7 +596,7 @@ const FamilyRegistration = () => {
         other_special_needs: otherSpecialNeeds || '',
         caregiver_type: caregiverType || '',
         preferred_contact_method: preferredContactMethod || '',
-        care_schedule: careSchedule || [],
+        care_schedule: processedCareSchedule,
         custom_schedule: customSchedule || '',
         budget_preferences: budgetPreferences || '',
         caregiver_preferences: caregiverPreferences || '',
@@ -465,22 +608,42 @@ const FamilyRegistration = () => {
       
       await updateProfile(updates);
       
+      // If in edit mode, also update the care plan metadata
+      if (isEditMode && carePlanId) {
+        const metadataUpdated = await updateCarePlanMetadata(carePlanId, processedCareSchedule);
+        if (!metadataUpdated) {
+          toast.warning("Profile information updated, but could not update care plan schedule");
+        }
+      }
+      
       // Get session ID from URL to clear specific flags
       const urlParams = new URLSearchParams(window.location.search);
       const sessionId = urlParams.get('session');
       
       // Clear chat session data including auto-redirect flag
-      clearChatSessionData(sessionId || undefined);
-      
-      // Also clear the auto-redirect flag specifically
-      if (sessionId) {
-        localStorage.removeItem(`tavara_chat_auto_redirect_${sessionId}`);
-        localStorage.removeItem(`tavara_chat_transition_${sessionId}`);
+      if (!isEditMode) {
+        clearChatSessionData(sessionId || undefined);
+        
+        // Also clear the auto-redirect flag specifically
+        if (sessionId) {
+          localStorage.removeItem(`tavara_chat_auto_redirect_${sessionId}`);
+          localStorage.removeItem(`tavara_chat_transition_${sessionId}`);
+        }
       }
 
-      toast.success('Registration Complete! Your family caregiver profile has been updated.');
-      
-      navigate('/dashboard/family');
+      // Handle differently based on edit mode
+      if (isEditMode && carePlanId) {
+        toast.success('Profile information updated successfully!');
+        
+        // Clear the stored edit ID
+        localStorage.removeItem("edit_care_plan_id");
+        
+        // Navigate back to the care plan
+        navigate(`/family/care-management/${carePlanId}`);
+      } else {
+        toast.success('Registration Complete! Your family caregiver profile has been updated.');
+        navigate('/dashboard/family');
+      }
     } catch (error: any) {
       console.error('Error updating profile:', error);
       toast.error(error.message || 'Failed to update profile. Please try again.');
@@ -491,9 +654,14 @@ const FamilyRegistration = () => {
 
   return (
     <div className="container max-w-4xl py-10">
-      <h1 className="text-3xl font-bold mb-6">Family Member Registration</h1>
+      <h1 className="text-3xl font-bold mb-6">
+        {isEditMode ? "Update Profile Information" : "Family Member Registration"}
+      </h1>
       <p className="text-gray-500 mb-8">
-        Complete your profile to connect with professional caregivers and community resources.
+        {isEditMode 
+          ? "Update your profile to ensure we have the most up-to-date information."
+          : "Complete your profile to connect with professional caregivers and community resources."
+        }
       </p>
 
       <form ref={formRef} onSubmit={handleSubmit} className="space-y-6">
@@ -774,7 +942,17 @@ const FamilyRegistration = () => {
                         onCheckedChange={() => handleCareScheduleChange('weekday_extended')}
                       />
                       <Label htmlFor="weekday-extended" className="font-normal">
-                        🕕 Monday – Friday, 6 AM – 6 PM (Extended daytime coverage)
+                        🕕 Monday – Friday, 8 AM – 6 PM (Extended evening coverage)
+                      </Label>
+                    </div>
+                    <div className="flex items-start space-x-2">
+                      <Checkbox 
+                        id="weekday-full" 
+                        checked={careSchedule.includes('weekday_full')}
+                        onCheckedChange={() => handleCareScheduleChange('weekday_full')}
+                      />
+                      <Label htmlFor="weekday-full" className="font-normal">
+                        🕕 Monday – Friday, 6 AM – 6 PM (Full daytime coverage)
                       </Label>
                     </div>
                     <div className="flex items-start space-x-2">
@@ -798,12 +976,22 @@ const FamilyRegistration = () => {
                   <div className="pl-7 space-y-3">
                     <div className="flex items-start space-x-2">
                       <Checkbox 
+                        id="weekend-standard" 
+                        checked={careSchedule.includes('weekend_standard')}
+                        onCheckedChange={() => handleCareScheduleChange('weekend_standard')}
+                      />
+                      <Label htmlFor="weekend-standard" className="font-normal">
+                        🌞 Saturday – Sunday, 8 AM – 6 PM (Daytime weekend coverage)
+                      </Label>
+                    </div>
+                    <div className="flex items-start space-x-2">
+                      <Checkbox 
                         id="weekend-day" 
                         checked={careSchedule.includes('weekend_day')}
                         onCheckedChange={() => handleCareScheduleChange('weekend_day')}
                       />
                       <Label htmlFor="weekend-day" className="font-normal">
-                        🌞 Saturday – Sunday, 6 AM – 6 PM (Daytime weekend coverage)
+                        🌞 Saturday – Sunday, 6 AM – 6 PM (Full daytime weekend coverage)
                       </Label>
                     </div>
                   </div>
@@ -971,12 +1159,20 @@ const FamilyRegistration = () => {
           </CardContent>
         </Card>
 
-        <div className="flex justify-end gap-4">
-          <Button type="button" variant="outline" onClick={() => navigate('/')}>
-            Cancel
-          </Button>
-          <Button type="submit" disabled={loading}>
-            {loading ? 'Submitting...' : 'Complete Registration'}
+        <div className="flex justify-end mt-8">
+          <Button 
+            type="submit" 
+            className="bg-primary text-white px-8 py-2 rounded hover:bg-primary/90" 
+            disabled={loading}
+          >
+            {loading ? (
+              <div className="flex items-center">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                {isEditMode ? "Updating..." : "Saving..."}
+              </div>
+            ) : (
+              isEditMode ? "Update Profile" : "Complete Registration"
+            )}
           </Button>
         </div>
       </form>

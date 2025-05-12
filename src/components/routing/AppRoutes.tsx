@@ -11,9 +11,12 @@ const FeaturesPage = lazy(() => import("@/pages/features/FeaturesPage"));
 const AboutPage = lazy(() => import("@/pages/about/AboutPage"));
 const AdminDashboard = lazy(() => import("@/pages/admin/AdminDashboard"));
 const UserJourneyPage = lazy(() => import("@/pages/admin/UserJourneyPage"));
+
+// Import dashboards without webpack chunk names
 const FamilyDashboard = lazy(() => import("@/pages/dashboards/FamilyDashboard"));
 const CommunityDashboard = lazy(() => import("@/pages/dashboards/CommunityDashboard"));
 const ProfessionalDashboard = lazy(() => import("@/pages/dashboards/ProfessionalDashboard"));
+
 const FamilyRegistration = lazy(() => import("@/pages/registration/FamilyRegistration"));
 const ProfessionalRegistration = lazy(() => import("@/pages/registration/ProfessionalRegistration"));
 const ProfessionalRegistrationFix = lazy(() => import("@/pages/registration/ProfessionalRegistrationFix"));
@@ -28,9 +31,13 @@ const ProfessionalSchedulePage = lazy(() => import("@/pages/professional/Profess
 const ModuleViewerPage = lazy(() => import("@/pages/professional/ModuleViewerPage"));
 const FamilyFeaturesOverview = lazy(() => import("@/pages/family/FamilyFeaturesOverview"));
 const FamilyStoryPage = lazy(() => import("@/pages/family/FamilyStoryPage"));
-const CareManagementPage = lazy(() => import("@/pages/family/care-management/CareManagementPage"));
+
+// Import CareManagementPage directly to avoid lazy loading issues
+import CareManagementPage from "@/pages/family/care-management/CareManagementPage";
 const CreateCarePlanPage = lazy(() => import("@/pages/family/care-management/CreateCarePlanPage"));
 const CarePlanDetailPage = lazy(() => import("@/pages/family/care-management/CarePlanDetailPage"));
+const EditCompleteCareplanPage = lazy(() => import("@/pages/family/care-management/EditCompleteCareplanPage"));
+
 const LegacyStoriesPage = lazy(() => import("@/pages/legacy/LegacyStoriesPage"));
 const FAQPage = lazy(() => import("@/pages/support/FAQPage"));
 const SubscriptionPage = lazy(() => import("@/pages/subscription/SubscriptionPage"));
@@ -38,25 +45,28 @@ const SubscriptionFeaturesPage = lazy(() => import("@/pages/subscription/Subscri
 const CaregiverMatchingPage = lazy(() => import("@/pages/caregiver/CaregiverMatchingPage"));
 const CaregiverHealthPage = lazy(() => import("@/pages/caregiver/CaregiverHealthPage"));
 const FamilyMatchingPage = lazy(() => import("@/pages/family/FamilyMatchingPage"));
+const FamilyCareNeedsPage = lazy(() => import("@/pages/careneeds/FamilyCareNeedsPage"));
 const NotFound = lazy(() => import("@/pages/NotFound"));
 
-// Loading fallback component for Suspense
-const PageLoader = () => (
-  <div className="min-h-screen flex items-center justify-center bg-background">
-    <div className="w-full max-w-md p-6 space-y-4">
-      <div className="space-y-2">
-        <Skeleton className="h-8 w-3/4 mx-auto" />
-        <Skeleton className="h-4 w-full" />
-        <Skeleton className="h-4 w-5/6" />
-      </div>
-      <div className="space-y-2">
-        <Skeleton className="h-24 w-full rounded-lg" />
-        <Skeleton className="h-24 w-full rounded-lg" />
-        <Skeleton className="h-24 w-full rounded-lg" />
+// Enhanced loading fallback component with retry mechanism
+const PageLoader = () => {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-background">
+      <div className="w-full max-w-md p-6 space-y-4">
+        <div className="space-y-2">
+          <Skeleton className="h-8 w-3/4 mx-auto" />
+          <Skeleton className="h-4 w-full" />
+          <Skeleton className="h-4 w-5/6" />
+        </div>
+        <div className="space-y-2">
+          <Skeleton className="h-24 w-full rounded-lg" />
+          <Skeleton className="h-24 w-full rounded-lg" />
+          <Skeleton className="h-24 w-full rounded-lg" />
+        </div>
       </div>
     </div>
-  </div>
-);
+  );
+};
 
 export function AppRoutes() {
   return (
@@ -73,6 +83,7 @@ export function AppRoutes() {
         <Route path="/dashboard/family" element={<FamilyDashboard />} />
         <Route path="/dashboard/community" element={<CommunityDashboard />} />
         <Route path="/dashboard/professional" element={<ProfessionalDashboard />} />
+        
         <Route path="/registration/family" element={<FamilyRegistration />} />
         <Route path="/registration/professional" element={<ProfessionalRegistration />} />
         <Route path="/registration/professional-fix" element={<ProfessionalRegistrationFix />} />
@@ -90,10 +101,16 @@ export function AppRoutes() {
         <Route path="/family/features-overview" element={<FamilyFeaturesOverview />} />
         <Route path="/family/message-board" element={<MessageBoardPage />} />
         <Route path="/family/story" element={<FamilyStoryPage />} />
+        
+        {/* Render CareManagementPage directly instead of lazy loading it */}
         <Route path="/family/care-management" element={<CareManagementPage />} />
         <Route path="/family/care-management/create" element={<CreateCarePlanPage />} />
         <Route path="/family/care-management/create/:id" element={<CreateCarePlanPage />} />
         <Route path="/family/care-management/:id" element={<CarePlanDetailPage />} />
+        
+        {/* New route for comprehensive care plan editing */}
+        <Route path="/family/care-management/edit-complete/:id" element={<EditCompleteCareplanPage />} />
+        
         <Route path="/legacy-stories" element={<LegacyStoriesPage />} />
         <Route path="/faq" element={<FAQPage />} />
         <Route path="/subscription" element={<SubscriptionPage />} />
@@ -101,6 +118,8 @@ export function AppRoutes() {
         <Route path="/caregiver-matching" element={<CaregiverMatchingPage />} />
         <Route path="/caregiver/health" element={<CaregiverHealthPage />} />
         <Route path="/family-matching" element={<FamilyMatchingPage />} />
+        <Route path="/careneeds" element={<FamilyCareNeedsPage />} />
+        <Route path="/careneeds/family" element={<FamilyCareNeedsPage />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </Suspense>

@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { Session, User } from '@supabase/supabase-js';
@@ -71,17 +70,25 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const location = useLocation();
   const isPasswordResetConfirmRoute = location.pathname.includes('/auth/reset-password/confirm');
+  const isEmailVerification = location.search.includes('access_token=') || location.search.includes('type=signup');
   const isPasswordRecoveryRef = useRef(false);
   const passwordResetCompleteRef = useRef(false);
   
   useEffect(() => {
-    console.log('[App] Route changed to:', location.pathname);
+    console.log('[App] Route changed to:', location.pathname, 'Search:', location.search);
     
     // Check if we're on the reset password page
     if (isPasswordResetConfirmRoute) {
       console.log('[AuthProvider] On password reset confirmation page');
       isPasswordRecoveryRef.current = true;
       setLoadingWithTimeout(false, 'reset-page-detected');
+      return;
+    }
+
+    // Check if this is an email verification callback
+    if (isEmailVerification) {
+      console.log('[AuthProvider] Email verification detected, clearing potential redirect blockers');
+      sessionStorage.removeItem('skipPostLoginRedirect');
       return;
     }
     
@@ -92,7 +99,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       passwordResetCompleteRef.current = true;
       sessionStorage.removeItem('passwordResetComplete');
     }
-  }, [location.pathname]);
+  }, [location.pathname, location.search]);
 
   const requireAuth = (action: string, redirectPath?: string) => {
     if (user) return true;
@@ -161,6 +168,30 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   // Handle post-login redirection only when appropriate
   useEffect(() => {
+    const hasEmailVerificationParams = location.search.includes('access_token=') || 
+                                       location.search.includes('type=signup') || 
+                                       location.search.includes('auth_redirect=true');
+
+    // If this is an email verification redirect, handle it specially
+    if (hasEmailVerificationParams && user) {
+      console.log('[AuthProvider] Detected login after email verification, managing redirection');
+      
+      // Clear any flags that might prevent redirection
+      sessionStorage.removeItem('skipPostLoginRedirect');
+      
+      // Get role from user metadata or localStorage
+      let redirectRole = userRole || 
+                        (user.user_metadata?.role as UserRole) || 
+                        localStorage.getItem('registeringAs') as UserRole || 
+                        localStorage.getItem('registrationRole') as UserRole;
+      
+      if (redirectRole) {
+        console.log(`[AuthProvider] Email verification redirect to: /dashboard/${redirectRole}`);
+        safeNavigate(`/dashboard/${redirectRole}`, { skipCheck: true, replace: true });
+        return;
+      }
+    }
+
     const shouldSkipRedirect = 
       isLoading || 
       !user || 
@@ -178,7 +209,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       handlePostLoginRedirection();
       initialRedirectionDoneRef.current = true;
     }
-  }, [isLoading, user, userRole, location.pathname, isPasswordResetConfirmRoute]);
+  }, [isLoading, user, userRole, location.pathname, location.search]);
 
   useEffect(() => {
     console.log('[AuthProvider] Initial auth check started');

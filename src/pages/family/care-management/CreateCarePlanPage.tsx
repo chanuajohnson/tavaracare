@@ -1,511 +1,220 @@
-import React, { useState, useEffect } from 'react';
+
+import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { Container } from "@/components/ui/container";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Checkbox } from "@/components/ui/checkbox";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { ArrowLeft } from "lucide-react";
-import { createCarePlan, fetchCarePlanById, updateCarePlan } from "@/services/care-plans";
 import { toast } from "sonner";
-import { CarePlanMetadata } from '@/types/carePlan';
-
-type PlanType = 'scheduled' | 'on-demand' | 'both';
-type WeekdayOption = '8am-4pm' | '8am-6pm' | '6am-6pm' | '6pm-8am' | 'none';
-type WeekendOption = 'yes' | 'no';
+import { carePlanService } from "@/services/carePlanService";
+import { fetchFamilyCareNeeds, generateDraftCarePlanFromCareNeeds } from "@/services/familyCareNeedsService";
+import { DescriptionInput } from "@/components/care-plan/DescriptionInput";
+import { CarePlanMetadata } from "@/types/carePlan";
+import { fetchCarePlanById } from "@/services/care-plans";
 
 const CreateCarePlanPage = () => {
-  const { user } = useAuth();
   const navigate = useNavigate();
-  const { id } = useParams();
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isLoading, setIsLoading] = useState(!!id);
-  const [isEditMode] = useState(!!id);
+  const { user } = useAuth();
+  const { id } = useParams<{ id: string }>();
   
+  const [loading, setLoading] = useState(false);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [planType, setPlanType] = useState<PlanType>("scheduled");
-  const [weekdayOption, setWeekdayOption] = useState<WeekdayOption>("8am-4pm");
-  const [weekendOption, setWeekendOption] = useState<WeekendOption>("yes");
+  const [careNeeds, setCareNeeds] = useState<any>(null);
+  const [isEditMode, setIsEditMode] = useState(false);
   
-  const [shifts, setShifts] = useState({
-    weekdayEvening4pmTo6am: false,
-    weekdayEvening4pmTo8am: false,
-    weekdayEvening6pmTo6am: false,
-    weekdayEvening6pmTo8am: false,
-    weekday8amTo4pm: false,
-    weekday8amTo6pm: false,
-  });
-
   useEffect(() => {
+    // Check if we're in edit mode (id parameter exists)
     if (id) {
-      loadCarePlan();
+      setIsEditMode(true);
+      loadExistingCarePlan(id);
+    } else {
+      // If not in edit mode, load family care needs data for new plan creation
+      loadCareNeeds();
     }
-  }, [id]);
+  }, [id, user]);
 
-  const loadCarePlan = async () => {
+  const loadExistingCarePlan = async (planId: string) => {
     try {
-      setIsLoading(true);
-      const plan = await fetchCarePlanById(id!);
+      setLoading(true);
+      const existingPlan = await fetchCarePlanById(planId);
       
-      if (plan) {
-        setTitle(plan.title);
-        setDescription(plan.description || "");
-        
-        if (plan.metadata) {
-          setPlanType(plan.metadata.planType || "scheduled");
-          setWeekdayOption(plan.metadata.weekdayCoverage || "8am-4pm");
-          setWeekendOption(plan.metadata.weekendCoverage || "yes");
-          
-          if (plan.metadata.additionalShifts) {
-            setShifts({
-              weekdayEvening4pmTo6am: !!plan.metadata.additionalShifts.weekdayEvening4pmTo6am,
-              weekdayEvening4pmTo8am: !!plan.metadata.additionalShifts.weekdayEvening4pmTo8am,
-              weekdayEvening6pmTo6am: !!plan.metadata.additionalShifts.weekdayEvening6pmTo6am,
-              weekdayEvening6pmTo8am: !!plan.metadata.additionalShifts.weekdayEvening6pmTo8am,
-              weekday8amTo4pm: !!plan.metadata.additionalShifts.weekday8amTo4pm,
-              weekday8amTo6pm: !!plan.metadata.additionalShifts.weekday8amTo6pm,
-            });
-          }
+      if (existingPlan) {
+        setTitle(existingPlan.title);
+        setDescription(existingPlan.description || "");
+        // Store metadata in careNeeds for form submission
+        if (existingPlan.metadata) {
+          setCareNeeds({
+            planType: existingPlan.metadata.planType,
+            weekdayCoverage: existingPlan.metadata.weekdayCoverage,
+            weekendCoverage: existingPlan.metadata.weekendCoverage,
+            weekendScheduleType: existingPlan.metadata.weekendScheduleType,
+          });
         }
       } else {
         toast.error("Care plan not found");
         navigate("/family/care-management");
       }
-    } catch (error) {
-      console.error("Error loading care plan:", error);
-      toast.error("Failed to load care plan details");
+    } catch (err) {
+      console.error("Error fetching care plan:", err);
+      toast.error("Failed to load care plan");
+      navigate("/family/care-management");
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
-
-  const handleShiftChange = (shift: keyof typeof shifts) => {
-    setShifts(prev => ({
-      ...prev,
-      [shift]: !prev[shift]
-    }));
+  
+  const loadCareNeeds = async () => {
+    // Only load care needs data if we're in create mode
+    if (user?.id) {
+      try {
+        const needsData = await fetchFamilyCareNeeds(user.id);
+        setCareNeeds(needsData);
+        
+        // Generate a draft title, but don't auto-fill the description
+        // to encourage the user to write their own concise summary
+        if (needsData) {
+          // Check if user.profile exists before accessing care_recipient_name
+          const userProfile = user as any; // Cast to any to access profile property
+          const draftPlan = generateDraftCarePlanFromCareNeeds(
+            needsData, 
+            { careRecipientName: userProfile.profile?.care_recipient_name }
+          );
+          setTitle(draftPlan.title);
+        }
+      } catch (err) {
+        console.error("Error fetching care needs:", err);
+      }
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!user) {
-      toast.error("You must be logged in to create a care plan");
+    if (!title) {
+      toast.error("Please enter a title for your care plan");
       return;
     }
-    
-    if (!title.trim()) {
-      toast.error("Please provide a title for your care plan");
-      return;
-    }
+
+    setLoading(true);
     
     try {
-      setIsSubmitting(true);
-      
-      const planDetails = {
-        title,
-        description,
-        familyId: user.id,
-        status: 'active' as const, // Use const assertion to specify literal type
-        metadata: {
-          planType,
-          weekdayCoverage: weekdayOption,
-          weekendCoverage: weekendOption,
-          additionalShifts: shifts
-        }
+      // Generate metadata from care needs if available
+      let planMetadata: CarePlanMetadata = {
+        planType: 'scheduled' // Default value
       };
       
-      let result;
+      if (careNeeds) {
+        planMetadata = {
+          planType: careNeeds.planType || 'scheduled',
+          weekdayCoverage: careNeeds.weekdayCoverage,
+          weekendCoverage: careNeeds.weekendCoverage,
+          weekendScheduleType: careNeeds.weekendScheduleType,
+          customShifts: []
+        };
+      }
+
+      let updatedCarePlan;
+      
       if (isEditMode && id) {
-        result = await updateCarePlan(id, planDetails);
-        if (result) {
-          toast.success("Care plan updated successfully!");
-        }
+        // Update existing care plan
+        updatedCarePlan = await carePlanService.updateCarePlan(id, {
+          title,
+          description,
+          metadata: planMetadata
+        });
+        
+        toast.success("Care plan updated successfully!");
       } else {
-        result = await createCarePlan(planDetails);
-        if (result) {
-          toast.success("Care plan created successfully!");
-        }
+        // Create new care plan
+        updatedCarePlan = await carePlanService.createCarePlan({
+          title,
+          description,
+          familyId: user!.id,
+          status: 'active',
+          metadata: planMetadata
+        });
+        
+        toast.success("Care plan created successfully!");
       }
       
-      if (result) {
-        navigate("/family/care-management");
+      if (updatedCarePlan) {
+        navigate(`/family/care-management/${updatedCarePlan.id}`);
       }
     } catch (error) {
-      console.error("Error saving care plan:", error);
-      toast.error(`Failed to ${isEditMode ? 'update' : 'create'} care plan. Please try again.`);
+      console.error(`Error ${isEditMode ? 'updating' : 'creating'} care plan:`, error);
+      toast.error(`Failed to ${isEditMode ? 'update' : 'create'} care plan`);
     } finally {
-      setIsSubmitting(false);
+      setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <Container className="py-8">
+    <div className="min-h-screen bg-background py-8">
+      <Container>
         <Button 
           variant="ghost" 
-          className="mb-4" 
-          onClick={() => navigate(id ? `/family/care-management/${id}` : "/family/care-management")}
+          className="mb-6" 
+          onClick={() => navigate("/family/care-management")}
         >
           <ArrowLeft className="mr-2 h-4 w-4" />
-          {id ? "Back to Care Plan Details" : "Back to Care Management"}
+          Back to Care Management
         </Button>
         
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold">{isEditMode ? "Edit Care Plan" : "Create New Care Plan"}</h1>
-          <p className="text-muted-foreground mt-1">
-            {isEditMode ? "Update the care plan for your loved one" : "Define a care plan for your loved one"}
-          </p>
-        </div>
-        
-        {isLoading ? (
-          <div className="flex justify-center my-12">
-            <p>Loading care plan details...</p>
-          </div>
-        ) : (
-          <form onSubmit={handleSubmit}>
-            <div className="grid gap-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Plan Details</CardTitle>
-                  <CardDescription>
-                    Provide basic information about this care plan
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid gap-4">
-                    <div className="grid gap-2">
-                      <Label htmlFor="title">Plan Title</Label>
-                      <Input 
-                        id="title" 
-                        placeholder="e.g., Mom's Weekly Care Plan" 
-                        value={title}
-                        onChange={(e) => setTitle(e.target.value)}
-                        required
-                      />
-                    </div>
-                    
-                    <div className="grid gap-2">
-                      <Label htmlFor="description">Description</Label>
-                      <Textarea 
-                        id="description" 
-                        placeholder="Describe the care needs and any special considerations..."
-                        value={description}
-                        onChange={(e) => setDescription(e.target.value)}
-                        rows={3}
-                      />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-              
-              <Card>
-                <CardHeader>
-                  <CardTitle>Plan Type</CardTitle>
-                  <CardDescription>
-                    Choose how you want to schedule care
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <RadioGroup 
-                    value={planType} 
-                    onValueChange={(value) => setPlanType(value as PlanType)}
-                    className="space-y-3"
-                  >
-                    <div className="flex items-start space-x-2">
-                      <RadioGroupItem value="scheduled" id="scheduled" />
-                      <div className="grid gap-1.5 leading-none">
-                        <Label htmlFor="scheduled" className="font-medium">
-                          Scheduled Care Plan
-                        </Label>
-                        <p className="text-sm text-muted-foreground">
-                          Regularly scheduled caregiving shifts following a consistent pattern.
-                        </p>
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-start space-x-2">
-                      <RadioGroupItem value="on-demand" id="on-demand" />
-                      <div className="grid gap-1.5 leading-none">
-                        <Label htmlFor="on-demand" className="font-medium">
-                          On-Demand Care
-                        </Label>
-                        <p className="text-sm text-muted-foreground">
-                          Flexible care shifts as needed without a regular schedule.
-                        </p>
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-start space-x-2">
-                      <RadioGroupItem value="both" id="both" />
-                      <div className="grid gap-1.5 leading-none">
-                        <Label htmlFor="both" className="font-medium">
-                          Both (Scheduled + On-Demand)
-                        </Label>
-                        <p className="text-sm text-muted-foreground">
-                          Regular scheduled care with additional on-demand support as needed.
-                        </p>
-                      </div>
-                    </div>
-                  </RadioGroup>
-                </CardContent>
-              </Card>
-              
-              {(planType === "scheduled" || planType === "both") && (
-                <>
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Primary Weekday Coverage</CardTitle>
-                      <CardDescription>
-                        Select your preferred weekday caregiver schedule
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <RadioGroup 
-                        value={weekdayOption} 
-                        onValueChange={(value) => setWeekdayOption(value as WeekdayOption)}
-                        className="space-y-3"
-                      >
-                        <div className="flex items-start space-x-2">
-                          <RadioGroupItem value="8am-4pm" id="option1" />
-                          <div className="grid gap-1.5 leading-none">
-                            <Label htmlFor="option1" className="font-medium">
-                              Option 1: Monday - Friday, 8 AM - 4 PM
-                            </Label>
-                            <p className="text-sm text-muted-foreground">
-                              Standard daytime coverage during business hours.
-                            </p>
-                          </div>
-                        </div>
-                        
-                        <div className="flex items-start space-x-2">
-                          <RadioGroupItem value="8am-6pm" id="option2" />
-                          <div className="grid gap-1.5 leading-none">
-                            <Label htmlFor="option2" className="font-medium">
-                              Option 2: Monday - Friday, 8 AM - 6 PM
-                            </Label>
-                            <p className="text-sm text-muted-foreground">
-                              Extended daytime coverage with later end time.
-                            </p>
-                          </div>
-                        </div>
-                        
-                        <div className="flex items-start space-x-2">
-                          <RadioGroupItem value="6am-6pm" id="option3" />
-                          <div className="grid gap-1.5 leading-none">
-                            <Label htmlFor="option3" className="font-medium">
-                              Option 3: Monday - Friday, 6 AM - 6 PM
-                            </Label>
-                            <p className="text-sm text-muted-foreground">
-                              Extended daytime coverage for more comprehensive care.
-                            </p>
-                          </div>
-                        </div>
-                        
-                        <div className="flex items-start space-x-2">
-                          <RadioGroupItem value="6pm-8am" id="option4" />
-                          <div className="grid gap-1.5 leading-none">
-                            <Label htmlFor="option4" className="font-medium">
-                              Option 4: Monday - Friday, 6 PM - 8 AM
-                            </Label>
-                            <p className="text-sm text-muted-foreground">
-                              Extended nighttime coverage to relieve standard daytime coverage.
-                            </p>
-                          </div>
-                        </div>
-                        
-                        <div className="flex items-start space-x-2">
-                          <RadioGroupItem value="none" id="option-none" />
-                          <div className="grid gap-1.5 leading-none">
-                            <Label htmlFor="option-none" className="font-medium">
-                              No Weekday Coverage
-                            </Label>
-                            <p className="text-sm text-muted-foreground">
-                              Skip weekday coverage and use on-demand or other shifts.
-                            </p>
-                          </div>
-                        </div>
-                      </RadioGroup>
-                    </CardContent>
-                  </Card>
-                  
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Weekend Coverage</CardTitle>
-                      <CardDescription>
-                        Do you need a primary weekend caregiver?
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <RadioGroup 
-                        value={weekendOption} 
-                        onValueChange={(value) => setWeekendOption(value as WeekendOption)}
-                        className="space-y-3"
-                      >
-                        <div className="flex items-start space-x-2">
-                          <RadioGroupItem value="yes" id="weekend-yes" />
-                          <div className="grid gap-1.5 leading-none">
-                            <Label htmlFor="weekend-yes" className="font-medium">
-                              Yes: Saturday - Sunday, 6 AM - 6 PM
-                            </Label>
-                            <p className="text-sm text-muted-foreground">
-                              Daytime weekend coverage with a dedicated caregiver.
-                            </p>
-                          </div>
-                        </div>
-                        
-                        <div className="flex items-start space-x-2">
-                          <RadioGroupItem value="no" id="weekend-no" />
-                          <div className="grid gap-1.5 leading-none">
-                            <Label htmlFor="weekend-no" className="font-medium">
-                              No Weekend Coverage
-                            </Label>
-                            <p className="text-sm text-muted-foreground">
-                              Skip regular weekend coverage.
-                            </p>
-                          </div>
-                        </div>
-                      </RadioGroup>
-                    </CardContent>
-                  </Card>
-                  
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Additional Shifts</CardTitle>
-                      <CardDescription>
-                        Select any additional time slots you need covered
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="grid gap-4">
-                        {weekdayOption === '8am-6pm' && (
-                          <div className="flex items-start space-x-2">
-                            <Checkbox 
-                              id="weekday-8am-4pm"
-                              checked={shifts.weekday8amTo4pm} 
-                              onCheckedChange={() => handleShiftChange('weekday8amTo4pm')}
-                            />
-                            <div className="grid gap-1.5 leading-none">
-                              <Label htmlFor="weekday-8am-4pm" className="font-medium">
-                                Monday - Friday, 8 AM - 4 PM
-                              </Label>
-                              <p className="text-sm text-muted-foreground">
-                                Standard daytime coverage during business hours.
-                              </p>
-                            </div>
-                          </div>
-                        )}
-
-                        {weekdayOption === '8am-4pm' && (
-                          <div className="flex items-start space-x-2">
-                            <Checkbox 
-                              id="weekday-8am-6pm"
-                              checked={shifts.weekday8amTo6pm} 
-                              onCheckedChange={() => handleShiftChange('weekday8amTo6pm')}
-                            />
-                            <div className="grid gap-1.5 leading-none">
-                              <Label htmlFor="weekday-8am-6pm" className="font-medium">
-                                Monday - Friday, 8 AM - 6 PM
-                              </Label>
-                              <p className="text-sm text-muted-foreground">
-                                Extended daytime coverage with later end time.
-                              </p>
-                            </div>
-                          </div>
-                        )}
-
-                        <div className="flex items-start space-x-2">
-                          <Checkbox 
-                            id="weekday-evening-4pm-6am"
-                            checked={shifts.weekdayEvening4pmTo6am} 
-                            onCheckedChange={() => handleShiftChange('weekdayEvening4pmTo6am')}
-                          />
-                          <div className="grid gap-1.5 leading-none">
-                            <Label htmlFor="weekday-evening-4pm-6am" className="font-medium">
-                              Weekday Evening Shift (4 PM - 6 AM)
-                            </Label>
-                            <p className="text-sm text-muted-foreground">
-                              Evening care on weekdays after the primary shift ends, or continuous 24-hour coverage.
-                            </p>
-                          </div>
-                        </div>
-                        
-                        <div className="flex items-start space-x-2">
-                          <Checkbox 
-                            id="weekday-evening-4pm-8am"
-                            checked={shifts.weekdayEvening4pmTo8am} 
-                            onCheckedChange={() => handleShiftChange('weekdayEvening4pmTo8am')}
-                          />
-                          <div className="grid gap-1.5 leading-none">
-                            <Label htmlFor="weekday-evening-4pm-8am" className="font-medium">
-                              Weekday Evening Shift (4 PM - 8 AM)
-                            </Label>
-                            <p className="text-sm text-muted-foreground">
-                              Evening care on weekdays after the primary shift ends, or continuous 24-hour coverage.
-                            </p>
-                          </div>
-                        </div>
-                        
-                        <div className="flex items-start space-x-2">
-                          <Checkbox 
-                            id="weekday-evening-6pm-6am"
-                            checked={shifts.weekdayEvening6pmTo6am} 
-                            onCheckedChange={() => handleShiftChange('weekdayEvening6pmTo6am')}
-                          />
-                          <div className="grid gap-1.5 leading-none">
-                            <Label htmlFor="weekday-evening-6pm-6am" className="font-medium">
-                              Weekday Evening Shift (6 PM - 6 AM)
-                            </Label>
-                            <p className="text-sm text-muted-foreground">
-                              Evening care on weekdays after the primary shift ends, or continuous 24-hour coverage.
-                            </p>
-                          </div>
-                        </div>
-                        
-                        <div className="flex items-start space-x-2">
-                          <Checkbox 
-                            id="weekday-evening-6pm-8am"
-                            checked={shifts.weekdayEvening6pmTo8am} 
-                            onCheckedChange={() => handleShiftChange('weekdayEvening6pmTo8am')}
-                          />
-                          <div className="grid gap-1.5 leading-none">
-                            <Label htmlFor="weekday-evening-6pm-8am" className="font-medium">
-                              Weekday Evening Shift (6 PM - 8 AM)
-                            </Label>
-                            <p className="text-sm text-muted-foreground">
-                              Evening care on weekdays after the primary shift ends, or continuous 24-hour coverage.
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </>
-              )}
-              
-              <div className="flex justify-end gap-4">
-                <Button 
-                  variant="outline" 
-                  onClick={() => navigate(id ? `/family/care-management/${id}` : "/family/care-management")}
-                  type="button"
-                >
-                  Cancel
-                </Button>
-                <Button 
-                  type="submit" 
-                  disabled={isSubmitting || !title.trim()}
-                >
-                  {isSubmitting ? (isEditMode ? "Updating..." : "Creating...") : (isEditMode ? "Update Care Plan" : "Create Care Plan")}
-                </Button>
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-2xl">{isEditMode ? "Edit Care Plan" : "Create New Care Plan"}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {loading && !isEditMode ? (
+              <div className="flex justify-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
               </div>
-            </div>
-          </form>
-        )}
+            ) : (
+              <form onSubmit={handleSubmit} className="space-y-6">
+                <div className="space-y-2">
+                  <Label htmlFor="title">Care Plan Title</Label>
+                  <Input
+                    id="title"
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    placeholder="Enter a title for your care plan"
+                    required
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    A clear title helps you identify this care plan later
+                  </p>
+                </div>
+
+                <DescriptionInput
+                  value={description}
+                  onChange={setDescription}
+                  maxLength={150}
+                  label="Care Plan Description"
+                  helpText="Write a brief, personal summary of this care plan (1-2 short sentences max)"
+                  placeholder="Example: Primary home care plan for Dad focusing on mobility assistance and medication management."
+                />
+                
+                <div className="flex justify-end space-x-2">
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    onClick={() => navigate("/family/care-management")}
+                    disabled={loading}
+                  >
+                    Cancel
+                  </Button>
+                  <Button type="submit" disabled={loading}>
+                    {loading ? (isEditMode ? "Updating..." : "Creating...") : (isEditMode ? "Update Care Plan" : "Create Care Plan")}
+                  </Button>
+                </div>
+              </form>
+            )}
+          </CardContent>
+        </Card>
       </Container>
     </div>
   );

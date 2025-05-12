@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/components/providers/AuthProvider";
@@ -5,15 +6,17 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Container } from "@/components/ui/container";
 import { PageViewTracker } from "@/components/tracking/PageViewTracker";
-import { FileText, Plus, Users, Calendar, ArrowLeft, Clock } from "lucide-react";
+import { FileText, Plus, Users, Calendar, ArrowLeft, Clock, Edit, Pencil, Settings, Activity } from "lucide-react";
 import { fetchCarePlans, CarePlan } from "@/services/care-plans";
 import { toast } from "sonner";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const CareManagementPage = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [carePlans, setCarePlans] = useState<CarePlan[]>([]);
   const [loading, setLoading] = useState(true);
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     if (user) {
@@ -27,6 +30,7 @@ const CareManagementPage = () => {
     try {
       setLoading(true);
       const plans = await fetchCarePlans(userId);
+      console.log("Fetched care plans:", plans);
       setCarePlans(plans);
     } catch (error) {
       console.error("Error fetching care plans:", error);
@@ -42,6 +46,34 @@ const CareManagementPage = () => {
 
   const handleViewPlan = (planId: string) => {
     navigate(`/family/care-management/${planId}`);
+  };
+
+  // Edit plan details (title, description, status, schedule)
+  const handleEditPlanDetails = (e: React.MouseEvent, planId: string) => {
+    e.stopPropagation(); // Prevent triggering the card click
+    navigate(`/family/care-management/create/${planId}`);
+  };
+
+  // Edit registration/profile information
+  const handleEditRegistration = (e: React.MouseEvent, planId: string, familyId: string) => {
+    e.stopPropagation(); // Prevent triggering the card click
+    
+    // Store the plan ID in local storage for reference
+    localStorage.setItem("edit_care_plan_id", planId);
+    
+    // Navigate to the registration page with edit parameter
+    navigate(`/registration/family?edit=true&careplan=${planId}`);
+  };
+
+  // Edit care needs information 
+  const handleEditCareNeeds = (e: React.MouseEvent, planId: string, familyId: string) => {
+    e.stopPropagation(); // Prevent triggering the card click
+    
+    // Store the plan ID in local storage for reference
+    localStorage.setItem("edit_care_plan_id", planId);
+    
+    // Navigate to the care needs page with edit parameter
+    navigate(`/careneeds/family?edit=true&careplan=${planId}`);
   };
 
   const getPlanTypeDisplay = (plan: CarePlan) => {
@@ -60,9 +92,27 @@ const CareManagementPage = () => {
   };
 
   const getWeekdayCoverageDisplay = (plan: CarePlan) => {
-    if (!plan.metadata?.weekdayCoverage) return "None";
+    if (!plan.metadata?.weekdayCoverage || plan.metadata.weekdayCoverage === 'none') return "None";
     
-    return plan.metadata.weekdayCoverage;
+    switch (plan.metadata.weekdayCoverage) {
+      case '8am-4pm':
+        return "Standard (8AM-4PM)";
+      case '8am-6pm':
+        return "Extended (8AM-6PM)";
+      case '6am-6pm':
+        return "Full day (6AM-6PM)";
+      case '6pm-8am':
+        return "Overnight (6PM-8AM)";
+      default:
+        return plan.metadata.weekdayCoverage;
+    }
+  };
+
+  // Truncate description to a reasonable length
+  const truncateDescription = (description: string, maxLength: number = 60) => {
+    if (!description) return "No description provided";
+    if (description.length <= maxLength) return description;
+    return `${description.substring(0, maxLength)}...`;
   };
 
   return (
@@ -100,43 +150,86 @@ const CareManagementPage = () => {
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
           </div>
         ) : carePlans.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
             {carePlans.map((plan) => (
               <Card 
                 key={plan.id} 
-                className="cursor-pointer hover:shadow-md transition-shadow" 
+                className="cursor-pointer hover:shadow-md transition-shadow relative overflow-hidden" 
                 onClick={() => handleViewPlan(plan.id)}
               >
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <FileText className="h-5 w-5 text-primary" />
-                    {plan.title}
+                {/* Updated button position with more spacing and better z-index */}
+                <div className="absolute top-4 right-4 z-10 flex gap-2">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className={`${isMobile ? 'h-7 w-7' : 'h-8 w-8'} bg-white/70 hover:bg-white shadow-sm`}
+                    onClick={(e) => handleEditPlanDetails(e, plan.id)}
+                    title="Edit plan details"
+                  >
+                    <Pencil className={`${isMobile ? 'h-3.5 w-3.5' : 'h-4 w-4'}`} />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className={`${isMobile ? 'h-7 w-7' : 'h-8 w-8'} bg-white/70 hover:bg-white shadow-sm`}
+                    onClick={(e) => handleEditRegistration(e, plan.id, plan.familyId)}
+                    title="Edit profile information"
+                  >
+                    <Settings className={`${isMobile ? 'h-3.5 w-3.5' : 'h-4 w-4'}`} />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className={`${isMobile ? 'h-7 w-7' : 'h-8 w-8'} bg-white/70 hover:bg-white shadow-sm`}
+                    onClick={(e) => handleEditCareNeeds(e, plan.id, plan.familyId)}
+                    title="Edit care needs"
+                  >
+                    <Activity className={`${isMobile ? 'h-3.5 w-3.5' : 'h-4 w-4'}`} />
+                  </Button>
+                </div>
+                
+                <CardHeader className={`pb-2 ${isMobile ? 'p-4' : 'p-6'}`}>
+                  {/* Added right padding to prevent title overlap with buttons */}
+                  <CardTitle className="flex items-center gap-2 text-xl pr-24">
+                    <FileText className="h-5 w-5 text-primary flex-shrink-0" />
+                    <span className="truncate max-w-[calc(100%-2rem)]">{plan.title}</span>
                   </CardTitle>
-                  <CardDescription>
-                    {plan.description || "No description provided"}
+                  <CardDescription className="line-clamp-2 mt-1">
+                    {truncateDescription(plan.description, isMobile ? 40 : 60)}
                   </CardDescription>
                 </CardHeader>
-                <CardContent>
+                <CardContent className={`${isMobile ? 'p-4 pt-1' : 'p-6 pt-2'}`}>
                   <div className="space-y-3">
-                    <div className="flex items-center text-sm">
-                      <Clock className="h-4 w-4 mr-2 text-muted-foreground" />
-                      <span className="text-muted-foreground">Type: </span>
-                      <span className="ml-2 font-medium">{getPlanTypeDisplay(plan)}</span>
+                    <div className={`${isMobile ? 'flex flex-col space-y-2' : 'grid grid-cols-2 gap-2'} text-sm`}>
+                      <div className="flex items-center">
+                        <Clock className="h-4 w-4 mr-2 text-muted-foreground flex-shrink-0" />
+                        <span className="text-muted-foreground mr-1 whitespace-nowrap">Type:</span>
+                        <span className="font-medium truncate">{getPlanTypeDisplay(plan)}</span>
+                      </div>
+                      
+                      {plan.metadata?.planType !== 'on-demand' && (
+                        <div className="flex items-center">
+                          <Calendar className="h-4 w-4 mr-2 text-muted-foreground flex-shrink-0" />
+                          <span className="text-muted-foreground mr-1 whitespace-nowrap">Coverage:</span>
+                          <span className="font-medium truncate">{getWeekdayCoverageDisplay(plan)}</span>
+                        </div>
+                      )}
                     </div>
                     
-                    {plan.metadata?.planType !== 'on-demand' && (
-                      <div className="flex items-center text-sm">
-                        <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
-                        <span className="text-muted-foreground">Weekday Coverage: </span>
-                        <span className="ml-2 font-medium">{getWeekdayCoverageDisplay(plan)}</span>
-                      </div>
-                    )}
-                    
                     <div className="flex justify-between text-sm text-muted-foreground pt-2 border-t">
-                      <div>Status: <span className={`font-medium ${plan.status === 'active' ? 'text-green-600' : plan.status === 'completed' ? 'text-blue-600' : 'text-orange-600'}`}>
-                        {plan.status.charAt(0).toUpperCase() + plan.status.slice(1)}
-                      </span></div>
-                      <div>Updated: {new Date(plan.updatedAt).toLocaleDateString()}</div>
+                      <div className="flex items-center">
+                        <span>Status: </span>
+                        <span className={`ml-1 font-medium ${
+                          plan.status === 'active' ? 'text-green-600' : 
+                          plan.status === 'completed' ? 'text-blue-600' : 
+                          'text-orange-600'
+                        }`}>
+                          {plan.status.charAt(0).toUpperCase() + plan.status.slice(1)}
+                        </span>
+                      </div>
+                      <div className="text-xs">
+                        Updated {new Date(plan.updatedAt).toLocaleDateString()}
+                      </div>
                     </div>
                   </div>
                 </CardContent>
@@ -161,7 +254,7 @@ const CareManagementPage = () => {
           </Card>
         )}
 
-        <div className="mt-10 grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="mt-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -203,7 +296,7 @@ const CareManagementPage = () => {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="sm:col-span-2 lg:col-span-1">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Calendar className="h-5 w-5 text-primary" />

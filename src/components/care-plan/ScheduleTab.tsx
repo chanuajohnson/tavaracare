@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -6,14 +5,29 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { format } from "date-fns";
+import { format, addDays } from "date-fns";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
-import { CalendarRange, Calendar, ChevronDown, Plus, Users } from "lucide-react";
+import { CalendarRange, Calendar, ChevronDown, Plus, Users, FileText, Share } from "lucide-react";
 import { DateRange } from "react-day-picker";
 import { ShiftCalendar } from "./ShiftCalendar";
 import { CareShift, CareShiftInput, CareTeamMemberWithProfile } from "@/types/careTypes";
 import { createCareShift, updateCareShift } from "@/services/care-plans";
 import { WorkLogForm } from './WorkLogForm';
+import { ShareCareReportDialog } from './ShareCareReportDialog';
+import { generateCareReport } from '@/services/care-plans/careReportService';
+import { toast } from 'sonner';
+import { useCarePlanData } from "@/hooks/useCarePlanData";
+
+// Define the ShiftTypeOption interface
+interface ShiftTypeOption {
+  id: string;
+  label: string;
+  description: string;
+  timeRange: {
+    start: string;
+    end: string;
+  };
+}
 
 interface ScheduleTabProps {
   carePlanId: string;
@@ -22,13 +36,6 @@ interface ScheduleTabProps {
   careTeamMembers: CareTeamMemberWithProfile[];
   onShiftUpdated: () => void;
   onDeleteShift: (shiftId: string) => void;
-}
-
-interface ShiftTypeOption {
-  id: string;
-  label: string;
-  description: string;
-  timeRange: { start: string; end: string };
 }
 
 export const ScheduleTab: React.FC<ScheduleTabProps> = ({
@@ -46,6 +53,10 @@ export const ScheduleTab: React.FC<ScheduleTabProps> = ({
     from: undefined,
     to: undefined,
   });
+  const [reportDateRange, setReportDateRange] = useState<DateRange>({
+    from: new Date(),
+    to: addDays(new Date(), 14)
+  });
   const [newShift, setNewShift] = useState({
     caregiverId: "",
     title: "",
@@ -60,6 +71,17 @@ export const ScheduleTab: React.FC<ScheduleTabProps> = ({
   const [isRangeSelection, setIsRangeSelection] = useState(false);
   const [workLogFormOpen, setWorkLogFormOpen] = useState(false);
   const [selectedShift, setSelectedShift] = useState<CareShift | null>(null);
+  
+  // State for care report sharing
+  const [shareReportDialogOpen, setShareReportDialogOpen] = useState(false);
+  const [reportUrl, setReportUrl] = useState<string | null>(null);
+  const [isGeneratingReport, setIsGeneratingReport] = useState(false);
+  
+  // Get care plan data for the report
+  const { carePlan } = useCarePlanData({
+    carePlanId: carePlanId,
+    userId: familyId
+  });
 
   const SHIFT_TITLE_OPTIONS: ShiftTypeOption[] = [
     { id: "weekday_standard", label: "Monday - Friday, 8 AM - 4 PM", description: "Standard daytime coverage during business hours", timeRange: { start: "08:00", end: "16:00" } },
@@ -67,6 +89,7 @@ export const ScheduleTab: React.FC<ScheduleTabProps> = ({
     { id: "weekday_extended", label: "Monday - Friday, 6 AM - 6 PM", description: "Extended daytime coverage for more comprehensive care", timeRange: { start: "06:00", end: "18:00" } },
     { id: "weekday_night", label: "Monday - Friday, 6 PM - 8 AM", description: "Extended nighttime coverage to relieve standard daytime coverage", timeRange: { start: "18:00", end: "08:00" } },
     { id: "saturday_sunday", label: "Saturday - Sunday, 6 AM - 6 PM", description: "Daytime weekend coverage with a dedicated caregiver", timeRange: { start: "06:00", end: "18:00" } },
+    { id: "saturday_sunday_8am_6pm", label: "Saturday - Sunday, 8 AM - 6 PM", description: "Standard weekend coverage with dedicated daytime hours", timeRange: { start: "08:00", end: "18:00" } },
     { id: "weekday_evening_4pm_6am", label: "Weekday Evening Shift (4 PM - 6 AM)", description: "Evening care on weekdays after the primary shift ends, or continuous 24-hour coverage", timeRange: { start: "16:00", end: "06:00" } },
     { id: "weekday_evening_4pm_8am", label: "Weekday Evening Shift (4 PM - 8 AM)", description: "Evening care on weekdays after the primary shift ends, or continuous 24-hour coverage", timeRange: { start: "16:00", end: "08:00" } },
     { id: "weekday_evening_6pm_6am", label: "Weekday Evening Shift (6 PM - 6 AM)", description: "Evening care on weekdays after the primary shift ends, or continuous 24-hour coverage", timeRange: { start: "18:00", end: "06:00" } },
@@ -202,6 +225,35 @@ export const ScheduleTab: React.FC<ScheduleTabProps> = ({
     onShiftUpdated();
   };
 
+  // New function to handle care report generation
+  const handleGenerateCareReport = async () => {
+    if (!carePlan) {
+      toast.error("Care plan data is required for report generation");
+      return;
+    }
+    
+    try {
+      setIsGeneratingReport(true);
+      setShareReportDialogOpen(true);
+      
+      // Generate comprehensive report with plan details, team members, and schedule
+      // Pass the reportDateRange instead of just selectedWeek
+      const report = await generateCareReport(
+        carePlan,
+        careTeamMembers,
+        careShifts,
+        reportDateRange
+      );
+      
+      setReportUrl(report);
+    } catch (error) {
+      console.error("Error generating care report:", error);
+      toast.error("Failed to generate care report");
+    } finally {
+      setIsGeneratingReport(false);
+    }
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -212,8 +264,18 @@ export const ScheduleTab: React.FC<ScheduleTabProps> = ({
               Manage care shifts based on the care plan coverage
             </CardDescription>
           </div>
-          {careTeamMembers.length > 0 && (
-            <Dialog open={shiftDialogOpen} onOpenChange={setShiftDialogOpen}>
+          <div className="flex flex-col sm:flex-row gap-2">
+            {/* New Share Report Button */}
+            <Button 
+              variant="outline" 
+              onClick={handleGenerateCareReport}
+              disabled={!carePlan}
+            >
+              <FileText className="h-4 w-4 mr-2" />
+              Share Care Report
+            </Button>
+            
+            {careTeamMembers.length > 0 && (
               <Button onClick={() => {
                 setSelectedDay(new Date());
                 setShiftDialogOpen(true);
@@ -221,6 +283,25 @@ export const ScheduleTab: React.FC<ScheduleTabProps> = ({
                 <Plus className="h-4 w-4 mr-2" />
                 Add Shift
               </Button>
+            )}
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent>
+        {careTeamMembers.length > 0 ? (
+          <>
+            <ShiftCalendar
+              selectedWeek={selectedWeek}
+              setSelectedWeek={setSelectedWeek}
+              careShifts={careShifts}
+              careTeamMembers={careTeamMembers}
+              onEditShift={handleEditShift}
+              onDeleteShift={onDeleteShift}
+              onAddShift={openNewShiftDialog}
+              onLogHours={handleLogHours}
+            />
+
+            <Dialog open={shiftDialogOpen} onOpenChange={setShiftDialogOpen}>
               <DialogContent className="sm:max-w-lg">
                 <DialogHeader>
                   <DialogTitle>{editingShift ? 'Edit Shift' : 'Assign shift and team'}</DialogTitle>
@@ -387,22 +468,6 @@ export const ScheduleTab: React.FC<ScheduleTabProps> = ({
                 </DialogFooter>
               </DialogContent>
             </Dialog>
-          )}
-        </div>
-      </CardHeader>
-      <CardContent>
-        {careTeamMembers.length > 0 ? (
-          <>
-            <ShiftCalendar
-              selectedWeek={selectedWeek}
-              setSelectedWeek={setSelectedWeek}
-              careShifts={careShifts}
-              careTeamMembers={careTeamMembers}
-              onEditShift={handleEditShift}
-              onDeleteShift={onDeleteShift}
-              onAddShift={openNewShiftDialog}
-              onLogHours={handleLogHours}
-            />
 
             <Dialog open={workLogFormOpen} onOpenChange={setWorkLogFormOpen}>
               <DialogContent className="sm:max-w-xl">
@@ -416,6 +481,14 @@ export const ScheduleTab: React.FC<ScheduleTabProps> = ({
                 )}
               </DialogContent>
             </Dialog>
+            
+            {/* Share Care Report Dialog - pass the reportDateRange to the dialog */}
+            <ShareCareReportDialog
+              open={shareReportDialogOpen}
+              onOpenChange={setShareReportDialogOpen}
+              reportUrl={reportUrl}
+              isGenerating={isGeneratingReport}
+            />
           </>
         ) : (
           <div className="text-center py-6">
