@@ -43,12 +43,18 @@ export default defineConfig(({ mode }) => {
       },
       rollupOptions: {
         output: {
-          // Ensure React loads before anything else
+          // Enhanced chunk management to ensure correct loading order
           manualChunks: (id) => {
-            // React core and DOM must be in the first chunk
-            if (id.includes('node_modules/react') || id.includes('node_modules/react-dom') || 
+            // React and React DOM must be in the first chunk to initialize before other dependencies
+            if (id.includes('node_modules/react') || 
+                id.includes('node_modules/react-dom') || 
                 id.includes('node_modules/scheduler')) {
               return 'react-core';
+            }
+            
+            // Put Lucide React in a separate chunk that loads after React
+            if (id.includes('node_modules/lucide-react')) {
+              return 'lucide';
             }
             
             // Dashboard specific chunks
@@ -85,6 +91,10 @@ export default defineConfig(({ mode }) => {
             if (chunkInfo.name === 'react-core') {
               return 'assets/react-core-[hash].js';
             }
+            // Ensure lucide chunk loads after react-core
+            if (chunkInfo.name === 'lucide') {
+              return 'assets/lucide-[hash].js';
+            }
             return 'assets/[name]-[hash].js';
           }
         }
@@ -102,7 +112,8 @@ export default defineConfig(({ mode }) => {
     // Make Vite load the correct .env file based on mode
     envDir: process.cwd(),
     optimizeDeps: {
-      include: ['react', 'react-dom', 'react-router-dom', 'framer-motion'],
+      // Ensure React is pre-bundled and available
+      include: ['react', 'react-dom', 'react-router-dom', 'framer-motion', 'lucide-react'],
       esbuildOptions: {
         // Increase build memory limit to handle large components
         treeShaking: true,

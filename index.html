@@ -13,6 +13,17 @@
       // Synchronously declare React in the global scope to prevent initialization issues
       window.React = window.React || {};
       window.reactInitialized = false; // Will be set to true once React is fully loaded
+      
+      // Add a global error handler for initialization issues
+      window.onerror = function(message, source, lineno, colno, error) {
+        if (message && message.includes('forwardRef') && !window.reactInitialized) {
+          console.error('React initialization error detected:', message);
+          // Reload the page if React failed to initialize properly
+          // setTimeout(() => window.location.reload(), 1000);
+          return true; // Prevents default error handling
+        }
+        return false; // Allow default error handling for other errors
+      };
     </script>
   </head>
 
