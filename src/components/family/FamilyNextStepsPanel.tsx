@@ -1,4 +1,3 @@
-
 import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -53,6 +52,7 @@ interface Step {
 }
 
 export const FamilyNextStepsPanel = () => {
+  
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -139,7 +139,7 @@ export const FamilyNextStepsPanel = () => {
       try {
         setLoading(true);
         
-        // Get profile data with onboarding_progress from Supabase
+        
         const { data: profileData, error: profileError } = await supabase
           .from('profiles')
           .select('onboarding_progress')
@@ -168,7 +168,8 @@ export const FamilyNextStepsPanel = () => {
         // Update steps status based on the retrieved data
         const updatedSteps = [...steps];
         
-        // Step 1: Profile is completed if the user record exists
+        
+        
         updatedSteps[0].status = 'completed';
         
         // Get onboarding progress from profile data
@@ -269,7 +270,8 @@ export const FamilyNextStepsPanel = () => {
     checkProfileStatus();
   }, [user, steps]);
 
-  // Calculate progress based on visible steps only
+  
+  
   const visibleSteps = steps.filter(step => step.visible);
   const completedSteps = visibleSteps.filter(step => step.status === 'completed').length;
   const progress = visibleSteps.length > 0 ? Math.round((completedSteps / visibleSteps.length) * 100) : 0;
@@ -307,6 +309,7 @@ export const FamilyNextStepsPanel = () => {
   };
 
   if (loading) {
+    
     return (
       <Card className="border-l-4 border-l-primary">
         <CardHeader className="pb-2">
@@ -339,6 +342,7 @@ export const FamilyNextStepsPanel = () => {
   }
 
   if (error) {
+    
     return (
       <Card className="border-l-4 border-l-red-500">
         <CardHeader className="pb-2">
@@ -361,6 +365,7 @@ export const FamilyNextStepsPanel = () => {
     );
   }
 
+  
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
