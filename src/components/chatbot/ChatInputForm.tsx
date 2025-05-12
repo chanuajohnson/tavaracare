@@ -83,7 +83,7 @@ export const ChatInputForm: React.FC<ChatInputFormProps> = ({
           type="text"
           className={`flex-1 ${isMobile ? "text-sm py-2 px-2" : ""} bg-background rounded-md border ${
             validationError ? "border-red-300 placeholder-red-400" : "border-input"
-          } px-3 py-2 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring`}
+          } px-3 py-2 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring mobile-chat-input`}
           value={input}
           onChange={(e) => setInput(e.target.value)}
           placeholder={getPlaceholder()}

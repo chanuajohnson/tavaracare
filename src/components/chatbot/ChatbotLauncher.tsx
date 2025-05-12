@@ -24,7 +24,7 @@ export const ChatbotLauncher: React.FC<ChatbotLauncherProps> = (props) => {
     console.error("ChatbotLauncher error:", error);
     return (
       <motion.div 
-        className="fixed bottom-24 right-6 z-50"
+        className="fixed bottom-24 right-6 z-50 safe-bottom"
         initial={{ scale: 0.8, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
       >
@@ -74,15 +74,15 @@ const ChatbotLauncherInner: React.FC<ChatbotLauncherProps> = ({
     
     switch(position) {
       case 'left-of-fab':
-        return `fixed bottom-[calc(${mobileSpacing}px + ${safeBottomSpacing})] right-[calc(${fabWidth}px+${mobileSpacing}px+env(safe-area-inset-right, 0px))]`;
+        return `fixed bottom-[calc(${mobileSpacing}px + ${safeBottomSpacing})] right-[calc(${fabWidth + mobileSpacing * 2}px + env(safe-area-inset-right, 0px))]`;
       case 'above-fab':
-        return `fixed bottom-[calc(${fabHeight}px+${mobileSpacing}px+56px+${safeBottomSpacing})] right-[calc(${mobileSpacing}px+env(safe-area-inset-right, 0px))]`;
+        return `fixed bottom-[calc(${fabHeight + mobileSpacing * 2}px + ${safeBottomSpacing})] right-[calc(${mobileSpacing}px + env(safe-area-inset-right, 0px))]`;
       case 'bottom-right':
-        return `fixed bottom-[calc(${mobileSpacing}px + ${safeBottomSpacing})] right-[calc(${mobileSpacing}px+env(safe-area-inset-right, 0px))]`;
+        return `fixed bottom-[calc(${mobileSpacing}px + ${safeBottomSpacing})] right-[calc(${mobileSpacing}px + env(safe-area-inset-right, 0px))]`;
       case 'bottom-left':
-        return `fixed bottom-[calc(${mobileSpacing}px + ${safeBottomSpacing})] left-[calc(${mobileSpacing}px+env(safe-area-inset-left, 0px))]`;
+        return `fixed bottom-[calc(${mobileSpacing}px + ${safeBottomSpacing})] left-[calc(${mobileSpacing}px + env(safe-area-inset-left, 0px))]`;
       default:
-        return `fixed bottom-[calc(${mobileSpacing}px + ${safeBottomSpacing})] right-[calc(${mobileSpacing}px+env(safe-area-inset-right, 0px))]`;
+        return `fixed bottom-[calc(${mobileSpacing}px + ${safeBottomSpacing})] right-[calc(${mobileSpacing}px + env(safe-area-inset-right, 0px))]`;
     }
   };
 
