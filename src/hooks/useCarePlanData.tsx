@@ -44,12 +44,20 @@ export const useCarePlanData = ({ carePlanId, userId }: UseCarePlanDataProps) =>
   const loadData = async () => {
     try {
       setLoading(true);
+      // Add logging to trace execution flow
+      console.log(`Starting loadData for carePlanId: ${carePlanId} and userId: ${userId}`);
+      
       await Promise.all([
         loadCarePlan(),
         loadCareTeamMembers(),
         loadCareShifts(),
         loadProfessionals(),
       ]);
+      
+      console.log(`Completed loadData for carePlanId: ${carePlanId}`);
+    } catch (error) {
+      console.error("Error in loadData:", error);
+      toast.error("Failed to load care plan data");
     } finally {
       setLoading(false);
     }
@@ -57,9 +65,14 @@ export const useCarePlanData = ({ carePlanId, userId }: UseCarePlanDataProps) =>
 
   const loadCarePlan = async () => {
     try {
+      console.log(`Loading care plan for id: ${carePlanId}`);
       const plan = await fetchCarePlanById(carePlanId);
+      console.log("Fetched care plan:", plan);
+      
       if (plan) {
         setCarePlan(plan);
+      } else {
+        console.warn(`No care plan found with id: ${carePlanId}`);
       }
     } catch (error) {
       console.error("Error loading care plan:", error);
@@ -69,7 +82,10 @@ export const useCarePlanData = ({ carePlanId, userId }: UseCarePlanDataProps) =>
 
   const loadCareTeamMembers = async () => {
     try {
+      console.log(`Loading care team members for plan id: ${carePlanId}`);
       const members = await fetchCareTeamMembers(carePlanId);
+      console.log(`Fetched ${members.length} care team members:`, members);
+      
       setCareTeamMembers(members);
     } catch (error) {
       console.error("Error loading care team members:", error);
@@ -79,7 +95,10 @@ export const useCarePlanData = ({ carePlanId, userId }: UseCarePlanDataProps) =>
 
   const loadCareShifts = async () => {
     try {
+      console.log(`Loading care shifts for plan id: ${carePlanId}`);
       const shifts = await fetchCareShifts(carePlanId);
+      console.log(`Fetched ${shifts.length} care shifts`);
+      
       setCareShifts(shifts);
     } catch (error) {
       console.error("Error loading care shifts:", error);
@@ -89,12 +108,15 @@ export const useCarePlanData = ({ carePlanId, userId }: UseCarePlanDataProps) =>
 
   const loadProfessionals = async () => {
     try {
+      console.log("Loading all professionals");
       const { data, error } = await supabase
         .from('profiles')
         .select('id, full_name, professional_type, avatar_url')
         .eq('role', 'professional');
 
       if (error) throw error;
+      console.log(`Fetched ${data?.length || 0} professionals`);
+      
       setProfessionals(data || []);
     } catch (error) {
       console.error("Error loading professionals:", error);
@@ -104,6 +126,7 @@ export const useCarePlanData = ({ carePlanId, userId }: UseCarePlanDataProps) =>
 
   const handleRemoveTeamMember = async (memberId: string) => {
     try {
+      console.log(`Removing team member with id: ${memberId}`);
       const success = await removeCareTeamMember(memberId);
       if (success) {
         loadCareTeamMembers();
@@ -119,6 +142,7 @@ export const useCarePlanData = ({ carePlanId, userId }: UseCarePlanDataProps) =>
     try {
       const confirmed = window.confirm("Are you sure you want to delete this shift?");
       if (confirmed) {
+        console.log(`Deleting care shift with id: ${shiftId}`);
         await deleteCareShift(shiftId);
         loadCareShifts();
       }

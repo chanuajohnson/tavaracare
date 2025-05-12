@@ -10,6 +10,12 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
+interface ChatMessage {
+  content: string;
+  isUser: boolean;
+  timestamp: number;
+}
+
 interface ContactFormData {
   name: string;
   email: string;
@@ -18,6 +24,7 @@ interface ContactFormData {
   chatData?: {
     role?: string;
     sessionId?: string;
+    transcript?: ChatMessage[]; // Added transcript property
   };
 }
 
@@ -38,6 +45,37 @@ serve(async (req) => {
       throw new Error("Missing required fields");
     }
 
+    // Format chat transcript if available
+    let transcriptHtml = '';
+    if (chatData?.transcript && chatData.transcript.length > 0) {
+      transcriptHtml = `
+        <div style="margin-top: 20px; padding: 10px; background-color: #f7f7f9; border-radius: 5px;">
+          <h3>Chat Transcript:</h3>
+          <div style="border: 1px solid #e1e1e8; border-radius: 5px; max-height: 300px; overflow-y: auto; padding: 10px;">
+      `;
+      
+      chatData.transcript.forEach((msg: ChatMessage) => {
+        const timestamp = new Date(msg.timestamp).toLocaleString();
+        const alignment = msg.isUser ? 'right' : 'left';
+        const bgColor = msg.isUser ? '#e3f2fd' : '#f1f1f1';
+        const textColor = msg.isUser ? '#0d47a1' : '#333333';
+        
+        transcriptHtml += `
+          <div style="margin: 5px 0; text-align: ${alignment};">
+            <div style="display: inline-block; background-color: ${bgColor}; color: ${textColor}; padding: 8px 12px; border-radius: 12px; max-width: 80%; text-align: left;">
+              <div style="font-size: 12px; color: #666; margin-bottom: 3px;">${timestamp}</div>
+              <div>${msg.content.replace(/\n/g, "<br>")}</div>
+            </div>
+          </div>
+        `;
+      });
+      
+      transcriptHtml += `
+          </div>
+        </div>
+      `;
+    }
+
     // Prepare chat data info if available
     const chatDataHtml = chatData ? `
       <div style="margin-top: 20px; padding: 10px; background-color: #f5f5f5; border-radius: 5px;">
@@ -46,6 +84,7 @@ serve(async (req) => {
         <p><strong>Session ID:</strong> ${chatData.sessionId || "Not available"}</p>
         <p><em>This user requested to speak with a representative through the chat interface.</em></p>
       </div>
+      ${transcriptHtml}
     ` : '';
 
     // Send email to support team

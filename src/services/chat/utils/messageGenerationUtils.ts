@@ -1,6 +1,31 @@
 
 import { getRegistrationFlowByRole } from "@/data/chatRegistrationFlows";
 import { ChatResponseData } from "../types";
+import { phrasings } from "@/utils/chat/phrasings";
+
+// Track the last used transition phrase to avoid repetition
+let lastUsedTransitionPhrase = '';
+
+/**
+ * Get a random transition phrase that's not the same as the last used one
+ */
+const getRandomTransitionPhrase = (): string => {
+  if (!phrasings.transitions || phrasings.transitions.length === 0) {
+    return "Now let's talk about";
+  }
+  
+  // Filter out the last used phrase to avoid repetition
+  const availablePhrases = phrasings.transitions.filter(phrase => phrase !== lastUsedTransitionPhrase);
+  
+  // Get a random phrase from the available options
+  const randomIndex = Math.floor(Math.random() * availablePhrases.length);
+  const selectedPhrase = availablePhrases[randomIndex];
+  
+  // Store this phrase as the last used one
+  lastUsedTransitionPhrase = selectedPhrase;
+  
+  return selectedPhrase;
+};
 
 /**
  * Generate next question message based on role, section and question index
@@ -8,7 +33,8 @@ import { ChatResponseData } from "../types";
 export const generateNextQuestionMessage = (
   role: string,
   sectionIndex: number,
-  questionIndex: number
+  questionIndex: number,
+  isFirstQuestion: boolean = false
 ): ChatResponseData => {
   try {
     const flow = getRegistrationFlowByRole(role);
@@ -52,7 +78,7 @@ export const generateNextQuestionMessage = (
       ];
     }
     
-    // Add section context to first question in each section
+    // Use just the question label without redundant intro text
     let message = question.label;
     
     // Add special prompts for specific question types
@@ -70,9 +96,15 @@ export const generateNextQuestionMessage = (
       }
     }
     
-    // Add section title for first question in section
-    if (questionIndex === 0) {
-      message = `Let's talk about ${section.title.toLowerCase()}.\n\n${message}`;
+    // Add section title handling - consider if this is the very first question after role selection
+    if (isFirstQuestion) {
+      // For the first question after role selection, use a more natural format
+      message = `${message}`;
+    }
+    else if (questionIndex === 0) {
+      // Only add section transition for subsequent sections, not the first one after role selection
+      const transitionPhrase = getRandomTransitionPhrase();
+      message = `${transitionPhrase} ${section.title.toLowerCase()}.\n\n${message}`;
     }
     
     return {

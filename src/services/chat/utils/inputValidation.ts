@@ -7,15 +7,17 @@
  * Validates chat input based on field type
  */
 export const validateChatInput = (input: string, fieldType: string): { isValid: boolean; errorMessage?: string } => {
-  if (!input.trim()) {
+  if (!input || !input.trim()) {
     return { isValid: false, errorMessage: "This field cannot be empty" };
   }
+
+  const trimmedInput = input.trim();
 
   switch (fieldType.toLowerCase()) {
     case "email": {
       // Basic email validation pattern
       const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailPattern.test(input)) {
+      if (!emailPattern.test(trimmedInput)) {
         return { 
           isValid: false, 
           errorMessage: "Please enter a valid email address (example@domain.com)" 
@@ -27,7 +29,7 @@ export const validateChatInput = (input: string, fieldType: string): { isValid: 
     case "phone": {
       // Enhanced phone validation - more strict requirements
       // Remove all spaces, dashes, parentheses, and dots for validation
-      const cleanedNumber = input.replace(/[\s\-\(\)\.]/g, '');
+      const cleanedNumber = trimmedInput.replace(/[\s\-\(\)\.]/g, '');
       
       // Check if it starts with '+' (international format)
       if (cleanedNumber.startsWith('+')) {
@@ -36,7 +38,7 @@ export const validateChatInput = (input: string, fieldType: string): { isValid: 
         if (!/^\+\d{8,15}$/.test(cleanedNumber)) {
           return { 
             isValid: false, 
-            errorMessage: "International format should be like +18687865357" 
+            errorMessage: "Please use international format with country code (+1XXXXXXXXXX)" 
           };
         }
       } else {
@@ -45,7 +47,7 @@ export const validateChatInput = (input: string, fieldType: string): { isValid: 
         if (!/^\d{7,15}$/.test(cleanedNumber)) {
           return { 
             isValid: false, 
-            errorMessage: "Please enter a valid phone number with country code (e.g., +18687865357)" 
+            errorMessage: "Please enter a valid phone number with country code (e.g., +1XXXXXXXXXX)" 
           };
         }
       }
@@ -55,7 +57,7 @@ export const validateChatInput = (input: string, fieldType: string): { isValid: 
     
     case "name": {
       // Name validation - just making sure it's not too short
-      if (input.trim().length < 2) {
+      if (trimmedInput.length < 2) {
         return { 
           isValid: false, 
           errorMessage: "Name must be at least 2 characters" 
@@ -64,10 +66,10 @@ export const validateChatInput = (input: string, fieldType: string): { isValid: 
       
       // Check for only alphabetic characters, spaces, hyphens, and apostrophes
       const namePattern = /^[A-Za-z\s\-']+$/;
-      if (!namePattern.test(input)) {
+      if (!namePattern.test(trimmedInput)) {
         return { 
           isValid: false, 
-          errorMessage: "Please use only letters, spaces, hyphens, and apostrophes" 
+          errorMessage: "Please use only letters, spaces, hyphens, and apostrophes in your name" 
         };
       }
       
@@ -77,7 +79,7 @@ export const validateChatInput = (input: string, fieldType: string): { isValid: 
     case "budget": {
       // Budget validation - check for currency format or range
       const budgetPattern = /^\$?\s?\d+(\.\d{1,2})?(\s?-\s?\$?\s?\d+(\.\d{1,2})?)?(\s?\/\s?hour)?$/;
-      if (!budgetPattern.test(input) && !input.toLowerCase().includes('negotiable')) {
+      if (!budgetPattern.test(trimmedInput) && !trimmedInput.toLowerCase().includes('negotiable')) {
         return { 
           isValid: false, 
           errorMessage: "Please enter a valid budget amount (e.g., $20-30/hour or Negotiable)" 
@@ -88,6 +90,6 @@ export const validateChatInput = (input: string, fieldType: string): { isValid: 
     
     default:
       // For any other field type, just ensure it's not empty
-      return { isValid: input.trim().length > 0 };
+      return { isValid: trimmedInput.length > 0 };
   }
 };

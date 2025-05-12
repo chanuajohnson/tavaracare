@@ -8,6 +8,8 @@ import {
 import { toast } from "sonner";
 import { ChatConfig } from "@/utils/chat/engine/types";
 import { ChatMessage } from "@/types/chatTypes";
+import { useChatFieldUtils } from "@/hooks/chat/actions/useChatFieldUtils";
+import { v4 as uuidv4 } from 'uuid';
 
 interface UseMessageInputProps {
   sessionId: string;
@@ -26,7 +28,7 @@ interface UseMessageInputProps {
   alwaysShowOptions: boolean;
   advanceToNextQuestion: (currentQuestionId: string) => Promise<void>;
   setValidationError: (error?: string) => void;
-  getFieldTypeForCurrentQuestion: (sectionIndex?: number, questionIndex?: number) => string | null;
+  getFieldTypeForCurrentQuestion: (sectionIndex?: number, questionIndex?: number, role?: string | null) => string | null;
 }
 
 export const useMessageInput = ({
@@ -47,20 +49,31 @@ export const useMessageInput = ({
   setValidationError,
   getFieldTypeForCurrentQuestion
 }: UseMessageInputProps) => {
+  const { detectFieldTypeFromMessage } = useChatFieldUtils();
   
   const handleSendMessage = async (e?: React.FormEvent, inputValue?: string) => {
-    e?.preventDefault();
+    if (e) {
+      e.preventDefault();
+    }
     
-    const trimmedInput = (inputValue || "").trim();
-    if (!trimmedInput) return;
+    const trimmedInput = inputValue?.trim() || "";
+    if (!trimmedInput) {
+      console.log("[useMessageInput] Empty input, not submitting");
+      return;
+    }
+    
+    console.log(`[useMessageInput] Processing message: "${trimmedInput}" with role: ${progress.role || 'unknown'}`);
     
     // Special handling for completion stage
     if (conversationStage === "completion") {
-      addMessage({
+      const userMessage: ChatMessage = {
+        id: uuidv4(),
         content: trimmedInput,
         isUser: true,
         timestamp: Date.now()
-      });
+      };
+      
+      addMessage(userMessage);
       
       setInput("");
       
@@ -75,40 +88,54 @@ export const useMessageInput = ({
       return;
     }
     
-    // Get the current question type
-    const questionType = getFieldTypeForCurrentQuestion();
-    const currentQuestion = getCurrentQuestion(
-      progress.role!,
-      currentSectionIndex,
-      currentQuestionIndex
+    // First attempt: Get field type from question structure
+    let questionType = getFieldTypeForCurrentQuestion(
+      currentSectionIndex, 
+      currentQuestionIndex, 
+      progress.role
     );
     
-    // Special validation for budget questions
-    if (currentQuestion?.id === "budget") {
-      const budgetValidation = validateChatInput(trimmedInput, "budget");
-      if (!budgetValidation.isValid) {
-        setValidationError(budgetValidation.errorMessage);
-        toast.error(budgetValidation.errorMessage);
-        return;
+    // Second attempt: If no field type detected, try to get it from the last bot message
+    if (!questionType && messages.length > 0) {
+      const lastBotMessage = [...messages].reverse().find(msg => !msg.isUser);
+      
+      if (lastBotMessage) {
+        const detectedType = detectFieldTypeFromMessage(lastBotMessage.content);
+        if (detectedType) {
+          questionType = detectedType;
+          console.log(`[useMessageInput] Detected field type from message: ${questionType}`);
+        }
       }
     }
-    // Normal validation for other question types
-    else if (questionType) {
+    
+    console.log(`[useMessageInput] Using field type: ${questionType || 'none'}, progress.role: ${progress.role}`);
+    
+    const currentQuestion = progress.role ? getCurrentQuestion(
+      progress.role,
+      currentSectionIndex,
+      currentQuestionIndex
+    ) : null;
+    
+    // Perform field validation based on detected type
+    if (questionType) {
       const validationResult = validateChatInput(trimmedInput, questionType);
       
       if (!validationResult.isValid) {
+        console.log(`[useMessageInput] Validation failed for ${questionType}: ${validationResult.errorMessage}`);
         setValidationError(validationResult.errorMessage);
-        toast.error(validationResult.errorMessage);
+        toast.error(validationResult.errorMessage || `Invalid ${questionType} format`);
         return;
       } else {
+        console.log(`[useMessageInput] Validation passed for ${questionType}`);
         setValidationError(undefined);
-        if (questionType === "email" || questionType === "phone") {
+        if (questionType === "email" || questionType === "phone" || questionType === "name") {
           toast.success(`Valid ${questionType} format!`);
         }
       }
     }
     
-    const userMessage = {
+    const userMessage: ChatMessage = {
+      id: uuidv4(),
       content: trimmedInput,
       isUser: true,
       timestamp: Date.now()
@@ -125,13 +152,15 @@ export const useMessageInput = ({
     }));
     
     try {
-      await saveChatResponse(
-        sessionId,
-        progress.role!,
-        currentSectionIndex.toString(),
-        currentQuestionId,
-        trimmedInput
-      );
+      if (progress.role) {
+        await saveChatResponse(
+          sessionId,
+          progress.role,
+          currentSectionIndex.toString(),
+          currentQuestionId,
+          trimmedInput
+        );
+      }
     } catch (error) {
       console.error("Error saving response:", error);
     }
@@ -148,11 +177,15 @@ export const useMessageInput = ({
           config
         );
         
-        await simulateBotTyping(response.message, response.options || (alwaysShowOptions ? [
-          { id: "family", label: "I need care for someone" },
-          { id: "professional", label: "I provide care services" },
-          { id: "community", label: "I want to support the community" }
-        ] : undefined));
+        // Fix: Pass only the two parameters that simulateBotTyping expects
+        await simulateBotTyping(
+          response.message, 
+          response.options || (alwaysShowOptions ? [
+            { id: "family", label: "I need care for someone" },
+            { id: "professional", label: "I provide care services" },
+            { id: "community", label: "I want to support the community" }
+          ] : undefined)
+        );
       } catch (error) {
         console.error("Error detecting user role:", error);
         await simulateBotTyping(

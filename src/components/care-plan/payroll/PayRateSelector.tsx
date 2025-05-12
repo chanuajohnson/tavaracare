@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { KeyboardEvent, useEffect } from 'react';
 import { 
   Select, 
   SelectContent, 
@@ -7,116 +7,129 @@ import {
   SelectTrigger, 
   SelectValue 
 } from "@/components/ui/select";
-import { useWorkLogRate } from '@/hooks/payroll/useWorkLogRate';
 import { CustomRateMultiplierInput } from './CustomRateMultiplierInput';
-import { toast } from 'sonner';
+import { useRateSelector } from '@/hooks/payroll/useRateSelector';
+import { BaseRateInput } from './rate-selector/BaseRateInput';
+import { RateDisplay } from './rate-selector/RateDisplay';
+import { SaveRatesButtons } from './rate-selector/SaveRatesButtons';
+import { toast } from "sonner";
 
 interface PayRateSelectorProps {
   workLogId: string;
   careTeamMemberId: string;
+  status?: string;
+  baseRate?: number;
+  rateMultiplier?: number;
+  onRateChange?: () => void;
 }
 
 export const PayRateSelector: React.FC<PayRateSelectorProps> = ({ 
   workLogId, 
-  careTeamMemberId 
+  careTeamMemberId,
+  status = 'pending',
+  baseRate: initialBaseRate,
+  rateMultiplier: initialRateMultiplier,
+  onRateChange
 }) => {
-  const { 
-    baseRate, 
-    setBaseRate, 
-    rateMultiplier, 
+  const {
+    baseRate,
+    setBaseRate,
+    rateMultiplier,
     setRateMultiplier,
-    isLoading 
-  } = useWorkLogRate(workLogId, careTeamMemberId);
+    showCustomMultiplier,
+    customMultiplier,
+    setCustomMultiplier,
+    editMode,
+    isEditable,
+    isLoading,
+    isSaving,
+    lastSaveTime,
+    multiplierOptions,
+    getMultiplierDisplayValue,
+    handleMultiplierChange,
+    handleSaveRates,
+    toggleEditMode
+  } = useRateSelector(workLogId, careTeamMemberId, status, initialBaseRate, initialRateMultiplier);
 
-  const [showCustomMultiplier, setShowCustomMultiplier] = useState(false);
-  const [customMultiplier, setCustomMultiplier] = useState(1);
-
-  // Multiplier options - define outside to avoid recreation on each render
-  const multiplierOptions = [
-    { value: 1, label: '1x (Regular)' },
-    { value: 1.5, label: '1.5x (Overtime)' },
-    { value: 2, label: '2x (Double Time)' },
-    { value: 3, label: '3x (Triple Time)' },
-    { value: 'custom', label: 'Other (Custom)' }
-  ];
-
-  // Check if current multiplier is a custom value
+  // Notify parent component when rates change
   useEffect(() => {
-    if (rateMultiplier) {
-      const isCustom = !multiplierOptions.some(opt => 
-        typeof opt.value === 'number' && opt.value === rateMultiplier
-      );
-      if (isCustom) {
-        setShowCustomMultiplier(true);
-        setCustomMultiplier(rateMultiplier);
+    if (onRateChange && lastSaveTime > 0) {
+      console.log('Rate changed, notifying parent component');
+      onRateChange();
+    }
+  }, [lastSaveTime, onRateChange]);
+
+  const handleRateKeyDown = async (e: KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && isEditable) {
+      e.preventDefault();
+      const newRate = Number((e.target as HTMLInputElement).value);
+      if (newRate >= 25 && newRate <= 100) {
+        const success = await handleSaveRates();
+        if (success) {
+          toast.success('Base rate updated');
+        }
+      } else {
+        toast.error('Base rate must be between $25 and $100');
       }
     }
-  }, [rateMultiplier]);
+  };
+
+  const handleMultiplierKeyDown = async (e: KeyboardEvent<HTMLButtonElement>) => {
+    if (e.key === 'Enter' && isEditable && !showCustomMultiplier) {
+      e.preventDefault();
+      e.stopPropagation();
+      const success = await handleSaveRates();
+      if (success) {
+        toast.success('Rate multiplier updated');
+      }
+    }
+  };
+
+  const handleMultiplierSave = async (newMultiplier: number): Promise<boolean> => {
+    if (isEditable) {
+      setRateMultiplier(newMultiplier);
+      const success = await handleSaveRates();
+      if (!success) {
+        toast.error('Failed to save rate multiplier');
+      }
+      return success;
+    }
+    return false;
+  };
 
   if (isLoading) {
     return <div className="text-sm text-muted-foreground">Loading rates...</div>;
   }
 
-  // Base rate options from $25 to $100 in $5 increments
-  const baseRateOptions = Array.from({length: 16}, (_, i) => 25 + i * 5);
-
-  const getMultiplierDisplayValue = () => {
-    if (!rateMultiplier) return '';
-    
-    const standardOption = multiplierOptions.find(opt => 
-      typeof opt.value === 'number' && opt.value === rateMultiplier
+  if (status !== 'pending' && !editMode) {
+    return (
+      <RateDisplay
+        baseRate={baseRate}
+        rateMultiplier={rateMultiplier}
+        onEdit={toggleEditMode}
+      />
     );
-    
-    if (standardOption) {
-      return standardOption.label;
-    }
-    
-    return `${rateMultiplier}x (Custom)`;
-  };
-
-  const handleMultiplierChange = (value: string) => {
-    if (value === 'custom') {
-      setShowCustomMultiplier(true);
-      // Don't update the actual multiplier until a valid custom value is entered
-    } else {
-      setShowCustomMultiplier(false);
-      setRateMultiplier(Number(value));
-    }
-  };
-
-  const handleCustomMultiplierChange = (value: number) => {
-    setCustomMultiplier(value);
-    if (value >= 0.5 && value <= 3.0) {
-      setRateMultiplier(value);
-    } else {
-      toast.error("Multiplier must be between 0.5x and 3.0x");
-    }
-  };
+  }
 
   return (
-    <div className="space-y-2">
-      <div className="flex space-x-2">
-        <Select 
-          value={baseRate?.toString()} 
-          onValueChange={(value) => setBaseRate(Number(value))}
-        >
-          <SelectTrigger className="w-[100px]">
-            <SelectValue placeholder="Base Rate" />
-          </SelectTrigger>
-          <SelectContent>
-            {baseRateOptions.map((rate) => (
-              <SelectItem key={rate} value={rate.toString()}>
-                ${rate}/hr
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+    <div className="space-y-3">
+      <div className="flex flex-wrap gap-2">
+        <BaseRateInput
+          baseRate={baseRate}
+          isEditable={isEditable}
+          onBaseRateChange={setBaseRate}
+          onKeyDown={handleRateKeyDown}
+        />
 
         <Select 
           value={showCustomMultiplier ? 'custom' : rateMultiplier?.toString()} 
           onValueChange={handleMultiplierChange}
+          disabled={!isEditable || isSaving}
         >
-          <SelectTrigger className="w-[150px]">
+          <SelectTrigger 
+            className="w-[150px]"
+            onKeyDown={handleMultiplierKeyDown}
+          >
             <SelectValue>
               {getMultiplierDisplayValue()}
             </SelectValue>
@@ -137,7 +150,18 @@ export const PayRateSelector: React.FC<PayRateSelectorProps> = ({
       {showCustomMultiplier && (
         <CustomRateMultiplierInput
           value={customMultiplier}
-          onChange={handleCustomMultiplierChange}
+          onChange={setCustomMultiplier}
+          onSave={handleMultiplierSave}
+          disabled={!isEditable || isSaving}
+        />
+      )}
+
+      {(status !== 'pending' || isSaving) && (
+        <SaveRatesButtons
+          isSaving={isSaving}
+          onSave={handleSaveRates}
+          onCancel={toggleEditMode}
+          showCancel={editMode}
         />
       )}
     </div>

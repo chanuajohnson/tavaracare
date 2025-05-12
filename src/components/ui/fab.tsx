@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { HelpCircle, X, MessageSquare, FileQuestion, Phone, Loader2 } from "lucide-react";
@@ -13,8 +12,9 @@ import { Link, useNavigate } from "react-router-dom";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
-import { ChatProvider, useChat } from "@/components/chatbot/ChatProvider";
+import { useChat } from "@/components/chatbot/ChatProvider";
 import { ChatbotWidget } from "@/components/chatbot/ChatbotWidget";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface FabProps {
   icon?: React.ReactNode;
@@ -34,6 +34,7 @@ export const Fab = ({
   showMenu = true,
 }: FabProps) => {
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
   const [isContactFormOpen, setIsContactFormOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
@@ -44,6 +45,24 @@ export const Fab = ({
   });
   const [screenshotFile, setScreenshotFile] = useState<File | null>(null);
   const [prefillData, setPrefillData] = useState<any>(null);
+  
+  // Try to access the chat context, with a fallback for when context isn't available
+  let chatContextAvailable = true;
+  let openChat: () => void;
+  let closeChat: () => void;
+  
+  try {
+    // Attempt to use the ChatProvider context
+    const chatContext = useChat();
+    openChat = chatContext.openChat;
+    closeChat = chatContext.closeChat;
+  } catch (error) {
+    // Fallback if no ChatProvider is available
+    console.error("Chat context not available in Fab:", error);
+    chatContextAvailable = false;
+    openChat = () => console.error("Chat context not available");
+    closeChat = () => console.error("Chat context not available");
+  }
 
   const positionClasses = {
     "bottom-right": "bottom-6 right-6",
@@ -96,7 +115,18 @@ export const Fab = ({
   };
 
   const toggleChat = () => {
+    // Use the ChatProvider context methods if available
+    if (chatContextAvailable) {
+      if (isChatOpen) {
+        closeChat();
+      } else {
+        openChat();
+      }
+    }
+    
+    // Also update the local state to control the chat widget visibility in this component
     setIsChatOpen(prev => !prev);
+    
     // Close contact form if open
     if (isContactFormOpen) {
       setIsContactFormOpen(false);
@@ -207,7 +237,7 @@ export const Fab = ({
   }
 
   return (
-    <ChatProvider>
+    <>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button
@@ -365,9 +395,9 @@ export const Fab = ({
         </div>
       )}
       
-      {/* Chat widget */}
+      {/* Chat widget - improved positioning and responsiveness for mobile */}
       {isChatOpen && (
-        <div className="fixed right-6 bottom-24 z-50">
+        <div className={`fixed z-50 ${isMobile ? "inset-x-4 bottom-24" : "right-6 bottom-24"}`}>
           <div className="relative">
             <Button
               size="icon"
@@ -378,12 +408,12 @@ export const Fab = ({
               <X size={14} />
             </Button>
             <ChatbotWidget 
-              width="350px"
+              width={isMobile ? "100%" : "350px"}
               onClose={toggleChat}
             />
           </div>
         </div>
       )}
-    </ChatProvider>
+    </>
   );
 };

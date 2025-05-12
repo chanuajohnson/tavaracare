@@ -1,145 +1,159 @@
-
 import { phrasings } from '@/utils/chat/phrasings';
 
-/**
- * Applies Trinidad & Tobago cultural style to messages
- */
-export const applyTrinidadianStyle = (message: string): string => {
-  // Don't modify empty messages
-  if (!message) return message;
-
-  // Random chance of applying each transformation for variety
-  const shouldApplyGreeting = Math.random() < 0.4 && (message.includes('hello') || message.includes('hi') || message.match(/^(hi|hey|hello)\b/i));
-  const shouldApplyAcknowledgment = Math.random() < 0.6 && (message.includes('thank') || message.includes('great') || message.includes('good'));
-  const shouldApplyExpression = Math.random() < 0.35;
-  const shouldApplyClosing = Math.random() < 0.4;
-
-  let modifiedMessage = message;
-
-  // Replace greetings
-  if (shouldApplyGreeting) {
-    const greetingIndex = Math.floor(Math.random() * phrasings.greetings.length);
-    const greeting = phrasings.greetings[greetingIndex];
-    modifiedMessage = modifiedMessage
-      .replace(/\b(hello|hi|hey)\b/i, greeting);
-  }
-
-  // Add acknowledgments
-  if (shouldApplyAcknowledgment) {
-    const ackIndex = Math.floor(Math.random() * phrasings.acknowledgments.length);
-    const acknowledgment = phrasings.acknowledgments[ackIndex];
-    modifiedMessage = modifiedMessage
-      .replace(/\b(thank you|thanks)\b/i, acknowledgment);
-  }
-
-  // Add expressions at the beginning
-  if (shouldApplyExpression) {
-    const exprIndex = Math.floor(Math.random() * phrasings.expressions.length);
-    const expression = phrasings.expressions[exprIndex];
-    
-    // Make sure we're not doubling up expressions
-    if (!modifiedMessage.includes(expression)) {
-      modifiedMessage = `${expression} ${modifiedMessage}`;
-    }
-  }
-  
-  // Add closing expressions at the end
-  if (shouldApplyClosing && (message.endsWith('.') || message.endsWith('?') || message.endsWith('!'))) {
-    const closingOptions = [
-      "Alright?",
-      "Eh?",
-      "Yes?",
-      "For so!",
-      "You see?",
-      "You get me?",
-      "Understand?"
-    ];
-    
-    const closing = closingOptions[Math.floor(Math.random() * closingOptions.length)];
-    
-    // Remove the ending punctuation and add the closing
-    modifiedMessage = modifiedMessage.replace(/[.!?]$/, ` ${closing}`);
-  }
-
-  // Remove AI-sounding phrases
-  modifiedMessage = modifiedMessage
-    .replace(/how would you like to engage with us today/gi, "how can I help you today")
-    .replace(/engage with (our|the) platform/gi, "use Tavara")
-    .replace(/engage with (our|the) service/gi, "use our service")
-    .replace(/provide us with/gi, "give me")
-    .replace(/we would like to know/gi, "I'd like to know")
-    .replace(/please provide/gi, "please share")
-    .replace(/please select/gi, "please choose")
-    .replace(/please enter/gi, "please type");
-  
-  // Add more natural contractions
-  modifiedMessage = modifiedMessage
-    .replace(/\bit is\b/gi, "it's")
-    .replace(/\byou are\b/gi, "you're")
-    .replace(/\bdo not\b/gi, "don't")
-    .replace(/\bcannot\b/gi, "can't")
-    .replace(/\bi am\b/gi, "I'm")
-    .replace(/\bwill not\b/gi, "won't")
-    .replace(/\bwhat is\b/gi, "what's")
-    .replace(/\bthat is\b/gi, "that's");
-  
-  // Ensure we have emoji occasionally, but not too many
-  const hasEmoji = /[\u{1F300}-\u{1F6FF}]/u.test(modifiedMessage);
-  if (!hasEmoji && Math.random() < 0.25) {
-    const emojis = ["😊", "👋", "✨", "🌺", "💯", "🙌", "👍", "🌴", "🏝️", "☀️"];
-    const emoji = emojis[Math.floor(Math.random() * emojis.length)];
-    
-    // Add it near the end
-    if (modifiedMessage.endsWith('.') || modifiedMessage.endsWith('!') || modifiedMessage.endsWith('?')) {
-      modifiedMessage = modifiedMessage.slice(0, -1) + ` ${emoji}` + modifiedMessage.slice(-1);
-    } else {
-      modifiedMessage = `${modifiedMessage} ${emoji}`;
-    }
-  }
-
-  return modifiedMessage;
+// Tracking for previously used dialect phrases to avoid repetition
+let lastUsedDialectPhrases: Record<string, string> = {
+  alright: '',
+  greeting: '',
+  thankYou: '',
+  affirmative: '',
+  confirmation: '',
+  email: '',
+  phone: ''
 };
 
 /**
- * Slightly modify a message to avoid exact repetition
+ * Get a random item from an array that's different from the last used item
+ * @param items Array of items to choose from
+ * @param category Category key for tracking last used item
+ */
+export const getVariedPhrase = (items: string[], category: string): string => {
+  if (!items || items.length === 0) return '';
+  
+  // Filter out the last used phrase to avoid repetition
+  const availableItems = items.filter(item => item !== lastUsedDialectPhrases[category]);
+  
+  // If we've exhausted all options or there's only one, reset and use any
+  if (availableItems.length === 0) {
+    const randomIndex = Math.floor(Math.random() * items.length);
+    lastUsedDialectPhrases[category] = items[randomIndex];
+    return items[randomIndex];
+  }
+  
+  // Pick a random phrase from available options
+  const randomIndex = Math.floor(Math.random() * availableItems.length);
+  const selectedPhrase = availableItems[randomIndex];
+  
+  // Store this phrase as the last used one for this category
+  lastUsedDialectPhrases[category] = selectedPhrase;
+  
+  return selectedPhrase;
+};
+
+/**
+ * Get appropriate format guidance for a field type
+ * @param fieldType Type of field (email, phone, etc.)
+ */
+export const getFormatGuidance = (fieldType: string | null): string => {
+  if (!fieldType) return '';
+  
+  switch (fieldType.toLowerCase()) {
+    case 'email':
+      return getVariedPhrase(phrasings.formatGuidance.email, 'email');
+    case 'phone':
+      return getVariedPhrase(phrasings.formatGuidance.phone, 'phone');
+    case 'name':
+      return getVariedPhrase(phrasings.formatGuidance.name, 'name');
+    default:
+      return '';
+  }
+};
+
+/**
+ * Apply Trinidadian cultural style transformations to messages
+ * @param message Message to transform
+ * @param messageType Optional context type (greeting, confirmation, etc.)
+ * @param fieldType Optional field type for format guidance
+ */
+export const formatDialect = (
+  message: string, 
+  messageType: 'greeting' | 'transition' | 'confirmation' | 'question' | 'response' = 'response',
+  fieldType: string | null = null
+): string => {
+  if (!message) return message;
+  
+  let formattedMessage = message;
+  
+  // Start with message-wide replacements, only for complete phrases at the start
+  if (formattedMessage.startsWith('Alright') || formattedMessage.match(/^Alright[,\.]/)) {
+    const replacement = getVariedPhrase(phrasings.trinidadianDialect.alrightVariants, 'alright');
+    formattedMessage = formattedMessage.replace(/^Alright[,\.\s]*/i, `${replacement} `);
+  }
+  
+  // Replace greeting phrases if this is a greeting message
+  if (messageType === 'greeting') {
+    if (formattedMessage.match(/\b(Hello|Hi there)\b/i)) {
+      const replacement = getVariedPhrase(phrasings.trinidadianDialect.greetingVariants, 'greeting');
+      formattedMessage = formattedMessage.replace(/\b(Hello|Hi there)\b/i, replacement);
+    }
+  }
+  
+  // Replace thank you phrases
+  formattedMessage = formattedMessage.replace(
+    /\b(Thank you|Thanks)\b/i, 
+    () => getVariedPhrase(phrasings.trinidadianDialect.thankYouVariants, 'thankYou')
+  );
+  
+  // Add format guidance for input fields if applicable
+  if (fieldType && (formattedMessage.toLowerCase().includes(fieldType.toLowerCase()) || 
+      messageType === 'question')) {
+    const guidance = getFormatGuidance(fieldType);
+    
+    // Only add guidance if it's not already included and there is guidance to add
+    if (guidance && !formattedMessage.includes('example:') && !formattedMessage.includes('format:')) {
+      formattedMessage = `${formattedMessage} ${guidance}`;
+    }
+  }
+  
+  return formattedMessage;
+};
+
+/**
+ * Apply Trinidadian style transformations to a message
+ * Enhanced version with varied expressions and tracked usage
+ */
+export const applyTrinidadianStyle = (message: string, fieldType: string | null = null): string => {
+  return formatDialect(message, 'response', fieldType);
+};
+
+/**
+ * Checks if a message is a repeat of the last message
+ * @param sessionId Session ID to track messages
+ * @param message Message to check
+ */
+export const isRepeatMessage = (sessionId: string, message: string): boolean => {
+  // Retrieve the last message for this session from local storage
+  const lastMessage = localStorage.getItem(`lastMessage_${sessionId}`);
+  
+  // If the current message is the same as the last message, it's a repeat
+  return lastMessage === message;
+};
+
+/**
+ * Prevents repetition in messages by adding a phrase
+ * @param message Message to modify
  */
 export const avoidRepetition = (message: string): string => {
-  // List of prefixes to add variety
-  const prefixes = [
-    "Just to be clear, ",
-    "To clarify, ",
-    "In other words, ",
-    "Let me say it again, ",
-    "What I meant was, ",
-    "To put it another way, ",
-    "Let me explain it differently, ",
-    "For better understanding, "
+  // Add a phrase to the message to avoid repetition
+  const phrases = [
+    "So, ",
+    "Well, ",
+    "Okay, ",
+    "Right, ",
+    "Now, "
   ];
-  
-  // Choose a random prefix
-  const prefix = prefixes[Math.floor(Math.random() * prefixes.length)];
-  
-  // Add the prefix to the message
-  return prefix + message.charAt(0).toLowerCase() + message.slice(1);
+  const phrase = phrases[Math.floor(Math.random() * phrases.length)];
+  return phrase + message;
 };
 
 /**
- * Apply validation error message with Trinidad & Tobago style
+ * Stores the last message in local storage to check for repetition
+ * @param sessionId Session ID to track messages
+ * @param message Message to store
  */
-export const stylizeValidationError = (errorType: string): string => {
-  const errorResponses = phrasings.validationResponses[errorType as keyof typeof phrasings.validationResponses];
-  if (!errorResponses || errorResponses.length === 0) {
-    return "That doesn't seem right. Could you check it and try again?";
-  }
-  
-  // Apply an expression randomly
-  const shouldAddExpression = Math.random() < 0.3;
-  let message = errorResponses[Math.floor(Math.random() * errorResponses.length)];
-  
-  if (shouldAddExpression) {
-    const expression = phrasings.expressions[Math.floor(Math.random() * phrasings.expressions.length)];
-    message = `${expression} ${message}`;
-  }
-  
-  return message;
+export const setLastMessage = (sessionId: string, message: string): void => {
+  // Store the message in local storage
+  localStorage.setItem(`lastMessage_${sessionId}`, message);
 };
+
+// Export the new utilities for use elsewhere
+export { phrasings } from '@/utils/chat/phrasings';

@@ -1,75 +1,86 @@
 
 import React, { useRef, useEffect } from 'react';
+import { ChatMessage } from '@/types/chatTypes';
 import { MessageBubble } from './MessageBubble';
 import { ChatOptionsRenderer } from './ChatOptionsRenderer';
 import { TypingIndicator } from './TypingIndicator';
-import { ChatMessage } from '@/types/chatTypes';
+import { motion } from 'framer-motion';
 
 interface ChatMessagesListProps {
   messages: ChatMessage[];
   isTyping: boolean;
-  isResuming: boolean;
-  conversationStage: "intro" | "questions" | "completion";
-  handleRoleSelection: (roleId: string) => void;
-  handleOptionSelection: (optionId: string) => void;
+  isResuming?: boolean;
+  conversationStage: 'intro' | 'questions' | 'completion';
+  handleRoleSelection?: (role: string) => void;
+  handleOptionSelection?: (optionId: string) => void;
   alwaysShowOptions?: boolean;
+  currentSectionIndex?: number;
 }
 
 export const ChatMessagesList: React.FC<ChatMessagesListProps> = ({
   messages,
   isTyping,
-  isResuming,
+  isResuming = false,
   conversationStage,
   handleRoleSelection,
   handleOptionSelection,
   alwaysShowOptions = false,
+  currentSectionIndex = 0,
 }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  // Auto-scroll to the bottom when messages change
   useEffect(() => {
-    // Smooth scroll to bottom when messages change
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
   }, [messages, isTyping]);
 
-  // Prevent multiple option renderers for the same message by tracking the last rendered option
-  let lastRenderedOptionMessageIndex = -1;
-  
   return (
-    <div className="flex-1 p-4 overflow-y-auto">
-      {messages.map((message, index) => {
-        // Skip rendering options if this message already has options rendered
-        const shouldRenderOptions = !message.isUser && message.options && index > lastRenderedOptionMessageIndex;
-        
-        // Update the last rendered option index if we're showing options
-        if (shouldRenderOptions) {
-          lastRenderedOptionMessageIndex = index;
-        }
-        
-        return (
-          <React.Fragment key={index}>
-            <MessageBubble
-              content={message.content}
-              isUser={message.isUser}
-              timestamp={message.timestamp}
-            />
-            
-            {/* Only show options for the most recent bot message with options */}
-            {shouldRenderOptions && (
-              <ChatOptionsRenderer 
-                options={message.options} 
-                onSelect={
-                  isResuming ? handleRoleSelection : 
-                  conversationStage === "intro" ? handleRoleSelection : 
-                  handleOptionSelection
-                } 
+    <div className="flex-1 overflow-y-auto p-4">
+      <div className="space-y-2">
+        {messages.map((message, index) => {
+          const isNewSection = !message.isUser && 
+            index > 0 && 
+            messages[index-1]?.isUser && 
+            conversationStage === 'questions';
+          
+          return (
+            <div key={message.id || `message-${index}-${message.timestamp}`}>
+              <MessageBubble
+                content={message.content}
+                formattedContent={message.formattedContent} // Pass formatted content
+                isUser={message.isUser}
+                timestamp={message.timestamp}
+                isNewSection={isNewSection}
               />
-            )}
-          </React.Fragment>
-        );
-      })}
-      
-      {isTyping && <TypingIndicator />}
-      <div ref={messagesEndRef} />
+              
+              {!message.isUser && message.options && message.options.length > 0 && (
+                <ChatOptionsRenderer
+                  options={message.options}
+                  onSelect={
+                    conversationStage === 'intro' && handleRoleSelection 
+                      ? handleRoleSelection 
+                      : handleOptionSelection || (() => {})
+                  }
+                />
+              )}
+            </div>
+          );
+        })}
+        
+        {isTyping && !isResuming && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <TypingIndicator />
+          </motion.div>
+        )}
+        
+        <div ref={messagesEndRef} />
+      </div>
     </div>
   );
 };

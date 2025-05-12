@@ -97,8 +97,13 @@ export const getPrefillDataFromUrl = (): Record<string, any> | null => {
  */
 export const applyPrefillDataToForm = (
   setFormValue: (field: string, value: any) => void,
-  options?: { logDataReceived?: boolean }
-): void => {
+  options?: { 
+    logDataReceived?: boolean, 
+    checkAutoSubmit?: boolean, 
+    autoSubmitCallback?: () => void,
+    formRef?: React.RefObject<HTMLFormElement>
+  }
+): boolean => {
   try {
     const prefillData = getPrefillDataFromUrl();
     
@@ -106,7 +111,7 @@ export const applyPrefillDataToForm = (
       console.log("Attempting to apply prefill data:", prefillData);
     }
     
-    if (!prefillData) return;
+    if (!prefillData) return false;
     
     // Apply standard fields
     const standardFields = [
@@ -128,7 +133,46 @@ export const applyPrefillDataToForm = (
       // Implementation depends on your form structure
       console.log("Additional responses data available:", prefillData.responses);
     }
+    
+    // Check if auto-submit is requested and callback is provided
+    if (options?.checkAutoSubmit && prefillData.autoSubmit === true) {
+      // If we have a form reference, use it for submission
+      if (options.formRef?.current) {
+        // Schedule the auto-submit to happen after form is fully populated
+        setTimeout(() => {
+          console.log("Auto-submitting form based on chat prefill data using form reference");
+          options.formRef.current?.requestSubmit();
+        }, 800);
+        return true;
+      } 
+      // Otherwise use the callback if provided
+      else if (options.autoSubmitCallback) {
+        // Schedule the auto-submit to happen after form is fully populated
+        setTimeout(() => {
+          console.log("Auto-submitting form based on chat prefill data using callback");
+          options.autoSubmitCallback();
+        }, 800);
+        return true;
+      }
+    }
+    
+    return true;
   } catch (error) {
     console.error("Error applying prefill data to form:", error);
+    return false;
   }
+};
+
+/**
+ * Check if the current form navigation came from the chat
+ * Returns true if the user was directed here from the chatbot
+ */
+export const isChatRedirect = (): boolean => {
+  const urlParams = new URLSearchParams(window.location.search);
+  const sessionId = urlParams.get('session');
+  
+  if (!sessionId) return false;
+  
+  // Check if there's a transition flag in localStorage
+  return localStorage.getItem(`tavara_chat_transition_${sessionId}`) === "true";
 };

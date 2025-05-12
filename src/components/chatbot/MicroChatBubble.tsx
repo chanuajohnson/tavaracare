@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { createPortal } from 'react-dom';
 import { roleGreetings } from '@/data/chatIntroMessage';
+import { toast } from 'sonner';
 
 interface MicroChatBubbleProps {
   role: 'family' | 'professional' | 'community';
@@ -29,21 +30,25 @@ export const MicroChatBubble: React.FC<MicroChatBubbleProps> = ({
   const bubbleRef = React.useRef<HTMLDivElement>(null);
   
   // Try to get chat context, if it fails, provide fallback behavior
-  let openChat: () => void;
-  let openFullScreenChat: () => void;
-  let setInitialRole: (role: string | null) => void;
+  let chatContextAvailable = true;
+  let openChat = () => {};
+  let openFullScreenChat = () => {};
+  let setInitialRole = (role: string | null) => {};
   
   try {
     const chatContext = useChat();
     openChat = chatContext.openChat;
     openFullScreenChat = chatContext.openFullScreenChat;
     setInitialRole = chatContext.setInitialRole;
+    chatContextAvailable = true;
   } catch (error) {
-    // Fallback behavior if not within a ChatProvider
     console.error('MicroChatBubble: No ChatProvider found in context', error);
+    chatContextAvailable = false;
+    
+    // Fallback functions to avoid crashes but notify the user
     openChat = () => {
+      toast.error("Chat functionality is not available. Please refresh the page.");
       console.warn('MicroChatBubble: openChat called but no ChatProvider available');
-      alert('Chat functionality is not available. Please refresh the page or contact support.');
     };
     openFullScreenChat = openChat;
     setInitialRole = () => {};
@@ -62,6 +67,11 @@ export const MicroChatBubble: React.FC<MicroChatBubbleProps> = ({
     e.preventDefault();
     
     console.log('MicroChatBubble: handleStartChat called', { role, useFullScreen });
+    
+    if (!chatContextAvailable) {
+      toast.error("Chat functionality is not available. Please refresh the page.");
+      return;
+    }
     
     // Store the selected role using both methods to ensure it's available
     localStorage.setItem('tavara_chat_initial_role', role);
@@ -148,7 +158,7 @@ export const MicroChatBubble: React.FC<MicroChatBubbleProps> = ({
           <MessageCircle size={20} />
           
           {/* Render text label using portal to appear on top of everything */}
-          {isVisible && !isMobile && createPortal(
+          {isVisible && !isMobile && chatContextAvailable && createPortal(
             <motion.div 
               initial={{ opacity: 0, x: 10 }}
               animate={{ opacity: 1, x: 0 }}
@@ -167,7 +177,7 @@ export const MicroChatBubble: React.FC<MicroChatBubbleProps> = ({
       </div>
 
       {/* Render popup in a portal to avoid stacking context issues */}
-      {isVisible && bubbleRect && createPortal(
+      {isVisible && bubbleRect && chatContextAvailable && createPortal(
         <AnimatePresence>
           <motion.div
             initial={{ opacity: 0, scale: 0.8 }}

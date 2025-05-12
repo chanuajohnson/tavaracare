@@ -1,7 +1,6 @@
 
 import React, { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { getSessionResponses } from "@/services/chatbotService";
 import { preparePrefillDataAndGetRegistrationUrl } from "@/utils/chat/prefillGenerator";
 import { useChat } from "./ChatProvider";
 
@@ -16,7 +15,7 @@ export const RegistrationLink: React.FC<RegistrationLinkProps> = ({
 }) => {
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [isNavigating, setIsNavigating] = useState<boolean>(false);
-  const { messages } = useChat(); // Now using messages from context
+  const { messages } = useChat(); // Using messages from context
   
   useEffect(() => {
     // Get the session ID from localStorage
@@ -42,6 +41,9 @@ export const RegistrationLink: React.FC<RegistrationLinkProps> = ({
       if (sessionId) {
         console.log("Preparing registration redirect with session:", sessionId);
         
+        // Mark that we're transitioning from chat to registration form
+        localStorage.setItem(`tavara_chat_transition_${sessionId}`, "true");
+        
         // Ensure all responses are processed and saved before redirecting
         const url = await preparePrefillDataAndGetRegistrationUrl(role, messages);
         console.log("Redirecting to registration URL:", url);
@@ -52,12 +54,15 @@ export const RegistrationLink: React.FC<RegistrationLinkProps> = ({
         }, 100);
       } else {
         console.log("No session ID found, redirecting without prefill data");
-        window.location.href = `/registration/${role}`;
+        // For professional role, use the fixed version
+        const basePath = role === "professional" ? `/registration/professional-fix` : `/registration/${role}`;
+        window.location.href = basePath;
       }
     } catch (error) {
       console.error("Error during registration redirect:", error);
-      // Fallback if there's an error
-      window.location.href = `/registration/${role}`;
+      // Fallback if there's an error, still use fixed version for professional
+      const basePath = role === "professional" ? `/registration/professional-fix` : `/registration/${role}`;
+      window.location.href = basePath;
     } finally {
       setIsNavigating(false);
     }
@@ -72,7 +77,7 @@ export const RegistrationLink: React.FC<RegistrationLinkProps> = ({
         onClick={handleRegistrationClick}
         disabled={isNavigating}
       >
-        {isNavigating ? 'Preparing form...' : "I'd rather fill out a quick form →"}
+        {isNavigating ? 'Preparing registration form...' : "I'd rather fill out a quick form →"}
       </Button>
     </div>
   );

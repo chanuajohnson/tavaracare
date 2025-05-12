@@ -1,3 +1,4 @@
+
 import { ChatConfig } from './engine/types';
 import { defaultChatConfig } from './engine/types';
 
@@ -25,7 +26,8 @@ export const loadChatConfig = (): ChatConfig => {
     ...defaultChatConfig,
     mode: 'ai',
     temperature: 0.8,
-    fallbackThreshold: 5  // Increased retry threshold for more persistence with AI
+    fallbackThreshold: 5,  // Increased retry threshold for more persistence with AI
+    useAIPrompts: true     // Enable AI prompts by default to test flow
   };
 };
 

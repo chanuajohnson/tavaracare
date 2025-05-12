@@ -12,42 +12,77 @@ export const useChatState = () => {
   const [showOptions, setShowOptions] = useState(true);
   const [validationError, setValidationError] = useState<string | undefined>();
   const [fieldType, setFieldType] = useState<string | null>(null);
+  const [isCompleted, setIsCompleted] = useState(false);
+  const [isInputFocused, setIsInputFocused] = useState(false);
   const chatInitializedRef = useRef(false);
+  const resumedConversationRef = useRef(false);
 
   // Validate input whenever it changes or field type changes
   useEffect(() => {
+    // Don't show validation errors for empty or very short inputs
+    if (!input || input.length <= 1) {
+      if (validationError) {
+        setValidationError(undefined);
+      }
+      return;
+    }
+    
     // If we have both input and field type, validate
-    if (fieldType && input) {
+    if (fieldType && input.length > 1) {
+      console.log(`[useChatState] Validating input: "${input}" as type: ${fieldType}`);
+      
       const validationResult = validateChatInput(input, fieldType);
       
-      if (validationResult.isValid) {
-        // Clear validation error if input is now valid
+      if (!validationResult.isValid) {
+        console.log(`[useChatState] Validation error: ${validationResult.errorMessage}`);
+        setValidationError(validationResult.errorMessage);
+      } else {
+        console.log(`[useChatState] Input is valid for type: ${fieldType}`);
         if (validationError) {
           setValidationError(undefined);
         }
-      } else {
-        // Only set validation error if the user has actually started typing
-        // This prevents showing errors immediately when a question is displayed
-        if (input.length > 1) {
-          setValidationError(validationResult.errorMessage);
-        }
       }
-    } else if (!input && validationError) {
-      // Clear validation error if input is cleared
-      setValidationError(undefined);
     }
   }, [input, fieldType, validationError]);
+  
+  // Track whether conversation has been resumed for better context awareness
+  useEffect(() => {
+    if (isResuming && !resumedConversationRef.current) {
+      resumedConversationRef.current = true;
+      console.log("[useChatState] Marked conversation as resumed");
+    }
+  }, [isResuming]);
   
   // Custom input setter to handle input changes and validation
   const handleInputChange = (value: string) => {
     setInput(value);
     
-    // If field type exists, validate immediately but don't set errors on initial input
-    if (fieldType && value.length > 1) {
-      const validationResult = validateChatInput(value, fieldType);
-      setValidationError(validationResult.isValid ? undefined : validationResult.errorMessage);
+    // Clear validation error when input field is emptied
+    if (!value && validationError) {
+      setValidationError(undefined);
     }
   };
+  
+  // Mark chat as completed
+  const markAsCompleted = () => {
+    setIsCompleted(true);
+    setConversationStage("completion");
+    localStorage.setItem(`tavara_chat_completed_${localStorage.getItem("tavara_chat_session")}`, "true");
+    console.log("[useChatState] Chat marked as completed");
+  };
+  
+  // Check if chat was previously completed
+  useEffect(() => {
+    const sessionId = localStorage.getItem("tavara_chat_session");
+    if (sessionId) {
+      const wasCompleted = localStorage.getItem(`tavara_chat_completed_${sessionId}`);
+      if (wasCompleted === "true") {
+        setIsCompleted(true);
+        setConversationStage("completion");
+        console.log("[useChatState] Loaded previously completed chat state");
+      }
+    }
+  }, []);
   
   const resetChatState = () => {
     setConversationStage("intro");
@@ -59,7 +94,16 @@ export const useChatState = () => {
     setShowOptions(true);
     setValidationError(undefined);
     setFieldType(null);
+    setIsCompleted(false);
+    setIsInputFocused(false);
     chatInitializedRef.current = false;
+    resumedConversationRef.current = false;
+    
+    // Remove completion marker
+    const sessionId = localStorage.getItem("tavara_chat_session");
+    if (sessionId) {
+      localStorage.removeItem(`tavara_chat_completed_${sessionId}`);
+    }
   };
 
   return {
@@ -82,6 +126,11 @@ export const useChatState = () => {
     validationError,
     setValidationError,
     fieldType,
-    setFieldType
+    setFieldType,
+    isResumedConversation: resumedConversationRef.current,
+    isCompleted,
+    markAsCompleted,
+    isInputFocused,
+    setIsInputFocused
   };
 };

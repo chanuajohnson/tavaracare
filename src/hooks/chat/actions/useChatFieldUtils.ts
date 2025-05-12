@@ -1,52 +1,47 @@
 
-import { getCurrentQuestion } from "@/services/chatbotService";
+import { detectFieldType, detectFieldTypeFromMessage } from "@/utils/chat/engine/modules/fieldDetection";
 
 export const useChatFieldUtils = () => {
   const getFieldTypeForCurrentQuestion = (
-    role: string | null,
     sectionIndex: number = 0, 
-    questionIndex: number = 0
+    questionIndex: number = 0,
+    role: string | null = null
   ): string | null => {
-    if (!role) return null;
+    // Calculate a unified question index
+    const questionGlobalIndex = (sectionIndex * 10) + questionIndex;
     
-    const question = getCurrentQuestion(
-      role,
-      sectionIndex,
-      questionIndex
-    );
+    // Use the consolidated field detector
+    return detectFieldType(role, questionGlobalIndex);
+  };
+
+  // Use the consolidated message analyzer
+  const analyzeMessageForFieldType = (messageContent: string): string | null => {
+    return detectFieldTypeFromMessage(messageContent);
+  };
+  
+  // Add a new utility function to get field type from multiple sources
+  const getFieldTypeFromContext = (
+    sectionIndex: number = 0,
+    questionIndex: number = 0,
+    role: string | null = null,
+    lastBotMessage: string | null = null
+  ): string | null => {
+    // First try from the role and question index
+    const fromQuestion = getFieldTypeForCurrentQuestion(sectionIndex, questionIndex, role);
+    if (fromQuestion) return fromQuestion;
     
-    if (!question) return null;
-    
-    const label = (question.label || "").toLowerCase();
-    const id = (question.id || "").toLowerCase();
-    
-    if (label.includes("email") || id.includes("email")) {
-      return "email";
-    } else if (label.includes("phone") || id.includes("phone") || label.includes("contact number") || id.includes("contact_number")) {
-      return "phone";
-    } else if (
-      label.includes("first name") || 
-      id.includes("first_name") ||
-      label.includes("full name") ||
-      id.includes("full_name")
-    ) {
-      return "name";
-    } else if (
-      label.includes("last name") || 
-      id.includes("last_name")
-    ) {
-      return "name";
-    } else if (
-      label.includes("budget") ||
-      id.includes("budget")
-    ) {
-      return "budget";
+    // Next try from the last bot message if available
+    if (lastBotMessage) {
+      const fromMessage = detectFieldTypeFromMessage(lastBotMessage);
+      if (fromMessage) return fromMessage;
     }
     
     return null;
   };
 
   return {
-    getFieldTypeForCurrentQuestion
+    getFieldTypeForCurrentQuestion,
+    detectFieldTypeFromMessage: analyzeMessageForFieldType,
+    getFieldTypeFromContext
   };
 };

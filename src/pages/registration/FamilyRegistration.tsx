@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { v4 as uuidv4 } from 'uuid';
 import { supabase, ensureStorageBuckets, ensureAuthContext } from '../../lib/supabase';
@@ -14,6 +14,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Avatar, AvatarFallback, AvatarImage } from '../../components/ui/avatar';
 import { toast } from 'sonner';
 import { Calendar, Sun, Moon, Clock, Home } from "lucide-react";
+import { getPrefillDataFromUrl, applyPrefillDataToForm } from '../../utils/chat/prefillReader';
+import { clearChatSessionData } from '../../utils/chat/chatSessionUtils';
 
 const FamilyRegistration = () => {
   const [loading, setLoading] = useState(false);
@@ -44,7 +46,121 @@ const FamilyRegistration = () => {
   
   const [user, setUser] = useState<any>(null);
   const [authSession, setAuthSession] = useState<any>(null);
+  const [prefillApplied, setPrefillApplied] = useState(false);
+  const [shouldAutoSubmit, setShouldAutoSubmit] = useState(false);
+  const formRef = useRef<HTMLFormElement>(null);
   const navigate = useNavigate();
+
+  // Check for auto-redirect flag from chat
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const sessionId = urlParams.get('session');
+    
+    if (sessionId) {
+      const shouldAutoRedirect = localStorage.getItem(`tavara_chat_auto_redirect_${sessionId}`);
+      if (shouldAutoRedirect === "true") {
+        console.log("Auto-submit flag detected from chat flow");
+        setShouldAutoSubmit(true);
+      }
+    }
+  }, []);
+
+  // Function to set form field values from prefill data
+  const setFormValue = (field: string, value: any) => {
+    console.log(`Setting form field ${field} to:`, value);
+    
+    switch (field) {
+      case 'first_name':
+        setFirstName(value);
+        break;
+      case 'last_name':
+        setLastName(value);
+        break;
+      case 'phone':
+        setPhoneNumber(value);
+        break;
+      case 'email':
+        setEmail(value);
+        break;
+      case 'location':
+        setAddress(value);
+        break;
+      case 'budget':
+        setBudgetPreferences(value);
+        break;
+      case 'care_recipient_name':
+        setCareRecipientName(value);
+        break;
+      case 'relationship':
+        setRelationship(value);
+        break;
+      case 'caregiver_type':
+        setCaregiverType(value);
+        break;
+      case 'preferred_contact_method':
+        setPreferredContactMethod(value);
+        break;
+      case 'emergency_contact':
+        setEmergencyContact(value);
+        break;
+      case 'additional_notes':
+        setAdditionalNotes(value);
+        break;
+      default:
+        // Handle array fields
+        if (field === 'care_types' && Array.isArray(value)) {
+          setCareTypes(value);
+        } else if (field === 'special_needs' && Array.isArray(value)) {
+          setSpecialNeeds(value);
+        } else if (field === 'specialized_care' && Array.isArray(value)) {
+          setSpecializedCare(value);
+        } else if (field === 'care_schedule' && Array.isArray(value)) {
+          setCareSchedule(value);
+        }
+        break;
+    }
+  };
+
+  // Apply prefill data when available
+  useEffect(() => {
+    // Only try to apply prefill once
+    if (!prefillApplied) {
+      console.log('Checking for prefill data...');
+      
+      // Try to apply prefill data from URL and localStorage
+      const hasPrefill = applyPrefillDataToForm(
+        setFormValue, 
+        { 
+          logDataReceived: true,
+          checkAutoSubmit: true,
+          autoSubmitCallback: () => {
+            console.log('Auto-submitting form via callback');
+            if (formRef.current) {
+              formRef.current.requestSubmit();
+            }
+          },
+          formRef: formRef
+        }
+      );
+      
+      if (hasPrefill) {
+        console.log('Successfully applied prefill data to form');
+        toast.success('Your chat information has been applied to this form');
+        
+        // If we should auto-submit and we have prefill data and a logged-in user, submit the form
+        if (shouldAutoSubmit && user) {
+          console.log('Auto-submitting form based on chat completion flow');
+          setTimeout(() => {
+            if (formRef.current) {
+              formRef.current.requestSubmit();
+            }
+          }, 800);
+        }
+      }
+      
+      setPrefillApplied(true);
+    }
+  }, [prefillApplied, shouldAutoSubmit, user]);
 
   useEffect(() => {
     ensureStorageBuckets().catch(err => {
@@ -349,6 +465,19 @@ const FamilyRegistration = () => {
       
       await updateProfile(updates);
       
+      // Get session ID from URL to clear specific flags
+      const urlParams = new URLSearchParams(window.location.search);
+      const sessionId = urlParams.get('session');
+      
+      // Clear chat session data including auto-redirect flag
+      clearChatSessionData(sessionId || undefined);
+      
+      // Also clear the auto-redirect flag specifically
+      if (sessionId) {
+        localStorage.removeItem(`tavara_chat_auto_redirect_${sessionId}`);
+        localStorage.removeItem(`tavara_chat_transition_${sessionId}`);
+      }
+
       toast.success('Registration Complete! Your family caregiver profile has been updated.');
       
       navigate('/dashboard/family');
@@ -367,7 +496,7 @@ const FamilyRegistration = () => {
         Complete your profile to connect with professional caregivers and community resources.
       </p>
 
-      <form onSubmit={handleSubmit}>
+      <form ref={formRef} onSubmit={handleSubmit} className="space-y-6">
         <Card className="mb-8">
           <CardHeader>
             <CardTitle>Personal & Contact Information</CardTitle>
@@ -487,7 +616,7 @@ const FamilyRegistration = () => {
             </div>
 
             <div className="space-y-2">
-              <Label>Primary Care Type Needed – What type of care is needed? (Select all that apply)</Label>
+              <Label>Primary Care Type Needed ��� What type of care is needed? (Select all that apply)</Label>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                 {[
                   { id: 'care-inhome', label: '🏠 In-Home Care (Daily, Nighttime, Weekend, Live-in)', value: 'In-Home Care' },

@@ -1,5 +1,4 @@
 import React, { useEffect } from "react";
-import { cn } from "@/lib/utils";
 import { useChatMessages } from "@/hooks/chat/useChatMessages";
 import { useChatSession } from "@/hooks/chat/useChatSession";
 import { useChat } from "./ChatProvider";
@@ -13,6 +12,12 @@ import { ChatInputForm } from "./ChatInputForm";
 import { useChatState } from "@/hooks/chat/useChatState";
 import { useChatTyping } from "@/hooks/chat/useChatTyping";
 import { useChatActions } from "@/hooks/chat/useChatActions";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { ChatContainer } from "./components/ChatContainer";
+import { ChatDebugPanel } from "./components/ChatDebugPanel";
+import { ChatProgressIndicator } from "./components/ChatProgressIndicator";
+import { ChatCompletionMessage } from "./components/ChatCompletionMessage";
+import { useChatFieldUtils } from "@/hooks/chat/actions/useChatFieldUtils";
 
 interface ChatbotWidgetProps {
   className?: string;
@@ -33,6 +38,8 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({
   const { messages, addMessage, clearMessages, setMessages: setLocalMessages } = useChatMessages(sessionId);
   const { initialRole, setInitialRole, skipIntro, setMessages: setContextMessages } = useChat();
   const { progress, updateProgress, clearProgress } = useChatProgress();
+  const { detectFieldTypeFromMessage } = useChatFieldUtils();
+  const isMobile = useIsMobile();
   
   useEffect(() => {
     setContextMessages(messages);
@@ -58,7 +65,9 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({
     validationError,
     setValidationError,
     fieldType,
-    setFieldType
+    setFieldType,
+    isCompleted,
+    markAsCompleted
   } = useChatState();
   
   const config = loadChatConfig();
@@ -83,7 +92,8 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({
     handleOptionSelection,
     handleSendMessage,
     resetChat,
-    initializeChat
+    initializeChat,
+    getFieldTypeForCurrentQuestion
   } = useChatActions(
     sessionId,
     messages,
@@ -110,8 +120,61 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({
     skipIntro,
     setIsResuming,
     setValidationError,
-    setFieldType
+    setFieldType,
+    markAsCompleted
   );
+
+  // Effect for field type detection
+  useEffect(() => {
+    // First attempt: standard field type detection based on role and question index
+    if (progress.role && conversationStage === "questions") {
+      // Get the field type from the standard method
+      const detectedFieldType = getFieldTypeForCurrentQuestion(
+        currentSectionIndex, 
+        currentQuestionIndex, 
+        progress.role
+      );
+      
+      // If we found a field type, use it
+      if (detectedFieldType) {
+        setFieldType(detectedFieldType);
+        console.log(`[ChatbotWidget] Set field type to ${detectedFieldType} based on question index`);
+        return;
+      }
+    }
+    
+    // Second attempt: analyze the most recent bot message if available
+    if (messages.length > 0 && !isTyping && conversationStage === "questions") {
+      // Find the most recent bot message
+      const lastBotMessage = [...messages].reverse().find(msg => !msg.isUser);
+      
+      if (lastBotMessage) {
+        // Try to detect field type from the message content
+        const messageBasedFieldType = detectFieldTypeFromMessage(lastBotMessage.content);
+        
+        if (messageBasedFieldType && fieldType !== messageBasedFieldType) {
+          setFieldType(messageBasedFieldType);
+          console.log(`[ChatbotWidget] Set field type to ${messageBasedFieldType} based on message content`);
+          return;
+        }
+      }
+    }
+  }, [
+    currentSectionIndex, 
+    currentQuestionIndex, 
+    progress.role, 
+    conversationStage, 
+    messages,
+    isTyping
+  ]);
+
+  // Debug logging for field type detection
+  useEffect(() => {
+    if (debugMode) {
+      console.log(`[ChatbotWidget] Current field type: ${fieldType || 'none'}`);
+      console.log(`[ChatbotWidget] Role: ${progress.role || 'none'}, Section: ${currentSectionIndex}, Question: ${currentQuestionIndex}`);
+    }
+  }, [fieldType, debugMode, progress.role, currentSectionIndex, currentQuestionIndex]);
 
   const handleRegistrationClick = () => {
     if (progress.role && sessionId) {
@@ -140,30 +203,38 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({
     return () => clearTimeout(timer);
   }, [messages.length, initialRole, skipIntro, progress, sessionId]);
 
-  const DebugPanel = debugMode ? (
-    <div className="fixed bottom-4 right-4 bg-black/80 text-white p-3 rounded-lg text-xs z-50 max-w-xs overflow-auto max-h-48">
-      <h4 className="font-bold">Chat Debug</h4>
-      <div>Mode: <span className="text-green-400">{config.mode}</span></div>
-      <div>Stage: <span className="text-yellow-400">{conversationStage}</span></div>
-      <div>Role: <span className="text-blue-400">{progress.role || "not set"}</span></div>
-      <div>Index: <span className="text-purple-400">{currentSectionIndex}.{currentQuestionIndex}</span></div>
-      <div>Messages: <span className="text-orange-400">{messages.length}</span></div>
-      <div>Session ID: <span className="text-gray-400 text-[10px]">{sessionId.slice(0, 8)}...</span></div>
-    </div>
-  ) : null;
+  // Show completion state if chat is completed
+  if (isCompleted) {
+    return (
+      <ChatContainer className={className} width={isMobile ? "100%" : width}>
+        <ChatHeader
+          hideHeader={hideHeader}
+          onClose={onClose}
+          onReset={() => resetChat(true)}
+        />
+        
+        <ChatCompletionMessage 
+          role={progress.role}
+          onStartNewChat={() => resetChat(true)}
+          onClose={onClose}
+        />
+      </ChatContainer>
+    );
+  }
 
   return (
-    <div 
-      className={cn(
-        "bg-background border rounded-lg shadow-xl flex flex-col z-40 h-[500px]",
-        className
-      )}
-      style={{ width }}
-    >
+    <ChatContainer className={className} width={isMobile ? "100%" : width}>
       <ChatHeader
         hideHeader={hideHeader}
         onClose={onClose}
         onReset={() => resetChat(true)}
+      />
+
+      <ChatProgressIndicator 
+        role={progress.role}
+        sectionIndex={currentSectionIndex}
+        questionIndex={currentQuestionIndex}
+        conversationStage={conversationStage}
       />
 
       <ChatMessagesList 
@@ -174,6 +245,7 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({
         handleRoleSelection={handleRoleSelection}
         handleOptionSelection={handleOptionSelection}
         alwaysShowOptions={alwaysShowOptions}
+        currentSectionIndex={currentSectionIndex}
       />
 
       <RegistrationLink 
@@ -192,7 +264,16 @@ export const ChatbotWidget: React.FC<ChatbotWidgetProps> = ({
         fieldType={fieldType}
       />
 
-      {DebugPanel}
-    </div>
+      <ChatDebugPanel 
+        debugMode={debugMode}
+        config={config}
+        conversationStage={conversationStage}
+        progress={progress}
+        currentSectionIndex={currentSectionIndex}
+        currentQuestionIndex={currentQuestionIndex}
+        messages={messages}
+        sessionId={sessionId}
+      />
+    </ChatContainer>
   );
 };

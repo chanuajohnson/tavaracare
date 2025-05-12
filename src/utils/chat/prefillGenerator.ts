@@ -93,12 +93,18 @@ export const generatePrefillJson = async (role: string, messages: ChatMessage[])
 /**
  * Save prefill data to local storage and prepare the registration URL
  * Returns the complete URL with session parameter
+ * @param autoSubmit Optional parameter to indicate if the form should be auto-submitted
  */
-export const preparePrefillDataAndGetRegistrationUrl = async (role: string, messages: ChatMessage[]): Promise<string> => {
+export const preparePrefillDataAndGetRegistrationUrl = async (
+  role: string, 
+  messages: ChatMessage[],
+  autoSubmit = false
+): Promise<string> => {
   const sessionId = localStorage.getItem("tavara_chat_session");
   if (!sessionId) {
     console.error("No session ID found for prefill data");
-    return `/registration/${role}`;
+    // For professional role, use the fixed version
+    return role === "professional" ? `/registration/professional-fix` : `/registration/${role}`;
   }
   
   try {
@@ -107,12 +113,25 @@ export const preparePrefillDataAndGetRegistrationUrl = async (role: string, mess
     
     // Add a flag to indicate this is a completed chat session
     prefillData.completed = true;
+    
+    // Add auto-submit flag if requested
+    if (autoSubmit) {
+      prefillData.autoSubmit = true;
+      
+      // Also mark in localStorage that this registration should auto-redirect to dashboard
+      localStorage.setItem(`tavara_chat_auto_redirect_${sessionId}`, "true");
+    }
+    
     localStorage.setItem(`tavara_chat_prefill_${sessionId}`, JSON.stringify(prefillData));
+    console.log(`Saved prefill data with autoSubmit=${autoSubmit}:`, prefillData);
     
     // Return the URL with the session parameter
-    return `/registration/${role}?session=${sessionId}`;
+    // For professional role, use the fixed version
+    const basePath = role === "professional" ? `/registration/professional-fix` : `/registration/${role}`;
+    return `${basePath}?session=${sessionId}`;
   } catch (error) {
     console.error("Error preparing prefill data:", error);
-    return `/registration/${role}`;
+    // For professional role, use the fixed version even in error case
+    return role === "professional" ? `/registration/professional-fix` : `/registration/${role}`;
   }
 };
