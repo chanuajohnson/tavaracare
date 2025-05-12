@@ -205,15 +205,10 @@ export const updateUserProfile = async (userId: string, profileData: any) => {
         }
       });
       
-      // Special handling for onboarding_progress to ensure it's properly saved as JSON
+      // Special handling for onboarding_progress
       if (profileData.onboarding_progress) {
         try {
-          // Ensure onboarding_progress is stored as JSON
-          if (typeof profileData.onboarding_progress === 'object') {
-            safeProfileData.onboarding_progress = profileData.onboarding_progress;
-          }
-          
-          // Try updating onboarding_progress separately first to test if column exists
+          // Try to update onboarding_progress separately first to test if column exists
           const testUpdate = {
             updated_at: new Date().toISOString()
           };
@@ -222,7 +217,7 @@ export const updateUserProfile = async (userId: string, profileData: any) => {
           if (existingProfile || !getError) {
             const { error: progressError } = await supabase
               .from('profiles')
-              .update({ onboarding_progress: safeProfileData.onboarding_progress })
+              .update({ onboarding_progress: profileData.onboarding_progress })
               .eq('id', userId);
               
             if (progressError) {

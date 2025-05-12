@@ -16,24 +16,12 @@
       var search = window.location.search;
       var hash = window.location.hash;
       
-      console.log('[404 redirect] Initial URL:', pathname + search);
-      
       // Special handling for auth reset password confirm route
       if (pathname.includes('/auth/reset-password/confirm')) {
         console.log('[404 redirect] Auth reset password route detected with query params:', search);
         // For auth routes with tokens, we need to preserve every query parameter
         // Redirect to the SPA route with all query parameters intact
         window.location.href = '/#' + pathname + search;
-        return;
-      }
-      
-      // Special handling for email verification links which contain access_token or token
-      if (search.includes('access_token=') || search.includes('token=') || search.includes('type=signup')) {
-        console.log('[404 redirect] Auth verification detected with query params:', search);
-        
-        // For email verification, we need to preserve the full URL with all parameters
-        // We'll handle this in the RedirectHandler component
-        window.location.href = '/?auth_redirect=true' + search;
         return;
       }
       

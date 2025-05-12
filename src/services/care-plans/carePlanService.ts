@@ -3,11 +3,6 @@ import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import { CarePlan, CarePlanMetadata } from "@/types/carePlan";
 import { Json } from "@/utils/json";
-import { generateShiftsFromCustomDefinitions } from './shiftGenerationService';
-import { v4 as uuidv4 } from 'uuid';
-
-// Constants
-const MAX_DESCRIPTION_LENGTH = 150;
 
 // Define DTO types for internal use
 interface CarePlanDto {
@@ -29,49 +24,26 @@ interface CarePlanInput {
   metadata?: CarePlanMetadata;
 }
 
-// Helper function to validate and trim description
-const validateAndTrimDescription = (description?: string): string => {
-  if (!description) return "";
-  return description.trim().substring(0, MAX_DESCRIPTION_LENGTH);
-};
-
 // Adapters for converting between domain and database models
-export const adaptCarePlanFromDb = (dbPlan: CarePlanDto): CarePlan => {
-  // Parse the metadata and ensure weekend_schedule_type is included
-  const metadata = dbPlan.metadata as unknown as CarePlanMetadata;
-  
-  // If weekend coverage is yes but no type is specified, set a default
-  if (metadata && metadata.weekendCoverage === 'yes' && !metadata.weekendScheduleType) {
-    metadata.weekendScheduleType = '6am-6pm'; // Default to full day coverage
-  }
-  
-  return {
-    id: dbPlan.id!,
-    familyId: dbPlan.family_id,
-    title: dbPlan.title,
-    description: dbPlan.description || "",
-    status: dbPlan.status || 'active',
-    createdAt: dbPlan.created_at || new Date().toISOString(),
-    updatedAt: dbPlan.updated_at || new Date().toISOString(),
-    metadata: metadata
-  };
-};
+export const adaptCarePlanFromDb = (dbPlan: CarePlanDto): CarePlan => ({
+  id: dbPlan.id!,
+  familyId: dbPlan.family_id,
+  title: dbPlan.title,
+  description: dbPlan.description || "",
+  status: dbPlan.status || 'active',
+  createdAt: dbPlan.created_at || new Date().toISOString(),
+  updatedAt: dbPlan.updated_at || new Date().toISOString(),
+  metadata: dbPlan.metadata as unknown as CarePlanMetadata
+});
 
-export const adaptCarePlanToDb = (plan: Partial<CarePlan>): Partial<CarePlanDto> => {
-  // Ensure description is validated if provided
-  const processedDescription = plan.description !== undefined
-    ? validateAndTrimDescription(plan.description)
-    : undefined;
-
-  return {
-    id: plan.id,
-    family_id: plan.familyId,
-    title: plan.title,
-    description: processedDescription,
-    status: plan.status as 'active' | 'completed' | 'cancelled',
-    metadata: plan.metadata as unknown as Json
-  };
-};
+export const adaptCarePlanToDb = (plan: Partial<CarePlan>): Partial<CarePlanDto> => ({
+  id: plan.id,
+  family_id: plan.familyId,
+  title: plan.title,
+  description: plan.description,
+  status: plan.status,
+  metadata: plan.metadata as unknown as Json
+});
 
 export const fetchCarePlans = async (familyId: string): Promise<CarePlan[]> => {
   try {
@@ -113,72 +85,32 @@ export const fetchCarePlanById = async (planId: string): Promise<CarePlan | null
   }
 };
 
-/**
- * Create a new care plan
- */
-export const createCarePlan = async (carePlan: Omit<CarePlan, 'id' | 'createdAt' | 'updatedAt'>): Promise<CarePlan | null> => {
+export const createCarePlan = async (plan: CarePlanInput): Promise<CarePlan | null> => {
   try {
-    const id = uuidv4();
-    
-    // Ensure the metadata has valid weekend schedule type if weekend coverage is enabled
-    if (carePlan.metadata && carePlan.metadata.weekendCoverage === 'yes' && !carePlan.metadata.weekendScheduleType) {
-      carePlan.metadata.weekendScheduleType = '6am-6pm'; // Default to full day coverage
-    }
-    
-    // Process and validate the description
-    const validatedCarePlan = {
-      ...carePlan,
-      description: validateAndTrimDescription(carePlan.description)
+    // Convert from domain model input to database model
+    const dbPlan: CarePlanDto = {
+      family_id: plan.familyId,
+      title: plan.title,
+      description: plan.description,
+      status: plan.status || 'active',
+      metadata: plan.metadata as unknown as Json
     };
-    
-    const dbCarePlan = adaptCarePlanToDb({
-      ...validatedCarePlan,
-      id
-    }) as CarePlanDto;
-    
-    console.log("Creating care plan with data:", dbCarePlan);
-    
+
     const { data, error } = await supabase
       .from('care_plans')
-      .insert(dbCarePlan)
+      .insert([dbPlan])
       .select()
       .single();
-      
+
     if (error) {
-      console.error("[carePlanService] createCarePlan error:", error);
-      toast.error("Failed to create care plan");
-      return null;
+      throw error;
     }
-    
-    if (!data) {
-      console.error(`[carePlanService] Inserted care plan with ID ${id} not found`);
-      return null;
-    }
-    
-    // Update onboarding progress to mark care plan as completed
-    try {
-      await supabase
-        .from('profiles')
-        .update({
-          onboarding_progress: {
-            currentStep: 'care_team',
-            completedSteps: {
-              care_needs: true,
-              care_plan: true
-            }
-          }
-        })
-        .eq('id', carePlan.familyId);
-    } catch (progressError) {
-      console.warn("Could not update onboarding progress:", progressError);
-    }
-    
-    const createdPlan = adaptCarePlanFromDb(data as CarePlanDto);
-    console.log("Successfully created care plan:", createdPlan);
-    return createdPlan;
+
+    toast.success("Care plan created successfully");
+    return data ? adaptCarePlanFromDb(data as CarePlanDto) : null;
   } catch (error) {
-    console.error("[carePlanService] createCarePlan exception:", error);
-    toast.error("An unexpected error occurred when creating the care plan");
+    console.error("Error creating care plan:", error);
+    toast.error("Failed to create care plan");
     return null;
   }
 };
@@ -188,11 +120,6 @@ export const updateCarePlan = async (
   updates: Partial<CarePlanInput>
 ): Promise<CarePlan | null> => {
   try {
-    // If description is being updated, validate and trim it
-    if (updates.description !== undefined) {
-      updates.description = validateAndTrimDescription(updates.description);
-    }
-    
     // Convert from domain model input to database model
     const dbUpdates: Partial<CarePlanDto> = {
       title: updates.title,
@@ -219,28 +146,7 @@ export const updateCarePlan = async (
     }
 
     toast.success("Care plan updated successfully");
-    
-    if (data) {
-      const carePlan = adaptCarePlanFromDb(data as CarePlanDto);
-      
-      // Generate shifts from custom definitions if provided
-      if (updates.metadata?.customShifts?.length) {
-        try {
-          await generateShiftsFromCustomDefinitions(
-            carePlan.id,
-            carePlan.familyId,
-            updates.metadata.customShifts
-          );
-        } catch (shiftError) {
-          console.error("Error generating custom shifts:", shiftError);
-          toast.warning("Care plan updated, but there was an issue creating custom shifts.");
-        }
-      }
-      
-      return carePlan;
-    }
-    
-    return null;
+    return data ? adaptCarePlanFromDb(data as CarePlanDto) : null;
   } catch (error) {
     console.error("Error updating care plan:", error);
     toast.error("Failed to update care plan");

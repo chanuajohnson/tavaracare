@@ -17,14 +17,7 @@ function adaptCarePlanMetadataToDb(metadata: CarePlanMetadata): DbCarePlanMetada
       weekday_evening_6pm_to_8am: metadata.additionalShifts.weekdayEvening6pmTo8am,
       weekday_8am_to_4pm: metadata.additionalShifts.weekday8amTo4pm,
       weekday_8am_to_6pm: metadata.additionalShifts.weekday8amTo6pm
-    } : undefined,
-    custom_shifts: metadata.customShifts ? 
-      metadata.customShifts.map(shift => ({
-        days: shift.days,
-        start_time: shift.startTime,
-        end_time: shift.endTime,
-        title: shift.title
-      })) : undefined
+    } : undefined
   };
 }
 
@@ -43,14 +36,7 @@ function adaptCarePlanMetadataFromDb(dbMetadata: DbCarePlanMetadata): CarePlanMe
       weekdayEvening6pmTo8am: dbMetadata.additional_shifts.weekday_evening_6pm_to_8am,
       weekday8amTo4pm: dbMetadata.additional_shifts.weekday_8am_to_4pm,
       weekday8amTo6pm: dbMetadata.additional_shifts.weekday_8am_to_6pm
-    } : undefined,
-    customShifts: dbMetadata.custom_shifts ?
-      dbMetadata.custom_shifts.map(shift => ({
-        days: shift.days,
-        startTime: shift.start_time,
-        endTime: shift.end_time,
-        title: shift.title
-      })) : undefined
+    } : undefined
   };
 }
 

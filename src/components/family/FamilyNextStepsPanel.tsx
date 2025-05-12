@@ -8,18 +8,6 @@ import { useAuth } from "@/components/providers/AuthProvider";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { SubscriptionFeatureLink } from "@/components/subscription/SubscriptionFeatureLink";
-import { supabase } from "@/lib/supabase";
-
-// Type for onboarding progress structure
-interface OnboardingProgress {
-  currentStep?: string;
-  completedSteps?: {
-    care_needs?: boolean;
-    care_plan?: boolean;
-    care_recipient_story?: boolean;
-    [key: string]: boolean | undefined;
-  };
-}
 
 export const FamilyNextStepsPanel = () => {
   const { user } = useAuth();
@@ -34,105 +22,52 @@ export const FamilyNextStepsPanel = () => {
     },
     { 
       id: 2, 
-      title: "Complete your loved one's care needs", 
-      description: "Specify the types of care needed", 
+      title: "Complete your loved one's profile", 
+      description: "Add details about your care recipient", 
       completed: false, 
-      link: "/careneeds/family" 
+      link: "/registration/family" 
     },
     { 
       id: 3, 
-      title: "Complete your Loved One's Legacy Story", 
-      description: "Add details about your care recipient's life story", 
+      title: "Set care type preferences", 
+      description: "Specify the types of care needed", 
       completed: false, 
-      link: "/family/story" 
+      link: "/registration/family" 
     },
     { 
       id: 4, 
-      title: "Create New Care Plan", 
-      description: "Create the plan that guides your loved one's care", 
+      title: "Complete initial care assessment", 
+      description: "Help us understand your care needs better", 
       completed: false, 
-      link: "/family/care-management" 
+      link: "/family/features-overview" 
     },
     { 
       id: 5, 
-      title: "Assign Care Team", 
-      description: "Assign care team members to implement the care plan", 
+      title: "Connect with caregivers", 
+      description: "Start building your care team", 
       completed: false, 
-      link: "/family/care-management/team" 
+      link: "/family/features-overview" 
     }
   ]);
 
-  // Get the actual completion status from the database
+  // This would normally be fetched from the backend
+  // Mock user profile completeness for demonstration purposes
   useEffect(() => {
-    const checkProfileStatus = async () => {
-      if (!user) return;
-
-      try {
-        // Get profile data from Supabase
-        const { data: profileData, error } = await supabase
-          .from('profiles')
-          .select('onboarding_progress')
-          .eq('id', user.id)
-          .single();
-          
-        if (error) {
-          console.error("Error fetching profile data:", error);
-          return;
-        }
-        
-        const updatedSteps = [...steps];
-        
-        // Mark first step as completed if user exists
+    // Simulate checking profile status
+    const checkProfileStatus = () => {
+      const updatedSteps = [...steps];
+      // Mark first step as completed if user exists
+      if (user) {
         updatedSteps[0].completed = true;
-        
-        // Get onboarding progress from profile data
-        const onboardingProgress = profileData?.onboarding_progress as OnboardingProgress | null;
-        
-        // Mark care needs step as completed based on database status
-        if (onboardingProgress?.completedSteps?.care_needs) {
-          updatedSteps[1].completed = true;
-        }
-        
-        // Check if user has created care recipient story
-        if (onboardingProgress?.completedSteps?.care_recipient_story) {
-          updatedSteps[2].completed = true;
-        } else {
-          // Check if care recipient profile exists as another way to verify the story
-          const { data: recipientProfile } = await supabase
-            .from('care_recipient_profiles')
-            .select('id')
-            .eq('user_id', user.id)
-            .maybeSingle();
-            
-          updatedSteps[2].completed = !!recipientProfile;
-        }
-        
-        // Check if there are any care plans created
-        if (onboardingProgress?.completedSteps?.care_plan) {
-          updatedSteps[3].completed = true;
-        } else {
-          const { data: carePlans } = await supabase
-            .from('care_plans')
-            .select('id')
-            .eq('family_id', user.id)
-            .limit(1);
-            
-          updatedSteps[3].completed = carePlans && carePlans.length > 0;
-        }
-        
-        // Check if care team members exist
-        const { data: careTeamMembers } = await supabase
-          .from('care_team_members')
-          .select('id')
-          .eq('family_id', user.id)
-          .limit(1);
-          
-        updatedSteps[4].completed = careTeamMembers && careTeamMembers.length > 0;
-        
-        setSteps(updatedSteps);
-      } catch (err) {
-        console.error("Error checking profile status:", err);
       }
+      
+      // Randomly mark some steps as completed for demonstration
+      if (user) {
+        updatedSteps[1].completed = Math.random() > 0.5;
+        updatedSteps[2].completed = Math.random() > 0.7;
+      }
+      
+      setSteps(updatedSteps);
     };
     
     checkProfileStatus();
@@ -192,11 +127,10 @@ export const FamilyNextStepsPanel = () => {
                   </div>
                   <p className="text-sm text-gray-500">{step.description}</p>
                 </div>
-                {/* Show Edit button for completed steps 1-5, and Complete button for incomplete steps */}
-                {(!step.completed || step.id === 1 || step.id === 2 || step.id === 3 || step.id === 4 || step.id === 5) && (
+                {!step.completed && (
                   <Link to={step.link}>
                     <Button variant="ghost" size="sm" className="p-0 h-6 text-primary hover:text-primary-600">
-                      {(step.id === 1 || step.id === 2 || step.id === 3 || step.id === 4 || step.id === 5) && step.completed ? "Edit" : "Complete"}
+                      Complete
                       <ArrowRight className="ml-1 h-3 w-3" />
                     </Button>
                   </Link>

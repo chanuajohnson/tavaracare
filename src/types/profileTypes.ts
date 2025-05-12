@@ -6,19 +6,6 @@ import { ProfessionalProfileFields, DbProfessionalProfileFields } from './profes
 import { CommunityProfileFields, DbCommunityProfileFields } from './communityProfileTypes';
 
 /**
- * Type for onboarding progress
- */
-export interface OnboardingProgress {
-  currentStep?: string;
-  completedSteps?: {
-    care_needs?: boolean;
-    care_plan?: boolean;
-    care_recipient_story?: boolean;
-    [key: string]: boolean | undefined;
-  };
-}
-
-/**
  * Base profile fields shared by all roles
  */
 interface BaseProfileFields {
@@ -30,7 +17,6 @@ interface BaseProfileFields {
   avatarUrl?: string;
   phoneNumber?: string;
   address?: string;
-  onboarding_progress?: OnboardingProgress;
 }
 
 /**
@@ -45,7 +31,6 @@ interface DbBaseProfileFields {
   avatar_url?: string;
   phone_number?: string;
   address?: string;
-  onboarding_progress?: Json;
 }
 
 /**
