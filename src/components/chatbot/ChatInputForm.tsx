@@ -1,18 +1,17 @@
 
-import React from "react";
-import { Send } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { cn } from "@/lib/utils";
+import React, { KeyboardEvent, useState } from 'react';
+import { Send } from 'lucide-react';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface ChatInputFormProps {
   input: string;
   setInput: (value: string) => void;
-  handleSendMessage: (e?: React.FormEvent) => Promise<void>;
+  handleSendMessage: (e?: React.FormEvent, inputValue?: string) => void;
   isTyping: boolean;
   conversationStage: "intro" | "questions" | "completion";
   isResuming: boolean;
   validationError?: string;
+  fieldType: string | null;
 }
 
 export const ChatInputForm: React.FC<ChatInputFormProps> = ({
@@ -22,44 +21,89 @@ export const ChatInputForm: React.FC<ChatInputFormProps> = ({
   isTyping,
   conversationStage,
   isResuming,
-  validationError
+  validationError,
+  fieldType
 }) => {
+  const isMobile = useIsMobile();
+  const [isFocused, setIsFocused] = useState(false);
+  
+  // Determine if we should show input or not
+  // Hide input during intro stage unless we're resuming
+  const shouldShowInput = 
+    conversationStage === "completion" || 
+    (conversationStage === "questions" && !isTyping) ||
+    (isResuming && !isTyping);
+
+  // Determine placeholder based on field type and focus state
+  const getPlaceholder = (): string => {
+    if (validationError) {
+      return validationError;
+    }
+    
+    if (fieldType === "email") {
+      return isFocused ? "Enter your email" : "Enter your email (e.g., name@example.com)";
+    }
+    
+    if (fieldType === "phone") {
+      return isFocused ? "Enter your phone number" : "Enter phone number (e.g., +1 868 123 4567)";
+    }
+    
+    if (fieldType === "name") {
+      return isFocused ? "Enter your name" : "Enter your name (First Last)";
+    }
+    
+    if (fieldType === "budget") {
+      return isFocused ? "Enter budget" : "Enter budget range (e.g., $20-30/hour)";
+    }
+    
+    return isMobile ? "Type message..." : "Type your message...";
+  };
+
+  // Handle keyboard events for the input field
+  const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey && input.trim() && shouldShowInput) {
+      e.preventDefault();
+      handleSendMessage(undefined, input);
+    }
+  };
+
   return (
-    <div className="border-t p-3 flex flex-col gap-2">
-      <form onSubmit={(e) => {
-        e.preventDefault();
-        if (input.trim() && !isTyping && conversationStage !== "intro" && !isResuming && !validationError) {
-          handleSendMessage(e);
-        }
-      }} className="flex gap-2">
-        <Input
-          placeholder={conversationStage === "completion" ? "Ask a follow-up question..." : "Type a message..."}
+    <div className={`border-t ${validationError ? "border-red-300 bg-red-50" : "border-border"} ${isMobile ? "px-2 py-1" : "p-2"} flex flex-col safe-bottom`}>
+      <form 
+        className="flex w-full items-center gap-2" 
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (input.trim() && shouldShowInput) {
+            handleSendMessage(e, input);
+          }
+        }}
+        style={{ opacity: shouldShowInput ? 1 : 0.5 }}
+      >
+        <input
+          type="text"
+          className={`flex-1 ${isMobile ? "text-sm py-2 px-2" : ""} bg-background rounded-md border ${
+            validationError ? "border-red-300 placeholder-red-400" : "border-input"
+          } px-3 py-2 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring mobile-chat-input`}
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          className={cn(
-            "flex-1",
-            validationError && "border-red-500 focus-visible:ring-red-500"
-          )}
-          disabled={isTyping || conversationStage === "intro" || isResuming}
+          placeholder={getPlaceholder()}
+          disabled={!shouldShowInput}
           aria-invalid={!!validationError}
-          onFocus={() => validationError && setInput("")}
-          aria-label="Chat message input"
-          data-testid="chat-input"
+          aria-describedby={validationError ? "input-error-message" : undefined}
+          onKeyDown={handleKeyDown}
+          onFocus={() => setIsFocused(true)}
+          onBlur={() => setIsFocused(false)}
         />
-        <Button
+        <button
           type="submit"
-          size="icon"
-          disabled={!input.trim() || isTyping || conversationStage === "intro" || isResuming || !!validationError}
-          title="Send message"
-          aria-label="Send message"
-          data-testid="send-message-button"
+          className={`rounded-md ${
+            input.trim() ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+          } ${isMobile ? "p-2 min-w-8" : "p-2"} transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50`}
+          disabled={!shouldShowInput || !input.trim()}
         >
-          <Send size={18} />
-        </Button>
+          <Send size={isMobile ? 18 : 18} />
+        </button>
       </form>
-      {validationError && (
-        <p className="text-red-500 text-sm px-1 animate-pulse" role="alert" aria-live="assertive">{validationError}</p>
-      )}
     </div>
   );
 };

@@ -16,13 +16,15 @@ export interface CarePlan {
 // Care Plan Metadata
 export interface CarePlanMetadata {
   planType: 'scheduled' | 'on-demand' | 'both';
-  weekdayCoverage?: '8am-4pm' | '6am-6pm' | '6pm-8am' | 'none';
+  weekdayCoverage?: '8am-4pm' | '8am-6pm' | '6am-6pm' | '6pm-8am' | 'none';
   weekendCoverage?: 'yes' | 'no';
   additionalShifts?: {
     weekdayEvening4pmTo6am?: boolean;
     weekdayEvening4pmTo8am?: boolean;
     weekdayEvening6pmTo6am?: boolean;
     weekdayEvening6pmTo8am?: boolean;
+    weekday8amTo4pm?: boolean;
+    weekday8amTo6pm?: boolean;
   };
 }
 
@@ -146,6 +148,7 @@ export interface CareTeamMemberDto {
   notes?: string;
   created_at?: string;
   updated_at?: string;
+  display_name?: string;
 }
 
 // Care Team Member Input for create/update operations

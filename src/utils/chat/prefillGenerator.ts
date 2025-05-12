@@ -1,224 +1,137 @@
 
-import { ChatMessage, PrefillData } from "@/types/chatTypes";
+import { ChatMessage } from "@/types/chatTypes";
+import { getSessionResponses } from "@/services/chatbotService";
 
 /**
- * Extracts user responses from message history
- * @param messages - Array of chat messages
- * @param questionIndex - Index of the question to match
- * @returns The user's answer or undefined if not found
+ * Generate a prefill JSON object based on the user's responses
+ * This will be used to prefill the registration form
  */
-const extractUserResponse = (
-  messages: ChatMessage[], 
-  questionText: string
-): string | undefined => {
-  // Find the question message
-  const questionIndex = messages.findIndex(
-    msg => !msg.isUser && msg.content.includes(questionText)
-  );
-  
-  if (questionIndex === -1 || questionIndex >= messages.length - 1) {
-    return undefined;
-  }
-  
-  // Get the next user message after the question
-  const userResponse = messages
-    .slice(questionIndex + 1)
-    .find(msg => msg.isUser);
-  
-  return userResponse?.content;
-};
+export const generatePrefillJson = async (role: string, messages: ChatMessage[]): Promise<Record<string, any>> => {
+  // Start with the basic role
+  const prefill: Record<string, any> = {
+    role: role || "family"
+  };
 
-/**
- * Generates prefill JSON data for family registration
- * @param messages - Array of chat messages
- * @returns PrefillData object
- */
-const generateFamilyPrefill = (messages: ChatMessage[]): PrefillData => {
-  // Extract user responses to specific questions
-  const nameResponse = extractUserResponse(messages, "What's your name?") || "";
-  const careRecipientResponse = extractUserResponse(
-    messages, 
-    "Who do you need care for?"
-  ) || "";
-  const careTypeResponse = extractUserResponse(
-    messages,
-    "What kind of care do they need?"
-  ) || "";
-  const scheduleResponse = extractUserResponse(
-    messages,
-    "How often do you need care?"
-  ) || "";
+  // Extract data from messages
+  const userMessages = messages.filter(msg => msg.isUser);
 
-  // Process name into first and last name
-  const nameParts = nameResponse.split(" ");
-  const firstName = nameParts[0] || "";
-  const lastName = nameParts.slice(1).join(" ") || "";
+  for (const msg of userMessages) {
+    // Simple extraction for now - this could be enhanced with AI or more sophisticated parsing
+    const content = msg.content.trim();
 
-  // Extract recipient name and relationship
-  const recipientInfo = careRecipientResponse.split(/and|,|\(/);
-  const recipientName = recipientInfo[0]?.trim() || "";
-  
-  // Try to extract relationship from the response
-  let relationship = "";
-  if (recipientInfo.length > 1) {
-    const relationshipMatch = careRecipientResponse.match(/\b(mother|father|spouse|partner|child|son|daughter|parent|grandparent|relative|friend)\b/i);
-    if (relationshipMatch) {
-      relationship = relationshipMatch[0].toLowerCase();
+    // Try to identify email addresses
+    const emailMatch = content.match(/([a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z0-9_-]+)/gi);
+    if (emailMatch && !prefill.email) {
+      prefill.email = emailMatch[0];
+    }
+
+    // Try to identify phone numbers
+    const phoneMatch = content.match(/(?:\+\d{1,3})?[-.\s]?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}/g);
+    if (phoneMatch && !prefill.phone) {
+      prefill.phone = phoneMatch[0];
+    }
+
+    // Check for name patterns
+    if (content.toLowerCase().includes("name is") && !prefill.name) {
+      const nameMatch = content.match(/name is\s+([^,.]+)/i);
+      if (nameMatch) {
+        prefill.name = nameMatch[1].trim();
+      }
     }
   }
 
-  // Process care types into array
-  const careTypes = careTypeResponse
-    .split(/,|and/)
-    .map(type => type.trim())
-    .filter(Boolean);
-
-  // Process schedule into array
-  const scheduleItems = scheduleResponse
-    .split(/,|and/)
-    .map(item => item.trim())
-    .filter(Boolean);
-
-  return {
-    first_name: firstName,
-    last_name: lastName,
-    phone_number: "", // We didn't collect this in chat
-    care_recipient_name: recipientName,
-    relationship,
-    care_types: careTypes,
-    care_schedule: scheduleItems
-  };
-};
-
-/**
- * Generates prefill JSON data for professional registration
- * @param messages - Array of chat messages
- * @returns PrefillData object
- */
-const generateProfessionalPrefill = (messages: ChatMessage[]): PrefillData => {
-  // Extract user responses
-  const nameResponse = extractUserResponse(messages, "What's your name?") || "";
-  const professionResponse = extractUserResponse(
-    messages,
-    "What kind of professional are you?"
-  ) || "";
-  const experienceResponse = extractUserResponse(
-    messages,
-    "How many years experience do you have?"
-  ) || "";
-  const locationResponse = extractUserResponse(
-    messages,
-    "Where are you located?"
-  ) || "";
-  const contactResponse = extractUserResponse(
-    messages,
-    "What's your contact info?"
-  ) || "";
-
-  // Process name into first and last name
-  const nameParts = nameResponse.split(" ");
-  const firstName = nameParts[0] || "";
-  const lastName = nameParts.slice(1).join(" ") || "";
-
-  // Extract years of experience as a number if possible
-  let yearsOfExperience: number | string = 0;
-  const yearsMatch = experienceResponse.match(/\d+/);
-  if (yearsMatch) {
-    yearsOfExperience = parseInt(yearsMatch[0], 10);
+  // Get the session ID to retrieve all saved responses
+  const sessionId = localStorage.getItem("tavara_chat_session") || "";
+  if (sessionId) {
+    try {
+      // Use await to make sure we have the data before proceeding
+      const responses = await getSessionResponses(sessionId);
+      console.log("Retrieved saved responses for prefill:", responses);
+      
+      // Map response fields to registration form fields
+      Object.entries(responses).forEach(([key, value]: [string, any]) => {
+        const responseValue = value.response;
+        
+        // Map section_X_question_Y to appropriate field names
+        if (key.includes("first_name") || key.includes("full_name")) {
+          prefill.first_name = responseValue;
+        } else if (key.includes("last_name")) {
+          prefill.last_name = responseValue;
+        } else if (key.includes("email")) {
+          prefill.email = responseValue;
+        } else if (key.includes("phone")) {
+          prefill.phone = responseValue;
+        } else if (key.includes("location") || key.includes("address")) {
+          prefill.location = responseValue;
+        }
+        
+        // Store all responses in a nested object for complete data
+        const questionParts = key.split("_");
+        if (questionParts.length >= 4) {
+          const sectionIndex = questionParts[1];
+          const questionId = questionParts.slice(3).join("_");
+          
+          if (!prefill.responses) prefill.responses = {};
+          if (!prefill.responses[sectionIndex]) prefill.responses[sectionIndex] = {};
+          
+          prefill.responses[sectionIndex][questionId] = responseValue;
+        }
+      });
+      
+      // Save the prefill data for later use with a timestamp to prevent stale data
+      prefill.timestamp = Date.now();
+      localStorage.setItem(`tavara_chat_prefill_${sessionId}`, JSON.stringify(prefill));
+      console.log(`Saved prefill data to localStorage key: tavara_chat_prefill_${sessionId}`, prefill);
+    } catch (error) {
+      console.error("Error generating prefill data:", error);
+    }
   }
 
-  // Extract potential phone number from contact info
-  let phone = "";
-  const phoneMatch = contactResponse.match(/\b(\d{3}[-.]?\d{3}[-.]?\d{4})\b/);
-  if (phoneMatch) {
-    phone = phoneMatch[0];
-  }
-
-  return {
-    first_name: firstName,
-    last_name: lastName,
-    professional_type: professionResponse,
-    years_of_experience: yearsOfExperience,
-    location: locationResponse,
-    phone,
-    terms_accepted: false // Default value, can't be prefilled for legal reasons
-  };
+  return prefill;
 };
 
 /**
- * Generates prefill JSON data for community registration
- * @param messages - Array of chat messages
- * @returns PrefillData object
+ * Save prefill data to local storage and prepare the registration URL
+ * Returns the complete URL with session parameter
+ * @param autoSubmit Optional parameter to indicate if the form should be auto-submitted
  */
-const generateCommunityPrefill = (messages: ChatMessage[]): PrefillData => {
-  // Extract user responses
-  const nameResponse = extractUserResponse(messages, "What's your name?") || "";
-  const rolesResponse = extractUserResponse(
-    messages,
-    "What kind of roles are you interested in?"
-  ) || "";
-  const contributionResponse = extractUserResponse(
-    messages,
-    "What are your contribution areas?"
-  ) || "";
-  const interestsResponse = extractUserResponse(
-    messages,
-    "Are you interested in tech, caregiving, education"
-  ) || "";
-
-  // Process name (community form uses fullName)
-  const fullName = nameResponse.trim();
-
-  // Process roles into array
-  const communityRoles = rolesResponse
-    .split(/,|and/)
-    .map(role => role.trim())
-    .filter(Boolean);
-
-  // Process contribution areas into array
-  const contributionInterests = contributionResponse
-    .split(/,|and/)
-    .map(area => area.trim())
-    .filter(Boolean);
-
-  // Process tech interests from the response
-  const techInterests: string[] = [];
-  if (interestsResponse.match(/tech/i)) techInterests.push("technology");
-  if (interestsResponse.match(/caregiving|care/i)) techInterests.push("caregiving");
-  if (interestsResponse.match(/education|teaching|learn/i)) techInterests.push("education");
-
-  return {
-    fullName,
-    location: "", // We didn't collect this in chat
-    phoneNumber: "", // We didn't collect this in chat
-    email: "", // We didn't collect this in chat
-    communityRoles,
-    contributionInterests,
-    techInterests
-  };
-};
-
-/**
- * Generates prefill JSON data based on user role and chat history
- * @param role - Selected user role (family, professional, community)
- * @param messages - Array of chat messages
- * @returns PrefillData object for the corresponding registration form
- */
-export const generatePrefillJson = (
+export const preparePrefillDataAndGetRegistrationUrl = async (
   role: string, 
-  messages: ChatMessage[]
-): PrefillData => {
-  switch (role) {
-    case "family":
-      return generateFamilyPrefill(messages);
+  messages: ChatMessage[],
+  autoSubmit = false
+): Promise<string> => {
+  const sessionId = localStorage.getItem("tavara_chat_session");
+  if (!sessionId) {
+    console.error("No session ID found for prefill data");
+    // For professional role, use the fixed version
+    return role === "professional" ? `/registration/professional-fix` : `/registration/${role}`;
+  }
+  
+  try {
+    // Generate and save the prefill data
+    const prefillData = await generatePrefillJson(role, messages);
     
-    case "professional":
-      return generateProfessionalPrefill(messages);
+    // Add a flag to indicate this is a completed chat session
+    prefillData.completed = true;
     
-    case "community":
-      return generateCommunityPrefill(messages);
+    // Add auto-submit flag if requested
+    if (autoSubmit) {
+      prefillData.autoSubmit = true;
+      
+      // Also mark in localStorage that this registration should auto-redirect to dashboard
+      localStorage.setItem(`tavara_chat_auto_redirect_${sessionId}`, "true");
+    }
     
-    default:
-      return {};
+    localStorage.setItem(`tavara_chat_prefill_${sessionId}`, JSON.stringify(prefillData));
+    console.log(`Saved prefill data with autoSubmit=${autoSubmit}:`, prefillData);
+    
+    // Return the URL with the session parameter
+    // For professional role, use the fixed version
+    const basePath = role === "professional" ? `/registration/professional-fix` : `/registration/${role}`;
+    return `${basePath}?session=${sessionId}`;
+  } catch (error) {
+    console.error("Error preparing prefill data:", error);
+    // For professional role, use the fixed version even in error case
+    return role === "professional" ? `/registration/professional-fix` : `/registration/${role}`;
   }
 };

@@ -1,2 +1,5 @@
 
 project_id = "cpdfmyemjrefnhddyrck"
+
+[functions.paypal-webhook]
+verify_jwt = false

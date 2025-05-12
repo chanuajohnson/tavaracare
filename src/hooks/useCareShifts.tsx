@@ -6,13 +6,13 @@ import { CareShift, CareShiftDto } from "@/types/careTypes";
 import { useAuth } from "@/components/providers/AuthProvider";
 
 // Adapter for converting database shifts to domain model
-const adaptDbShiftToCareShift = (dbShift: CareShiftDto): CareShift => ({
+const adaptDbShiftToCareShift = (dbShift: any): CareShift => ({
   id: dbShift.id!,
   carePlanId: dbShift.care_plan_id,
   familyId: dbShift.family_id,
   caregiverId: dbShift.caregiver_id,
-  title: dbShift.title,
-  description: dbShift.description,
+  title: dbShift.title || 'Untitled Shift',
+  description: dbShift.description || '',
   location: dbShift.location,
   status: dbShift.status as 'open' | 'assigned' | 'completed' | 'cancelled',
   startTime: dbShift.start_time,
@@ -24,82 +24,137 @@ const adaptDbShiftToCareShift = (dbShift: CareShiftDto): CareShift => ({
   googleCalendarEventId: dbShift.google_calendar_event_id
 });
 
-export function useCareShifts() {
+interface UseCareShiftsFilters {
+  carePlanId?: string;
+  status?: 'open' | 'assigned' | 'completed' | 'cancelled' | string;
+  startDate?: Date;
+  endDate?: Date;
+}
+
+export function useCareShifts(initialFilters?: UseCareShiftsFilters) {
   const [shifts, setShifts] = useState<CareShift[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [filters, setFilters] = useState<UseCareShiftsFilters>(initialFilters || {});
   const { user } = useAuth();
-
+  
   useEffect(() => {
+    if (user) {
+      fetchShifts();
+    } else {
+      setLoading(false);
+    }
+  }, [user, filters]);
+  
+  const fetchShifts = async () => {
     if (!user) {
+      console.log("No user found, skipping care shifts fetch");
       setLoading(false);
       return;
     }
-
-    const fetchCareShifts = async () => {
-      try {
-        setLoading(true);
-        
-        // Get current date at beginning of day
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        
-        console.log("🔄 Fetching care shifts:", {
-          userId: user.id,
-          environment: import.meta.env.VITE_ENV,
-          supabaseUrl: import.meta.env.VITE_SUPABASE_URL?.substring(0, 20) + '...'
-        });
-        
-        const { data, error: shiftsError } = await supabase
-          .from('care_shifts')
-          .select('*')
-          .eq('caregiver_id', user.id)
-          .gte('start_time', today.toISOString())
-          .order('start_time', { ascending: true });
-        
-        if (shiftsError) {
-          throw shiftsError;
-        }
-        
-        console.log(`✅ Care shifts fetched: ${data?.length || 0} shifts found for user ${user.id}`);
-        
-        // Convert database format to domain model
-        const typedShifts: CareShift[] = data ? data.map(shift => adaptDbShiftToCareShift(shift as CareShiftDto)) : [];
-        
-        setShifts(typedShifts);
-      } catch (err: any) {
-        console.error("❌ Error fetching care shifts:", err);
-        setError(err.message || "Failed to load care shifts");
-        toast.error("Failed to load care shifts");
-      } finally {
-        setLoading(false);
+    
+    try {
+      setLoading(true);
+      setError(null);
+      
+      console.log("Fetching care shifts for user:", user.id, "with filters:", filters);
+      
+      // IMPROVED QUERY: Better error handling and data validation
+      let query = supabase
+        .from('care_shifts')
+        .select(`
+          id,
+          care_plan_id,
+          family_id,
+          caregiver_id,
+          title,
+          description,
+          location,
+          status,
+          start_time,
+          end_time,
+          recurring_pattern,
+          recurrence_rule,
+          created_at,
+          updated_at,
+          google_calendar_event_id
+        `)
+        .eq('caregiver_id', user.id);
+      
+      // Apply filters
+      if (filters.carePlanId) {
+        query = query.eq('care_plan_id', filters.carePlanId);
       }
-    };
-    
-    fetchCareShifts();
-    
-    // Set up real-time subscription for care shifts updates
-    const careShiftsSubscription = supabase
-      .channel('care_shifts_changes')
-      .on('postgres_changes', 
-        { 
-          event: '*', 
-          schema: 'public', 
-          table: 'care_shifts',
-          filter: `caregiver_id=eq.${user.id}`
-        },
-        (payload) => {
-          console.log("🔄 Real-time update received for care shifts:", payload);
-          // Reload shifts when there's a change
-          fetchCareShifts();
+      
+      if (filters.status) {
+        query = query.eq('status', filters.status);
+      }
+      
+      if (filters.startDate) {
+        query = query.gte('start_time', filters.startDate.toISOString());
+      }
+      
+      if (filters.endDate) {
+        query = query.lte('end_time', filters.endDate.toISOString());
+      }
+      
+      // Order by start time, ascending
+      query = query.order('start_time', { ascending: true });
+      
+      const { data, error } = await query;
+      
+      if (error) {
+        throw error;
+      }
+      
+      // Add explicit type assertion and debug logging
+      console.log("Raw care shifts data count:", data?.length || 0);
+      console.log("Raw care shifts data:", data);
+      
+      // Validate and transform each shift with better error handling
+      const careShifts: CareShift[] = [];
+      (data || []).forEach((item: any) => {
+        try {
+          const shift = adaptDbShiftToCareShift(item);
+          careShifts.push(shift);
+        } catch (err) {
+          console.error("Error transforming shift data:", err, item);
+          // Continue processing other shifts
         }
-      )
-      .subscribe();
-    
-    return () => {
-      supabase.removeChannel(careShiftsSubscription);
-    };
-  }, [user]);
-
-  return { shifts, loading, error };
+      });
+      
+      console.log("Transformed care shifts count:", careShifts.length);
+      console.log("Transformed care shifts:", careShifts);
+      setShifts(careShifts);
+    } catch (err: any) {
+      console.error("Error fetching care shifts:", err);
+      setError(err.message || "Failed to load shifts");
+      toast.error("Failed to load care shifts");
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  const updateFilters = (newFilters: Partial<UseCareShiftsFilters>) => {
+    console.log("Updating care shifts filters:", newFilters);
+    setFilters(prev => ({
+      ...prev,
+      ...newFilters
+    }));
+  };
+  
+  const clearFilters = () => {
+    console.log("Clearing care shifts filters");
+    setFilters({});
+  };
+  
+  return { 
+    shifts, 
+    loading, 
+    error, 
+    filters,
+    updateFilters,
+    clearFilters,
+    refreshShifts: fetchShifts
+  };
 }

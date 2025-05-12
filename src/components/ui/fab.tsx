@@ -1,5 +1,4 @@
-
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { HelpCircle, X, MessageSquare, FileQuestion, Phone, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -13,8 +12,9 @@ import { Link, useNavigate } from "react-router-dom";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
-import { ChatProvider, useChat } from "@/components/chatbot/ChatProvider";
+import { useChat } from "@/components/chatbot/ChatProvider";
 import { ChatbotWidget } from "@/components/chatbot/ChatbotWidget";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface FabProps {
   icon?: React.ReactNode;
@@ -34,6 +34,7 @@ export const Fab = ({
   showMenu = true,
 }: FabProps) => {
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
   const [isContactFormOpen, setIsContactFormOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
@@ -43,6 +44,25 @@ export const Fab = ({
     message: "",
   });
   const [screenshotFile, setScreenshotFile] = useState<File | null>(null);
+  const [prefillData, setPrefillData] = useState<any>(null);
+  
+  // Try to access the chat context, with a fallback for when context isn't available
+  let chatContextAvailable = true;
+  let openChat: () => void;
+  let closeChat: () => void;
+  
+  try {
+    // Attempt to use the ChatProvider context
+    const chatContext = useChat();
+    openChat = chatContext.openChat;
+    closeChat = chatContext.closeChat;
+  } catch (error) {
+    // Fallback if no ChatProvider is available
+    console.error("Chat context not available in Fab:", error);
+    chatContextAvailable = false;
+    openChat = () => console.error("Chat context not available");
+    closeChat = () => console.error("Chat context not available");
+  }
 
   const positionClasses = {
     "bottom-right": "bottom-6 right-6",
@@ -50,6 +70,39 @@ export const Fab = ({
     "top-right": "top-6 right-6",
     "top-left": "top-6 left-6",
   };
+
+  // Listen for events from the chat to open the contact form
+  useEffect(() => {
+    const handleOpenContactForm = (event: CustomEvent) => {
+      setIsContactFormOpen(true);
+      
+      // Close chat if it's open
+      if (isChatOpen) {
+        setIsChatOpen(false);
+      }
+      
+      // If we received prefill data from the chat
+      if (event.detail?.prefillData) {
+        setPrefillData(event.detail.prefillData);
+        
+        // Update message if coming from chat
+        if (event.detail.fromChat) {
+          setContactFormData(prev => ({
+            ...prev,
+            message: `[Request from chat] I'd like to speak with a representative about Tavara.care services.${
+              event.detail.prefillData.role ? ` I'm interested as a ${event.detail.prefillData.role}.` : ''
+            }`
+          }));
+        }
+      }
+    };
+
+    window.addEventListener('tavara:open-contact-form', handleOpenContactForm as EventListener);
+    
+    return () => {
+      window.removeEventListener('tavara:open-contact-form', handleOpenContactForm as EventListener);
+    };
+  }, [isChatOpen]);
 
   const handleOpenWhatsApp = () => {
     const phoneNumber = "+18687865357";
@@ -62,7 +115,18 @@ export const Fab = ({
   };
 
   const toggleChat = () => {
+    // Use the ChatProvider context methods if available
+    if (chatContextAvailable) {
+      if (isChatOpen) {
+        closeChat();
+      } else {
+        openChat();
+      }
+    }
+    
+    // Also update the local state to control the chat widget visibility in this component
     setIsChatOpen(prev => !prev);
+    
     // Close contact form if open
     if (isContactFormOpen) {
       setIsContactFormOpen(false);
@@ -83,7 +147,11 @@ export const Fab = ({
       }
       
       // Prepare the data to send
-      const formData = { ...contactFormData };
+      const formData = { 
+        ...contactFormData,
+        // Add any chat session data if it exists
+        ...(prefillData ? { chatData: prefillData } : {})
+      };
       
       // Handle screenshot if provided
       if (screenshotFile) {
@@ -115,6 +183,7 @@ export const Fab = ({
       // Reset form
       setContactFormData({ name: "", email: "", message: "" });
       setScreenshotFile(null);
+      setPrefillData(null);
       setIsContactFormOpen(false);
     } catch (error) {
       console.error("Error submitting contact form:", error);
@@ -168,7 +237,7 @@ export const Fab = ({
   }
 
   return (
-    <ChatProvider>
+    <>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button
@@ -295,6 +364,11 @@ export const Fab = ({
                     </p>
                   )}
                 </div>
+                {prefillData && (
+                  <div className="bg-blue-50 p-2 rounded text-xs">
+                    <p>Including chat session data with your request</p>
+                  </div>
+                )}
               </div>
               <div className="mt-6 flex justify-end space-x-2">
                 <Button
@@ -321,9 +395,9 @@ export const Fab = ({
         </div>
       )}
       
-      {/* Chat widget */}
+      {/* Chat widget - improved positioning and responsiveness for mobile */}
       {isChatOpen && (
-        <div className="fixed right-6 bottom-24 z-50">
+        <div className={`fixed z-50 ${isMobile ? "inset-x-4 bottom-24" : "right-6 bottom-24"}`}>
           <div className="relative">
             <Button
               size="icon"
@@ -334,12 +408,12 @@ export const Fab = ({
               <X size={14} />
             </Button>
             <ChatbotWidget 
-              width="350px"
+              width={isMobile ? "100%" : "350px"}
               onClose={toggleChat}
             />
           </div>
         </div>
       )}
-    </ChatProvider>
+    </>
   );
 };

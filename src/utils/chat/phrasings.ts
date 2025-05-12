@@ -1,223 +1,192 @@
 
 /**
- * Trinidad & Tobago phrasings for chat personalization
+ * Collection of phrases for use in chat interactions
+ * This helps vary the language used in the chatbot for a more natural conversation
  */
 export const phrasings = {
-  // Common greetings and salutations
-  greetings: [
-    "Hiya",
-    "How going?",
-    "Hello there",
-    "Wha' happening?",
-    "Aye! How are you?",
-    "Good day",
-    "Welcome",
-    "Hows it going?",
-    "Howdy!",
-    "Greetings and salutations!",
-    "Hows the morning/evening?",
-    "Nice to see you!"
-  ],
-  
-  // Expressions of acknowledgment
-  acknowledgments: [
-    "Thanks plenty",
-    "Much appreciated",
-    "Bless up",
-    "Respect",
-    "Thanks for that",
-    "Thanks eh",
-    "Well nice",
-    "Cool cool",
-    "That's good",
-    "Real nice",
-    "Thanks for sharing",
-    "I appreciate that",
-    "That's helpful information"
-  ],
-  
-  // Common expressions and phrases
-  expressions: [
-    "Eh heh!",
-    "For true",
-    "Look trouble!",
-    "Steups",
-    "Oh gosh",
-    "My goodness",
-    "Well yes!",
-    "Best believe",
-    "For so!",
-    "Oh gorm",
-    "Allyuh see",
-    "Imagine that",
-    "Look at that nah",
-    "But wait",
-    "You know how it is",
-    "Look at meh trouble"
-  ],
-  
-  // Encouraging phrases
-  encouragement: [
-    "Let's go!",
-    "You can do it",
-    "Press on",
-    "Don't worry yourself",
-    "No pressure, no diamonds",
-    "You got this",
-    "We moving good!",
-    "That's the way",
-    "You making progress",
-    "One step at a time",
-    "We getting there"
-  ],
-  
-  // Ways to express agreement
-  agreement: [
-    "Correct!",
-    "For true",
-    "Is so",
-    "You right",
-    "Exactly so",
-    "Exactly that",
-    "Just so",
-    "That's right",
-    "Yes yes",
-    "Is that!"
-  ],
-  
-  // Ways to ask questions
-  questions: [
-    "I'm wondering...",
-    "Tell me...",
-    "I curious about...",
-    "Share with me...",
-    "What you think about...",
-    "Let me ask you...",
-    "Can you share...",
-    "I'd like to know...",
-    "Mind telling me...",
-    "Could you explain..."
-  ],
-  
-  // Ways to introduce suggestions
-  suggestions: [
-    "Maybe try...",
-    "You could...",
-    "How about...",
-    "Let me suggest...",
-    "Ever think about...",
-    "What about...",
-    "Consider this...",
-    "One option is...",
-    "It might work if...",
-    "Have you thought of..."
-  ],
-  
-  // Family-related terms
-  familyTerms: [
-    "loved one",
-    "family",
-    "people",
-    "relative",
-    "mother",
-    "father",
-    "granny",
-    "auntie",
-    "uncle",
-    "elder",
-    "senior",
-    "grandparent",
-    "partner"
-  ],
-  
-  // Care-related terms
-  careTerms: [
-    "assistance",
-    "support",
-    "helping hand",
-    "care",
-    "looking after",
-    "minding",
-    "watching over",
-    "caregiving",
-    "attention",
-    "aid",
-    "service"
-  ],
-  
-  // Section transitions
+  /**
+   * Phrases used for transitioning between sections
+   */
   transitions: [
-    "Let's move on to talk about",
-    "Now, let's discuss",
-    "Great! Let's switch over to",
-    "Perfect! Now I'd like to ask about",
-    "Thanks for that. Let's talk about",
-    "That's helpful. Now, regarding",
-    "Well nice! Moving on to",
-    "Let's shift gears and look at",
-    "Excellent progress! Next let's cover",
-    "Good good! Now tell me about"
+    "Now let's talk about",
+    "Let's move on to",
+    "Next, I'd like to ask about",
+    "Let's explore",
+    "Now I'd like to learn about",
+    "Moving forward to",
+    "Shifting focus to",
+    "Let's discuss",
+    "Next up is",
+    "Continuing on to"
   ],
   
-  // Validation error responses
-  validationResponses: {
-    email: [
-      "That email doesn't look quite right. Mind checking it?",
-      "Hmm, I'm having trouble with that email address. Could you try again?",
-      "That doesn't seem like a valid email. Let's try once more.",
-      "I need a proper email address with an @ sign. Mind checking?"
+  /**
+   * Phrases used for introducing questions
+   * Note: Include trailing space
+   */
+  questionIntros: [
+    "", // Empty string for some questions to have no intro
+    "Could you share ",
+    "I'd like to know ",
+    "Please tell me ",
+    "Would you mind sharing ",
+    "I'm curious about ",
+    "Can you tell me ",
+    "May I ask ",
+    "I'm interested in learning ",
+    "Would you be willing to share ",
+    "I'd appreciate knowing ",
+    "Help me understand "
+  ],
+
+  /**
+   * Trinidadian-style greetings
+   */
+  greetings: [
+    "Hey there",
+    "Hi friend",
+    "Hello",
+    "Greetings",
+    "Welcome",
+    "Good day",
+    "Howdy",
+    "Nice to meet you"
+  ],
+
+  /**
+   * Acknowledgment phrases
+   */
+  acknowledgments: [
+    "Perfect",
+    "Great",
+    "Wonderful",
+    "Fantastic",
+    "Excellent",
+    "Thanks for that",
+    "Got it",
+    "I understand",
+    "That's helpful",
+    "Noted"
+  ],
+
+  /**
+   * Cultural expressions
+   */
+  expressions: [
+    "Right",
+    "Well",
+    "So",
+    "Now",
+    "Alright",
+    "Great",
+    "Perfect"
+  ],
+  
+  /**
+   * Trinidadian dialect words and phrases with variants
+   * Organized by type for contextual usage
+   */
+  trinidadianDialect: {
+    // For replacing "Alright" at the beginning of messages
+    alrightVariants: [
+      "Right then",
+      "Aye cool",
+      "Cool cool",
+      "Nice nice",
+      "Great then",
+      "Eh heh",
+      "Well good",
+      "Moving on",
+      "So listen",
+      "Let we go",
+      "Rightio"
     ],
-    phone: [
-      "That phone number doesn't seem right. Could you check it?",
-      "I'm not sure that's a valid number. Mind trying again?",
-      "Hmm, that number doesn't look complete. One more time?",
-      "I need a phone number I can reach you at. Can you check that format?"
+    
+    // For replacing "Thank you" phrases
+    thankYouVariants: [
+      "Thanks plenty",
+      "Much appreciated",
+      "Thanks eh",
+      "Real thanks",
+      "That's real nice"
     ],
-    name: [
-      "That name seems a bit short. Could you give me your full name?",
-      "I need your proper name to continue. Can you share that?",
-      "Could you give me your name again? I need it for the registration.",
-      "That doesn't quite look like a name. Mind typing it again?"
+    
+    // For replacing greeting phrases
+    greetingVariants: [
+      "Yuh alright",
+      "Good day",
+      "Howdy",
+      "Whas happening",
+      "How yuh going"
+    ],
+    
+    // For replacing affirmative responses
+    affirmativeVariants: [
+      "For real",
+      "That's right",
+      "Exactly so",
+      "Yes nah",
+      "Indeed yes"
+    ],
+    
+    // For replacing confirmation phrases
+    confirmationVariants: [
+      "We good to go",
+      "All set",
+      "Looking good",
+      "We reach",
+      "All correct"
     ]
   },
-  
-  // Completion phrases
-  completion: [
-    "Great! We've completed this part.",
-    "Perfect! That's all I needed for this section.",
-    "Thanks plenty! We've finished this section now.",
-    "Well nice! You've completed this part.",
-    "That's everything for this section!",
-    "Excellent! We're done with this part.",
-    "Perfect! Let's move on."
-  ],
-  
-  // Error recovery phrases
-  errorRecovery: [
-    "Oh gosh, something's not quite working. Let me try again.",
-    "Look trouble! I'm having a small issue. Let's take another approach.",
-    "I seem to be having a moment. Let's try something else.",
-    "My brain's a bit slow right now. Let me think differently.",
-    "Steups! Something's not connecting right. Let me fix this."
-  ],
 
-  // Connection error responses
+  /**
+   * Connection error messages
+   */
   connectionErrors: [
-    "I seem to have lost my connection. Let me try again.",
-    "Look trouble! My internet's acting up. Give me a moment.",
-    "Something went wrong with our connection. Let's try one more time.",
-    "Oh gosh, I can't reach my brain right now. Let me try a different approach.",
-    "Seems like my thinking part is on a little break. Let's continue another way."
+    "We're having some trouble connecting right now. Let's try again.",
+    "Looks like there's a connection issue. Could you try again?",
+    "Our systems are a bit slow right now. Let's give it another try.",
+    "Sorry about that, we couldn't process your request. Let's try again."
   ],
 
-  // Cultural inserts (short phrases to add local flavor)
-  culturalInserts: [
-    "eh",
-    "nah",
-    "yes man",
-    "for true",
-    "breds",
-    "ent",
-    "oui"
-  ]
+  /**
+   * Error recovery messages
+   */
+  errorRecovery: [
+    "Sorry about that little hiccup. Let's continue where we left off.",
+    "Let me get back on track. Where were we?",
+    "My apologies for the interruption. Let's pick up where we were.",
+    "Thanks for your patience. Let's continue with your registration."
+  ],
+
+  /**
+   * Validation response messages
+   */
+  validationResponses: [
+    "That doesn't look quite right. Could you check and try again?",
+    "I think there might be a typo. Please verify and try again.",
+    "That format doesn't seem right. Could you double-check?",
+    "Please provide a valid format for this field."
+  ],
+  
+  /**
+   * Input format guidance messages
+   */
+  formatGuidance: {
+    email: [
+      "(example: yourname@example.com)",
+      "(please use format: name@domain.com)",
+      "(like: contact@example.com)"
+    ],
+    phone: [
+      "(example: +1 868 123 4567)",
+      "(please include country code, like: +1 868 555 1234)",
+      "(format: +1-868-123-4567)"
+    ],
+    name: [
+      "(your full name please)",
+      "(first and last name)",
+      "(as it appears on official documents)"
+    ]
+  }
 };

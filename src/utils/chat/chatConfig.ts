@@ -1,3 +1,4 @@
+
 import { ChatConfig } from './engine/types';
 import { defaultChatConfig } from './engine/types';
 
@@ -20,12 +21,13 @@ export const loadChatConfig = (): ChatConfig => {
     localStorage.removeItem(CHAT_CONFIG_KEY);
   }
   
-  // Set default to AI mode always
+  // Set default to AI mode always with higher temperature for more personality
   return {
     ...defaultChatConfig,
     mode: 'ai',
-    temperature: 0.7,
-    fallbackThreshold: 3
+    temperature: 0.8,
+    fallbackThreshold: 5,  // Increased retry threshold for more persistence with AI
+    useAIPrompts: true     // Enable AI prompts by default to test flow
   };
 };
 
@@ -107,4 +109,13 @@ export const clearChatStorage = (sessionId: string): void => {
   localStorage.removeItem('tavara_chat_initial_role');
   localStorage.removeItem('tavara_chat_session');
   localStorage.removeItem('tavara_chat_is_open');
+};
+
+/**
+ * DEBUG: Logs the current chat configuration
+ */
+export const debugChatConfig = (): void => {
+  const config = loadChatConfig();
+  console.log('[Chat Config]', config);
+  console.log('[Always Show Options]', shouldAlwaysShowOptions());
 };

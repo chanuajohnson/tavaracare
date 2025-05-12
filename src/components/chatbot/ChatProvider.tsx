@@ -1,5 +1,6 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { ChatMessage } from '@/types/chatTypes';
 
 interface ChatContextType {
   isOpen: boolean;
@@ -13,6 +14,8 @@ interface ChatContextType {
   isFullScreen: boolean;
   openFullScreenChat: () => void;
   closeFullScreenChat: () => void;
+  messages: ChatMessage[]; // Adding messages property to the context
+  setMessages: (messages: ChatMessage[]) => void; // Adding setter for messages
 }
 
 const ChatContext = createContext<ChatContextType | undefined>(undefined);
@@ -30,6 +33,7 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({
   const [initialRole, setInitialRole] = useState<string | null>(null);
   const [skipIntro, setSkipIntro] = useState(false);
   const [isFullScreen, setIsFullScreen] = useState(false);
+  const [messages, setMessages] = useState<ChatMessage[]>([]); // Adding messages state
 
   // Allow toggling the chat state
   const toggleChat = () => {
@@ -88,7 +92,9 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({
       setSkipIntro,
       isFullScreen,
       openFullScreenChat,
-      closeFullScreenChat
+      closeFullScreenChat,
+      messages, // Provide messages in the context
+      setMessages // Provide the setter in the context
     }}>
       {children}
     </ChatContext.Provider>

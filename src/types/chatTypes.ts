@@ -6,10 +6,13 @@ export interface ChatOption {
 }
 
 export interface ChatMessage {
-  content: string;
+  id?: string;            // Add unique ID for each message
+  content: string;        // Original unformatted content
+  formattedContent?: string; // Pre-formatted content to display
   isUser: boolean;
   timestamp: number;
   options?: ChatOption[];
+  isFormatted?: boolean;  // Flag to track if message has been formatted
 }
 
 export interface PrefillData {

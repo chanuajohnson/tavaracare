@@ -7,32 +7,39 @@
   <title>Tavara.care - Redirecting...</title>
   <script>
     // Single Page App redirect script for GitHub Pages
-    // Modified from https://github.com/rafgraph/spa-github-pages
+    // Modified to properly handle query parameters for auth flows
     (function() {
-      // This script takes the current URL and converts the path and query
-      // string into just a query string, then redirects the browser
-      // to the new URL with only a query string and hash fragment
+      // This script takes the current URL and preserves both the path and query parameters
       
-      // Parse the URL
+      // Parse the URL components
       var pathname = window.location.pathname;
       var search = window.location.search;
       var hash = window.location.hash;
       
+      // Special handling for auth reset password confirm route
+      if (pathname.includes('/auth/reset-password/confirm')) {
+        console.log('[404 redirect] Auth reset password route detected with query params:', search);
+        // For auth routes with tokens, we need to preserve every query parameter
+        // Redirect to the SPA route with all query parameters intact
+        window.location.href = '/#' + pathname + search;
+        return;
+      }
+      
       // Remove any trailing slash from the path
       pathname = pathname.replace(/\/$/, '');
       
-      // If URL is already the root, just go to index (prevents redirect loop)
+      // If URL is already the root or 404, just go to index (prevents redirect loop)
       if (pathname === '/404.html' || pathname === '/404') {
         window.location.href = '/';
         return;
       }
       
-      // Save the URL path as a query parameter
+      // For non-auth routes, use the standard SPA redirect approach
       var redirectUrl = '/?route=' + encodeURIComponent(pathname.slice(1)) + 
-                         (search ? '&' + search.slice(1) : '') + 
-                         hash;
+                       (search ? '&' + search.slice(1) : '') + 
+                       hash;
       
-      // Redirect to the new URL
+      console.log('[404 redirect] Redirecting to:', redirectUrl);
       window.location.replace(redirectUrl);
     })();
   </script>

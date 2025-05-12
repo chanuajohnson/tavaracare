@@ -1,8 +1,28 @@
 
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
-import { CarePlan, CarePlanMetadata, CarePlanDto, CarePlanInput } from "@/types/careTypes";
+import { CarePlan, CarePlanMetadata } from "@/types/carePlan";
 import { Json } from "@/utils/json";
+
+// Define DTO types for internal use
+interface CarePlanDto {
+  id?: string;
+  family_id: string;
+  title: string;
+  description?: string;
+  status?: 'active' | 'completed' | 'cancelled';
+  created_at?: string;
+  updated_at?: string;
+  metadata?: Json;
+}
+
+interface CarePlanInput {
+  familyId: string;
+  title: string;
+  description?: string;
+  status?: 'active' | 'completed' | 'cancelled';
+  metadata?: CarePlanMetadata;
+}
 
 // Adapters for converting between domain and database models
 export const adaptCarePlanFromDb = (dbPlan: CarePlanDto): CarePlan => ({
@@ -13,7 +33,7 @@ export const adaptCarePlanFromDb = (dbPlan: CarePlanDto): CarePlan => ({
   status: dbPlan.status || 'active',
   createdAt: dbPlan.created_at || new Date().toISOString(),
   updatedAt: dbPlan.updated_at || new Date().toISOString(),
-  metadata: dbPlan.metadata as CarePlanMetadata
+  metadata: dbPlan.metadata as unknown as CarePlanMetadata
 });
 
 export const adaptCarePlanToDb = (plan: Partial<CarePlan>): Partial<CarePlanDto> => ({
@@ -22,7 +42,7 @@ export const adaptCarePlanToDb = (plan: Partial<CarePlan>): Partial<CarePlanDto>
   title: plan.title,
   description: plan.description,
   status: plan.status,
-  metadata: plan.metadata
+  metadata: plan.metadata as unknown as Json
 });
 
 export const fetchCarePlans = async (familyId: string): Promise<CarePlan[]> => {
@@ -73,7 +93,7 @@ export const createCarePlan = async (plan: CarePlanInput): Promise<CarePlan | nu
       title: plan.title,
       description: plan.description,
       status: plan.status || 'active',
-      metadata: plan.metadata
+      metadata: plan.metadata as unknown as Json
     };
 
     const { data, error } = await supabase
@@ -106,7 +126,7 @@ export const updateCarePlan = async (
       description: updates.description,
       status: updates.status,
       family_id: updates.familyId,
-      metadata: updates.metadata
+      metadata: updates.metadata as unknown as Json
     };
     
     // Remove undefined properties
@@ -153,3 +173,6 @@ export const deleteCarePlan = async (planId: string): Promise<boolean> => {
     return false;
   }
 };
+
+// Re-export types for external use
+export type { CarePlanInput, CarePlanDto };

@@ -1,2 +1,5 @@
 
 project_id = "cpdfmyemjrefnhddyrck"
+
+[functions.update-job-data]
+verify_jwt = false

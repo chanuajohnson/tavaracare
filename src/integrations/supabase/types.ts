@@ -53,6 +53,146 @@ export type Database = {
           },
         ]
       }
+      care_needs_family: {
+        Row: {
+          additional_notes: string | null
+          assistance_bathing: boolean | null
+          assistance_companionship: boolean | null
+          assistance_dressing: boolean | null
+          assistance_feeding: boolean | null
+          assistance_medication: boolean | null
+          assistance_mobility: boolean | null
+          assistance_naps: boolean | null
+          assistance_oral_care: boolean | null
+          assistance_toileting: boolean | null
+          cognitive_notes: string | null
+          communication_method: string | null
+          created_at: string | null
+          daily_report_required: boolean | null
+          dementia_redirection: boolean | null
+          diagnosed_conditions: string | null
+          emergency_contact_name: string | null
+          emergency_contact_phone: string | null
+          emergency_contact_relationship: string | null
+          equipment_use: boolean | null
+          escort_to_appointments: boolean | null
+          fall_monitoring: boolean | null
+          fresh_air_walks: boolean | null
+          gentle_engagement: boolean | null
+          grocery_runs: boolean | null
+          id: string
+          laundry_support: boolean | null
+          meal_prep: boolean | null
+          memory_reminders: boolean | null
+          plan_type: string | null
+          preferred_days: string[] | null
+          preferred_time_end: string | null
+          preferred_time_start: string | null
+          profile_id: string | null
+          tidy_room: boolean | null
+          updated_at: string | null
+          vitals_check: boolean | null
+          wandering_prevention: boolean | null
+          weekday_coverage: string | null
+          weekend_coverage: string | null
+          weekend_schedule_type: string | null
+        }
+        Insert: {
+          additional_notes?: string | null
+          assistance_bathing?: boolean | null
+          assistance_companionship?: boolean | null
+          assistance_dressing?: boolean | null
+          assistance_feeding?: boolean | null
+          assistance_medication?: boolean | null
+          assistance_mobility?: boolean | null
+          assistance_naps?: boolean | null
+          assistance_oral_care?: boolean | null
+          assistance_toileting?: boolean | null
+          cognitive_notes?: string | null
+          communication_method?: string | null
+          created_at?: string | null
+          daily_report_required?: boolean | null
+          dementia_redirection?: boolean | null
+          diagnosed_conditions?: string | null
+          emergency_contact_name?: string | null
+          emergency_contact_phone?: string | null
+          emergency_contact_relationship?: string | null
+          equipment_use?: boolean | null
+          escort_to_appointments?: boolean | null
+          fall_monitoring?: boolean | null
+          fresh_air_walks?: boolean | null
+          gentle_engagement?: boolean | null
+          grocery_runs?: boolean | null
+          id?: string
+          laundry_support?: boolean | null
+          meal_prep?: boolean | null
+          memory_reminders?: boolean | null
+          plan_type?: string | null
+          preferred_days?: string[] | null
+          preferred_time_end?: string | null
+          preferred_time_start?: string | null
+          profile_id?: string | null
+          tidy_room?: boolean | null
+          updated_at?: string | null
+          vitals_check?: boolean | null
+          wandering_prevention?: boolean | null
+          weekday_coverage?: string | null
+          weekend_coverage?: string | null
+          weekend_schedule_type?: string | null
+        }
+        Update: {
+          additional_notes?: string | null
+          assistance_bathing?: boolean | null
+          assistance_companionship?: boolean | null
+          assistance_dressing?: boolean | null
+          assistance_feeding?: boolean | null
+          assistance_medication?: boolean | null
+          assistance_mobility?: boolean | null
+          assistance_naps?: boolean | null
+          assistance_oral_care?: boolean | null
+          assistance_toileting?: boolean | null
+          cognitive_notes?: string | null
+          communication_method?: string | null
+          created_at?: string | null
+          daily_report_required?: boolean | null
+          dementia_redirection?: boolean | null
+          diagnosed_conditions?: string | null
+          emergency_contact_name?: string | null
+          emergency_contact_phone?: string | null
+          emergency_contact_relationship?: string | null
+          equipment_use?: boolean | null
+          escort_to_appointments?: boolean | null
+          fall_monitoring?: boolean | null
+          fresh_air_walks?: boolean | null
+          gentle_engagement?: boolean | null
+          grocery_runs?: boolean | null
+          id?: string
+          laundry_support?: boolean | null
+          meal_prep?: boolean | null
+          memory_reminders?: boolean | null
+          plan_type?: string | null
+          preferred_days?: string[] | null
+          preferred_time_end?: string | null
+          preferred_time_start?: string | null
+          profile_id?: string | null
+          tidy_room?: boolean | null
+          updated_at?: string | null
+          vitals_check?: boolean | null
+          wandering_prevention?: boolean | null
+          weekday_coverage?: string | null
+          weekend_coverage?: string | null
+          weekend_schedule_type?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "care_needs_family_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       care_plans: {
         Row: {
           created_at: string | null
@@ -295,9 +435,12 @@ export type Database = {
           care_plan_id: string | null
           caregiver_id: string
           created_at: string | null
+          display_name: string | null
           family_id: string
           id: string
           notes: string | null
+          overtime_rate: number | null
+          regular_rate: number | null
           role: string | null
           status: string | null
           updated_at: string | null
@@ -306,9 +449,12 @@ export type Database = {
           care_plan_id?: string | null
           caregiver_id: string
           created_at?: string | null
+          display_name?: string | null
           family_id: string
           id?: string
           notes?: string | null
+          overtime_rate?: number | null
+          regular_rate?: number | null
           role?: string | null
           status?: string | null
           updated_at?: string | null
@@ -317,9 +463,12 @@ export type Database = {
           care_plan_id?: string | null
           caregiver_id?: string
           created_at?: string | null
+          display_name?: string | null
           family_id?: string
           id?: string
           notes?: string | null
+          overtime_rate?: number | null
+          regular_rate?: number | null
           role?: string | null
           status?: string | null
           updated_at?: string | null
@@ -683,6 +832,33 @@ export type Database = {
         }
         Relationships: []
       }
+      holidays: {
+        Row: {
+          created_at: string | null
+          date: string
+          id: string
+          name: string
+          pay_multiplier: number
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          date: string
+          id?: string
+          name: string
+          pay_multiplier?: number
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          date?: string
+          id?: string
+          name?: string
+          pay_multiplier?: number
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       job_opportunities: {
         Row: {
           details: string | null
@@ -965,6 +1141,94 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payroll_entries: {
+        Row: {
+          care_plan_id: string
+          care_team_member_id: string
+          created_at: string | null
+          entered_at: string | null
+          expense_total: number | null
+          holiday_hours: number | null
+          holiday_rate: number | null
+          id: string
+          overtime_hours: number | null
+          overtime_rate: number | null
+          pay_period_end: string | null
+          pay_period_start: string | null
+          payment_date: string | null
+          payment_status: string | null
+          regular_hours: number
+          regular_rate: number
+          total_amount: number
+          updated_at: string | null
+          work_log_id: string
+        }
+        Insert: {
+          care_plan_id: string
+          care_team_member_id: string
+          created_at?: string | null
+          entered_at?: string | null
+          expense_total?: number | null
+          holiday_hours?: number | null
+          holiday_rate?: number | null
+          id?: string
+          overtime_hours?: number | null
+          overtime_rate?: number | null
+          pay_period_end?: string | null
+          pay_period_start?: string | null
+          payment_date?: string | null
+          payment_status?: string | null
+          regular_hours: number
+          regular_rate: number
+          total_amount: number
+          updated_at?: string | null
+          work_log_id: string
+        }
+        Update: {
+          care_plan_id?: string
+          care_team_member_id?: string
+          created_at?: string | null
+          entered_at?: string | null
+          expense_total?: number | null
+          holiday_hours?: number | null
+          holiday_rate?: number | null
+          id?: string
+          overtime_hours?: number | null
+          overtime_rate?: number | null
+          pay_period_end?: string | null
+          pay_period_start?: string | null
+          payment_date?: string | null
+          payment_status?: string | null
+          regular_hours?: number
+          regular_rate?: number
+          total_amount?: number
+          updated_at?: string | null
+          work_log_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payroll_entries_care_plan_id_fkey"
+            columns: ["care_plan_id"]
+            isOneToOne: false
+            referencedRelation: "care_plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payroll_entries_care_team_member_id_fkey"
+            columns: ["care_team_member_id"]
+            isOneToOne: false
+            referencedRelation: "care_team_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payroll_entries_work_log_id_fkey"
+            columns: ["work_log_id"]
+            isOneToOne: false
+            referencedRelation: "work_logs"
             referencedColumns: ["id"]
           },
         ]
@@ -1637,6 +1901,120 @@ export type Database = {
           raw_data?: Json
         }
         Relationships: []
+      }
+      work_log_expenses: {
+        Row: {
+          amount: number
+          category: string
+          created_at: string | null
+          description: string
+          id: string
+          receipt_url: string | null
+          status: string
+          updated_at: string | null
+          work_log_id: string
+        }
+        Insert: {
+          amount: number
+          category: string
+          created_at?: string | null
+          description: string
+          id?: string
+          receipt_url?: string | null
+          status?: string
+          updated_at?: string | null
+          work_log_id: string
+        }
+        Update: {
+          amount?: number
+          category?: string
+          created_at?: string | null
+          description?: string
+          id?: string
+          receipt_url?: string | null
+          status?: string
+          updated_at?: string | null
+          work_log_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "work_log_expenses_work_log_id_fkey"
+            columns: ["work_log_id"]
+            isOneToOne: false
+            referencedRelation: "work_logs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      work_logs: {
+        Row: {
+          base_rate: number | null
+          care_plan_id: string
+          care_team_member_id: string
+          created_at: string | null
+          end_time: string
+          id: string
+          notes: string | null
+          rate_multiplier: number | null
+          rate_type: string | null
+          shift_id: string | null
+          start_time: string
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          base_rate?: number | null
+          care_plan_id: string
+          care_team_member_id: string
+          created_at?: string | null
+          end_time: string
+          id?: string
+          notes?: string | null
+          rate_multiplier?: number | null
+          rate_type?: string | null
+          shift_id?: string | null
+          start_time: string
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          base_rate?: number | null
+          care_plan_id?: string
+          care_team_member_id?: string
+          created_at?: string | null
+          end_time?: string
+          id?: string
+          notes?: string | null
+          rate_multiplier?: number | null
+          rate_type?: string | null
+          shift_id?: string | null
+          start_time?: string
+          status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "work_logs_care_plan_id_fkey"
+            columns: ["care_plan_id"]
+            isOneToOne: false
+            referencedRelation: "care_plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "work_logs_care_team_member_id_fkey"
+            columns: ["care_team_member_id"]
+            isOneToOne: false
+            referencedRelation: "care_team_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "work_logs_shift_id_fkey"
+            columns: ["shift_id"]
+            isOneToOne: false
+            referencedRelation: "care_shifts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {

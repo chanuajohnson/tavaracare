@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { ChatProvider, useChat } from './ChatProvider';
+import { useChat } from './ChatProvider';
 import { ChatbotLauncher } from './ChatbotLauncher';
 import { FullScreenChatDialog } from './FullScreenChatDialog';
 
@@ -44,8 +44,6 @@ export const ChatbotSystem: React.FC<ChatbotSystemProps> = ({
   children,
   ...props
 }) => {
-  // No need to create a new ChatProvider if we're already inside one
-  // Instead, try to use the existing context first
   try {
     // This will throw an error if no ChatProvider exists
     useChat();
@@ -53,12 +51,7 @@ export const ChatbotSystem: React.FC<ChatbotSystemProps> = ({
     // If we get here, we're already inside a ChatProvider
     return <ChatbotSystemInner {...props} />;
   } catch (error) {
-    // No existing ChatProvider, so we need to create one
-    return (
-      <ChatProvider>
-        {children}
-        <ChatbotSystemInner {...props} />
-      </ChatProvider>
-    );
+    console.error("ChatbotSystem: No ChatProvider found in context, component will not render properly", error);
+    return null; // Return null to prevent rendering without proper context
   }
 };

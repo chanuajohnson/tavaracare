@@ -1,0 +1,5 @@
+
+project_id = "cpdfmyemjrefnhddyrck"
+
+[functions.chat-gpt]
+verify_jwt = false

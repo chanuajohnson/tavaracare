@@ -1,2 +1,5 @@
 
 project_id = "cpdfmyemjrefnhddyrck"
+
+[functions.paypal-create-subscription]
+verify_jwt = false

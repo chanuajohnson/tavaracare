@@ -23,8 +23,8 @@ dist-ssr
 *.sln
 *.sw?
 # Ignore all environment files
-.env
-.env.*
+#.env
+#.env.*
 # But keep example files
 !.env.*.example
 

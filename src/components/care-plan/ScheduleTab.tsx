@@ -13,6 +13,7 @@ import { DateRange } from "react-day-picker";
 import { ShiftCalendar } from "./ShiftCalendar";
 import { CareShift, CareShiftInput, CareTeamMemberWithProfile } from "@/types/careTypes";
 import { createCareShift, updateCareShift } from "@/services/care-plans";
+import { WorkLogForm } from './WorkLogForm';
 
 interface ScheduleTabProps {
   carePlanId: string;
@@ -57,9 +58,12 @@ export const ScheduleTab: React.FC<ScheduleTabProps> = ({
   });
   const [editingShift, setEditingShift] = useState<CareShift | null>(null);
   const [isRangeSelection, setIsRangeSelection] = useState(false);
+  const [workLogFormOpen, setWorkLogFormOpen] = useState(false);
+  const [selectedShift, setSelectedShift] = useState<CareShift | null>(null);
 
   const SHIFT_TITLE_OPTIONS: ShiftTypeOption[] = [
     { id: "weekday_standard", label: "Monday - Friday, 8 AM - 4 PM", description: "Standard daytime coverage during business hours", timeRange: { start: "08:00", end: "16:00" } },
+    { id: "weekday_standard_extended", label: "Monday - Friday, 8 AM - 6 PM", description: "Extended daytime coverage with longer hours", timeRange: { start: "08:00", end: "18:00" } },
     { id: "weekday_extended", label: "Monday - Friday, 6 AM - 6 PM", description: "Extended daytime coverage for more comprehensive care", timeRange: { start: "06:00", end: "18:00" } },
     { id: "weekday_night", label: "Monday - Friday, 6 PM - 8 AM", description: "Extended nighttime coverage to relieve standard daytime coverage", timeRange: { start: "18:00", end: "08:00" } },
     { id: "saturday_sunday", label: "Saturday - Sunday, 6 AM - 6 PM", description: "Daytime weekend coverage with a dedicated caregiver", timeRange: { start: "06:00", end: "18:00" } },
@@ -185,6 +189,17 @@ export const ScheduleTab: React.FC<ScheduleTabProps> = ({
     setIsRangeSelection(false);
     setDateRange({ from: undefined, to: undefined });
     setShiftDialogOpen(true);
+  };
+
+  const handleLogHours = (shift: CareShift) => {
+    setSelectedShift(shift);
+    setWorkLogFormOpen(true);
+  };
+
+  const handleWorkLogSuccess = () => {
+    setWorkLogFormOpen(false);
+    setSelectedShift(null);
+    onShiftUpdated();
   };
 
   return (
@@ -377,15 +392,31 @@ export const ScheduleTab: React.FC<ScheduleTabProps> = ({
       </CardHeader>
       <CardContent>
         {careTeamMembers.length > 0 ? (
-          <ShiftCalendar
-            selectedWeek={selectedWeek}
-            setSelectedWeek={setSelectedWeek}
-            careShifts={careShifts}
-            careTeamMembers={careTeamMembers}
-            onEditShift={handleEditShift}
-            onDeleteShift={onDeleteShift}
-            onAddShift={openNewShiftDialog}
-          />
+          <>
+            <ShiftCalendar
+              selectedWeek={selectedWeek}
+              setSelectedWeek={setSelectedWeek}
+              careShifts={careShifts}
+              careTeamMembers={careTeamMembers}
+              onEditShift={handleEditShift}
+              onDeleteShift={onDeleteShift}
+              onAddShift={openNewShiftDialog}
+              onLogHours={handleLogHours}
+            />
+
+            <Dialog open={workLogFormOpen} onOpenChange={setWorkLogFormOpen}>
+              <DialogContent className="sm:max-w-xl">
+                {selectedShift && (
+                  <WorkLogForm
+                    carePlanId={carePlanId}
+                    shift={selectedShift}
+                    onSuccess={handleWorkLogSuccess}
+                    onCancel={() => setWorkLogFormOpen(false)}
+                  />
+                )}
+              </DialogContent>
+            </Dialog>
+          </>
         ) : (
           <div className="text-center py-6">
             <Users className="h-12 w-12 mx-auto text-muted-foreground mb-2" />

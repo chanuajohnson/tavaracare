@@ -1,3 +1,4 @@
+
 import { useState, useRef } from "react";
 import { motion } from "framer-motion";
 import { Users, UserCog, Heart, ArrowRight, Check, Vote, HelpCircle } from "lucide-react";
@@ -8,26 +9,31 @@ import { Button } from "@/components/ui/button";
 import { Fab } from "@/components/ui/fab";
 import { MicroChatBubble } from "@/components/chatbot/MicroChatBubble";
 import { ChatbotSystem } from "@/components/chatbot/ChatbotSystem";
+import { EnvironmentInfo } from "@/components/debug/EnvironmentInfo";
+import { SupabaseDebugger } from "@/components/debug/SupabaseDebugger";
 
-const roles = [{
-  id: "family",
-  title: "Family",
-  description: "Coordinate care for your loved ones",
-  icon: Users,
-  color: "bg-primary-100",
-  path: "/dashboard/family",
-  cta: "Find Care Now",
-  features: ["Create and manage care plans", "Find qualified caregivers", "Track medications and appointments", "Coordinate with care team", "Monitor care activities", "Access care logs and reports"]
-}, {
-  id: "professional",
-  title: "Professional",
-  description: "Provide care services and expertise",
-  icon: UserCog,
-  color: "bg-primary-200",
-  path: "/dashboard/professional",
-  cta: "Get Hired as a Skilled Care Professional",
-  features: ["Showcase qualifications", "Find care opportunities", "Manage client relationships", "Track care delivery", "Access training resources", "Professional development"]
-}];
+const roles = [
+  {
+    id: "family",
+    title: "Family",
+    description: "Coordinate care for your loved ones",
+    icon: Users,
+    color: "bg-primary-100",
+    path: "/dashboard/family",
+    cta: "Find Care Now",
+    features: ["Create and manage care plans", "Find qualified caregivers", "Track medications and appointments", "Coordinate with care team", "Monitor care activities", "Access care logs and reports"]
+  },
+  {
+    id: "professional",
+    title: "Professional",
+    description: "Provide care services and expertise",
+    icon: UserCog,
+    color: "bg-primary-200",
+    path: "/dashboard/professional",
+    cta: "Get Hired as a Skilled Care Professional",
+    features: ["Showcase qualifications", "Find care opportunities", "Manage client relationships", "Track care delivery", "Access training resources", "Professional development"]
+  }
+];
 
 const communityRole = {
   id: "community",
@@ -67,22 +73,17 @@ const Index = () => {
     });
   };
 
-  const goToFeatures = () => {
-    navigate('/features');
-  };
+  const isDebug = new URLSearchParams(window.location.search).get('debug') === 'true';
 
   return (
     <div className="min-h-screen w-full bg-gradient-to-b from-white to-primary-100">
       <div className="container px-4 py-12 mx-auto">
-        <motion.div initial={{
-          opacity: 0,
-          y: 20
-        }} animate={{
-          opacity: 1,
-          y: 0
-        }} transition={{
-          duration: 0.5
-        }} className="text-center mb-16">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="text-center mb-16"
+        >
           <span className="px-4 py-1.5 rounded-full text-sm font-medium bg-primary-100 text-primary-800 mb-4 inline-block">
             Care Coordination Platform
           </span>
@@ -95,27 +96,25 @@ const Index = () => {
 
         <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
           {roles.map((role, index) => (
-            <motion.div key={role.id} initial={{
-              opacity: 0,
-              y: 20
-            }} animate={{
-              opacity: 1,
-              y: 0
-            }} transition={{
-              duration: 0.5,
-              delay: index * 0.1
-            }} className={`relative group`}>
+            <motion.div
+              key={role.id}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: index * 0.1 }}
+              className={`relative group`}
+            >
               <div className={`${role.color} rounded-2xl p-6 h-full transition-transform duration-300 group-hover:scale-[1.02]`}>
                 <div className="mb-4">
                   <role.icon className="w-8 h-8 text-primary-600" />
                 </div>
-                <h3 className="text-xl font-semibold mb-2 text-gray-900">
-                  {role.title}
-                </h3>
+                <h3 className="text-xl font-semibold mb-2 text-gray-900">{role.title}</h3>
                 <p className="text-gray-600 mb-6">{role.description}</p>
                 
                 <div className="flex justify-between items-center">
-                  <button onClick={() => handleRoleSelect(role.id)} className="inline-flex items-center text-primary-700 font-medium group/button">
+                  <button
+                    onClick={() => handleRoleSelect(role.id)}
+                    className="inline-flex items-center text-primary-700 font-medium group/button"
+                  >
                     {role.cta}
                     <ArrowRight className="ml-2 w-4 h-4 transition-transform duration-300 group-hover/button:translate-x-1" />
                   </button>
@@ -127,16 +126,17 @@ const Index = () => {
           ))}
         </div>
 
-        <motion.div initial={{
-          opacity: 0
-        }} animate={{
-          opacity: 1
-        }} transition={{
-          duration: 0.5,
-          delay: 0.6
-        }} className="text-center mt-16">
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.5, delay: 0.6 }}
+          className="text-center mt-16"
+        >
           <div className="relative inline-flex items-center">
-            <button onClick={handleGetStarted} className="inline-flex items-center justify-center h-11 px-8 font-medium text-white bg-primary-500 rounded-full transition-colors duration-300 hover:bg-primary-600">
+            <button
+              onClick={handleGetStarted}
+              className="inline-flex items-center justify-center h-11 px-8 font-medium text-white bg-primary-500 rounded-full transition-colors duration-300 hover:bg-primary-600"
+            >
               Get Started
             </button>
             
@@ -147,35 +147,28 @@ const Index = () => {
         </motion.div>
 
         <div ref={comparisonRef} className="mt-32">
-          <motion.div initial={{
-            opacity: 0,
-            y: 20
-          }} whileInView={{
-            opacity: 1,
-            y: 0
-          }} transition={{
-            duration: 0.5
-          }} viewport={{
-            once: true
-          }} className="text-center mb-16">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            viewport={{ once: true }}
+            className="text-center mb-16"
+          >
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">Who is Tavara For?</h2>
-            <p className="text-lg text-gray-600 max-w-2xl mx-auto">Find your perfect match, whether you’re seeking care or providing care</p>
+            <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+              Find your perfect match, whether you're seeking care or providing care
+            </p>
           </motion.div>
 
           <div className="grid md:grid-cols-2 gap-8 max-w-6xl mx-auto">
             {roles.map((role, index) => (
-              <motion.div key={role.id} initial={{
-                opacity: 0,
-                y: 20
-              }} whileInView={{
-                opacity: 1,
-                y: 0
-              }} transition={{
-                duration: 0.5,
-                delay: index * 0.1
-              }} viewport={{
-                once: true
-              }}>
+              <motion.div
+                key={role.id}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: index * 0.1 }}
+                viewport={{ once: true }}
+              >
                 <Card className="h-full">
                   <CardHeader>
                     <div className="mb-4">
@@ -186,10 +179,12 @@ const Index = () => {
                   </CardHeader>
                   <CardContent>
                     <ul className="space-y-4">
-                      {role.features.map((feature, i) => <li key={i} className="flex items-start">
+                      {role.features.map((feature, i) => (
+                        <li key={i} className="flex items-start">
                           <ArrowRight className="w-4 h-4 text-primary-500 mr-2 mt-1 flex-shrink-0" />
                           <span className="text-gray-600">{feature}</span>
-                        </li>)}
+                        </li>
+                      ))}
                     </ul>
                     
                     <div className="flex justify-between items-center mt-6">
@@ -209,37 +204,26 @@ const Index = () => {
         </div>
 
         <div className="mt-32 max-w-5xl mx-auto">
-          <motion.div initial={{
-            opacity: 0,
-            y: 20
-          }} whileInView={{
-            opacity: 1,
-            y: 0
-          }} transition={{
-            duration: 0.5
-          }} viewport={{
-            once: true
-          }} className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-              Community Engagement
-            </h2>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            viewport={{ once: true }}
+            className="text-center mb-16"
+          >
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">Community Engagement</h2>
             <p className="text-lg text-gray-600 max-w-2xl mx-auto">
               Discover how you can support and contribute to care networks in your community.
             </p>
           </motion.div>
 
           <div className="max-w-3xl mx-auto">
-            <motion.div initial={{
-              opacity: 0,
-              y: 20
-            }} whileInView={{
-              opacity: 1,
-              y: 0
-            }} transition={{
-              duration: 0.5
-            }} viewport={{
-              once: true
-            }}>
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+              viewport={{ once: true }}
+            >
               <Card className="h-full">
                 <CardHeader>
                   <div className="mb-4">
@@ -250,10 +234,12 @@ const Index = () => {
                 </CardHeader>
                 <CardContent>
                   <ul className="space-y-4">
-                    {communityRole.features.map((feature, i) => <li key={i} className="flex items-start">
+                    {communityRole.features.map((feature, i) => (
+                      <li key={i} className="flex items-start">
                         <ArrowRight className="w-4 h-4 text-primary-500 mr-2 mt-1 flex-shrink-0" />
                         <span className="text-gray-600">{feature}</span>
-                      </li>)}
+                      </li>
+                    ))}
                   </ul>
                   
                   <div className="flex justify-between items-center mt-6">
@@ -272,21 +258,17 @@ const Index = () => {
         </div>
 
         <div className="mt-32 max-w-5xl mx-auto">
-          <motion.div initial={{
-            opacity: 0,
-            y: 20
-          }} whileInView={{
-            opacity: 1,
-            y: 0
-          }} transition={{
-            duration: 0.5
-          }} viewport={{
-            once: true
-          }} className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-              Shape Our Future Features
-            </h2>
-            <p className="text-lg text-gray-600 max-w-2xl mx-auto mb-8">See our feature roadmap to up-vote the capabilities you'd like to see next and influence our product development priorities.</p>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            viewport={{ once: true }}
+            className="text-center mb-16"
+          >
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">Shape Our Future Features</h2>
+            <p className="text-lg text-gray-600 max-w-2xl mx-auto mb-8">
+              See our feature roadmap to up-vote the capabilities you'd like to see next and influence our product development priorities.
+            </p>
             <Link to="/features">
               <Card className="p-6 text-left bg-white cursor-pointer hover:shadow-lg transition-shadow">
                 <CardHeader>
@@ -296,9 +278,7 @@ const Index = () => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-gray-600 mb-4">
-                    Our feature voting system lets you:
-                  </p>
+                  <p className="text-gray-600 mb-4">Our feature voting system lets you:</p>
                   <ul className="space-y-2">
                     <li className="flex items-center gap-2 text-gray-600">
                       <Check className="w-4 h-4 text-green-500" />
@@ -337,6 +317,19 @@ const Index = () => {
         icon={<HelpCircle className="h-5 w-5" />}
         className="bg-primary-500 hover:bg-primary-600 text-white"
       />
+      
+      {isDebug && (
+        <div className="mt-12 space-y-6 border-t pt-8">
+          <h2 className="text-2xl font-semibold">Debug Tools</h2>
+          <div className="grid md:grid-cols-2 gap-6">
+            <EnvironmentInfo />
+            <SupabaseDebugger />
+          </div>
+          <div className="text-xs text-muted-foreground text-center">
+            These tools are only visible when ?debug=true is added to the URL
+          </div>
+        </div>
+      )}
     </div>
   );
 };

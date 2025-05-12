@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { Container } from "@/components/ui/container";
@@ -10,46 +10,47 @@ import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ArrowLeft } from "lucide-react";
-import { createCarePlan, fetchCarePlanById, updateCarePlan, CarePlan, CarePlanInput } from "@/services/care-plans";
+import { createCarePlan, fetchCarePlanById, updateCarePlan } from "@/services/care-plans";
 import { toast } from "sonner";
+import { CarePlanMetadata } from '@/types/carePlan';
 
 type PlanType = 'scheduled' | 'on-demand' | 'both';
-type WeekdayOption = '8am-4pm' | '6am-6pm' | '6pm-8am' | 'none';
+type WeekdayOption = '8am-4pm' | '8am-6pm' | '6am-6pm' | '6pm-8am' | 'none';
 type WeekendOption = 'yes' | 'no';
 
 const CreateCarePlanPage = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const { planId } = useParams();
+  const { id } = useParams();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isLoading, setIsLoading] = useState(!!planId);
-  const [isEditMode, setIsEditMode] = useState(!!planId);
+  const [isLoading, setIsLoading] = useState(!!id);
+  const [isEditMode] = useState(!!id);
   
-  // Form state
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [planType, setPlanType] = useState<PlanType>("scheduled");
   const [weekdayOption, setWeekdayOption] = useState<WeekdayOption>("8am-4pm");
   const [weekendOption, setWeekendOption] = useState<WeekendOption>("yes");
   
-  // Additional shifts
   const [shifts, setShifts] = useState({
-    weekdayEvening4pmTo6am: false,  // 4PM - 6AM
-    weekdayEvening4pmTo8am: false,  // 4PM - 8AM
-    weekdayEvening6pmTo6am: false,  // 6PM - 6AM
-    weekdayEvening6pmTo8am: false,  // 6PM - 8AM (new)
+    weekdayEvening4pmTo6am: false,
+    weekdayEvening4pmTo8am: false,
+    weekdayEvening6pmTo6am: false,
+    weekdayEvening6pmTo8am: false,
+    weekday8amTo4pm: false,
+    weekday8amTo6pm: false,
   });
 
   useEffect(() => {
-    if (planId && isEditMode) {
+    if (id) {
       loadCarePlan();
     }
-  }, [planId]);
+  }, [id]);
 
   const loadCarePlan = async () => {
     try {
       setIsLoading(true);
-      const plan = await fetchCarePlanById(planId!);
+      const plan = await fetchCarePlanById(id!);
       
       if (plan) {
         setTitle(plan.title);
@@ -66,6 +67,8 @@ const CreateCarePlanPage = () => {
               weekdayEvening4pmTo8am: !!plan.metadata.additionalShifts.weekdayEvening4pmTo8am,
               weekdayEvening6pmTo6am: !!plan.metadata.additionalShifts.weekdayEvening6pmTo6am,
               weekdayEvening6pmTo8am: !!plan.metadata.additionalShifts.weekdayEvening6pmTo8am,
+              weekday8amTo4pm: !!plan.metadata.additionalShifts.weekday8amTo4pm,
+              weekday8amTo6pm: !!plan.metadata.additionalShifts.weekday8amTo6pm,
             });
           }
         }
@@ -104,14 +107,13 @@ const CreateCarePlanPage = () => {
     try {
       setIsSubmitting(true);
       
-      // Prepare plan details based on selections
-      const planDetails: CarePlanInput = {
+      const planDetails = {
         title,
         description,
         familyId: user.id,
-        status: 'active',
+        status: 'active' as const, // Use const assertion to specify literal type
         metadata: {
-          planType: planType,
+          planType,
           weekdayCoverage: weekdayOption,
           weekendCoverage: weekendOption,
           additionalShifts: shifts
@@ -119,8 +121,8 @@ const CreateCarePlanPage = () => {
       };
       
       let result;
-      if (isEditMode && planId) {
-        result = await updateCarePlan(planId, planDetails);
+      if (isEditMode && id) {
+        result = await updateCarePlan(id, planDetails);
         if (result) {
           toast.success("Care plan updated successfully!");
         }
@@ -148,16 +150,16 @@ const CreateCarePlanPage = () => {
         <Button 
           variant="ghost" 
           className="mb-4" 
-          onClick={() => navigate("/family/care-management")}
+          onClick={() => navigate(id ? `/family/care-management/${id}` : "/family/care-management")}
         >
           <ArrowLeft className="mr-2 h-4 w-4" />
-          Back to Care Management
+          {id ? "Back to Care Plan Details" : "Back to Care Management"}
         </Button>
         
         <div className="mb-6">
           <h1 className="text-3xl font-bold">{isEditMode ? "Edit Care Plan" : "Create New Care Plan"}</h1>
           <p className="text-muted-foreground mt-1">
-            {isEditMode ? "Update the care plan for your loved one" : "Define a care plan for your loved one with scheduled or on-demand care"}
+            {isEditMode ? "Update the care plan for your loved one" : "Define a care plan for your loved one"}
           </p>
         </div>
         
@@ -282,10 +284,22 @@ const CreateCarePlanPage = () => {
                         </div>
                         
                         <div className="flex items-start space-x-2">
-                          <RadioGroupItem value="6am-6pm" id="option2" />
+                          <RadioGroupItem value="8am-6pm" id="option2" />
                           <div className="grid gap-1.5 leading-none">
                             <Label htmlFor="option2" className="font-medium">
-                              Option 2: Monday - Friday, 6 AM - 6 PM
+                              Option 2: Monday - Friday, 8 AM - 6 PM
+                            </Label>
+                            <p className="text-sm text-muted-foreground">
+                              Extended daytime coverage with later end time.
+                            </p>
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-start space-x-2">
+                          <RadioGroupItem value="6am-6pm" id="option3" />
+                          <div className="grid gap-1.5 leading-none">
+                            <Label htmlFor="option3" className="font-medium">
+                              Option 3: Monday - Friday, 6 AM - 6 PM
                             </Label>
                             <p className="text-sm text-muted-foreground">
                               Extended daytime coverage for more comprehensive care.
@@ -294,10 +308,10 @@ const CreateCarePlanPage = () => {
                         </div>
                         
                         <div className="flex items-start space-x-2">
-                          <RadioGroupItem value="6pm-8am" id="option3" />
+                          <RadioGroupItem value="6pm-8am" id="option4" />
                           <div className="grid gap-1.5 leading-none">
-                            <Label htmlFor="option3" className="font-medium">
-                              Option 3: Monday - Friday, 6 PM - 8 AM
+                            <Label htmlFor="option4" className="font-medium">
+                              Option 4: Monday - Friday, 6 PM - 8 AM
                             </Label>
                             <p className="text-sm text-muted-foreground">
                               Extended nighttime coverage to relieve standard daytime coverage.
@@ -369,6 +383,42 @@ const CreateCarePlanPage = () => {
                     </CardHeader>
                     <CardContent>
                       <div className="grid gap-4">
+                        {weekdayOption === '8am-6pm' && (
+                          <div className="flex items-start space-x-2">
+                            <Checkbox 
+                              id="weekday-8am-4pm"
+                              checked={shifts.weekday8amTo4pm} 
+                              onCheckedChange={() => handleShiftChange('weekday8amTo4pm')}
+                            />
+                            <div className="grid gap-1.5 leading-none">
+                              <Label htmlFor="weekday-8am-4pm" className="font-medium">
+                                Monday - Friday, 8 AM - 4 PM
+                              </Label>
+                              <p className="text-sm text-muted-foreground">
+                                Standard daytime coverage during business hours.
+                              </p>
+                            </div>
+                          </div>
+                        )}
+
+                        {weekdayOption === '8am-4pm' && (
+                          <div className="flex items-start space-x-2">
+                            <Checkbox 
+                              id="weekday-8am-6pm"
+                              checked={shifts.weekday8amTo6pm} 
+                              onCheckedChange={() => handleShiftChange('weekday8amTo6pm')}
+                            />
+                            <div className="grid gap-1.5 leading-none">
+                              <Label htmlFor="weekday-8am-6pm" className="font-medium">
+                                Monday - Friday, 8 AM - 6 PM
+                              </Label>
+                              <p className="text-sm text-muted-foreground">
+                                Extended daytime coverage with later end time.
+                              </p>
+                            </div>
+                          </div>
+                        )}
+
                         <div className="flex items-start space-x-2">
                           <Checkbox 
                             id="weekday-evening-4pm-6am"
@@ -441,7 +491,7 @@ const CreateCarePlanPage = () => {
               <div className="flex justify-end gap-4">
                 <Button 
                   variant="outline" 
-                  onClick={() => navigate("/family/care-management")}
+                  onClick={() => navigate(id ? `/family/care-management/${id}` : "/family/care-management")}
                   type="button"
                 >
                   Cancel

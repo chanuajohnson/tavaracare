@@ -1,7 +1,6 @@
-
 import React from 'react';
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, ArrowRight, Edit, Plus, Trash2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, Edit, Plus, Trash2, Clock } from "lucide-react";
 import { format, addDays, startOfWeek, isSameDay, addWeeks, subWeeks } from 'date-fns';
 import { CareShift, CareTeamMemberWithProfile } from "@/types/careTypes";
 
@@ -13,6 +12,7 @@ interface ShiftCalendarProps {
   onEditShift: (shift: CareShift) => void;
   onDeleteShift: (shiftId: string) => void;
   onAddShift: (day: Date) => void;
+  onLogHours: (shift: CareShift) => void;
 }
 
 export const ShiftCalendar: React.FC<ShiftCalendarProps> = ({
@@ -23,6 +23,7 @@ export const ShiftCalendar: React.FC<ShiftCalendarProps> = ({
   onEditShift,
   onDeleteShift,
   onAddShift,
+  onLogHours,
 }) => {
   const DAYS_OF_WEEK = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
@@ -113,6 +114,14 @@ export const ShiftCalendar: React.FC<ShiftCalendarProps> = ({
                         {getCaregiverName(shift.caregiverId)}
                       </div>
                       <div className="flex justify-end gap-1 mt-1">
+                        <Button 
+                          size="icon" 
+                          variant="ghost" 
+                          className="h-6 w-6"
+                          onClick={() => onLogHours(shift)}
+                        >
+                          <Clock className="h-3 w-3" />
+                        </Button>
                         <Button 
                           size="icon" 
                           variant="ghost" 

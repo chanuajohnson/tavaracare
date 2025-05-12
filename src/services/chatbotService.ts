@@ -1,46 +1,33 @@
 
-// Centralized export file for chat services
-import {
-  saveChatResponse,
-  updateChatProgress,
-  getChatProgress,
-  getSessionResponses,
-  completeSection,
-  ChatProgress,
-  validateChatInput
-} from "./chat/databaseUtils";
-
-import {
-  generateNextQuestionMessage,
+// Re-export from the chat folder
+export { 
+  getCurrentQuestion,
+  isMultiSelectQuestion,
+  getSectionTitle,
+  getTotalSectionsForRole,
   isEndOfSection,
   isEndOfFlow,
-  getCurrentQuestion,
-  generateDataSummary,
-  getSectionTitle,
-} from "./chat/responseUtils";
+  generateNextQuestionMessage,
+  generateDataSummary 
+} from './chat/responseUtils';
 
-import { getOrCreateSessionId } from "./chat/sessionUtils";
+// Export validation utilities
+export { validateChatInput } from './chat/utils/inputValidation';
 
+// Export multi-selection utilities
 export {
-  // Database operations
-  saveChatResponse,
-  updateChatProgress,
-  getChatProgress,
-  getSessionResponses,
-  completeSection,
-  validateChatInput,
-  
-  // Response generation
-  generateNextQuestionMessage,
-  isEndOfSection,
-  isEndOfFlow,
-  getCurrentQuestion,
-  generateDataSummary,
-  getSectionTitle,
-  
-  // Session management
-  getOrCreateSessionId,
-};
+  setMultiSelectionMode,
+  getMultiSelectionStatus,
+  addToMultiSelection,
+  removeFromMultiSelection,
+  completeMultiSelection,
+  resetMultiSelectionState,
+  isTransitionOption
+} from './chat/utils/multiSelectionManager';
 
-// Type exports
-export type { ChatProgress };
+// Export progress management utilities
+export {
+  updateChatProgress,
+  saveChatResponse,
+  getSessionResponses
+} from './chat/utils/progressManager';
