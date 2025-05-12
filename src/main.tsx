@@ -9,6 +9,8 @@ import { ensureReact } from './utils/reactErrorHandler.ts';
 if (typeof window !== 'undefined') {
   window.React = React;
   window.reactInitialized = true;
+  // Add this new diagnostic log
+  console.log('[main.tsx] React initialization happening at:', new Date().toISOString());
   console.log('React initialized globally:', !!window.React);
 }
 
