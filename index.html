@@ -12,14 +12,15 @@
     <script>
       // Synchronously declare React in the global scope to prevent initialization issues
       window.React = window.React || {};
+      window.reactInitialized = false; // Will be set to true once React is fully loaded
     </script>
   </head>
 
   <body>
     <div id="root"></div>
-    <!-- GPT Engineer script tag must load as a regular script, not a module -->
-    <script src="https://cdn.gpteng.co/gptengineer.js"></script>
-    <!-- Main application loading -->
+    <!-- Main application loading first -->
     <script type="module" src="./src/main.tsx"></script>
+    <!-- GPT Engineer script loads AFTER as a non-module script (as required by GPT Engineer) -->
+    <script src="https://cdn.gpteng.co/gptengineer.js" defer></script>
   </body>
 </html>

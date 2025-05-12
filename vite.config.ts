@@ -1,3 +1,4 @@
+
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
@@ -38,6 +39,7 @@ export default defineConfig(({ mode }) => {
       commonjsOptions: {
         // Handle non-ESM modules more carefully
         transformMixedEsModules: true,
+        include: [/node_modules/, /cdn\.gpteng\.co/],
       },
       rollupOptions: {
         output: {
@@ -92,6 +94,8 @@ export default defineConfig(({ mode }) => {
       // Make environment variables available to client code
       __APP_ENV__: JSON.stringify(process.env.VITE_ENV || mode),
       __IS_PREVIEW__: isPreview,
+      'import.meta.env': JSON.stringify(process.env),
+      'process.env': JSON.stringify(process.env),
     },
     // Enhanced environment variable handling
     envPrefix: envPrefix,

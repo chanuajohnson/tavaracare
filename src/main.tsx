@@ -8,6 +8,7 @@ import { ensureReact } from './utils/reactErrorHandler.ts';
 // Ensure React is available globally
 if (typeof window !== 'undefined') {
   window.React = React;
+  window.reactInitialized = true;
   console.log('React initialized globally:', !!window.React);
 }
 

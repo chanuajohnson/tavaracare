@@ -38,6 +38,7 @@ export function attemptReactRecovery() {
       // Ensure React is available globally
       if (typeof window !== 'undefined') {
         window.React = ReactModule.default || ReactModule;
+        window.reactInitialized = true;
         
         console.log('[ReactErrorHandler] React recovery attempted, reloading application...');
         // Give a short delay before reload to allow logs to be seen
