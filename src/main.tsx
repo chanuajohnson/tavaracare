@@ -3,6 +3,7 @@ import React from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App.tsx';
 import './index.css';
+import { ensureReact } from './utils/reactErrorHandler.ts';
 
 // Ensure React is available globally
 if (typeof window !== 'undefined') {
@@ -11,6 +12,8 @@ if (typeof window !== 'undefined') {
 }
 
 try {
+  ensureReact(); // Check for proper React initialization
+  
   const container = document.getElementById('root');
   if (!container) throw new Error('Root element not found in the DOM');
 
