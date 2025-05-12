@@ -1,3 +1,4 @@
+
 import { getRegistrationFlowByRole } from "@/data/chatRegistrationFlows";
 import { ChatResponseData } from "@/services/chat/types";
 import { phrasings } from "@/utils/chat/phrasings";
@@ -49,21 +50,6 @@ const getRandomQuestionIntro = (): string => {
   lastUsedQuestionIntro = selectedIntro;
   
   return selectedIntro;
-};
-
-/**
- * Add a randomly selected warm, empathetic emoji to a message
- * Uses the Tavara-approved emojis (💙 🤝 💪) and others appropriate for caregiving context
- */
-const addCaringEmoji = (message: string): string => {
-  // Approved emojis from the guardrail document
-  const approvedEmojis = ['💙', '🤝', '💪'];
-  
-  // Only add an emoji about 40% of the time to keep it natural
-  if (Math.random() > 0.4) return message;
-  
-  const randomIndex = Math.floor(Math.random() * approvedEmojis.length);
-  return `${approvedEmojis[randomIndex]} ${message}`;
 };
 
 /**
@@ -162,13 +148,12 @@ export const generateNextQuestionMessage = (
     // Add section title handling - consider if this is the very first question after role selection
     if (isFirstQuestion) {
       // For the first question after role selection, use a more natural format
-      message = addCaringEmoji(message);
+      message = `${message}`;
     }
     else if (questionIndex === 0) {
       // Only add section transition for subsequent sections, not the first one after role selection
       const transitionPhrase = getRandomTransitionPhrase();
       message = `${transitionPhrase} ${section.title.toLowerCase()}.\n\n${message}`;
-      message = addCaringEmoji(message);
     }
     
     return {
