@@ -2,13 +2,24 @@
 import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { CheckCircle2, Circle, List, ArrowRight, Clock } from "lucide-react";
+import { CheckCircle2, Circle, List, ArrowRight, Clock, Calendar, Lock, HelpCircle, Info } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { SubscriptionFeatureLink } from "@/components/subscription/SubscriptionFeatureLink";
 import { supabase } from "@/lib/supabase";
+import { Skeleton } from "@/components/ui/skeleton";
+import { toast } from "sonner";
+
+// Define the types for step status
+type StepStatus = 'completed' | 'in_progress' | 'pending_admin' | 'scheduled' | 'not_started';
+
+// Type for site visit status in care plan metadata
+type SiteVisitStatus = 'not_scheduled' | 'scheduled' | 'completed';
+
+// Type for care plan status in metadata
+type CarePlanStatus = 'draft' | 'under_review' | 'active';
 
 // Type for onboarding progress structure
 interface OnboardingProgress {
@@ -21,81 +32,159 @@ interface OnboardingProgress {
   };
 }
 
+// Type for care plan with metadata
+interface CarePlan {
+  id: string;
+  metadata?: {
+    site_visit_status?: SiteVisitStatus;
+    care_plan_status?: CarePlanStatus;
+    [key: string]: any;
+  };
+}
+
+// Step definition interface
+interface Step {
+  id: number;
+  title: string;
+  description: string;
+  status: StepStatus;
+  link: string;
+  isAdminControlled?: boolean;
+  requiresPreviousStep?: boolean;
+  visible: boolean;
+  actionLabel?: string;
+}
+
 export const FamilyNextStepsPanel = () => {
   const { user } = useAuth();
-  const navigate = useNavigate();
-  const [steps, setSteps] = useState([
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  
+  const [steps, setSteps] = useState<Step[]>([
     { 
       id: 1, 
       title: "Complete your profile", 
       description: "Add your contact information and preferences", 
-      completed: false, 
-      link: "/registration/family" 
+      status: 'not_started', 
+      link: "/profile/family",
+      visible: true,
+      actionLabel: "Edit"
     },
     { 
       id: 2, 
       title: "Complete your loved one's care needs", 
       description: "Specify the types of care needed", 
-      completed: false, 
-      link: "/careneeds/family" 
+      status: 'not_started', 
+      link: "/careneeds/family",
+      visible: true,
+      actionLabel: "Edit"
     },
     { 
       id: 3, 
       title: "Complete your Loved One's Legacy Story", 
       description: "Add details about your care recipient's life story", 
-      completed: false, 
-      link: "/family/story" 
+      status: 'not_started', 
+      link: "/family/story",
+      visible: true,
+      actionLabel: "Edit"
     },
     { 
       id: 4, 
       title: "Create New Care Plan", 
       description: "Create the plan that guides your loved one's care", 
-      completed: false, 
-      link: "/family/care-management" 
+      status: 'not_started', 
+      link: "/family/care-management/create",
+      visible: true,
+      actionLabel: "Edit"
     },
     { 
       id: 5, 
+      title: "Tavara Admin Site Visit", 
+      description: "A Tavara Care coordinator will reach out to schedule a brief home or virtual visit.", 
+      status: 'pending_admin', 
+      link: "",
+      isAdminControlled: true,
+      requiresPreviousStep: true,
+      visible: false,
+      actionLabel: ""
+    },
+    { 
+      id: 6, 
       title: "Assign Care Team", 
-      description: "Assign care team members to implement the care plan", 
-      completed: false, 
-      link: "/family/care-management/team" 
+      description: "Assign available caregivers to shifts in your care plan", 
+      status: 'not_started', 
+      link: "/care-team/assign",
+      requiresPreviousStep: true,
+      visible: false,
+      actionLabel: "Assign"
+    },
+    { 
+      id: 7, 
+      title: "Care Plan Active & In Execution", 
+      description: "This step is activated by Tavara once your care plan is reviewed and ready to launch.", 
+      status: 'pending_admin', 
+      link: "",
+      isAdminControlled: true,
+      requiresPreviousStep: true,
+      visible: false,
+      actionLabel: ""
     }
   ]);
 
   // Get the actual completion status from the database
   useEffect(() => {
     const checkProfileStatus = async () => {
-      if (!user) return;
+      if (!user) {
+        setLoading(false);
+        return;
+      }
 
       try {
-        // Get profile data from Supabase
-        const { data: profileData, error } = await supabase
+        setLoading(true);
+        
+        // Get profile data with onboarding_progress from Supabase
+        const { data: profileData, error: profileError } = await supabase
           .from('profiles')
           .select('onboarding_progress')
           .eq('id', user.id)
           .single();
           
-        if (error) {
-          console.error("Error fetching profile data:", error);
+        if (profileError) {
+          console.error("Error fetching profile data:", profileError);
+          setError("Could not load profile data.");
           return;
         }
         
+        // Get care plans data to check for site visit status and care plan status
+        const { data: carePlans, error: carePlansError } = await supabase
+          .from('care_plans')
+          .select('id, metadata')
+          .eq('family_id', user.id)
+          .order('created_at', { ascending: false });
+          
+        if (carePlansError) {
+          console.error("Error fetching care plans:", carePlansError);
+        }
+        
+        const latestCarePlan = carePlans && carePlans.length > 0 ? carePlans[0] : null;
+        
+        // Update steps status based on the retrieved data
         const updatedSteps = [...steps];
         
-        // Mark first step as completed if user exists
-        updatedSteps[0].completed = true;
+        // Step 1: Profile is completed if the user record exists
+        updatedSteps[0].status = 'completed';
         
         // Get onboarding progress from profile data
         const onboardingProgress = profileData?.onboarding_progress as OnboardingProgress | null;
         
-        // Mark care needs step as completed based on database status
+        // Step 2: Care needs step
         if (onboardingProgress?.completedSteps?.care_needs) {
-          updatedSteps[1].completed = true;
+          updatedSteps[1].status = 'completed';
         }
         
-        // Check if user has created care recipient story
+        // Step 3: Care recipient story
         if (onboardingProgress?.completedSteps?.care_recipient_story) {
-          updatedSteps[2].completed = true;
+          updatedSteps[2].status = 'completed';
         } else {
           // Check if care recipient profile exists as another way to verify the story
           const { data: recipientProfile } = await supabase
@@ -104,42 +193,174 @@ export const FamilyNextStepsPanel = () => {
             .eq('user_id', user.id)
             .maybeSingle();
             
-          updatedSteps[2].completed = !!recipientProfile;
+          if (recipientProfile) {
+            updatedSteps[2].status = 'completed';
+          }
         }
         
-        // Check if there are any care plans created
-        if (onboardingProgress?.completedSteps?.care_plan) {
-          updatedSteps[3].completed = true;
-        } else {
-          const { data: carePlans } = await supabase
-            .from('care_plans')
+        // Step 4: Care plan creation
+        let carePlanCreated = false;
+        if (onboardingProgress?.completedSteps?.care_plan || latestCarePlan) {
+          updatedSteps[3].status = 'completed';
+          carePlanCreated = true;
+        }
+        
+        // Only show site visit step if care plan is created
+        if (carePlanCreated) {
+          updatedSteps[4].visible = true;
+          
+          // Step 5: Tavara Admin Site Visit Status
+          if (latestCarePlan?.metadata?.site_visit_status) {
+            const siteVisitStatus = latestCarePlan.metadata.site_visit_status as SiteVisitStatus;
+            
+            if (siteVisitStatus === 'scheduled') {
+              updatedSteps[4].status = 'scheduled';
+            } else if (siteVisitStatus === 'completed') {
+              updatedSteps[4].status = 'completed';
+            } else {
+              updatedSteps[4].status = 'pending_admin';
+            }
+          }
+          
+          // Only show care team assignment if care plan is created
+          updatedSteps[5].visible = true;
+          
+          // Step 6: Care team assignment
+          const { data: careTeamMembers } = await supabase
+            .from('care_team_members')
             .select('id')
             .eq('family_id', user.id)
             .limit(1);
             
-          updatedSteps[3].completed = carePlans && carePlans.length > 0;
-        }
-        
-        // Check if care team members exist
-        const { data: careTeamMembers } = await supabase
-          .from('care_team_members')
-          .select('id')
-          .eq('family_id', user.id)
-          .limit(1);
+          if (careTeamMembers && careTeamMembers.length > 0) {
+            updatedSteps[5].status = 'completed';
+          } else if (updatedSteps[4].status === 'completed') {
+            // Mark as in_progress if site visit is completed
+            updatedSteps[5].status = 'in_progress';
+          }
           
-        updatedSteps[4].completed = careTeamMembers && careTeamMembers.length > 0;
+          // Only show care plan activation if team is assigned or site visit is completed
+          if (updatedSteps[5].status === 'completed' || updatedSteps[4].status === 'completed') {
+            updatedSteps[6].visible = true;
+            
+            // Step 7: Care plan active status
+            if (latestCarePlan?.metadata?.care_plan_status) {
+              const carePlanStatus = latestCarePlan.metadata.care_plan_status as CarePlanStatus;
+              
+              if (carePlanStatus === 'active') {
+                updatedSteps[6].status = 'completed';
+              } else if (carePlanStatus === 'under_review') {
+                updatedSteps[6].status = 'in_progress';
+              } else {
+                updatedSteps[6].status = 'pending_admin';
+              }
+            }
+          }
+        }
         
         setSteps(updatedSteps);
       } catch (err) {
         console.error("Error checking profile status:", err);
+        setError("Failed to load onboarding progress. Please refresh the page.");
+      } finally {
+        setLoading(false);
       }
     };
     
     checkProfileStatus();
-  }, [user]);
+  }, [user, steps]);
 
-  const completedSteps = steps.filter(step => step.completed).length;
-  const progress = Math.round((completedSteps / steps.length) * 100);
+  // Calculate progress based on visible steps only
+  const visibleSteps = steps.filter(step => step.visible);
+  const completedSteps = visibleSteps.filter(step => step.status === 'completed').length;
+  const progress = visibleSteps.length > 0 ? Math.round((completedSteps / visibleSteps.length) * 100) : 0;
+
+  // Render status icon based on step status
+  const renderStatusIcon = (status: StepStatus) => {
+    switch (status) {
+      case 'completed':
+        return <CheckCircle2 className="h-5 w-5 text-green-500" />;
+      case 'in_progress':
+        return <Clock className="h-5 w-5 text-amber-500" />;
+      case 'scheduled':
+        return <Calendar className="h-5 w-5 text-blue-500" />;
+      case 'pending_admin':
+        return <Lock className="h-5 w-5 text-purple-500" />;
+      default:
+        return <Circle className="h-5 w-5 text-gray-300" />;
+    }
+  };
+  
+  // Get tooltip text for status type
+  const getStatusTooltip = (status: StepStatus) => {
+    switch (status) {
+      case 'completed':
+        return "Completed";
+      case 'in_progress':
+        return "In Progress";
+      case 'scheduled':
+        return "Scheduled";
+      case 'pending_admin':
+        return "Awaiting Tavara Admin";
+      default:
+        return "Not Started";
+    }
+  };
+
+  if (loading) {
+    return (
+      <Card className="border-l-4 border-l-primary">
+        <CardHeader className="pb-2">
+          <CardTitle className="flex items-center gap-2 text-xl">
+            <List className="h-5 w-5 text-primary" />
+            Next Steps
+          </CardTitle>
+          <div className="flex justify-between items-center">
+            <Skeleton className="h-4 w-40" />
+            <div className="flex items-center space-x-1">
+              <Skeleton className="h-4 w-12" />
+              <Skeleton className="h-2 w-24 rounded-full" />
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {[1, 2, 3, 4, 5].map((index) => (
+            <div key={index} className="flex items-start gap-3 mb-4">
+              <Skeleton className="h-5 w-5 rounded-full" />
+              <div className="flex-1">
+                <Skeleton className="h-5 w-3/4 mb-1" />
+                <Skeleton className="h-4 w-full" />
+              </div>
+            </div>
+          ))}
+          <Skeleton className="h-10 w-full mt-4" />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (error) {
+    return (
+      <Card className="border-l-4 border-l-red-500">
+        <CardHeader className="pb-2">
+          <CardTitle className="flex items-center gap-2 text-xl">
+            <List className="h-5 w-5 text-red-500" />
+            Next Steps
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="text-center">
+          <HelpCircle className="h-12 w-12 text-red-500 mx-auto mb-2" />
+          <p className="text-red-500 mb-2">{error}</p>
+          <Button 
+            variant="outline" 
+            onClick={() => window.location.reload()}
+          >
+            Refresh Page
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <motion.div
@@ -169,34 +390,74 @@ export const FamilyNextStepsPanel = () => {
         </CardHeader>
         <CardContent>
           <ul className="space-y-3">
-            {steps.map((step) => (
+            {steps.filter(step => step.visible).map((step) => (
               <li key={step.id} className="flex items-start gap-3">
-                <div className="mt-0.5">
-                  {step.completed ? (
-                    <CheckCircle2 className="h-5 w-5 text-green-500" />
-                  ) : (
-                    <Circle className="h-5 w-5 text-gray-300" />
-                  )}
-                </div>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div className="mt-0.5">
+                        {renderStatusIcon(step.status)}
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>{getStatusTooltip(step.status)}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
                 <div className="flex-1">
                   <div className="flex justify-between items-start">
-                    <p className={`font-medium ${step.completed ? 'text-gray-500 line-through' : 'text-gray-800'}`}>
+                    <p className={`font-medium ${step.status === 'completed' ? 'text-gray-500 line-through' : 'text-gray-800'}`}>
                       {step.title}
+                      {step.isAdminControlled && (
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Info className="inline-block ml-1 h-4 w-4 text-blue-500 cursor-help" />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p className="max-w-xs">This step requires action from a Tavara administrator.</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      )}
                     </p>
-                    {!step.completed && (
+                    {step.status !== 'completed' && (
                       <div className="flex items-center text-xs text-gray-500 gap-1">
-                        <Clock className="h-3 w-3" />
-                        <span>Pending</span>
+                        {step.status === 'scheduled' && (
+                          <>
+                            <Calendar className="h-3 w-3 text-blue-500" />
+                            <span>Scheduled</span>
+                          </>
+                        )}
+                        {step.status === 'in_progress' && (
+                          <>
+                            <Clock className="h-3 w-3 text-amber-500" />
+                            <span>In Progress</span>
+                          </>
+                        )}
+                        {step.status === 'pending_admin' && (
+                          <>
+                            <Lock className="h-3 w-3 text-purple-500" />
+                            <span>Admin Action Required</span>
+                          </>
+                        )}
+                        {step.status === 'not_started' && (
+                          <>
+                            <Clock className="h-3 w-3" />
+                            <span>Pending</span>
+                          </>
+                        )}
                       </div>
                     )}
                   </div>
                   <p className="text-sm text-gray-500">{step.description}</p>
                 </div>
-                {/* Show Edit button for completed steps 1-5, and Complete button for incomplete steps */}
-                {(!step.completed || step.id === 1 || step.id === 2 || step.id === 3 || step.id === 4 || step.id === 5) && (
+
+                {/* Only show action button for editable steps */}
+                {step.link && step.actionLabel && (step.status === 'completed' || !step.isAdminControlled) && (
                   <Link to={step.link}>
                     <Button variant="ghost" size="sm" className="p-0 h-6 text-primary hover:text-primary-600">
-                      {(step.id === 1 || step.id === 2 || step.id === 3 || step.id === 4 || step.id === 5) && step.completed ? "Edit" : "Complete"}
+                      {step.actionLabel}
                       <ArrowRight className="ml-1 h-3 w-3" />
                     </Button>
                   </Link>

@@ -1,544 +1,705 @@
-import { useState, useEffect } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
+
+import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import * as z from "zod";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { supabase } from "@/lib/supabase";
-import { FamilyCareNeeds } from "@/types/carePlan";
-import { applyPrefillDataToForm, getPrefillDataFromUrl } from "@/utils/chat/prefillReader";
-import { saveFamilyCareNeeds, fetchFamilyCareNeeds, generateDraftCarePlanFromCareNeeds } from "@/services/familyCareNeedsService";
-import { createCarePlan, updateCarePlan, fetchCarePlanById } from "@/services/care-plans/carePlanService";
-import { useTracking } from "@/hooks/useTracking";
-import { parseScheduleString, determineWeekdayCoverage, determineWeekendCoverage, determineWeekendScheduleType } from "@/utils/scheduleUtils";
-
-// Components
+import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
-import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Separator } from "@/components/ui/separator";
-import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-
-// Form sections
-import DailyLivingSection from "@/components/careneeds/DailyLivingSection";
-import CognitiveMemorySection from "@/components/careneeds/CognitiveMemorySection";
-import MedicalConditionsSection from "@/components/careneeds/MedicalConditionsSection";
-import HousekeepingSection from "@/components/careneeds/HousekeepingSection";
-import EmergencySection from "@/components/careneeds/EmergencySection";
-import ScheduleInformationCard from "@/components/careneeds/ScheduleInformationCard";
-
-// Define valid care schedule types for type safety
-type CareScheduleType = "8am-4pm" | "8am-6pm" | "6am-6pm" | "6pm-8am" | "none";
-type WeekendScheduleType = "8am-6pm" | "6am-6pm" | "none";
-
-const FormSchema = z.object({
-  // Daily Living Assistance
-  assistanceBathing: z.boolean().optional(),
-  assistanceDressing: z.boolean().optional(),
-  assistanceToileting: z.boolean().optional(),
-  assistanceOralCare: z.boolean().optional(),
-  assistanceFeeding: z.boolean().optional(),
-  assistanceMobility: z.boolean().optional(),
-  assistanceMedication: z.boolean().optional(),
-  assistanceCompanionship: z.boolean().optional(),
-  assistanceNaps: z.boolean().optional(),
-  
-  // Cognitive & Memory Support
-  dementiaRedirection: z.boolean().optional(),
-  memoryReminders: z.boolean().optional(),
-  gentleEngagement: z.boolean().optional(),
-  wanderingPrevention: z.boolean().optional(),
-  cognitiveNotes: z.string().optional(),
-  
-  // Medical & Special Conditions
-  diagnosedConditions: z.string().optional(),
-  equipmentUse: z.boolean().optional(),
-  fallMonitoring: z.boolean().optional(),
-  vitalsCheck: z.boolean().optional(),
-  
-  // Housekeeping & Transportation
-  tidyRoom: z.boolean().optional(),
-  laundrySupport: z.boolean().optional(),
-  groceryRuns: z.boolean().optional(),
-  mealPrep: z.boolean().optional(),
-  escortToAppointments: z.boolean().optional(),
-  freshAirWalks: z.boolean().optional(),
-  
-  // Emergency & Communication
-  emergencyContactName: z.string().optional(),
-  emergencyContactRelationship: z.string().optional(),
-  emergencyContactPhone: z.string().optional(),
-  communicationMethod: z.string().optional(),
-  dailyReportRequired: z.boolean().optional(),
-  additionalNotes: z.string().optional(),
-});
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const FamilyCareNeedsPage = () => {
   const { user } = useAuth();
-  const [isLoading, setIsLoading] = useState(false);
-  const [profileData, setProfileData] = useState<any>(null);
-  const [careSchedule, setCareSchedule] = useState<CareScheduleType | null>(null);
-  const [weekendCoverage, setWeekendCoverage] = useState<WeekendScheduleType>("none");
   const navigate = useNavigate();
-  const { trackEngagement } = useTracking();
-  const [isEditMode, setIsEditMode] = useState(false);
-  const [carePlanId, setCarePlanId] = useState<string | null>(null);
-  const [searchParams] = useSearchParams();
-  
-  const form = useForm<z.infer<typeof FormSchema>>({
-    resolver: zodResolver(FormSchema),
-    defaultValues: {
-      assistanceBathing: false,
-      assistanceDressing: false,
-      assistanceToileting: false,
-      assistanceOralCare: false,
-      assistanceFeeding: false,
-      assistanceMobility: false,
-      assistanceMedication: false,
-      assistanceCompanionship: false,
-      assistanceNaps: false,
-      dementiaRedirection: false,
-      memoryReminders: false,
-      gentleEngagement: false,
-      wanderingPrevention: false,
-      equipmentUse: false,
-      fallMonitoring: false,
-      vitalsCheck: false,
-      tidyRoom: false,
-      laundrySupport: false,
-      groceryRuns: false,
-      mealPrep: false,
-      escortToAppointments: false,
-      freshAirWalks: false,
-      dailyReportRequired: false,
-    }
-  });
-  
-  // Check for edit mode based on URL parameters
-  useEffect(() => {
-    const isEdit = searchParams.get('edit') === 'true';
-    const planId = searchParams.get('careplan');
-    
-    if (isEdit && planId) {
-      setIsEditMode(true);
-      setCarePlanId(planId);
-      console.log("Edit mode activated for care plan:", planId);
-    } else {
-      // Also check local storage as a fallback
-      const storedPlanId = localStorage.getItem("edit_care_plan_id");
-      if (storedPlanId) {
-        setIsEditMode(true);
-        setCarePlanId(storedPlanId);
-        console.log("Edit mode activated from local storage for care plan:", storedPlanId);
-      }
-    }
-  }, [searchParams]);
-  
-  // Load existing care needs data when in edit mode
-  useEffect(() => {
-    const loadExistingCareNeeds = async () => {
-      if (!user?.id || !isEditMode) return;
-      
-      setIsLoading(true);
-      try {
-        const careNeeds = await fetchFamilyCareNeeds(user.id);
-        console.log("Loaded existing care needs:", careNeeds);
-        
-        if (careNeeds) {
-          // Set weekday and weekend coverage settings
-          setCareSchedule(careNeeds.weekdayCoverage as CareScheduleType || null);
-          setWeekendCoverage(careNeeds.weekendScheduleType as WeekendScheduleType || "none");
-          
-          // Populate form fields
-          Object.entries(careNeeds).forEach(([key, value]) => {
-            if (form.getValues(key as any) !== undefined) {
-              form.setValue(key as any, value);
-            }
-          });
-          
-          toast.success("Loaded existing care needs data for editing");
-        }
-      } catch (error) {
-        console.error("Error loading existing care needs:", error);
-        toast.error("Could not load existing care needs data");
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    
-    loadExistingCareNeeds();
-  }, [user?.id, isEditMode, form]);
-  
-  // Load data from previous registration
-  useEffect(() => {
-    const loadProfileData = async () => {
-      if (!user?.id) return;
-      
-      try {
-        // First check if we have prefill data from URL
-        const prefillData = getPrefillDataFromUrl();
-        
-        // If prefill data exists, use it to populate the form
-        if (prefillData) {
-          applyPrefillDataToForm((field, value) => {
-            form.setValue(field as any, value);
-          });
-        }
-        
-        // Get profile data from Supabase
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', user.id)
-          .single();
-          
-        if (error) {
-          throw error;
-        }
-        
-        if (data) {
-          console.log("Retrieved profile data:", data);
-          setProfileData(data);
-          
-          // Set form values from profile
-          if (data.full_name) form.setValue('emergencyContactName', data.emergency_contact || '');
-          if (data.care_recipient_name) {
-            const careRecipientName = data.care_recipient_name;
-            form.setValue('diagnosedConditions', data.special_needs ? data.special_needs.join(', ') : '');
-          }
-          
-          // Extract schedule data from profile using utility functions
-          console.log("Care schedule from profile:", data.care_schedule);
-          
-          if (data.care_schedule) {
-            // Parse the schedule data to ensure consistent format
-            let scheduleValues = [];
-            
-            // Handle various formats that might be stored in the database
-            if (typeof data.care_schedule === 'string') {
-              // If it's a comma-separated string
-              scheduleValues = parseScheduleString(data.care_schedule);
-            } else if (Array.isArray(data.care_schedule)) {
-              // If it's already an array
-              scheduleValues = data.care_schedule;
-            }
-            
-            console.log("Parsed schedule values:", scheduleValues);
-            
-            // Determine weekday coverage
-            const weekdayCoverageValue = determineWeekdayCoverage(scheduleValues);
-            console.log("Determined weekday coverage:", weekdayCoverageValue);
-            setCareSchedule(weekdayCoverageValue);
-            
-            // Determine weekend coverage
-            const hasWeekends = determineWeekendCoverage(scheduleValues);
-            console.log("Has weekend coverage:", hasWeekends);
-            
-            // Determine weekend schedule type if weekend coverage is enabled
-            if (hasWeekends === 'yes') {
-              const weekendType = determineWeekendScheduleType(scheduleValues);
-              console.log("Weekend schedule type:", weekendType);
-              setWeekendCoverage(weekendType);
-            } else {
-              setWeekendCoverage('none');
-            }
-          }
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [currentTab, setCurrentTab] = useState("daily-care");
+  const breadcrumbItems = [
+    { label: "Dashboard", path: "/dashboard/family" },
+    { label: "Care Needs", path: "/careneeds/family" }
+  ];
 
-          // If we're in edit mode, see if we can get the schedule information from care plan directly
-          if (isEditMode && carePlanId) {
-            try {
-              const carePlan = await fetchCarePlanById(carePlanId);
-              if (carePlan && carePlan.metadata) {
-                console.log("Retrieved care plan metadata for schedule:", carePlan.metadata);
-                
-                // Set the schedule data from care plan metadata (higher priority than profile)
-                if (carePlan.metadata.weekdayCoverage) {
-                  setCareSchedule(carePlan.metadata.weekdayCoverage as any);
-                }
-                
-                if (carePlan.metadata.weekendCoverage === 'yes' && carePlan.metadata.weekendScheduleType) {
-                  setWeekendCoverage(carePlan.metadata.weekendScheduleType as any);
-                } else {
-                  setWeekendCoverage('none');
-                }
-              }
-            } catch (err) {
-              console.error("Error fetching care plan schedule data:", err);
-            }
-          }
-        }
-      } catch (error) {
-        console.error("Error loading profile data:", error);
-        toast.error("Could not load profile data");
-      }
-    };
+  // Form state
+  const [formData, setFormData] = useState({
+    // Daily Care
+    assistance_bathing: false,
+    assistance_dressing: false,
+    assistance_toileting: false,
+    assistance_mobility: false,
+    assistance_feeding: false,
+    assistance_medication: false,
+    assistance_oral_care: false,
+    assistance_naps: false,
     
-    loadProfileData();
-  }, [user?.id, form, isEditMode, carePlanId]);
-  
-  const onSubmit = async (formData: z.infer<typeof FormSchema>) => {
-    if (!user) {
-      toast.error("You must be logged in to submit this form");
-      return;
-    }
+    // Household Tasks
+    meal_prep: false,
+    tidy_room: false,
+    grocery_runs: false,
+    laundry_support: false,
     
-    setIsLoading(true);
-    console.log("Form submission started with data:", formData);
-    console.log("Schedule data being submitted:", { 
-      weekdayCoverage: careSchedule || "none", 
-      weekendCoverage: weekendCoverage === "none" ? 'no' : 'yes',
-      weekendScheduleType: weekendCoverage 
-    });
+    // Personal Connection
+    assistance_companionship: false,
+    daily_report_required: false,
+    gentle_engagement: false,
+    fresh_air_walks: false,
+    escort_to_appointments: false,
     
-    try {
-      // Save the care needs data
-      const careNeedsData: FamilyCareNeeds = {
-        ...formData,
-        profileId: user.id,
-        weekdayCoverage: careSchedule || "none",
-        weekendCoverage: weekendCoverage === "none" ? 'no' : 'yes',
-        weekendScheduleType: weekendCoverage,
-        planType: careSchedule ? 'scheduled' : 'on-demand'
-      };
-      
-      console.log("Sending care needs data to backend:", careNeedsData);
-      
-      const savedCareNeeds = await saveFamilyCareNeeds(careNeedsData);
-      
-      if (!savedCareNeeds) {
-        throw new Error("Failed to save care needs");
-      }
-      
-      console.log("Saved care needs:", savedCareNeeds);
-      
-      // Update the user's profile with the care schedule information for consistency
-      try {
-        // Convert the schedule information to the array format used in profiles
-        const scheduleArray: string[] = [];
-        
-        // Add weekday coverage to the schedule array
-        if (careSchedule && careSchedule !== 'none') {
-          scheduleArray.push(careSchedule);
-        }
-        
-        // Add weekend coverage if enabled
-        if (weekendCoverage && weekendCoverage !== 'none') {
-          scheduleArray.push(`weekend_${weekendCoverage.replace('-', '_')}`);
-        }
-        
-        console.log("Updating profile with schedule array:", scheduleArray);
-        
-        // Convert array to string for database compatibility
-        const scheduleString = scheduleArray.join(',');
-        
-        await supabase
-          .from('profiles')
-          .update({
-            care_schedule: scheduleString
-          })
-          .eq('id', user.id);
-          
-        console.log("Updated profile care_schedule");
-      } catch (profileError) {
-        console.error("Could not update profile schedule data:", profileError);
-        // Non-blocking error, continue with the care plan updates
-      }
-      
-      // Check if we're in edit mode
-      if (isEditMode && carePlanId) {
-        // Get the existing care plan
-        const existingPlan = await fetchCarePlanById(carePlanId);
-        if (!existingPlan) {
-          throw new Error("Could not find the existing care plan");
-        }
-        
-        // Update plan with the new metadata while preserving other fields
-        await updateCarePlan(carePlanId, {
-          ...existingPlan,
-          metadata: {
-            ...existingPlan.metadata,
-            planType: careSchedule && careSchedule !== 'none' ? 'scheduled' : 'on-demand',
-            weekdayCoverage: careSchedule || 'none',
-            weekendCoverage: weekendCoverage !== "none" ? 'yes' : 'no',
-            weekendScheduleType: weekendCoverage,
-            customShifts: []
-          }
-        });
-        
-        console.log("Updated care plan metadata for care plan:", carePlanId);
-        
-        // Clear the stored edit ID
-        localStorage.removeItem("edit_care_plan_id");
-        
-        toast.success("Care needs and plan updated successfully!");
-        
-        // Track care needs update
-        await trackEngagement('care_needs_updated', {
-          care_plan_id: carePlanId
-        });
-        
-        // Navigate back to care plan detail
-        navigate(`/family/care-management/${carePlanId}`);
-      } else {
-        // Generate draft care plan (original create flow)
-        const draftPlan = generateDraftCarePlanFromCareNeeds(
-          savedCareNeeds,
-          {
-            careRecipientName: profileData?.care_recipient_name,
-            relationship: profileData?.relationship,
-            careTypes: profileData?.care_types
-          }
-        );
-        
-        console.log("Draft care plan generated:", draftPlan);
-        
-        // Create care plan in database
-        const createdPlan = await createCarePlan({
-          title: draftPlan.title,
-          description: draftPlan.description,
-          familyId: user.id,
-          status: 'active',
-          metadata: {
-            planType: careSchedule ? 'scheduled' : 'on-demand',
-            weekdayCoverage: careSchedule || 'none',
-            weekendCoverage: weekendCoverage !== "none" ? 'yes' : 'no',
-            weekendScheduleType: weekendCoverage,
-            customShifts: []
-          }
-        });
-        
-        if (createdPlan) {
-          console.log("Care plan created successfully with ID:", createdPlan.id);
-          toast.success("Care plan created successfully!");
-          
-          // Track care needs completion
-          await trackEngagement('care_needs_completed', {
-            care_plan_id: createdPlan.id
-          });
-          
-          // Navigate directly to the care plan detail page
-          navigate(`/family/care-management/${createdPlan.id}`);
-        } else {
-          console.error("Plan creation returned null or undefined");
-          toast.error("Failed to create care plan");
-          navigate('/family/care-management');
-        }
-      }
-    } catch (error: any) {
-      console.error("Error on form submission:", error);
-      toast.error(error.message || "There was a problem submitting the form");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-  
-  const handleLaterClick = async () => {
-    if (!user?.id) return;
+    // Special Care
+    fall_monitoring: false,
+    vitals_check: false,
+    memory_reminders: false,
+    dementia_redirection: false,
+    wandering_prevention: false,
+    equipment_use: false,
     
-    try {
-      // If in edit mode, just go back to the care plan
-      if (isEditMode && carePlanId) {
-        localStorage.removeItem("edit_care_plan_id");
-        navigate(`/family/care-management/${carePlanId}`);
+    // Care Schedule
+    plan_type: "scheduled",
+    weekday_coverage: "none",
+    weekend_coverage: "no",
+    weekend_schedule_type: "none",
+    preferred_days: [],
+    preferred_time_start: "",
+    preferred_time_end: "",
+    
+    // Additional Details
+    diagnosed_conditions: "",
+    cognitive_notes: "",
+    communication_method: "",
+    emergency_contact_name: "",
+    emergency_contact_relationship: "",
+    emergency_contact_phone: "",
+    additional_notes: "",
+  });
+
+  // Load existing care needs data
+  useEffect(() => {
+    const fetchCareNeeds = async () => {
+      if (!user) {
+        setLoading(false);
         return;
       }
       
-      // Original behavior for non-edit mode
-      await trackEngagement('care_needs_deferred', {});
+      try {
+        const { data, error } = await supabase
+          .from('care_needs_family')
+          .select('*')
+          .eq('profile_id', user.id)
+          .maybeSingle();
+          
+        if (error) {
+          console.error("Error fetching care needs:", error);
+        } else if (data) {
+          // Populate form with existing data
+          setFormData(prevData => ({
+            ...prevData,
+            ...Object.fromEntries(
+              Object.entries(data).filter(([key]) => key in prevData)
+            )
+          }));
+        }
+      } catch (err) {
+        console.error("Failed to fetch care needs:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchCareNeeds();
+  }, [user]);
+
+  const handleCheckboxChange = (field) => {
+    setFormData({
+      ...formData,
+      [field]: !formData[field]
+    });
+  };
+
+  const handleInputChange = (field, value) => {
+    setFormData({
+      ...formData,
+      [field]: value
+    });
+  };
+  
+  const handleSave = async () => {
+    if (!user) {
+      toast.error("You must be logged in to save care needs");
+      return;
+    }
+    
+    setSaving(true);
+    
+    try {
+      // First try to update existing record
+      const { data, error } = await supabase
+        .from('care_needs_family')
+        .upsert({
+          profile_id: user.id,
+          ...formData
+        })
+        .select()
+        .single();
+      
+      if (error) {
+        throw error;
+      }
+      
+      // Update onboarding progress to mark care needs as completed
+      await supabase
+        .from('profiles')
+        .update({
+          onboarding_progress: {
+            currentStep: 'care_plan',
+            completedSteps: {
+              care_needs: true
+            }
+          }
+        })
+        .eq('id', user.id);
+      
+      toast.success("Care needs saved successfully!");
       navigate('/dashboard/family');
     } catch (error) {
-      console.error("Error handling 'Later' click:", error);
+      console.error("Error saving care needs:", error);
+      toast.error("Failed to save care needs");
+    } finally {
+      setSaving(false);
     }
   };
 
   return (
-    <div className="container mx-auto p-4 md:p-8 max-w-4xl">
-      <motion.div 
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="space-y-6"
-      >
-        {/* Title Card */}
-        <Card className="border-l-4 border-l-primary bg-gradient-to-r from-blue-50 to-indigo-50">
-          <CardHeader>
-            <CardTitle className="text-xl">
-              {isEditMode ? "Edit Care Needs" : "Complete Your Care Needs Profile"}
-            </CardTitle>
-            <CardDescription>
-              {isEditMode 
-                ? "Update the care needs for this care plan" 
-                : "Tell us about specific care needs to help match you with the right caregivers"
-              }
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-gray-600 mb-4">
-              Your care needs profile helps us understand your requirements and create a personalized care plan.
-              This information will be used to match you with caregivers who have the right skills and experience.
-            </p>
-          </CardContent>
-        </Card>
+    <div className="min-h-screen bg-background">
+      <div className="container px-4 py-8">
+        <DashboardHeader breadcrumbItems={breadcrumbItems} />
         
-        <div className="text-center space-y-2">
-          <h1 className="text-3xl font-bold">Family Care Needs</h1>
-          <p className="text-gray-500">
-            {isEditMode 
-              ? "Update the specific care needs for your personalized care plan" 
-              : "Tell us about specific care needs to help us create your personalized care plan"
-            }
-          </p>
-          <Separator className="my-6" />
-        </div>
-
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-            <DailyLivingSection form={form} />
-            <CognitiveMemorySection form={form} />
-            <MedicalConditionsSection form={form} />
-            <HousekeepingSection form={form} />
-            <EmergencySection form={form} />
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="space-y-6"
+        >
+          <div>
+            <h1 className="text-3xl font-semibold mb-2">Care Needs Assessment</h1>
+            <p className="text-gray-500">
+              Help us understand the specific care needs for your loved one.
+            </p>
+          </div>
+          
+          <Tabs defaultValue="daily-care" value={currentTab} onValueChange={setCurrentTab}>
+            <TabsList className="grid grid-cols-2 md:grid-cols-5 max-w-full mb-4">
+              <TabsTrigger value="daily-care">Daily Care</TabsTrigger>
+              <TabsTrigger value="household">Household</TabsTrigger>
+              <TabsTrigger value="personal">Personal</TabsTrigger>
+              <TabsTrigger value="special">Special Care</TabsTrigger>
+              <TabsTrigger value="schedule">Schedule</TabsTrigger>
+            </TabsList>
             
-            {/* Display schedule information from registration */}
-            <ScheduleInformationCard careSchedule={careSchedule || undefined} weekendCoverage={weekendCoverage} />
-            
-            <div className="flex flex-col gap-4 sm:flex-row sm:justify-between">
-              <Button 
-                type="button" 
-                variant="outline" 
-                onClick={handleLaterClick}
-              >
-                {isEditMode ? "Cancel" : "Later"}
-              </Button>
-              <Button 
-                type="submit" 
-                disabled={isLoading}
-                className="bg-primary hover:bg-primary/90"
-              >
-                {isLoading 
-                  ? (isEditMode ? "Updating Care Needs..." : "Creating Care Plan...") 
-                  : (isEditMode ? "Update Care Needs" : "Create Care Plan")
-                }
-              </Button>
-            </div>
-          </form>
-        </Form>
-      </motion.div>
+            <Card>
+              <TabsContent value="daily-care" className="mt-0">
+                <CardHeader>
+                  <CardTitle>Daily Care Activities</CardTitle>
+                  <CardDescription>
+                    Select the daily care activities that your loved one requires assistance with.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="flex items-center space-x-2">
+                      <Checkbox 
+                        id="assistance_bathing" 
+                        checked={formData.assistance_bathing}
+                        onCheckedChange={() => handleCheckboxChange('assistance_bathing')}
+                      />
+                      <Label htmlFor="assistance_bathing">Bathing Assistance</Label>
+                    </div>
+                    
+                    <div className="flex items-center space-x-2">
+                      <Checkbox 
+                        id="assistance_dressing" 
+                        checked={formData.assistance_dressing}
+                        onCheckedChange={() => handleCheckboxChange('assistance_dressing')}
+                      />
+                      <Label htmlFor="assistance_dressing">Dressing Assistance</Label>
+                    </div>
+                    
+                    <div className="flex items-center space-x-2">
+                      <Checkbox 
+                        id="assistance_toileting" 
+                        checked={formData.assistance_toileting}
+                        onCheckedChange={() => handleCheckboxChange('assistance_toileting')}
+                      />
+                      <Label htmlFor="assistance_toileting">Toileting Assistance</Label>
+                    </div>
+                    
+                    <div className="flex items-center space-x-2">
+                      <Checkbox 
+                        id="assistance_mobility" 
+                        checked={formData.assistance_mobility}
+                        onCheckedChange={() => handleCheckboxChange('assistance_mobility')}
+                      />
+                      <Label htmlFor="assistance_mobility">Mobility Assistance</Label>
+                    </div>
+                    
+                    <div className="flex items-center space-x-2">
+                      <Checkbox 
+                        id="assistance_feeding" 
+                        checked={formData.assistance_feeding}
+                        onCheckedChange={() => handleCheckboxChange('assistance_feeding')}
+                      />
+                      <Label htmlFor="assistance_feeding">Feeding Assistance</Label>
+                    </div>
+                    
+                    <div className="flex items-center space-x-2">
+                      <Checkbox 
+                        id="assistance_medication" 
+                        checked={formData.assistance_medication}
+                        onCheckedChange={() => handleCheckboxChange('assistance_medication')}
+                      />
+                      <Label htmlFor="assistance_medication">Medication Assistance</Label>
+                    </div>
+                    
+                    <div className="flex items-center space-x-2">
+                      <Checkbox 
+                        id="assistance_oral_care" 
+                        checked={formData.assistance_oral_care}
+                        onCheckedChange={() => handleCheckboxChange('assistance_oral_care')}
+                      />
+                      <Label htmlFor="assistance_oral_care">Oral Care</Label>
+                    </div>
+                    
+                    <div className="flex items-center space-x-2">
+                      <Checkbox 
+                        id="assistance_naps" 
+                        checked={formData.assistance_naps}
+                        onCheckedChange={() => handleCheckboxChange('assistance_naps')}
+                      />
+                      <Label htmlFor="assistance_naps">Nap/Rest Supervision</Label>
+                    </div>
+                  </div>
+                </CardContent>
+                <CardFooter className="flex justify-between">
+                  <Button variant="outline" onClick={() => navigate('/dashboard/family')}>
+                    Cancel
+                  </Button>
+                  <Button onClick={() => setCurrentTab('household')}>
+                    Next: Household Tasks
+                  </Button>
+                </CardFooter>
+              </TabsContent>
+              
+              <TabsContent value="household" className="mt-0">
+                <CardHeader>
+                  <CardTitle>Household Tasks</CardTitle>
+                  <CardDescription>
+                    Select the household tasks that the caregiver should assist with.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="flex items-center space-x-2">
+                      <Checkbox 
+                        id="meal_prep" 
+                        checked={formData.meal_prep}
+                        onCheckedChange={() => handleCheckboxChange('meal_prep')}
+                      />
+                      <Label htmlFor="meal_prep">Meal Preparation</Label>
+                    </div>
+                    
+                    <div className="flex items-center space-x-2">
+                      <Checkbox 
+                        id="tidy_room" 
+                        checked={formData.tidy_room}
+                        onCheckedChange={() => handleCheckboxChange('tidy_room')}
+                      />
+                      <Label htmlFor="tidy_room">Light Tidying & Organizing</Label>
+                    </div>
+                    
+                    <div className="flex items-center space-x-2">
+                      <Checkbox 
+                        id="grocery_runs" 
+                        checked={formData.grocery_runs}
+                        onCheckedChange={() => handleCheckboxChange('grocery_runs')}
+                      />
+                      <Label htmlFor="grocery_runs">Grocery Shopping</Label>
+                    </div>
+                    
+                    <div className="flex items-center space-x-2">
+                      <Checkbox 
+                        id="laundry_support" 
+                        checked={formData.laundry_support}
+                        onCheckedChange={() => handleCheckboxChange('laundry_support')}
+                      />
+                      <Label htmlFor="laundry_support">Laundry Assistance</Label>
+                    </div>
+                  </div>
+                </CardContent>
+                <CardFooter className="flex justify-between">
+                  <Button variant="outline" onClick={() => setCurrentTab('daily-care')}>
+                    Back
+                  </Button>
+                  <Button onClick={() => setCurrentTab('personal')}>
+                    Next: Personal Connection
+                  </Button>
+                </CardFooter>
+              </TabsContent>
+              
+              <TabsContent value="personal" className="mt-0">
+                <CardHeader>
+                  <CardTitle>Personal Connection</CardTitle>
+                  <CardDescription>
+                    Select how the caregiver should engage with your loved one.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="flex items-center space-x-2">
+                      <Checkbox 
+                        id="assistance_companionship" 
+                        checked={formData.assistance_companionship}
+                        onCheckedChange={() => handleCheckboxChange('assistance_companionship')}
+                      />
+                      <Label htmlFor="assistance_companionship">Companionship & Conversation</Label>
+                    </div>
+                    
+                    <div className="flex items-center space-x-2">
+                      <Checkbox 
+                        id="daily_report_required" 
+                        checked={formData.daily_report_required}
+                        onCheckedChange={() => handleCheckboxChange('daily_report_required')}
+                      />
+                      <Label htmlFor="daily_report_required">Daily Reports to Family</Label>
+                    </div>
+                    
+                    <div className="flex items-center space-x-2">
+                      <Checkbox 
+                        id="gentle_engagement" 
+                        checked={formData.gentle_engagement}
+                        onCheckedChange={() => handleCheckboxChange('gentle_engagement')}
+                      />
+                      <Label htmlFor="gentle_engagement">Gentle Activities & Engagement</Label>
+                    </div>
+                    
+                    <div className="flex items-center space-x-2">
+                      <Checkbox 
+                        id="fresh_air_walks" 
+                        checked={formData.fresh_air_walks}
+                        onCheckedChange={() => handleCheckboxChange('fresh_air_walks')}
+                      />
+                      <Label htmlFor="fresh_air_walks">Outdoor Walks</Label>
+                    </div>
+                    
+                    <div className="flex items-center space-x-2">
+                      <Checkbox 
+                        id="escort_to_appointments" 
+                        checked={formData.escort_to_appointments}
+                        onCheckedChange={() => handleCheckboxChange('escort_to_appointments')}
+                      />
+                      <Label htmlFor="escort_to_appointments">Appointment Accompaniment</Label>
+                    </div>
+                  </div>
+                </CardContent>
+                <CardFooter className="flex justify-between">
+                  <Button variant="outline" onClick={() => setCurrentTab('household')}>
+                    Back
+                  </Button>
+                  <Button onClick={() => setCurrentTab('special')}>
+                    Next: Special Care
+                  </Button>
+                </CardFooter>
+              </TabsContent>
+              
+              <TabsContent value="special" className="mt-0">
+                <CardHeader>
+                  <CardTitle>Special Care Needs</CardTitle>
+                  <CardDescription>
+                    Select any special care requirements your loved one may need.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="flex items-center space-x-2">
+                      <Checkbox 
+                        id="fall_monitoring" 
+                        checked={formData.fall_monitoring}
+                        onCheckedChange={() => handleCheckboxChange('fall_monitoring')}
+                      />
+                      <Label htmlFor="fall_monitoring">Fall Prevention & Monitoring</Label>
+                    </div>
+                    
+                    <div className="flex items-center space-x-2">
+                      <Checkbox 
+                        id="vitals_check" 
+                        checked={formData.vitals_check}
+                        onCheckedChange={() => handleCheckboxChange('vitals_check')}
+                      />
+                      <Label htmlFor="vitals_check">Vital Signs Monitoring</Label>
+                    </div>
+                    
+                    <div className="flex items-center space-x-2">
+                      <Checkbox 
+                        id="memory_reminders" 
+                        checked={formData.memory_reminders}
+                        onCheckedChange={() => handleCheckboxChange('memory_reminders')}
+                      />
+                      <Label htmlFor="memory_reminders">Memory Prompts & Reminders</Label>
+                    </div>
+                    
+                    <div className="flex items-center space-x-2">
+                      <Checkbox 
+                        id="dementia_redirection" 
+                        checked={formData.dementia_redirection}
+                        onCheckedChange={() => handleCheckboxChange('dementia_redirection')}
+                      />
+                      <Label htmlFor="dementia_redirection">Dementia Redirection Techniques</Label>
+                    </div>
+                    
+                    <div className="flex items-center space-x-2">
+                      <Checkbox 
+                        id="wandering_prevention" 
+                        checked={formData.wandering_prevention}
+                        onCheckedChange={() => handleCheckboxChange('wandering_prevention')}
+                      />
+                      <Label htmlFor="wandering_prevention">Wandering Prevention</Label>
+                    </div>
+                    
+                    <div className="flex items-center space-x-2">
+                      <Checkbox 
+                        id="equipment_use" 
+                        checked={formData.equipment_use}
+                        onCheckedChange={() => handleCheckboxChange('equipment_use')}
+                      />
+                      <Label htmlFor="equipment_use">Medical Equipment Management</Label>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="diagnosed_conditions">Diagnosed Medical Conditions (if any)</Label>
+                    <Input 
+                      id="diagnosed_conditions" 
+                      value={formData.diagnosed_conditions || ''}
+                      onChange={(e) => handleInputChange('diagnosed_conditions', e.target.value)}
+                      placeholder="e.g., Dementia, Diabetes, High Blood Pressure"
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="cognitive_notes">Cognitive/Memory Status Notes</Label>
+                    <Textarea 
+                      id="cognitive_notes" 
+                      value={formData.cognitive_notes || ''}
+                      onChange={(e) => handleInputChange('cognitive_notes', e.target.value)}
+                      placeholder="Please describe memory issues, communication preferences, etc."
+                      rows={3}
+                    />
+                  </div>
+                </CardContent>
+                <CardFooter className="flex justify-between">
+                  <Button variant="outline" onClick={() => setCurrentTab('personal')}>
+                    Back
+                  </Button>
+                  <Button onClick={() => setCurrentTab('schedule')}>
+                    Next: Care Schedule
+                  </Button>
+                </CardFooter>
+              </TabsContent>
+              
+              <TabsContent value="schedule" className="mt-0">
+                <CardHeader>
+                  <CardTitle>Care Schedule</CardTitle>
+                  <CardDescription>
+                    Define when you need care support for your loved one.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="space-y-3">
+                    <Label>Care Plan Type</Label>
+                    <div className="flex flex-col space-y-2">
+                      <div className="flex items-center space-x-2">
+                        <input 
+                          type="radio" 
+                          id="scheduled" 
+                          name="plan_type"
+                          checked={formData.plan_type === "scheduled"}
+                          onChange={() => handleInputChange('plan_type', 'scheduled')}
+                        />
+                        <Label htmlFor="scheduled">Scheduled (Regular weekly schedule)</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <input 
+                          type="radio" 
+                          id="on-demand" 
+                          name="plan_type"
+                          checked={formData.plan_type === "on-demand"}
+                          onChange={() => handleInputChange('plan_type', 'on-demand')}
+                        />
+                        <Label htmlFor="on-demand">On-Demand (As needed care)</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <input 
+                          type="radio" 
+                          id="both" 
+                          name="plan_type"
+                          checked={formData.plan_type === "both"}
+                          onChange={() => handleInputChange('plan_type', 'both')}
+                        />
+                        <Label htmlFor="both">Both (Regular schedule with additional on-call)</Label>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {formData.plan_type !== "on-demand" && (
+                    <>
+                      <div className="space-y-3">
+                        <Label>Weekday Coverage</Label>
+                        <Select 
+                          value={formData.weekday_coverage}
+                          onValueChange={(value) => handleInputChange('weekday_coverage', value)}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select weekday coverage" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="none">No weekday coverage needed</SelectItem>
+                            <SelectItem value="8am-4pm">8am - 4pm (Standard day)</SelectItem>
+                            <SelectItem value="6am-6pm">6am - 6pm (Extended day)</SelectItem>
+                            <SelectItem value="6pm-8am">6pm - 8am (Overnight)</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      
+                      <div className="space-y-3">
+                        <Label>Weekend Coverage</Label>
+                        <div className="flex flex-col space-y-2">
+                          <div className="flex items-center space-x-2">
+                            <input 
+                              type="radio" 
+                              id="weekend-yes" 
+                              name="weekend_coverage"
+                              checked={formData.weekend_coverage === "yes"}
+                              onChange={() => handleInputChange('weekend_coverage', 'yes')}
+                            />
+                            <Label htmlFor="weekend-yes">Yes, weekend care needed</Label>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <input 
+                              type="radio" 
+                              id="weekend-no" 
+                              name="weekend_coverage"
+                              checked={formData.weekend_coverage === "no"}
+                              onChange={() => handleInputChange('weekend_coverage', 'no')}
+                            />
+                            <Label htmlFor="weekend-no">No weekend care needed</Label>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {formData.weekend_coverage === "yes" && (
+                        <div className="space-y-3">
+                          <Label>Weekend Schedule</Label>
+                          <Select 
+                            value={formData.weekend_schedule_type}
+                            onValueChange={(value) => handleInputChange('weekend_schedule_type', value)}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select weekend schedule" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="6am-6pm">6am - 6pm (Full day)</SelectItem>
+                              <SelectItem value="8am-4pm">8am - 4pm (Standard day)</SelectItem>
+                              <SelectItem value="6pm-8am">6pm - 8am (Overnight)</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      )}
+                    </>
+                  )}
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="communication_method">Preferred Communication Method</Label>
+                    <Select 
+                      value={formData.communication_method || ''}
+                      onValueChange={(value) => handleInputChange('communication_method', value)}
+                    >
+                      <SelectTrigger id="communication_method">
+                        <SelectValue placeholder="Select preferred method" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="whatsapp">WhatsApp</SelectItem>
+                        <SelectItem value="text">Text Message</SelectItem>
+                        <SelectItem value="call">Phone Call</SelectItem>
+                        <SelectItem value="email">Email</SelectItem>
+                        <SelectItem value="app">In-App Communication</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div className="space-y-4">
+                    <Label>Emergency Contact Information</Label>
+                    <div className="grid grid-cols-1 gap-3">
+                      <div>
+                        <Label htmlFor="emergency_contact_name" className="text-sm">Name</Label>
+                        <Input 
+                          id="emergency_contact_name" 
+                          value={formData.emergency_contact_name || ''}
+                          onChange={(e) => handleInputChange('emergency_contact_name', e.target.value)}
+                          placeholder="Emergency contact name"
+                        />
+                      </div>
+                      
+                      <div>
+                        <Label htmlFor="emergency_contact_relationship" className="text-sm">Relationship</Label>
+                        <Input 
+                          id="emergency_contact_relationship" 
+                          value={formData.emergency_contact_relationship || ''}
+                          onChange={(e) => handleInputChange('emergency_contact_relationship', e.target.value)}
+                          placeholder="Relationship to care recipient"
+                        />
+                      </div>
+                      
+                      <div>
+                        <Label htmlFor="emergency_contact_phone" className="text-sm">Phone</Label>
+                        <Input 
+                          id="emergency_contact_phone" 
+                          type="tel" 
+                          value={formData.emergency_contact_phone || ''}
+                          onChange={(e) => handleInputChange('emergency_contact_phone', e.target.value)}
+                          placeholder="Emergency contact phone number"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="additional_notes">Additional Notes or Instructions</Label>
+                    <Textarea 
+                      id="additional_notes" 
+                      value={formData.additional_notes || ''}
+                      onChange={(e) => handleInputChange('additional_notes', e.target.value)}
+                      placeholder="Any additional care instructions or preferences"
+                      rows={3}
+                    />
+                  </div>
+                </CardContent>
+                <CardFooter className="flex justify-between">
+                  <Button variant="outline" onClick={() => setCurrentTab('special')}>
+                    Back
+                  </Button>
+                  <Button onClick={handleSave} disabled={saving}>
+                    {saving ? "Saving..." : "Save Care Needs"}
+                  </Button>
+                </CardFooter>
+              </TabsContent>
+            </Card>
+          </Tabs>
+        </motion.div>
+      </div>
     </div>
   );
 };

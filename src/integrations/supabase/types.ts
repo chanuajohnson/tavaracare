@@ -2073,6 +2073,14 @@ export type Database = {
         Args: { feature_id: string; user_id: string }
         Returns: boolean
       }
+      update_care_plan_status: {
+        Args: { plan_id: string; new_status: string }
+        Returns: undefined
+      }
+      update_site_visit_status: {
+        Args: { plan_id: string; new_status: string }
+        Returns: undefined
+      }
     }
     Enums: {
       care_urgency:
