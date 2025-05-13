@@ -9,7 +9,7 @@ import { useAuth } from "@/components/providers/AuthProvider";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { updateProfileOnboardingProgress } from "@/services/profile/profileUpdates";
 import { getUserProfile, updateUserProfile } from "@/lib/profile-utils";
-import { UserProfile } from "@/types/profile"; // Import UserProfile type
+import { UserProfile, OnboardingProgress } from "@/types/profile"; // Import UserProfile and OnboardingProgress types
 import { toast } from "sonner";
 
 const FamilyCareNeedsPage: React.FC = () => {
@@ -32,12 +32,14 @@ const FamilyCareNeedsPage: React.FC = () => {
     try {
       const { data, success } = await getUserProfile(user.id);
       if (success && data) {
-        setProfileData(data as UserProfile); // Cast to UserProfile type
+        // Cast the data to UserProfile and ensure it has the required properties
+        const typedData = data as UserProfile;
+        setProfileData(typedData);
         
         // If there are existing care needs, populate the selected needs state
-        if (data.care_needs && Array.isArray(data.care_needs)) {
+        if (typedData.care_needs && Array.isArray(typedData.care_needs)) {
           const needsMap: Record<string, boolean> = {};
-          data.care_needs.forEach((need: string) => {
+          typedData.care_needs.forEach((need: string) => {
             needsMap[need] = true;
           });
           setSelectedNeeds(needsMap);
@@ -137,31 +139,40 @@ const FamilyCareNeedsPage: React.FC = () => {
       // Update profile with selected care needs
       await updateProfileOnboardingProgress(user.id, 'care_needs', true);
       
+      // Prepare onboarding progress data
+      const currentProgress = profileData?.onboarding_progress || {};
+      let updatedProgress: OnboardingProgress = {};
+      
+      if (typeof currentProgress === 'object') {
+        updatedProgress = {
+          ...currentProgress,
+          completedSteps: {
+            ...(currentProgress.completedSteps || {}),
+            care_needs: true
+          }
+        };
+      } else {
+        // Handle case where onboarding_progress is a string or other type
+        updatedProgress = {
+          completedSteps: {
+            care_needs: true
+          }
+        };
+      }
+      
       // Update the profile data with the selected care needs
       const updateResult = await updateUserProfile(user.id, {
         care_needs: selectedNeedsArray,
-        onboarding_progress: {
-          ...(profileData?.onboarding_progress || {}),
-          completedSteps: {
-            ...(profileData?.onboarding_progress?.completedSteps || {}),
-            care_needs: true
-          }
-        }
+        onboarding_progress: updatedProgress
       });
 
       if (updateResult.success) {
         // Update local state
-        setProfileData({
-          ...profileData!,
+        setProfileData(profileData ? {
+          ...profileData,
           care_needs: selectedNeedsArray,
-          onboarding_progress: {
-            ...(profileData?.onboarding_progress || {}),
-            completedSteps: {
-              ...(profileData?.onboarding_progress?.completedSteps || {}),
-              care_needs: true
-            }
-          }
-        });
+          onboarding_progress: updatedProgress
+        } : null);
 
         toast.success("Care needs updated successfully");
         navigate("/dashboard/family");
