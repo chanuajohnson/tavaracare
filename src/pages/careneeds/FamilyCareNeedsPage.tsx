@@ -1,144 +1,17 @@
-import React, { useState } from 'react';
-import { DashboardHeader } from '@/components/dashboard/DashboardHeader';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { FadeIn, SlideIn } from '@/components/framer';
-import DailyLivingSection from '@/components/careneeds/DailyLivingSection';
-import CognitiveMemorySection from '@/components/careneeds/CognitiveMemorySection';
-import MedicalConditionsSection from '@/components/careneeds/MedicalConditionsSection';
-import HousekeepingSection from '@/components/careneeds/HousekeepingSection';
-import EmergencySection from '@/components/careneeds/EmergencySection';
-import ShiftPreferencesSection from '@/components/careneeds/ShiftPreferencesSection';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useForm } from 'react-hook-form';
-import { Form } from '@/components/ui/form';
+
+import React from 'react';
+import { FadeIn } from '@/components/framer';
 
 const FamilyCareNeedsPage = () => {
-  const [activeTab, setActiveTab] = useState('daily-living');
-  
-  const form = useForm({
-    defaultValues: {
-      // Daily Living
-      assistanceBathing: false,
-      assistanceDressing: false,
-      assistanceToileting: false,
-      assistanceOralCare: false,
-      assistanceFeeding: false,
-      assistanceMobility: false,
-      assistanceMedication: false,
-      assistanceCompanionship: false,
-      assistanceNaps: false,
-      
-      // Cognitive & Memory
-      dementiaRedirection: false,
-      memoryReminders: false,
-      gentleEngagement: false,
-      wanderingPrevention: false,
-      cognitiveNotes: '',
-      
-      // Medical & Special Conditions
-      diagnosedConditions: '',
-      equipmentUse: false,
-      fallMonitoring: false,
-      vitalsCheck: false,
-      
-      // Housekeeping & Transportation
-      tidyRoom: false,
-      laundrySupport: false,
-      groceryRuns: false,
-      mealPrep: false,
-      escortToAppointments: false,
-      freshAirWalks: false,
-      
-      // Emergency & Communication
-      emergencyContactName: '',
-      emergencyContactRelationship: '',
-      emergencyContactPhone: '',
-      communicationMethod: 'text',
-      dailyReportRequired: false,
-      additionalNotes: '',
-      
-      // Shift Preferences
-      planType: 'scheduled',
-      weekdayCoverage: '8am-4pm',
-      weekendCoverage: 'no',
-      weekendScheduleType: ''
-    }
-  });
-  
-  const breadcrumbItems = [
-    { label: 'Dashboard', path: '/dashboard/family' },
-    { label: 'Care Needs Assessment', path: '/careneeds' }
-  ];
-
-  const handleSubmit = form.handleSubmit((data) => {
-    console.log("Form submitted with data:", data);
-    // Here you would typically save the data to your backend
-  });
-
   return (
-    <div className="container mx-auto py-8">
-      <FadeIn>
-        <DashboardHeader breadcrumbItems={breadcrumbItems} />
-      </FadeIn>
-      
-      <SlideIn delay={0.1}>
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle>Care Needs Assessment</CardTitle>
-            <CardDescription>
-              Help us understand your loved one's care needs so we can provide appropriate support
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="text-muted-foreground">
-              Please complete all sections of this assessment. The more details you provide, the better 
-              we can match caregivers and develop an effective care plan.
-            </p>
-          </CardContent>
-        </Card>
-      </SlideIn>
-      
-      <Form {...form}>
-        <form onSubmit={handleSubmit}>
-          <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid grid-cols-3 md:grid-cols-6 w-full">
-              <TabsTrigger value="daily-living">Daily Living</TabsTrigger>
-              <TabsTrigger value="cognitive">Cognitive</TabsTrigger>
-              <TabsTrigger value="medical">Medical</TabsTrigger>
-              <TabsTrigger value="housekeeping">Housekeeping</TabsTrigger>
-              <TabsTrigger value="emergency">Emergency</TabsTrigger>
-              <TabsTrigger value="shifts">Shifts</TabsTrigger>
-            </TabsList>
-            
-            <SlideIn delay={0.2}>
-              <TabsContent value="daily-living" className="mt-6">
-                <DailyLivingSection form={form} />
-              </TabsContent>
-              
-              <TabsContent value="cognitive" className="mt-6">
-                <CognitiveMemorySection form={form} />
-              </TabsContent>
-              
-              <TabsContent value="medical" className="mt-6">
-                <MedicalConditionsSection form={form} />
-              </TabsContent>
-              
-              <TabsContent value="housekeeping" className="mt-6">
-                <HousekeepingSection form={form} />
-              </TabsContent>
-              
-              <TabsContent value="emergency" className="mt-6">
-                <EmergencySection form={form} />
-              </TabsContent>
-              
-              <TabsContent value="shifts" className="mt-6">
-                <ShiftPreferencesSection form={form} />
-              </TabsContent>
-            </SlideIn>
-          </Tabs>
-        </form>
-      </Form>
-    </div>
+    <FadeIn duration={0.5}>
+      <div className="container mx-auto p-4">
+        <h1 className="text-2xl font-bold mb-6">Family Care Needs</h1>
+        <p className="text-gray-600">
+          This page will contain the family care needs assessment and management features.
+        </p>
+      </div>
+    </FadeIn>
   );
 };
 

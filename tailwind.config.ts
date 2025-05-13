@@ -77,11 +77,38 @@ export default {
             transform: "translateX(100%)",
           },
         },
+        fadeIn: {
+          "0%": { opacity: "0" },
+          "100%": { opacity: "1" },
+        },
+        scaleIn: {
+          "0%": { opacity: "0", transform: "scale(0.95)" },
+          "100%": { opacity: "1", transform: "scale(1)" },
+        },
+        slideInUp: {
+          "0%": { opacity: "0", transform: "translateY(20px)" },
+          "100%": { opacity: "1", transform: "translateY(0)" },
+        },
+        slideInDown: {
+          "0%": { opacity: "0", transform: "translateY(-20px)" },
+          "100%": { opacity: "1", transform: "translateY(0)" },
+        },
+        slideInLeft: {
+          "0%": { opacity: "0", transform: "translateX(-20px)" },
+          "100%": { opacity: "1", transform: "translateX(0)" },
+        },
+        slideInRight: {
+          "0%": { opacity: "0", transform: "translateX(20px)" },
+          "100%": { opacity: "1", transform: "translateX(0)" },
+        },
       },
       animation: {
         "slide-in": "slide-in 0.3s ease-out",
         "fade-in": "fade-in 0.3s ease-out",
         shimmer: "shimmer 2s infinite",
+        "fade-in-custom": "fadeIn var(--duration) ease-out forwards var(--delay)",
+        "scale-in-custom": "scaleIn var(--duration) ease-out forwards var(--delay)",
+        "slide-in-custom": "slideIn var(--direction) var(--duration) ease-out forwards var(--delay)",
       },
     },
   },

@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, ReactNode } from 'react';
+import React, { ReactNode } from 'react';
 
 interface SlideInProps {
   children: ReactNode;
@@ -20,57 +20,32 @@ export const SlideIn = ({
   duration = 0.5,
   ...props
 }: SlideInProps) => {
-  const [isClient, setIsClient] = useState(false);
-  
-  // Only load framer-motion on the client side
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
-  
-  const getInitial = () => {
+  const getInitialTransform = () => {
     switch (direction) {
-      case "left": return { x: -distance, opacity: 0 };
-      case "right": return { x: distance, opacity: 0 };
-      case "up": return { y: -distance, opacity: 0 };
-      case "down": return { y: distance, opacity: 0 };
-      default: return { y: distance, opacity: 0 };
+      case "left": return `translateX(-${distance}px)`;
+      case "right": return `translateX(${distance}px)`;
+      case "up": return `translateY(-${distance}px)`;
+      case "down": return `translateY(${distance}px)`;
+      default: return `translateY(${distance}px)`;
     }
   };
   
-  // Static fallback for server-side rendering or before hydration
-  if (!isClient) {
-    return <div className={className}>{children}</div>;
-  }
-  
-  // Dynamically import the motion component only on client side
-  const MotionWrapper = () => {
-    // Use dynamic import with React.lazy but inside a component that only renders client-side
-    const MotionDiv = React.lazy(() => 
-      Promise.resolve().then(() => import('framer-motion')).then((mod) => ({ 
-        default: mod.motion.div 
-      }))
-    );
-    
-    return (
-      <React.Suspense fallback={<div className={className}>{children}</div>}>
-        <MotionDiv
-          className={className}
-          initial={getInitial()}
-          animate={{ x: 0, y: 0, opacity: 1 }}
-          transition={{
-            duration,
-            delay,
-            ease: "easeOut"
-          }}
-          {...props}
-        >
-          {children}
-        </MotionDiv>
-      </React.Suspense>
-    );
+  const animationStyle = {
+    opacity: 0,
+    transform: getInitialTransform(),
+    animation: `slideIn${direction.charAt(0).toUpperCase() + direction.slice(1)} ${duration}s ease-out forwards`,
+    animationDelay: `${delay}s`,
   };
   
-  return <MotionWrapper />;
+  return (
+    <div 
+      className={`slide-in ${className}`}
+      style={animationStyle}
+      {...props}
+    >
+      {children}
+    </div>
+  );
 };
 
 export default SlideIn;
