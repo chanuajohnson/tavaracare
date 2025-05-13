@@ -41,7 +41,7 @@ export function createLazyIcon(iconName: string): FC<LucideIconProps> {
   );
 
   // Return a component that renders the lazy-loaded icon in a Suspense
-  const IconComponent: FC<LucideIconProps> = (props) => {
+  const IconComponent = forwardRef<SVGSVGElement, LucideIconProps>((props, ref) => {
     const { size, className, ...restProps } = props;
     const fallbackStyle = {
       width: size || 24,
@@ -52,10 +52,10 @@ export function createLazyIcon(iconName: string): FC<LucideIconProps> {
     // Only pass the necessary props to the Suspense fallback
     return (
       <Suspense fallback={<span className={className} style={fallbackStyle} />}>
-        <LazyIcon size={size} className={className} {...restProps} />
+        <LazyIcon size={size} className={className} {...restProps} ref={ref} />
       </Suspense>
     );
-  };
+  });
   
   IconComponent.displayName = `LazyIcon(${iconName})`;
   return IconComponent;
