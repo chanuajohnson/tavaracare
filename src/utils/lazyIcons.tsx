@@ -48,12 +48,28 @@ export function createLazyIcon(iconName: string): FC<LucideIconProps> {
             };
           }
           
-          // Get the icon component
-          const LucideComponent = module[iconName as keyof typeof module];
+          // Get the icon component and ensure it's a valid component
+          const IconComponent = module[iconName as keyof typeof module];
           
           // Return a properly wrapped component function to ensure correct typing
           return { 
-            default: (iconProps: LucideIconProps) => <LucideComponent {...iconProps} />
+            default: (iconProps: LucideIconProps) => {
+              if (typeof IconComponent === 'function' || 
+                  (typeof IconComponent === 'object' && IconComponent !== null)) {
+                // Use the imported component with proper props
+                return <IconComponent.type {...iconProps} ref={iconProps.ref} />;
+              }
+              
+              // Fallback if component is not valid
+              return (
+                <span 
+                  style={{ width: iconProps.size || 24, height: iconProps.size || 24, display: 'inline-block' }} 
+                  className={iconProps.className}
+                >
+                  <span style={{ color: 'red', fontSize: '8px' }}>!</span>
+                </span>
+              );
+            }
           };
         })
         .catch(error => {
