@@ -1,28 +1,28 @@
 import { Link, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/components/providers/AuthProvider';
-import { 
-  LogOut,
-  LogIn,
-  LayoutDashboard,
-  ChevronDown,
-  Loader2,
-  BarChart,
-  Users,
-  UserPlus,
-  Home,
-  HeartPulse,
-  BookOpen,
-  MessageSquare,
-  Calendar,
-  UserCircle,
-  LifeBuoy,
-  Building2,
-  FileText,
-  CreditCard,
-  Info,
-  Menu,
-} from 'lucide-react';
+import {
+  LazyLogOut,
+  LazyLogIn,
+  LazyLayoutDashboard,
+  LazyChevronDown,
+  LazyLoader2,
+  LazyBarChart, 
+  LazyUsers,
+  LazyUserPlus,
+  LazyHome,
+  LazyHeartPulse,
+  LazyBookOpen,
+  LazyMessageSquare,
+  LazyCalendar,
+  LazyUserCircle,
+  LazyLifeBuoy,
+  LazyBuilding2,
+  LazyFileText,
+  LazyCreditCard,
+  LazyInfo,
+  LazyMenu
+} from '@/utils/lazyIcons';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -119,7 +119,7 @@ export function Navigation() {
             className="lg:hidden" 
             onClick={() => setIsMenuOpen(!isMenuOpen)}
           >
-            <Menu className="h-5 w-5" />
+            <LazyMenu className="h-5 w-5" />
           </Button>
         )}
         
@@ -137,14 +137,14 @@ export function Navigation() {
               
               {isSpecificUser && (
                 <Link to="/admin/user-journey" className="flex items-center gap-1 text-indigo-600 hover:text-indigo-700">
-                  <BarChart className="h-4 w-4" />
+                  <LazyBarChart className="h-4 w-4" />
                   <span className="hidden sm:inline">User Journey</span>
                 </Link>
               )}
               
               {user && dashboardPath ? (
                 <Link to={dashboardPath} className="flex items-center gap-1 text-gray-700 hover:text-primary">
-                  <LayoutDashboard className="h-4 w-4" />
+                  <LazyLayoutDashboard className="h-4 w-4" />
                   <span className={isMobile ? "inline" : "hidden sm:inline"}>
                     {userRole ? `${userRole.charAt(0).toUpperCase() + userRole.slice(1)} Dashboard` : 'Dashboard'}
                   </span>
@@ -153,21 +153,68 @@ export function Navigation() {
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" size="sm" className="flex items-center gap-1">
-                      <LayoutDashboard className="h-4 w-4" />
+                      <LazyLayoutDashboard className="h-4 w-4" />
                       <span className={isMobile ? "inline" : "hidden sm:inline"}>Navigation</span>
-                      <ChevronDown className="h-3 w-3" />
+                      <LazyChevronDown className="h-3 w-3" />
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-56">
-                    {/* Keep existing dropdown menu content */}
-                    {/* ... keep existing code (dropdown menu groups and items) */}
+                    <DropdownMenuGroup>
+                      <DropdownMenuLabel>Dashboards</DropdownMenuLabel>
+                      <DropdownMenuItem asChild>
+                        <Link to="/dashboard/family">
+                          <LazyHome className="mr-2 h-4 w-4" />
+                          Family Dashboard
+                        </Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem asChild>
+                        <Link to="/dashboard/professional">
+                          <LazyHeartPulse className="mr-2 h-4 w-4" />
+                          Professional Dashboard
+                        </Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem asChild>
+                        <Link to="/dashboard/community">
+                          <LazyUsers className="mr-2 h-4 w-4" />
+                          Community Dashboard
+                        </Link>
+                      </DropdownMenuItem>
+                    </DropdownMenuGroup>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuGroup>
+                      <DropdownMenuLabel>Resources</DropdownMenuLabel>
+                      <DropdownMenuItem asChild>
+                        <Link to="/about">
+                          <LazyBookOpen className="mr-2 h-4 w-4" />
+                          About Tavara
+                        </Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem asChild>
+                        <Link to="/features">
+                          <LazyMessageSquare className="mr-2 h-4 w-4" />
+                          Features Overview
+                        </Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem asChild>
+                        <Link to="/pricing">
+                          <LazyCreditCard className="mr-2 h-4 w-4" />
+                          Pricing & Plans
+                        </Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem asChild>
+                        <Link to="/contact">
+                          <LazyLifeBuoy className="mr-2 h-4 w-4" />
+                          Contact Support
+                        </Link>
+                      </DropdownMenuItem>
+                    </DropdownMenuGroup>
                   </DropdownMenuContent>
                 </DropdownMenu>
               ) : null}
               
               {isLoading ? (
                 <Button variant="outline" size="sm" disabled className="flex items-center gap-2">
-                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <LazyLoader2 className="h-4 w-4 animate-spin" />
                   <span>Loading...</span>
                 </Button>
               ) : user ? (
@@ -176,13 +223,13 @@ export function Navigation() {
                   size="sm"
                   className="flex items-center gap-2 bg-primary-600 text-white hover:bg-primary-700 transition-colors"
                 >
-                  <LogOut className="h-4 w-4" />
+                  <LazyLogOut className="h-4 w-4" />
                   <span>{isMobile ? "Sign Out" : "Sign Out"}</span>
                 </Button>
               ) : (
                 <Link to="/auth">
                   <Button variant="default" size="sm" className="flex items-center gap-2">
-                    <LogIn className="h-4 w-4" />
+                    <LazyLogIn className="h-4 w-4" />
                     <span>Sign In</span>
                   </Button>
                 </Link>
@@ -193,4 +240,4 @@ export function Navigation() {
       </div>
     </nav>
   );
-};
+}

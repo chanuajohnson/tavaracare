@@ -18,8 +18,13 @@
       window.onerror = function(message, source, lineno, colno, error) {
         if (message && message.includes('forwardRef') && !window.reactInitialized) {
           console.error('React initialization error detected:', message);
-          // Reload the page if React failed to initialize properly
-          // setTimeout(() => window.location.reload(), 1000);
+          // Display fallback UI when React fails to initialize properly
+          document.addEventListener('DOMContentLoaded', function() {
+            var rootEl = document.getElementById('root');
+            if (rootEl && rootEl.children.length === 0) {
+              rootEl.innerHTML = '<div style="padding: 20px; color: #721c24; background-color: #f8d7da; border: 1px solid #f5c6cb; border-radius: 4px; text-align: center;"><h3>Application is loading...</h3><p>If this message persists, please try refreshing the page.</p></div>';
+            }
+          });
           return true; // Prevents default error handling
         }
         return false; // Allow default error handling for other errors
@@ -28,10 +33,22 @@
   </head>
 
   <body>
-    <div id="root"></div>
-    <!-- Main application loading first -->
+    <div id="root">
+      <!-- Initial loading state -->
+      <div style="display: flex; justify-content: center; align-items: center; height: 100vh; flex-direction: column;">
+        <p style="margin-bottom: 16px; font-family: system-ui, sans-serif; color: #555">Loading Tavara.care application...</p>
+        <div style="width: 50px; height: 50px; border: 5px solid #f3f3f3; border-top: 5px solid #3498db; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+      </div>
+      <style>
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+      </style>
+    </div>
+    <!-- Main application loading first with highest priority -->
     <script type="module" src="./src/main.tsx"></script>
-    <!-- GPT Engineer script - uncomment when needed -->
-    <!-- <script src="https://cdn.gpteng.co/gptengineer.js"></script> -->
+    <!-- GPT Engineer script - for the Select feature -->
+    <script src="https://cdn.gpteng.co/gptengineer.js" defer></script>
   </body>
 </html>

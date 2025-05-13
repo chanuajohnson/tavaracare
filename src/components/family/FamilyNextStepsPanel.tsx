@@ -1,8 +1,17 @@
-
 import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { CheckCircle2, Circle, List, ArrowRight, Clock, Calendar, Lock, HelpCircle, Info } from "lucide-react";
+import { 
+  LazyCheckCircle2, 
+  LazyCircle, 
+  LazyList, 
+  LazyArrowRight, 
+  LazyClock, 
+  LazyCalendar, 
+  LazyLock,
+  LazyHelpCircle, 
+  LazyInfo 
+} from "@/utils/lazyIcons";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useState, useEffect } from "react";
@@ -262,15 +271,15 @@ export const FamilyNextStepsPanel = () => {
   const renderStatusIcon = (status: StepStatus) => {
     switch (status) {
       case 'completed':
-        return <CheckCircle2 className="h-5 w-5 text-green-500" />;
+        return <LazyCheckCircle2 className="h-5 w-5 text-green-500" />;
       case 'in_progress':
-        return <Clock className="h-5 w-5 text-amber-500" />;
+        return <LazyClock className="h-5 w-5 text-amber-500" />;
       case 'scheduled':
-        return <Calendar className="h-5 w-5 text-blue-500" />;
+        return <LazyCalendar className="h-5 w-5 text-blue-500" />;
       case 'pending_admin':
-        return <Lock className="h-5 w-5 text-purple-500" />;
+        return <LazyLock className="h-5 w-5 text-purple-500" />;
       default:
-        return <Circle className="h-5 w-5 text-gray-300" />;
+        return <LazyCircle className="h-5 w-5 text-gray-300" />;
     }
   };
   
@@ -296,7 +305,7 @@ export const FamilyNextStepsPanel = () => {
       <Card className="border-l-4 border-l-primary">
         <CardHeader className="pb-2">
           <CardTitle className="flex items-center gap-2 text-xl">
-            <List className="h-5 w-5 text-primary" />
+            <LazyList className="h-5 w-5 text-primary" />
             Next Steps
           </CardTitle>
           <div className="flex justify-between items-center">
@@ -329,12 +338,12 @@ export const FamilyNextStepsPanel = () => {
       <Card className="border-l-4 border-l-red-500">
         <CardHeader className="pb-2">
           <CardTitle className="flex items-center gap-2 text-xl">
-            <List className="h-5 w-5 text-red-500" />
+            <LazyList className="h-5 w-5 text-red-500" />
             Next Steps
           </CardTitle>
         </CardHeader>
         <CardContent className="text-center">
-          <HelpCircle className="h-12 w-12 text-red-500 mx-auto mb-2" />
+          <LazyHelpCircle className="h-12 w-12 text-red-500 mx-auto mb-2" />
           <p className="text-red-500 mb-2">{error}</p>
           <Button 
             variant="outline" 
@@ -358,7 +367,7 @@ export const FamilyNextStepsPanel = () => {
       <Card className="border-l-4 border-l-primary">
         <CardHeader className="pb-2">
           <CardTitle className="flex items-center gap-2 text-xl">
-            <List className="h-5 w-5 text-primary" />
+            <LazyList className="h-5 w-5 text-primary" />
             Next Steps
           </CardTitle>
           <div className="flex justify-between items-center">
@@ -398,7 +407,7 @@ export const FamilyNextStepsPanel = () => {
                         <TooltipProvider>
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <Info className="inline-block ml-1 h-4 w-4 text-blue-500 cursor-help" />
+                              <LazyInfo className="inline-block ml-1 h-4 w-4 text-blue-500 cursor-help" />
                             </TooltipTrigger>
                             <TooltipContent>
                               <p className="max-w-xs">This step requires action from a Tavara administrator.</p>
@@ -411,25 +420,25 @@ export const FamilyNextStepsPanel = () => {
                       <div className="flex items-center text-xs text-gray-500 gap-1">
                         {step.status === 'scheduled' && (
                           <>
-                            <Calendar className="h-3 w-3 text-blue-500" />
+                            <LazyCalendar className="h-3 w-3 text-blue-500" />
                             <span>Scheduled</span>
                           </>
                         )}
                         {step.status === 'in_progress' && (
                           <>
-                            <Clock className="h-3 w-3 text-amber-500" />
+                            <LazyClock className="h-3 w-3 text-amber-500" />
                             <span>In Progress</span>
                           </>
                         )}
                         {step.status === 'pending_admin' && (
                           <>
-                            <Lock className="h-3 w-3 text-purple-500" />
+                            <LazyLock className="h-3 w-3 text-purple-500" />
                             <span>Admin Action Required</span>
                           </>
                         )}
                         {step.status === 'not_started' && (
                           <>
-                            <Clock className="h-3 w-3" />
+                            <LazyClock className="h-3 w-3" />
                             <span>Pending</span>
                           </>
                         )}
@@ -444,7 +453,7 @@ export const FamilyNextStepsPanel = () => {
                   <Link to={step.link}>
                     <Button variant="ghost" size="sm" className="p-0 h-6 text-primary hover:text-primary-600">
                       {step.actionLabel}
-                      <ArrowRight className="ml-1 h-3 w-3" />
+                      <LazyArrowRight className="ml-1 h-3 w-3" />
                     </Button>
                   </Link>
                 )}
@@ -462,7 +471,7 @@ export const FamilyNextStepsPanel = () => {
             >
               <span className="flex justify-between items-center w-full">
                 <span>View all tasks</span>
-                <ArrowRight className="h-4 w-4" />
+                <LazyArrowRight className="h-4 w-4" />
               </span>
             </SubscriptionFeatureLink>
           </div>

@@ -1,66 +1,60 @@
 
 /**
- * This utility helps detect and recover from React initialization errors
+ * Utility to help detect and handle React initialization issues
  */
 
-// Check if React is available and properly initialized
-export function checkReactInitialization() {
-  if (typeof window === 'undefined') return false;
-  
-  // Check if React is available in global scope
-  if (!window.React) {
-    console.error('[ReactErrorHandler] React not found in global scope');
-    return false;
+// Check if React is properly initialized
+export const ensureReact = () => {
+  if (typeof window === 'undefined') {
+    console.log('[reactErrorHandler] Running in SSR/build mode');
+    return;
   }
-  
-  // Check if critical React methods are available
-  try {
-    // Test React functionality rather than just its presence
-    const testElement = window.React.createElement('div', null, 'Test');
-    if (!testElement || testElement.type !== 'div') {
-      console.error('[ReactErrorHandler] React createElement not working properly');
+
+  // Check if React is available
+  if (!window.React) {
+    console.error('[reactErrorHandler] React not found in global scope');
+    throw new Error('React initialization failed: React not found in global scope');
+  }
+
+  // Verify basic React functionality
+  const testReact = () => {
+    try {
+      // Test basic React functionality
+      const testElement = window.React.createElement('div', null, 'Test');
+      if (!testElement || typeof testElement !== 'object') {
+        console.error('[reactErrorHandler] React createElement test failed');
+        return false;
+      }
+      return true;
+    } catch (error) {
+      console.error('[reactErrorHandler] Error testing React:', error);
       return false;
     }
-    return true;
-  } catch (error) {
-    console.error('[ReactErrorHandler] Error checking React functionality:', error);
-    return false;
-  }
-}
+  };
 
-// Try to recover from React initialization issues
-export function attemptReactRecovery() {
-  try {
-    // Dynamic import of React as a recovery mechanism
-    import('react').then(ReactModule => {
-      console.log('[ReactErrorHandler] Successfully imported React module for recovery');
-      
-      // Ensure React is available globally
-      if (typeof window !== 'undefined') {
-        window.React = ReactModule.default || ReactModule;
-        window.reactInitialized = true;
-        
-        console.log('[ReactErrorHandler] React recovery attempted, reloading application...');
-        // Give a short delay before reload to allow logs to be seen
-        setTimeout(() => window.location.reload(), 1000);
-      }
-    }).catch(error => {
-      console.error('[ReactErrorHandler] Failed to dynamically import React:', error);
-    });
-  } catch (error) {
-    console.error('[ReactErrorHandler] Recovery attempt failed:', error);
+  if (!testReact()) {
+    throw new Error('React initialization failed: createElement test failed');
   }
-}
 
-// Main recovery function to be called from application bootstrap
-export function ensureReact() {
-  const isReactInitialized = checkReactInitialization();
-  
-  if (!isReactInitialized) {
-    console.warn('[ReactErrorHandler] React initialization issue detected, attempting recovery');
-    attemptReactRecovery();
-    return false;
-  }
-  
-  return true;
-}
+  console.log('[reactErrorHandler] React initialization check passed');
+};
+
+// Create an error boundary function to wrap components
+export const withErrorBoundary = (Component: React.ComponentType<any>) => {
+  return (props: any) => {
+    try {
+      return window.React.createElement(Component, props);
+    } catch (error) {
+      console.error('[reactErrorHandler] Component error:', error);
+      return window.React.createElement('div', { 
+        style: { 
+          color: 'red',
+          padding: '16px',
+          border: '1px solid red',
+          borderRadius: '4px',
+          margin: '8px 0'
+        }
+      }, 'Component Error: ' + (error instanceof Error ? error.message : String(error)));
+    }
+  };
+};

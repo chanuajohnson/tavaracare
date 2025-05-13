@@ -1,27 +1,43 @@
 
-/**
- * Re-export all profile-related types from their respective files
- */
-export * from './profileTypes';
+// Type definitions related to user profiles and onboarding
 
-// Export the OnboardingProgress interface directly here for easier imports
 export interface OnboardingProgress {
-  currentStep?: string;
   completedSteps?: {
+    profile?: boolean;
     care_needs?: boolean;
-    care_plan?: boolean;
     care_recipient_story?: boolean;
+    care_plan?: boolean;
+    subscription?: boolean;
     [key: string]: boolean | undefined;
   };
+  currentStep?: string;
+  lastUpdated?: string;
 }
 
-// Export care plan metadata types for consistency
 export interface CarePlanMetadata {
-  site_visit_status?: 'not_scheduled' | 'scheduled' | 'completed';
-  care_plan_status?: 'draft' | 'under_review' | 'active';
-  plan_type?: 'scheduled' | 'on-demand' | 'both';
-  weekday_coverage?: '8am-4pm' | '6am-6pm' | '6pm-8am' | 'none';
-  weekend_coverage?: 'yes' | 'no';
-  weekend_schedule_type?: '6am-6pm' | '8am-4pm' | '6pm-8am' | 'none';
+  site_visit_status?: 'pending' | 'scheduled' | 'completed';
+  site_visit_date?: string;
+  site_visit_notes?: string;
+  care_plan_status?: 'draft' | 'under_review' | 'active' | 'inactive' | 'completed';
+  care_plan_notes?: string;
   [key: string]: any;
+}
+
+export interface ProfileCarePlan {
+  id: string;
+  family_id: string;
+  metadata?: CarePlanMetadata;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface UserProfile {
+  id: string;
+  email?: string;
+  role?: string;
+  first_name?: string;
+  last_name?: string;
+  onboarding_progress?: OnboardingProgress;
+  created_at?: string;
+  updated_at?: string;
 }
