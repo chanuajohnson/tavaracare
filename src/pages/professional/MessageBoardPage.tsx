@@ -1,5 +1,5 @@
+
 import { useState } from "react";
-import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -23,6 +23,7 @@ import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
+import { SlideIn } from "@/components/framer";
 
 type MessageType = "family" | "professional" | "all";
 type UrgencyType = "Today" | "Short Notice" | "This Weekend" | "Regular" | "all";
@@ -224,10 +225,9 @@ const MessageBoardPage = () => {
       <div className="container px-4 py-8">
         <DashboardHeader breadcrumbItems={breadcrumbItems} />
         
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
+        <SlideIn
+          direction="up"
+          duration={0.5}
           className="space-y-6"
         >
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -538,7 +538,7 @@ const MessageBoardPage = () => {
               </div>
             </>
           )}
-        </motion.div>
+        </SlideIn>
       </div>
     </div>
   );
