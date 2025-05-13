@@ -10,6 +10,9 @@ if (typeof window !== 'undefined') {
   // Set React globally to ensure it's available early
   window.React = React;
   
+  // Flag that React is initialized
+  window.reactInitialized = true;
+  
   // Add diagnostic logs for initialization
   console.log('[main.tsx] React initialization starting at:', new Date().toISOString());
   console.log('[main.tsx] React version:', React.version);
@@ -37,11 +40,7 @@ const mountApp = () => {
       </React.StrictMode>
     );
     
-    // Set reactInitialized flag after successful render
-    if (typeof window !== 'undefined') {
-      window.reactInitialized = true;
-      console.log('[main.tsx] Application successfully mounted at:', new Date().toISOString());
-    }
+    console.log('[main.tsx] Application successfully mounted at:', new Date().toISOString());
   } catch (error) {
     console.error('[main.tsx] Failed to render application:', error);
     // Add fallback UI directly if React rendering fails

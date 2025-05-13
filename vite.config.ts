@@ -56,6 +56,11 @@ export default defineConfig(({ mode }) => {
             if (id.includes('node_modules/lucide-react')) {
               return 'lucide';
             }
+
+            // Put Framer Motion in a separate chunk that loads after React
+            if (id.includes('node_modules/framer-motion')) {
+              return 'framer-motion';
+            }
             
             // Dashboard specific chunks
             if (id.includes('/pages/dashboards/FamilyDashboard')) {
@@ -95,6 +100,10 @@ export default defineConfig(({ mode }) => {
             if (chunkInfo.name === 'lucide') {
               return 'assets/lucide-[hash].js';
             }
+            // Ensure framer-motion chunk loads after react-core
+            if (chunkInfo.name === 'framer-motion') {
+              return 'assets/framer-motion-[hash].js';
+            }
             return 'assets/[name]-[hash].js';
           }
         }
@@ -113,7 +122,13 @@ export default defineConfig(({ mode }) => {
     envDir: process.cwd(),
     optimizeDeps: {
       // Ensure React is pre-bundled and available
-      include: ['react', 'react-dom', 'react-router-dom', 'framer-motion', 'lucide-react'],
+      include: [
+        'react', 
+        'react-dom', 
+        'react-router-dom', 
+        'framer-motion', 
+        'lucide-react'
+      ],
       esbuildOptions: {
         // Increase build memory limit to handle large components
         treeShaking: true,

@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Breadcrumb } from '@/components/ui/breadcrumbs/Breadcrumb';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,10 +8,10 @@ import { PodcastCard } from '@/components/about/PodcastCard';
 import { MissionCard } from '@/components/about/MissionCard';
 import { VisionSection } from '@/components/about/VisionSection';
 import { Heart, Users, Lightbulb, Globe, Award, Info } from 'lucide-react';
-import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { NavigationMenu, NavigationMenuContent, NavigationMenuItem, NavigationMenuLink, NavigationMenuList, NavigationMenuTrigger } from "@/components/ui/navigation-menu";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { FadeIn, SlideIn } from "@/components/framer";
 
 const AboutPage = () => {
   const [activeCard, setActiveCard] = useState<string | null>(null);
@@ -21,46 +20,32 @@ const AboutPage = () => {
     setActiveCard(activeCard === cardId ? null : cardId);
   };
 
-  return <div className="min-h-screen bg-white">
+  return (
+    <div className="min-h-screen bg-white">
       <Container>
         <Breadcrumb />
         <div className="space-y-8 py-8">
           <div className="text-center space-y-4 max-w-3xl mx-auto">
-            <motion.h1 initial={{
-            opacity: 0,
-            y: 20
-          }} animate={{
-            opacity: 1,
-            y: 0
-          }} transition={{
-            duration: 0.5
-          }} className="text-4xl font-bold text-primary-800 tracking-tight">
+            <FadeIn
+              className="text-4xl font-bold text-primary-800 tracking-tight"
+              duration={0.5}
+            >
               About Tavara
-            </motion.h1>
-            <motion.p initial={{
-            opacity: 0,
-            y: 20
-          }} animate={{
-            opacity: 1,
-            y: 0
-          }} transition={{
-            duration: 0.5,
-            delay: 0.2
-          }} className="text-lg text-gray-600">
+            </FadeIn>
+            <FadeIn
+              className="text-lg text-gray-600"
+              duration={0.5}
+              delay={0.2}
+            >
               It takes a village to care
-            </motion.p>
+            </FadeIn>
           </div>
 
-          <motion.div initial={{
-          opacity: 0,
-          y: 20
-        }} animate={{
-          opacity: 1,
-          y: 0
-        }} transition={{
-          duration: 0.5,
-          delay: 0.3
-        }} className="bg-white/80 backdrop-blur-sm rounded-xl p-6 shadow-sm max-w-4xl mx-auto">
+          <FadeIn
+            className="bg-white/80 backdrop-blur-sm rounded-xl p-6 shadow-sm max-w-4xl mx-auto"
+            duration={0.5}
+            delay={0.3}
+          >
             <div className="text-gray-600 leading-relaxed">
               <p>Tavara is a <span className="text-primary-700 font-semibold">technology-driven platform</span> that <span className="text-primary-700 font-semibold">connects caregivers with families</span> who need them, making it easy to find and provide trusted home care.</p>
               
@@ -78,7 +63,7 @@ const AboutPage = () => {
                 </ul>
               </div>
             </div>
-          </motion.div>
+          </FadeIn>
 
           <div className="grid md:grid-cols-2 gap-8 mt-12">
             <StoryCard isActive={activeCard === 'story'} onClick={() => handleCardClick('story')} />
@@ -88,31 +73,18 @@ const AboutPage = () => {
           <VisionSection />
 
           <div className="mt-16 text-center">
-            <motion.h2 initial={{
-            opacity: 0,
-            y: 20
-          }} whileInView={{
-            opacity: 1,
-            y: 0
-          }} transition={{
-            duration: 0.5
-          }} viewport={{
-            once: true
-          }} className="text-2xl font-semibold mb-8 text-primary-800">Our Values</motion.h2>
+            <FadeIn
+              className="text-2xl font-semibold mb-8 text-primary-800"
+              duration={0.5}
+            >
+              Our Values
+            </FadeIn>
           </div>
 
           <div className="grid md:grid-cols-3 gap-6">
-            <motion.div initial={{
-            opacity: 0,
-            y: 20
-          }} whileInView={{
-            opacity: 1,
-            y: 0
-          }} transition={{
-            duration: 0.5
-          }} viewport={{
-            once: true
-          }}>
+            <FadeIn
+              duration={0.5}
+            >
               <Card className="overflow-hidden border-primary-100 hover:shadow-lg transition-shadow h-full">
                 <CardHeader className="bg-primary-50">
                   <CardTitle className="flex items-center gap-2 text-primary-700">
@@ -123,20 +95,12 @@ const AboutPage = () => {
                   <p className="text-gray-600">We understand the challenges of caregiving and are committed to supporting caregivers, families, and care recipients with kindness and respect.</p>
                 </CardContent>
               </Card>
-            </motion.div>
+            </FadeIn>
 
-            <motion.div initial={{
-            opacity: 0,
-            y: 20
-          }} whileInView={{
-            opacity: 1,
-            y: 0
-          }} transition={{
-            duration: 0.5,
-            delay: 0.2
-          }} viewport={{
-            once: true
-          }}>
+            <FadeIn
+              duration={0.5}
+              delay={0.2}
+            >
               <Card className="overflow-hidden border-primary-100 hover:shadow-lg transition-shadow h-full">
                 <CardHeader className="bg-primary-50">
                   <CardTitle className="flex items-center gap-2 text-primary-700">
@@ -147,20 +111,12 @@ const AboutPage = () => {
                   <p className="text-gray-600">No caregiver should feel alone. Tavara fosters connection, resource-sharing, and mutual support, empowering caregivers through shared experiences.</p>
                 </CardContent>
               </Card>
-            </motion.div>
+            </FadeIn>
 
-            <motion.div initial={{
-            opacity: 0,
-            y: 20
-          }} whileInView={{
-            opacity: 1,
-            y: 0
-          }} transition={{
-            duration: 0.5,
-            delay: 0.4
-          }} viewport={{
-            once: true
-          }}>
+            <FadeIn
+              duration={0.5}
+              delay={0.4}
+            >
               <Card className="overflow-hidden border-primary-100 hover:shadow-lg transition-shadow h-full">
                 <CardHeader className="bg-primary-50">
                   <CardTitle className="flex items-center gap-2 text-primary-700">
@@ -171,21 +127,16 @@ const AboutPage = () => {
                   <p className="text-gray-600">We use technology to simplify caregiving, connect people with the right resources, and enhance learning—always keeping human care at the center.</p>
                 </CardContent>
               </Card>
-            </motion.div>
+            </FadeIn>
           </div>
 
           <div className="mt-16">
-            <motion.h2 initial={{
-            opacity: 0,
-            y: 20
-          }} whileInView={{
-            opacity: 1,
-            y: 0
-          }} transition={{
-            duration: 0.5
-          }} viewport={{
-            once: true
-          }} className="text-2xl font-semibold text-center mb-8 text-primary-800">The Tavara Platform</motion.h2>
+            <FadeIn
+              className="text-2xl font-semibold text-center mb-8 text-primary-800"
+              duration={0.5}
+            >
+              The Tavara Platform
+            </FadeIn>
             
             <NavigationMenu className="mx-auto max-w-4xl mb-10">
               <NavigationMenuList className="flex flex-col sm:flex-row justify-center gap-2">
@@ -317,22 +268,21 @@ const AboutPage = () => {
           </div>
 
           <div className="flex justify-center mt-16 mb-8">
-            <motion.div whileHover={{
-            scale: 1.05
-          }} whileTap={{
-            scale: 0.95
-          }}>
+            <SlideIn
+              direction="up"
+            >
               <Link to="/dashboard/community">
                 <Button size="lg" className="bg-primary-600 hover:bg-primary-700">
                   <Globe className="mr-2 h-5 w-5" />
                   Join the Tavara Community
                 </Button>
               </Link>
-            </motion.div>
+            </SlideIn>
           </div>
         </div>
       </Container>
-    </div>;
+    </div>
+  );
 };
 
 export default AboutPage;

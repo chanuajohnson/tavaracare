@@ -1,6 +1,5 @@
 
 import { useState, useRef } from "react";
-import { motion } from "framer-motion";
 import { Users, UserCog, Heart, ArrowRight, Check, Vote, HelpCircle } from "lucide-react";
 import { useNavigate, Link } from "react-router-dom";
 import { toast } from "sonner";
@@ -11,6 +10,7 @@ import { MicroChatBubble } from "@/components/chatbot/MicroChatBubble";
 import { ChatbotSystem } from "@/components/chatbot/ChatbotSystem";
 import { EnvironmentInfo } from "@/components/debug/EnvironmentInfo";
 import { SupabaseDebugger } from "@/components/debug/SupabaseDebugger";
+import { FadeIn, SlideIn, ScaleIn } from "@/components/framer";
 
 const roles = [
   {
@@ -78,10 +78,8 @@ const Index = () => {
   return (
     <div className="min-h-screen w-full bg-gradient-to-b from-white to-primary-100">
       <div className="container px-4 py-12 mx-auto">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
+        <FadeIn
+          duration={0.5}
           className="text-center mb-16"
         >
           <span className="px-4 py-1.5 rounded-full text-sm font-medium bg-primary-100 text-primary-800 mb-4 inline-block">
@@ -92,15 +90,14 @@ const Index = () => {
             Join our community of care coordinators, families, and professionals to make
             caring easier and more effective.
           </p>
-        </motion.div>
+        </FadeIn>
 
         <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
           {roles.map((role, index) => (
-            <motion.div
+            <FadeIn
               key={role.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: index * 0.1 }}
+              delay={index * 0.1}
+              duration={0.5}
               className={`relative group`}
             >
               <div className={`${role.color} rounded-2xl p-6 h-full transition-transform duration-300 group-hover:scale-[1.02]`}>
@@ -122,14 +119,13 @@ const Index = () => {
                   <MicroChatBubble role={role.id as 'family' | 'professional' | 'community'} />
                 </div>
               </div>
-            </motion.div>
+            </FadeIn>
           ))}
         </div>
 
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.5, delay: 0.6 }}
+        <FadeIn
+          delay={0.6}
+          duration={0.5}
           className="text-center mt-16"
         >
           <div className="relative inline-flex items-center">
@@ -144,30 +140,26 @@ const Index = () => {
               <MicroChatBubble role="family" position="right" />
             </div>
           </div>
-        </motion.div>
+        </FadeIn>
 
         <div ref={comparisonRef} className="mt-32">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            viewport={{ once: true }}
+          <FadeIn
+            duration={0.5}
             className="text-center mb-16"
           >
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">Who is Tavara For?</h2>
             <p className="text-lg text-gray-600 max-w-2xl mx-auto">
               Find your perfect match, whether you're seeking care or providing care
             </p>
-          </motion.div>
+          </FadeIn>
 
           <div className="grid md:grid-cols-2 gap-8 max-w-6xl mx-auto">
             {roles.map((role, index) => (
-              <motion.div
+              <SlideIn
                 key={role.id}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: index * 0.1 }}
-                viewport={{ once: true }}
+                direction={index % 2 === 0 ? 'left' : 'right'}
+                delay={index * 0.1}
+                duration={0.5}
               >
                 <Card className="h-full">
                   <CardHeader>
@@ -198,31 +190,26 @@ const Index = () => {
                     </div>
                   </CardContent>
                 </Card>
-              </motion.div>
+              </SlideIn>
             ))}
           </div>
         </div>
 
         <div className="mt-32 max-w-5xl mx-auto">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            viewport={{ once: true }}
+          <SlideIn
+            direction="up"
+            duration={0.5}
             className="text-center mb-16"
           >
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">Community Engagement</h2>
             <p className="text-lg text-gray-600 max-w-2xl mx-auto">
               Discover how you can support and contribute to care networks in your community.
             </p>
-          </motion.div>
+          </SlideIn>
 
           <div className="max-w-3xl mx-auto">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5 }}
-              viewport={{ once: true }}
+            <ScaleIn
+              duration={0.5}
             >
               <Card className="h-full">
                 <CardHeader>
@@ -253,16 +240,13 @@ const Index = () => {
                   </div>
                 </CardContent>
               </Card>
-            </motion.div>
+            </ScaleIn>
           </div>
         </div>
 
         <div className="mt-32 max-w-5xl mx-auto">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            viewport={{ once: true }}
+          <FadeIn
+            duration={0.5}
             className="text-center mb-16"
           >
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">Shape Our Future Features</h2>
@@ -302,7 +286,7 @@ const Index = () => {
                 </CardContent>
               </Card>
             </Link>
-          </motion.div>
+          </FadeIn>
         </div>
       </div>
       

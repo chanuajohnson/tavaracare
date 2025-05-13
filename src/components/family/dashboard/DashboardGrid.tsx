@@ -1,8 +1,8 @@
 
 import React from "react";
-import { motion } from "framer-motion";
 import { MessageBoardSection } from "./MessageBoardSection";
 import { FamilyPostCareNeedForm } from "@/components/family/FamilyPostCareNeedForm";
+import { ScaleIn } from "@/components/framer";
 
 interface DashboardGridProps {
   messages: any[];
@@ -21,10 +21,8 @@ export const DashboardGrid: React.FC<DashboardGridProps> = ({
 }) => {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-      <motion.div 
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
+      <ScaleIn
+        duration={0.5}
       >
         <MessageBoardSection 
           messages={messages} 
@@ -33,7 +31,7 @@ export const DashboardGrid: React.FC<DashboardGridProps> = ({
           refreshData={refreshData}
           formatTimePosted={formatTimePosted}
         />
-      </motion.div>
+      </ScaleIn>
 
       <FamilyPostCareNeedForm />
     </div>
