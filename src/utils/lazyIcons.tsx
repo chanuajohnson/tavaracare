@@ -1,5 +1,5 @@
 
-import React, { lazy, Suspense, ComponentType, SVGProps, ReactElement, FC, Ref } from 'react';
+import React, { lazy, Suspense, ComponentType, SVGProps, ReactElement, FC, Ref, forwardRef } from 'react';
 
 // Type for the icon props that all Lucide icons accept
 export type LucideIconProps = SVGProps<SVGSVGElement> & { 
@@ -20,7 +20,7 @@ export function createLazyIcon(iconName: string): FC<LucideIconProps> {
         return { 
           default: (props: LucideIconProps) => {
             // Only pass safe HTML attributes to span element
-            const { size, ...otherProps } = props;
+            const { size, absoluteStrokeWidth, strokeWidth, color, ...safeProps } = props;
             const spanProps = { 
               style: { width: size || 24, height: size || 24, display: 'inline-block' },
               className: props.className
@@ -30,25 +30,27 @@ export function createLazyIcon(iconName: string): FC<LucideIconProps> {
         };
       }
       
-      // Return the icon as a function component
+      // Return the icon as a function component with proper type assertion
+      const IconComponent = module[iconName as keyof typeof module];
       return { 
-        default: module[iconName as keyof typeof module] as ComponentType<LucideIconProps>
+        default: ((props: LucideIconProps) => <IconComponent {...props} />) as ComponentType<LucideIconProps>
       };
     })
   );
 
   // Return a component that renders the lazy-loaded icon in a Suspense
   const IconComponent: FC<LucideIconProps> = (props) => {
-    const { size, className } = props;
+    const { size, className, ...restProps } = props;
     const fallbackStyle = {
       width: size || 24,
       height: size || 24,
       display: 'inline-block'
     };
     
+    // Only pass the necessary props to the Suspense fallback
     return (
       <Suspense fallback={<span className={className} style={fallbackStyle} />}>
-        <LazyIcon {...props} />
+        <LazyIcon size={size} className={className} {...restProps} />
       </Suspense>
     );
   };
