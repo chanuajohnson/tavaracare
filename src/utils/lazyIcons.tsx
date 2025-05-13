@@ -30,10 +30,12 @@ export function createLazyIcon(iconName: string): FC<LucideIconProps> {
         };
       }
       
-      // Return the icon as a function component with proper type assertion
-      const IconComponent = module[iconName as keyof typeof module];
+      // Get the icon component
+      const LucideComponent = module[iconName as keyof typeof module] as any;
+      
+      // Return a properly wrapped component function to ensure correct typing
       return { 
-        default: ((props: LucideIconProps) => <IconComponent {...props} />) as ComponentType<LucideIconProps>
+        default: (props: LucideIconProps) => <LucideComponent {...props} />
       };
     })
   );
