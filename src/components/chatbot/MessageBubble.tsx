@@ -1,12 +1,11 @@
 
 import React from 'react';
-import { motion } from 'framer-motion';
 import { User, Bot } from 'lucide-react';
 import { useIsMobile } from "@/hooks/use-mobile";
 
 interface MessageProps {
   content: string;
-  formattedContent?: string; // Add formattedContent prop
+  formattedContent?: string;
   isUser: boolean;
   timestamp: number;
   isNewSection?: boolean;
@@ -26,11 +25,11 @@ export const MessageBubble: React.FC<MessageProps> = ({
   const displayContent = isUser ? content : (formattedContent || content);
   
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.2 }}
-      className={`flex ${isUser ? "justify-end" : "justify-start"} mb-3`}
+    <div
+      className="flex animate-fade-in mb-3"
+      style={{animationDuration: '0.2s'}}
+      data-animation-role="message-bubble"
+      data-is-user={isUser}
     >
       {!isUser && (
         <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center mr-2 flex-shrink-0 self-end">
@@ -61,6 +60,6 @@ export const MessageBubble: React.FC<MessageProps> = ({
           <User size={16} className="text-primary" />
         </div>
       )}
-    </motion.div>
+    </div>
   );
 };

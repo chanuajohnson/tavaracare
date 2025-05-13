@@ -1,5 +1,5 @@
 
-import { motion } from "framer-motion";
+import { FadeIn, SlideIn } from "@/components/framer";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -46,24 +46,16 @@ export const TrainingModulesSection = () => {
   return (
     <div className="mt-12 w-full">
       <div className="text-center mb-8">
-        <motion.h2
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          viewport={{ once: true }}
-          className="text-2xl font-bold text-primary-800 mb-2"
-        >
-          Training Course Modules
-        </motion.h2>
-        <motion.p
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.2 }}
-          viewport={{ once: true }}
-          className="text-gray-600"
-        >
-          Our comprehensive curriculum covers everything a caregiver needs to know
-        </motion.p>
+        <FadeIn delay={0} duration={0.5}>
+          <h2 className="text-2xl font-bold text-primary-800 mb-2">
+            Training Course Modules
+          </h2>
+        </FadeIn>
+        <FadeIn delay={0.2} duration={0.5}>
+          <p className="text-gray-600">
+            Our comprehensive curriculum covers everything a caregiver needs to know
+          </p>
+        </FadeIn>
       </div>
 
       <div className="max-w-4xl mx-auto">

@@ -1,6 +1,5 @@
 
 import React, { useEffect, useState } from 'react';
-import { motion } from 'framer-motion';
 import { OptionCard } from './OptionCard';
 import { ChatOption } from '@/types/chatTypes';
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -62,10 +61,9 @@ export const ChatOptionsRenderer: React.FC<ChatOptionsRendererProps> = ({
   const doneOption = options.find(opt => opt.id === "done_selecting");
   
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      className={`flex flex-col space-y-${isMobile ? "1" : "2"} my-2 w-full overflow-hidden`}
+    <div
+      className={`flex flex-col space-y-${isMobile ? "1" : "2"} my-2 w-full overflow-hidden animate-fade-in`}
+      style={{animationDelay: '0.1s'}}
     >
       {isMultiSelect && (
         <div className="mb-2 text-sm text-primary-700">
@@ -92,10 +90,8 @@ export const ChatOptionsRenderer: React.FC<ChatOptionsRendererProps> = ({
       
       {/* Always show the "Done selecting" button at the bottom for multi-select */}
       {isMultiSelect && doneOption && (
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className={`sticky bottom-0 mt-2 py-2.5 px-4 rounded-md 
+        <div
+          className={`animate-scale-in sticky bottom-0 mt-2 py-2.5 px-4 rounded-md 
             ${selectedOptions.length > 0 
               ? 'bg-primary text-white hover:bg-primary/90' 
               : 'bg-gray-200 text-gray-500'}
@@ -107,8 +103,8 @@ export const ChatOptionsRenderer: React.FC<ChatOptionsRendererProps> = ({
             {doneOption.label}
             {selectedOptions.length > 0 && ` (${selectedOptions.length})`}
           </div>
-        </motion.div>
+        </div>
       )}
-    </motion.div>
+    </div>
   );
 };

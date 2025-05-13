@@ -4,7 +4,6 @@ import { ChatMessage } from '@/types/chatTypes';
 import { MessageBubble } from './MessageBubble';
 import { ChatOptionsRenderer } from './ChatOptionsRenderer';
 import { TypingIndicator } from './TypingIndicator';
-import { motion } from 'framer-motion';
 
 interface ChatMessagesListProps {
   messages: ChatMessage[];
@@ -49,7 +48,7 @@ export const ChatMessagesList: React.FC<ChatMessagesListProps> = ({
             <div key={message.id || `message-${index}-${message.timestamp}`}>
               <MessageBubble
                 content={message.content}
-                formattedContent={message.formattedContent} // Pass formatted content
+                formattedContent={message.formattedContent}
                 isUser={message.isUser}
                 timestamp={message.timestamp}
                 isNewSection={isNewSection}
@@ -70,13 +69,9 @@ export const ChatMessagesList: React.FC<ChatMessagesListProps> = ({
         })}
         
         {isTyping && !isResuming && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-          >
+          <div className="animate-fade-in">
             <TypingIndicator />
-          </motion.div>
+          </div>
         )}
         
         <div ref={messagesEndRef} />

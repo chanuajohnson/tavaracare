@@ -1,106 +1,83 @@
 
-import React from 'react';
-import { FadeIn } from '@/components/framer';
-import { Card, CardHeader, CardContent, CardTitle } from '@/components/ui/card';
-import { Container } from '@/components/ui/container';
-import { Button } from '@/components/ui/button';
-import { useNavigate } from 'react-router-dom';
-import { FamilyShortcutMenuBar } from '@/components/family/FamilyShortcutMenuBar';
-import { useAuth } from '@/components/providers/AuthProvider';
+import React, { useEffect } from 'react';
+import { FadeIn, SlideIn } from '@/components/framer';
+import { DashboardHeader } from '@/components/dashboard/DashboardHeader';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 const FamilyCareNeedsPage: React.FC = () => {
-  const navigate = useNavigate();
-  const { user } = useAuth();
+  useEffect(() => {
+    document.title = "Care Needs | Tavara";
+  }, []);
+
+  const breadcrumbItems = [
+    {
+      label: "Family Dashboard",
+      path: "/dashboard/family",
+    },
+    {
+      label: "Care Needs",
+      path: "/careneeds",
+    },
+  ];
 
   return (
-    <>
-      <FamilyShortcutMenuBar />
-      <Container className="py-8">
-        <FadeIn className="mb-6">
-          <h1 className="text-3xl font-bold text-gray-900">Care Needs Assessment</h1>
-          <p className="text-gray-600 mt-2">
-            Help us understand the specific care needs for your loved one so we can match you with the right caregivers.
+    <div className="container px-4 py-8">
+      <DashboardHeader breadcrumbItems={breadcrumbItems} />
+
+      <div className="max-w-4xl mx-auto">
+        <FadeIn delay={0.1} duration={0.5}>
+          <h1 className="text-3xl font-bold mb-2">Family Care Needs</h1>
+          <p className="text-muted-foreground mb-8">
+            Manage and update care requirements for your loved ones
           </p>
         </FadeIn>
 
-        <div className="grid md:grid-cols-2 gap-6">
-          <FadeIn delay={0.1}>
+        <div className="space-y-8">
+          <SlideIn direction="up" delay={0.2} duration={0.5}>
             <Card>
               <CardHeader>
-                <CardTitle>Getting Started</CardTitle>
+                <CardTitle>Care Needs Assessment</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="mb-4">
-                  This assessment helps us understand your loved one's needs across several important areas:
+                <p>
+                  Complete your care needs assessment to help us understand the specific
+                  requirements for your loved ones. This information will be used to match
+                  you with appropriate caregivers and services.
                 </p>
-                <ul className="list-disc pl-5 space-y-2 mb-6">
-                  <li>Daily living assistance</li>
-                  <li>Medical conditions & requirements</li>
-                  <li>Cognitive and memory support</li>
-                  <li>Household help needs</li>
-                  <li>Schedule and availability preferences</li>
-                  <li>Emergency contacts and protocols</li>
-                </ul>
-                <Button 
-                  onClick={() => navigate('/careneeds/start')} 
-                  className="w-full"
-                >
-                  Begin Assessment
-                </Button>
               </CardContent>
             </Card>
-          </FadeIn>
+          </SlideIn>
 
-          <FadeIn delay={0.2}>
+          <SlideIn direction="up" delay={0.3} duration={0.5}>
             <Card>
               <CardHeader>
-                <CardTitle>Why This Matters</CardTitle>
+                <CardTitle>Current Care Requirements</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="mb-4">
-                  The information you provide helps us:
-                </p>
-                <ul className="list-disc pl-5 space-y-2 mb-6">
-                  <li>Match you with caregivers who have the right skills and experience</li>
-                  <li>Create appropriate care plans tailored to your specific situation</li>
-                  <li>Ensure we understand any special requirements or preferences</li>
-                  <li>Prepare caregivers with the knowledge they need</li>
-                </ul>
-                <p className="text-sm text-gray-500 italic">
-                  Your privacy is important. This information is only shared with approved caregivers assigned to your care plan.
+                <p>
+                  View and manage your current care requirements. You can update these
+                  as your needs change over time.
                 </p>
               </CardContent>
             </Card>
-          </FadeIn>
+          </SlideIn>
+
+          <SlideIn direction="up" delay={0.4} duration={0.5}>
+            <Card>
+              <CardHeader>
+                <CardTitle>Care Schedule</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p>
+                  Set up your preferred care schedule, including days of the week,
+                  times, and frequency of care visits.
+                </p>
+              </CardContent>
+            </Card>
+          </SlideIn>
         </div>
-
-        <FadeIn delay={0.3} className="mt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Already Completed an Assessment?</CardTitle>
-            </CardHeader>
-            <CardContent className="flex flex-col md:flex-row gap-4 items-center justify-between">
-              <p>
-                If you've previously completed a care needs assessment, you can view or update your information.
-              </p>
-              <div className="flex gap-3">
-                <Button
-                  variant="outline"
-                  onClick={() => navigate('/careneeds/view')}
-                >
-                  View Assessment
-                </Button>
-                <Button
-                  onClick={() => navigate('/careneeds/update')}
-                >
-                  Update Assessment
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </FadeIn>
-      </Container>
-    </>
+      </div>
+    </div>
   );
 };
 
