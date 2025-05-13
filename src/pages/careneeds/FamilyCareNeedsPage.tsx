@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -155,8 +154,11 @@ const FamilyCareNeedsPage: React.FC = () => {
             currentProgress.completedSteps : 
             {};
             
+        // Fix: Create a properly typed object for spreading
+        const currentProgressObj = currentProgress as Record<string, any>;
+        
         updatedProgress = {
-          ...(currentProgress as object),
+          ...currentProgressObj, // Now spreading a Record<string, any>
           completedSteps: {
             ...existingCompletedSteps,
             care_needs: true
