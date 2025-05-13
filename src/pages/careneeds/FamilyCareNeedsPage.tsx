@@ -3,12 +3,12 @@ import React, { useState } from 'react';
 import { DashboardHeader } from '@/components/dashboard/DashboardHeader';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { FadeIn, SlideIn } from '@/components/framer';
-import { DailyLivingSection } from '@/components/careneeds/DailyLivingSection';
-import { CognitiveMemorySection } from '@/components/careneeds/CognitiveMemorySection';
-import { MedicalConditionsSection } from '@/components/careneeds/MedicalConditionsSection';
-import { HousekeepingSection } from '@/components/careneeds/HousekeepingSection';
-import { EmergencySection } from '@/components/careneeds/EmergencySection';
-import { ShiftPreferencesSection } from '@/components/careneeds/ShiftPreferencesSection';
+import DailyLivingSection from '@/components/careneeds/DailyLivingSection';
+import CognitiveMemorySection from '@/components/careneeds/CognitiveMemorySection';
+import MedicalConditionsSection from '@/components/careneeds/MedicalConditionsSection';
+import HousekeepingSection from '@/components/careneeds/HousekeepingSection';
+import EmergencySection from '@/components/careneeds/EmergencySection';
+import ShiftPreferencesSection from '@/components/careneeds/ShiftPreferencesSection';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 const FamilyCareNeedsPage = () => {

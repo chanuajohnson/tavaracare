@@ -17,18 +17,26 @@ export function createLazyIcon(iconName: string): ComponentType<LucideIconProps>
       // Safety check - if the icon doesn't exist, return a fallback empty component
       if (!(iconName in module)) {
         console.error(`Icon "${iconName}" not found in lucide-react`);
-        return { default: (props: LucideIconProps): JSX.Element => <span {...props} /> };
+        return { default: (props: LucideIconProps) => <span {...props}></span> };
       }
-      // Cast the imported module to a known type to resolve TypeScript errors
-      const Icon = module[iconName as keyof typeof module] as ComponentType<LucideIconProps>;
-      return { default: Icon };
+      // Return the icon component
+      return { default: module[iconName as keyof typeof module] as ComponentType<LucideIconProps> };
     })
   );
 
   // Return a component that renders the lazy-loaded icon in a Suspense
   return function LazyIconWrapper(props: LucideIconProps): ReactElement {
+    // Extract props that are safe to pass to the span fallback
+    const { size, className, style } = props;
+    const fallbackStyle = {
+      width: size || 24,
+      height: size || 24,
+      display: 'inline-block', 
+      ...(style || {})
+    };
+    
     return (
-      <Suspense fallback={<span style={{ width: props.size || 24, height: props.size || 24, display: 'inline-block' }} />}>
+      <Suspense fallback={<span className={className} style={fallbackStyle} />}>
         <LazyIcon {...props} />
       </Suspense>
     );
