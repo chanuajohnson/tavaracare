@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,14 +9,14 @@ import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import { FadeIn, SlideIn } from "@/components/framer";
 
-// Import care needs components
-import { CognitiveMemorySection } from "@/components/careneeds/CognitiveMemorySection";
-import { DailyLivingSection } from "@/components/careneeds/DailyLivingSection";
-import { EmergencySection } from "@/components/careneeds/EmergencySection";
-import { HousekeepingSection } from "@/components/careneeds/HousekeepingSection";
-import { MedicalConditionsSection } from "@/components/careneeds/MedicalConditionsSection";
-import { ScheduleInformationCard } from "@/components/careneeds/ScheduleInformationCard";
-import { ShiftPreferencesSection } from "@/components/careneeds/ShiftPreferencesSection";
+// Import care needs components - using default imports instead of named imports
+import CognitiveMemorySection from "@/components/careneeds/CognitiveMemorySection";
+import DailyLivingSection from "@/components/careneeds/DailyLivingSection";
+import EmergencySection from "@/components/careneeds/EmergencySection";
+import HousekeepingSection from "@/components/careneeds/HousekeepingSection";
+import MedicalConditionsSection from "@/components/careneeds/MedicalConditionsSection";
+import ScheduleInformationCard from "@/components/careneeds/ScheduleInformationCard";
+import ShiftPreferencesSection from "@/components/careneeds/ShiftPreferencesSection";
 
 const FamilyCareNeedsPage = () => {
   const navigate = useNavigate();

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { Button } from "@/components/ui/button";
@@ -9,6 +8,23 @@ import { useAuth } from "@/components/providers/AuthProvider";
 import { supabase } from "@/lib/supabase";
 import { FadeIn, SlideIn } from "@/components/framer";
 
+// Define proper interface for availability
+interface AvailabilityDay {
+  available: boolean;
+  hours: string[];
+}
+
+// Define the availability structure
+interface Availability {
+  monday: AvailabilityDay;
+  tuesday: AvailabilityDay;
+  wednesday: AvailabilityDay;
+  thursday: AvailabilityDay;
+  friday: AvailabilityDay;
+  saturday: AvailabilityDay;
+  sunday: AvailabilityDay;
+}
+
 // Define profile interface to match expected structure
 interface ProfessionalProfile {
   first_name?: string;
@@ -17,20 +33,9 @@ interface ProfessionalProfile {
   years_of_experience?: string;
   certifications?: string[];
   specialties?: string[];
-  availability?: string[];
+  availability?: string[];  // Keep as string[] to match database schema
   hourly_rate?: string;
   profile_complete?: boolean;
-}
-
-// Define the availability structure
-interface Availability {
-  monday: { available: boolean; hours: string[] };
-  tuesday: { available: boolean; hours: string[] };
-  wednesday: { available: boolean; hours: string[] };
-  thursday: { available: boolean; hours: string[] };
-  friday: { available: boolean; hours: string[] };
-  saturday: { available: boolean; hours: string[] };
-  sunday: { available: boolean; hours: string[] };
 }
 
 const ProfessionalProfileHub = () => {
@@ -113,7 +118,7 @@ const ProfessionalProfileHub = () => {
   
   // Helper function to process availability data from database
   const processAvailability = (availabilityData?: string[]): Availability => {
-    const defaultAvailability = {
+    const defaultAvailability: Availability = {
       monday: { available: false, hours: [] },
       tuesday: { available: false, hours: [] },
       wednesday: { available: false, hours: [] },
@@ -128,7 +133,6 @@ const ProfessionalProfileHub = () => {
     }
     
     // Simple parsing of availability data
-    // In a real implementation, this would be more sophisticated
     const result = {...defaultAvailability};
     
     availabilityData.forEach(day => {
@@ -337,7 +341,7 @@ const ProfessionalProfileHub = () => {
                               </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-200">
-                              {Object.entries(profile.availability || {}).map(([day, data]) => (
+                              {Object.entries(profile.availability).map(([day, data]) => (
                                 <tr key={day}>
                                   <td className="px-4 py-2 whitespace-nowrap capitalize">{day}</td>
                                   <td className="px-4 py-2 whitespace-nowrap">
