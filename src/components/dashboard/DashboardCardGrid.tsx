@@ -1,16 +1,16 @@
 
-import { motion } from "framer-motion";
 import { Book, UserCog, FileText, ArrowRight } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { UpvoteFeatureButton } from "@/components/features/UpvoteFeatureButton";
+import { FadeIn } from "@/components/framer";
 
 export const DashboardCardGrid = () => {
   return (
     <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
       {/* Profile Management Card */}
-      <motion.div
+      <FadeIn
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
@@ -45,10 +45,10 @@ export const DashboardCardGrid = () => {
             </Link>
           </CardContent>
         </Card>
-      </motion.div>
+      </FadeIn>
 
       {/* Resources Card */}
-      <motion.div
+      <FadeIn
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.1 }}
@@ -83,10 +83,10 @@ export const DashboardCardGrid = () => {
             </Link>
           </CardContent>
         </Card>
-      </motion.div>
+      </FadeIn>
 
       {/* Documentation Card */}
-      <motion.div
+      <FadeIn
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.2 }}
@@ -119,7 +119,7 @@ export const DashboardCardGrid = () => {
             </Link>
           </CardContent>
         </Card>
-      </motion.div>
+      </FadeIn>
     </div>
   );
 };

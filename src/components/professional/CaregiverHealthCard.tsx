@@ -2,11 +2,11 @@
 import React from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { HandHeart, Users, ShoppingBag, HeartHandshake, Footprints } from "lucide-react";
-import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { toast } from "sonner";
+import { FadeIn } from "@/components/framer";
 
 interface CaregiverHealthCardProps {
   className?: string;
@@ -26,15 +26,13 @@ export function CaregiverHealthCard({
     }
   };
   
-  return <motion.div initial={{
-    opacity: 0,
-    y: -10
-  }} animate={{
-    opacity: 1,
-    y: 0
-  }} transition={{
-    duration: 0.5
-  }} className={className}>
+  return (
+    <FadeIn 
+      initial={{ opacity: 0, y: -10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+      className={className}
+    >
       <Card className="overflow-hidden border-l-4 border-l-primary-300 bg-gradient-to-br from-blue-50 to-primary-50">
         <CardHeader className="pb-2">
           <div className="flex items-center justify-between">
@@ -108,5 +106,6 @@ export function CaregiverHealthCard({
           </div>
         </CardContent>
       </Card>
-    </motion.div>;
+    </FadeIn>
+  );
 }
