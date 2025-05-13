@@ -1,7 +1,7 @@
 
 import { Card, CardContent } from '@/components/ui/card';
-import { motion } from 'framer-motion';
 import { Badge } from '@/components/ui/badge';
+import { FadeIn } from '@/components/framer';
 
 interface TeamMemberCardProps {
   name: string;
@@ -13,9 +13,22 @@ interface TeamMemberCardProps {
 
 export const TeamMemberCard = ({ name, role, bio, imageSrc, isDemo = false }: TeamMemberCardProps) => {
   return (
-    <motion.div
-      whileHover={{ y: -5 }}
-      transition={{ duration: 0.3 }}
+    <FadeIn
+      duration={0.3}
+      className="group"
+      style={{ transform: 'translateY(0)' }}
+      onMouseEnter={(e) => {
+        if (e.currentTarget) {
+          e.currentTarget.style.transform = 'translateY(-5px)';
+          e.currentTarget.style.transition = 'transform 0.3s ease';
+        }
+      }}
+      onMouseLeave={(e) => {
+        if (e.currentTarget) {
+          e.currentTarget.style.transform = 'translateY(0)';
+          e.currentTarget.style.transition = 'transform 0.3s ease';
+        }
+      }}
     >
       <Card className="overflow-hidden hover:shadow-md transition-shadow h-full">
         <div className="aspect-square overflow-hidden bg-gray-100">
@@ -38,6 +51,6 @@ export const TeamMemberCard = ({ name, role, bio, imageSrc, isDemo = false }: Te
           <p className="text-gray-600 text-sm">{bio}</p>
         </CardContent>
       </Card>
-    </motion.div>
+    </FadeIn>
   );
 };

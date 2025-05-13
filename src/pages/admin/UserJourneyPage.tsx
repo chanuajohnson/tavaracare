@@ -1,6 +1,4 @@
-
 import { useState, useEffect } from "react";
-import { motion } from "framer-motion";
 import { supabase } from "@/lib/supabase";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { Search, Calendar, ArrowUpRight, Clock, Activity, Plus } from "lucide-react";
 import { useAuth } from "@/components/providers/AuthProvider";
+import { FadeIn, SlideIn } from "@/components/framer";
 
 const UserJourneyPage = () => {
   const [userId, setUserId] = useState<string>("");
@@ -113,17 +112,16 @@ const UserJourneyPage = () => {
       <div className="container px-4 py-8">
         <DashboardHeader breadcrumbItems={breadcrumbItems} />
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
+        <SlideIn
+          direction="up"
+          duration={0.5}
           className="mb-8"
         >
           <h1 className="text-3xl font-bold text-gray-900">User Journey Analytics</h1>
           <p className="text-gray-600 mt-2">
             Track and analyze user journey across the platform.
           </p>
-        </motion.div>
+        </SlideIn>
 
         <Card className="mb-8">
           <CardHeader>
@@ -169,10 +167,9 @@ const UserJourneyPage = () => {
         </Card>
 
         {journeyData.length > 0 && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
+          <FadeIn
+            duration={0.5}
+            delay={0.2}
           >
             <h2 className="text-xl font-semibold mb-4">User Journey Timeline</h2>
             <div className="space-y-4">
@@ -210,7 +207,7 @@ const UserJourneyPage = () => {
                 </Card>
               ))}
             </div>
-          </motion.div>
+          </FadeIn>
         )}
 
         {journeyData.length === 0 && !isLoading && userId && (
