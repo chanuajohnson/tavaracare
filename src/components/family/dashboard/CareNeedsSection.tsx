@@ -5,6 +5,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/com
 import { Button } from "@/components/ui/button";
 import { Profile } from "@/types/profileTypes";
 import { fromJson } from "@/utils/json";
+import { OnboardingProgress } from "@/types/profile";
 
 interface CareNeedsSectionProps {
   profileData: Profile | null;
@@ -14,9 +15,9 @@ export const CareNeedsSection: React.FC<CareNeedsSectionProps> = ({ profileData 
   // Parse onboarding_progress if it's a string
   const onboardingProgress = profileData?.onboarding_progress 
     ? (typeof profileData.onboarding_progress === 'string' 
-        ? fromJson(profileData.onboarding_progress, {}) 
+        ? fromJson<OnboardingProgress>(profileData.onboarding_progress, { completedSteps: {} }) 
         : profileData.onboarding_progress)
-    : undefined;
+    : { completedSteps: {} };
     
   // Check if care_needs step has been completed
   const careNeedsCompleted = onboardingProgress?.completedSteps?.care_needs;

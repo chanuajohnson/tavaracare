@@ -22,7 +22,7 @@ export function createLazyIcon(iconName: string): ComponentType<LucideIconProps>
   return function LazyIconWrapper(props: LucideIconProps): ReactElement {
     return (
       <Suspense fallback={null}>
-        <LazyIcon {...props} />
+        <LazyIcon {...props as any} />
       </Suspense>
     );
   };
