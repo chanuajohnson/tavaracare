@@ -1,5 +1,5 @@
 
-import React, { lazy, Suspense, ComponentType, SVGProps, ReactElement } from 'react';
+import React, { lazy, Suspense, ComponentType, SVGProps, ReactElement, FC } from 'react';
 
 // Type for the icon props that all Lucide icons accept
 export type LucideIconProps = SVGProps<SVGSVGElement> & { 
@@ -10,29 +10,38 @@ export type LucideIconProps = SVGProps<SVGSVGElement> & {
 };
 
 // A function to create a lazy-loaded Lucide icon component
-export function createLazyIcon(iconName: string): ComponentType<LucideIconProps> {
+export function createLazyIcon(iconName: string): FC<LucideIconProps> {
   // Use React.lazy to dynamically import the icon
   const LazyIcon = lazy(() => 
     import('lucide-react').then(module => {
       // Safety check - if the icon doesn't exist, return a fallback empty component
       if (!(iconName in module)) {
         console.error(`Icon "${iconName}" not found in lucide-react`);
-        return { default: (props: LucideIconProps) => <span {...props}></span> };
+        return { 
+          default: (props: LucideIconProps) => {
+            const { size, ...otherProps } = props;
+            // Only pass HTML attributes to span element
+            const spanProps = { style: { width: size || 24, height: size || 24, display: 'inline-block' } };
+            return <span {...spanProps} />;
+          }
+        };
       }
-      // Return the icon component
-      return { default: module[iconName as keyof typeof module] as ComponentType<LucideIconProps> };
+      // Return the icon as a function component
+      const Icon = module[iconName as keyof typeof module] as ComponentType<LucideIconProps>;
+      return { 
+        default: (props: LucideIconProps) => <Icon {...props} /> 
+      };
     })
   );
 
   // Return a component that renders the lazy-loaded icon in a Suspense
-  return function LazyIconWrapper(props: LucideIconProps): ReactElement {
+  const IconComponent: FC<LucideIconProps> = (props) => {
     // Extract props that are safe to pass to the span fallback
-    const { size, className, style } = props;
+    const { size, className } = props;
     const fallbackStyle = {
       width: size || 24,
       height: size || 24,
-      display: 'inline-block', 
-      ...(style || {})
+      display: 'inline-block'
     };
     
     return (
@@ -41,6 +50,9 @@ export function createLazyIcon(iconName: string): ComponentType<LucideIconProps>
       </Suspense>
     );
   };
+  
+  IconComponent.displayName = `LazyIcon(${iconName})`;
+  return IconComponent;
 }
 
 // Pre-create commonly used icons to avoid repeated definitions
