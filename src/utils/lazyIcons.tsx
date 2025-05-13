@@ -17,9 +17,11 @@ export function createLazyIcon(iconName: string): ComponentType<LucideIconProps>
       // Safety check - if the icon doesn't exist, return a fallback empty component
       if (!(iconName in module)) {
         console.error(`Icon "${iconName}" not found in lucide-react`);
-        return { default: (props: any) => <span {...props} /> };
+        return { default: (props: LucideIconProps): JSX.Element => <span {...props} /> };
       }
-      return { default: module[iconName as keyof typeof module] as ComponentType<LucideIconProps> };
+      // Cast the imported module to a known type to resolve TypeScript errors
+      const Icon = module[iconName as keyof typeof module] as ComponentType<LucideIconProps>;
+      return { default: Icon };
     })
   );
 

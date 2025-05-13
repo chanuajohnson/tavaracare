@@ -16,27 +16,30 @@ interface FadeInProps {
   [key: string]: any;
 }
 
-export function FadeIn({ 
+export const FadeIn = ({ 
   children, 
   className = "", 
   delay = 0, 
-  duration = 0.5,
-  ...rest 
-}: FadeInProps) {
+  duration = 0.5, 
+  ...props 
+}: FadeInProps) => {
   return (
     <Suspense fallback={<div className={className}>{children}</div>}>
       <MotionDiv 
         className={className}
-        initial={{ opacity: 0, y: 20 }} 
-        animate={{ opacity: 1, y: 0 }} 
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
         transition={{ 
-          duration: duration,
-          delay: delay
+          duration,
+          delay,
+          ease: "easeOut"
         }}
-        {...rest}
+        {...props}
       >
         {children}
       </MotionDiv>
     </Suspense>
   );
-}
+};
+
+export default FadeIn;

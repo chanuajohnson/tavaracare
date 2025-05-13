@@ -11,32 +11,37 @@ const MotionDiv = lazy(() =>
 interface ScaleInProps {
   children: ReactNode;
   className?: string;
+  initialScale?: number;
   delay?: number;
   duration?: number;
   [key: string]: any;
 }
 
-export function ScaleIn({ 
-  children, 
-  className = "", 
-  delay = 0, 
+export const ScaleIn = ({
+  children,
+  className = "",
+  initialScale = 0.95,
+  delay = 0,
   duration = 0.5,
-  ...rest 
-}: ScaleInProps) {
+  ...props
+}: ScaleInProps) => {
   return (
     <Suspense fallback={<div className={className}>{children}</div>}>
-      <MotionDiv 
+      <MotionDiv
         className={className}
-        initial={{ scale: 0.95, opacity: 0 }} 
-        animate={{ scale: 1, opacity: 1 }} 
-        transition={{ 
-          duration: duration,
-          delay: delay
+        initial={{ scale: initialScale, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        transition={{
+          duration,
+          delay,
+          ease: "easeOut"
         }}
-        {...rest}
+        {...props}
       >
         {children}
       </MotionDiv>
     </Suspense>
   );
-}
+};
+
+export default ScaleIn;

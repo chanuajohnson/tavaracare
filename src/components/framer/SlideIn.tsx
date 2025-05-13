@@ -11,52 +11,49 @@ const MotionDiv = lazy(() =>
 interface SlideInProps {
   children: ReactNode;
   className?: string;
+  direction?: "left" | "right" | "up" | "down";
+  distance?: number;
   delay?: number;
   duration?: number;
-  direction?: 'left' | 'right' | 'up' | 'down';
   [key: string]: any;
 }
 
-export function SlideIn({ 
-  children, 
-  className = "", 
-  delay = 0, 
+export const SlideIn = ({
+  children,
+  className = "",
+  direction = "up",
+  distance = 20,
+  delay = 0,
   duration = 0.5,
-  direction = 'right',
-  ...rest 
-}: SlideInProps) {
-  // Determine initial and animate values based on direction
-  const getDirectionProps = () => {
+  ...props
+}: SlideInProps) => {
+  const getInitial = () => {
     switch (direction) {
-      case 'left':
-        return { initial: { x: -100 }, animate: { x: 0 } };
-      case 'right':
-        return { initial: { x: 100 }, animate: { x: 0 } };
-      case 'up':
-        return { initial: { y: -100 }, animate: { y: 0 } };
-      case 'down':
-        return { initial: { y: 100 }, animate: { y: 0 } };
-      default:
-        return { initial: { x: 100 }, animate: { x: 0 } };
+      case "left": return { x: -distance, opacity: 0 };
+      case "right": return { x: distance, opacity: 0 };
+      case "up": return { y: -distance, opacity: 0 };
+      case "down": return { y: distance, opacity: 0 };
+      default: return { y: distance, opacity: 0 };
     }
   };
-
-  const { initial, animate } = getDirectionProps();
-
+  
   return (
     <Suspense fallback={<div className={className}>{children}</div>}>
-      <MotionDiv 
+      <MotionDiv
         className={className}
-        initial={{ ...initial, opacity: 0 }} 
-        animate={{ ...animate, opacity: 1 }} 
-        transition={{ 
-          duration: duration,
-          delay: delay
+        initial={getInitial()}
+        animate={{ x: 0, y: 0, opacity: 1 }}
+        transition={{
+          duration,
+          delay,
+          ease: "easeOut"
         }}
-        {...rest}
+        {...props}
       >
         {children}
       </MotionDiv>
     </Suspense>
   );
-}
+};
+
+export default SlideIn;
