@@ -54,12 +54,12 @@ export function createLazyIcon(iconName: string): FC<LucideIconProps> {
           // Return a properly wrapped component function to ensure correct typing
           return { 
             default: (iconProps: LucideIconProps) => {
+              // Handle different types of components properly
               if (typeof IconComponent === 'function') {
-                // For function components
-                return React.createElement(IconComponent, { ...iconProps, ref });
+                return <IconComponent {...iconProps} ref={iconProps.ref} />;
               } else if (typeof IconComponent === 'object' && IconComponent !== null) {
                 // For object components (like forwardRef components)
-                return React.createElement(IconComponent, { ...iconProps, ref });
+                return <IconComponent {...iconProps} ref={iconProps.ref} />;
               }
               
               // Fallback if component is not valid
