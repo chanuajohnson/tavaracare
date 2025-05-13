@@ -1,6 +1,6 @@
 import { supabase } from "@/lib/supabase";
-import { Profile } from "../types/profile";
-import { DbProfile, DbProfileInsert } from "../types/profile";
+import { UserProfile as Profile } from "../types/profile";
+import { UserProfile as DbProfile, UserProfile as DbProfileInsert } from "../types/profile";
 import { adaptProfileFromDb, adaptProfileToDb } from "../adapters/profileAdapter";
 import { UserRole } from "../utils/supabaseTypes";
 

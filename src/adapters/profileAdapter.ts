@@ -1,6 +1,6 @@
 
-import { Profile } from "../types/profile";
-import type { DbProfile, DbProfileInsert } from "../types/profile";
+import { UserProfile as Profile } from "../types/profile";
+import { UserProfile as DbProfile, UserProfile as DbProfileInsert } from "../types/profile";
 import { fromJson, toJson } from "../utils/json";
 
 /**

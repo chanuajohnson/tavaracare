@@ -1,5 +1,5 @@
 
-import React, { lazy, Suspense, ComponentType, SVGProps } from 'react';
+import React, { lazy, Suspense, ComponentType, SVGProps, ReactElement } from 'react';
 
 // Type for the icon props that all Lucide icons accept
 export type LucideIconProps = SVGProps<SVGSVGElement> & { 
@@ -19,11 +19,13 @@ export function createLazyIcon(iconName: string): ComponentType<LucideIconProps>
   );
 
   // Return a component that renders the lazy-loaded icon in a Suspense
-  return (props: LucideIconProps) => (
-    <Suspense fallback={null}>
-      <LazyIcon {...props} />
-    </Suspense>
-  );
+  return function LazyIconWrapper(props: LucideIconProps): ReactElement {
+    return (
+      <Suspense fallback={null}>
+        <LazyIcon {...props} />
+      </Suspense>
+    );
+  };
 }
 
 // Pre-create commonly used icons to avoid repeated definitions
@@ -54,4 +56,4 @@ export const LazyArrowRight = createLazyIcon('ArrowRight');
 export const LazyClock = createLazyIcon('Clock');
 export const LazyLock = createLazyIcon('Lock');
 export const LazyHelpCircle = createLazyIcon('HelpCircle');
-export const LazyInfo = createLazyIcon('Info');
+// Removed duplicate LazyInfo declaration
