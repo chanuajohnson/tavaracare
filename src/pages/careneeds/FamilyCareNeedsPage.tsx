@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -8,14 +9,14 @@ import { useAuth } from "@/components/providers/AuthProvider";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { updateProfileOnboardingProgress } from "@/services/profile/profileUpdates";
 import { getUserProfile, updateUserProfile } from "@/lib/profile-utils";
-import { UserProfile, OnboardingProgress } from "@/types/profile"; // Import UserProfile and OnboardingProgress types
+import { UserProfile, OnboardingProgress } from "@/types/profile";
 import { toast } from "sonner";
 
 const FamilyCareNeedsPage: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
-  const [profileData, setProfileData] = useState<UserProfile | null>(null); // Explicitly type as UserProfile
+  const [profileData, setProfileData] = useState<UserProfile | null>(null);
   const [selectedNeeds, setSelectedNeeds] = useState<Record<string, boolean>>({});
 
   // Fetch profile data when component mounts
@@ -155,7 +156,7 @@ const FamilyCareNeedsPage: React.FC = () => {
             {};
             
         updatedProgress = {
-          ...currentProgress as object,
+          ...(currentProgress as object),
           completedSteps: {
             ...existingCompletedSteps,
             care_needs: true
@@ -178,11 +179,13 @@ const FamilyCareNeedsPage: React.FC = () => {
 
       if (updateResult.success) {
         // Update local state
-        setProfileData(profileData ? {
-          ...profileData,
-          care_needs: selectedNeedsArray,
-          onboarding_progress: updatedProgress
-        } : null);
+        if (profileData) {
+          setProfileData({
+            ...profileData,
+            care_needs: selectedNeedsArray,
+            onboarding_progress: updatedProgress
+          });
+        }
 
         toast.success("Care needs updated successfully");
         navigate("/dashboard/family");
