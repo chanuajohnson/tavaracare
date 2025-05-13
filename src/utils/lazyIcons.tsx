@@ -2,46 +2,79 @@
 import React, { lazy, Suspense, ComponentType, SVGProps, ReactElement, FC, Ref, forwardRef } from 'react';
 
 // Type for the icon props that all Lucide icons accept
-export type LucideIconProps = SVGProps<SVGSVGElement> & { 
+export type LucideIconProps = SVGProps<SVGElement> & { 
   size?: number | string;
   absoluteStrokeWidth?: boolean;
   color?: string;
   strokeWidth?: number;
 };
 
-// A function to create a lazy-loaded Lucide icon component
+// A function to create a lazy-loaded Lucide icon component with deferred React.lazy() invocation
 export function createLazyIcon(iconName: string): FC<LucideIconProps> {
-  // Use React.lazy to dynamically import the icon
-  const LazyIcon = lazy(() => 
-    import('lucide-react').then(module => {
-      // Safety check - if the icon doesn't exist, return a fallback empty component
-      if (!(iconName in module)) {
-        console.error(`Icon "${iconName}" not found in lucide-react`);
-        return { 
-          default: (props: LucideIconProps) => {
-            // Only pass safe HTML attributes to span element
-            const { size, absoluteStrokeWidth, strokeWidth, color, ...safeProps } = props;
-            const spanProps = { 
-              style: { width: size || 24, height: size || 24, display: 'inline-block' },
-              className: props.className
-            };
-            return <span {...spanProps} />;
-          }
-        };
+  // Instead of creating the lazy component immediately, we create a component
+  // that will create the lazy component only when it is rendered
+  const IconComponent = forwardRef<SVGSVGElement, LucideIconProps>((props, ref) => {
+    // Create the lazy component on demand, during render
+    const LazyIcon = lazy(() => {
+      // Ensure React is initialized before attempting to import
+      if (typeof window !== 'undefined' && !window.React) {
+        console.error('[lazyIcons] React not initialized when loading icon:', iconName);
+        return Promise.resolve({
+          default: () => (
+            <span 
+              style={{ width: props.size || 24, height: props.size || 24, display: 'inline-block' }} 
+              className={props.className}
+            />
+          )
+        });
       }
       
-      // Get the icon component
-      const LucideComponent = module[iconName as keyof typeof module] as any;
-      
-      // Return a properly wrapped component function to ensure correct typing
-      return { 
-        default: (props: LucideIconProps) => <LucideComponent {...props} />
-      };
-    })
-  );
-
-  // Return a component that renders the lazy-loaded icon in a Suspense
-  const IconComponent = forwardRef<SVGSVGElement, LucideIconProps>((props, ref) => {
+      // Now safely import the icon
+      return import('lucide-react')
+        .then(module => {
+          // Safety check - if the icon doesn't exist, return a fallback empty component
+          if (!(iconName in module)) {
+            console.error(`Icon "${iconName}" not found in lucide-react`);
+            return { 
+              default: (iconProps: LucideIconProps) => {
+                // Only pass safe HTML attributes to span element
+                const { size, absoluteStrokeWidth, strokeWidth, color, ...safeProps } = iconProps;
+                const spanProps = { 
+                  style: { width: size || 24, height: size || 24, display: 'inline-block' },
+                  className: iconProps.className
+                };
+                return <span {...spanProps} />;
+              }
+            };
+          }
+          
+          // Get the icon component
+          const LucideComponent = module[iconName as keyof typeof module];
+          
+          // Return a properly wrapped component function to ensure correct typing
+          return { 
+            default: (iconProps: LucideIconProps) => <LucideComponent {...iconProps} />
+          };
+        })
+        .catch(error => {
+          console.error(`Error loading icon "${iconName}":`, error);
+          return {
+            default: (iconProps: LucideIconProps) => {
+              const { size, className } = iconProps;
+              return (
+                <span 
+                  style={{ width: size || 24, height: size || 24, display: 'inline-block' }} 
+                  className={className}
+                >
+                  {/* Error indicator inside fallback */}
+                  <span style={{ color: 'red', fontSize: '8px' }}>!</span>
+                </span>
+              );
+            }
+          };
+        });
+    });
+    
     const { size, className, ...restProps } = props;
     const fallbackStyle = {
       width: size || 24,

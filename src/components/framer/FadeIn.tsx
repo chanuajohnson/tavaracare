@@ -1,12 +1,5 @@
 
-import React, { lazy, Suspense, ReactNode } from 'react';
-
-// Lazily load the motion.div component
-const MotionDiv = lazy(() => 
-  import('framer-motion').then((mod) => ({ 
-    default: mod.motion.div 
-  }))
-);
+import React, { useState, useEffect, ReactNode } from 'react';
 
 interface FadeInProps {
   children: ReactNode;
@@ -23,23 +16,47 @@ export const FadeIn = ({
   duration = 0.5, 
   ...props 
 }: FadeInProps) => {
-  return (
-    <Suspense fallback={<div className={className}>{children}</div>}>
-      <MotionDiv 
-        className={className}
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ 
-          duration,
-          delay,
-          ease: "easeOut"
-        }}
-        {...props}
-      >
-        {children}
-      </MotionDiv>
-    </Suspense>
-  );
+  const [isClient, setIsClient] = useState(false);
+  
+  // Only load framer-motion on the client side
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+  
+  // Static fallback for server-side rendering or before hydration
+  if (!isClient) {
+    return <div className={className}>{children}</div>;
+  }
+  
+  // Dynamically import the motion component only on client side
+  const MotionWrapper = () => {
+    // Use dynamic import with React.lazy but inside a component that only renders client-side
+    const MotionDiv = React.lazy(() => 
+      Promise.resolve().then(() => import('framer-motion')).then((mod) => ({ 
+        default: mod.motion.div 
+      }))
+    );
+    
+    return (
+      <React.Suspense fallback={<div className={className}>{children}</div>}>
+        <MotionDiv 
+          className={className}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ 
+            duration,
+            delay,
+            ease: "easeOut"
+          }}
+          {...props}
+        >
+          {children}
+        </MotionDiv>
+      </React.Suspense>
+    );
+  };
+  
+  return <MotionWrapper />;
 };
 
 export default FadeIn;

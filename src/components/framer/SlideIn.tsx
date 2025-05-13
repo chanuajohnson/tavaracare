@@ -1,12 +1,5 @@
 
-import React, { lazy, Suspense, ReactNode } from 'react';
-
-// Lazily load the motion.div component
-const MotionDiv = lazy(() => 
-  import('framer-motion').then((mod) => ({ 
-    default: mod.motion.div 
-  }))
-);
+import React, { useState, useEffect, ReactNode } from 'react';
 
 interface SlideInProps {
   children: ReactNode;
@@ -27,6 +20,13 @@ export const SlideIn = ({
   duration = 0.5,
   ...props
 }: SlideInProps) => {
+  const [isClient, setIsClient] = useState(false);
+  
+  // Only load framer-motion on the client side
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+  
   const getInitial = () => {
     switch (direction) {
       case "left": return { x: -distance, opacity: 0 };
@@ -37,23 +37,40 @@ export const SlideIn = ({
     }
   };
   
-  return (
-    <Suspense fallback={<div className={className}>{children}</div>}>
-      <MotionDiv
-        className={className}
-        initial={getInitial()}
-        animate={{ x: 0, y: 0, opacity: 1 }}
-        transition={{
-          duration,
-          delay,
-          ease: "easeOut"
-        }}
-        {...props}
-      >
-        {children}
-      </MotionDiv>
-    </Suspense>
-  );
+  // Static fallback for server-side rendering or before hydration
+  if (!isClient) {
+    return <div className={className}>{children}</div>;
+  }
+  
+  // Dynamically import the motion component only on client side
+  const MotionWrapper = () => {
+    // Use dynamic import with React.lazy but inside a component that only renders client-side
+    const MotionDiv = React.lazy(() => 
+      Promise.resolve().then(() => import('framer-motion')).then((mod) => ({ 
+        default: mod.motion.div 
+      }))
+    );
+    
+    return (
+      <React.Suspense fallback={<div className={className}>{children}</div>}>
+        <MotionDiv
+          className={className}
+          initial={getInitial()}
+          animate={{ x: 0, y: 0, opacity: 1 }}
+          transition={{
+            duration,
+            delay,
+            ease: "easeOut"
+          }}
+          {...props}
+        >
+          {children}
+        </MotionDiv>
+      </React.Suspense>
+    );
+  };
+  
+  return <MotionWrapper />;
 };
 
 export default SlideIn;
