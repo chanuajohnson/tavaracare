@@ -1,6 +1,6 @@
+
 import { supabase } from "@/lib/supabase";
-import { UserProfile as Profile } from "../types/profile";
-import { UserProfile as DbProfile, UserProfile as DbProfileInsert } from "../types/profile";
+import { UserProfile as Profile, Json } from "../types/profile";
 import { adaptProfileFromDb, adaptProfileToDb } from "../adapters/profileAdapter";
 import { UserRole } from "../utils/supabaseTypes";
 
@@ -25,7 +25,7 @@ export class ProfileService {
         throw error;
       }
       
-      return data ? adaptProfileFromDb(data) : null;
+      return data ? adaptProfileFromDb(data as any) : null;
     } catch (error) {
       console.error("[ProfileService] getProfile exception:", error);
       throw error;
@@ -84,11 +84,11 @@ export class ProfileService {
   /**
    * Insert a new profile
    */
-  private async insertProfile(profile: DbProfileInsert): Promise<Profile> {
+  private async insertProfile(profile: any): Promise<Profile> {
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .insert([profile as any]) // Cast to any to fix type error
+        .insert([profile]) // Cast to any to fix type error
         .select()
         .single();
       
@@ -101,7 +101,7 @@ export class ProfileService {
         throw new Error(`Inserted profile with ID ${profile.id} not found`);
       }
       
-      return adaptProfileFromDb(data);
+      return adaptProfileFromDb(data as any);
     } catch (error) {
       console.error("[ProfileService] insertProfile exception:", error);
       throw error;
@@ -111,11 +111,11 @@ export class ProfileService {
   /**
    * Update an existing profile
    */
-  private async updateProfile(id: string, updates: Partial<DbProfileInsert>): Promise<Profile> {
+  private async updateProfile(id: string, updates: any): Promise<Profile> {
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .update(updates as any) // Cast to any to fix type error
+        .update(updates) // Cast to any to fix type error
         .eq('id', id)
         .select()
         .single();
@@ -129,7 +129,7 @@ export class ProfileService {
         throw new Error(`Updated profile with ID ${id} not found`);
       }
       
-      return adaptProfileFromDb(data);
+      return adaptProfileFromDb(data as any);
     } catch (error) {
       console.error("[ProfileService] updateProfile exception:", error);
       throw error;
@@ -152,7 +152,7 @@ export class ProfileService {
         throw error;
       }
       
-      return (data || []).map(item => adaptProfileFromDb(item));
+      return (data || []).map(item => adaptProfileFromDb(item as any));
     } catch (error) {
       console.error("[ProfileService] getProfilesByRole exception:", error);
       throw error;

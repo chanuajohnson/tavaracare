@@ -12,6 +12,7 @@ export interface OnboardingProgress {
   };
   currentStep?: string;
   lastUpdated?: string;
+  [key: string]: any; // Allow additional properties
 }
 
 export interface CarePlanMetadata {
@@ -31,6 +32,9 @@ export interface ProfileCarePlan {
   updated_at: string;
 }
 
+// Add a Json type to handle onboarding_progress
+export type Json = string | number | boolean | null | { [key: string]: Json } | Json[];
+
 export interface UserProfile {
   id: string;
   email?: string;
@@ -41,7 +45,7 @@ export interface UserProfile {
   avatarUrl?: string;
   phoneNumber?: string;
   address?: string;
-  onboarding_progress?: OnboardingProgress;
+  onboarding_progress?: OnboardingProgress | Json;
   created_at?: string;
   updated_at?: string;
   createdAt?: string;
@@ -150,4 +154,18 @@ export interface UserProfile {
   improvement_ideas?: string;
   list_in_community_directory?: boolean;
   enable_community_notifications?: boolean;
+  
+  // Additional fields sometimes present in database responses
+  additional_professional_notes?: string;
+  administers_medication?: boolean;
+  has_liability_insurance?: boolean;
+  other_medical_condition?: string;
+  hourly_rate?: string;
+  medical_conditions_experience?: string[];
+  custom_schedule?: string;
+  registration_skipped?: boolean;
+  emergency_contact?: string;
+  provides_housekeeping?: boolean;
+  provides_transportation?: boolean;
+  handles_medical_equipment?: boolean;
 }

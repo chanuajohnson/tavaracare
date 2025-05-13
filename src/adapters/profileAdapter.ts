@@ -14,7 +14,12 @@ export function adaptProfileToDb(profile: Partial<Profile>): DbProfileInsert {
     avatar_url: profile.avatarUrl || profile.avatar_url,
     phone_number: profile.phoneNumber || profile.phone_number,
     address: profile.address,
-    onboarding_progress: profile.onboarding_progress ? toJson(profile.onboarding_progress) : undefined,
+    // Handle onboarding_progress properly to ensure it's stored as a JSON string
+    onboarding_progress: profile.onboarding_progress ? 
+      (typeof profile.onboarding_progress === 'string' ? 
+        profile.onboarding_progress : 
+        toJson(profile.onboarding_progress)) : 
+      undefined,
     
     // Family-specific fields
     care_recipient_name: profile.careRecipientName || profile.care_recipient_name,
@@ -78,9 +83,11 @@ export function adaptProfileToDb(profile: Partial<Profile>): DbProfileInsert {
  * Adapts a database Profile to a frontend-ready object
  */
 export function adaptProfileFromDb(dbProfile: DbProfile): Profile {
-  // Parse the onboarding_progress from JSON if it exists
+  // Parse the onboarding_progress from JSON if it exists and is a string
   const onboardingProgress = dbProfile.onboarding_progress ? 
-    fromJson(dbProfile.onboarding_progress, {}) : 
+    (typeof dbProfile.onboarding_progress === 'string' ? 
+      fromJson(dbProfile.onboarding_progress as string, {}) : 
+      dbProfile.onboarding_progress) : 
     undefined;
     
   return {
