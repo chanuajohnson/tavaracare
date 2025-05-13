@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from "react";
-import { motion } from "framer-motion";
+import { SlideIn } from '@/components/framer';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Briefcase, MapPin, Clock, ArrowRight, Filter, RefreshCw } from "lucide-react";
@@ -89,10 +89,11 @@ export const JobListings = () => {
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, delay: 0.2 }}
+    <SlideIn
+      direction="up"
+      className="h-full"
+      delay={0.2}
+      duration={0.5}
     >
       <Card className="h-full border-l-4 border-l-primary-500 shadow-sm">
         <CardHeader className="pb-2 bg-gradient-to-r from-primary-100 to-transparent">
@@ -210,6 +211,6 @@ export const JobListings = () => {
           </SubscriptionFeatureLink>
         </CardContent>
       </Card>
-    </motion.div>
+    </SlideIn>
   );
 };

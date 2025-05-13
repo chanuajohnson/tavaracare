@@ -109,6 +109,46 @@ export default {
           "0%": { transform: "scale(0.95)", opacity: "0" },
           "100%": { transform: "scale(1)", opacity: "1" },
         },
+        "fade-in-scale": {
+          "0%": { opacity: "0", transform: "scale(0.95)" },
+          "100%": { opacity: "1", transform: "scale(1)" },
+        },
+        "fade-out-scale": {
+          "0%": { opacity: "1", transform: "scale(1)" },
+          "100%": { opacity: "0", transform: "scale(0.95)" },
+        },
+        "slide-in-from-top": {
+          "0%": { transform: "translateY(-100%)" },
+          "100%": { transform: "translateY(0)" },
+        },
+        "slide-in-from-bottom": {
+          "0%": { transform: "translateY(100%)" },
+          "100%": { transform: "translateY(0)" },
+        },
+        "slide-in-from-left": {
+          "0%": { transform: "translateX(-100%)" },
+          "100%": { transform: "translateX(0)" },
+        },
+        "slide-in-from-right": {
+          "0%": { transform: "translateX(100%)" },
+          "100%": { transform: "translateX(0)" },
+        },
+        "slide-out-to-top": {
+          "0%": { transform: "translateY(0)" },
+          "100%": { transform: "translateY(-100%)" },
+        },
+        "slide-out-to-bottom": {
+          "0%": { transform: "translateY(0)" },
+          "100%": { transform: "translateY(100%)" },
+        },
+        "slide-out-to-left": {
+          "0%": { transform: "translateX(0)" },
+          "100%": { transform: "translateX(-100%)" },
+        },
+        "slide-out-to-right": {
+          "0%": { transform: "translateX(0)" },
+          "100%": { transform: "translateX(100%)" },
+        }
       },
       animation: {
         "slide-in": "slide-in 0.3s ease-out",
@@ -119,6 +159,16 @@ export default {
         "fade-in-custom": "fadeIn var(--duration) ease-out forwards var(--delay)",
         "scale-in-custom": "scaleIn var(--duration) ease-out forwards var(--delay)",
         "slide-in-custom": "slideIn var(--direction) var(--duration) ease-out forwards var(--delay)",
+        "fade-in-scale": "fade-in-scale 0.3s ease-out forwards",
+        "fade-out-scale": "fade-out-scale 0.2s ease-out forwards",
+        "slide-in-from-top": "slide-in-from-top 0.3s ease-out",
+        "slide-in-from-bottom": "slide-in-from-bottom 0.3s ease-out",
+        "slide-in-from-left": "slide-in-from-left 0.3s ease-out",
+        "slide-in-from-right": "slide-in-from-right 0.3s ease-out",
+        "slide-out-to-top": "slide-out-to-top 0.3s ease-out",
+        "slide-out-to-bottom": "slide-out-to-bottom 0.3s ease-out",
+        "slide-out-to-left": "slide-out-to-left 0.3s ease-out",
+        "slide-out-to-right": "slide-out-to-right 0.3s ease-out",
       },
     },
   },
