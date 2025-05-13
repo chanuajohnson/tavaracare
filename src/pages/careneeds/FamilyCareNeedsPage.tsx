@@ -1,283 +1,330 @@
-
-import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Checkbox } from "@/components/ui/checkbox";
-import { FadeIn, SlideIn } from "@/components/framer";
-import { useAuth } from "@/components/providers/AuthProvider";
+import React, { useState, useEffect } from 'react';
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
-import { updateProfileOnboardingProgress } from "@/services/profile/profileUpdates";
-import { getUserProfile, updateUserProfile } from "@/lib/profile-utils";
-import { UserProfile, OnboardingProgress } from "@/types/profile";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/components/providers/AuthProvider";
+import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
+import { FadeIn, SlideIn } from "@/components/framer";
 
-const FamilyCareNeedsPage: React.FC = () => {
+// Import care needs components
+import { CognitiveMemorySection } from "@/components/careneeds/CognitiveMemorySection";
+import { DailyLivingSection } from "@/components/careneeds/DailyLivingSection";
+import { EmergencySection } from "@/components/careneeds/EmergencySection";
+import { HousekeepingSection } from "@/components/careneeds/HousekeepingSection";
+import { MedicalConditionsSection } from "@/components/careneeds/MedicalConditionsSection";
+import { ScheduleInformationCard } from "@/components/careneeds/ScheduleInformationCard";
+import { ShiftPreferencesSection } from "@/components/careneeds/ShiftPreferencesSection";
+
+const FamilyCareNeedsPage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [loading, setLoading] = useState(false);
-  const [profileData, setProfileData] = useState<UserProfile | null>(null);
-  const [selectedNeeds, setSelectedNeeds] = useState<Record<string, boolean>>({});
-
-  // Fetch profile data when component mounts
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [formData, setFormData] = useState({
+    // Daily Living
+    assistance_bathing: false,
+    assistance_dressing: false,
+    assistance_feeding: false,
+    assistance_mobility: false,
+    assistance_toileting: false,
+    assistance_medication: false,
+    assistance_oral_care: false,
+    assistance_naps: false,
+    
+    // Cognitive & Memory
+    memory_reminders: false,
+    wandering_prevention: false,
+    fall_monitoring: false,
+    gentle_engagement: false,
+    assistance_companionship: false,
+    dementia_redirection: false,
+    
+    // Housekeeping
+    meal_prep: false,
+    tidy_room: false,
+    laundry_support: false,
+    grocery_runs: false,
+    
+    // Medical
+    equipment_use: false,
+    vitals_check: false,
+    
+    // Additional Services
+    escort_to_appointments: false,
+    fresh_air_walks: false,
+    
+    // Communication & Emergency
+    daily_report_required: false,
+    communication_method: '',
+    emergency_contact_name: '',
+    emergency_contact_phone: '',
+    emergency_contact_relationship: '',
+    
+    // Schedule
+    plan_type: 'scheduled',
+    preferred_time_start: '',
+    preferred_time_end: '',
+    preferred_days: [],
+    weekday_coverage: 'none',
+    weekend_coverage: 'no',
+    weekend_schedule_type: 'none',
+    
+    // Medical Conditions
+    diagnosed_conditions: '',
+    cognitive_notes: '',
+    
+    // Additional Notes
+    additional_notes: '',
+  });
+  
+  const breadcrumbItems = [
+    {
+      label: "Dashboard",
+      path: "/dashboard/family",
+    },
+    {
+      label: "Care Needs",
+      path: "/careneeds",
+    },
+  ];
+  
   useEffect(() => {
     if (user) {
-      fetchProfileData();
+      loadCareNeeds();
+    } else {
+      setIsLoading(false);
     }
   }, [user]);
-
-  const fetchProfileData = async () => {
+  
+  const loadCareNeeds = async () => {
     if (!user) return;
     
     try {
-      const { data, success } = await getUserProfile(user.id);
-      if (success && data) {
-        // Cast the data to UserProfile and ensure it has the required properties
-        const typedData = data as UserProfile;
-        setProfileData(typedData);
-        
-        // If there are existing care needs, populate the selected needs state
-        if (typedData.care_needs && Array.isArray(typedData.care_needs)) {
-          const needsMap: Record<string, boolean> = {};
-          typedData.care_needs.forEach((need: string) => {
-            needsMap[need] = true;
-          });
-          setSelectedNeeds(needsMap);
-        }
+      setIsLoading(true);
+      const { data, error } = await supabase
+        .from('care_needs_family')
+        .select('*')
+        .eq('profile_id', user.id)
+        .single();
+      
+      if (error && error.code !== 'PGRST116') {
+        throw error;
+      }
+      
+      if (data) {
+        setFormData({
+          ...formData,
+          ...data
+        });
       }
     } catch (error) {
-      console.error("Error fetching profile data:", error);
+      console.error('Error loading care needs:', error);
+      toast.error('Failed to load care needs information');
+    } finally {
+      setIsLoading(false);
     }
   };
-
-  const breadcrumbItems = [
-    { label: "Family Dashboard", path: "/dashboard/family" },
-    { label: "Care Needs", path: "/careneeds/family" },
-  ];
-
-  const careNeeds = [
-    {
-      category: "Daily Living Assistance",
-      items: [
-        "Personal hygiene/bathing",
-        "Dressing assistance",
-        "Meal preparation",
-        "Feeding assistance",
-        "Toileting assistance",
-        "Mobility assistance"
-      ]
-    },
-    {
-      category: "Healthcare Support",
-      items: [
-        "Medication management",
-        "Wound care",
-        "Vital signs monitoring",
-        "Medical equipment assistance",
-        "Therapy support",
-        "Doctor's appointments"
-      ]
-    },
-    {
-      category: "Specialized Care",
-      items: [
-        "Dementia/Alzheimer's care",
-        "Post-surgery recovery",
-        "Disability support",
-        "Terminal illness care",
-        "Palliative care",
-        "Mental health support"
-      ]
-    },
-    {
-      category: "Household Support",
-      items: [
-        "Light housekeeping",
-        "Laundry assistance",
-        "Grocery shopping",
-        "Meal planning",
-        "Home organization",
-        "Pet care assistance"
-      ]
-    },
-    {
-      category: "Social & Lifestyle",
-      items: [
-        "Companionship",
-        "Transportation",
-        "Social activities",
-        "Exercise/physical activity",
-        "Cognitive stimulation",
-        "Religious/cultural activities"
-      ]
-    }
-  ];
-
-  const toggleNeed = (need: string) => {
-    setSelectedNeeds(prev => ({
+  
+  const handleChange = (name: string, value: any) => {
+    setFormData(prev => ({
       ...prev,
-      [need]: !prev[need]
+      [name]: value
     }));
   };
-
-  const getSelectedNeedsArray = () => {
-    return Object.entries(selectedNeeds)
-      .filter(([_, isSelected]) => isSelected)
-      .map(([need]) => need);
-  };
-
-  const handleSubmit = async () => {
+  
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
     if (!user) {
-      toast.error("You must be logged in to save care needs");
+      toast.error('You must be logged in to save care needs');
       return;
     }
-
-    setLoading(true);
+    
+    setIsSaving(true);
+    
     try {
-      const selectedNeedsArray = getSelectedNeedsArray();
-      
-      // Update profile with selected care needs
-      await updateProfileOnboardingProgress(user.id, 'care_needs', true);
-      
-      // Prepare onboarding progress data
-      const currentProgress = profileData?.onboarding_progress || {};
-      let updatedProgress: OnboardingProgress = {
-        completedSteps: {}
+      const careNeedsData = {
+        ...formData,
+        profile_id: user.id,
+        updated_at: new Date().toISOString()
       };
       
-      if (typeof currentProgress === 'object') {
-        // Handle the case where onboarding_progress is already an object
-        const existingCompletedSteps = 
-          currentProgress && 
-          typeof currentProgress === 'object' && 
-          'completedSteps' in currentProgress && 
-          typeof currentProgress.completedSteps === 'object' &&
-          currentProgress.completedSteps !== null ?
-            currentProgress.completedSteps as Record<string, boolean> : 
-            {};
-            
-        // Fix: Create a properly typed object for spreading
-        const currentProgressObj = currentProgress as Record<string, any>;
+      // Check if record exists
+      const { data, error } = await supabase
+        .from('care_needs_family')
+        .select('id')
+        .eq('profile_id', user.id)
+        .maybeSingle();
         
-        updatedProgress = {
-          ...currentProgressObj, // Now spreading a Record<string, any>
-          completedSteps: {
-            ...existingCompletedSteps as Record<string, boolean>,
-            care_needs: true
-          }
-        } as OnboardingProgress;
-      } else {
-        // Handle case where onboarding_progress is a string or other type
-        updatedProgress = {
-          completedSteps: {
-            care_needs: true
-          }
-        };
+      if (error && error.code !== 'PGRST116') {
+        throw error;
       }
       
-      // Update the profile data with the selected care needs
-      const updateResult = await updateUserProfile(user.id, {
-        care_needs: selectedNeedsArray,
-        onboarding_progress: updatedProgress
-      });
-
-      if (updateResult.success) {
-        // Update local state
-        if (profileData) {
-          setProfileData({
-            ...profileData,
-            care_needs: selectedNeedsArray,
-            onboarding_progress: updatedProgress
-          });
-        }
-
-        toast.success("Care needs updated successfully");
-        navigate("/dashboard/family");
+      let result;
+      
+      if (data) {
+        // Update existing record
+        result = await supabase
+          .from('care_needs_family')
+          .update(careNeedsData)
+          .eq('profile_id', user.id);
       } else {
-        throw new Error(updateResult.error || "Unknown error updating profile");
+        // Create new record
+        result = await supabase
+          .from('care_needs_family')
+          .insert({
+            ...careNeedsData,
+            created_at: new Date().toISOString()
+          });
       }
+      
+      if (result.error) throw result.error;
+      
+      toast.success('Care needs saved successfully!');
+      
+      // Update onboarding progress if needed
+      const { error: progressError } = await supabase
+        .from('profiles')
+        .update({
+          onboarding_progress: {
+            completedSteps: {
+              care_needs: true
+            }
+          }
+        })
+        .eq('id', user.id);
+      
+      if (progressError) {
+        console.error('Error updating onboarding progress:', progressError);
+      }
+      
     } catch (error) {
-      console.error("Error updating care needs:", error);
-      toast.error("Failed to update care needs. Please try again.");
+      console.error('Error saving care needs:', error);
+      toast.error('Failed to save care needs information');
     } finally {
-      setLoading(false);
+      setIsSaving(false);
     }
   };
-
-  const getSelectedCount = () => {
-    return Object.values(selectedNeeds).filter(Boolean).length;
-  };
-
+  
   return (
-    <div className="min-h-screen bg-gray-50 pb-12">
+    <div className="min-h-screen bg-background">
       <div className="container px-4 py-8">
         <DashboardHeader breadcrumbItems={breadcrumbItems} />
         
-        <FadeIn duration={0.5} className="max-w-3xl mx-auto">
-          <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-gray-900">Care Needs Assessment</h1>
-            <p className="mt-2 text-gray-600">
-              Select all care needs that apply to help us match you with the right care providers
-            </p>
-          </div>
-
-          <div className="space-y-8">
-            {careNeeds.map((categoryGroup, groupIndex) => (
-              <SlideIn 
-                key={categoryGroup.category} 
-                direction="up" 
-                delay={groupIndex * 0.1} 
-                duration={0.5}
-              >
-                <Card className="overflow-hidden shadow-sm">
-                  <div className="bg-primary/5 px-6 py-4 border-b">
-                    <h2 className="text-lg font-medium text-primary-800">
-                      {categoryGroup.category}
-                    </h2>
-                  </div>
-                  <div className="p-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {categoryGroup.items.map((need) => (
-                        <div key={need} className="flex items-start space-x-3">
-                          <Checkbox
-                            id={`need-${need}`}
-                            checked={selectedNeeds[need] || false}
-                            onCheckedChange={() => toggleNeed(need)}
-                            className="mt-1"
-                          />
-                          <label
-                            htmlFor={`need-${need}`}
-                            className="text-sm text-gray-700 font-medium cursor-pointer"
-                          >
-                            {need}
-                          </label>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </Card>
-              </SlideIn>
-            ))}
-            
-            <FadeIn delay={0.5} duration={0.5} className="pt-6 flex flex-col items-center">
-              <p className="mb-4 text-sm text-gray-600">
-                {getSelectedCount()} needs selected
+        <SlideIn
+          direction="up"
+          duration={0.5}
+          className="mb-8"
+        >
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+              <h1 className="text-3xl font-bold">Care Needs Assessment</h1>
+              <p className="text-muted-foreground mt-1">
+                Help us understand the specific care needs for your loved one
               </p>
-              <Button
-                onClick={handleSubmit}
-                disabled={loading || getSelectedCount() === 0}
-                className="min-w-[200px]"
-              >
-                {loading ? "Saving..." : "Save Care Needs"}
-              </Button>
-              {getSelectedCount() === 0 && (
-                <p className="mt-2 text-sm text-amber-600">
-                  Please select at least one care need
-                </p>
-              )}
-            </FadeIn>
+            </div>
           </div>
-        </FadeIn>
+        </SlideIn>
+        
+        {isLoading ? (
+          <div className="flex justify-center items-center py-12">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+          </div>
+        ) : (
+          <form onSubmit={handleSubmit}>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div className="space-y-8">
+                <FadeIn duration={0.5} delay={0.1}>
+                  <DailyLivingSection 
+                    formData={formData}
+                    onChange={handleChange}
+                  />
+                </FadeIn>
+                
+                <FadeIn duration={0.5} delay={0.2}>
+                  <CognitiveMemorySection 
+                    formData={formData}
+                    onChange={handleChange}
+                  />
+                </FadeIn>
+                
+                <FadeIn duration={0.5} delay={0.3}>
+                  <HousekeepingSection 
+                    formData={formData}
+                    onChange={handleChange}
+                  />
+                </FadeIn>
+                
+                <FadeIn duration={0.5} delay={0.4}>
+                  <MedicalConditionsSection 
+                    formData={formData}
+                    onChange={handleChange}
+                  />
+                </FadeIn>
+              </div>
+              
+              <div className="space-y-8">
+                <FadeIn duration={0.5} delay={0.2}>
+                  <ScheduleInformationCard 
+                    formData={formData}
+                    onChange={handleChange}
+                  />
+                </FadeIn>
+                
+                <FadeIn duration={0.5} delay={0.3}>
+                  <ShiftPreferencesSection 
+                    formData={formData}
+                    onChange={handleChange}
+                  />
+                </FadeIn>
+                
+                <FadeIn duration={0.5} delay={0.4}>
+                  <EmergencySection 
+                    formData={formData}
+                    onChange={handleChange}
+                  />
+                </FadeIn>
+                
+                <FadeIn duration={0.5} delay={0.5}>
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Additional Notes</CardTitle>
+                      <CardDescription>
+                        Share any additional information that might help with care
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <textarea
+                        className="w-full p-2 border rounded-md min-h-[120px]"
+                        placeholder="Any other details or special instructions..."
+                        value={formData.additional_notes || ''}
+                        onChange={(e) => handleChange('additional_notes', e.target.value)}
+                      ></textarea>
+                    </CardContent>
+                  </Card>
+                </FadeIn>
+              </div>
+            </div>
+            
+            <div className="flex justify-end mt-8 space-x-4">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => navigate('/dashboard/family')}
+              >
+                Cancel
+              </Button>
+              <Button 
+                type="submit"
+                disabled={isSaving}
+              >
+                {isSaving ? 'Saving...' : 'Save Care Needs'}
+              </Button>
+            </div>
+          </form>
+        )}
       </div>
     </div>
   );

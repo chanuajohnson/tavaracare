@@ -9,8 +9,48 @@ import { useParams, Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
-import { SlideIn, FadeIn } from "@/components/framer";
-// Other imports remain unchanged
+import { FadeIn, SlideIn } from "@/components/framer";
+
+// Type definition for our form data
+interface StoryFormData {
+  name: string;
+  nickname?: string;
+  birthplace?: string;
+  occupation?: string;
+  hobbies?: string;
+  music?: string;
+  foods?: string;
+  family?: string;
+  achievements?: string;
+  routines?: string;
+  communication?: string;
+  photos: string[];
+}
+
+// Type definition for database care recipient profile
+interface CareRecipientProfile {
+  id: string;
+  user_id: string;
+  full_name: string;
+  birth_year: string;
+  career_fields: string[];
+  hobbies_interests: string[];
+  personality_traits: string[];
+  challenges: string[];
+  daily_routines: string;
+  communication_preferences?: string;
+  cultural_preferences?: string;
+  family_social_info?: string;
+  joyful_things?: string;
+  life_story?: string;
+  notable_events?: string;
+  sensitivities?: string;
+  specific_requests?: string;
+  unique_facts?: string;
+  caregiver_personality?: string[];
+  created_at?: string;
+  last_updated?: string;
+}
 
 const FamilyStoryPage = () => {
   const { id } = useParams();
@@ -21,7 +61,7 @@ const FamilyStoryPage = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<StoryFormData>({
     name: '',
     nickname: '',
     birthplace: '',
@@ -71,19 +111,21 @@ const FamilyStoryPage = () => {
       if (error) throw error;
       
       if (data) {
+        // Map from database fields to our form fields
+        const profile = data as CareRecipientProfile;
         setFormData({
-          name: data.full_name || '',
-          nickname: data.nickname || '',
-          birthplace: data.birthplace || '',
-          occupation: data.occupation || '',
-          hobbies: data.hobbies || '',
-          music: data.favorite_music || '',
-          foods: data.favorite_foods || '',
-          family: data.family_info || '',
-          achievements: data.achievements || '',
-          routines: data.daily_routines || '',
-          communication: data.communication_preferences || '',
-          photos: data.photos || []
+          name: profile.full_name || '',
+          nickname: profile.unique_facts || '',
+          birthplace: profile.birth_year || '', // Using birth_year as birthplace
+          occupation: profile.career_fields?.join(', ') || '',
+          hobbies: profile.hobbies_interests?.join(', ') || '',
+          music: profile.joyful_things || '',
+          foods: profile.cultural_preferences || '',
+          family: profile.family_social_info || '',
+          achievements: profile.notable_events || '',
+          routines: profile.daily_routines || '',
+          communication: profile.communication_preferences || '',
+          photos: [] // Photos are not currently in the schema
         });
       }
     } catch (error) {
@@ -110,21 +152,23 @@ const FamilyStoryPage = () => {
     
     setIsSaving(true);
     try {
+      // Map form fields to database fields
       const storyData = {
         user_id: user.id,
         full_name: formData.name,
-        nickname: formData.nickname,
-        birthplace: formData.birthplace,
-        occupation: formData.occupation,
-        hobbies: formData.hobbies,
-        favorite_music: formData.music,
-        favorite_foods: formData.foods,
-        family_info: formData.family,
-        achievements: formData.achievements,
+        birth_year: formData.birthplace, // Using birthplace as birth_year
+        career_fields: formData.occupation ? [formData.occupation] : [],
+        hobbies_interests: formData.hobbies ? [formData.hobbies] : [],
+        joyful_things: formData.music,
+        cultural_preferences: formData.foods,
+        family_social_info: formData.family,
+        notable_events: formData.achievements,
         daily_routines: formData.routines,
         communication_preferences: formData.communication,
-        photos: formData.photos,
-        updated_at: new Date().toISOString()
+        unique_facts: formData.nickname,
+        // Legacy field mappings (not directly mapped)
+        personality_traits: [],
+        challenges: [],
       };
       
       let result;
@@ -132,10 +176,7 @@ const FamilyStoryPage = () => {
       if (isNew) {
         result = await supabase
           .from('care_recipient_profiles')
-          .insert([{
-            ...storyData,
-            created_at: new Date().toISOString()
-          }])
+          .insert([storyData])
           .select();
       } else {
         result = await supabase

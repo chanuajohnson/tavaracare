@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { Button } from "@/components/ui/button";
@@ -8,15 +9,39 @@ import { useAuth } from "@/components/providers/AuthProvider";
 import { supabase } from "@/lib/supabase";
 import { FadeIn, SlideIn } from "@/components/framer";
 
+// Define profile interface to match expected structure
+interface ProfessionalProfile {
+  first_name?: string;
+  last_name?: string;
+  bio?: string;
+  years_of_experience?: string;
+  certifications?: string[];
+  specialties?: string[];
+  availability?: string[];
+  hourly_rate?: string;
+  profile_complete?: boolean;
+}
+
+// Define the availability structure
+interface Availability {
+  monday: { available: boolean; hours: string[] };
+  tuesday: { available: boolean; hours: string[] };
+  wednesday: { available: boolean; hours: string[] };
+  thursday: { available: boolean; hours: string[] };
+  friday: { available: boolean; hours: string[] };
+  saturday: { available: boolean; hours: string[] };
+  sunday: { available: boolean; hours: string[] };
+}
+
 const ProfessionalProfileHub = () => {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState("profile");
   const [loading, setLoading] = useState(false);
-  const [profile, setProfile] = useState({
+  const [profile, setProfile] = useState<ProfessionalProfile & { availability: Availability }>({
     first_name: "",
     last_name: "",
     bio: "",
-    years_experience: "",
+    years_of_experience: "",
     specialties: [],
     certifications: [],
     availability: {
@@ -54,25 +79,70 @@ const ProfessionalProfileHub = () => {
     
     setLoading(true);
     try {
+      // Use the 'profiles' table instead of 'caregiver_profiles'
       const { data, error } = await supabase
-        .from('caregiver_profiles')
+        .from('profiles')
         .select('*')
-        .eq('user_id', user.id)
+        .eq('id', user.id)
         .single();
       
       if (error) throw error;
       
       if (data) {
-        setProfile({
-          ...profile,
-          ...data,
-        });
+        // Map database fields to our profile structure
+        const formattedProfile = {
+          first_name: data.first_name || "",
+          last_name: data.last_name || "",
+          bio: data.bio || "",
+          years_of_experience: data.years_of_experience || "",
+          specialties: data.care_services || [], // Map care_services to specialties
+          certifications: data.certifications || [],
+          hourly_rate: data.hourly_rate || "",
+          profile_complete: Boolean(data.first_name && data.last_name),
+          availability: processAvailability(data.availability)
+        };
+        
+        setProfile(formattedProfile);
       }
     } catch (error) {
       console.error('Error fetching profile:', error);
     } finally {
       setLoading(false);
     }
+  };
+  
+  // Helper function to process availability data from database
+  const processAvailability = (availabilityData?: string[]): Availability => {
+    const defaultAvailability = {
+      monday: { available: false, hours: [] },
+      tuesday: { available: false, hours: [] },
+      wednesday: { available: false, hours: [] },
+      thursday: { available: false, hours: [] },
+      friday: { available: false, hours: [] },
+      saturday: { available: false, hours: [] },
+      sunday: { available: false, hours: [] },
+    };
+    
+    if (!availabilityData || !Array.isArray(availabilityData)) {
+      return defaultAvailability;
+    }
+    
+    // Simple parsing of availability data
+    // In a real implementation, this would be more sophisticated
+    const result = {...defaultAvailability};
+    
+    availabilityData.forEach(day => {
+      const lowerDay = day.toLowerCase();
+      if (lowerDay.includes('monday')) result.monday.available = true;
+      if (lowerDay.includes('tuesday')) result.tuesday.available = true;
+      if (lowerDay.includes('wednesday')) result.wednesday.available = true;
+      if (lowerDay.includes('thursday')) result.thursday.available = true;
+      if (lowerDay.includes('friday')) result.friday.available = true;
+      if (lowerDay.includes('saturday')) result.saturday.available = true;
+      if (lowerDay.includes('sunday')) result.sunday.available = true;
+    });
+    
+    return result;
   };
 
   return (
@@ -190,7 +260,7 @@ const ProfessionalProfileHub = () => {
                       <div>
                         <label className="text-sm font-medium">Years of Experience</label>
                         <div className="mt-1 p-2 border rounded-md">
-                          {profile.years_experience || "Not provided"}
+                          {profile.years_of_experience || "Not provided"}
                         </div>
                       </div>
                       
