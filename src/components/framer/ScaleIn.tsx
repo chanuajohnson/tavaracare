@@ -21,7 +21,10 @@ export const ScaleIn = ({
   const animationStyle = {
     opacity: 0,
     transform: `scale(${initialScale})`,
-    animation: `scaleIn ${duration}s ease-out forwards`,
+    animationName: 'scaleIn',
+    animationDuration: `${duration}s`,
+    animationTimingFunction: 'ease-out',
+    animationFillMode: 'forwards',
     animationDelay: `${delay}s`,
   };
   

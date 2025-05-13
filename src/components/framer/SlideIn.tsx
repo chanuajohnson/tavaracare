@@ -20,7 +20,28 @@ export const SlideIn = ({
   duration = 0.5,
   ...props
 }: SlideInProps) => {
-  const getInitialTransform = () => {
+  // Map direction to the correct animation name
+  const getAnimationName = () => {
+    switch (direction) {
+      case "left": return "slideInLeft";
+      case "right": return "slideInRight";
+      case "up": return "slideInUp";
+      case "down": return "slideInDown";
+      default: return "slideInUp";
+    }
+  };
+  
+  const animationStyle = {
+    opacity: 0,
+    transform: getInitialTransform(),
+    animationName: getAnimationName(),
+    animationDuration: `${duration}s`,
+    animationTimingFunction: 'ease-out',
+    animationFillMode: 'forwards',
+    animationDelay: `${delay}s`,
+  };
+  
+  function getInitialTransform() {
     switch (direction) {
       case "left": return `translateX(-${distance}px)`;
       case "right": return `translateX(${distance}px)`;
@@ -28,14 +49,7 @@ export const SlideIn = ({
       case "down": return `translateY(${distance}px)`;
       default: return `translateY(${distance}px)`;
     }
-  };
-  
-  const animationStyle = {
-    opacity: 0,
-    transform: getInitialTransform(),
-    animation: `slideIn${direction.charAt(0).toUpperCase() + direction.slice(1)} ${duration}s ease-out forwards`,
-    animationDelay: `${delay}s`,
-  };
+  }
   
   return (
     <div 

@@ -18,7 +18,10 @@ export const FadeIn = ({
 }: FadeInProps) => {
   const animationStyle = {
     opacity: 0,
-    animation: `fadeIn ${duration}s ease-out forwards`,
+    animationName: 'fadeIn',
+    animationDuration: `${duration}s`,
+    animationTimingFunction: 'ease-out',
+    animationFillMode: 'forwards',
     animationDelay: `${delay}s`,
   };
   

@@ -3,6 +3,7 @@ import React from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App.tsx';
 import './index.css';
+import './components/framer/animations.css'; // Import animations CSS
 import { ensureReact } from './utils/reactErrorHandler.ts';
 
 // Ensure React is available globally before any other imports
