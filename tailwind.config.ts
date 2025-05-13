@@ -148,6 +148,11 @@ export default {
         "slide-out-to-right": {
           "0%": { transform: "translateX(0)" },
           "100%": { transform: "translateX(100%)" },
+        },
+        "typingPulse": {
+          "0%": { transform: "scale(1)", opacity: "1" },
+          "50%": { transform: "scale(1.2)", opacity: "0.7" },
+          "100%": { transform: "scale(1)", opacity: "1" },
         }
       },
       animation: {
@@ -169,6 +174,7 @@ export default {
         "slide-out-to-bottom": "slide-out-to-bottom 0.3s ease-out",
         "slide-out-to-left": "slide-out-to-left 0.3s ease-out",
         "slide-out-to-right": "slide-out-to-right 0.3s ease-out",
+        "typing-pulse": "typingPulse 1s infinite",
       },
     },
   },

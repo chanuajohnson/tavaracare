@@ -2,6 +2,8 @@
 import { useState } from 'react';
 import { FadeIn } from '@/components/framer';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { ChevronDown, ChevronUp } from 'lucide-react';
 
 export const VisionSection = () => {
   const [isExpanded, setIsExpanded] = useState(false);
@@ -24,9 +26,29 @@ export const VisionSection = () => {
               className={`overflow-hidden transition-all duration-500 ${isExpanded ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'}`}
             >
               <div className="text-primary-600 space-y-4">
-                {/* Expanded content would go here */}
+                <p>We are committed to creating a caregiving ecosystem that brings dignity, respect, and professionalism to all aspects of care work while ensuring families have access to reliable support during their most vulnerable moments.</p>
+                <p>By connecting trained caregivers with families in need, we are building a sustainable model of care delivery that benefits our entire community and reinforces the critical value of care work in society.</p>
               </div>
             </div>
+
+            <Button
+              variant="ghost"
+              size="sm"
+              className="mt-4 text-primary-600 hover:text-primary-800 hover:bg-primary-100"
+              onClick={() => setIsExpanded(!isExpanded)}
+            >
+              {isExpanded ? (
+                <>
+                  <span>Read less</span>
+                  <ChevronUp className="ml-1 h-4 w-4" />
+                </>
+              ) : (
+                <>
+                  <span>Read more</span>
+                  <ChevronDown className="ml-1 h-4 w-4" />
+                </>
+              )}
+            </Button>
           </div>
         </CardContent>
       </Card>

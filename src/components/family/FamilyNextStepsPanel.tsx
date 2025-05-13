@@ -1,6 +1,6 @@
-import { motion } from "framer-motion";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { useState, useEffect } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { 
   LazyCheckCircle2, 
   LazyCircle, 
@@ -14,13 +14,13 @@ import {
 } from "@/utils/lazyIcons";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/components/providers/AuthProvider";
-import { useState, useEffect } from "react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { SubscriptionFeatureLink } from "@/components/subscription/SubscriptionFeatureLink";
 import { supabase } from "@/lib/supabase";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { CarePlanMetadata, OnboardingProgress } from "@/types/profile";
+import { FadeIn } from '@/components/framer';
 
 // Define the types for step status
 type StepStatus = 'completed' | 'in_progress' | 'pending_admin' | 'scheduled' | 'not_started';
@@ -358,11 +358,10 @@ export const FamilyNextStepsPanel = () => {
 
   console.log("FamilyNextStepsPanel rendering successfully with steps:", visibleSteps);
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
+    <FadeIn
       className="mb-8"
+      delay={0.2}
+      duration={0.5}
     >
       <Card className="border-l-4 border-l-primary">
         <CardHeader className="pb-2">
@@ -477,6 +476,6 @@ export const FamilyNextStepsPanel = () => {
           </div>
         </CardContent>
       </Card>
-    </motion.div>
+    </FadeIn>
   );
 };

@@ -1,55 +1,37 @@
 
 import React from 'react';
-import { motion } from 'framer-motion';
 
 export const TypingIndicator: React.FC = () => {
+  const dotStyle = {
+    animation: 'typingPulse 1s infinite',
+  };
+
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      className="flex items-center space-x-1 p-2 rounded-md bg-muted max-w-fit"
+    <div 
+      className="flex items-center space-x-1 p-2 rounded-md bg-muted max-w-fit opacity-0 animate-fade-in"
+      style={{ animationDuration: '300ms', animationFillMode: 'forwards' }}
     >
-      <motion.div
+      <div 
         className="w-2 h-2 rounded-full bg-gray-400"
-        animate={{
-          scale: [1, 1.2, 1],
-          opacity: [1, 0.7, 1],
-        }}
-        transition={{
-          duration: 1,
-          repeat: Infinity,
-          repeatType: "loop",
-          times: [0, 0.5, 1],
+        style={{ 
+          ...dotStyle, 
+          animationDelay: '0ms' 
         }}
       />
-      <motion.div
+      <div 
         className="w-2 h-2 rounded-full bg-gray-400"
-        animate={{
-          scale: [1, 1.2, 1],
-          opacity: [1, 0.7, 1],
-        }}
-        transition={{
-          duration: 1,
-          repeat: Infinity,
-          repeatType: "loop",
-          delay: 0.3,
-          times: [0, 0.5, 1],
+        style={{ 
+          ...dotStyle, 
+          animationDelay: '300ms' 
         }}
       />
-      <motion.div
+      <div 
         className="w-2 h-2 rounded-full bg-gray-400"
-        animate={{
-          scale: [1, 1.2, 1],
-          opacity: [1, 0.7, 1],
-        }}
-        transition={{
-          duration: 1,
-          repeat: Infinity,
-          repeatType: "loop",
-          delay: 0.6,
-          times: [0, 0.5, 1],
+        style={{ 
+          ...dotStyle, 
+          animationDelay: '600ms' 
         }}
       />
-    </motion.div>
+    </div>
   );
 };

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -141,16 +140,27 @@ const FamilyCareNeedsPage: React.FC = () => {
       
       // Prepare onboarding progress data
       const currentProgress = profileData?.onboarding_progress || {};
-      let updatedProgress: OnboardingProgress = {};
+      let updatedProgress: OnboardingProgress = {
+        completedSteps: {}
+      };
       
       if (typeof currentProgress === 'object') {
+        // Handle the case where onboarding_progress is already an object
+        const existingCompletedSteps = 
+          currentProgress && 
+          typeof currentProgress === 'object' && 
+          'completedSteps' in currentProgress && 
+          currentProgress.completedSteps ? 
+            currentProgress.completedSteps : 
+            {};
+            
         updatedProgress = {
-          ...currentProgress,
+          ...currentProgress as object,
           completedSteps: {
-            ...(currentProgress.completedSteps || {}),
+            ...existingCompletedSteps,
             care_needs: true
           }
-        };
+        } as OnboardingProgress;
       } else {
         // Handle case where onboarding_progress is a string or other type
         updatedProgress = {
