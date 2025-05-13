@@ -19,8 +19,14 @@ export const CareNeedsSection: React.FC<CareNeedsSectionProps> = ({ profileData 
         : profileData.onboarding_progress)
     : { completedSteps: {} };
     
-  // Check if care_needs step has been completed
-  const careNeedsCompleted = onboardingProgress?.completedSteps?.care_needs;
+  // Safely check for care_needs completion status
+  const careNeedsCompleted = 
+    typeof onboardingProgress === 'object' && 
+    onboardingProgress !== null &&
+    'completedSteps' in onboardingProgress && 
+    onboardingProgress.completedSteps && 
+    'care_needs' in onboardingProgress.completedSteps &&
+    !!onboardingProgress.completedSteps.care_needs;
   
   if (profileData && !careNeedsCompleted) {
     return (
