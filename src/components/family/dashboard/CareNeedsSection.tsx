@@ -24,7 +24,8 @@ export const CareNeedsSection: React.FC<CareNeedsSectionProps> = ({ profileData 
     typeof onboardingProgress === 'object' && 
     onboardingProgress !== null &&
     'completedSteps' in onboardingProgress && 
-    onboardingProgress.completedSteps && 
+    typeof onboardingProgress.completedSteps === 'object' &&
+    onboardingProgress.completedSteps !== null &&
     'care_needs' in onboardingProgress.completedSteps &&
     !!onboardingProgress.completedSteps.care_needs;
   
