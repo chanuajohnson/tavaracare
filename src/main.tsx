@@ -6,9 +6,8 @@ import './index.css';
 import './components/framer/animations.css'; // Import animations CSS
 import { ensureReact } from './utils/reactErrorHandler.ts';
 
-// Ensure React is available globally before any other imports
+// Set React globally to ensure it's available early
 if (typeof window !== 'undefined') {
-  // Set React globally to ensure it's available early
   window.React = React;
   
   // Flag that React is initialized
@@ -52,7 +51,7 @@ const mountApp = () => {
   }
 };
 
-// Use a small delay to ensure DOM is fully ready
+// Wait for DOM to be fully ready
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', mountApp);
 } else {

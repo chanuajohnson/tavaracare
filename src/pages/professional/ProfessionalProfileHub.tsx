@@ -33,16 +33,20 @@ interface ProfessionalProfile {
   years_of_experience?: string;
   certifications?: string[];
   specialties?: string[];
-  availability?: string[];  // Keep as string[] to match database schema
   hourly_rate?: string;
   profile_complete?: boolean;
+}
+
+// Combined interface for component state
+interface ProfileState extends ProfessionalProfile {
+  availability: Availability;
 }
 
 const ProfessionalProfileHub = () => {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState("profile");
   const [loading, setLoading] = useState(false);
-  const [profile, setProfile] = useState<ProfessionalProfile & { availability: Availability }>({
+  const [profile, setProfile] = useState<ProfileState>({
     first_name: "",
     last_name: "",
     bio: "",
@@ -95,7 +99,7 @@ const ProfessionalProfileHub = () => {
       
       if (data) {
         // Map database fields to our profile structure
-        const formattedProfile = {
+        const formattedProfile: ProfileState = {
           first_name: data.first_name || "",
           last_name: data.last_name || "",
           bio: data.bio || "",
@@ -341,11 +345,11 @@ const ProfessionalProfileHub = () => {
                               </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-200">
-                              {Object.entries(profile.availability).map(([day, data]) => (
+                              {Object.entries(profile.availability).map(([day, dayData]) => (
                                 <tr key={day}>
                                   <td className="px-4 py-2 whitespace-nowrap capitalize">{day}</td>
                                   <td className="px-4 py-2 whitespace-nowrap">
-                                    {data.available ? (
+                                    {dayData.available ? (
                                       <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs">
                                         Available
                                       </span>
@@ -356,8 +360,8 @@ const ProfessionalProfileHub = () => {
                                     )}
                                   </td>
                                   <td className="px-4 py-2">
-                                    {data.available && data.hours && data.hours.length > 0 ? (
-                                      data.hours.join(", ")
+                                    {dayData.available && dayData.hours && dayData.hours.length > 0 ? (
+                                      dayData.hours.join(", ")
                                     ) : (
                                       <span className="text-gray-500 text-sm">-</span>
                                     )}

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -18,12 +17,90 @@ import MedicalConditionsSection from "@/components/careneeds/MedicalConditionsSe
 import ScheduleInformationCard from "@/components/careneeds/ScheduleInformationCard";
 import ShiftPreferencesSection from "@/components/careneeds/ShiftPreferencesSection";
 
+// Import the type definitions
+import {
+  CareNeedsSectionProps,
+  DailyLivingSectionProps,
+  CognitiveMemorySectionProps,
+  HousekeepingSectionProps,
+  MedicalConditionsSectionProps,
+  ScheduleInformationCardProps,
+  ShiftPreferencesSectionProps,
+  EmergencySectionProps
+} from '@/types/careNeedsTypes';
+
+// Explicitly cast the imported components to accept our props types
+const TypedDailyLivingSection = DailyLivingSection as React.ComponentType<CareNeedsSectionProps>;
+const TypedCognitiveMemorySection = CognitiveMemorySection as React.ComponentType<CareNeedsSectionProps>;
+const TypedHousekeepingSection = HousekeepingSection as React.ComponentType<CareNeedsSectionProps>;
+const TypedMedicalConditionsSection = MedicalConditionsSection as React.ComponentType<CareNeedsSectionProps>;
+const TypedScheduleInformationCard = ScheduleInformationCard as React.ComponentType<CareNeedsSectionProps>;
+const TypedShiftPreferencesSection = ShiftPreferencesSection as React.ComponentType<CareNeedsSectionProps>;
+const TypedEmergencySection = EmergencySection as React.ComponentType<CareNeedsSectionProps>;
+
+interface CareNeedsFormData {
+  // Daily Living
+  assistance_bathing: boolean;
+  assistance_dressing: boolean;
+  assistance_feeding: boolean;
+  assistance_mobility: boolean;
+  assistance_toileting: boolean;
+  assistance_medication: boolean;
+  assistance_oral_care: boolean;
+  assistance_naps: boolean;
+  
+  // Cognitive & Memory
+  memory_reminders: boolean;
+  wandering_prevention: boolean;
+  fall_monitoring: boolean;
+  gentle_engagement: boolean;
+  assistance_companionship: boolean;
+  dementia_redirection: boolean;
+  
+  // Housekeeping
+  meal_prep: boolean;
+  tidy_room: boolean;
+  laundry_support: boolean;
+  grocery_runs: boolean;
+  
+  // Medical
+  equipment_use: boolean;
+  vitals_check: boolean;
+  
+  // Additional Services
+  escort_to_appointments: boolean;
+  fresh_air_walks: boolean;
+  
+  // Communication & Emergency
+  daily_report_required: boolean;
+  communication_method: string;
+  emergency_contact_name: string;
+  emergency_contact_phone: string;
+  emergency_contact_relationship: string;
+  
+  // Schedule
+  plan_type: string;
+  preferred_time_start: string;
+  preferred_time_end: string;
+  preferred_days: string[];
+  weekday_coverage: string;
+  weekend_coverage: string;
+  weekend_schedule_type: string;
+  
+  // Medical Conditions
+  diagnosed_conditions: string;
+  cognitive_notes: string;
+  
+  // Additional Notes
+  additional_notes: string;
+}
+
 const FamilyCareNeedsPage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<CareNeedsFormData>({
     // Daily Living
     assistance_bathing: false,
     assistance_dressing: false,
@@ -238,28 +315,28 @@ const FamilyCareNeedsPage = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               <div className="space-y-8">
                 <FadeIn duration={0.5} delay={0.1}>
-                  <DailyLivingSection 
+                  <TypedDailyLivingSection 
                     formData={formData}
                     onChange={handleChange}
                   />
                 </FadeIn>
                 
                 <FadeIn duration={0.5} delay={0.2}>
-                  <CognitiveMemorySection 
+                  <TypedCognitiveMemorySection 
                     formData={formData}
                     onChange={handleChange}
                   />
                 </FadeIn>
                 
                 <FadeIn duration={0.5} delay={0.3}>
-                  <HousekeepingSection 
+                  <TypedHousekeepingSection 
                     formData={formData}
                     onChange={handleChange}
                   />
                 </FadeIn>
                 
                 <FadeIn duration={0.5} delay={0.4}>
-                  <MedicalConditionsSection 
+                  <TypedMedicalConditionsSection 
                     formData={formData}
                     onChange={handleChange}
                   />
@@ -268,21 +345,21 @@ const FamilyCareNeedsPage = () => {
               
               <div className="space-y-8">
                 <FadeIn duration={0.5} delay={0.2}>
-                  <ScheduleInformationCard 
+                  <TypedScheduleInformationCard 
                     formData={formData}
                     onChange={handleChange}
                   />
                 </FadeIn>
                 
                 <FadeIn duration={0.5} delay={0.3}>
-                  <ShiftPreferencesSection 
+                  <TypedShiftPreferencesSection 
                     formData={formData}
                     onChange={handleChange}
                   />
                 </FadeIn>
                 
                 <FadeIn duration={0.5} delay={0.4}>
-                  <EmergencySection 
+                  <TypedEmergencySection 
                     formData={formData}
                     onChange={handleChange}
                   />
