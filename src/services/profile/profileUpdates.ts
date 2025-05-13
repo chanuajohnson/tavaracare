@@ -1,5 +1,6 @@
 
 import { supabase } from "@/lib/supabase";
+import { OnboardingProgress } from "@/types/profile";
 
 /**
  * Update the onboarding progress for a user's profile
@@ -27,13 +28,28 @@ export const updateProfileOnboardingProgress = async (
     }
 
     // Get existing onboarding progress or initialize a new object
-    const existingProgress = profile?.onboarding_progress || {};
+    let existingProgress: OnboardingProgress = {};
     
-    // Update the completed steps
-    const updatedProgress = {
+    if (profile?.onboarding_progress) {
+      // Handle both string and object formats
+      if (typeof profile.onboarding_progress === 'string') {
+        try {
+          existingProgress = JSON.parse(profile.onboarding_progress);
+        } catch (e) {
+          console.error("Error parsing onboarding_progress string:", e);
+          existingProgress = {};
+        }
+      } else if (typeof profile.onboarding_progress === 'object') {
+        existingProgress = profile.onboarding_progress as OnboardingProgress;
+      }
+    }
+    
+    // Safely update the completed steps
+    const completedSteps = existingProgress.completedSteps || {};
+    const updatedProgress: OnboardingProgress = {
       ...existingProgress,
       completedSteps: {
-        ...(existingProgress.completedSteps || {}),
+        ...completedSteps,
         [step]: completed
       }
     };

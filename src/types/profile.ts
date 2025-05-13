@@ -64,6 +64,7 @@ export interface UserProfile {
   budgetPreferences?: string;
   caregiverPreferences?: string;
   additionalNotes?: string;
+  care_needs?: string[]; // Add care_needs property
   
   // Professional-specific fields
   professionalType?: string;
@@ -169,3 +170,4 @@ export interface UserProfile {
   provides_transportation?: boolean;
   handles_medical_equipment?: boolean;
 }
+
