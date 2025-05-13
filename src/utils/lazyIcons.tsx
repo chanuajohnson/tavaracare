@@ -1,5 +1,5 @@
 
-import React, { lazy, Suspense, ComponentType, SVGProps, ReactElement, FC } from 'react';
+import React, { lazy, Suspense, ComponentType, SVGProps, ReactElement, FC, Ref } from 'react';
 
 // Type for the icon props that all Lucide icons accept
 export type LucideIconProps = SVGProps<SVGSVGElement> & { 
@@ -19,24 +19,26 @@ export function createLazyIcon(iconName: string): FC<LucideIconProps> {
         console.error(`Icon "${iconName}" not found in lucide-react`);
         return { 
           default: (props: LucideIconProps) => {
+            // Only pass safe HTML attributes to span element
             const { size, ...otherProps } = props;
-            // Only pass HTML attributes to span element
-            const spanProps = { style: { width: size || 24, height: size || 24, display: 'inline-block' } };
+            const spanProps = { 
+              style: { width: size || 24, height: size || 24, display: 'inline-block' },
+              className: props.className
+            };
             return <span {...spanProps} />;
           }
         };
       }
+      
       // Return the icon as a function component
-      const Icon = module[iconName as keyof typeof module] as ComponentType<LucideIconProps>;
       return { 
-        default: (props: LucideIconProps) => <Icon {...props} /> 
+        default: module[iconName as keyof typeof module] as ComponentType<LucideIconProps>
       };
     })
   );
 
   // Return a component that renders the lazy-loaded icon in a Suspense
   const IconComponent: FC<LucideIconProps> = (props) => {
-    // Extract props that are safe to pass to the span fallback
     const { size, className } = props;
     const fallbackStyle = {
       width: size || 24,
