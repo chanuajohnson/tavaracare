@@ -1,765 +1,594 @@
-
-import { useState } from "react";
+import React, { useState, useEffect } from 'react';
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-import * as z from "zod";
-import { motion } from "framer-motion";
-import { toast } from "sonner";
-import { useNavigate } from "react-router-dom";
-import { supabase } from "@/lib/supabase";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsList, TabsContent, TabsTrigger } from "@/components/ui/tabs";
+import { Heart, PenLine, ImageIcon, Clock, ArrowRight, BookText } from "lucide-react";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/components/providers/AuthProvider";
-import { BookOpen, Sparkles, Heart, Award, Calendar, Briefcase, Users, Brain, LifeBuoy } from "lucide-react";
-
-const personalityTraits = [
-  { id: "meticulous", label: "Meticulous" },
-  { id: "creative", label: "Creative" },
-  { id: "social", label: "Social" },
-  { id: "reserved", label: "Reserved" },
-  { id: "independent", label: "Independent" },
-  { id: "nurturing", label: "Nurturing" },
-  { id: "analytical", label: "Analytical" },
-  { id: "adventurous", label: "Adventurous" },
-  { id: "traditional", label: "Traditional" },
-  { id: "adaptable", label: "Adaptable" },
-];
-
-const hobbiesInterests = [
-  { id: "reading", label: "Reading" },
-  { id: "music", label: "Music" },
-  { id: "gardening", label: "Gardening" },
-  { id: "puzzles", label: "Puzzles" },
-  { id: "technology", label: "Technology" },
-  { id: "cooking", label: "Cooking" },
-  { id: "arts_crafts", label: "Arts & Crafts" },
-  { id: "sports", label: "Sports" },
-  { id: "travel", label: "Travel" },
-  { id: "movies", label: "Movies & TV" },
-  { id: "nature", label: "Nature & Outdoors" },
-  { id: "collecting", label: "Collecting" },
-];
-
-const careerFields = [
-  { id: "engineering", label: "Engineering" },
-  { id: "education", label: "Education" },
-  { id: "medicine", label: "Medicine & Healthcare" },
-  { id: "business", label: "Business & Finance" },
-  { id: "arts", label: "Arts & Entertainment" },
-  { id: "service", label: "Service Industry" },
-  { id: "government", label: "Government & Public Service" },
-  { id: "science", label: "Science & Research" },
-  { id: "trades", label: "Skilled Trades" },
-  { id: "technology", label: "Technology" },
-  { id: "homemaker", label: "Homemaker" },
-];
-
-const caregiverPersonalities = [
-  { id: "empathetic", label: "Empathetic & Nurturing" },
-  { id: "structured", label: "Structured & Organized" },
-  { id: "talkative", label: "Talkative & Engaging" },
-  { id: "quiet", label: "Quiet & Calming" },
-  { id: "patient", label: "Patient & Attentive" },
-  { id: "energetic", label: "Energetic & Motivating" },
-  { id: "adaptable", label: "Adaptable & Flexible" },
-  { id: "proactive", label: "Proactive Problem Solver" },
-];
-
-const challenges = [
-  { id: "memory_loss", label: "Memory Loss" },
-  { id: "mobility", label: "Mobility Issues" },
-  { id: "speech", label: "Speech Difficulties" },
-  { id: "vision", label: "Vision Impairment" },
-  { id: "hearing", label: "Hearing Impairment" },
-  { id: "isolation", label: "Social Isolation" },
-  { id: "emotional", label: "Emotional Regulation" },
-  { id: "cognitive", label: "Cognitive Processing" },
-  { id: "sleep", label: "Sleep Disruption" },
-  { id: "eating", label: "Eating/Nutrition Challenges" },
-];
-
-// Generate birth year options (1920 to current year - 18)
-const currentYear = new Date().getFullYear();
-const birthYears = Array.from({ length: currentYear - 1920 - 18 + 1 }, (_, i) => currentYear - 18 - i);
-
-// Form schema using zod
-const formSchema = z.object({
-  fullName: z.string().min(2, { message: "Full name must be at least 2 characters." }),
-  birthYear: z.string(),
-  personalityTraits: z.array(z.string()).min(1, { message: "Please select at least one personality trait." }),
-  hobbiesInterests: z.array(z.string()),
-  notableEvents: z.string(),
-  careerFields: z.array(z.string()),
-  familySocialInfo: z.string(),
-  caregiverPersonality: z.array(z.string()).min(1, { message: "Please select at least one caregiver personality type." }),
-  culturalPreferences: z.string(),
-  dailyRoutines: z.string(),
-  challenges: z.array(z.string()),
-  sensitivities: z.string(),
-  specificRequests: z.string(),
-  lifeStory: z.string().min(10, { message: "Please share a brief story about your loved one." }),
-  joyfulThings: z.string(),
-  uniqueFacts: z.string(),
-});
-
-type FormValues = z.infer<typeof formSchema>;
+import { supabase } from "@/lib/supabase";
+import { toast } from "sonner";
+import { SlideIn, FadeIn } from "@/components/framer";
+// Other imports remain unchanged
 
 const FamilyStoryPage = () => {
-  const { user } = useAuth();
+  const { id } = useParams();
+  const isNew = !id;
   const navigate = useNavigate();
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { user } = useAuth();
+  const [isPreview, setIsPreview] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  
+  const [formData, setFormData] = useState({
+    name: '',
+    nickname: '',
+    birthplace: '',
+    occupation: '',
+    hobbies: '',
+    music: '',
+    foods: '',
+    family: '',
+    achievements: '',
+    routines: '',
+    communication: '',
+    photos: []
+  });
   
   const breadcrumbItems = [
-    { label: "Family Dashboard", path: "/dashboard/family" },
-    { label: "Tell Their Story", path: "/family/story" },
-  ];
-
-  const form = useForm<FormValues>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      fullName: "",
-      birthYear: "1950",
-      personalityTraits: [],
-      hobbiesInterests: [],
-      notableEvents: "",
-      careerFields: [],
-      familySocialInfo: "",
-      caregiverPersonality: [],
-      culturalPreferences: "",
-      dailyRoutines: "",
-      challenges: [],
-      sensitivities: "",
-      specificRequests: "",
-      lifeStory: "",
-      joyfulThings: "",
-      uniqueFacts: "",
+    {
+      label: "Dashboard",
+      path: "/dashboard/family",
     },
-  });
-
-  const onSubmit = async (data: FormValues) => {
-    if (!user) {
-      toast.error("You must be logged in to submit this form");
-      return;
+    {
+      label: "Care Recipient",
+      path: "/family/care-recipient",
+    },
+    {
+      label: isNew ? "Create Story" : "Edit Story",
+      path: isNew ? "/family/story/new" : `/family/story/${id}`,
+    },
+  ];
+  
+  useEffect(() => {
+    if (!isNew && id) {
+      loadStoryData();
     }
-
-    setIsSubmitting(true);
-
+  }, [id]);
+  
+  const loadStoryData = async () => {
+    if (!user) return;
+    
+    setIsLoading(true);
     try {
-      // Save the data to Supabase
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('care_recipient_profiles')
-        .upsert({
-          user_id: user.id,
-          full_name: data.fullName,
-          birth_year: data.birthYear,
-          personality_traits: data.personalityTraits,
-          hobbies_interests: data.hobbiesInterests,
-          notable_events: data.notableEvents,
-          career_fields: data.careerFields,
-          family_social_info: data.familySocialInfo,
-          caregiver_personality: data.caregiverPersonality,
-          cultural_preferences: data.culturalPreferences,
-          daily_routines: data.dailyRoutines,
-          challenges: data.challenges,
-          sensitivities: data.sensitivities,
-          specific_requests: data.specificRequests,
-          life_story: data.lifeStory,
-          joyful_things: data.joyfulThings,
-          unique_facts: data.uniqueFacts,
-          last_updated: new Date().toISOString(),
-        })
-        .select();
-
-      if (error) {
-        throw error;
+        .select('*')
+        .eq('id', id)
+        .single();
+      
+      if (error) throw error;
+      
+      if (data) {
+        setFormData({
+          name: data.full_name || '',
+          nickname: data.nickname || '',
+          birthplace: data.birthplace || '',
+          occupation: data.occupation || '',
+          hobbies: data.hobbies || '',
+          music: data.favorite_music || '',
+          foods: data.favorite_foods || '',
+          family: data.family_info || '',
+          achievements: data.achievements || '',
+          routines: data.daily_routines || '',
+          communication: data.communication_preferences || '',
+          photos: data.photos || []
+        });
       }
-
-      toast.success("Story saved successfully!");
-      navigate("/dashboard/family");
     } catch (error) {
-      console.error("Error saving story:", error);
-      toast.error("Failed to save story. Please try again.");
+      console.error('Error loading story data:', error);
+      toast.error('Failed to load story data');
     } finally {
-      setIsSubmitting(false);
+      setIsLoading(false);
     }
   };
-
+  
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+  
+  const handleSave = async () => {
+    if (!user) {
+      toast.error('You must be logged in to save a story');
+      return;
+    }
+    
+    setIsSaving(true);
+    try {
+      const storyData = {
+        user_id: user.id,
+        full_name: formData.name,
+        nickname: formData.nickname,
+        birthplace: formData.birthplace,
+        occupation: formData.occupation,
+        hobbies: formData.hobbies,
+        favorite_music: formData.music,
+        favorite_foods: formData.foods,
+        family_info: formData.family,
+        achievements: formData.achievements,
+        daily_routines: formData.routines,
+        communication_preferences: formData.communication,
+        photos: formData.photos,
+        updated_at: new Date().toISOString()
+      };
+      
+      let result;
+      
+      if (isNew) {
+        result = await supabase
+          .from('care_recipient_profiles')
+          .insert([{
+            ...storyData,
+            created_at: new Date().toISOString()
+          }])
+          .select();
+      } else {
+        result = await supabase
+          .from('care_recipient_profiles')
+          .update(storyData)
+          .eq('id', id)
+          .select();
+      }
+      
+      if (result.error) throw result.error;
+      
+      // Update onboarding progress
+      if (isNew && user) {
+        const { error: progressError } = await supabase
+          .from('profiles')
+          .update({
+            onboarding_progress: {
+              completedSteps: {
+                care_recipient_story: true
+              }
+            }
+          })
+          .eq('id', user.id);
+        
+        if (progressError) {
+          console.error('Error updating onboarding progress:', progressError);
+        }
+      }
+      
+      toast.success(isNew ? 'Story created successfully!' : 'Story updated successfully!');
+      
+      if (isNew && result.data && result.data[0]) {
+        navigate(`/family/story/${result.data[0].id}`);
+      }
+    } catch (error) {
+      console.error('Error saving story:', error);
+      toast.error('Failed to save story');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+  
+  const togglePreview = () => {
+    setIsPreview(!isPreview);
+  };
+  
   return (
     <div className="min-h-screen bg-background">
       <div className="container px-4 py-8">
         <DashboardHeader breadcrumbItems={breadcrumbItems} />
         
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="max-w-5xl mx-auto"
+        <SlideIn
+          direction="up"
+          duration={0.5}
+          className="mb-8"
         >
-          <div className="bg-gradient-to-r from-blue-50 to-purple-50 p-6 rounded-lg mb-8 border border-primary/10">
-            <h1 className="text-3xl font-bold text-primary mb-2 flex items-center">
-              <BookOpen className="mr-2 h-8 w-8" />
-              Tell Their Story
-            </h1>
-            <p className="text-gray-600 mb-4">
-              Share details about your loved one to help us better understand who they are and how to provide the most personalized care possible.
-            </p>
-            <div className="flex flex-wrap gap-3">
-              {[
-                { icon: <Heart className="h-5 w-5" />, text: "Honor their unique life journey" },
-                { icon: <Sparkles className="h-5 w-5" />, text: "Enhance caregiver matching" },
-                { icon: <Users className="h-5 w-5" />, text: "Build meaningful connections" },
-              ].map((item, index) => (
-                <div key={index} className="bg-white px-3 py-1.5 rounded-full text-sm flex items-center shadow-sm">
-                  {item.icon}
-                  <span className="ml-1.5">{item.text}</span>
-                </div>
-              ))}
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+              <h1 className="text-3xl font-bold">{isNew ? "Create Loved One's Legacy Story" : "Edit Legacy Story"}</h1>
+              <p className="text-muted-foreground mt-1">
+                {isNew 
+                  ? "Create a legacy story to help caregivers connect with your loved one."
+                  : "Edit your loved one's legacy story to keep information up-to-date."}
+              </p>
             </div>
+            
+            {!isNew && !isPreview && (
+              <Button variant="outline" onClick={togglePreview}>
+                <BookText className="h-4 w-4 mr-2" />
+                Preview Story
+              </Button>
+            )}
+            
+            {!isNew && isPreview && (
+              <Button variant="outline" onClick={togglePreview}>
+                <PenLine className="h-4 w-4 mr-2" />
+                Back to Edit
+              </Button>
+            )}
           </div>
+        </SlideIn>
 
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-              {/* Section 1: About Your Loved One */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center text-2xl text-primary">
-                    <Users className="mr-2 h-6 w-6" />
-                    About Your Loved One
-                  </CardTitle>
-                  <CardDescription>
-                    Help us understand who they are beyond their care needs
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <FormField
-                      control={form.control}
-                      name="fullName"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Full Name</FormLabel>
-                          <FormControl>
-                            <Input placeholder="John Smith" {...field} />
-                          </FormControl>
-                          <FormDescription>Your loved one's full name</FormDescription>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="birthYear"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Year of Birth</FormLabel>
-                          <Select
-                            onValueChange={field.onChange}
-                            defaultValue={field.value}
-                          >
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select year" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent className="max-h-[300px]">
-                              {birthYears.map(year => (
-                                <SelectItem key={year} value={year.toString()}>
-                                  {year}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <FormDescription>Their year of birth</FormDescription>
-                          <FormMessage />
-                        </FormItem>
-                      )}
+        {isLoading ? (
+          <div className="flex justify-center items-center py-12">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+          </div>
+        ) : isPreview ? (
+          <FadeIn duration={0.5}>
+            <Card className="mb-8">
+              <CardHeader className="bg-gradient-to-r from-purple-50 to-pink-50">
+                <div className="flex items-center gap-3">
+                  <div className="bg-pink-100 p-2 rounded-full">
+                    <Heart className="h-5 w-5 text-pink-600" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-2xl">{formData.name}</CardTitle>
+                    {formData.nickname && (
+                      <CardDescription>Known as: {formData.nickname}</CardDescription>
+                    )}
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="pt-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <div className="space-y-6">
+                    {formData.birthplace && (
+                      <div>
+                        <h3 className="font-medium text-lg mb-2">Birthplace</h3>
+                        <p className="text-gray-700">{formData.birthplace}</p>
+                      </div>
+                    )}
+                    
+                    {formData.occupation && (
+                      <div>
+                        <h3 className="font-medium text-lg mb-2">Career & Occupation</h3>
+                        <p className="text-gray-700">{formData.occupation}</p>
+                      </div>
+                    )}
+                    
+                    {formData.hobbies && (
+                      <div>
+                        <h3 className="font-medium text-lg mb-2">Hobbies & Interests</h3>
+                        <p className="text-gray-700">{formData.hobbies}</p>
+                      </div>
+                    )}
+                    
+                    {formData.music && (
+                      <div>
+                        <h3 className="font-medium text-lg mb-2">Favorite Music</h3>
+                        <p className="text-gray-700">{formData.music}</p>
+                      </div>
+                    )}
+                    
+                    {formData.foods && (
+                      <div>
+                        <h3 className="font-medium text-lg mb-2">Favorite Foods</h3>
+                        <p className="text-gray-700">{formData.foods}</p>
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div className="space-y-6">
+                    {formData.family && (
+                      <div>
+                        <h3 className="font-medium text-lg mb-2">Family</h3>
+                        <p className="text-gray-700">{formData.family}</p>
+                      </div>
+                    )}
+                    
+                    {formData.achievements && (
+                      <div>
+                        <h3 className="font-medium text-lg mb-2">Achievements & Proud Moments</h3>
+                        <p className="text-gray-700">{formData.achievements}</p>
+                      </div>
+                    )}
+                    
+                    {formData.routines && (
+                      <div>
+                        <h3 className="font-medium text-lg mb-2">Daily Routines & Preferences</h3>
+                        <p className="text-gray-700">{formData.routines}</p>
+                      </div>
+                    )}
+                    
+                    {formData.communication && (
+                      <div>
+                        <h3 className="font-medium text-lg mb-2">Communication Style</h3>
+                        <p className="text-gray-700">{formData.communication}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+                
+                {formData.photos && formData.photos.length > 0 && (
+                  <div className="mt-8">
+                    <h3 className="font-medium text-lg mb-4">Photos & Memories</h3>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                      {formData.photos.map((photo, index) => (
+                        <div key={index} className="aspect-square bg-gray-100 rounded-md flex items-center justify-center">
+                          <ImageIcon className="h-8 w-8 text-gray-400" />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </FadeIn>
+        ) : (
+          <FadeIn duration={0.5}>
+            <Card className="mb-8">
+              <CardHeader>
+                <CardTitle>Personal Information</CardTitle>
+                <CardDescription>
+                  Basic information about your loved one that helps caregivers connect with them.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-4">
+                    <div>
+                      <label htmlFor="name" className="block text-sm font-medium mb-1">
+                        Full Name
+                      </label>
+                      <input
+                        id="name"
+                        name="name"
+                        value={formData.name}
+                        onChange={handleInputChange}
+                        className="w-full p-2 border rounded-md"
+                        placeholder="Full name"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label htmlFor="nickname" className="block text-sm font-medium mb-1">
+                        Nickname or Preferred Name
+                      </label>
+                      <input
+                        id="nickname"
+                        name="nickname"
+                        value={formData.nickname}
+                        onChange={handleInputChange}
+                        className="w-full p-2 border rounded-md"
+                        placeholder="What they like to be called"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label htmlFor="birthplace" className="block text-sm font-medium mb-1">
+                        Birthplace
+                      </label>
+                      <input
+                        id="birthplace"
+                        name="birthplace"
+                        value={formData.birthplace}
+                        onChange={handleInputChange}
+                        className="w-full p-2 border rounded-md"
+                        placeholder="Where they were born"
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-4">
+                    <div>
+                      <label htmlFor="occupation" className="block text-sm font-medium mb-1">
+                        Career & Occupation
+                      </label>
+                      <textarea
+                        id="occupation"
+                        name="occupation"
+                        value={formData.occupation}
+                        onChange={handleInputChange}
+                        className="w-full p-2 border rounded-md"
+                        rows={3}
+                        placeholder="What work did they do in their life?"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label htmlFor="family" className="block text-sm font-medium mb-1">
+                        Family
+                      </label>
+                      <textarea
+                        id="family"
+                        name="family"
+                        value={formData.family}
+                        onChange={handleInputChange}
+                        className="w-full p-2 border rounded-md"
+                        rows={3}
+                        placeholder="Important family members, relationships, etc."
+                      />
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card className="mb-8">
+              <CardHeader>
+                <CardTitle>Preferences & Interests</CardTitle>
+                <CardDescription>
+                  Information about what your loved one enjoys and values.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label htmlFor="hobbies" className="block text-sm font-medium mb-1">
+                      Hobbies & Interests
+                    </label>
+                    <textarea
+                      id="hobbies"
+                      name="hobbies"
+                      value={formData.hobbies}
+                      onChange={handleInputChange}
+                      className="w-full p-2 border rounded-md"
+                      rows={4}
+                      placeholder="What activities do they enjoy?"
                     />
                   </div>
-
-                  <Separator />
-
-                  <FormField
-                    control={form.control}
-                    name="personalityTraits"
-                    render={() => (
-                      <FormItem>
-                        <div className="mb-2">
-                          <FormLabel className="text-base">Personality Traits</FormLabel>
-                          <FormDescription>
-                            Select traits that best describe your loved one
-                          </FormDescription>
-                        </div>
-                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
-                          {personalityTraits.map((item) => (
-                            <FormField
-                              key={item.id}
-                              control={form.control}
-                              name="personalityTraits"
-                              render={({ field }) => {
-                                return (
-                                  <FormItem
-                                    key={item.id}
-                                    className="flex flex-row items-start space-x-2 space-y-0 rounded-md border p-3"
-                                  >
-                                    <FormControl>
-                                      <Checkbox
-                                        checked={field.value?.includes(item.id)}
-                                        onCheckedChange={(checked) => {
-                                          return checked
-                                            ? field.onChange([...field.value, item.id])
-                                            : field.onChange(
-                                                field.value?.filter(
-                                                  (value) => value !== item.id
-                                                )
-                                              )
-                                        }}
-                                      />
-                                    </FormControl>
-                                    <FormLabel className="text-sm font-normal cursor-pointer">
-                                      {item.label}
-                                    </FormLabel>
-                                  </FormItem>
-                                )
-                              }}
-                            />
-                          ))}
-                        </div>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="hobbiesInterests"
-                    render={() => (
-                      <FormItem>
-                        <div className="mb-2">
-                          <FormLabel className="text-base">Hobbies & Interests</FormLabel>
-                          <FormDescription>
-                            What activities bring or brought them joy?
-                          </FormDescription>
-                        </div>
-                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-                          {hobbiesInterests.map((item) => (
-                            <FormField
-                              key={item.id}
-                              control={form.control}
-                              name="hobbiesInterests"
-                              render={({ field }) => {
-                                return (
-                                  <FormItem
-                                    key={item.id}
-                                    className="flex flex-row items-start space-x-2 space-y-0 rounded-md border p-3"
-                                  >
-                                    <FormControl>
-                                      <Checkbox
-                                        checked={field.value?.includes(item.id)}
-                                        onCheckedChange={(checked) => {
-                                          return checked
-                                            ? field.onChange([...field.value, item.id])
-                                            : field.onChange(
-                                                field.value?.filter(
-                                                  (value) => value !== item.id
-                                                )
-                                              )
-                                        }}
-                                      />
-                                    </FormControl>
-                                    <FormLabel className="text-sm font-normal cursor-pointer">
-                                      {item.label}
-                                    </FormLabel>
-                                  </FormItem>
-                                )
-                              }}
-                            />
-                          ))}
-                        </div>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="notableEvents"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Notable Life Events</FormLabel>
-                        <FormControl>
-                          <Textarea 
-                            placeholder="Special achievements, significant life events, or memorable experiences..." 
-                            className="min-h-[100px]"
-                            {...field} 
-                          />
-                        </FormControl>
-                        <FormDescription>
-                          Share any significant moments or experiences that shaped their life
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="careerFields"
-                    render={() => (
-                      <FormItem>
-                        <div className="mb-2">
-                          <FormLabel className="text-base">Career & Achievements</FormLabel>
-                          <FormDescription>
-                            What fields did they work in or what were they known for?
-                          </FormDescription>
-                        </div>
-                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-                          {careerFields.map((item) => (
-                            <FormField
-                              key={item.id}
-                              control={form.control}
-                              name="careerFields"
-                              render={({ field }) => {
-                                return (
-                                  <FormItem
-                                    key={item.id}
-                                    className="flex flex-row items-start space-x-2 space-y-0 rounded-md border p-3"
-                                  >
-                                    <FormControl>
-                                      <Checkbox
-                                        checked={field.value?.includes(item.id)}
-                                        onCheckedChange={(checked) => {
-                                          return checked
-                                            ? field.onChange([...field.value, item.id])
-                                            : field.onChange(
-                                                field.value?.filter(
-                                                  (value) => value !== item.id
-                                                )
-                                              )
-                                        }}
-                                      />
-                                    </FormControl>
-                                    <FormLabel className="text-sm font-normal cursor-pointer">
-                                      {item.label}
-                                    </FormLabel>
-                                  </FormItem>
-                                )
-                              }}
-                            />
-                          ))}
-                        </div>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="familySocialInfo"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Family & Social Life</FormLabel>
-                        <FormControl>
-                          <Textarea 
-                            placeholder="Information about their family, friends, and social connections..." 
-                            className="min-h-[100px]"
-                            {...field} 
-                          />
-                        </FormControl>
-                        <FormDescription>
-                          Tell us about their family structure, social connections, and relationships
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="lifeStory"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Their Life Story</FormLabel>
-                        <FormControl>
-                          <Textarea 
-                            placeholder="Share a brief story that captures who they are..." 
-                            className="min-h-[150px]"
-                            {...field} 
-                          />
-                        </FormControl>
-                        <FormDescription>
-                          Who are they beyond their care needs? What makes them unique?
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="joyfulThings"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>What Brings Them Joy?</FormLabel>
-                        <FormControl>
-                          <Textarea 
-                            placeholder="Activities, topics, or experiences that bring joy and comfort..." 
-                            className="min-h-[100px]"
-                            {...field} 
-                          />
-                        </FormControl>
-                        <FormDescription>
-                          Describe things that make them smile or feel at ease
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="uniqueFacts"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Something Only Family Members Know</FormLabel>
-                        <FormControl>
-                          <Textarea 
-                            placeholder="Special habits, preferences, or quirks that make them unique..." 
-                            className="min-h-[100px]"
-                            {...field} 
-                          />
-                        </FormControl>
-                        <FormDescription>
-                          Share unique details that help caregivers connect on a deeper level
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </CardContent>
-              </Card>
-
-              {/* Section 2: Expanded Care Preferences */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center text-2xl text-primary">
-                    <LifeBuoy className="mr-2 h-6 w-6" />
-                    Care Preferences
-                  </CardTitle>
-                  <CardDescription>
-                    Help us understand their specific care needs and preferences
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  <FormField
-                    control={form.control}
-                    name="caregiverPersonality"
-                    render={() => (
-                      <FormItem>
-                        <div className="mb-2">
-                          <FormLabel className="text-base">Ideal Caregiver Personality</FormLabel>
-                          <FormDescription>
-                            What type of caregiver personality would suit them best?
-                          </FormDescription>
-                        </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
-                          {caregiverPersonalities.map((item) => (
-                            <FormField
-                              key={item.id}
-                              control={form.control}
-                              name="caregiverPersonality"
-                              render={({ field }) => {
-                                return (
-                                  <FormItem
-                                    key={item.id}
-                                    className="flex flex-row items-start space-x-2 space-y-0 rounded-md border p-3"
-                                  >
-                                    <FormControl>
-                                      <Checkbox
-                                        checked={field.value?.includes(item.id)}
-                                        onCheckedChange={(checked) => {
-                                          return checked
-                                            ? field.onChange([...field.value, item.id])
-                                            : field.onChange(
-                                                field.value?.filter(
-                                                  (value) => value !== item.id
-                                                )
-                                              )
-                                        }}
-                                      />
-                                    </FormControl>
-                                    <FormLabel className="text-sm font-normal cursor-pointer">
-                                      {item.label}
-                                    </FormLabel>
-                                  </FormItem>
-                                )
-                              }}
-                            />
-                          ))}
-                        </div>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="culturalPreferences"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Cultural or Language Preferences</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Any specific cultural considerations or language needs..." {...field} />
-                        </FormControl>
-                        <FormDescription>
-                          Cultural backgrounds, traditions, or language preferences that are important
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="dailyRoutines"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Daily Routines & Important Rituals</FormLabel>
-                        <FormControl>
-                          <Textarea 
-                            placeholder="Regular routines and rituals that are important to maintain..." 
-                            className="min-h-[100px]"
-                            {...field} 
-                          />
-                        </FormControl>
-                        <FormDescription>
-                          Describe daily habits, schedules, or rituals that provide comfort and structure
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="challenges"
-                    render={() => (
-                      <FormItem>
-                        <div className="mb-2">
-                          <FormLabel className="text-base">Challenges They Face</FormLabel>
-                          <FormDescription>
-                            What specific challenges might require caregiver support?
-                          </FormDescription>
-                        </div>
-                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
-                          {challenges.map((item) => (
-                            <FormField
-                              key={item.id}
-                              control={form.control}
-                              name="challenges"
-                              render={({ field }) => {
-                                return (
-                                  <FormItem
-                                    key={item.id}
-                                    className="flex flex-row items-start space-x-2 space-y-0 rounded-md border p-3"
-                                  >
-                                    <FormControl>
-                                      <Checkbox
-                                        checked={field.value?.includes(item.id)}
-                                        onCheckedChange={(checked) => {
-                                          return checked
-                                            ? field.onChange([...field.value, item.id])
-                                            : field.onChange(
-                                                field.value?.filter(
-                                                  (value) => value !== item.id
-                                                )
-                                              )
-                                        }}
-                                      />
-                                    </FormControl>
-                                    <FormLabel className="text-sm font-normal cursor-pointer">
-                                      {item.label}
-                                    </FormLabel>
-                                  </FormItem>
-                                )
-                              }}
-                            />
-                          ))}
-                        </div>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="sensitivities"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Medical or Sensory Sensitivities</FormLabel>
-                        <FormControl>
-                          <Textarea 
-                            placeholder="Any sensitivities to light, sound, touch, medications..." 
-                            className="min-h-[100px]"
-                            {...field} 
-                          />
-                        </FormControl>
-                        <FormDescription>
-                          Note any sensitivities, allergies, or reactions caregivers should be aware of
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="specificRequests"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Specific Requests for Matching</FormLabel>
-                        <FormControl>
-                          <Textarea 
-                            placeholder="Any specific preferences for caregiver matching..." 
-                            className="min-h-[100px]"
-                            {...field} 
-                          />
-                        </FormControl>
-                        <FormDescription>
-                          Share any additional preferences or requirements for the ideal caregiver match
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </CardContent>
-                <CardFooter className="flex justify-between border-t pt-6">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => navigate("/dashboard/family")}
-                  >
-                    Cancel
-                  </Button>
-                  <Button 
-                    type="submit"
-                    disabled={isSubmitting}
-                    className="min-w-[120px]"
-                  >
-                    {isSubmitting ? "Saving..." : "Save Their Story"}
-                  </Button>
-                </CardFooter>
-              </Card>
-            </form>
-          </Form>
-        </motion.div>
+                  
+                  <div className="space-y-4">
+                    <div>
+                      <label htmlFor="music" className="block text-sm font-medium mb-1">
+                        Favorite Music
+                      </label>
+                      <textarea
+                        id="music"
+                        name="music"
+                        value={formData.music}
+                        onChange={handleInputChange}
+                        className="w-full p-2 border rounded-md"
+                        rows={2}
+                        placeholder="Songs, artists, or genres they enjoy"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label htmlFor="foods" className="block text-sm font-medium mb-1">
+                        Favorite Foods
+                      </label>
+                      <textarea
+                        id="foods"
+                        name="foods"
+                        value={formData.foods}
+                        onChange={handleInputChange}
+                        className="w-full p-2 border rounded-md"
+                        rows={2}
+                        placeholder="Foods and drinks they enjoy"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card className="mb-8">
+              <CardHeader>
+                <CardTitle>Life Story & Care Information</CardTitle>
+                <CardDescription>
+                  Details that help caregivers understand your loved one's history and needs.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label htmlFor="achievements" className="block text-sm font-medium mb-1">
+                      Achievements & Proud Moments
+                    </label>
+                    <textarea
+                      id="achievements"
+                      name="achievements"
+                      value={formData.achievements}
+                      onChange={handleInputChange}
+                      className="w-full p-2 border rounded-md"
+                      rows={4}
+                      placeholder="What accomplishments or memories are they proud of?"
+                    />
+                  </div>
+                  
+                  <div className="space-y-4">
+                    <div>
+                      <label htmlFor="routines" className="block text-sm font-medium mb-1">
+                        Daily Routines & Preferences
+                      </label>
+                      <textarea
+                        id="routines"
+                        name="routines"
+                        value={formData.routines}
+                        onChange={handleInputChange}
+                        className="w-full p-2 border rounded-md"
+                        rows={2}
+                        placeholder="Important routines or preferences"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label htmlFor="communication" className="block text-sm font-medium mb-1">
+                        Communication Style
+                      </label>
+                      <textarea
+                        id="communication"
+                        name="communication"
+                        value={formData.communication}
+                        onChange={handleInputChange}
+                        className="w-full p-2 border rounded-md"
+                        rows={2}
+                        placeholder="How they prefer to communicate, special considerations"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card className="mb-8">
+              <CardHeader>
+                <CardTitle>Photos & Memories</CardTitle>
+                <CardDescription>
+                  Upload photos that help tell your loved one's story.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+                  <ImageIcon className="h-12 w-12 mx-auto text-gray-400" />
+                  <p className="mt-2 text-sm text-gray-500">
+                    Photo upload feature coming soon
+                  </p>
+                  <p className="text-xs text-gray-400 mt-1">
+                    You'll be able to upload and manage photos here
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+            
+            <div className="flex justify-end gap-4">
+              <Button
+                variant="outline"
+                onClick={() => navigate(-1)}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleSave}
+                disabled={isSaving}
+                className="gap-2"
+              >
+                {isSaving && (
+                  <Clock className="h-4 w-4 animate-spin" />
+                )}
+                {isNew ? 'Create Story' : 'Save Changes'}
+              </Button>
+            </div>
+          </FadeIn>
+        )}
+        
+        {!isNew && !isPreview && (
+          <div className="mt-12 mb-8">
+            <Separator className="my-8" />
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-medium">Preview Your Story</h3>
+                <p className="text-sm text-gray-500">
+                  See how caregivers will view your loved one's story
+                </p>
+              </div>
+              <Button onClick={togglePreview} className="gap-2">
+                Preview Story
+                <ArrowRight className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

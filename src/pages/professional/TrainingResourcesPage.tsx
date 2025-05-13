@@ -1,4 +1,4 @@
-import { motion } from "framer-motion";
+
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,6 +10,7 @@ import { TrainingProgressTracker } from "@/components/professional/TrainingProgr
 import { toast } from "@/components/ui/use-toast";
 import { useTrainingProgress } from "@/hooks/useTrainingProgress";
 import { supabase } from "@/lib/supabase";
+import { FadeIn, SlideIn } from "@/components/framer";
 
 const TrainingResourcesPage = () => {
   const { user } = useAuth();
@@ -86,10 +87,9 @@ const TrainingResourcesPage = () => {
       <div className="container px-4 py-8">
         <DashboardHeader breadcrumbItems={breadcrumbItems} />
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
+        <SlideIn
+          direction="up"
+          duration={0.5}
           className="space-y-6"
         >
           <h1 className="text-3xl font-bold">Professional Caregiver Training</h1>
@@ -98,7 +98,7 @@ const TrainingResourcesPage = () => {
             specifically for Trinidad & Tobago caregivers. Complete self-paced modules, gain 
             hands-on experience, and earn certification to unlock new career opportunities.
           </p>
-        </motion.div>
+        </SlideIn>
 
         {user && (
           <div className="my-8">

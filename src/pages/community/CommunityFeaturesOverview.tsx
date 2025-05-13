@@ -1,19 +1,17 @@
-
-import { motion } from "framer-motion";
 import { ArrowRight } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { UserCog, Users, Calendar, Heart, Rocket } from "lucide-react";
+import { FadeIn, SlideIn } from "@/components/framer";
 
 const CommunityFeaturesOverview = () => {
   return (
     <div className="min-h-screen bg-background">
       <div className="container px-4 py-8">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
+        <SlideIn
+          direction="up"
+          duration={0.5}
           className="space-y-6"
         >
           <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 rounded-lg mb-8 border border-blue-100">
@@ -139,7 +137,7 @@ const CommunityFeaturesOverview = () => {
               </Button>
             </Link>
           </div>
-        </motion.div>
+        </SlideIn>
       </div>
     </div>
   );
