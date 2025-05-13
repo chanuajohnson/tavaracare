@@ -1,3 +1,4 @@
+
 import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,33 +11,10 @@ import { SubscriptionFeatureLink } from "@/components/subscription/SubscriptionF
 import { supabase } from "@/lib/supabase";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
-import { CarePlanMetadata } from "@/types/profile";
+import { CarePlanMetadata, OnboardingProgress } from "@/types/profile";
 
 // Define the types for step status
 type StepStatus = 'completed' | 'in_progress' | 'pending_admin' | 'scheduled' | 'not_started';
-
-// Type for site visit status in care plan metadata
-type SiteVisitStatus = 'not_scheduled' | 'scheduled' | 'completed';
-
-// Type for care plan status in metadata
-type CarePlanStatus = 'draft' | 'under_review' | 'active';
-
-// Type for onboarding progress structure
-interface OnboardingProgress {
-  currentStep?: string;
-  completedSteps?: {
-    care_needs?: boolean;
-    care_plan?: boolean;
-    care_recipient_story?: boolean;
-    [key: string]: boolean | undefined;
-  };
-}
-
-// Type for care plan with metadata
-interface CarePlan {
-  id: string;
-  metadata?: CarePlanMetadata;
-}
 
 // Step definition interface
 interface Step {
@@ -137,43 +115,52 @@ export const FamilyNextStepsPanel = () => {
       }
 
       try {
+        console.log("Starting to fetch profile data for user:", user.id);
         setLoading(true);
         
-        
-        const { data: profileData, error: profileError } = await supabase
-          .from('profiles')
-          .select('onboarding_progress')
-          .eq('id', user.id)
-          .single();
+        // Consolidated query to fetch all necessary data at once
+        const [profileResponse, recipientProfileResponse, carePlansResponse, careTeamMembersResponse] = await Promise.all([
+          supabase
+            .from('profiles')
+            .select('onboarding_progress')
+            .eq('id', user.id)
+            .single(),
           
-        if (profileError) {
-          console.error("Error fetching profile data:", profileError);
+          supabase
+            .from('care_recipient_profiles')
+            .select('id')
+            .eq('user_id', user.id)
+            .maybeSingle(),
+            
+          supabase
+            .from('care_plans')
+            .select('id, metadata')
+            .eq('family_id', user.id)
+            .order('created_at', { ascending: false }),
+            
+          supabase
+            .from('care_team_members')
+            .select('id')
+            .eq('family_id', user.id)
+            .limit(1)
+        ]);
+        
+        if (profileResponse.error) {
+          console.error("Error fetching profile data:", profileResponse.error);
           setError("Could not load profile data.");
+          setLoading(false);
           return;
         }
         
-        // Get care plans data to check for site visit status and care plan status
-        const { data: carePlans, error: carePlansError } = await supabase
-          .from('care_plans')
-          .select('id, metadata')
-          .eq('family_id', user.id)
-          .order('created_at', { ascending: false });
-          
-        if (carePlansError) {
-          console.error("Error fetching care plans:", carePlansError);
-        }
-        
-        const latestCarePlan = carePlans && carePlans.length > 0 ? carePlans[0] : null;
-        
-        // Update steps status based on the retrieved data
+        // Make a copy of steps to update
         const updatedSteps = [...steps];
         
-        
-        
+        // Step 1: Profile is always completed if we're here
         updatedSteps[0].status = 'completed';
         
         // Get onboarding progress from profile data
-        const onboardingProgress = profileData?.onboarding_progress as OnboardingProgress | null;
+        const onboardingProgress = profileResponse.data?.onboarding_progress as OnboardingProgress | null;
+        console.log("Onboarding progress data:", onboardingProgress);
         
         // Step 2: Care needs step
         if (onboardingProgress?.completedSteps?.care_needs) {
@@ -181,20 +168,13 @@ export const FamilyNextStepsPanel = () => {
         }
         
         // Step 3: Care recipient story
-        if (onboardingProgress?.completedSteps?.care_recipient_story) {
+        if (onboardingProgress?.completedSteps?.care_recipient_story || recipientProfileResponse.data) {
           updatedSteps[2].status = 'completed';
-        } else {
-          // Check if care recipient profile exists as another way to verify the story
-          const { data: recipientProfile } = await supabase
-            .from('care_recipient_profiles')
-            .select('id')
-            .eq('user_id', user.id)
-            .maybeSingle();
-            
-          if (recipientProfile) {
-            updatedSteps[2].status = 'completed';
-          }
         }
+        
+        // Get latest care plan
+        const latestCarePlan = carePlansResponse.data && carePlansResponse.data.length > 0 ? carePlansResponse.data[0] : null;
+        console.log("Latest care plan data:", latestCarePlan);
         
         // Step 4: Care plan creation
         let carePlanCreated = false;
@@ -209,15 +189,19 @@ export const FamilyNextStepsPanel = () => {
           
           // Step 5: Tavara Admin Site Visit Status
           if (latestCarePlan?.metadata) {
-            const metadata = latestCarePlan.metadata as CarePlanMetadata;
-            const siteVisitStatus = metadata.site_visit_status as SiteVisitStatus;
-            
-            if (siteVisitStatus === 'scheduled') {
-              updatedSteps[4].status = 'scheduled';
-            } else if (siteVisitStatus === 'completed') {
-              updatedSteps[4].status = 'completed';
-            } else {
-              updatedSteps[4].status = 'pending_admin';
+            try {
+              const metadata = latestCarePlan.metadata as CarePlanMetadata;
+              const siteVisitStatus = metadata?.site_visit_status;
+              
+              if (siteVisitStatus === 'scheduled') {
+                updatedSteps[4].status = 'scheduled';
+              } else if (siteVisitStatus === 'completed') {
+                updatedSteps[4].status = 'completed';
+              } else {
+                updatedSteps[4].status = 'pending_admin';
+              }
+            } catch (err) {
+              console.error("Error processing site visit status:", err);
             }
           }
           
@@ -225,13 +209,7 @@ export const FamilyNextStepsPanel = () => {
           updatedSteps[5].visible = true;
           
           // Step 6: Care team assignment
-          const { data: careTeamMembers } = await supabase
-            .from('care_team_members')
-            .select('id')
-            .eq('family_id', user.id)
-            .limit(1);
-            
-          if (careTeamMembers && careTeamMembers.length > 0) {
+          if (careTeamMembersResponse.data && careTeamMembersResponse.data.length > 0) {
             updatedSteps[5].status = 'completed';
           } else if (updatedSteps[4].status === 'completed') {
             // Mark as in_progress if site visit is completed
@@ -244,33 +222,37 @@ export const FamilyNextStepsPanel = () => {
             
             // Step 7: Care plan active status
             if (latestCarePlan?.metadata) {
-              const metadata = latestCarePlan.metadata as CarePlanMetadata;
-              const carePlanStatus = metadata.care_plan_status as CarePlanStatus;
-              
-              if (carePlanStatus === 'active') {
-                updatedSteps[6].status = 'completed';
-              } else if (carePlanStatus === 'under_review') {
-                updatedSteps[6].status = 'in_progress';
-              } else {
-                updatedSteps[6].status = 'pending_admin';
+              try {
+                const metadata = latestCarePlan.metadata as CarePlanMetadata;
+                const carePlanStatus = metadata?.care_plan_status;
+                
+                if (carePlanStatus === 'active') {
+                  updatedSteps[6].status = 'completed';
+                } else if (carePlanStatus === 'under_review') {
+                  updatedSteps[6].status = 'in_progress';
+                } else {
+                  updatedSteps[6].status = 'pending_admin';
+                }
+              } catch (err) {
+                console.error("Error processing care plan status:", err);
               }
             }
           }
         }
         
+        console.log("Steps updated successfully, setting new state");
         setSteps(updatedSteps);
+        setLoading(false);
       } catch (err) {
         console.error("Error checking profile status:", err);
         setError("Failed to load onboarding progress. Please refresh the page.");
-      } finally {
         setLoading(false);
       }
     };
     
     checkProfileStatus();
-  }, [user, steps]);
-
-  
+    // Remove 'steps' from the dependency array to prevent infinite re-renders
+  }, [user]);
   
   const visibleSteps = steps.filter(step => step.visible);
   const completedSteps = visibleSteps.filter(step => step.status === 'completed').length;
@@ -309,7 +291,7 @@ export const FamilyNextStepsPanel = () => {
   };
 
   if (loading) {
-    
+    console.log("FamilyNextStepsPanel is in loading state");
     return (
       <Card className="border-l-4 border-l-primary">
         <CardHeader className="pb-2">
@@ -342,7 +324,7 @@ export const FamilyNextStepsPanel = () => {
   }
 
   if (error) {
-    
+    console.log("FamilyNextStepsPanel encountered an error:", error);
     return (
       <Card className="border-l-4 border-l-red-500">
         <CardHeader className="pb-2">
@@ -365,7 +347,7 @@ export const FamilyNextStepsPanel = () => {
     );
   }
 
-  
+  console.log("FamilyNextStepsPanel rendering successfully with steps:", visibleSteps);
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
