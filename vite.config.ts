@@ -1,4 +1,3 @@
-
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
@@ -18,6 +17,13 @@ export default defineConfig(({ mode }) => {
     server: {
       host: "::",
       port: 8080,
+      // Add allowedHosts configuration to fix the blocked request error
+      allowedHosts: [
+        '6d6595e0-04bb-4870-8c48-286aef5b647f.lovableproject.com',
+        // Keep existing hosts if any
+        'localhost',
+        '127.0.0.1'
+      ]
     },
     plugins: [
       react(),
