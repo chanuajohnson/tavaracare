@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -8,13 +8,44 @@ import { FadeIn, SlideIn } from "@/components/framer";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { updateProfileOnboardingProgress } from "@/services/profile/profileUpdates";
+import { getUserProfile, updateUserProfile } from "@/lib/profile-utils";
 import { toast } from "sonner";
 
 const FamilyCareNeedsPage: React.FC = () => {
   const navigate = useNavigate();
-  const { user, updateProfile, profileData } = useAuth();
+  const { user } = useAuth();
   const [loading, setLoading] = useState(false);
+  const [profileData, setProfileData] = useState<any>(null);
   const [selectedNeeds, setSelectedNeeds] = useState<Record<string, boolean>>({});
+
+  // Fetch profile data when component mounts
+  useEffect(() => {
+    if (user) {
+      fetchProfileData();
+    }
+  }, [user]);
+
+  const fetchProfileData = async () => {
+    if (!user) return;
+    
+    try {
+      const { data, success } = await getUserProfile(user.id);
+      if (success && data) {
+        setProfileData(data);
+        
+        // If there are existing care needs, populate the selected needs state
+        if (data.care_needs && Array.isArray(data.care_needs)) {
+          const needsMap: Record<string, boolean> = {};
+          data.care_needs.forEach((need: string) => {
+            needsMap[need] = true;
+          });
+          setSelectedNeeds(needsMap);
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching profile data:", error);
+    }
+  };
 
   const breadcrumbItems = [
     { label: "Family Dashboard", path: "/dashboard/family" },
@@ -105,9 +136,8 @@ const FamilyCareNeedsPage: React.FC = () => {
       // Update profile with selected care needs
       await updateProfileOnboardingProgress(user.id, 'care_needs', true);
       
-      // Update local profile state
-      updateProfile({
-        ...profileData,
+      // Update the profile data with the selected care needs
+      const updateResult = await updateUserProfile(user.id, {
         care_needs: selectedNeedsArray,
         onboarding_progress: {
           ...(profileData?.onboarding_progress || {}),
@@ -118,8 +148,25 @@ const FamilyCareNeedsPage: React.FC = () => {
         }
       });
 
-      toast.success("Care needs updated successfully");
-      navigate("/dashboard/family");
+      if (updateResult.success) {
+        // Update local state
+        setProfileData({
+          ...profileData,
+          care_needs: selectedNeedsArray,
+          onboarding_progress: {
+            ...(profileData?.onboarding_progress || {}),
+            completedSteps: {
+              ...(profileData?.onboarding_progress?.completedSteps || {}),
+              care_needs: true
+            }
+          }
+        });
+
+        toast.success("Care needs updated successfully");
+        navigate("/dashboard/family");
+      } else {
+        throw new Error(updateResult.error || "Unknown error updating profile");
+      }
     } catch (error) {
       console.error("Error updating care needs:", error);
       toast.error("Failed to update care needs. Please try again.");
