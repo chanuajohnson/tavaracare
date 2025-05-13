@@ -9,13 +9,14 @@ import { useAuth } from "@/components/providers/AuthProvider";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { updateProfileOnboardingProgress } from "@/services/profile/profileUpdates";
 import { getUserProfile, updateUserProfile } from "@/lib/profile-utils";
+import { UserProfile } from "@/types/profile"; // Import UserProfile type
 import { toast } from "sonner";
 
 const FamilyCareNeedsPage: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
-  const [profileData, setProfileData] = useState<any>(null);
+  const [profileData, setProfileData] = useState<UserProfile | null>(null); // Explicitly type as UserProfile
   const [selectedNeeds, setSelectedNeeds] = useState<Record<string, boolean>>({});
 
   // Fetch profile data when component mounts
@@ -31,7 +32,7 @@ const FamilyCareNeedsPage: React.FC = () => {
     try {
       const { data, success } = await getUserProfile(user.id);
       if (success && data) {
-        setProfileData(data);
+        setProfileData(data as UserProfile); // Cast to UserProfile type
         
         // If there are existing care needs, populate the selected needs state
         if (data.care_needs && Array.isArray(data.care_needs)) {
@@ -151,7 +152,7 @@ const FamilyCareNeedsPage: React.FC = () => {
       if (updateResult.success) {
         // Update local state
         setProfileData({
-          ...profileData,
+          ...profileData!,
           care_needs: selectedNeedsArray,
           onboarding_progress: {
             ...(profileData?.onboarding_progress || {}),
