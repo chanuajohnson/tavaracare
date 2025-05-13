@@ -1,6 +1,9 @@
 
 // Type definitions related to user profiles and onboarding
 
+// Add a Json type to handle onboarding_progress
+export type Json = string | number | boolean | null | { [key: string]: Json } | Json[];
+
 export interface OnboardingProgress {
   completedSteps?: {
     profile?: boolean;
@@ -31,9 +34,6 @@ export interface ProfileCarePlan {
   created_at: string;
   updated_at: string;
 }
-
-// Add a Json type to handle onboarding_progress
-export type Json = string | number | boolean | null | { [key: string]: Json } | Json[];
 
 export interface UserProfile {
   id: string;

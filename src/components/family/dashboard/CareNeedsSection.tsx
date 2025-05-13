@@ -4,13 +4,24 @@ import { Link } from "react-router-dom";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Profile } from "@/types/profileTypes";
+import { fromJson } from "@/utils/json";
 
 interface CareNeedsSectionProps {
   profileData: Profile | null;
 }
 
 export const CareNeedsSection: React.FC<CareNeedsSectionProps> = ({ profileData }) => {
-  if (profileData && (!profileData?.onboarding_progress?.completedSteps?.care_needs)) {
+  // Parse onboarding_progress if it's a string
+  const onboardingProgress = profileData?.onboarding_progress 
+    ? (typeof profileData.onboarding_progress === 'string' 
+        ? fromJson(profileData.onboarding_progress, {}) 
+        : profileData.onboarding_progress)
+    : undefined;
+    
+  // Check if care_needs step has been completed
+  const careNeedsCompleted = onboardingProgress?.completedSteps?.care_needs;
+  
+  if (profileData && !careNeedsCompleted) {
     return (
       <Card className="mb-6 bg-gradient-to-r from-blue-50 to-indigo-50 border-l-4 border-l-primary">
         <CardHeader>
