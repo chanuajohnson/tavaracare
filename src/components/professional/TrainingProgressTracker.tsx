@@ -1,11 +1,11 @@
 
-import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { GraduationCap, ArrowRight, Award, BookOpen, Shield, Heart, HandHeart, Users, FileText, Loader2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useTrainingProgress } from "@/hooks/useTrainingProgress";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { FadeIn } from '@/components/framer';
 
 export const TrainingProgressTracker = () => {
   const { modules, loading, error, totalProgress } = useTrainingProgress();
@@ -33,10 +33,9 @@ export const TrainingProgressTracker = () => {
 
   if (loading) {
     return (
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.1 }}
+      <FadeIn
+        duration={0.5}
+        delay={0.1}
         className="w-full"
       >
         <Card className="h-full border-l-4 border-l-primary-500 shadow-sm">
@@ -47,16 +46,15 @@ export const TrainingProgressTracker = () => {
             </div>
           </CardHeader>
         </Card>
-      </motion.div>
+      </FadeIn>
     );
   }
 
   if (error) {
     return (
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.1 }}
+      <FadeIn
+        duration={0.5}
+        delay={0.1}
         className="w-full"
       >
         <Alert variant="destructive">
@@ -64,7 +62,7 @@ export const TrainingProgressTracker = () => {
             {error}
           </AlertDescription>
         </Alert>
-      </motion.div>
+      </FadeIn>
     );
   }
 
@@ -73,10 +71,9 @@ export const TrainingProgressTracker = () => {
   const continueTrainingUrl = "/professional/training-resources";
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, delay: 0.1 }}
+    <FadeIn
+      duration={0.5}
+      delay={0.1}
       className="w-full"
     >
       <Card className="h-full border-l-4 border-l-primary-500 shadow-sm">
@@ -180,6 +177,6 @@ export const TrainingProgressTracker = () => {
           </div>
         </CardContent>
       </Card>
-    </motion.div>
+    </FadeIn>
   );
 };
