@@ -1,5 +1,4 @@
 
-import { motion } from "framer-motion";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
@@ -8,6 +7,7 @@ import { useAuth } from "@/components/providers/AuthProvider";
 import { useNavigate } from "react-router-dom";
 import { DashboardTracker } from "@/components/tracking/DashboardTracker";
 import { FamilyShortcutMenuBar } from "@/components/family/FamilyShortcutMenuBar";
+import { FadeIn, SlideIn } from "@/components/framer";
 
 // Import the refactored components
 import { WelcomeSection } from "@/components/family/dashboard/WelcomeSection";
@@ -131,10 +131,10 @@ const FamilyDashboard = () => {
       <div className="container px-4 py-8">
         <DashboardHeader breadcrumbItems={breadcrumbItems} />
 
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
+        <SlideIn
+          direction="up"
+          distance={20}
+          duration={0.5}
           className="space-y-6"
         >
           <h1 className="text-3xl font-semibold mb-4">Family Dashboard</h1>
@@ -173,7 +173,7 @@ const FamilyDashboard = () => {
           <MealPlanningSection />
           
           <RecentActivitySection />
-        </motion.div>
+        </SlideIn>
       </div>
     </div>
   );

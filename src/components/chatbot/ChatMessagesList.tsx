@@ -4,6 +4,7 @@ import { ChatMessage } from '@/types/chatTypes';
 import { MessageBubble } from './MessageBubble';
 import { ChatOptionsRenderer } from './ChatOptionsRenderer';
 import { TypingIndicator } from './TypingIndicator';
+import { FadeIn } from '@/components/framer';
 
 interface ChatMessagesListProps {
   messages: ChatMessage[];
@@ -69,9 +70,9 @@ export const ChatMessagesList: React.FC<ChatMessagesListProps> = ({
         })}
         
         {isTyping && !isResuming && (
-          <div className="animate-fade-in">
+          <FadeIn duration={0.3}>
             <TypingIndicator />
-          </div>
+          </FadeIn>
         )}
         
         <div ref={messagesEndRef} />

@@ -10,6 +10,7 @@ import {
   BreadcrumbSeparator
 } from "@/components/ui/breadcrumb";
 import { Home, BookOpen } from "lucide-react";
+import { FadeIn } from "@/components/framer";
 
 interface BreadcrumbItem {
   label: string;
@@ -22,7 +23,10 @@ interface DashboardHeaderProps {
 
 export const DashboardHeader = ({ breadcrumbItems }: DashboardHeaderProps) => {
   return (
-    <div className="flex justify-between items-center mb-8">
+    <FadeIn
+      duration={0.3}
+      className="flex justify-between items-center mb-8"
+    >
       <Breadcrumb>
         <BreadcrumbList>
           <BreadcrumbItem>
@@ -55,6 +59,6 @@ export const DashboardHeader = ({ breadcrumbItems }: DashboardHeaderProps) => {
           Legacy Stories
         </Link>
       </Button>
-    </div>
+    </FadeIn>
   );
 };
