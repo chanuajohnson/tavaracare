@@ -28,10 +28,9 @@ export function CaregiverHealthCard({
   
   return (
     <FadeIn 
-      initial={{ opacity: 0, y: -10 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
       className={className}
+      delay={0}
+      duration={0.5}
     >
       <Card className="overflow-hidden border-l-4 border-l-primary-300 bg-gradient-to-br from-blue-50 to-primary-50">
         <CardHeader className="pb-2">

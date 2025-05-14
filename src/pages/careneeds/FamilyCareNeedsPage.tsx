@@ -1,98 +1,97 @@
 
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from '@/components/providers/AuthProvider';
-import { DashboardHeader } from '@/components/dashboard/DashboardHeader';
-import { fetchFamilyCareNeeds, saveFamilyCareNeeds } from '@/services/familyCareNeedsService';
+import React, { useState } from 'react';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useForm } from 'react-hook-form';
+import { toast } from 'sonner';
+import { z } from 'zod';
+import { getCareNeeds, saveCareNeeds } from '@/services/familyCareNeedsService';
 import DailyLivingSection from '@/components/careneeds/DailyLivingSection';
 import CognitiveMemorySection from '@/components/careneeds/CognitiveMemorySection';
 import MedicalConditionsSection from '@/components/careneeds/MedicalConditionsSection';
 import EmergencySection from '@/components/careneeds/EmergencySection';
+import { FadeIn, SlideIn } from '@/components/framer';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import HousekeepingSection from '@/components/careneeds/HousekeepingSection';
 import ShiftPreferencesSection from '@/components/careneeds/ShiftPreferencesSection';
-import { toast } from 'sonner';
-import { FadeIn, SlideIn } from '@/components/framer';
+import { FormProvider } from 'react-hook-form';
+import { useAuth } from '@/components/providers/AuthProvider';
 import ScheduleInformationCard from '@/components/careneeds/ScheduleInformationCard';
-import { useForm, FormProvider } from 'react-hook-form';
 
-const breadcrumbItems = [
-  {
-    label: "Dashboard",
-    path: "/dashboard/family"
-  },
-  {
-    label: "Care Needs",
-    path: "/careneeds"
-  }
-];
+// Define care needs schema
+const careNeedsSchema = z.object({
+  dailyLiving: z.object({}).catchall(z.any()),
+  cognitiveMemory: z.object({}).catchall(z.any()),
+  medicalConditions: z.object({}).catchall(z.any()),
+  emergency: z.object({}).catchall(z.any()),
+  housekeeping: z.object({}).catchall(z.any()),
+  shiftPreferences: z.object({}).catchall(z.any()),
+});
+
+type CareNeedsFormValues = z.infer<typeof careNeedsSchema>;
 
 const FamilyCareNeedsPage = () => {
   const { user } = useAuth();
-  const navigate = useNavigate();
-  const [loading, setLoading] = useState(true);
+  const userId = user?.id;
+  const [activeTab, setActiveTab] = useState('dailyLiving');
+  const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [activeTab, setActiveTab] = useState('daily');
-  const form = useForm({
+
+  // Setup form with React Hook Form
+  const form = useForm<CareNeedsFormValues>({
+    resolver: zodResolver(careNeedsSchema),
     defaultValues: {
       dailyLiving: {},
       cognitiveMemory: {},
       medicalConditions: {},
       emergency: {},
       housekeeping: {},
-      shiftPreferences: {}
-    }
+      shiftPreferences: {},
+    },
   });
 
-  useEffect(() => {
+  // Load existing care needs data
+  React.useEffect(() => {
     const loadCareNeeds = async () => {
-      if (!user) {
-        navigate('/auth');
-        return;
-      }
-
+      if (!userId) return;
+      
       try {
         setLoading(true);
-        const data = await fetchFamilyCareNeeds(user.id);
+        const data = await getCareNeeds(userId);
+        
         if (data) {
-          form.reset({
-            dailyLiving: data.dailyLiving || {},
-            cognitiveMemory: data.cognitiveMemory || {},
-            medicalConditions: data.medicalConditions || {},
-            emergency: data.emergency || {},
-            housekeeping: data.housekeeping || {},
-            shiftPreferences: data.shiftPreferences || {}
+          // Populate form with existing data
+          Object.entries(data).forEach(([key, value]) => {
+            if (key in form.getValues()) {
+              form.setValue(key as keyof CareNeedsFormValues, value as any);
+            }
           });
         }
       } catch (error) {
         console.error('Error loading care needs:', error);
-        toast.error('Failed to load care needs information.');
+        toast.error('Failed to load care needs');
       } finally {
         setLoading(false);
       }
     };
 
     loadCareNeeds();
-  }, [user, navigate, form]);
+  }, [userId, form]);
 
-  const handleSave = async () => {
-    if (!user) return;
-
+  // Handle form submission
+  const onSubmit = async (data: CareNeedsFormValues) => {
+    if (!userId) {
+      toast.error('Must be logged in to save care needs');
+      return;
+    }
+    
     try {
       setSaving(true);
-      const formData = form.getValues();
-      await saveFamilyCareNeeds({
-        profileId: user.id,
-        ...formData
-      });
-      
-      // Update onboarding progress is handled in the service now
-      toast.success('Care needs saved successfully!');
+      await saveCareNeeds(userId, data);
+      toast.success('Care needs saved successfully');
     } catch (error) {
       console.error('Error saving care needs:', error);
-      toast.error('Failed to save care needs.');
+      toast.error('Failed to save care needs');
     } finally {
       setSaving(false);
     }
@@ -108,140 +107,98 @@ const FamilyCareNeedsPage = () => {
   };
 
   return (
-    <div className="container px-4 py-8">
-      <FadeIn duration={0.3} className="mb-4">
-        <DashboardHeader breadcrumbItems={breadcrumbItems} />
-      </FadeIn>
+    <FormProvider {...form}>
+      <div className="container px-4 py-8 max-w-7xl mx-auto">
+        <FadeIn 
+          className="mb-6" 
+          duration={0.5}
+          delay={0}
+        >
+          <h1 className="text-3xl font-bold mb-2">Care Needs Assessment</h1>
+          <p className="text-gray-600">
+            Help us understand the specific care requirements to match you with the right caregivers
+          </p>
+        </FadeIn>
 
-      <div className="flex flex-col lg:flex-row gap-6">
-        <div className="flex-1">
-          <FadeIn className="mb-6" duration={0.5}>
-            <h1 className="text-3xl font-bold">Care Needs Assessment</h1>
-            <p className="text-muted-foreground mt-1">
-              Help us understand your loved one's care requirements
-            </p>
-          </FadeIn>
+        <SlideIn
+          direction="up"
+          className="mb-8"
+          duration={0.5}
+          delay={0.1}
+        >
+          <form onSubmit={form.handleSubmit(onSubmit)}>
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-xl font-semibold">Select care categories to provide details</h2>
+              <Button 
+                type="submit" 
+                disabled={saving}
+                className="ml-auto"
+              >
+                {saving ? 'Saving...' : 'Save Care Needs'}
+              </Button>
+            </div>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Care Requirements</CardTitle>
-              <CardDescription>
-                Please complete each section to help us understand the specific care needs.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <FormProvider {...form}>
-                <Tabs
-                  value={activeTab}
-                  onValueChange={setActiveTab}
-                  className="w-full"
-                >
-                  <TabsList className="grid grid-cols-3 md:grid-cols-6">
-                    <TabsTrigger value="daily">Daily Living</TabsTrigger>
-                    <TabsTrigger value="cognitive">Cognitive</TabsTrigger>
-                    <TabsTrigger value="medical">Medical</TabsTrigger>
+            <div className="grid md:grid-cols-3 lg:grid-cols-4 gap-6">
+              <div className="md:col-span-2 lg:col-span-3">
+                <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+                  <TabsList className="w-full grid grid-cols-3 md:grid-cols-6">
+                    <TabsTrigger value="dailyLiving">Daily Living</TabsTrigger>
+                    <TabsTrigger value="cognitiveMemory">Cognitive</TabsTrigger>
+                    <TabsTrigger value="medicalConditions">Medical</TabsTrigger>
                     <TabsTrigger value="emergency">Emergency</TabsTrigger>
                     <TabsTrigger value="housekeeping">Housekeeping</TabsTrigger>
-                    <TabsTrigger value="shifts">Scheduling</TabsTrigger>
+                    <TabsTrigger value="shiftPreferences">Scheduling</TabsTrigger>
                   </TabsList>
-
-                  <TabsContent value="daily">
-                    <SlideIn direction="up" duration={0.4}>
-                      <DailyLivingSection 
-                        form={form}
-                      />
-                    </SlideIn>
-                  </TabsContent>
-
-                  <TabsContent value="cognitive">
-                    <SlideIn direction="up" duration={0.4}>
-                      <CognitiveMemorySection 
-                        form={form}
-                      />
-                    </SlideIn>
-                  </TabsContent>
-
-                  <TabsContent value="medical">
-                    <SlideIn direction="up" duration={0.4}>
-                      <MedicalConditionsSection 
-                        form={form}
-                      />
-                    </SlideIn>
-                  </TabsContent>
-
-                  <TabsContent value="emergency">
-                    <SlideIn direction="up" duration={0.4}>
-                      <EmergencySection 
-                        form={form}
-                      />
-                    </SlideIn>
-                  </TabsContent>
-
-                  <TabsContent value="housekeeping">
-                    <SlideIn direction="up" duration={0.4}>
-                      <HousekeepingSection 
-                        form={form}
-                      />
-                    </SlideIn>
-                  </TabsContent>
-
-                  <TabsContent value="shifts">
-                    <SlideIn direction="up" duration={0.4}>
-                      <ShiftPreferencesSection 
-                        form={form}
-                      />
-                    </SlideIn>
-                  </TabsContent>
+                  
+                  <div className="mt-6 bg-white rounded-lg border p-6">
+                    <TabsContent value="dailyLiving">
+                      <DailyLivingSection />
+                    </TabsContent>
+                    
+                    <TabsContent value="cognitiveMemory">
+                      <CognitiveMemorySection />
+                    </TabsContent>
+                    
+                    <TabsContent value="medicalConditions">
+                      <MedicalConditionsSection />
+                    </TabsContent>
+                    
+                    <TabsContent value="emergency">
+                      <EmergencySection />
+                    </TabsContent>
+                    
+                    <TabsContent value="housekeeping">
+                      <HousekeepingSection />
+                    </TabsContent>
+                    
+                    <TabsContent value="shiftPreferences">
+                      <ShiftPreferencesSection />
+                    </TabsContent>
+                  </div>
                 </Tabs>
-              </FormProvider>
-
-              <div className="flex justify-between mt-8">
-                <Button 
-                  variant="outline" 
-                  onClick={() => {
-                    const tabs = ['daily', 'cognitive', 'medical', 'emergency', 'housekeeping', 'shifts'];
-                    const currentIndex = tabs.indexOf(activeTab);
-                    if (currentIndex > 0) {
-                      setActiveTab(tabs[currentIndex - 1]);
-                    }
-                  }}
-                  disabled={activeTab === 'daily'}
-                >
-                  Previous
-                </Button>
-                {activeTab === 'shifts' ? (
-                  <Button 
-                    onClick={handleSave} 
-                    disabled={saving}
-                  >
-                    {saving ? 'Saving...' : 'Save Care Needs'}
-                  </Button>
-                ) : (
-                  <Button 
-                    onClick={() => {
-                      const tabs = ['daily', 'cognitive', 'medical', 'emergency', 'housekeeping', 'shifts'];
-                      const currentIndex = tabs.indexOf(activeTab);
-                      if (currentIndex < tabs.length - 1) {
-                        setActiveTab(tabs[currentIndex + 1]);
-                      }
-                    }}
-                  >
-                    Next
-                  </Button>
-                )}
               </div>
-            </CardContent>
-          </Card>
-        </div>
+              
+              <div className="w-full lg:w-1/3">
+                <ScheduleInformationCard 
+                  formData={form.getValues().shiftPreferences || {}}
+                  onChange={handleScheduleInfoChange}
+                />
+              </div>
+            </div>
 
-        <div className="w-full lg:w-1/3">
-          <ScheduleInformationCard 
-            formData={form.getValues().shiftPreferences || {}}
-            onChange={handleScheduleInfoChange}
-          />
-        </div>
+            <div className="flex justify-end mt-8">
+              <Button 
+                type="submit" 
+                disabled={saving}
+                className="min-w-[150px]"
+              >
+                {saving ? 'Saving...' : 'Save Care Needs'}
+              </Button>
+            </div>
+          </form>
+        </SlideIn>
       </div>
-    </div>
+    </FormProvider>
   );
 };
 

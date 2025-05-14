@@ -39,7 +39,7 @@ export function createLazyIcon(iconName: string): FC<LucideIconProps> {
       return import('lucide-react')
         .then(module => {
           // Safety check - if the icon doesn't exist, return a fallback empty component
-          if (!(iconName in module)) {
+          if (!module || !(iconName in module)) {
             console.error(`Icon "${iconName}" not found in lucide-react`);
             return { 
               default: (iconProps: LucideIconProps) => {
@@ -54,11 +54,12 @@ export function createLazyIcon(iconName: string): FC<LucideIconProps> {
             };
           }
           
-          // Return a properly wrapped component function to ensure correct typing
+          // Return the icon component properly wrapped
+          const IconComponent = module[iconName as keyof typeof module];
           return { 
-            default: function IconWrapper(iconProps: LucideIconProps) {
-              const IconComponent = module[iconName as keyof typeof module] as FC<LucideIconProps>;
-              return <IconComponent {...iconProps} />;
+            default: (props: LucideIconProps) => {
+              // We need to create a new component that wraps the icon
+              return React.createElement(IconComponent as any, { ...props });
             }
           };
         })

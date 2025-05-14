@@ -23,6 +23,8 @@ export const DashboardGrid: React.FC<DashboardGridProps> = ({
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
       <ScaleIn
         duration={0.5}
+        delay={0}
+        initialScale={0.95}
       >
         <MessageBoardSection 
           messages={messages} 
