@@ -1,5 +1,5 @@
 
-import React, { lazy, Suspense, ComponentType, SVGProps, ReactElement, FC, Ref, forwardRef } from 'react';
+import React, { lazy, Suspense, ComponentType, SVGProps, ReactElement, FC, forwardRef } from 'react';
 
 // Type for the icon props that all Lucide icons accept
 export type LucideIconProps = SVGProps<SVGElement> & { 
@@ -12,7 +12,7 @@ export type LucideIconProps = SVGProps<SVGElement> & {
 // A function to create a lazy-loaded Lucide icon component with deferred React.lazy() invocation
 export function createLazyIcon(iconName: string): FC<LucideIconProps> {
   // Create a component that will handle error recovery and fallbacks
-  const IconComponent = forwardRef<SVGSVGElement, LucideIconProps>((props, ref) => {
+  const LazyIconComponent = forwardRef<SVGSVGElement, LucideIconProps>((props, ref) => {
     // Create a fallback element that doesn't depend on React
     const createFallback = () => {
       const { size, className } = props;
@@ -26,7 +26,7 @@ export function createLazyIcon(iconName: string): FC<LucideIconProps> {
     };
     
     // Check if React is initialized before attempting to load
-    if (typeof window === 'undefined' || !window.React || !window.reactInitialized) {
+    if (typeof window === 'undefined' || !window.React) {
       console.warn(`[lazyIcons] React not fully initialized when rendering ${iconName}`);
       return createFallback();
     }
@@ -57,8 +57,8 @@ export function createLazyIcon(iconName: string): FC<LucideIconProps> {
           // Return a properly wrapped component function to ensure correct typing
           return { 
             default: function IconWrapper(iconProps: LucideIconProps) {
-              const IconComponent = module[iconName as keyof typeof module];
-              return <IconComponent {...iconProps} ref={iconProps.ref} />;
+              const IconComponent = module[iconName as keyof typeof module] as FC<LucideIconProps>;
+              return <IconComponent {...iconProps} />;
             }
           };
         })
@@ -102,8 +102,8 @@ export function createLazyIcon(iconName: string): FC<LucideIconProps> {
     }
   });
   
-  IconComponent.displayName = `LazyIcon(${iconName})`;
-  return IconComponent;
+  LazyIconComponent.displayName = `LazyIcon(${iconName})`;
+  return LazyIconComponent;
 }
 
 // Pre-create commonly used icons to avoid repeated definitions

@@ -3,19 +3,20 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { DashboardHeader } from '@/components/dashboard/DashboardHeader';
-import { getCareNeeds, saveCareNeeds } from '@/services/familyCareNeedsService';
-import { DailyLivingSection } from '@/components/careneeds/DailyLivingSection';
-import { CognitiveMemorySection } from '@/components/careneeds/CognitiveMemorySection';
-import { MedicalConditionsSection } from '@/components/careneeds/MedicalConditionsSection';
-import { EmergencySection } from '@/components/careneeds/EmergencySection';
+import { fetchFamilyCareNeeds, saveFamilyCareNeeds } from '@/services/familyCareNeedsService';
+import DailyLivingSection from '@/components/careneeds/DailyLivingSection';
+import CognitiveMemorySection from '@/components/careneeds/CognitiveMemorySection';
+import MedicalConditionsSection from '@/components/careneeds/MedicalConditionsSection';
+import EmergencySection from '@/components/careneeds/EmergencySection';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { HousekeepingSection } from '@/components/careneeds/HousekeepingSection';
-import { ShiftPreferencesSection } from '@/components/careneeds/ShiftPreferencesSection';
+import HousekeepingSection from '@/components/careneeds/HousekeepingSection';
+import ShiftPreferencesSection from '@/components/careneeds/ShiftPreferencesSection';
 import { toast } from 'sonner';
 import { FadeIn, SlideIn } from '@/components/framer';
-import { ScheduleInformationCard } from '@/components/careneeds/ScheduleInformationCard';
+import ScheduleInformationCard from '@/components/careneeds/ScheduleInformationCard';
+import { useForm, FormProvider } from 'react-hook-form';
 
 const breadcrumbItems = [
   {
@@ -29,18 +30,20 @@ const breadcrumbItems = [
 ];
 
 const FamilyCareNeedsPage = () => {
-  const { user, updateOnboardingProgress } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [activeTab, setActiveTab] = useState('daily');
-  const [formData, setFormData] = useState({
-    dailyLiving: {},
-    cognitiveMemory: {},
-    medicalConditions: {},
-    emergency: {},
-    housekeeping: {},
-    shiftPreferences: {}
+  const form = useForm({
+    defaultValues: {
+      dailyLiving: {},
+      cognitiveMemory: {},
+      medicalConditions: {},
+      emergency: {},
+      housekeeping: {},
+      shiftPreferences: {}
+    }
   });
 
   useEffect(() => {
@@ -52,9 +55,9 @@ const FamilyCareNeedsPage = () => {
 
       try {
         setLoading(true);
-        const data = await getCareNeeds(user.id);
+        const data = await fetchFamilyCareNeeds(user.id);
         if (data) {
-          setFormData({
+          form.reset({
             dailyLiving: data.dailyLiving || {},
             cognitiveMemory: data.cognitiveMemory || {},
             medicalConditions: data.medicalConditions || {},
@@ -72,20 +75,20 @@ const FamilyCareNeedsPage = () => {
     };
 
     loadCareNeeds();
-  }, [user, navigate]);
+  }, [user, navigate, form]);
 
   const handleSave = async () => {
     if (!user) return;
 
     try {
       setSaving(true);
-      await saveCareNeeds(user.id, formData);
+      const formData = form.getValues();
+      await saveFamilyCareNeeds({
+        profileId: user.id,
+        ...formData
+      });
       
-      // Update onboarding progress
-      if (updateOnboardingProgress) {
-        await updateOnboardingProgress('care_needs');
-      }
-      
+      // Update onboarding progress is handled in the service now
       toast.success('Care needs saved successfully!');
     } catch (error) {
       console.error('Error saving care needs:', error);
@@ -93,16 +96,6 @@ const FamilyCareNeedsPage = () => {
     } finally {
       setSaving(false);
     }
-  };
-
-  const updateSection = (section, data) => {
-    setFormData(prev => ({
-      ...prev,
-      [section]: {
-        ...prev[section],
-        ...data
-      }
-    }));
   };
 
   return (
@@ -128,80 +121,70 @@ const FamilyCareNeedsPage = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Tabs
-                value={activeTab}
-                onValueChange={setActiveTab}
-                className="w-full"
-              >
-                <TabsList className="grid grid-cols-3 md:grid-cols-6">
-                  <TabsTrigger value="daily">Daily Living</TabsTrigger>
-                  <TabsTrigger value="cognitive">Cognitive</TabsTrigger>
-                  <TabsTrigger value="medical">Medical</TabsTrigger>
-                  <TabsTrigger value="emergency">Emergency</TabsTrigger>
-                  <TabsTrigger value="housekeeping">Housekeeping</TabsTrigger>
-                  <TabsTrigger value="shifts">Scheduling</TabsTrigger>
-                </TabsList>
+              <FormProvider {...form}>
+                <Tabs
+                  value={activeTab}
+                  onValueChange={setActiveTab}
+                  className="w-full"
+                >
+                  <TabsList className="grid grid-cols-3 md:grid-cols-6">
+                    <TabsTrigger value="daily">Daily Living</TabsTrigger>
+                    <TabsTrigger value="cognitive">Cognitive</TabsTrigger>
+                    <TabsTrigger value="medical">Medical</TabsTrigger>
+                    <TabsTrigger value="emergency">Emergency</TabsTrigger>
+                    <TabsTrigger value="housekeeping">Housekeeping</TabsTrigger>
+                    <TabsTrigger value="shifts">Scheduling</TabsTrigger>
+                  </TabsList>
 
-                <TabsContent value="daily">
-                  <SlideIn direction="up" duration={0.4}>
-                    <DailyLivingSection 
-                      data={formData.dailyLiving} 
-                      onChange={(data) => updateSection('dailyLiving', data)}
-                      loading={loading}
-                    />
-                  </SlideIn>
-                </TabsContent>
+                  <TabsContent value="daily">
+                    <SlideIn direction="up" duration={0.4}>
+                      <DailyLivingSection 
+                        form={form}
+                      />
+                    </SlideIn>
+                  </TabsContent>
 
-                <TabsContent value="cognitive">
-                  <SlideIn direction="up" duration={0.4}>
-                    <CognitiveMemorySection 
-                      data={formData.cognitiveMemory}
-                      onChange={(data) => updateSection('cognitiveMemory', data)}
-                      loading={loading}
-                    />
-                  </SlideIn>
-                </TabsContent>
+                  <TabsContent value="cognitive">
+                    <SlideIn direction="up" duration={0.4}>
+                      <CognitiveMemorySection 
+                        form={form}
+                      />
+                    </SlideIn>
+                  </TabsContent>
 
-                <TabsContent value="medical">
-                  <SlideIn direction="up" duration={0.4}>
-                    <MedicalConditionsSection 
-                      data={formData.medicalConditions}
-                      onChange={(data) => updateSection('medicalConditions', data)}
-                      loading={loading}
-                    />
-                  </SlideIn>
-                </TabsContent>
+                  <TabsContent value="medical">
+                    <SlideIn direction="up" duration={0.4}>
+                      <MedicalConditionsSection 
+                        form={form}
+                      />
+                    </SlideIn>
+                  </TabsContent>
 
-                <TabsContent value="emergency">
-                  <SlideIn direction="up" duration={0.4}>
-                    <EmergencySection 
-                      data={formData.emergency}
-                      onChange={(data) => updateSection('emergency', data)}
-                      loading={loading}
-                    />
-                  </SlideIn>
-                </TabsContent>
+                  <TabsContent value="emergency">
+                    <SlideIn direction="up" duration={0.4}>
+                      <EmergencySection 
+                        form={form}
+                      />
+                    </SlideIn>
+                  </TabsContent>
 
-                <TabsContent value="housekeeping">
-                  <SlideIn direction="up" duration={0.4}>
-                    <HousekeepingSection 
-                      data={formData.housekeeping}
-                      onChange={(data) => updateSection('housekeeping', data)}
-                      loading={loading}
-                    />
-                  </SlideIn>
-                </TabsContent>
+                  <TabsContent value="housekeeping">
+                    <SlideIn direction="up" duration={0.4}>
+                      <HousekeepingSection 
+                        form={form}
+                      />
+                    </SlideIn>
+                  </TabsContent>
 
-                <TabsContent value="shifts">
-                  <SlideIn direction="up" duration={0.4}>
-                    <ShiftPreferencesSection 
-                      data={formData.shiftPreferences}
-                      onChange={(data) => updateSection('shiftPreferences', data)}
-                      loading={loading}
-                    />
-                  </SlideIn>
-                </TabsContent>
-              </Tabs>
+                  <TabsContent value="shifts">
+                    <SlideIn direction="up" duration={0.4}>
+                      <ShiftPreferencesSection 
+                        form={form}
+                      />
+                    </SlideIn>
+                  </TabsContent>
+                </Tabs>
+              </FormProvider>
 
               <div className="flex justify-between mt-8">
                 <Button 
@@ -243,7 +226,12 @@ const FamilyCareNeedsPage = () => {
         </div>
 
         <div className="w-full lg:w-1/3">
-          <ScheduleInformationCard />
+          <ScheduleInformationCard 
+            formData={form.getValues().shiftPreferences || {}}
+            onChange={(name, value) => {
+              form.setValue(`shiftPreferences.${name}`, value);
+            }}
+          />
         </div>
       </div>
     </div>

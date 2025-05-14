@@ -1,14 +1,14 @@
+
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
-import { FamilyCareNeeds } from "@/types/carePlan";
-import { adaptFamilyCareNeedsFromDb, adaptFamilyCareNeedsToDb } from "@/adapters/familyCareNeedsAdapter";
-import { updateOnboardingProgress } from "@/services/profileService";
+import { updateProfileOnboardingProgress } from "@/services/profile/profileUpdates";
 
 /**
  * Fetch care needs for a family profile
  */
-export const fetchFamilyCareNeeds = async (profileId: string): Promise<FamilyCareNeeds | null> => {
+export const fetchFamilyCareNeeds = async (profileId: string) => {
   try {
+    console.log("Fetching care needs for profile:", profileId);
     const { data, error } = await supabase
       .from('care_needs_family')
       .select('*')
@@ -20,6 +20,8 @@ export const fetchFamilyCareNeeds = async (profileId: string): Promise<FamilyCar
     }
 
     console.log("Fetched care needs data:", data);
+    
+    // If data exists, return it; otherwise return an empty object
     return data ? adaptFamilyCareNeedsFromDb(data) : null;
   } catch (error) {
     console.error("Error fetching family care needs:", error);
@@ -31,9 +33,21 @@ export const fetchFamilyCareNeeds = async (profileId: string): Promise<FamilyCar
 /**
  * Save care needs for a family profile
  */
-export const saveFamilyCareNeeds = async (careNeeds: FamilyCareNeeds): Promise<FamilyCareNeeds | null> => {
+export const saveFamilyCareNeeds = async (careNeeds) => {
   try {
-    const dbCareNeeds = adaptFamilyCareNeedsToDb(careNeeds);
+    const { profileId, ...careNeedsData } = careNeeds;
+    
+    const dbCareNeeds = {
+      profile_id: profileId,
+      daily_living: careNeedsData.dailyLiving || {},
+      cognitive_memory: careNeedsData.cognitiveMemory || {},
+      medical_conditions: careNeedsData.medicalConditions || {},
+      emergency: careNeedsData.emergency || {},
+      housekeeping: careNeedsData.housekeeping || {},
+      shift_preferences: careNeedsData.shiftPreferences || {},
+      updated_at: new Date().toISOString()
+    };
+    
     console.log("Saving care needs to DB:", dbCareNeeds);
 
     // Check if record exists
@@ -84,12 +98,7 @@ export const saveFamilyCareNeeds = async (careNeeds: FamilyCareNeeds): Promise<F
 
     // Update onboarding progress
     try {
-      await updateOnboardingProgress(dbCareNeeds.profile_id, {
-        currentStep: 'care_plan',
-        completedSteps: {
-          care_needs: true
-        }
-      });
+      await updateProfileOnboardingProgress(dbCareNeeds.profile_id, 'care_needs', true);
     } catch (progressError) {
       console.warn("Could not update onboarding progress:", progressError);
     }
@@ -103,92 +112,18 @@ export const saveFamilyCareNeeds = async (careNeeds: FamilyCareNeeds): Promise<F
   }
 };
 
-/**
- * Create a draft care plan from family care needs
- * 
- * @param careNeeds - The family care needs data
- * @param profileData - Additional profile data like care recipient name
- */
-export const generateDraftCarePlanFromCareNeeds = (
-  careNeeds: FamilyCareNeeds, 
-  profileData: { 
-    careRecipientName?: string;
-    relationship?: string;
-    careTypes?: string[];
-  }
-): {
-  title: string;
-  description: string;
-  planType: 'scheduled' | 'on-demand' | 'both';
-  metadata: {
-    weekdayCoverage?: string;
-    weekendCoverage?: string;
-    weekendScheduleType?: string;
-    customShifts?: Array<{
-      days: Array<'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday'>;
-      startTime: string;
-      endTime: string;
-      title?: string;
-    }>;
-  };
-} => {
-  // Extract first name if full name is provided
-  const recipientName = profileData.careRecipientName 
-    ? profileData.careRecipientName.split(' ')[0] 
-    : 'Care Recipient';
-
-  console.log("Generating care plan with schedule data:", {
-    weekdayCoverage: careNeeds.weekdayCoverage,
-    weekendCoverage: careNeeds.weekendCoverage,
-    weekendScheduleType: careNeeds.weekendScheduleType
-  });
-
-  // Create a focused, concise description instead of including all details
-  let description = "";
-  
-  // Identify main care focuses (limit to top 2-3)
-  const careFocuses = [];
-  
-  if (careNeeds.assistanceMobility) careFocuses.push("mobility assistance");
-  if (careNeeds.assistanceMedication) careFocuses.push("medication management");
-  if (careNeeds.dementiaRedirection) careFocuses.push("memory care");
-  if (careNeeds.assistanceBathing || careNeeds.assistanceDressing) careFocuses.push("personal care");
-  if (careNeeds.fallMonitoring) careFocuses.push("fall prevention");
-  
-  // Create a short, personalized description
-  if (careFocuses.length > 0) {
-    const focusText = careFocuses.slice(0, 2).join(" and ");
-    description = `Care plan for ${recipientName} focusing on ${focusText}.`;
-  } else {
-    description = `Care plan for ${recipientName}.`;
-  }
-  
-  // Add relationship if available, but keep it concise
-  if (profileData.relationship && description.length < 100) {
-    description = description.replace(`.`, ` (${profileData.relationship}).`);
-  }
-
-  // Determine plan type based on preferences
-  // Use the explicitly selected plan type if available, otherwise infer from coverage preferences
-  let planType: 'scheduled' | 'on-demand' | 'both' = careNeeds.planType || 'scheduled';
-  
-  // Only infer plan type if not explicitly selected
-  if (!careNeeds.planType) {
-    // Default to scheduled care unless explicitly set to on-demand
-    if (careNeeds.weekdayCoverage === 'none' && careNeeds.weekendCoverage === 'no') {
-      planType = 'on-demand';
-    }
-  }
-
+// Helper function to convert from database format to application format
+const adaptFamilyCareNeedsFromDb = (dbData) => {
   return {
-    title: `Care Plan for ${recipientName}`,
-    description: description,
-    planType: planType,
-    metadata: {
-      weekdayCoverage: careNeeds.weekdayCoverage,
-      weekendCoverage: careNeeds.weekendCoverage,
-      weekendScheduleType: careNeeds.weekendScheduleType,
-      customShifts: []
-    }
+    id: dbData.id,
+    profileId: dbData.profile_id,
+    dailyLiving: dbData.daily_living || {},
+    cognitiveMemory: dbData.cognitive_memory || {},
+    medicalConditions: dbData.medical_conditions || {},
+    emergency: dbData.emergency || {},
+    housekeeping: dbData.housekeeping || {},
+    shiftPreferences: dbData.shift_preferences || {},
+    createdAt: dbData.created_at,
+    updatedAt: dbData.updated_at
   };
 };

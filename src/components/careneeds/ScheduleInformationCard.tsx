@@ -3,7 +3,11 @@ import React from "react";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ScheduleInformationCardProps } from "@/types/careNeedsTypes";
+
+interface ScheduleInformationCardProps {
+  formData: Record<string, any>;
+  onChange: (name: string, value: any) => void;
+}
 
 const ScheduleInformationCard: React.FC<ScheduleInformationCardProps> = ({ 
   formData, 
