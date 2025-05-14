@@ -100,7 +100,7 @@ const FamilyCareNeedsPage = () => {
   // Handle field value changes for the ScheduleInformationCard
   const handleScheduleInfoChange = (name: string, value: any) => {
     // Use the form's setValue method with the proper nested path
-    form.setValue(`shiftPreferences`, {
+    form.setValue(`shiftPreferences` as any, {
       ...form.getValues().shiftPreferences,
       [name]: value
     });
@@ -152,27 +152,27 @@ const FamilyCareNeedsPage = () => {
                   
                   <div className="mt-6 bg-white rounded-lg border p-6">
                     <TabsContent value="dailyLiving">
-                      <DailyLivingSection />
+                      <DailyLivingSection form={form} />
                     </TabsContent>
                     
                     <TabsContent value="cognitiveMemory">
-                      <CognitiveMemorySection />
+                      <CognitiveMemorySection form={form} />
                     </TabsContent>
                     
                     <TabsContent value="medicalConditions">
-                      <MedicalConditionsSection />
+                      <MedicalConditionsSection form={form} />
                     </TabsContent>
                     
                     <TabsContent value="emergency">
-                      <EmergencySection />
+                      <EmergencySection form={form} />
                     </TabsContent>
                     
                     <TabsContent value="housekeeping">
-                      <HousekeepingSection />
+                      <HousekeepingSection form={form} />
                     </TabsContent>
                     
                     <TabsContent value="shiftPreferences">
-                      <ShiftPreferencesSection />
+                      <ShiftPreferencesSection form={form} />
                     </TabsContent>
                   </div>
                 </Tabs>

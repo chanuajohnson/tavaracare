@@ -31,6 +31,11 @@ export const fetchFamilyCareNeeds = async (profileId: string) => {
 };
 
 /**
+ * Get care needs for a family profile (alias for fetchFamilyCareNeeds)
+ */
+export const getCareNeeds = fetchFamilyCareNeeds;
+
+/**
  * Save care needs for a family profile
  */
 export const saveFamilyCareNeeds = async (careNeeds) => {
@@ -110,6 +115,19 @@ export const saveFamilyCareNeeds = async (careNeeds) => {
     toast.error("Failed to save care needs data");
     return null;
   }
+};
+
+/**
+ * Save care needs for a family profile (with userId and data parameters)
+ */
+export const saveCareNeeds = async (userId: string, data: any) => {
+  // Prepare data with profileId
+  const careNeedsWithProfile = {
+    profileId: userId,
+    ...data
+  };
+  
+  return await saveFamilyCareNeeds(careNeedsWithProfile);
 };
 
 // Helper function to convert from database format to application format
