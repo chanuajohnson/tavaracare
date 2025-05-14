@@ -11,23 +11,29 @@ export type LucideIconProps = SVGProps<SVGElement> & {
 
 // A function to create a lazy-loaded Lucide icon component with deferred React.lazy() invocation
 export function createLazyIcon(iconName: string): FC<LucideIconProps> {
-  // Instead of creating the lazy component immediately, we create a component
-  // that will create the lazy component only when it is rendered
+  // Create a component that will handle error recovery and fallbacks
   const IconComponent = forwardRef<SVGSVGElement, LucideIconProps>((props, ref) => {
+    // Create a fallback element that doesn't depend on React
+    const createFallback = () => {
+      const { size, className } = props;
+      const fallbackStyle = {
+        width: size || 24,
+        height: size || 24,
+        display: 'inline-block'
+      };
+      
+      return <span className={className} style={fallbackStyle} />;
+    };
+    
+    // Check if React is initialized before attempting to load
+    if (typeof window === 'undefined' || !window.React || !window.reactInitialized) {
+      console.warn(`[lazyIcons] React not fully initialized when rendering ${iconName}`);
+      return createFallback();
+    }
+    
     // Create the lazy component on demand, during render
     const LazyIcon = lazy(() => {
-      // Ensure React is initialized before attempting to import
-      if (typeof window !== 'undefined' && !window.React) {
-        console.error('[lazyIcons] React not initialized when loading icon:', iconName);
-        return Promise.resolve({
-          default: () => (
-            <span 
-              style={{ width: props.size || 24, height: props.size || 24, display: 'inline-block' }} 
-              className={props.className}
-            />
-          )
-        });
-      }
+      console.log(`[lazyIcons] Loading icon ${iconName}`);
       
       // Now safely import the icon
       return import('lucide-react')
@@ -48,36 +54,11 @@ export function createLazyIcon(iconName: string): FC<LucideIconProps> {
             };
           }
           
-          // Get the icon component and ensure it's a valid component
-          const IconComponent = module[iconName as keyof typeof module];
-          
           // Return a properly wrapped component function to ensure correct typing
           return { 
-            default: (iconProps: LucideIconProps) => {
-              // Handle different types of components properly
-              if (typeof IconComponent === 'function') {
-                // Use React.createElement for proper type handling
-                return React.createElement(IconComponent as any, {
-                  ...iconProps,
-                  ref: iconProps.ref
-                });
-              } else if (typeof IconComponent === 'object' && IconComponent !== null) {
-                // For object components (like forwardRef components)
-                return React.createElement(IconComponent as any, {
-                  ...iconProps,
-                  ref: iconProps.ref
-                });
-              }
-              
-              // Fallback if component is not valid
-              return (
-                <span 
-                  style={{ width: iconProps.size || 24, height: iconProps.size || 24, display: 'inline-block' }} 
-                  className={iconProps.className}
-                >
-                  <span style={{ color: 'red', fontSize: '8px' }}>!</span>
-                </span>
-              );
+            default: function IconWrapper(iconProps: LucideIconProps) {
+              const IconComponent = module[iconName as keyof typeof module];
+              return <IconComponent {...iconProps} ref={iconProps.ref} />;
             }
           };
         })
@@ -107,12 +88,18 @@ export function createLazyIcon(iconName: string): FC<LucideIconProps> {
       display: 'inline-block'
     };
     
-    // Only pass the necessary props to the Suspense fallback
-    return (
-      <Suspense fallback={<span className={className} style={fallbackStyle} />}>
-        <LazyIcon size={size} className={className} {...restProps} ref={ref} />
-      </Suspense>
-    );
+    // Use a try/catch block to handle any errors during rendering
+    try {
+      // Only pass the necessary props to the Suspense fallback
+      return (
+        <Suspense fallback={<span className={className} style={fallbackStyle} />}>
+          <LazyIcon size={size} className={className} {...restProps} ref={ref} />
+        </Suspense>
+      );
+    } catch (error) {
+      console.error(`Error rendering icon "${iconName}":`, error);
+      return <span className={className} style={fallbackStyle} />;
+    }
   });
   
   IconComponent.displayName = `LazyIcon(${iconName})`;

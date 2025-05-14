@@ -11,9 +11,9 @@ export const DashboardCardGrid = () => {
     <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
       {/* Profile Management Card */}
       <FadeIn
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
+        className="h-full"
+        duration={0.5}
+        delay={0}
       >
         <Card className="h-full">
           <CardHeader>
@@ -49,9 +49,9 @@ export const DashboardCardGrid = () => {
 
       {/* Resources Card */}
       <FadeIn
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.1 }}
+        className="h-full"
+        duration={0.5}
+        delay={0.1}
       >
         <Card className="h-full">
           <CardHeader>
@@ -87,9 +87,9 @@ export const DashboardCardGrid = () => {
 
       {/* Documentation Card */}
       <FadeIn
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.2 }}
+        className="h-full"
+        duration={0.5}
+        delay={0.2}
       >
         <Card className="h-full">
           <CardHeader>

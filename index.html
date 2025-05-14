@@ -14,15 +14,28 @@
       window.React = window.React || {};
       window.reactInitialized = false; // Will be set to true once React is fully loaded
       
+      console.log('[index.html] Setting initial React placeholder at:', new Date().toISOString());
+      
       // Add a global error handler for initialization issues
       window.onerror = function(message, source, lineno, colno, error) {
-        if (message && message.includes('forwardRef') && !window.reactInitialized) {
-          console.error('React initialization error detected:', message);
+        console.log('[index.html] Error handler triggered:', message);
+        
+        if ((message && message.includes('forwardRef')) || 
+            (message && message.includes('createElement')) || 
+            (message && message.includes('React'))) {
+            
+          console.error('[index.html] React initialization error detected:', message);
+          console.error('[index.html] Error source:', source);
+          console.error('[index.html] React available?', !!window.React);
+          console.error('[index.html] React initialized?', !!window.reactInitialized);
+          
           // Display fallback UI when React fails to initialize properly
           document.addEventListener('DOMContentLoaded', function() {
             var rootEl = document.getElementById('root');
-            if (rootEl && rootEl.children.length === 0) {
-              rootEl.innerHTML = '<div style="padding: 20px; color: #721c24; background-color: #f8d7da; border: 1px solid #f5c6cb; border-radius: 4px; text-align: center;"><h3>Application is loading...</h3><p>If this message persists, please try refreshing the page.</p></div>';
+            if (rootEl) {
+              if (rootEl.children.length === 0 || !window.reactInitialized) {
+                rootEl.innerHTML = '<div style="padding: 20px; color: #721c24; background-color: #f8d7da; border: 1px solid #f5c6cb; border-radius: 4px; text-align: center;"><h3>Application is loading...</h3><p>If this message persists, please try refreshing the page.</p><pre style="text-align:left;background:#f8f8f8;padding:10px;font-size:12px;overflow:auto">Error: ' + message + '\nLocation: ' + source + ':' + lineno + '</pre><button onclick="window.location.reload()" style="background: #721c24; color: white; border: none; padding: 8px 16px; border-radius: 4px; margin-top: 10px; cursor: pointer;">Refresh Page</button></div>';
+              }
             }
           });
           return true; // Prevents default error handling

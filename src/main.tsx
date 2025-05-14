@@ -4,32 +4,34 @@ import { createRoot } from 'react-dom/client';
 import App from './App.tsx';
 import './index.css';
 import './components/framer/animations.css'; // Import animations CSS
-import { ensureReact } from './utils/reactErrorHandler.ts';
 
-// Set React globally to ensure it's available early
+// Define React globally as early as possible
 if (typeof window !== 'undefined') {
+  // Ensure React is globally available before any other code runs
   window.React = React;
   
-  // Flag that React is initialized
-  window.reactInitialized = true;
-  
-  // Add diagnostic logs for initialization
-  console.log('[main.tsx] React initialization starting at:', new Date().toISOString());
+  console.log('[main.tsx] React pre-initialization at:', new Date().toISOString());
   console.log('[main.tsx] React version:', React.version);
 }
 
 // Create a utility to safely mount the application
 const mountApp = () => {
   try {
-    ensureReact(); // Check for proper React initialization
+    if (typeof window !== 'undefined' && !window.reactInitialized) {
+      // Set reactInitialized flag to true to indicate React is now ready
+      window.reactInitialized = true;
+      console.log('[main.tsx] Setting React initialization flag at:', new Date().toISOString());
+    }
     
     const container = document.getElementById('root');
     if (!container) {
       throw new Error('Root element not found in the DOM');
     }
 
-    // Clear any loading UI
-    container.innerHTML = '';
+    // Check loading UI and clear it
+    console.log('[main.tsx] Current root content:', container.innerHTML);
+    
+    // Don't clear loading UI until we're ready to render
     
     console.log('[main.tsx] Mounting application to DOM');
     
@@ -51,10 +53,15 @@ const mountApp = () => {
   }
 };
 
-// Wait for DOM to be fully ready
+// Ensure DOM is fully loaded before mounting
 if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', mountApp);
+  document.addEventListener('DOMContentLoaded', () => {
+    console.log('[main.tsx] DOMContentLoaded event fired');
+    // Small timeout to ensure everything is ready
+    setTimeout(mountApp, 50);
+  });
 } else {
-  // Small timeout to ensure everything is ready
-  setTimeout(mountApp, 10);
+  // DOM already loaded, but add a small delay to ensure all scripts are parsed
+  console.log('[main.tsx] DOM already loaded, scheduling mount');
+  setTimeout(mountApp, 50);
 }

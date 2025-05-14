@@ -28,12 +28,9 @@ const CommunityDashboard = () => {
         <DashboardHeader breadcrumbItems={breadcrumbItems} />
 
         <FadeIn 
-          initial={{
-            opacity: 0,
-            y: 20
-          }} 
-          duration={0.5}
           className="space-y-6"
+          duration={0.5}
+          delay={0}
         >
           {!user ? <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 rounded-lg mb-8 border border-blue-100">
               <h2 className="text-2xl font-bold mb-2">Join the Movement! 🌍 Supporting Care, Together.</h2>
