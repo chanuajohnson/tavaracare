@@ -8,35 +8,28 @@ import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import { FadeIn, SlideIn } from "@/components/framer";
 
-// Import care needs components - using default imports instead of named imports
-import CognitiveMemorySection from "@/components/careneeds/CognitiveMemorySection";
+// Import care needs components using default imports
 import DailyLivingSection from "@/components/careneeds/DailyLivingSection";
+import CognitiveMemorySection from "@/components/careneeds/CognitiveMemorySection";
 import EmergencySection from "@/components/careneeds/EmergencySection";
 import HousekeepingSection from "@/components/careneeds/HousekeepingSection";
 import MedicalConditionsSection from "@/components/careneeds/MedicalConditionsSection";
 import ScheduleInformationCard from "@/components/careneeds/ScheduleInformationCard";
 import ShiftPreferencesSection from "@/components/careneeds/ShiftPreferencesSection";
 
-// Import the type definitions
-import {
-  CareNeedsSectionProps,
-  DailyLivingSectionProps,
-  CognitiveMemorySectionProps,
-  HousekeepingSectionProps,
-  MedicalConditionsSectionProps,
-  ScheduleInformationCardProps,
-  ShiftPreferencesSectionProps,
-  EmergencySectionProps
-} from '@/types/careNeedsTypes';
+// Import the form adapter
+import { createFormAdapter } from "@/components/careneeds/adapters/FormAdapter";
 
-// Explicitly cast the imported components to accept our props types
-const TypedDailyLivingSection = DailyLivingSection as React.ComponentType<CareNeedsSectionProps>;
-const TypedCognitiveMemorySection = CognitiveMemorySection as React.ComponentType<CareNeedsSectionProps>;
-const TypedHousekeepingSection = HousekeepingSection as React.ComponentType<CareNeedsSectionProps>;
-const TypedMedicalConditionsSection = MedicalConditionsSection as React.ComponentType<CareNeedsSectionProps>;
-const TypedScheduleInformationCard = ScheduleInformationCard as React.ComponentType<CareNeedsSectionProps>;
-const TypedShiftPreferencesSection = ShiftPreferencesSection as React.ComponentType<CareNeedsSectionProps>;
-const TypedEmergencySection = EmergencySection as React.ComponentType<CareNeedsSectionProps>;
+// Import the type definitions
+import { CareNeedsSectionProps } from '@/types/careNeedsTypes';
+
+// Create adapted components that will work with our formData/onChange pattern
+const AdaptedDailyLivingSection = createFormAdapter(DailyLivingSection);
+const AdaptedCognitiveMemorySection = createFormAdapter(CognitiveMemorySection);
+const AdaptedHousekeepingSection = createFormAdapter(HousekeepingSection);
+const AdaptedMedicalConditionsSection = createFormAdapter(MedicalConditionsSection);
+const AdaptedShiftPreferencesSection = createFormAdapter(ShiftPreferencesSection);
+const AdaptedEmergencySection = createFormAdapter(EmergencySection);
 
 interface CareNeedsFormData {
   // Daily Living
@@ -315,28 +308,28 @@ const FamilyCareNeedsPage = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               <div className="space-y-8">
                 <FadeIn duration={0.5} delay={0.1}>
-                  <TypedDailyLivingSection 
+                  <AdaptedDailyLivingSection 
                     formData={formData}
                     onChange={handleChange}
                   />
                 </FadeIn>
                 
                 <FadeIn duration={0.5} delay={0.2}>
-                  <TypedCognitiveMemorySection 
+                  <AdaptedCognitiveMemorySection 
                     formData={formData}
                     onChange={handleChange}
                   />
                 </FadeIn>
                 
                 <FadeIn duration={0.5} delay={0.3}>
-                  <TypedHousekeepingSection 
+                  <AdaptedHousekeepingSection 
                     formData={formData}
                     onChange={handleChange}
                   />
                 </FadeIn>
                 
                 <FadeIn duration={0.5} delay={0.4}>
-                  <TypedMedicalConditionsSection 
+                  <AdaptedMedicalConditionsSection 
                     formData={formData}
                     onChange={handleChange}
                   />
@@ -345,21 +338,21 @@ const FamilyCareNeedsPage = () => {
               
               <div className="space-y-8">
                 <FadeIn duration={0.5} delay={0.2}>
-                  <TypedScheduleInformationCard 
+                  <ScheduleInformationCard 
                     formData={formData}
                     onChange={handleChange}
                   />
                 </FadeIn>
                 
                 <FadeIn duration={0.5} delay={0.3}>
-                  <TypedShiftPreferencesSection 
+                  <AdaptedShiftPreferencesSection 
                     formData={formData}
                     onChange={handleChange}
                   />
                 </FadeIn>
                 
                 <FadeIn duration={0.5} delay={0.4}>
-                  <TypedEmergencySection 
+                  <AdaptedEmergencySection 
                     formData={formData}
                     onChange={handleChange}
                   />

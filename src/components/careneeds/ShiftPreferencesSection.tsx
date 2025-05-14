@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
 import {
@@ -11,10 +10,7 @@ import {
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { AlertCircle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-
-interface ShiftPreferencesSectionProps {
-  form: any;
-}
+import { ShiftPreferencesSectionProps } from "@/types/careNeedsTypes";
 
 // Standard care coverage options that match the care plan creation page exactly
 const weekdayCoverageOptions = [
@@ -42,7 +38,7 @@ const ShiftPreferencesSection: React.FC<ShiftPreferencesSectionProps> = ({ form 
 
         <FormField
           control={form.control}
-          name="planType"
+          name="plan_type"
           render={({ field }) => (
             <FormItem className="space-y-3">
               <FormLabel className="text-lg font-medium">Plan Type</FormLabel>

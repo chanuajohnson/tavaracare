@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
 import {
@@ -10,10 +9,7 @@ import {
 } from "@/components/ui/form";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
-
-interface CognitiveMemorySectionProps {
-  form: any;
-}
+import { CognitiveMemorySectionProps } from "@/types/careNeedsTypes";
 
 const CognitiveMemorySection: React.FC<CognitiveMemorySectionProps> = ({ form }) => {
   return (
@@ -26,7 +22,7 @@ const CognitiveMemorySection: React.FC<CognitiveMemorySectionProps> = ({ form })
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <FormField
             control={form.control}
-            name="dementiaRedirection"
+            name="dementia_redirection"
             render={({ field }) => (
               <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
                 <FormControl>
@@ -47,7 +43,7 @@ const CognitiveMemorySection: React.FC<CognitiveMemorySectionProps> = ({ form })
 
           <FormField
             control={form.control}
-            name="memoryReminders"
+            name="memory_reminders"
             render={({ field }) => (
               <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
                 <FormControl>
@@ -68,7 +64,7 @@ const CognitiveMemorySection: React.FC<CognitiveMemorySectionProps> = ({ form })
 
           <FormField
             control={form.control}
-            name="gentleEngagement"
+            name="gentle_engagement"
             render={({ field }) => (
               <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
                 <FormControl>
@@ -89,7 +85,7 @@ const CognitiveMemorySection: React.FC<CognitiveMemorySectionProps> = ({ form })
 
           <FormField
             control={form.control}
-            name="wanderingPrevention"
+            name="wandering_prevention"
             render={({ field }) => (
               <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
                 <FormControl>
@@ -111,7 +107,7 @@ const CognitiveMemorySection: React.FC<CognitiveMemorySectionProps> = ({ form })
 
         <FormField
           control={form.control}
-          name="cognitiveNotes"
+          name="cognitive_notes"
           render={({ field }) => (
             <FormItem>
               <FormLabel>Triggers and Soothing Techniques</FormLabel>

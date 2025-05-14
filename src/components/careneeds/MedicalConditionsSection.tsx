@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
 import {
@@ -12,10 +11,7 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
-
-interface MedicalConditionsSectionProps {
-  form: any;
-}
+import { MedicalConditionsSectionProps } from "@/types/careNeedsTypes";
 
 const MedicalConditionsSection: React.FC<MedicalConditionsSectionProps> = ({ form }) => {
   return (
@@ -27,7 +23,7 @@ const MedicalConditionsSection: React.FC<MedicalConditionsSectionProps> = ({ for
       <CardContent className="space-y-6">
         <FormField
           control={form.control}
-          name="diagnosedConditions"
+          name="diagnosed_conditions"
           render={({ field }) => (
             <FormItem>
               <FormLabel>Medical Conditions</FormLabel>
@@ -53,7 +49,7 @@ const MedicalConditionsSection: React.FC<MedicalConditionsSectionProps> = ({ for
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
             <FormField
               control={form.control}
-              name="equipmentUse"
+              name="equipment_use"
               render={({ field }) => (
                 <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
                   <FormControl>
@@ -74,7 +70,7 @@ const MedicalConditionsSection: React.FC<MedicalConditionsSectionProps> = ({ for
 
             <FormField
               control={form.control}
-              name="fallMonitoring"
+              name="fall_monitoring"
               render={({ field }) => (
                 <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
                   <FormControl>
@@ -95,7 +91,7 @@ const MedicalConditionsSection: React.FC<MedicalConditionsSectionProps> = ({ for
 
             <FormField
               control={form.control}
-              name="vitalsCheck"
+              name="vitals_check"
               render={({ field }) => (
                 <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
                   <FormControl>

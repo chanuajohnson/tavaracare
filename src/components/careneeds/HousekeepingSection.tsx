@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
 import {
@@ -9,10 +8,7 @@ import {
   FormDescription,
 } from "@/components/ui/form";
 import { Checkbox } from "@/components/ui/checkbox";
-
-interface HousekeepingSectionProps {
-  form: any;
-}
+import { HousekeepingSectionProps } from "@/types/careNeedsTypes";
 
 const HousekeepingSection: React.FC<HousekeepingSectionProps> = ({ form }) => {
   return (
@@ -24,7 +20,7 @@ const HousekeepingSection: React.FC<HousekeepingSectionProps> = ({ form }) => {
       <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <FormField
           control={form.control}
-          name="tidyRoom"
+          name="tidy_room"
           render={({ field }) => (
             <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
               <FormControl>
@@ -45,7 +41,7 @@ const HousekeepingSection: React.FC<HousekeepingSectionProps> = ({ form }) => {
 
         <FormField
           control={form.control}
-          name="laundrySupport"
+          name="laundry_support"
           render={({ field }) => (
             <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
               <FormControl>
@@ -66,7 +62,7 @@ const HousekeepingSection: React.FC<HousekeepingSectionProps> = ({ form }) => {
 
         <FormField
           control={form.control}
-          name="groceryRuns"
+          name="grocery_runs"
           render={({ field }) => (
             <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
               <FormControl>
@@ -87,7 +83,7 @@ const HousekeepingSection: React.FC<HousekeepingSectionProps> = ({ form }) => {
 
         <FormField
           control={form.control}
-          name="mealPrep"
+          name="meal_prep"
           render={({ field }) => (
             <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
               <FormControl>
@@ -108,7 +104,7 @@ const HousekeepingSection: React.FC<HousekeepingSectionProps> = ({ form }) => {
 
         <FormField
           control={form.control}
-          name="escortToAppointments"
+          name="escort_to_appointments"
           render={({ field }) => (
             <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
               <FormControl>
@@ -129,7 +125,7 @@ const HousekeepingSection: React.FC<HousekeepingSectionProps> = ({ form }) => {
 
         <FormField
           control={form.control}
-          name="freshAirWalks"
+          name="fresh_air_walks"
           render={({ field }) => (
             <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
               <FormControl>

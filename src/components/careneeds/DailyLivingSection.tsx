@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
 import {
@@ -9,10 +8,7 @@ import {
   FormDescription,
 } from "@/components/ui/form";
 import { Checkbox } from "@/components/ui/checkbox";
-
-interface DailyLivingSectionProps {
-  form: any;
-}
+import { DailyLivingSectionProps } from "@/types/careNeedsTypes";
 
 const DailyLivingSection: React.FC<DailyLivingSectionProps> = ({ form }) => {
   return (
@@ -24,7 +20,7 @@ const DailyLivingSection: React.FC<DailyLivingSectionProps> = ({ form }) => {
       <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <FormField
           control={form.control}
-          name="assistanceBathing"
+          name="assistance_bathing"
           render={({ field }) => (
             <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
               <FormControl>
@@ -45,7 +41,7 @@ const DailyLivingSection: React.FC<DailyLivingSectionProps> = ({ form }) => {
 
         <FormField
           control={form.control}
-          name="assistanceDressing"
+          name="assistance_dressing"
           render={({ field }) => (
             <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
               <FormControl>
@@ -66,7 +62,7 @@ const DailyLivingSection: React.FC<DailyLivingSectionProps> = ({ form }) => {
 
         <FormField
           control={form.control}
-          name="assistanceToileting"
+          name="assistance_toileting"
           render={({ field }) => (
             <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
               <FormControl>
@@ -87,7 +83,7 @@ const DailyLivingSection: React.FC<DailyLivingSectionProps> = ({ form }) => {
 
         <FormField
           control={form.control}
-          name="assistanceOralCare"
+          name="assistance_oral_care"
           render={({ field }) => (
             <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
               <FormControl>
@@ -108,7 +104,7 @@ const DailyLivingSection: React.FC<DailyLivingSectionProps> = ({ form }) => {
 
         <FormField
           control={form.control}
-          name="assistanceFeeding"
+          name="assistance_feeding"
           render={({ field }) => (
             <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
               <FormControl>
@@ -129,7 +125,7 @@ const DailyLivingSection: React.FC<DailyLivingSectionProps> = ({ form }) => {
 
         <FormField
           control={form.control}
-          name="assistanceMobility"
+          name="assistance_mobility"
           render={({ field }) => (
             <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
               <FormControl>
@@ -150,7 +146,7 @@ const DailyLivingSection: React.FC<DailyLivingSectionProps> = ({ form }) => {
 
         <FormField
           control={form.control}
-          name="assistanceMedication"
+          name="assistance_medication"
           render={({ field }) => (
             <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
               <FormControl>
@@ -171,7 +167,7 @@ const DailyLivingSection: React.FC<DailyLivingSectionProps> = ({ form }) => {
 
         <FormField
           control={form.control}
-          name="assistanceCompanionship"
+          name="assistance_companionship"
           render={({ field }) => (
             <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
               <FormControl>
@@ -192,7 +188,7 @@ const DailyLivingSection: React.FC<DailyLivingSectionProps> = ({ form }) => {
 
         <FormField
           control={form.control}
-          name="assistanceNaps"
+          name="assistance_naps"
           render={({ field }) => (
             <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
               <FormControl>
