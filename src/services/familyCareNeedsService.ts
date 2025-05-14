@@ -127,3 +127,33 @@ const adaptFamilyCareNeedsFromDb = (dbData) => {
     updatedAt: dbData.updated_at
   };
 };
+
+/**
+ * Generate a draft care plan based on care needs data
+ */
+export const generateDraftCarePlanFromCareNeeds = (careNeeds, options = {}) => {
+  const { careRecipientName } = options as { careRecipientName?: string };
+  const recipientName = careRecipientName || "Care Recipient";
+  
+  // Generate a title based on available care needs data
+  let planType = "Standard";
+  
+  if (careNeeds?.shiftPreferences?.plan_type === 'on-demand') {
+    planType = "On-Demand";
+  } else if (careNeeds?.shiftPreferences?.plan_type === 'both') {
+    planType = "Comprehensive";
+  }
+  
+  // Create a draft care plan title
+  const title = `${planType} Care Plan for ${recipientName}`;
+  
+  // Return minimal care plan structure with generated title
+  return {
+    title,
+    description: "",
+    planType: careNeeds?.shiftPreferences?.plan_type || "scheduled",
+    weekdayCoverage: careNeeds?.shiftPreferences?.weekdayCoverage,
+    weekendCoverage: careNeeds?.shiftPreferences?.weekendCoverage,
+    weekendScheduleType: careNeeds?.shiftPreferences?.weekendScheduleType
+  };
+};

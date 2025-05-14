@@ -98,6 +98,15 @@ const FamilyCareNeedsPage = () => {
     }
   };
 
+  // Handle field value changes for the ScheduleInformationCard
+  const handleScheduleInfoChange = (name: string, value: any) => {
+    // Use the form's setValue method with the proper nested path
+    form.setValue(`shiftPreferences`, {
+      ...form.getValues().shiftPreferences,
+      [name]: value
+    });
+  };
+
   return (
     <div className="container px-4 py-8">
       <FadeIn duration={0.3} className="mb-4">
@@ -228,9 +237,7 @@ const FamilyCareNeedsPage = () => {
         <div className="w-full lg:w-1/3">
           <ScheduleInformationCard 
             formData={form.getValues().shiftPreferences || {}}
-            onChange={(name, value) => {
-              form.setValue(`shiftPreferences.${name}`, value);
-            }}
+            onChange={handleScheduleInfoChange}
           />
         </div>
       </div>
