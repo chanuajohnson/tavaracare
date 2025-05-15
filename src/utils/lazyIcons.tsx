@@ -13,13 +13,6 @@ export type LucideIconProps = SVGProps<SVGElement> & {
 export function createLazyIcon(iconName: string): FC<LucideIconProps> {
   // Create a component that will properly handle React initialization and errors
   const LazyIconComponent = (props: LucideIconProps) => {
-    // Check if React is initialized before attempting to use forwardRef
-    if (typeof window === 'undefined' || !window.React || !window.React.forwardRef) {
-      console.warn(`[lazyIcons] React not fully initialized when rendering ${iconName}`);
-      // Return a simple fallback element that doesn't depend on React.forwardRef
-      return createFallbackElement(props);
-    }
-    
     // Create a fallback element that doesn't depend on React
     const createFallbackElement = (iconProps: LucideIconProps) => {
       const { size, className } = iconProps;
@@ -31,6 +24,13 @@ export function createLazyIcon(iconName: string): FC<LucideIconProps> {
       
       return <span className={className} style={fallbackStyle} />;
     };
+    
+    // Check if React is initialized before attempting to use forwardRef
+    if (typeof window === 'undefined' || !window.React || !window.React.forwardRef) {
+      console.warn(`[lazyIcons] React not fully initialized when rendering ${iconName}`);
+      // Return a simple fallback element that doesn't depend on React.forwardRef
+      return createFallbackElement(props);
+    }
     
     try {
       // Only load the icon when we're sure React is fully initialized
@@ -50,9 +50,9 @@ export function createLazyIcon(iconName: string): FC<LucideIconProps> {
               }
               
               // Return the icon component properly wrapped
-              const IconComponent = module[iconName as keyof typeof module];
+              const LoadedIcon = module[iconName as keyof typeof module] as FC<LucideIconProps>;
               return { 
-                default: (iconProps: LucideIconProps) => <IconComponent {...iconProps} />
+                default: LoadedIcon
               };
             })
             .catch(error => {
