@@ -4,6 +4,7 @@ import { createRoot } from 'react-dom/client';
 import App from './App.tsx';
 import './index.css';
 import './components/framer/animations.css'; // Import animations CSS
+import { ensureReact } from './utils/reactErrorHandler.ts';
 
 // Define React globally as early as possible
 if (typeof window !== 'undefined') {
@@ -14,18 +15,13 @@ if (typeof window !== 'undefined') {
   console.log('[main.tsx] React version:', React.version);
 }
 
-// Function to safely check if React is ready
-const isReactReady = () => {
-  if (typeof window === 'undefined') return false;
-  return !!window.React && typeof window.React.createElement === 'function';
-};
-
 // Create a utility to safely mount the application
 const mountApp = () => {
   try {
     // Ensure React is ready before mounting
-    if (!isReactReady()) {
-      console.error('[main.tsx] React is not ready for mounting');
+    const reactReady = ensureReact();
+    if (!reactReady) {
+      console.log('[main.tsx] React not ready, retrying in 50ms');
       setTimeout(mountApp, 50); // Try again in 50ms
       return;
     }

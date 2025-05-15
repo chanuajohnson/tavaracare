@@ -11,7 +11,13 @@
     <link rel="icon" href="/favicon-new.ico" type="image/x-icon">
     <script>
       // Synchronously declare React in the global scope to prevent initialization issues
-      window.React = window.React || {};
+      window.React = window.React || {
+        createElement: function() { return null; },
+        forwardRef: function() { return null; },
+        lazy: function() { return null; },
+        useState: function() { return [null, function() {}]; },
+        Suspense: function() { return null; }
+      };
       window.reactInitialized = false; // Will be set to true once React is fully loaded
       
       console.log('[index.html] Setting initial React placeholder at:', new Date().toISOString());

@@ -7,7 +7,7 @@
 export const ensureReact = () => {
   if (typeof window === 'undefined') {
     console.log('[reactErrorHandler] Running in SSR/build mode');
-    return;
+    return false;
   }
 
   // Add some debug information about the state of React
@@ -18,53 +18,30 @@ export const ensureReact = () => {
   // Check if React is available
   if (!window.React) {
     console.error('[reactErrorHandler] React not found in global scope');
-    
-    // Try to recover by waiting a bit
-    return new Promise((resolve) => {
-      console.log('[reactErrorHandler] Attempting recovery, waiting for React...');
-      
-      let attempts = 0;
-      const checkReact = () => {
-        attempts++;
-        if (window.React) {
-          console.log(`[reactErrorHandler] React found after ${attempts} attempts`);
-          resolve(true);
-        } else if (attempts < 5) {
-          console.log(`[reactErrorHandler] React still not found, attempt ${attempts}`);
-          setTimeout(checkReact, 100);
-        } else {
-          console.error('[reactErrorHandler] Failed to find React after multiple attempts');
-          resolve(false);
-        }
-      };
-      
-      setTimeout(checkReact, 100);
-    });
-  }
-
-  // Verify basic React functionality
-  const testReact = () => {
-    try {
-      // Test basic React functionality
-      const testElement = window.React.createElement('div', null, 'Test');
-      if (!testElement || typeof testElement !== 'object') {
-        console.error('[reactErrorHandler] React createElement test failed');
-        return false;
-      }
-      return true;
-    } catch (error) {
-      console.error('[reactErrorHandler] Error testing React:', error);
-      return false;
-    }
-  };
-
-  if (!testReact()) {
-    console.error('[reactErrorHandler] React test failed, waiting for initialization...');
     return false;
   }
 
-  console.log('[reactErrorHandler] React initialization check passed');
-  return true;
+  // Verify basic React functionality
+  try {
+    // Test basic React functionality
+    const testElement = window.React.createElement('div', null, 'Test');
+    if (!testElement || typeof testElement !== 'object') {
+      console.error('[reactErrorHandler] React createElement test failed');
+      return false;
+    }
+    
+    // Check if forwardRef is available
+    if (!window.React.forwardRef) {
+      console.error('[reactErrorHandler] React.forwardRef is not available');
+      return false;
+    }
+    
+    console.log('[reactErrorHandler] React initialization check passed');
+    return true;
+  } catch (error) {
+    console.error('[reactErrorHandler] Error testing React:', error);
+    return false;
+  }
 };
 
 // Create an error boundary function to wrap components
