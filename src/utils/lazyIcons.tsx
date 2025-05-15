@@ -1,5 +1,5 @@
 
-import React, { lazy, Suspense, ComponentType, SVGProps, ReactElement, FC } from 'react';
+import React, { lazy, Suspense, ComponentType, SVGProps, ReactElement, FC, ReactNode } from 'react';
 
 // Type for the icon props that all Lucide icons accept
 export type LucideIconProps = SVGProps<SVGElement> & { 
@@ -36,7 +36,8 @@ export function createLazyIcon(iconName: string): FC<LucideIconProps> {
       // Only load the icon when we're sure React is fully initialized
       const IconWrapper = () => {
         // Create the lazy component only at render time
-        const LazyIcon = lazy(() => {
+        // Fix: Explicitly define the component type
+        const LazyIcon = lazy<FC<LucideIconProps>>(() => {
           console.log(`[lazyIcons] Loading icon ${iconName}`);
           
           return import('lucide-react')
@@ -44,30 +45,37 @@ export function createLazyIcon(iconName: string): FC<LucideIconProps> {
               // Safety check - if the icon doesn't exist, return a fallback
               if (!module || !(iconName in module)) {
                 console.error(`Icon "${iconName}" not found in lucide-react`);
+                // Use a more compatible return type
+                const FallbackComponent: FC<LucideIconProps> = (iconProps) => createFallbackElement(iconProps);
                 return { 
-                  default: (iconProps: LucideIconProps) => createFallbackElement(iconProps)
+                  default: FallbackComponent
                 };
               }
               
               // Return the icon component properly wrapped
-              const LoadedIcon = module[iconName as keyof typeof module] as FC<LucideIconProps>;
+              const LoadedIcon = module[iconName as keyof typeof module] as unknown as FC<LucideIconProps>;
               return { 
                 default: LoadedIcon
               };
             })
             .catch(error => {
               console.error(`Error loading icon "${iconName}":`, error);
+              // Use a more compatible return type
+              const ErrorFallback: FC<LucideIconProps> = (iconProps) => createFallbackElement(iconProps);
               return {
-                default: (iconProps: LucideIconProps) => createFallbackElement(iconProps)
+                default: ErrorFallback
               };
             });
         });
         
         const fallbackElement = createFallbackElement(props);
         
+        // Fix: Extract props to avoid the ref type issue
+        const { ref, ...restProps } = props;
+        
         return (
           <Suspense fallback={fallbackElement}>
-            <LazyIcon {...props} />
+            <LazyIcon {...restProps} />
           </Suspense>
         );
       };
