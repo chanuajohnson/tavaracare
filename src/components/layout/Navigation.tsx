@@ -1,3 +1,4 @@
+
 import { Link, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/components/providers/AuthProvider';
@@ -35,19 +36,50 @@ import {
 import { toast } from 'sonner';
 import { resetAuthState } from '@/lib/supabase';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+
+// Simple non-React icon fallback component
+const SimpleIconFallback = ({ className }: { className?: string }) => {
+  return (
+    <span 
+      className={className || "w-5 h-5 inline-block bg-gray-200 rounded-sm"}
+      style={{ display: 'inline-block' }}
+    />
+  );
+};
 
 export function Navigation() {
   const { user, signOut, isLoading, userRole } = useAuth();
   const location = useLocation();
   const isMobile = useIsMobile();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [reactReady, setReactReady] = useState(false);
+
+  // Check if React is fully initialized before rendering complex components
+  useEffect(() => {
+    if (window.reactInitialized && window.React && window.React.forwardRef) {
+      console.log('[Navigation] React is initialized, rendering icons');
+      setReactReady(true);
+    } else {
+      console.log('[Navigation] React not fully initialized, using fallbacks');
+      // Try again in 100ms
+      const checkTimer = setTimeout(() => {
+        if (window.reactInitialized && window.React && window.React.forwardRef) {
+          console.log('[Navigation] React initialized on retry');
+          setReactReady(true);
+        }
+      }, 100);
+      
+      return () => clearTimeout(checkTimer);
+    }
+  }, []);
 
   console.log('Navigation render -', { 
     user: !!user, 
     isLoading, 
     userRole, 
     path: location.pathname,
+    reactReady,
     userDetails: user ? {
       id: user.id,
       email: user.email,
@@ -103,6 +135,24 @@ export function Navigation() {
   const isSpecificUser = user?.id === '605540d7-ae87-4a7c-9bd0-5699937f0670';
   const isAdmin = userRole === 'admin';
 
+  // Simplified navigation during React initialization
+  if (!reactReady) {
+    return (
+      <nav className="bg-background border-b py-3 px-4 sm:px-6">
+        <div className="container mx-auto flex justify-between items-center">
+          <div className="flex items-center flex-col sm:flex-row">
+            <a href="/" className="text-xl font-bold">Tavara</a>
+            <span className="text-xs text-gray-600 italic sm:ml-2">It takes a village to care</span>
+          </div>
+          <div className="flex items-center gap-3">
+            <SimpleIconFallback />
+          </div>
+        </div>
+      </nav>
+    );
+  }
+
+  // Full navigation once React is ready
   return (
     <nav className="bg-background border-b py-3 px-4 sm:px-6">
       <div className="container mx-auto flex justify-between items-center">

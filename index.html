@@ -22,6 +22,14 @@
       
       console.log('[index.html] Setting initial React placeholder at:', new Date().toISOString());
       
+      // Display a loading state while the app initializes
+      document.addEventListener('DOMContentLoaded', function() {
+        var rootEl = document.getElementById('root');
+        if (rootEl && !window.reactInitialized) {
+          rootEl.innerHTML = '<div style="display: flex; justify-content: center; align-items: center; height: 100vh; flex-direction: column;"><p style="margin-bottom: 16px; font-family: system-ui, sans-serif; color: #555">Loading Tavara.care application...</p><div style="width: 50px; height: 50px; border: 5px solid #f3f3f3; border-top: 5px solid #3498db; border-radius: 50%; animation: spin 1s linear infinite;"></div></div><style>@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }</style>';
+        }
+      });
+      
       // Add a global error handler for initialization issues
       window.onerror = function(message, source, lineno, colno, error) {
         console.log('[index.html] Error handler triggered:', message);
@@ -40,10 +48,22 @@
             var rootEl = document.getElementById('root');
             if (rootEl) {
               if (rootEl.children.length === 0 || !window.reactInitialized) {
-                rootEl.innerHTML = '<div style="padding: 20px; color: #721c24; background-color: #f8d7da; border: 1px solid #f5c6cb; border-radius: 4px; text-align: center;"><h3>Application is loading...</h3><p>If this message persists, please try refreshing the page.</p><pre style="text-align:left;background:#f8f8f8;padding:10px;font-size:12px;overflow:auto">Error: ' + message + '\nLocation: ' + source + ':' + lineno + '</pre><button onclick="window.location.reload()" style="background: #721c24; color: white; border: none; padding: 8px 16px; border-radius: 4px; margin-top: 10px; cursor: pointer;">Refresh Page</button></div>';
+                rootEl.innerHTML = '<div style="padding: 20px; color: #721c24; background-color: #f8d7da; border: 1px solid #f5c6cb; border-radius: 4px; text-align: center;"><h3>Application is initializing...</h3><p>Please wait a moment while we complete the setup.</p><div style="margin: 20px auto; width: 50px; height: 50px; border: 5px solid #f3f3f3; border-top: 5px solid #721c24; border-radius: 50%; animation: spin 1s linear infinite;"></div><p><small>If this message persists, please try refreshing the page.</small></p><button onclick="window.location.reload()" style="background: #721c24; color: white; border: none; padding: 8px 16px; border-radius: 4px; margin-top: 10px; cursor: pointer;">Refresh Page</button><style>@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }</style></div>';
               }
             }
           });
+          
+          // Wait for React to be properly loaded before continuing
+          setTimeout(function checkAndRecoverReact() {
+            if (window.React && window.React.forwardRef) {
+              console.log('[index.html] React recovered after error');
+              window.reactInitialized = true;
+            } else {
+              console.log('[index.html] Waiting for React recovery...');
+              setTimeout(checkAndRecoverReact, 200);
+            }
+          }, 200);
+          
           return true; // Prevents default error handling
         }
         return false; // Allow default error handling for other errors

@@ -15,15 +15,33 @@ if (typeof window !== 'undefined') {
   console.log('[main.tsx] React version:', React.version);
 }
 
+// Maximum number of retries before displaying an error
+const MAX_MOUNT_RETRIES = 5;
+let mountRetryCount = 0;
+
 // Create a utility to safely mount the application
 const mountApp = () => {
   try {
     // Ensure React is ready before mounting
     const reactReady = ensureReact();
     if (!reactReady) {
-      console.log('[main.tsx] React not ready, retrying in 50ms');
-      setTimeout(mountApp, 50); // Try again in 50ms
-      return;
+      console.log('[main.tsx] React not ready, retry attempt:', mountRetryCount + 1);
+      
+      if (mountRetryCount < MAX_MOUNT_RETRIES) {
+        mountRetryCount++;
+        // Exponential backoff for retries (100ms, 200ms, 400ms, etc.)
+        const delay = 100 * Math.pow(2, mountRetryCount - 1);
+        setTimeout(mountApp, delay);
+        return;
+      } else {
+        console.error('[main.tsx] Maximum mount retries reached, displaying error UI');
+        
+        const rootElement = document.getElementById('root');
+        if (rootElement) {
+          rootElement.innerHTML = '<div style="padding: 20px; color: #721c24; background-color: #f8d7da; border: 1px solid #f5c6cb; border-radius: 4px; text-align: center;"><h3>Application failed to initialize</h3><p>We\'re having trouble loading the application. Please try refreshing the page.</p><button onclick="window.location.reload()" style="background: #721c24; color: white; border: none; padding: 8px 16px; border-radius: 4px; margin-top: 10px; cursor: pointer;">Refresh Page</button></div>';
+        }
+        return;
+      }
     }
     
     if (typeof window !== 'undefined' && !window.reactInitialized) {

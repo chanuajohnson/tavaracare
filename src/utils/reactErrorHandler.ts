@@ -15,7 +15,7 @@ export const ensureReact = () => {
   console.log('[reactErrorHandler] window.React:', !!window.React);
   console.log('[reactErrorHandler] window.reactInitialized:', !!window.reactInitialized);
 
-  // Check if React is available
+  // Check if React is available and has necessary methods
   if (!window.React) {
     console.error('[reactErrorHandler] React not found in global scope');
     return false;
@@ -35,6 +35,12 @@ export const ensureReact = () => {
       console.error('[reactErrorHandler] React.forwardRef is not available');
       return false;
     }
+
+    // Check if Suspense is available (needed for lazy loading)
+    if (!window.React.Suspense) {
+      console.error('[reactErrorHandler] React.Suspense is not available');
+      return false;
+    }
     
     console.log('[reactErrorHandler] React initialization check passed');
     return true;
@@ -48,8 +54,8 @@ export const ensureReact = () => {
 export const withErrorBoundary = (Component: React.ComponentType<any>) => {
   return (props: any) => {
     try {
-      // Only proceed if React is available
-      if (typeof window !== 'undefined' && window.React) {
+      // Only proceed if React is available and initialized
+      if (typeof window !== 'undefined' && window.React && window.reactInitialized) {
         return window.React.createElement(Component, props);
       } else {
         // Return loading placeholder if React isn't ready
@@ -73,4 +79,17 @@ export const withErrorBoundary = (Component: React.ComponentType<any>) => {
       return null;
     }
   };
+};
+
+// Helper to safely check if a component can be rendered
+export const canRenderReactComponent = () => {
+  if (typeof window === 'undefined') return false;
+  
+  // Quick check for basic React availability
+  if (!window.React || !window.React.createElement || !window.React.forwardRef) {
+    return false;
+  }
+  
+  // Deeper check with reactInitialized flag
+  return window.reactInitialized === true;
 };
