@@ -1,5 +1,5 @@
 
-import React, { lazy, Suspense, ComponentType, SVGProps, ReactElement, FC, ReactNode } from 'react';
+import React, { lazy, Suspense, SVGProps, FC, ReactNode } from 'react';
 
 // Type for the icon props that all Lucide icons accept
 export type LucideIconProps = SVGProps<SVGElement> & { 
@@ -9,22 +9,22 @@ export type LucideIconProps = SVGProps<SVGElement> & {
   strokeWidth?: number;
 };
 
+// Define a fallback element creator function early to avoid "used before declaration" error
+const createFallbackElement = (iconProps: LucideIconProps) => {
+  const { size, className } = iconProps;
+  const fallbackStyle = {
+    width: size || 24,
+    height: size || 24,
+    display: 'inline-block'
+  };
+  
+  return <span className={className} style={fallbackStyle} />;
+};
+
 // A function to create a lazy-loaded Lucide icon component with proper React initialization checks
 export function createLazyIcon(iconName: string): FC<LucideIconProps> {
   // Create a component that will properly handle React initialization and errors
-  const LazyIconComponent = (props: LucideIconProps) => {
-    // Create a fallback element that doesn't depend on React
-    const createFallbackElement = (iconProps: LucideIconProps) => {
-      const { size, className } = iconProps;
-      const fallbackStyle = {
-        width: size || 24,
-        height: size || 24,
-        display: 'inline-block'
-      };
-      
-      return <span className={className} style={fallbackStyle} />;
-    };
-    
+  const LazyIconComponent: FC<LucideIconProps> = (props) => {
     // Check if React is initialized before attempting to use forwardRef
     if (typeof window === 'undefined' || !window.React || !window.React.forwardRef) {
       console.warn(`[lazyIcons] React not fully initialized when rendering ${iconName}`);
@@ -35,8 +35,7 @@ export function createLazyIcon(iconName: string): FC<LucideIconProps> {
     try {
       // Only load the icon when we're sure React is fully initialized
       const IconWrapper = () => {
-        // Create the lazy component only at render time
-        // Fix: Explicitly define the component type
+        // Explicitly type the lazy-loaded component to ensure TypeScript compatibility
         const LazyIcon = lazy<FC<LucideIconProps>>(() => {
           console.log(`[lazyIcons] Loading icon ${iconName}`);
           
@@ -45,14 +44,14 @@ export function createLazyIcon(iconName: string): FC<LucideIconProps> {
               // Safety check - if the icon doesn't exist, return a fallback
               if (!module || !(iconName in module)) {
                 console.error(`Icon "${iconName}" not found in lucide-react`);
-                // Use a more compatible return type
+                // Create a typed fallback component
                 const FallbackComponent: FC<LucideIconProps> = (iconProps) => createFallbackElement(iconProps);
                 return { 
                   default: FallbackComponent
                 };
               }
               
-              // Return the icon component properly wrapped
+              // Return the icon component properly wrapped with correct typing
               const LoadedIcon = module[iconName as keyof typeof module] as unknown as FC<LucideIconProps>;
               return { 
                 default: LoadedIcon
@@ -60,7 +59,7 @@ export function createLazyIcon(iconName: string): FC<LucideIconProps> {
             })
             .catch(error => {
               console.error(`Error loading icon "${iconName}":`, error);
-              // Use a more compatible return type
+              // Create a typed error fallback component
               const ErrorFallback: FC<LucideIconProps> = (iconProps) => createFallbackElement(iconProps);
               return {
                 default: ErrorFallback
@@ -70,7 +69,8 @@ export function createLazyIcon(iconName: string): FC<LucideIconProps> {
         
         const fallbackElement = createFallbackElement(props);
         
-        // Fix: Extract props to avoid the ref type issue
+        // Extract ref to avoid passing it to components that don't expect it
+        // This fixes the ref type incompatibility error
         const { ref, ...restProps } = props;
         
         return (
