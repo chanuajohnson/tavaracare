@@ -23,6 +23,7 @@ import { CaregiverMatchingCard } from "@/components/family/CaregiverMatchingCard
 import { CaregiverHealthCard } from "@/components/professional/CaregiverHealthCard";
 import { TellTheirStoryCard } from "@/components/family/TellTheirStoryCard";
 import { DashboardCaregiverMatches } from "@/components/family/DashboardCaregiverMatches";
+import MedicationSummaryPanel from "@/components/family/dashboard/MedicationSummaryPanel";
 
 const FamilyDashboard = () => {
   const { user } = useAuth();
@@ -30,6 +31,8 @@ const FamilyDashboard = () => {
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [userCarePlans, setUserCarePlans] = useState([]);
+  const [loadingCarePlans, setLoadingCarePlans] = useState(true);
   const navigate = useNavigate();
   const [profileData, setProfileData] = useState(null);
   
@@ -51,6 +54,7 @@ const FamilyDashboard = () => {
       };
       
       loadProfileData();
+      fetchUserCarePlans();
     }
   }, [user]);
   
@@ -61,6 +65,27 @@ const FamilyDashboard = () => {
       setLoading(false);
     }
   }, [user]);
+
+  const fetchUserCarePlans = async () => {
+    if (!user) return;
+    
+    setLoadingCarePlans(true);
+    try {
+      const { data, error } = await supabase
+        .from('care_plans')
+        .select('*')
+        .eq('family_id', user.id)
+        .order('created_at', { ascending: false });
+        
+      if (error) throw error;
+      
+      setUserCarePlans(data || []);
+    } catch (error) {
+      console.error("Error fetching care plans:", error);
+    } finally {
+      setLoadingCarePlans(false);
+    }
+  };
   
   const fetchMessages = async () => {
     try {
@@ -148,9 +173,10 @@ const FamilyDashboard = () => {
           
           <FamilyNextStepsPanel />
           
-          <CaregiverMatchingCard />
-          
-          <CaregiverHealthCard className="mb-8" />
+          <div className="grid md:grid-cols-2 gap-6 mt-6">
+            <MedicationSummaryPanel userCarePlans={userCarePlans} loading={loadingCarePlans} />
+            <CaregiverHealthCard className="h-full" />
+          </div>
           
           <TellTheirStoryCard />
 

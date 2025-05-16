@@ -1008,6 +1008,107 @@ export type Database = {
         }
         Relationships: []
       }
+      medication_administrations: {
+        Row: {
+          administered_at: string
+          administered_by: string | null
+          created_at: string | null
+          id: string
+          medication_id: string
+          notes: string | null
+          status: string
+          updated_at: string | null
+        }
+        Insert: {
+          administered_at: string
+          administered_by?: string | null
+          created_at?: string | null
+          id?: string
+          medication_id: string
+          notes?: string | null
+          status?: string
+          updated_at?: string | null
+        }
+        Update: {
+          administered_at?: string
+          administered_by?: string | null
+          created_at?: string | null
+          id?: string
+          medication_id?: string
+          notes?: string | null
+          status?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "medication_administrations_administered_by_fkey"
+            columns: ["administered_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "medication_administrations_medication_id_fkey"
+            columns: ["medication_id"]
+            isOneToOne: false
+            referencedRelation: "medications"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      medications: {
+        Row: {
+          care_plan_id: string
+          created_at: string | null
+          dosage: string | null
+          id: string
+          instructions: string | null
+          medication_type: string | null
+          name: string
+          prescription_terms: string | null
+          schedule: Json | null
+          special_instructions: string | null
+          term_definitions: Json | null
+          updated_at: string | null
+        }
+        Insert: {
+          care_plan_id: string
+          created_at?: string | null
+          dosage?: string | null
+          id?: string
+          instructions?: string | null
+          medication_type?: string | null
+          name: string
+          prescription_terms?: string | null
+          schedule?: Json | null
+          special_instructions?: string | null
+          term_definitions?: Json | null
+          updated_at?: string | null
+        }
+        Update: {
+          care_plan_id?: string
+          created_at?: string | null
+          dosage?: string | null
+          id?: string
+          instructions?: string | null
+          medication_type?: string | null
+          name?: string
+          prescription_terms?: string | null
+          schedule?: Json | null
+          special_instructions?: string | null
+          term_definitions?: Json | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "medications_care_plan_id_fkey"
+            columns: ["care_plan_id"]
+            isOneToOne: false
+            referencedRelation: "care_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       message_board_posts: {
         Row: {
           author: string

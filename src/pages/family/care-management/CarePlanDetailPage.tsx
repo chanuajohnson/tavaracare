@@ -17,9 +17,10 @@ import { CarePlanLoadingState } from "@/components/care-plan/CarePlanLoadingStat
 import { CarePlanNotFound } from "@/components/care-plan/CarePlanNotFound";
 import { RemoveTeamMemberDialog } from "@/components/care-plan/RemoveTeamMemberDialog";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Pill } from "lucide-react";
 import { fetchFamilyCareNeeds } from "@/services/familyCareNeedsService";
 import { CarePlanMetadata } from "@/types/carePlan";
+import MedicationManagementTab from "@/components/medications/MedicationManagementTab";
 
 const CarePlanDetailPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -123,6 +124,10 @@ const CarePlanDetailPage = () => {
             <TabsTrigger value="details">Plan Details</TabsTrigger>
             <TabsTrigger value="team">Care Team</TabsTrigger>
             <TabsTrigger value="schedule">Schedule</TabsTrigger>
+            <TabsTrigger value="medications">
+              <Pill className="h-4 w-4 mr-1.5" />
+              Medications
+            </TabsTrigger>
             <TabsTrigger value="payroll">Payroll & Hours</TabsTrigger>
           </TabsList>
           
@@ -154,6 +159,10 @@ const CarePlanDetailPage = () => {
                 onShiftUpdated={reloadCareShifts}
                 onDeleteShift={handleDeleteShift}
               />
+            </TabsContent>
+
+            <TabsContent value="medications">
+              <MedicationManagementTab carePlanId={id} familyId={user.id} />
             </TabsContent>
             
             <TabsContent value="payroll">
