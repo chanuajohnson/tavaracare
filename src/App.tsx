@@ -8,8 +8,9 @@ import { AppRoutes } from "@/components/routing/AppRoutes";
 import { RedirectHandler } from "@/components/routing/RedirectHandler";
 import { GlobalFAB } from "@/components/common/GlobalFAB";
 import LoadingScreen from "@/components/common/LoadingScreen";
+import { logReactStatus } from "@/utils/reactErrorHandler";
 
-// Error Boundary Component for catching runtime errors
+// Enhanced Error Boundary Component for catching runtime errors
 class ErrorBoundary extends Component<
   { children: ReactNode },
   { hasError: boolean; error: Error | null }
@@ -25,6 +26,9 @@ class ErrorBoundary extends Component<
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error("Application error:", error, errorInfo);
+    
+    // Log React status when an error occurs
+    logReactStatus();
   }
 
   render() {
@@ -60,8 +64,11 @@ function AppContent() {
   const location = useLocation();
   const isIndexPage = location.pathname === "/";
   
+  // Log React status on route changes to help debugging
   useEffect(() => {
     console.log('[App] Route changed to:', location.pathname);
+    logReactStatus();
+    
     // Add additional debugging for the family dashboard path
     if (location.pathname === '/dashboard/family') {
       console.log('[App] Family dashboard route detected - ensuring module is loaded');
@@ -80,6 +87,12 @@ function AppContent() {
 }
 
 export default function AppWithProviders() {
+  useEffect(() => {
+    // Log React status after mounting
+    console.log('[App] App mounted, checking React status');
+    logReactStatus();
+  }, []);
+  
   return (
     <ErrorBoundary>
       <AppProviders>

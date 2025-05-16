@@ -1,5 +1,4 @@
-
-import React, { lazy, Suspense, SVGProps, FC, ReactNode } from 'react';
+import React, { lazy, Suspense, SVGProps, FC, ReactNode, useState, useEffect } from 'react';
 
 // Type for the icon props that all Lucide icons accept
 export type LucideIconProps = SVGProps<SVGElement> & { 
@@ -9,86 +8,139 @@ export type LucideIconProps = SVGProps<SVGElement> & {
   strokeWidth?: number;
 };
 
-// Define a fallback element creator function early to avoid "used before declaration" error
+// Pure HTML/CSS fallback icon that doesn't depend on React features
 const createFallbackElement = (iconProps: LucideIconProps) => {
-  const { size, className } = iconProps;
-  const fallbackStyle = {
-    width: size || 24,
-    height: size || 24,
-    display: 'inline-block'
+  const { size = 24, className = '', color = 'currentColor' } = iconProps;
+  
+  // Create a simple div placeholder that mimics an icon's dimensions
+  const style = {
+    width: typeof size === 'number' ? `${size}px` : size,
+    height: typeof size === 'number' ? `${size}px` : size,
+    display: 'inline-block',
+    color: color,
+    verticalAlign: 'middle',
+    position: 'relative' as const
   };
   
-  return <span className={className} style={fallbackStyle} />;
+  return <span className={`icon-fallback ${className}`} style={style} />;
 };
 
-// Check if React is ready for component creation
+// Check if React is ready for component creation with strong validation
 const isReactReady = () => {
-  return typeof window !== 'undefined' && 
-         window.React && 
-         typeof window.React.forwardRef === 'function' &&
-         window.reactInitialized === true;
+  if (typeof window === 'undefined') return false;
+  
+  try {
+    // Comprehensive React availability check
+    const hasReact = !!window.React;
+    const hasForwardRef = typeof window.React?.forwardRef === 'function';
+    const hasInitFlag = window.reactInitialized === true;
+    
+    if (hasReact && hasForwardRef && hasInitFlag) {
+      return true;
+    }
+    
+    if (!hasReact) console.warn('[lazyIcons] Window.React is not available');
+    if (!hasForwardRef) console.warn('[lazyIcons] React.forwardRef is not a function');
+    if (!hasInitFlag) console.warn('[lazyIcons] reactInitialized flag is not true');
+    
+    return false;
+  } catch (error) {
+    console.error('[lazyIcons] Error checking React readiness:', error);
+    return false;
+  }
 };
 
-// A function to create a lazy-loaded Lucide icon component with proper React initialization checks
+/**
+ * A hook to check React readiness that updates when React becomes available
+ */
+const useReactReady = () => {
+  const [ready, setReady] = useState(isReactReady());
+  
+  useEffect(() => {
+    if (ready) return;
+    
+    // Check if React is ready now
+    if (isReactReady()) {
+      setReady(true);
+      return;
+    }
+    
+    // Otherwise set up polling
+    const checkInterval = setInterval(() => {
+      if (isReactReady()) {
+        setReady(true);
+        clearInterval(checkInterval);
+      }
+    }, 100);
+    
+    return () => clearInterval(checkInterval);
+  }, [ready]);
+  
+  return ready;
+};
+
+/**
+ * Creates a lazy-loaded icon component with advanced error handling
+ * and graceful fallbacks when React is not fully initialized
+ */
 export function createLazyIcon(iconName: string): FC<LucideIconProps> {
-  // Create a component that will properly handle React initialization and errors
   const LazyIconComponent: FC<LucideIconProps> = (props) => {
-    // Early check if React is initialized before attempting to use forwardRef
-    if (!isReactReady()) {
-      console.warn(`[lazyIcons] React not fully initialized when rendering ${iconName}, using fallback`);
-      // Return a simple fallback element that doesn't depend on React.forwardRef
+    // Use the hook for React readiness (only works if React is minimally available)
+    let reactIsReady = false;
+    
+    try {
+      // Try to use the hook pattern if minimal React is available
+      if (typeof React.useState === 'function') {
+        // eslint-disable-next-line react-hooks/rules-of-hooks
+        reactIsReady = useReactReady();
+      } else {
+        // Fallback to direct check if hooks aren't working
+        reactIsReady = isReactReady();
+      }
+    } catch (error) {
+      console.warn(`[lazyIcons] Error checking React readiness for ${iconName}:`, error);
+      reactIsReady = false;
+    }
+    
+    // Early bailout with fallback if React isn't ready
+    if (!reactIsReady) {
       return createFallbackElement(props);
     }
     
     try {
-      // Defer icon loading until component is actually rendered
-      const IconWrapper = () => {
-        // We need to handle the case where React might become unavailable 
-        // between component creation and actual rendering
+      // Only load the actual icon when React is fully initialized
+      const IconContent = () => {
+        // Double-check React is still available
         if (!isReactReady()) {
-          console.warn(`[lazyIcons] React became unavailable during render of ${iconName}`);
           return createFallbackElement(props);
         }
         
-        // Explicitly type the lazy-loaded component to ensure TypeScript compatibility
+        // Safe dynamic import of the icon
         const LazyIcon = lazy<FC<LucideIconProps>>(() => {
-          console.log(`[lazyIcons] Loading icon ${iconName}`);
-          
           return import('lucide-react')
             .then(module => {
               // Safety check - if the icon doesn't exist, return a fallback
-              if (!module || !(iconName in module)) {
-                console.error(`Icon "${iconName}" not found in lucide-react`);
-                // Create a typed fallback component
-                const FallbackComponent: FC<LucideIconProps> = (iconProps) => createFallbackElement(iconProps);
-                return { 
-                  default: FallbackComponent
-                };
+              if (!(iconName in module)) {
+                console.error(`[lazyIcons] Icon "${iconName}" not found in lucide-react`);
+                return { default: (p: LucideIconProps) => createFallbackElement(p) as JSX.Element };
               }
               
-              // Return the icon component properly wrapped with correct typing
-              const LoadedIcon = module[iconName as keyof typeof module] as unknown as FC<LucideIconProps>;
-              return { 
-                default: LoadedIcon
-              };
+              // Cast to the expected component type and return
+              const IconComponent = module[iconName as keyof typeof module] as FC<LucideIconProps>;
+              return { default: IconComponent };
             })
             .catch(error => {
-              console.error(`Error loading icon "${iconName}":`, error);
-              // Create a typed error fallback component
-              const ErrorFallback: FC<LucideIconProps> = (iconProps) => createFallbackElement(iconProps);
-              return {
-                default: ErrorFallback
-              };
+              console.error(`[lazyIcons] Error loading icon "${iconName}":`, error);
+              return { default: (p: LucideIconProps) => createFallbackElement(p) as JSX.Element };
             });
         });
         
+        // Create a fallback that doesn't depend on React.forwardRef
         const fallbackElement = createFallbackElement(props);
         
         // Extract ref to avoid passing it to components that don't expect it
-        // This fixes the ref type incompatibility error
         const { ref, ...restProps } = props;
         
-        // Use a more robust Suspense fallback that won't trigger React issues
         return (
           <Suspense fallback={fallbackElement}>
             <LazyIcon {...restProps} />
@@ -96,19 +148,19 @@ export function createLazyIcon(iconName: string): FC<LucideIconProps> {
         );
       };
       
-      // Final safety check before returning the component
-      return isReactReady() ? <IconWrapper /> : createFallbackElement(props);
+      return <IconContent />;
     } catch (error) {
-      console.error(`Error rendering icon "${iconName}":`, error);
+      console.error(`[lazyIcons] Error rendering icon "${iconName}":`, error);
       return createFallbackElement(props);
     }
   };
   
+  // Add display name for better debugging
   LazyIconComponent.displayName = `LazyIcon(${iconName})`;
   return LazyIconComponent;
 }
 
-// Pre-create commonly used icons to avoid repeated definitions
+// Pre-create commonly used icons
 export const LazyLogOut = createLazyIcon('LogOut');
 export const LazyLogIn = createLazyIcon('LogIn');
 export const LazyLayoutDashboard = createLazyIcon('LayoutDashboard');
@@ -136,7 +188,7 @@ export const LazyArrowRight = createLazyIcon('ArrowRight');
 export const LazyClock = createLazyIcon('Clock');
 export const LazyLock = createLazyIcon('Lock');
 export const LazyHelpCircle = createLazyIcon('HelpCircle');
-// Additional icons used in your application
+// Additional icons
 export const LazyUsers2 = createLazyIcon('Users2');
 export const LazyHeart = createLazyIcon('Heart');
 export const LazyArrowUp = createLazyIcon('ArrowUp');
