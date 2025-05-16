@@ -104,3 +104,138 @@ export const getWeekdayNames = (): string[] => {
 export const getWeekendNames = (): string[] => {
   return ['Saturday', 'Sunday'];
 };
+
+/**
+ * Parses a schedule string from comma-separated format to an array
+ * Example: "morning,evening,weekends" -> ["morning", "evening", "weekends"]
+ */
+export const parseScheduleString = (scheduleStr: string | null | undefined): string[] => {
+  if (!scheduleStr) return [];
+  return scheduleStr.split(',').map(item => item.trim()).filter(Boolean);
+};
+
+/**
+ * Parses custom schedule text into structured schedule objects
+ * Example: "Monday 9am-5pm, Wednesday 10am-3pm" -> [{day: "Monday", time: "9am-5pm"}, {day: "Wednesday", time: "10am-3pm"}]
+ */
+export const parseCustomScheduleText = (customText: string): Array<{day: string, time: string}> => {
+  if (!customText || customText.trim() === '') return [];
+  
+  const shifts: Array<{day: string, time: string}> = [];
+  const entries = customText.split(',').map(entry => entry.trim()).filter(Boolean);
+  
+  entries.forEach(entry => {
+    // Try to match patterns like "Monday 9am-5pm" or "Monday: 9am-5pm"
+    const match = entry.match(/([A-Za-z]+)[:\s]+([^\s]+)/);
+    if (match) {
+      shifts.push({
+        day: match[1].trim(),
+        time: match[2].trim()
+      });
+    }
+  });
+  
+  return shifts;
+};
+
+/**
+ * Determines weekday coverage type from schedule array
+ */
+export const determineWeekdayCoverage = (scheduleArray: string[]): string => {
+  if (!scheduleArray || scheduleArray.length === 0) return 'none';
+  
+  const weekdayOptions = ['morning', 'afternoon', 'evening', 'overnight', 'full-day'];
+  const hasWeekdayCoverage = scheduleArray.some(item => weekdayOptions.includes(item.toLowerCase()));
+  
+  if (hasWeekdayCoverage) {
+    if (scheduleArray.includes('full-day')) return 'full-day';
+    return 'partial';
+  }
+  
+  return 'none';
+};
+
+/**
+ * Determines weekend coverage from schedule array
+ */
+export const determineWeekendCoverage = (scheduleArray: string[]): string => {
+  if (!scheduleArray || scheduleArray.length === 0) return 'no';
+  
+  const hasWeekends = scheduleArray.some(item => 
+    item.toLowerCase() === 'weekends' || 
+    item.toLowerCase() === 'weekend' || 
+    item.toLowerCase() === 'saturday' || 
+    item.toLowerCase() === 'sunday'
+  );
+  
+  return hasWeekends ? 'yes' : 'no';
+};
+
+/**
+ * Determines weekend schedule type based on the schedule array
+ */
+export const determineWeekendScheduleType = (scheduleArray: string[]): string => {
+  if (!scheduleArray || scheduleArray.length === 0) return 'none';
+  
+  if (scheduleArray.includes('weekend-full')) return 'full-day';
+  if (scheduleArray.includes('weekend-morning')) return 'morning';
+  if (scheduleArray.includes('weekend-afternoon')) return 'afternoon';
+  if (scheduleArray.includes('weekend-evening')) return 'evening';
+  
+  // Generic weekend coverage
+  if (scheduleArray.includes('weekends') || scheduleArray.includes('weekend')) {
+    return 'partial';
+  }
+  
+  // Check for specific days
+  const hasSaturday = scheduleArray.includes('saturday');
+  const hasSunday = scheduleArray.includes('sunday');
+  
+  if (hasSaturday && hasSunday) return 'both-days';
+  if (hasSaturday) return 'saturday-only';
+  if (hasSunday) return 'sunday-only';
+  
+  return 'none';
+};
+
+/**
+ * Converts metadata schedule format to profile care_schedule format
+ */
+export const convertMetadataToProfileSchedule = (metadata: Record<string, any>): string[] => {
+  if (!metadata) return [];
+  
+  const scheduleArray: string[] = [];
+  const weekdayCoverage = metadata.weekdayCoverage || 'none';
+  const weekendCoverage = metadata.weekendCoverage || 'no';
+  const weekendScheduleType = metadata.weekendScheduleType || 'none';
+  
+  // Add weekday coverage
+  if (weekdayCoverage === 'full-day') {
+    scheduleArray.push('full-day');
+  } else if (weekdayCoverage === 'partial') {
+    // Default to morning if no specific time is provided
+    scheduleArray.push('morning');
+  }
+  
+  // Add weekend coverage
+  if (weekendCoverage === 'yes') {
+    if (weekendScheduleType === 'full-day') {
+      scheduleArray.push('weekend-full');
+    } else if (weekendScheduleType === 'morning') {
+      scheduleArray.push('weekend-morning');
+    } else if (weekendScheduleType === 'afternoon') {
+      scheduleArray.push('weekend-afternoon');
+    } else if (weekendScheduleType === 'evening') {
+      scheduleArray.push('weekend-evening');
+    } else {
+      scheduleArray.push('weekends');
+    }
+  }
+  
+  // Add custom flag if custom shifts are present
+  if (metadata.customShifts && Array.isArray(metadata.customShifts) && metadata.customShifts.length > 0) {
+    scheduleArray.push('custom');
+  }
+  
+  return scheduleArray;
+};

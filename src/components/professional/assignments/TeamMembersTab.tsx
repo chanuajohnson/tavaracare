@@ -10,6 +10,7 @@ interface TeamMember {
   status: string;
   role?: string;
   caregiver_id: string;
+  care_plan_id?: string; // Added this property
   profiles?: {
     full_name?: string;
     professional_type?: string;
@@ -27,9 +28,7 @@ interface TeamMembersTabProps {
 export function TeamMembersTab({ teamMembers, loading = false, carePlanId, currentUserId }: TeamMembersTabProps) {
   // Filter team members if carePlanId is provided
   const filteredMembers = carePlanId 
-    ? teamMembers.filter(member => 
-        member.carePlanId === carePlanId || member.care_plan_id === carePlanId
-      )
+    ? teamMembers.filter(member => member.care_plan_id === carePlanId)
     : teamMembers;
   
   const getInitials = (name?: string): string => {
