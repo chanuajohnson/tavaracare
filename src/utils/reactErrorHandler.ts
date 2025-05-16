@@ -2,6 +2,8 @@
 /**
  * Utility to help detect and handle React initialization issues
  */
+import { registerModuleError, registerModuleInit } from './moduleInitTracker';
+import { registerReactReady, BootPhase, getCurrentPhase } from './appBootstrap';
 
 // Check if React is properly initialized
 export const ensureReact = () => {
@@ -24,6 +26,7 @@ export const ensureReact = () => {
   // Check if React is available and has necessary methods
   if (!window.React) {
     console.error('[reactErrorHandler] React not found in global scope');
+    registerModuleError('react', new Error('React not found in global scope'));
     return false;
   }
 
@@ -33,18 +36,21 @@ export const ensureReact = () => {
     const testElement = window.React.createElement('div', null, 'Test');
     if (!testElement || typeof testElement !== 'object') {
       console.error('[reactErrorHandler] React createElement test failed, returned:', testElement);
+      registerModuleError('react', new Error('React createElement test failed'));
       return false;
     }
     
     // Check if forwardRef is available
     if (!window.React.forwardRef || typeof window.React.forwardRef !== 'function') {
       console.error('[reactErrorHandler] React.forwardRef is not available or not a function');
+      registerModuleError('react', new Error('React.forwardRef is not available or not a function'));
       return false;
     }
 
     // Check if Suspense is available (needed for lazy loading)
     if (!window.React.Suspense) {
       console.error('[reactErrorHandler] React.Suspense is not available');
+      registerModuleError('react', new Error('React.Suspense is not available'));
       return false;
     }
     
@@ -55,11 +61,17 @@ export const ensureReact = () => {
     if (window.reactInitialized !== true) {
       console.log('[reactErrorHandler] Setting reactInitialized flag to true');
       window.reactInitialized = true;
+      registerReactReady();
     }
+    
+    // Register with module tracker
+    registerModuleInit('react');
     
     return true;
   } catch (error) {
-    console.error('[reactErrorHandler] Error testing React:', error);
+    const typedError = error instanceof Error ? error : new Error(String(error));
+    console.error('[reactErrorHandler] Error testing React:', typedError);
+    registerModuleError('react', typedError);
     return false;
   }
 };
@@ -133,7 +145,10 @@ export const logReactStatus = () => {
     return 'SSR mode';
   }
   
+  const currentBootPhase = getCurrentPhase();
+  
   const status = {
+    bootPhase: currentBootPhase,
     hasReactObject: !!window.React,
     forwardRefType: typeof window.React?.forwardRef,
     createElementType: typeof window.React?.createElement,

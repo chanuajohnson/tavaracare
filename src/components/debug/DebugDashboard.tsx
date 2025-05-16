@@ -2,6 +2,8 @@
 import React from 'react';
 import { SupabaseDebugger } from './SupabaseDebugger';
 import { ChatDebugger } from './ChatDebugger';
+import { EnvironmentInfo } from './EnvironmentInfo';
+import { InitializationDebugger } from './InitializationDebugger';
 
 export function DebugDashboard() {
   return (
@@ -14,6 +16,8 @@ export function DebugDashboard() {
       </p>
       
       <div className="grid md:grid-cols-2 gap-6">
+        <EnvironmentInfo />
+        <InitializationDebugger />
         <SupabaseDebugger />
         <ChatDebugger />
       </div>
@@ -30,6 +34,8 @@ export function DebugDashboard() {
           <li>Check if required database tables exist</li>
           <li>Review and reset chat configuration</li>
           <li>Manage local storage data</li>
+          <li>Debug React initialization issues</li>
+          <li>Monitor module loading status</li>
         </ul>
       </div>
     </div>

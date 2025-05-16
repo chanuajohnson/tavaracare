@@ -1,4 +1,5 @@
 
+import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/components/providers/AuthProvider';
@@ -36,7 +37,9 @@ import {
 import { toast } from 'sonner';
 import { resetAuthState } from '@/lib/supabase';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { useState, useEffect } from 'react';
+import { isModuleReady, registerModuleInit } from '@/utils/moduleInitTracker';
+import { BootPhase, getCurrentPhase, isPhaseReady } from '@/utils/appBootstrap';
+import { createStaticIcon } from '@/utils/iconFallbacks';
 
 // Simple non-React icon fallback component
 const SimpleIconFallback = ({ className }: { className?: string }) => {
@@ -53,38 +56,60 @@ export function Navigation() {
   const location = useLocation();
   const isMobile = useIsMobile();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [reactReady, setReactReady] = useState(false);
+  const [renderPhase, setRenderPhase] = useState<'html' | 'basic' | 'full'>('html');
 
   // Check if React is fully initialized before rendering complex components
   useEffect(() => {
+    // Phase 1: Check if we can render basic React components
     if (window.reactInitialized && window.React && window.React.forwardRef) {
-      console.log('[Navigation] React is initialized, rendering icons');
-      setReactReady(true);
+      console.log('[Navigation] React is initialized, rendering basic UI');
+      setRenderPhase('basic');
+      
+      // Phase 2: Check if we can render full UI with all dependencies
+      if (isModuleReady('icons')) {
+        console.log('[Navigation] Icons are ready, rendering full UI');
+        setRenderPhase('full');
+        registerModuleInit('navigation');
+      } else {
+        // Retry for icons
+        const iconCheckTimer = setInterval(() => {
+          if (isModuleReady('icons')) {
+            console.log('[Navigation] Icons ready on retry');
+            clearInterval(iconCheckTimer);
+            setRenderPhase('full');
+            registerModuleInit('navigation');
+          }
+        }, 200);
+        
+        return () => clearInterval(iconCheckTimer);
+      }
     } else {
       console.log('[Navigation] React not fully initialized, using fallbacks');
-      // Try again in 100ms
-      const checkTimer = setTimeout(() => {
+      // Try again with exponential backoff
+      let attempt = 0;
+      const checkTimer = setInterval(() => {
+        attempt++;
         if (window.reactInitialized && window.React && window.React.forwardRef) {
           console.log('[Navigation] React initialized on retry');
-          setReactReady(true);
+          clearInterval(checkTimer);
+          setRenderPhase('basic');
         }
-      }, 100);
+        
+        // Stop trying after a while
+        if (attempt >= 5) {
+          clearInterval(checkTimer);
+        }
+      }, 100 * Math.pow(2, attempt));
       
-      return () => clearTimeout(checkTimer);
+      return () => clearInterval(checkTimer);
     }
   }, []);
 
-  console.log('Navigation render -', { 
+  console.log('Navigation render phase:', renderPhase, {
     user: !!user, 
     isLoading, 
     userRole, 
-    path: location.pathname,
-    reactReady,
-    userDetails: user ? {
-      id: user.id,
-      email: user.email,
-      hasMetadataRole: !!user.user_metadata?.role
-    } : null
+    path: location.pathname
   });
 
   const handleSignOut = async (e: React.MouseEvent) => {
@@ -135,8 +160,8 @@ export function Navigation() {
   const isSpecificUser = user?.id === '605540d7-ae87-4a7c-9bd0-5699937f0670';
   const isAdmin = userRole === 'admin';
 
-  // Simplified navigation during React initialization
-  if (!reactReady) {
+  // Phase 1: HTML-only fallback navigation during early initialization
+  if (renderPhase === 'html') {
     return (
       <nav className="bg-background border-b py-3 px-4 sm:px-6">
         <div className="container mx-auto flex justify-between items-center">
@@ -145,14 +170,52 @@ export function Navigation() {
             <span className="text-xs text-gray-600 italic sm:ml-2">It takes a village to care</span>
           </div>
           <div className="flex items-center gap-3">
-            <SimpleIconFallback />
+            <span className="inline-block w-5 h-5 animate-pulse bg-gray-200 rounded"></span>
           </div>
         </div>
       </nav>
     );
   }
 
-  // Full navigation once React is ready
+  // Phase 2: Basic React navigation with minimal dependencies
+  if (renderPhase === 'basic') {
+    return (
+      <nav className="bg-background border-b py-3 px-4 sm:px-6">
+        <div className="container mx-auto flex justify-between items-center">
+          <div className="flex items-center flex-col sm:flex-row">
+            <Link to="/" className="text-xl font-bold">Tavara</Link>
+            <span className="text-xs text-gray-600 italic sm:ml-2">It takes a village to care</span>
+          </div>
+          <div className="flex items-center gap-3">
+            {isLoading ? (
+              <Button variant="outline" size="sm" disabled className="flex items-center gap-2">
+                <SimpleIconFallback />
+                <span>Loading...</span>
+              </Button>
+            ) : user ? (
+              <Button 
+                onClick={handleSignOut}
+                size="sm"
+                className="flex items-center gap-2 bg-primary-600 text-white hover:bg-primary-700 transition-colors"
+              >
+                <SimpleIconFallback />
+                <span>Sign Out</span>
+              </Button>
+            ) : (
+              <Link to="/auth">
+                <Button variant="default" size="sm" className="flex items-center gap-2">
+                  <SimpleIconFallback />
+                  <span>Sign In</span>
+                </Button>
+              </Link>
+            )}
+          </div>
+        </div>
+      </nav>
+    );
+  }
+
+  // Phase 3: Full navigation with all dependencies loaded
   return (
     <nav className="bg-background border-b py-3 px-4 sm:px-6">
       <div className="container mx-auto flex justify-between items-center">

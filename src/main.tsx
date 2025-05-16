@@ -6,11 +6,17 @@ import './index.css';
 import './components/framer/animations.css'; // Import animations CSS
 import { ensureReact } from './utils/reactErrorHandler.ts';
 import { AppMountGuard } from './components/app/AppMountGuard.tsx';
+import { initModuleTracker, registerModuleInit } from './utils/moduleInitTracker.ts';
+import { initBootstrap, registerReactDomReady } from './utils/appBootstrap.ts';
 
-// Define React globally as early as possible
+// Initialize our module tracking system
 if (typeof window !== 'undefined') {
-  // Ensure React is globally available before any other code runs
+  // Define React globally as early as possible
   window.React = React;
+  
+  // Initialize module tracking
+  initModuleTracker();
+  initBootstrap();
   
   console.log('[main.tsx] React pre-initialization at:', new Date().toISOString());
   console.log('[main.tsx] React version:', React.version);
@@ -34,6 +40,10 @@ const mountApp = () => {
     }
 
     console.log('[main.tsx] Mounting application to DOM with safety guard');
+    
+    // Register ReactDOM as ready
+    registerReactDomReady();
+    registerModuleInit('reactDom');
     
     const root = createRoot(container);
     root.render(
@@ -76,4 +86,13 @@ if (document.readyState === 'loading') {
   // DOM already loaded, but add a small delay to ensure all scripts are parsed
   console.log('[main.tsx] DOM already loaded, scheduling mount');
   setTimeout(mountApp, 50);
+}
+
+// Export types for global window augmentation
+declare global {
+  interface Window {
+    React: typeof React;
+    reactInitialized: boolean;
+    bootstrapTiming?: Record<string, number>;
+  }
 }
