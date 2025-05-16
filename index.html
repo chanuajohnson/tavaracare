@@ -34,6 +34,7 @@
       
       // Create a more comprehensive React placeholder to prevent early errors
       window.React = window.React || {
+        version: 'placeholder',
         createElement: function() { 
           logInitEvent('React placeholder createElement called');
           return {}; 
@@ -59,7 +60,13 @@
           return component;
         },
         Fragment: Symbol.for('react.fragment'),
-        version: 'placeholder'
+        createContext: function() {
+          logInitEvent('React placeholder createContext called');
+          return {
+            Provider: function() {},
+            Consumer: function() {}
+          };
+        }
       };
       window.reactInitialized = false; // Will be set to true once React is fully loaded
       
@@ -89,6 +96,16 @@
           console.error('[index.html] React initialized?', !!window.reactInitialized);
           console.error('[index.html] Init timing:', JSON.stringify(window.tavaraInitTiming));
           
+          // Capture error details for diagnostics
+          window._initLogs = window._initLogs || [];
+          window._initLogs.push({
+            timestamp: new Date().toISOString(),
+            error: message,
+            source: source,
+            line: lineno,
+            col: colno
+          });
+          
           // Display fallback UI when React fails to initialize properly
           document.addEventListener('DOMContentLoaded', function() {
             var rootEl = document.getElementById('root');
@@ -104,6 +121,7 @@
             if (window.React && window.React.forwardRef && typeof window.React.forwardRef === 'function') {
               logInitEvent('React recovered after error');
               window.reactInitialized = true;
+              window.dispatchEvent(new Event('ReactInitialized'));
             } else {
               logInitEvent('Waiting for React recovery...');
               setTimeout(checkAndRecoverReact, 200);
@@ -117,6 +135,10 @@
       
       logInitEvent('HTML head scripts completed');
     </script>
+    
+    <!-- Preload key scripts to improve initialization order -->
+    <link rel="preload" href="/node_modules/react/umd/react.production.min.js" as="script">
+    <link rel="preload" href="/node_modules/react-dom/umd/react-dom.production.min.js" as="script">
   </head>
 
   <body>
@@ -143,6 +165,22 @@
       if (window.logInitEvent) {
         window.logInitEvent('Body scripts parsed');
       }
+      
+      // Add a timer to check React initialization status
+      setTimeout(function() {
+        if (window.logInitEvent) {
+          window.logInitEvent('Checking React status after scripts');
+        }
+        console.log('React initialized status after scripts:', !!window.reactInitialized);
+        console.log('React forwardRef type:', typeof window.React?.forwardRef);
+        
+        // Try to initialize React if it seems to be available but not marked as initialized
+        if (window.React && typeof window.React.forwardRef === 'function' && !window.reactInitialized) {
+          console.log('React appears to be loaded but not marked as initialized, fixing...');
+          window.reactInitialized = true;
+          window.dispatchEvent(new Event('ReactInitialized'));
+        }
+      }, 1000);
     </script>
   </body>
 </html>

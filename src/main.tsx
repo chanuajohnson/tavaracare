@@ -4,14 +4,14 @@ import { createRoot } from 'react-dom/client';
 import App from './App.tsx';
 import './index.css';
 import './components/framer/animations.css'; // Import animations CSS
-import { ensureReact } from './utils/reactErrorHandler.ts';
+import { ensureReact, waitForReactReady } from './utils/reactErrorHandler.ts';
 import { AppMountGuard } from './components/app/AppMountGuard.tsx';
 import { initModuleTracker, registerModuleInit } from './utils/moduleInitTracker.ts';
-import { initBootstrap, registerReactDomReady } from './utils/appBootstrap.ts';
+import { initBootstrap, registerReactDomReady, BootPhase } from './utils/appBootstrap.ts';
 
 // Initialize our module tracking system
 if (typeof window !== 'undefined') {
-  // Define React globally as early as possible
+  // Define React globally as early as possible to prevent "React not defined" errors
   window.React = React;
   
   // Initialize module tracking
@@ -27,13 +27,19 @@ const MAX_MOUNT_RETRIES = 5;
 let mountRetryCount = 0;
 
 // Create a utility to safely mount the application
-const mountApp = () => {
+const mountApp = async () => {
   try {
-    // Ensure React is ready before mounting
+    // First ensure React is available before doing anything
     const reactReady = ensureReact();
     
     console.log('[main.tsx] Initial React readiness check:', reactReady);
     
+    // Wait for React to be fully initialized before continuing
+    const readinessResult = await waitForReactReady(5000);
+    
+    console.log('[main.tsx] React readiness check complete:', readinessResult);
+    
+    // Find the container
     const container = document.getElementById('root');
     if (!container) {
       throw new Error('Root element not found in the DOM');
@@ -48,7 +54,7 @@ const mountApp = () => {
     const root = createRoot(container);
     root.render(
       <React.StrictMode>
-        <AppMountGuard>
+        <AppMountGuard requiredPhase={BootPhase.BASIC_REACT}>
           <App />
         </AppMountGuard>
       </React.StrictMode>
@@ -70,22 +76,53 @@ const mountApp = () => {
     // Add fallback UI directly if React rendering fails after all retries
     const rootElement = document.getElementById('root');
     if (rootElement) {
-      rootElement.innerHTML = '<div style="padding: 20px; color: #721c24; background-color: #f8d7da; border: 1px solid #f5c6cb; border-radius: 4px; text-align: center;"><h3>Application failed to load</h3><p>Please try refreshing the page. If the problem persists, clear your browser cache.</p><button onclick="window.location.reload()" style="background: #721c24; color: white; border: none; padding: 8px 16px; border-radius: 4px; margin-top: 10px; cursor: pointer;">Refresh Page</button></div>';
+      rootElement.innerHTML = `
+        <div style="padding: 20px; color: #721c24; background-color: #f8d7da; border: 1px solid #f5c6cb; border-radius: 4px; text-align: center;">
+          <h3>Application failed to load</h3>
+          <p>Please try refreshing the page. If the problem persists, clear your browser cache.</p>
+          <div style="margin-top: 10px; padding: 10px; background: #f1f1f1; border-radius: 4px; text-align: left; font-family: monospace; font-size: 12px; overflow: auto; max-height: 150px;">
+            ${error instanceof Error ? error.stack?.replace(/\n/g, '<br>') || error.message : String(error)}
+          </div>
+          <button onclick="window.location.reload()" style="background: #721c24; color: white; border: none; padding: 8px 16px; border-radius: 4px; margin-top: 10px; cursor: pointer;">
+            Refresh Page
+          </button>
+        </div>
+      `;
     }
   }
 };
 
-// Ensure DOM is fully loaded before mounting
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', () => {
-    console.log('[main.tsx] DOMContentLoaded event fired');
-    // Small timeout to ensure everything is ready
+// Try to load the app only after document is fully ready
+const attemptMount = () => {
+  console.log('[main.tsx] Attempting to mount app, document state:', document.readyState);
+  
+  if (document.readyState === 'complete' || document.readyState === 'interactive') {
+    // DOM is ready, attempt mount with slight delay to ensure all scripts are parsed
+    console.log('[main.tsx] Document ready, scheduling mount');
     setTimeout(mountApp, 50);
-  });
-} else {
-  // DOM already loaded, but add a small delay to ensure all scripts are parsed
-  console.log('[main.tsx] DOM already loaded, scheduling mount');
-  setTimeout(mountApp, 50);
-}
+  } else {
+    // Wait for DOM to be ready
+    console.log('[main.tsx] Document not ready, waiting for DOMContentLoaded');
+    document.addEventListener('DOMContentLoaded', () => {
+      console.log('[main.tsx] DOMContentLoaded event fired');
+      // Small timeout to ensure everything is ready
+      setTimeout(mountApp, 50);
+    });
+  }
+};
 
-// Note: We're not re-declaring window interface here as it's now moved to global.d.ts
+// Start the mounting process
+attemptMount();
+
+// Also listen for window load as a backup
+window.addEventListener('load', () => {
+  console.log('[main.tsx] Window load event fired, checking mount status');
+  
+  // If app isn't mounted after 1 second, try again
+  setTimeout(() => {
+    if (mountRetryCount === 0) {
+      console.log('[main.tsx] No mount attempts detected after window load, trying now');
+      attemptMount();
+    }
+  }, 1000);
+});

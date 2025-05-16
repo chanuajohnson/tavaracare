@@ -1,6 +1,6 @@
 
 import { useLocation } from "react-router-dom";
-import { useEffect, Component, ErrorInfo, ReactNode } from "react";
+import { useEffect, Component, ErrorInfo, ReactNode, Suspense } from "react";
 import { Navigation } from "@/components/layout/Navigation";
 import { AppProviders } from "@/components/providers/AppProviders";
 import { SupabaseInitializer } from "@/components/supabase/SupabaseInitializer";
@@ -9,6 +9,8 @@ import { RedirectHandler } from "@/components/routing/RedirectHandler";
 import { GlobalFAB } from "@/components/common/GlobalFAB";
 import LoadingScreen from "@/components/common/LoadingScreen";
 import { logReactStatus } from "@/utils/reactErrorHandler";
+import { AppMountGuard } from "@/components/app/AppMountGuard";
+import { BootPhase } from "@/utils/appBootstrap";
 
 // Enhanced Error Boundary Component for catching runtime errors
 class ErrorBoundary extends Component<
@@ -29,6 +31,18 @@ class ErrorBoundary extends Component<
     
     // Log React status when an error occurs
     logReactStatus();
+    
+    // Store diagnostic info
+    if (typeof window !== 'undefined') {
+      window._initLogs = window._initLogs || [];
+      window._initLogs.push({
+        timestamp: new Date().toISOString(),
+        errorType: 'react_component_error',
+        error: error.message,
+        stack: error.stack,
+        info: JSON.stringify(errorInfo)
+      });
+    }
   }
 
   render() {
@@ -60,6 +74,7 @@ class ErrorBoundary extends Component<
   }
 }
 
+// Inner content that requires React to be fully initialized
 function AppContent() {
   const location = useLocation();
   const isIndexPage = location.pathname === "/";
@@ -79,7 +94,9 @@ function AppContent() {
     <div className="min-h-screen flex flex-col">
       <Navigation />
       <main className="flex-1">
-        <AppRoutes />
+        <Suspense fallback={<LoadingScreen />}>
+          <AppRoutes />
+        </Suspense>
       </main>
       {!isIndexPage && <GlobalFAB />}
     </div>
@@ -95,11 +112,13 @@ export default function AppWithProviders() {
   
   return (
     <ErrorBoundary>
-      <AppProviders>
-        <SupabaseInitializer />
-        <RedirectHandler />
-        <AppContent />
-      </AppProviders>
+      <AppMountGuard requiredPhase={BootPhase.FULL_APP}>
+        <AppProviders>
+          <SupabaseInitializer />
+          <RedirectHandler />
+          <AppContent />
+        </AppProviders>
+      </AppMountGuard>
     </ErrorBoundary>
   );
 }
