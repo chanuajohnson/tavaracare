@@ -57,11 +57,13 @@ export const medicationService = {
   // Create a new medication
   async createMedication(medication: Omit<Medication, 'id' | 'created_at' | 'updated_at'>): Promise<Medication | null> {
     try {
-      // Prepare medication data for database
+      // Convert MedicationSchedule to a plain object that can be stored as JSON
       const medicationData = {
         ...medication,
-        // Ensure schedule is treated as a JSON object
-        schedule: medication.schedule || {}
+        // Convert schedule to a plain object for JSON storage
+        schedule: medication.schedule ? { ...medication.schedule } as Json : undefined,
+        // Convert term definitions to a plain object if it exists
+        term_definitions: medication.term_definitions as Json
       };
 
       const { data, error } = await supabase
@@ -89,11 +91,13 @@ export const medicationService = {
   // Update an existing medication
   async updateMedication(medicationId: string, updates: Partial<Medication>): Promise<Medication | null> {
     try {
-      // Prepare update data for database
+      // Convert MedicationSchedule to a plain object for JSON storage
       const updateData = {
         ...updates,
-        // Ensure schedule is treated as a JSON object if it exists
-        ...(updates.schedule && { schedule: updates.schedule })
+        // Only include schedule if it exists in updates
+        ...(updates.schedule && { schedule: { ...updates.schedule } as Json }),
+        // Only include term_definitions if it exists in updates
+        ...(updates.term_definitions && { term_definitions: updates.term_definitions as Json })
       };
 
       const { data, error } = await supabase
