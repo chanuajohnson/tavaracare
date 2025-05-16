@@ -88,11 +88,4 @@ if (document.readyState === 'loading') {
   setTimeout(mountApp, 50);
 }
 
-// Export types for global window augmentation
-declare global {
-  interface Window {
-    React: typeof React;
-    reactInitialized: boolean;
-    bootstrapTiming?: Record<string, number>;
-  }
-}
+// Note: We're not re-declaring window interface here as it's now moved to global.d.ts

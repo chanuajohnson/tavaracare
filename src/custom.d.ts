@@ -1,15 +1,6 @@
 
 // This file extends global interfaces to support our modifications
-
-import React from 'react';
-
-// Make React available globally on window object
-declare global {
-  interface Window {
-    React: typeof React;
-    reactInitialized?: boolean;
-  }
-}
+// We're removing the reactInitialized declaration from here to avoid conflicts
 
 // Export empty object to make this a proper module
 export {};

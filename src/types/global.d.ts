@@ -1,9 +1,10 @@
+
 import React from 'react';
 
 declare global {
   interface Window {
     React: any;
-    reactInitialized: boolean;
+    reactInitialized: boolean; // Using consistent declaration with no modifiers
     tavaraInitTiming?: {
       start: number;
       events: Array<{ event: string, timestamp: number, elapsed: string }>;

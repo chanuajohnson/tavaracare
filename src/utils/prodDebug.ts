@@ -54,8 +54,6 @@ export function logDiagnostics(): void {
   console.log('=== TAVARA DIAGNOSTICS ===');
   console.table(diagnostics);
   console.log('=========================');
-  
-  return diagnostics;
 }
 
 // Send diagnostics to server (if needed)
@@ -96,13 +94,4 @@ if (typeof window !== 'undefined') {
 }
 
 // Export types for global window augmentation
-declare global {
-  interface Window {
-    tavaraDebug?: {
-      toggleDebug: typeof toggleDebugMode;
-      logDiagnostics: typeof logDiagnostics;
-      reportDiagnostics: typeof reportDiagnostics;
-      getStatus: typeof getModuleStatus;
-    };
-  }
-}
+// Note: We've moved the window interface to global.d.ts
