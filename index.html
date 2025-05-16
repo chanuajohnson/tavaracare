@@ -32,19 +32,34 @@
       
       logInitEvent('HTML parsing started');
       
-      // Synchronously declare React in the global scope to prevent initialization issues
+      // Create a more comprehensive React placeholder to prevent early errors
       window.React = window.React || {
         createElement: function() { 
           logInitEvent('React placeholder createElement called');
-          return null; 
+          return {}; 
         },
         forwardRef: function() { 
           logInitEvent('React placeholder forwardRef called');
-          return null; 
+          return function() {}; 
         },
-        lazy: function() { return null; },
-        useState: function() { return [null, function() {}]; },
-        Suspense: function() { return null; }
+        lazy: function() { 
+          logInitEvent('React placeholder lazy called');
+          return {}; 
+        },
+        useState: function() { 
+          logInitEvent('React placeholder useState called');
+          return [null, function() {}]; 
+        },
+        Suspense: { 
+          $$typeof: Symbol.for('react.suspense'),
+          render: function() {}
+        },
+        memo: function(component) {
+          logInitEvent('React placeholder memo called');
+          return component;
+        },
+        Fragment: Symbol.for('react.fragment'),
+        version: 'placeholder'
       };
       window.reactInitialized = false; // Will be set to true once React is fully loaded
       

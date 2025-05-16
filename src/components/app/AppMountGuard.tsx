@@ -49,16 +49,16 @@ export function AppMountGuard({ children, fallback }: AppMountGuardProps) {
           }
         }
       }
-    }, 100); // Start with 100ms checks
+    }, 100 * Math.pow(2, Math.min(attempt, 5))); // Exponential backoff up to 32x the base time
     
     return () => clearInterval(checkInterval);
   }, []);
 
-  // Default fallback loading UI
+  // Default fallback loading UI with Tavara branding
   const defaultFallback = (
     <div className="flex flex-col items-center justify-center min-h-screen bg-background">
       <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mb-4"></div>
-      <p className="text-lg text-muted-foreground">Loading application...</p>
+      <p className="text-lg text-muted-foreground">Loading Tavara...</p>
     </div>
   );
 
