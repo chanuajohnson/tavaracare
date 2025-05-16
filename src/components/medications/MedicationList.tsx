@@ -63,6 +63,7 @@ const MedicationList: React.FC<MedicationListProps> = ({ carePlanId, userRole })
         if (medication) {
           setMedications(prev => [...prev, medication]);
           setShowAddDialog(false);
+          toast.success(`Added ${medication.name} to medications`);
         }
       });
   };
@@ -78,6 +79,7 @@ const MedicationList: React.FC<MedicationListProps> = ({ carePlanId, userRole })
           ));
           setShowAddDialog(false);
           setCurrentMedication(null);
+          toast.success(`Updated ${updatedMedication.name} successfully`);
         }
       });
   };
@@ -99,6 +101,7 @@ const MedicationList: React.FC<MedicationListProps> = ({ carePlanId, userRole })
           setMedications(prev => prev.filter(med => med.id !== currentMedication.id));
           setShowDeleteDialog(false);
           setCurrentMedication(null);
+          toast.success(`${currentMedication.name} has been removed`);
         }
       });
   };
@@ -108,7 +111,7 @@ const MedicationList: React.FC<MedicationListProps> = ({ carePlanId, userRole })
   };
 
   return (
-    <div>
+    <div className="pb-8">
       <div className="flex justify-between items-center mb-4">
         <div className="flex items-baseline">
           <h2 className="text-xl font-bold">{medications.length > 0 ? 'Current Medications' : 'No Medications'}</h2>
@@ -161,23 +164,28 @@ const MedicationList: React.FC<MedicationListProps> = ({ carePlanId, userRole })
           )}
         </div>
       ) : (
-        <ScrollArea className="max-h-[70vh]">
-          <div className="space-y-3 pr-3">
-            {medications.map(medication => (
-              <MedicationCard
-                key={medication.id}
-                medication={medication}
-                onEdit={(med) => {
-                  setCurrentMedication(med);
-                  setShowAddDialog(true);
-                }}
-                onDelete={handleDeleteClick}
-                onAdministrationRecorded={handleRefresh}
-                isCaregiver={isCaregiver}
-              />
-            ))}
+        <div className="border rounded-lg overflow-hidden">
+          <ScrollArea className="h-[500px] pr-4 px-2">
+            <div className="space-y-3 p-3">
+              {medications.map(medication => (
+                <MedicationCard
+                  key={medication.id}
+                  medication={medication}
+                  onEdit={(med) => {
+                    setCurrentMedication(med);
+                    setShowAddDialog(true);
+                  }}
+                  onDelete={handleDeleteClick}
+                  onAdministrationRecorded={handleRefresh}
+                  isCaregiver={isCaregiver}
+                />
+              ))}
+            </div>
+          </ScrollArea>
+          <div className="bg-muted/30 text-center py-2 text-sm text-muted-foreground">
+            {medications.length} {medications.length === 1 ? 'medication' : 'medications'} in total
           </div>
-        </ScrollArea>
+        </div>
       )}
       
       {/* Add/Edit Medication Dialog */}

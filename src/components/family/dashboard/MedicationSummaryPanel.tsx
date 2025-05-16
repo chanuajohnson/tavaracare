@@ -34,6 +34,7 @@ const MedicationSummaryPanel: React.FC<MedicationSummaryPanelProps> = ({ userCar
         if (activePlan) {
           const meds = await medicationService.fetchMedications(activePlan.id);
           medsByPlan[activePlan.id] = meds;
+          console.log(`Loaded ${meds.length} medications for care plan ${activePlan.id}:`, meds);
         }
         
         setMedicationsByPlan(medsByPlan);
@@ -121,8 +122,8 @@ const MedicationSummaryPanel: React.FC<MedicationSummaryPanelProps> = ({ userCar
           </div>
         ) : (
           <div>
-            <ScrollArea className="max-h-[180px]">
-              <div className="space-y-2">
+            <ScrollArea className="h-[220px]" type="always">
+              <div className="space-y-2 pr-4">
                 {activePlanMedications.map((med) => (
                   <div key={med.id} className="flex items-center justify-between p-2 bg-muted rounded-md">
                     <div>
@@ -140,6 +141,9 @@ const MedicationSummaryPanel: React.FC<MedicationSummaryPanelProps> = ({ userCar
               <Link to={`/family/care-management/${activePlan.id}`}>
                 <Button size="sm">Manage Medications</Button>
               </Link>
+            </div>
+            <div className="mt-2 text-center text-xs text-muted-foreground">
+              All {activePlanMedications.length} medications shown
             </div>
           </div>
         )}
