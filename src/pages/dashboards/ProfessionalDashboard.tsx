@@ -20,6 +20,8 @@ import AdminAssistantCard from "@/components/professional/dashboard/AdminAssista
 import TrainingResourcesCard from "@/components/professional/dashboard/TrainingResourcesCard";
 import ProfessionalAgencyCard from "@/components/professional/dashboard/ProfessionalAgencyCard";
 import DashboardHeader from "@/components/professional/dashboard/DashboardHeader";
+// Import the new CareAssignmentsCard
+import CareAssignmentsCard from "@/components/professional/dashboard/CareAssignmentsCard";
 
 const ProfessionalDashboard = () => {
   const { user } = useAuth();
@@ -47,6 +49,13 @@ const ProfessionalDashboard = () => {
         <FadeIn delay={0.1} duration={0.5} className="mt-8">
           <CaregiverHealthCard />
         </FadeIn>
+
+        {/* Care Assignments Card - Show for logged in users */}
+        {user && (
+          <FadeIn delay={0.15} duration={0.5} className="mt-8">
+            <CareAssignmentsCard />
+          </FadeIn>
+        )}
 
         {/* Next Steps and Profile Management - side by side */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { Button } from "@/components/ui/button";
@@ -10,7 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { CalendarIcon, Clock, MapPin, ArrowLeft, Users, ClipboardList, FileText } from "lucide-react";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useNavigate, Link } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useJourneyTracking } from "@/hooks/useJourneyTracking";
@@ -241,10 +240,10 @@ const ProfessionalSchedulePage = () => {
               variant="outline" 
               size="sm" 
               className="mb-4"
-              onClick={() => navigate("/professional/profile")}
+              onClick={() => navigate("/dashboard/professional")}
             >
               <ArrowLeft className="mr-2 h-4 w-4" />
-              Back to Profile
+              Back to Dashboard
             </Button>
             <h1 className="text-3xl font-bold">Your Schedule</h1>
             <p className="text-muted-foreground">Manage your care assignments and shifts</p>
@@ -330,7 +329,7 @@ const ProfessionalSchedulePage = () => {
                       )}
                       <div className="flex gap-2 mt-4">
                         <Link to={`/professional/assignments/${assignment.care_plan_id}`}>
-                          <Button size="sm" variant="outline">
+                          <Button size="sm" variant="default">
                             View Plan Details
                           </Button>
                         </Link>
@@ -445,7 +444,7 @@ const ProfessionalSchedulePage = () => {
                                   </div>
                                   
                                   <Link to={`/professional/assignments/${shift.care_plan_id}`}>
-                                    <Button variant="outline" size="sm">
+                                    <Button variant="default" size="sm">
                                       View Plan
                                     </Button>
                                   </Link>
@@ -463,8 +462,8 @@ const ProfessionalSchedulePage = () => {
                       <p className="text-gray-500 mb-6">
                         You don't have any shifts scheduled for this time period
                       </p>
-                      <Button variant="outline" onClick={() => navigate("/professional/profile")}>
-                        View Care Assignments
+                      <Button variant="outline" onClick={() => navigate("/dashboard/professional")}>
+                        Back to Dashboard
                       </Button>
                     </div>
                   )}
@@ -495,19 +494,20 @@ const ProfessionalSchedulePage = () => {
                     <Button 
                       variant="outline" 
                       className="w-full justify-start" 
-                      onClick={() => navigate("/professional/profile")}
-                    >
-                      <Users className="mr-2 h-4 w-4" />
-                      Care Assignments
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      className="w-full justify-start" 
                       onClick={() => navigate("/dashboard/professional")}
                     >
-                      <ClipboardList className="mr-2 h-4 w-4" />
+                      <Users className="mr-2 h-4 w-4" />
                       Dashboard
                     </Button>
+                    <Link to="/professional/profile">
+                      <Button 
+                        variant="outline" 
+                        className="w-full justify-start"
+                      >
+                        <ClipboardList className="mr-2 h-4 w-4" />
+                        Profile Hub
+                      </Button>
+                    </Link>
                   </div>
                 </div>
               </CardContent>
@@ -552,15 +552,8 @@ const ProfessionalSchedulePage = () => {
                       }</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-sm text-gray-600">This Month</span>
-                      <span className="font-medium">{
-                        shifts.filter(s => {
-                          const shiftDate = new Date(s.start_time);
-                          const now = new Date();
-                          return shiftDate.getMonth() === now.getMonth() && 
-                                 shiftDate.getFullYear() === now.getFullYear();
-                        }).length
-                      }</span>
+                      <span className="text-sm text-gray-600">Total Assignments</span>
+                      <span className="font-medium">{careAssignments.length}</span>
                     </div>
                   </div>
                 </CardContent>

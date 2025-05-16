@@ -3,10 +3,11 @@ import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsList, TabsContent, TabsTrigger } from "@/components/ui/tabs";
-import { UserCircle, Briefcase, Star, Settings, GraduationCap, Clock } from "lucide-react";
+import { UserCircle, Briefcase, Star, Settings, GraduationCap, Clock, FileText } from "lucide-react";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { supabase } from "@/lib/supabase";
 import { FadeIn, SlideIn } from "@/components/framer";
+import CareAssignmentsSection from "@/components/professional/profile/CareAssignmentsSection";
 
 // Define proper interface for availability
 interface AvailabilityDay {
@@ -173,8 +174,15 @@ const ProfessionalProfileHub = () => {
           </div>
         </SlideIn>
         
+        {/* Add the Care Assignments Section above the tabs */}
+        <div className="mb-6">
+          <FadeIn duration={0.4}>
+            <CareAssignmentsSection />
+          </FadeIn>
+        </div>
+        
         <Tabs defaultValue="profile" className="space-y-6" onValueChange={setActiveTab}>
-          <TabsList className="grid grid-cols-4 md:w-[600px]">
+          <TabsList className="grid grid-cols-5 md:w-full">
             <TabsTrigger value="profile" className="flex items-center gap-2">
               <UserCircle className="h-4 w-4" />
               <span className="hidden sm:inline">Basic Info</span>
@@ -194,6 +202,11 @@ const ProfessionalProfileHub = () => {
               <GraduationCap className="h-4 w-4" />
               <span className="hidden sm:inline">Training</span>
               <span className="sm:hidden">Train</span>
+            </TabsTrigger>
+            <TabsTrigger value="schedule" className="flex items-center gap-2">
+              <FileText className="h-4 w-4" />
+              <span className="hidden sm:inline">Schedule</span>
+              <span className="sm:hidden">Shifts</span>
             </TabsTrigger>
           </TabsList>
           
@@ -438,6 +451,41 @@ const ProfessionalProfileHub = () => {
                           </Button>
                         </div>
                       )}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </FadeIn>
+          </TabsContent>
+
+          {/* New Schedule Tab */}
+          <TabsContent value="schedule">
+            <FadeIn duration={0.5}>
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <FileText className="h-5 w-5 text-primary" />
+                    Work Schedule
+                  </CardTitle>
+                  <CardDescription>
+                    View and manage your upcoming shifts
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="bg-blue-50 border border-blue-100 rounded-md p-4">
+                    <div className="flex items-start gap-3">
+                      <Clock className="h-5 w-5 text-blue-600 mt-0.5" />
+                      <div>
+                        <h3 className="font-medium text-blue-800">Schedule Management</h3>
+                        <p className="text-sm text-blue-700 mt-1">
+                          View your complete work schedule, see upcoming shifts, and manage your care assignments.
+                        </p>
+                        <div className="flex gap-3 mt-3">
+                          <Button variant="default">
+                            View Full Schedule
+                          </Button>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </CardContent>
