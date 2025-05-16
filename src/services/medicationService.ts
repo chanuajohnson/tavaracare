@@ -14,7 +14,13 @@ export const medicationService = {
         .order('name');
 
       if (error) throw error;
-      return data || [];
+      
+      // Transform the data to match our TypeScript definitions
+      return (data || []).map(item => ({
+        ...item,
+        schedule: item.schedule ? item.schedule as unknown as MedicationSchedule : undefined,
+        term_definitions: item.term_definitions ? item.term_definitions as unknown as Record<string, string> : undefined
+      })) as Medication[];
     } catch (error) {
       console.error('Error fetching medications:', error);
       toast.error('Failed to load medications');
@@ -32,7 +38,14 @@ export const medicationService = {
         .maybeSingle();
 
       if (error) throw error;
-      return data;
+      if (!data) return null;
+      
+      // Transform to match TypeScript definition
+      return {
+        ...data,
+        schedule: data.schedule ? data.schedule as unknown as MedicationSchedule : undefined,
+        term_definitions: data.term_definitions ? data.term_definitions as unknown as Record<string, string> : undefined
+      } as Medication;
     } catch (error) {
       console.error('Error fetching medication:', error);
       toast.error('Failed to load medication details');
@@ -43,15 +56,28 @@ export const medicationService = {
   // Create a new medication
   async createMedication(medication: Omit<Medication, 'id' | 'created_at' | 'updated_at'>): Promise<Medication | null> {
     try {
+      // Prepare medication data for database
+      const medicationData = {
+        ...medication,
+        // Ensure schedule is treated as a JSON object
+        schedule: medication.schedule || {}
+      };
+
       const { data, error } = await supabase
         .from('medications')
-        .insert(medication)
+        .insert(medicationData)
         .select('*')
         .single();
 
       if (error) throw error;
       toast.success('Medication added successfully');
-      return data;
+      
+      // Transform to match TypeScript definition
+      return {
+        ...data,
+        schedule: data.schedule ? data.schedule as unknown as MedicationSchedule : undefined,
+        term_definitions: data.term_definitions ? data.term_definitions as unknown as Record<string, string> : undefined
+      } as Medication;
     } catch (error) {
       console.error('Error creating medication:', error);
       toast.error('Failed to add medication');
@@ -62,16 +88,29 @@ export const medicationService = {
   // Update an existing medication
   async updateMedication(medicationId: string, updates: Partial<Medication>): Promise<Medication | null> {
     try {
+      // Prepare update data for database
+      const updateData = {
+        ...updates,
+        // Ensure schedule is treated as a JSON object
+        schedule: updates.schedule || undefined
+      };
+
       const { data, error } = await supabase
         .from('medications')
-        .update(updates)
+        .update(updateData)
         .eq('id', medicationId)
         .select('*')
         .single();
 
       if (error) throw error;
       toast.success('Medication updated successfully');
-      return data;
+      
+      // Transform to match TypeScript definition
+      return {
+        ...data,
+        schedule: data.schedule ? data.schedule as unknown as MedicationSchedule : undefined,
+        term_definitions: data.term_definitions ? data.term_definitions as unknown as Record<string, string> : undefined
+      } as Medication;
     } catch (error) {
       console.error('Error updating medication:', error);
       toast.error('Failed to update medication');
@@ -111,11 +150,13 @@ export const medicationService = {
 
       if (error) throw error;
       
-      // Transform the data to include caregiver_name
+      // Transform the data to include caregiver_name and ensure status matches the expected type
       return (data || []).map(item => ({
         ...item,
-        caregiver_name: item.profiles?.full_name || 'Unknown'
-      }));
+        caregiver_name: item.profiles?.full_name || 'Unknown',
+        // Ensure status is one of the allowed values
+        status: item.status as 'administered' | 'skipped' | 'refused' | 'pending'
+      })) as MedicationAdministration[];
     } catch (error) {
       console.error('Error fetching medication administrations:', error);
       toast.error('Failed to load medication history');
@@ -134,7 +175,11 @@ export const medicationService = {
 
       if (error) throw error;
       toast.success('Medication administration recorded');
-      return data;
+      
+      return {
+        ...data,
+        status: data.status as 'administered' | 'skipped' | 'refused' | 'pending'
+      } as MedicationAdministration;
     } catch (error) {
       console.error('Error recording medication administration:', error);
       toast.error('Failed to record medication administration');

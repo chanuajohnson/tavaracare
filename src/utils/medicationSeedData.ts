@@ -25,7 +25,7 @@ export const seedPeltierMedications = async (carePlanId: string) => {
     }
     
     // Define Ms. Peltier's medications
-    const peltierMedications: Omit<Medication, 'id' | 'created_at' | 'updated_at'>[] = [
+    const peltierMedications = [
       {
         care_plan_id: carePlanId,
         name: "APO Atenolol",
