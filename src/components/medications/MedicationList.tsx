@@ -1,234 +1,173 @@
 
 import React, { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
-import { Plus, RefreshCw, AlertCircle } from 'lucide-react';
+import { Button } from "@/components/ui/button";
+import { Plus, PlusCircle, Pill, Calendar, Clock, AlertCircle } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
+import { toast } from "sonner";
 import { medicationService } from '@/services/medicationService';
-import { Medication, MedicationFormData } from '@/types/medicationTypes';
-import MedicationCard from './MedicationCard';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import MedicationForm from './MedicationForm';
-import { useAuth } from '@/components/providers/AuthProvider';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { Badge } from '@/components/ui/badge';
-import { toast } from 'sonner';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import { Medication } from '@/types/medicationTypes';
 
 interface MedicationListProps {
   carePlanId: string;
-  userRole: 'family' | 'professional';
+  userRole?: 'family' | 'professional' | 'admin';
 }
 
-const MedicationList: React.FC<MedicationListProps> = ({ carePlanId, userRole }) => {
+const MedicationList: React.FC<MedicationListProps> = ({ carePlanId, userRole = 'family' }) => {
   const [medications, setMedications] = useState<Medication[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [showAddDialog, setShowAddDialog] = useState(false);
-  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [currentMedication, setCurrentMedication] = useState<Medication | null>(null);
-  const [refreshTrigger, setRefreshTrigger] = useState(0);
-  const { user } = useAuth();
-  
-  const isCaregiver = userRole === 'professional';
 
   useEffect(() => {
-    fetchMedications();
-  }, [carePlanId, refreshTrigger]);
+    loadMedications();
+  }, [carePlanId]);
 
-  const fetchMedications = async () => {
-    if (!carePlanId) return;
-    
-    setLoading(true);
-    setError(null);
-    
+  const loadMedications = async () => {
     try {
+      setLoading(true);
+      console.log(`Loading medications for care plan: ${carePlanId}`);
       const data = await medicationService.fetchMedications(carePlanId);
-      console.log("Fetched medications:", data);
+      console.log(`Loaded ${data.length} medications for care plan: ${carePlanId}`);
       setMedications(data);
-    } catch (err) {
-      setError('Failed to load medications');
-      console.error(err);
+    } catch (error) {
+      console.error('Error loading medications:', error);
+      toast.error('Failed to load medications');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleAddMedication = (formData: MedicationFormData) => {
-    const newMedication = {
-      ...formData,
-      care_plan_id: carePlanId
-    };
+  const formatSchedule = (schedule?: any) => {
+    if (!schedule) return 'Not specified';
     
-    medicationService.createMedication(newMedication)
-      .then(medication => {
-        if (medication) {
-          setMedications(prev => [...prev, medication]);
-          setShowAddDialog(false);
-          toast.success(`Added ${medication.name} to medications`);
-        }
-      });
-  };
-
-  const handleEditMedication = (formData: MedicationFormData) => {
-    if (!currentMedication) return;
+    const times = [];
     
-    medicationService.updateMedication(currentMedication.id, formData)
-      .then(updatedMedication => {
-        if (updatedMedication) {
-          setMedications(prev => prev.map(med => 
-            med.id === currentMedication.id ? updatedMedication : med
-          ));
-          setShowAddDialog(false);
-          setCurrentMedication(null);
-          toast.success(`Updated ${updatedMedication.name} successfully`);
-        }
-      });
-  };
-
-  const handleDeleteClick = (medicationId: string) => {
-    const medication = medications.find(med => med.id === medicationId);
-    if (medication) {
-      setCurrentMedication(medication);
-      setShowDeleteDialog(true);
-    }
-  };
-
-  const confirmDelete = () => {
-    if (!currentMedication) return;
+    if (schedule.morning) times.push('Morning');
+    if (schedule.afternoon) times.push('Afternoon');
+    if (schedule.evening) times.push('Evening');
+    if (schedule.night) times.push('Night');
     
-    medicationService.deleteMedication(currentMedication.id)
-      .then(success => {
-        if (success) {
-          setMedications(prev => prev.filter(med => med.id !== currentMedication.id));
-          setShowDeleteDialog(false);
-          setCurrentMedication(null);
-          toast.success(`${currentMedication.name} has been removed`);
-        }
-      });
+    if (times.length > 0) return times.join(', ');
+    if (schedule.custom) return schedule.custom;
+    if (schedule.times?.length) return schedule.times.join(', ');
+    
+    return 'As needed';
   };
 
-  const handleRefresh = () => {
-    setRefreshTrigger(prev => prev + 1);
-  };
+  if (loading) {
+    return (
+      <div className="space-y-4">
+        {[1, 2, 3].map((i) => (
+          <Card key={i} className="overflow-hidden">
+            <CardContent className="p-0">
+              <div className="p-4">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <Skeleton className="h-6 w-24 mb-2" />
+                    <Skeleton className="h-4 w-32 mb-2" />
+                  </div>
+                  <Skeleton className="h-6 w-16" />
+                </div>
+                <div className="mt-4 space-y-2">
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-4 w-3/4" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    );
+  }
+
+  if (medications.length === 0) {
+    return (
+      <div className="text-center py-8">
+        <Pill className="h-12 w-12 mx-auto text-gray-300 mb-4" />
+        <h3 className="text-lg font-medium mb-2">No medications added yet</h3>
+        <p className="text-gray-500 mb-6 max-w-md mx-auto">
+          {userRole === 'family' 
+            ? 'Add medications to track and manage them for this care plan' 
+            : 'The family has not added any medications to this care plan yet'}
+        </p>
+        
+        {userRole === 'family' && (
+          <Button>
+            <PlusCircle className="mr-2 h-4 w-4" />
+            Add Medication
+          </Button>
+        )}
+      </div>
+    );
+  }
 
   return (
-    <div className="pb-8">
-      <div className="flex justify-between items-center mb-4">
-        <div className="flex items-baseline">
-          <h2 className="text-xl font-bold">{medications.length > 0 ? 'Current Medications' : 'No Medications'}</h2>
-          {medications.length > 0 && (
-            <Badge variant="outline" className="ml-2">
-              {medications.length}
-            </Badge>
-          )}
-        </div>
-        
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={handleRefresh}>
-            <RefreshCw className="h-4 w-4 mr-1" />
-            Refresh
-          </Button>
-          
-          {!isCaregiver && (
-            <Button size="sm" onClick={() => {
-              setCurrentMedication(null);
-              setShowAddDialog(true);
-            }}>
-              <Plus className="h-4 w-4 mr-1" />
-              Add Medication
-            </Button>
-          )}
-        </div>
-      </div>
-      
-      {loading ? (
-        <div className="text-center py-8">
-          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-          <p className="mt-2 text-muted-foreground">Loading medications...</p>
-        </div>
-      ) : error ? (
-        <div className="text-center py-8 text-red-500">
-          <AlertCircle className="h-8 w-8 mx-auto" />
-          <p className="mt-2">{error}</p>
-          <Button variant="outline" size="sm" className="mt-4" onClick={handleRefresh}>
-            Try Again
-          </Button>
-        </div>
-      ) : medications.length === 0 ? (
-        <div className="text-center py-8 border rounded-lg bg-muted/30">
-          <p className="text-muted-foreground">No medications have been added yet.</p>
-          {!isCaregiver && (
-            <Button variant="outline" size="sm" className="mt-4" onClick={() => setShowAddDialog(true)}>
-              <Plus className="h-4 w-4 mr-1" />
-              Add Your First Medication
-            </Button>
-          )}
-        </div>
-      ) : (
-        <div className="border rounded-lg overflow-hidden">
-          <ScrollArea className="h-[500px] pr-4 px-2">
-            <div className="space-y-3 p-3">
-              {medications.map(medication => (
-                <MedicationCard
-                  key={medication.id}
-                  medication={medication}
-                  onEdit={(med) => {
-                    setCurrentMedication(med);
-                    setShowAddDialog(true);
-                  }}
-                  onDelete={handleDeleteClick}
-                  onAdministrationRecorded={handleRefresh}
-                  isCaregiver={isCaregiver}
-                />
-              ))}
+    <div className="space-y-4">
+      {medications.map((medication) => (
+        <Card key={medication.id} className="overflow-hidden hover:shadow-md transition-shadow">
+          <CardContent className="p-0">
+            <div className="p-4">
+              <div className="flex justify-between items-start">
+                <div>
+                  <h3 className="text-lg font-medium flex items-center gap-2">
+                    <Pill className="h-4 w-4 text-primary" />
+                    {medication.name}
+                  </h3>
+                  {medication.dosage && (
+                    <p className="text-sm text-gray-600">
+                      {medication.dosage}
+                    </p>
+                  )}
+                </div>
+                {medication.medication_type && (
+                  <Badge variant="outline">{medication.medication_type}</Badge>
+                )}
+              </div>
+              
+              {medication.instructions && (
+                <div className="mt-2">
+                  <p className="text-sm">{medication.instructions}</p>
+                </div>
+              )}
+
+              <div className="mt-3 flex flex-wrap gap-y-2 text-sm text-gray-600">
+                <div className="flex items-center mr-4">
+                  <Calendar className="h-4 w-4 mr-1 text-gray-400" />
+                  <span>
+                    {medication.schedule?.days?.length 
+                      ? medication.schedule.days.join(', ') 
+                      : 'Every day'}
+                  </span>
+                </div>
+                
+                <div className="flex items-center">
+                  <Clock className="h-4 w-4 mr-1 text-gray-400" />
+                  <span>{formatSchedule(medication.schedule)}</span>
+                </div>
+              </div>
+              
+              {medication.special_instructions && (
+                <div className="mt-2 flex items-start">
+                  <AlertCircle className="h-4 w-4 mr-1 text-amber-500 mt-0.5" />
+                  <p className="text-sm">{medication.special_instructions}</p>
+                </div>
+              )}
+              
+              <div className="mt-4 flex justify-between items-center pt-3 border-t">
+                {userRole === 'professional' ? (
+                  <Button variant="outline" size="sm">
+                    Record Administration
+                  </Button>
+                ) : (
+                  <Button variant="outline" size="sm">
+                    View Details
+                  </Button>
+                )}
+              </div>
             </div>
-          </ScrollArea>
-          <div className="bg-muted/30 text-center py-2 text-sm text-muted-foreground">
-            {medications.length} {medications.length === 1 ? 'medication' : 'medications'} in total
-          </div>
-        </div>
-      )}
-      
-      {/* Add/Edit Medication Dialog */}
-      <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>
-              {currentMedication ? 'Edit Medication' : 'Add New Medication'}
-            </DialogTitle>
-          </DialogHeader>
-          <MedicationForm
-            initialData={currentMedication || undefined}
-            onSubmit={currentMedication ? handleEditMedication : handleAddMedication}
-            onCancel={() => {
-              setShowAddDialog(false);
-              setCurrentMedication(null);
-            }}
-          />
-        </DialogContent>
-      </Dialog>
-      
-      {/* Delete Confirmation Dialog */}
-      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This will permanently delete {currentMedication?.name}{currentMedication?.dosage ? ` (${currentMedication.dosage})` : ''} from the medication list.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => {
-              setShowDeleteDialog(false);
-              setCurrentMedication(null);
-            }}>
-              Cancel
-            </AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDelete}>
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+          </CardContent>
+        </Card>
+      ))}
     </div>
   );
 };

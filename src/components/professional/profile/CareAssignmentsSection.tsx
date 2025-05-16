@@ -21,6 +21,7 @@ const CareAssignmentsSection = () => {
     const fetchAssignments = async () => {
       try {
         setLoading(true);
+        console.log("Fetching care assignments for profile hub...");
         
         // Get care team assignments where the professional is a member
         const { data, error } = await supabase
@@ -47,7 +48,7 @@ const CareAssignmentsSection = () => {
           .order('created_at', { ascending: false });
           
         if (error) {
-          console.error("Error fetching care assignments:", error);
+          console.error("Error fetching care assignments for profile hub:", error);
           throw error;
         }
         
@@ -95,46 +96,52 @@ const CareAssignmentsSection = () => {
           </div>
         ) : assignments.length > 0 ? (
           <div className="space-y-4">
-            {assignments.map((assignment) => (
-              <div 
-                key={assignment.id} 
-                className="border rounded-md p-4 hover:shadow-sm transition-shadow"
-              >
-                <div className="flex justify-between items-start">
-                  <div className="flex items-center gap-3">
-                    <Avatar className="h-10 w-10">
-                      <AvatarImage src={assignment.care_plan?.family_profile?.avatar_url || ''} />
-                      <AvatarFallback className="bg-primary/20 text-primary">
-                        {getInitials(assignment.care_plan?.family_profile?.full_name || 'Family')}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div>
-                      <h3 className="font-medium">{assignment.care_plan?.title || 'Unnamed Plan'}</h3>
-                      <p className="text-sm text-muted-foreground">
-                        {assignment.care_plan?.family_profile?.full_name || 'Family'}
-                      </p>
+            {assignments.map((assignment) => {
+              // Handle possible null data with fallbacks
+              const carePlanData = assignment.care_plan || {};
+              const familyProfile = carePlanData?.family_profile || {};
+              
+              return (
+                <div 
+                  key={assignment.id} 
+                  className="border rounded-md p-4 hover:shadow-sm transition-shadow"
+                >
+                  <div className="flex justify-between items-start">
+                    <div className="flex items-center gap-3">
+                      <Avatar className="h-10 w-10">
+                        <AvatarImage src={familyProfile.avatar_url || ''} />
+                        <AvatarFallback className="bg-primary/20 text-primary">
+                          {getInitials(familyProfile.full_name || 'Family')}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <h3 className="font-medium">{carePlanData.title || 'Unnamed Plan'}</h3>
+                        <p className="text-sm text-muted-foreground">
+                          {familyProfile.full_name || 'Family'}
+                        </p>
+                      </div>
                     </div>
+                    <Badge 
+                      className={
+                        assignment.status === 'active' ? 'bg-green-100 text-green-800' : 
+                        assignment.status === 'pending' ? 'bg-amber-100 text-amber-800' : 
+                        'bg-gray-100 text-gray-800'
+                      }
+                    >
+                      {assignment.status || 'Unknown'}
+                    </Badge>
                   </div>
-                  <Badge 
-                    className={
-                      assignment.status === 'active' ? 'bg-green-100 text-green-800' : 
-                      assignment.status === 'pending' ? 'bg-amber-100 text-amber-800' : 
-                      'bg-gray-100 text-gray-800'
-                    }
-                  >
-                    {assignment.status || 'Unknown'}
-                  </Badge>
+                  
+                  <div className="mt-4">
+                    <Link to={`/professional/assignments/${assignment.care_plan_id}`}>
+                      <Button variant="default" size="sm">
+                        View Plan Details
+                      </Button>
+                    </Link>
+                  </div>
                 </div>
-                
-                <div className="mt-4">
-                  <Link to={`/professional/assignments/${assignment.care_plan_id}`}>
-                    <Button variant="default" size="sm">
-                      View Plan Details
-                    </Button>
-                  </Link>
-                </div>
-              </div>
-            ))}
+              );
+            })}
             
             <Link to="/professional/schedule" className="block">
               <Button variant="outline" className="w-full mt-2">

@@ -20,7 +20,7 @@ import AdminAssistantCard from "@/components/professional/dashboard/AdminAssista
 import TrainingResourcesCard from "@/components/professional/dashboard/TrainingResourcesCard";
 import ProfessionalAgencyCard from "@/components/professional/dashboard/ProfessionalAgencyCard";
 import DashboardHeader from "@/components/professional/dashboard/DashboardHeader";
-// Import the new CareAssignmentsCard
+// Import the CareAssignmentsCard
 import CareAssignmentsCard from "@/components/professional/dashboard/CareAssignmentsCard";
 
 const ProfessionalDashboard = () => {
@@ -69,6 +69,7 @@ const ProfessionalDashboard = () => {
           </FadeIn>
         </div>
 
+        {/* Caregiver Matching Card */}
         <FadeIn delay={0.25} duration={0.5} className="mt-8">
           <CaregiverMatchingCard />
         </FadeIn>
@@ -105,12 +106,12 @@ const ProfessionalDashboard = () => {
         <TrainingResourcesCard />
 
         {/* Training Program Section */}
-        <FadeIn delay={0.25} duration={0.5}>
+        <FadeIn delay={0.25} duration={0.5} className="mt-8">
           <TrainingProgramSection />
         </FadeIn>
 
         {/* Training Modules Section */}
-        <FadeIn delay={0.3} duration={0.5}>
+        <FadeIn delay={0.3} duration={0.5} className="mt-8">
           <TrainingModulesSection />
         </FadeIn>
 

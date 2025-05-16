@@ -1,284 +1,106 @@
+
 /**
- * Utility functions for handling care schedule data
- * These functions ensure consistent schedule formats across registration, care needs, and care plans
+ * Utility functions for working with schedules and care plan metadata
  */
 
 /**
- * Gets a metadata value, handling both camelCase and snake_case keys
- * This helps with consistency between database and frontend formats
+ * Gets a metadata value from a care plan's metadata object with support for legacy/snake_case keys
+ * 
+ * @param metadata The care plan metadata object
+ * @param key The camelCase key to look for
+ * @param defaultValue Optional default value if not found
+ * @returns The metadata value or default value
  */
-export function getMetadata(metadata: any, key: string): any {
-  if (!metadata) return undefined;
+export const getMetadata = (
+  metadata: Record<string, any> | null | undefined, 
+  key: string, 
+  defaultValue: any = null
+): any => {
+  if (!metadata) return defaultValue;
   
-  // Try camelCase first
+  // Try camelCase first (new format)
   if (metadata[key] !== undefined) {
     return metadata[key];
   }
   
-  // Try snake_case version
-  const snakeKey = key.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
+  // Try snake_case (legacy format)
+  const snakeKey = key.replace(/([A-Z])/g, '_$1').toLowerCase();
   if (metadata[snakeKey] !== undefined) {
-    return metadata[snakeKey];
+    return metadata[snakeKey]; 
   }
   
-  // Try camelCase version of a snake_case key
-  const camelKey = key.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
-  if (metadata[camelKey] !== undefined) {
-    return metadata[camelKey];
-  }
-  
-  return undefined;
-}
+  return defaultValue;
+};
 
 /**
- * Parses a comma-separated schedule string into an array of schedule values
+ * Checks if a date is a weekend
  */
-export function parseScheduleString(schedule: string | null | undefined): string[] {
-  if (!schedule) return [];
-  
-  // If already an array, return it
-  if (Array.isArray(schedule)) return schedule;
-  
-  return typeof schedule === 'string' ? schedule.split(',').map(s => s.trim()) : [];
-}
+export const isWeekend = (date: Date): boolean => {
+  const day = date.getDay();
+  return day === 0 || day === 6; // 0 is Sunday, 6 is Saturday
+};
 
 /**
- * Determines the appropriate weekday coverage value from schedule options
+ * Formats a time string from 24-hour to 12-hour format
  */
-export function determineWeekdayCoverage(
-  scheduleValues: string[]
-): '8am-4pm' | '8am-6pm' | '6am-6pm' | '6pm-8am' | 'none' {
-  // Handle empty or invalid input
-  if (!scheduleValues || !Array.isArray(scheduleValues) || scheduleValues.length === 0) {
-    return 'none';
+export const formatTimeString = (time: string): string => {
+  // Handle HH:MM format
+  if (time.includes(':')) {
+    const [hours, minutes] = time.split(':').map(Number);
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    const hour12 = hours % 12 || 12;
+    return `${hour12}:${minutes.toString().padStart(2, '0')} ${ampm}`;
   }
   
-  // Priority order: give preference to longer hours if multiple are selected
-  if (scheduleValues.some(s => s === 'weekday_full' || s === '6am-6pm')) return '6am-6pm';
-  if (scheduleValues.some(s => s === 'weekday_extended' || s === '8am-6pm')) return '8am-6pm';
-  if (scheduleValues.some(s => s === 'weekday_standard' || s === '8am-4pm')) return '8am-4pm';
-  if (scheduleValues.some(s => s === 'weekday_overnight' || s === 'weekday_night' || s === '6pm-8am')) return '6pm-8am';
+  // Handle known shorthand formats
+  const timeMap: Record<string, string> = {
+    '6am': '6:00 AM',
+    '8am': '8:00 AM',
+    '4pm': '4:00 PM',
+    '6pm': '6:00 PM',
+    '8pm': '8:00 PM'
+  };
   
-  // Direct matching for values that might come from the care plan metadata
-  if (scheduleValues.includes('6am-6pm')) return '6am-6pm';
-  if (scheduleValues.includes('8am-6pm')) return '8am-6pm';
-  if (scheduleValues.includes('8am-4pm')) return '8am-4pm';
-  if (scheduleValues.includes('6pm-8am')) return '6pm-8am';
-  
-  return 'none';
-}
+  return timeMap[time.toLowerCase()] || time;
+};
 
 /**
- * Determines if weekend coverage is enabled from schedule options
+ * Parse a schedule time range like "8am-4pm" into an object with start and end times
  */
-export function determineWeekendCoverage(scheduleValues: string[]): 'yes' | 'no' {
-  // Handle empty or invalid input
-  if (!scheduleValues || !Array.isArray(scheduleValues) || scheduleValues.length === 0) {
-    return 'no';
-  }
-  
-  return scheduleValues.some(s => 
-    s.includes('weekend_') || 
-    s === 'saturday' || 
-    s === 'sunday'
-  ) ? 'yes' : 'no';
-}
+export const parseScheduleTime = (scheduleTime: string): { start: string, end: string } => {
+  const [start, end] = scheduleTime.split('-');
+  return { 
+    start: formatTimeString(start), 
+    end: formatTimeString(end) 
+  };
+};
 
 /**
- * Determines the weekend schedule type from schedule options
+ * Format a date range for display
  */
-export function determineWeekendScheduleType(
-  scheduleValues: string[]
-): '8am-6pm' | '6am-6pm' | 'none' {
-  // Handle empty or invalid input
-  if (!scheduleValues || !Array.isArray(scheduleValues) || scheduleValues.length === 0) {
-    return 'none';
+export const formatDateRange = (startDate: Date, endDate: Date): string => {
+  const options: Intl.DateTimeFormatOptions = { 
+    month: 'short', 
+    day: 'numeric' 
+  };
+  
+  if (startDate.getFullYear() !== endDate.getFullYear()) {
+    options.year = 'numeric';
   }
   
-  // If no weekend coverage, return none
-  if (!scheduleValues.some(s => s.includes('weekend_') || s === 'saturday' || s === 'sunday')) {
-    return 'none';
-  }
-  
-  // Check for specific weekend schedule types
-  if (scheduleValues.some(s => 
-    s === 'weekend_standard' || 
-    s === 'weekend_8am_6pm' ||
-    s === '8am-6pm'
-  )) {
-    return '8am-6pm';
-  }
-  
-  if (scheduleValues.some(s => 
-    s === 'weekend_day' || 
-    s === 'weekend_6am_6pm' || 
-    s === 'weekend_full' ||
-    s === '6am-6pm'
-  )) {
-    return '6am-6pm';
-  }
-  
-  // Direct matching for values that might come from the care plan metadata
-  if (scheduleValues.includes('6am-6pm')) return '6am-6pm';
-  if (scheduleValues.includes('8am-6pm')) return '8am-6pm';
-  
-  // Default for backward compatibility
-  return '6am-6pm';
-}
+  return `${startDate.toLocaleDateString('en-US', options)} - ${endDate.toLocaleDateString('en-US', options)}`;
+};
 
 /**
- * Converts care plan metadata schedule format to profile care_schedule format
- * Returns array of strings
+ * Get an array of weekday names
  */
-export function convertMetadataToProfileSchedule(metadata: any): string[] {
-  if (!metadata) return [];
-  
-  const scheduleArray: string[] = [];
-  
-  // Add weekday coverage
-  if (metadata.weekdayCoverage && metadata.weekdayCoverage !== 'none') {
-    scheduleArray.push(metadata.weekdayCoverage);
-  }
-  
-  // Add weekend coverage if enabled
-  if (metadata.weekendCoverage === 'yes' && metadata.weekendScheduleType && metadata.weekendScheduleType !== 'none') {
-    scheduleArray.push(`weekend_${metadata.weekendScheduleType.replace('-', '_')}`);
-  }
-  
-  // Add custom schedule flag if custom shifts are defined
-  if (metadata.customShifts && metadata.customShifts.length > 0) {
-    scheduleArray.push('custom');
-  }
-  
-  return scheduleArray;
-}
+export const getWeekdayNames = (): string[] => {
+  return ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+};
 
 /**
- * Updates a profile's care_schedule based on care plan metadata
+ * Get an array of weekend day names
  */
-export async function syncProfileScheduleWithCarePlan(userId: string, carePlanMetadata: any) {
-  try {
-    const { supabase } = await import('@/lib/supabase');
-    
-    // Convert metadata to schedule array
-    const scheduleArray = convertMetadataToProfileSchedule(carePlanMetadata);
-    
-    // Convert array to string for database compatibility
-    const scheduleString = Array.isArray(scheduleArray) ? scheduleArray.join(',') : scheduleArray;
-    
-    // Update profile
-    await supabase
-      .from('profiles')
-      .update({
-        care_schedule: scheduleString
-      })
-      .eq('id', userId);
-      
-    return true;
-  } catch (error) {
-    console.error("Error syncing profile schedule with care plan:", error);
-    return false;
-  }
-}
-
-/**
- * Parse custom schedule text into structured data
- * Handles formats like "Monday - Friday 9 AM - 5 PM" or simple time ranges like "12 pm to 5pm"
- */
-export function parseCustomScheduleText(customText: string): Array<{
-  days: string[];
-  startTime: string;
-  endTime: string;
-  title?: string;
-}> {
-  if (!customText || customText.trim() === '') {
-    return [];
-  }
-  
-  try {
-    // Split by comma to handle multiple schedule entries
-    const scheduleEntries = customText.split(',').map(entry => entry.trim());
-    
-    return scheduleEntries.map(entry => {
-      // Try to extract days and times
-      // Try complex format first: "Day - Day, HH:MM AM/PM - HH:MM AM/PM"
-      const dayTimeMatch = entry.match(/([A-Za-z\s-]+)(?:\s+)(\d{1,2}(?::\d{2})?\s*[AP]M)\s*-\s*(\d{1,2}(?::\d{2})?\s*[AP]M)/i);
-      
-      if (dayTimeMatch) {
-        // Extract days, parse into array
-        const daysText = dayTimeMatch[1].trim();
-        const days: string[] = [];
-        
-        // Handle ranges like "Monday - Friday"
-        if (daysText.includes('-')) {
-          const [startDay, endDay] = daysText.split('-').map(d => d.trim().toLowerCase());
-          const weekdays = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
-          
-          const startIndex = weekdays.indexOf(startDay);
-          const endIndex = weekdays.indexOf(endDay);
-          
-          if (startIndex >= 0 && endIndex >= 0) {
-            // Get the range of days
-            const dayRange = weekdays.slice(
-              Math.min(startIndex, endIndex),
-              Math.max(startIndex, endIndex) + 1
-            );
-            days.push(...dayRange);
-          } else {
-            // If we couldn't parse properly, just use the original text
-            days.push(startDay, endDay);
-          }
-        } else {
-          // Handle comma-separated days or single day
-          daysText.split(/[,&]/).forEach(day => {
-            const cleanDay = day.trim().toLowerCase();
-            if (cleanDay) days.push(cleanDay);
-          });
-        }
-        
-        // Format times consistently
-        const startTime = dayTimeMatch[2].trim();
-        const endTime = dayTimeMatch[3].trim();
-        
-        return {
-          days,
-          startTime,
-          endTime,
-          title: `Custom schedule: ${entry}`
-        };
-      } else {
-        // Try simple time range format: "XX am/pm to YY am/pm" or "XX am/pm - YY am/pm"
-        const simpleTimeMatch = entry.match(/(\d{1,2}(?::\d{2})?\s*[AP]M)\s*(?:to|\-)\s*(\d{1,2}(?::\d{2})?\s*[AP]M)/i);
-        
-        if (simpleTimeMatch) {
-          const startTime = simpleTimeMatch[1].trim();
-          const endTime = simpleTimeMatch[2].trim();
-          
-          // Default to weekdays for simple time expressions
-          return {
-            days: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'],
-            startTime,
-            endTime,
-            title: `Weekdays ${startTime} - ${endTime}`
-          };
-        } else {
-          // If we can't parse it, just use as-is
-          return {
-            days: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'],
-            startTime: 'Custom',
-            endTime: 'Custom',
-            title: entry
-          };
-        }
-      }
-    });
-  } catch (error) {
-    console.error("Error parsing custom schedule text:", error);
-    return [{
-      days: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'],
-      startTime: 'Custom',
-      endTime: 'Custom',
-      title: customText
-    }];
-  }
-}
+export const getWeekendNames = (): string[] => {
+  return ['Saturday', 'Sunday'];
+};
