@@ -12,6 +12,7 @@ import { preloadStaticIcons } from './utils/iconFallbacks.ts';
 
 // Preload static icons as early as possible
 if (typeof window !== 'undefined') {
+  console.log('[main.tsx] Preloading static icons early');
   preloadStaticIcons();
 }
 
@@ -26,6 +27,9 @@ if (typeof window !== 'undefined') {
   
   console.log('[main.tsx] React pre-initialization at:', new Date().toISOString());
   console.log('[main.tsx] React version:', React.version);
+  
+  // Track root render state to prevent duplicate renders during recovery
+  window._rootRendered = false;
 }
 
 // Maximum number of retries before displaying an error
@@ -35,6 +39,12 @@ let mountRetryCount = 0;
 // Create a utility to safely mount the application
 const mountApp = async () => {
   try {
+    // Avoid duplicate render attempts
+    if (typeof window !== 'undefined' && window._rootRendered) {
+      console.log('[main.tsx] Skipping duplicate render attempt');
+      return;
+    }
+    
     // First ensure React is available before doing anything
     const reactReady = ensureReact();
     
@@ -63,16 +73,29 @@ const mountApp = async () => {
     // Ensure ReactInitialized event is dispatched
     window.dispatchEvent(new Event('ReactInitialized'));
     
-    const root = createRoot(container);
-    root.render(
-      <React.StrictMode>
-        <AppMountGuard requiredPhase={BootPhase.BASIC_REACT}>
-          <App />
-        </AppMountGuard>
-      </React.StrictMode>
-    );
-    
-    console.log('[main.tsx] Application successfully mounted at:', new Date().toISOString());
+    // Ensure we only render once
+    if (typeof window !== 'undefined' && !window._rootRendered) {
+      window._rootRendered = true;
+      
+      // Clear any previous content in root element to avoid DOM conflicts
+      while (container.firstChild) {
+        container.removeChild(container.firstChild);
+      }
+      
+      // Create new root and render app
+      const root = createRoot(container);
+      root.render(
+        <React.StrictMode>
+          <AppMountGuard requiredPhase={BootPhase.BASIC_REACT}>
+            <App />
+          </AppMountGuard>
+        </React.StrictMode>
+      );
+      
+      console.log('[main.tsx] Application successfully mounted at:', new Date().toISOString());
+    } else {
+      console.log('[main.tsx] Skipping duplicate render');
+    }
   } catch (error) {
     console.error('[main.tsx] Failed to render application:', error);
     
@@ -132,9 +155,16 @@ window.addEventListener('load', () => {
   
   // If app isn't mounted after 1 second, try again
   setTimeout(() => {
-    if (mountRetryCount === 0) {
+    if (mountRetryCount === 0 && typeof window !== 'undefined' && !window._rootRendered) {
       console.log('[main.tsx] No mount attempts detected after window load, trying now');
       attemptMount();
     }
   }, 1000);
 });
+
+// Add the root rendered flag to Window
+declare global {
+  interface Window {
+    _rootRendered?: boolean;
+  }
+}
