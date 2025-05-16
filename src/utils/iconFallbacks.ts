@@ -115,7 +115,10 @@ export function insertStaticIcon(selector: string, iconName: string, props: Icon
   
   const container = document.querySelector(selector);
   if (container) {
-    container.innerHTML = '';
+    // Clear previous children if any
+    while (container.firstChild) {
+      container.removeChild(container.firstChild);
+    }
     container.appendChild(createStaticIcon(iconName, props));
   }
 }
@@ -129,36 +132,74 @@ export function preloadStaticIcons(): void {
   if (typeof window !== 'undefined' && !window._staticIconsPreloaded) {
     window._staticIconsPreloaded = true;
     
-    // Create a hidden container for preloaded icons
-    const container = document.createElement('div');
-    container.style.position = 'absolute';
-    container.style.visibility = 'hidden';
-    container.style.pointerEvents = 'none';
-    container.style.width = '0';
-    container.style.height = '0';
-    container.style.overflow = 'hidden';
-    container.id = 'static-icons-preload';
-    
-    // Add all icons to this container
-    Object.keys(staticIconHtml).forEach(iconName => {
-      const iconEl = createStaticIcon(iconName);
-      container.appendChild(iconEl);
-    });
-    
-    // Add to DOM when ready
-    if (isDomReady()) {
-      if (!document.getElementById('static-icons-preload')) {
+    // Safety check - don't try to manipulate DOM before it's ready
+    const loadIcons = () => {
+      // Check if container already exists to avoid duplicates
+      if (document.getElementById('static-icons-preload')) {
+        return;
+      }
+      
+      // Create a hidden container for preloaded icons
+      const container = document.createElement('div');
+      container.style.position = 'absolute';
+      container.style.visibility = 'hidden';
+      container.style.pointerEvents = 'none';
+      container.style.width = '0';
+      container.style.height = '0';
+      container.style.overflow = 'hidden';
+      container.id = 'static-icons-preload';
+      
+      // Add all icons to this container
+      Object.keys(staticIconHtml).forEach(iconName => {
+        try {
+          const iconEl = createStaticIcon(iconName);
+          container.appendChild(iconEl);
+        } catch (e) {
+          console.error(`[iconFallbacks] Error preloading icon ${iconName}:`, e);
+        }
+      });
+      
+      // Add to DOM when ready
+      if (document.body) {
         document.body.appendChild(container);
       }
+    };
+    
+    // Wait for DOM to be ready
+    if (isDomReady() && document.body) {
+      loadIcons();
     } else {
       document.addEventListener('DOMContentLoaded', () => {
-        if (!document.getElementById('static-icons-preload')) {
-          document.body.appendChild(container);
-        }
+        setTimeout(loadIcons, 10); // Small delay to ensure body is available
       });
     }
     
     console.log('[iconFallbacks] Static icons preloaded');
+  }
+}
+
+// Register icons as ready once preloaded
+if (typeof window !== 'undefined') {
+  // Safely import and use appBootstrap with fallback
+  const registerIcons = () => {
+    try {
+      const { registerIconsReady } = require('./appBootstrap');
+      if (typeof registerIconsReady === 'function') {
+        console.log('[iconFallbacks] Registering icons as ready');
+        registerIconsReady();
+      }
+    } catch (e) {
+      console.error('[iconFallbacks] Could not register icons as ready:', e);
+    }
+  };
+  
+  // Register after icons are preloaded
+  if (document.readyState === 'complete') {
+    setTimeout(registerIcons, 100);
+  } else {
+    window.addEventListener('load', () => {
+      setTimeout(registerIcons, 100);
+    });
   }
 }
 

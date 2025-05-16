@@ -45,6 +45,7 @@ export function registerReactReady(): void {
   // Notify any waiting components
   if (typeof window !== 'undefined') {
     window.dispatchEvent(new Event('ReactInitialized'));
+    window.reactInitialized = true;
   }
 }
 
@@ -55,12 +56,16 @@ export function registerReactDomReady(): void {
 
 export function registerIconsReady(): void {
   registerModuleInit('icons');
-  progressPhase();
+  console.log('[AppBootstrap] Icons module registered as ready');
+  // Immediate progress check after icons are ready
+  setTimeout(progressPhase, 0);
 }
 
 export function registerNavigationReady(): void {
   registerModuleInit('navigation');
-  progressPhase();
+  console.log('[AppBootstrap] Navigation module registered as ready');
+  // Immediate progress check after navigation is ready
+  setTimeout(progressPhase, 0);
 }
 
 export function registerAppReady(): void {
@@ -89,10 +94,12 @@ export function progressPhase(): void {
   }
   
   // Try to progress to FULL_APP
+  // Modified condition: Either both 'navigation' and 'icons' OR just 'app' module needs to be ready
   if (currentPhase === BootPhase.BASIC_REACT && 
       isModuleReady('react') && 
       isModuleReady('reactDom') && 
-      isModuleReady('navigation')) {
+      ((isModuleReady('navigation') && isModuleReady('icons')) || isModuleReady('app'))) {
+    
     currentPhase = BootPhase.FULL_APP;
     phaseTimes['full_app'] = Date.now() - bootstrapStartTime;
     console.log(`[AppBootstrap] Progressed to FULL_APP phase after ${phaseTimes['full_app']}ms`);

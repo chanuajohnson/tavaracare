@@ -7,7 +7,7 @@ import './components/framer/animations.css'; // Import animations CSS
 import { ensureReact, waitForReactReady } from './utils/reactErrorHandler.ts';
 import { AppMountGuard } from './components/app/AppMountGuard.tsx';
 import { initModuleTracker, registerModuleInit } from './utils/moduleInitTracker.ts';
-import { initBootstrap, registerReactDomReady, BootPhase } from './utils/appBootstrap.ts';
+import { initBootstrap, registerReactReady, BootPhase } from './utils/appBootstrap.ts';
 import { preloadStaticIcons } from './utils/iconFallbacks.ts';
 
 // Preload static icons as early as possible
@@ -53,9 +53,15 @@ const mountApp = async () => {
 
     console.log('[main.tsx] Mounting application to DOM with safety guard');
     
+    // Mark React as ready globally and dispatch event
+    window.reactInitialized = true;
+    
     // Register ReactDOM as ready
-    registerReactDomReady();
+    registerReactReady();
     registerModuleInit('reactDom');
+    
+    // Ensure ReactInitialized event is dispatched
+    window.dispatchEvent(new Event('ReactInitialized'));
     
     const root = createRoot(container);
     root.render(

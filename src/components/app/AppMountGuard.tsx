@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { isModuleReady } from '@/utils/moduleInitTracker';
 import { BootPhase, getCurrentPhase, isPhaseReady, waitForPhase } from '@/utils/appBootstrap';
 import { waitForReactReady, canRenderReactComponent } from '@/utils/reactErrorHandler';
@@ -24,15 +24,23 @@ export function AppMountGuard({
   const [appReady, setAppReady] = useState(false);
   const [showingFallback, setShowingFallback] = useState(true);
   const [recoveryAttempted, setRecoveryAttempted] = useState(false);
+  const fallbackRef = useRef<HTMLDivElement>(null);
+  const mountedRef = useRef(true);
   
   useEffect(() => {
-    let unloadStarted = false;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
+  
+  useEffect(() => {
     let timeoutId: number;
     let recoveryId: number;
+    let checkInterval: number;
 
     // Function to check if React is fully initialized
     const checkReactStatus = () => {
-      if (unloadStarted) return false;
+      if (!mountedRef.current) return false;
       
       if (
         typeof window !== 'undefined' && 
@@ -55,13 +63,22 @@ export function AppMountGuard({
     
     // Check if our app is in the right phase
     const checkAppStatus = () => {
-      if (unloadStarted) return false;
+      if (!mountedRef.current) return false;
       
       const phaseReady = isPhaseReady(requiredPhase);
       const moduleReady = isModuleReady('react');
       
       if (phaseReady && moduleReady) {
-        setShowingFallback(false);
+        // Safe transition by ensuring the old DOM is removed completely
+        if (showingFallback) {
+          console.log('[AppMountGuard] Transitioning from fallback to app content');
+          // Ensure safe transition by using a slight delay
+          setTimeout(() => {
+            if (mountedRef.current) {
+              setShowingFallback(false);
+            }
+          }, 10);
+        }
         return true;
       }
       
@@ -76,7 +93,7 @@ export function AppMountGuard({
     
     // Check if all modules are ready for full rendering
     const checkFullAppStatus = () => {
-      if (unloadStarted) return false;
+      if (!mountedRef.current) return false;
       
       if (canRenderReactComponent() && isPhaseReady(requiredPhase)) {
         setAppReady(true);
@@ -96,8 +113,11 @@ export function AppMountGuard({
     let attempt = 0;
     const maxAttempts = 10;
     
-    const checkInterval = setInterval(() => {
-      if (unloadStarted) return;
+    checkInterval = window.setInterval(() => {
+      if (!mountedRef.current) {
+        window.clearInterval(checkInterval);
+        return;
+      }
       
       attempt++;
       console.log(`[AppMountGuard] Check attempt ${attempt}`);
@@ -108,7 +128,7 @@ export function AppMountGuard({
         if (checkAppStatus()) {
           // Finally check if the full app is ready
           if (checkFullAppStatus()) {
-            clearInterval(checkInterval);
+            window.clearInterval(checkInterval);
           }
         }
       }
@@ -120,29 +140,31 @@ export function AppMountGuard({
         
         // Final attempt: Use the waitForReactReady utility
         waitForReactReady(5000).then(ready => {
-          if (ready) {
-            console.log('[AppMountGuard] React ready after waitForReactReady');
-            setShowingFallback(false);
-            setAppReady(true);
-          } else {
-            console.error('[AppMountGuard] React failed to initialize after recovery attempt');
-            
-            // Force reload as last resort
-            if (typeof window !== 'undefined') {
-              console.log('[AppMountGuard] Forcing page reload as last resort');
-              recoveryId = window.setTimeout(() => window.location.reload(), 1000);
+          if (mountedRef.current) {
+            if (ready) {
+              console.log('[AppMountGuard] React ready after waitForReactReady');
+              setShowingFallback(false);
+              setAppReady(true);
+            } else {
+              console.error('[AppMountGuard] React failed to initialize after recovery attempt');
+              
+              // Force reload as last resort
+              if (typeof window !== 'undefined') {
+                console.log('[AppMountGuard] Forcing page reload as last resort');
+                recoveryId = window.setTimeout(() => window.location.reload(), 1000);
+              }
             }
           }
         });
         
         // Clear the interval
-        clearInterval(checkInterval);
+        window.clearInterval(checkInterval);
       }
     }, Math.min(100 * Math.pow(2, Math.min(attempt, 5)), 3000)); // Exponential backoff up to max 3 seconds
     
     // Set a final timeout as backup
     timeoutId = window.setTimeout(() => {
-      if (unloadStarted) return;
+      if (!mountedRef.current) return;
       
       if (!appReady) {
         console.error('[AppMountGuard] Initialization timed out after', timeout, 'ms');
@@ -169,17 +191,17 @@ export function AppMountGuard({
       
       // Cleanup function will reference this handler
       return () => {
-        unloadStarted = true;
-        clearInterval(checkInterval);
-        clearTimeout(timeoutId);
+        mountedRef.current = false;
+        window.clearInterval(checkInterval);
+        window.clearTimeout(timeoutId);
         
         if (typeof window !== 'undefined') {
           window.removeEventListener('ReactInitialized', handleReactInitialized);
-          if (recoveryId) clearTimeout(recoveryId);
+          if (recoveryId) window.clearTimeout(recoveryId);
         }
       };
     }
-  }, [appReady, requiredPhase, timeout, recoveryAttempted]);
+  }, [appReady, requiredPhase, timeout, recoveryAttempted, showingFallback]);
 
   // Default fallback loading UI with Tavara branding
   const defaultFallback = (
@@ -192,7 +214,7 @@ export function AppMountGuard({
 
   // Start with HTML-only fallback
   if (showingFallback) {
-    return <>{fallback || defaultFallback}</>;
+    return <div ref={fallbackRef}>{fallback || defaultFallback}</div>;
   }
 
   // Then show children when initialized

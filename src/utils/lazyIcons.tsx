@@ -1,5 +1,5 @@
 
-import React, { lazy, Suspense, SVGProps, FC, ReactNode, useState, useEffect } from 'react';
+import React, { lazy, Suspense, SVGProps, FC, ReactNode, useState, useEffect, useRef } from 'react';
 import { createStaticIcon } from './iconFallbacks';
 
 // Type for the icon props that all Lucide icons accept
@@ -22,15 +22,19 @@ const createFallbackElement = (iconProps: LucideIconProps) => {
   
   // Early bailout with DOM element if React isn't ready
   if (typeof window === 'undefined' || !window.React || !window.reactInitialized) {
-    const staticIconElement = createStaticIcon(
-      typeof iconProps.name === 'string' ? iconProps.name : 'Loader2',
-      { size, color, className }
-    );
-    
-    // We need to wrap this in a placeholder since React expects JSX here
-    console.warn('[lazyIcons] Using static DOM fallback, React not initialized');
+    // Use ref callback pattern to ensure clean handling of DOM node
     return <span className="icon-static-wrapper" ref={(node) => {
-      if (node && !node.hasChildNodes()) {
+      if (node) {
+        // Clear previous children if any to avoid DOM node removal errors
+        while (node.firstChild) {
+          node.removeChild(node.firstChild);
+        }
+        
+        const staticIconElement = createStaticIcon(
+          typeof iconProps.name === 'string' ? iconProps.name : 'Loader2',
+          { size, color, className }
+        );
+        
         node.appendChild(staticIconElement);
       }
     }} />;
@@ -79,6 +83,13 @@ const isReactReady = () => {
  */
 const useReactReady = () => {
   const [ready, setReady] = useState(isReactReady());
+  const isMounted = useRef(true);
+  
+  useEffect(() => {
+    return () => {
+      isMounted.current = false;
+    };
+  }, []);
   
   useEffect(() => {
     if (ready) return;
@@ -91,6 +102,11 @@ const useReactReady = () => {
     
     // Otherwise set up polling
     const checkInterval = setInterval(() => {
+      if (!isMounted.current) {
+        clearInterval(checkInterval);
+        return;
+      }
+      
       if (isReactReady()) {
         setReady(true);
         clearInterval(checkInterval);
@@ -100,7 +116,9 @@ const useReactReady = () => {
     // Also listen for the initialization event
     const handleReactInit = () => {
       console.log('[lazyIcons] Received ReactInitialized event');
-      setReady(true);
+      if (isMounted.current) {
+        setReady(true);
+      }
       clearInterval(checkInterval);
     };
     
@@ -238,6 +256,16 @@ export function createLazyIcon(iconName: string): FC<LucideIconProps> {
   }
   
   const LazyIconComponent: FC<LucideIconProps> = (props) => {
+    // Track component mount state for safe updates
+    const isMounted = useRef(true);
+    
+    // Cleanup on unmount
+    useEffect(() => {
+      return () => {
+        isMounted.current = false;
+      };
+    }, []);
+    
     // Use the hook for React readiness (only works if React is minimally available)
     let reactIsReady = false;
     
