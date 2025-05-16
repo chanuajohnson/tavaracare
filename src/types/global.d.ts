@@ -1,4 +1,5 @@
 
+
 // Global type definitions
 
 // Make sure we have the right window object type augmentation
@@ -62,3 +63,9 @@ declare module 'lucide-react/dynamicIconImports' {
 
 // Declare global utility types for our React components
 declare type LucideIcon = React.ForwardRefExoticComponent<React.SVGProps<SVGSVGElement>>;
+
+// Add support for the ReactInitialized event in DOM events
+interface WindowEventMap {
+  ReactInitialized: Event;
+}
+

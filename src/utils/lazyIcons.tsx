@@ -1,3 +1,4 @@
+
 import React, { lazy, Suspense, SVGProps, FC, ReactNode, useState, useEffect } from 'react';
 import { createStaticIcon } from './iconFallbacks';
 
@@ -7,7 +8,13 @@ export type LucideIconProps = SVGProps<SVGElement> & {
   absoluteStrokeWidth?: boolean;
   color?: string;
   strokeWidth?: number;
+  name?: string; // Add name prop for fallback handling
 };
+
+// Type definition for the imported icon module
+interface IconModule {
+  default: FC<LucideIconProps>;
+}
 
 // Pure HTML/CSS fallback icon that doesn't depend on React features
 const createFallbackElement = (iconProps: LucideIconProps) => {
@@ -109,7 +116,8 @@ const useReactReady = () => {
 };
 
 // Safe import function that won't execute until React is ready
-const safelyImportIcon = (iconName: string) => {
+// FIX: Properly type the return value to match the expected type by lazy()
+const safelyImportIcon = (iconName: string): Promise<IconModule> => {
   // Return a promise that won't resolve until React is ready
   return new Promise((resolve) => {
     // If React is ready, import immediately
@@ -119,7 +127,10 @@ const safelyImportIcon = (iconName: string) => {
           // Safety check - if the icon doesn't exist, return a fallback
           if (!(iconName in module)) {
             console.error(`[lazyIcons] Icon "${iconName}" not found in lucide-react`);
-            resolve({ default: (p: LucideIconProps) => createFallbackElement({...p, name: iconName}) });
+            // FIX: Return properly typed object with default property
+            resolve({ 
+              default: (p: LucideIconProps) => createFallbackElement({...p, name: iconName}) 
+            } as IconModule);
           } else {
             // Cast to the expected component type and return
             const IconComponent = module[iconName as keyof typeof module] as FC<LucideIconProps>;
@@ -128,7 +139,10 @@ const safelyImportIcon = (iconName: string) => {
         })
         .catch(error => {
           console.error(`[lazyIcons] Error loading icon "${iconName}":`, error);
-          resolve({ default: (p: LucideIconProps) => createFallbackElement({...p, name: iconName}) });
+          // FIX: Return properly typed object with default property
+          resolve({ 
+            default: (p: LucideIconProps) => createFallbackElement({...p, name: iconName}) 
+          } as IconModule);
         });
     } 
     // Otherwise, we need to wait for React
@@ -147,7 +161,10 @@ const safelyImportIcon = (iconName: string) => {
             .then(module => {
               if (!(iconName in module)) {
                 console.error(`[lazyIcons] Icon "${iconName}" not found in lucide-react`);
-                resolve({ default: (p: LucideIconProps) => createFallbackElement({...p, name: iconName}) });
+                // FIX: Return properly typed object
+                resolve({ 
+                  default: (p: LucideIconProps) => createFallbackElement({...p, name: iconName}) 
+                } as IconModule);
               } else {
                 const IconComponent = module[iconName as keyof typeof module] as FC<LucideIconProps>;
                 resolve({ default: IconComponent });
@@ -155,7 +172,10 @@ const safelyImportIcon = (iconName: string) => {
             })
             .catch(error => {
               console.error(`[lazyIcons] Error loading icon "${iconName}" after waiting:`, error);
-              resolve({ default: (p: LucideIconProps) => createFallbackElement({...p, name: iconName}) });
+              // FIX: Return properly typed object
+              resolve({ 
+                default: (p: LucideIconProps) => createFallbackElement({...p, name: iconName}) 
+              } as IconModule);
             });
         } else if (attempts < maxAttempts) {
           // Exponential backoff with a cap
@@ -163,7 +183,10 @@ const safelyImportIcon = (iconName: string) => {
           setTimeout(checkAndImport, delay);
         } else {
           console.error(`[lazyIcons] Timed out waiting for React to load for icon ${iconName}`);
-          resolve({ default: (p: LucideIconProps) => createFallbackElement({...p, name: iconName}) });
+          // FIX: Return properly typed object
+          resolve({ 
+            default: (p: LucideIconProps) => createFallbackElement({...p, name: iconName}) 
+          } as IconModule);
         }
       };
       
@@ -175,7 +198,10 @@ const safelyImportIcon = (iconName: string) => {
           .then(module => {
             if (!(iconName in module)) {
               console.error(`[lazyIcons] Icon "${iconName}" not found in lucide-react`);
-              resolve({ default: (p: LucideIconProps) => createFallbackElement({...p, name: iconName}) });
+              // FIX: Return properly typed object
+              resolve({ 
+                default: (p: LucideIconProps) => createFallbackElement({...p, name: iconName}) 
+              } as IconModule);
             } else {
               const IconComponent = module[iconName as keyof typeof module] as FC<LucideIconProps>;
               resolve({ default: IconComponent });
@@ -183,7 +209,10 @@ const safelyImportIcon = (iconName: string) => {
           })
           .catch(error => {
             console.error(`[lazyIcons] Error loading icon "${iconName}" after React init:`, error);
-            resolve({ default: (p: LucideIconProps) => createFallbackElement({...p, name: iconName}) });
+            // FIX: Return properly typed object
+            resolve({ 
+              default: (p: LucideIconProps) => createFallbackElement({...p, name: iconName}) 
+            } as IconModule);
           });
           
         // Remove the event listener since we handled it
@@ -239,7 +268,7 @@ export function createLazyIcon(iconName: string): FC<LucideIconProps> {
           return createFallbackElement({...props, name: iconName});
         }
         
-        // Safe dynamic import of the icon using our safe import function
+        // Safe dynamic import of the icon using our safe import function with proper typing
         const LazyIcon = lazy<FC<LucideIconProps>>(() => safelyImportIcon(iconName));
         
         // Create a fallback that doesn't depend on React.forwardRef
