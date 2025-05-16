@@ -25,6 +25,8 @@ interface Window {
     errorType: string;
     phase: string;
     recovery: string;
+    errorMessage?: string;
+    errorStack?: string;
   }>;
   
   // Debug utilities

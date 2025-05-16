@@ -158,27 +158,27 @@ export function AppMountGuard({
     
     // Listen for React initialization events
     if (typeof window !== 'undefined') {
-      const reactInitHandler = () => {
+      const handleReactInitialized = () => {
         console.log('[AppMountGuard] Caught ReactInitialized event');
         checkReactStatus();
         checkAppStatus();
         checkFullAppStatus();
       };
       
-      window.addEventListener('ReactInitialized', reactInitHandler);
-    }
-    
-    // Cleanup function
-    return () => {
-      unloadStarted = true;
-      clearInterval(checkInterval);
-      clearTimeout(timeoutId);
+      window.addEventListener('ReactInitialized', handleReactInitialized);
       
-      if (typeof window !== 'undefined') {
-        window.removeEventListener('ReactInitialized', reactInitHandler);
-        if (recoveryId) clearTimeout(recoveryId);
-      }
-    };
+      // Cleanup function will reference this handler
+      return () => {
+        unloadStarted = true;
+        clearInterval(checkInterval);
+        clearTimeout(timeoutId);
+        
+        if (typeof window !== 'undefined') {
+          window.removeEventListener('ReactInitialized', handleReactInitialized);
+          if (recoveryId) clearTimeout(recoveryId);
+        }
+      };
+    }
   }, [appReady, requiredPhase, timeout, recoveryAttempted]);
 
   // Default fallback loading UI with Tavara branding

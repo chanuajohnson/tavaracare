@@ -38,9 +38,11 @@ class ErrorBoundary extends Component<
       window._initLogs.push({
         timestamp: new Date().toISOString(),
         errorType: 'react_component_error',
-        error: error.message,
-        stack: error.stack,
-        info: JSON.stringify(errorInfo)
+        phase: 'error_boundary',
+        recovery: 'none',
+        // We need to add error as a string since the original type doesn't include it
+        errorMessage: error.message,
+        errorStack: error.stack
       });
     }
   }

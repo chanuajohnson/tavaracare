@@ -1,3 +1,4 @@
+
 /**
  * Utility to help detect and handle React initialization issues
  */
@@ -119,7 +120,8 @@ const triggerEmergencyRecovery = (errorType: ReactErrorType) => {
     // Set a timeout to reload the page if React doesn't initialize
     // Only do this if we haven't already set up a reload
     if (!window._reactRecoveryTimeout) {
-      window._reactRecoveryTimeout = setTimeout(() => {
+      // Fix: Convert to number type with window.setTimeout instead of NodeJS.Timeout
+      window._reactRecoveryTimeout = window.setTimeout(() => {
         console.error('[reactErrorHandler] React initialization failed, reloading page...');
         
         // One final attempt at forcing React initialization before reload
