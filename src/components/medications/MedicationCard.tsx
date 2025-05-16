@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Medication, MedicationAdministration } from '@/types/medicationTypes';
@@ -158,6 +157,7 @@ const MedicationCard: React.FC<MedicationCardProps> = ({
             <Button 
               className="w-full"
               onClick={() => setShowAdministerDialog(true)}
+              variant="default"
             >
               Record Administration
             </Button>

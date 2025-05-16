@@ -1,9 +1,10 @@
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ClipboardList, Calendar, Users } from "lucide-react";
+import { ClipboardList, Calendar, Users, Pill } from "lucide-react";
 import { CareDetailsTab } from "./CareDetailsTab";
 import { ShiftsTab } from "./ShiftsTab";
 import { TeamMembersTab } from "./TeamMembersTab";
+import { MedicationsTab } from "./MedicationsTab";
 
 interface AssignmentTabsProps {
   carePlan: any;
@@ -37,6 +38,10 @@ export function AssignmentTabs({
           <Users className="h-4 w-4" />
           <span>Care Team</span>
         </TabsTrigger>
+        <TabsTrigger value="medications" className="flex items-center gap-1">
+          <Pill className="h-4 w-4" />
+          <span>Medications</span>
+        </TabsTrigger>
       </TabsList>
 
       <TabsContent value="details" className="space-y-4">
@@ -52,6 +57,13 @@ export function AssignmentTabs({
           teamMembers={teamMembers} 
           carePlanId={carePlan?.id}
           currentUserId={userId} 
+        />
+      </TabsContent>
+
+      <TabsContent value="medications" className="space-y-4">
+        <MedicationsTab 
+          carePlanId={carePlan?.id}
+          userId={userId}
         />
       </TabsContent>
     </Tabs>

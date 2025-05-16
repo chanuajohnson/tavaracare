@@ -1,7 +1,8 @@
 
-export * from './AssignmentHeader';
-export * from './FamilyDetailsCard';
-export * from './CareDetailsTab';
-export * from './ShiftsTab';
-export * from './TeamMembersTab';
-export * from './AssignmentTabs';
+export { AssignmentHeader } from './AssignmentHeader';
+export { AssignmentTabs } from './AssignmentTabs';
+export { CareDetailsTab } from './CareDetailsTab';
+export { FamilyDetailsCard } from './FamilyDetailsCard';
+export { ShiftsTab } from './ShiftsTab';
+export { TeamMembersTab } from './TeamMembersTab';
+export { MedicationsTab } from './MedicationsTab';
