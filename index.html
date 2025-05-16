@@ -103,7 +103,9 @@
             error: message,
             source: source,
             line: lineno,
-            col: colno
+            col: colno,
+            errorMessage: error ? error.message : message,
+            errorStack: error ? error.stack : null
           });
           
           // Display fallback UI when React fails to initialize properly
@@ -136,9 +138,9 @@
       logInitEvent('HTML head scripts completed');
     </script>
     
-    <!-- Preload key scripts to improve initialization order -->
-    <link rel="preload" href="/node_modules/react/umd/react.production.min.js" as="script">
-    <link rel="preload" href="/node_modules/react-dom/umd/react-dom.production.min.js" as="script">
+    <!-- Enhanced preloading for critical resources -->
+    <link rel="preload" href="/node_modules/react/umd/react.production.min.js" as="script" fetchpriority="high" crossorigin="anonymous">
+    <link rel="preload" href="/node_modules/react-dom/umd/react-dom.production.min.js" as="script" fetchpriority="high" crossorigin="anonymous">
   </head>
 
   <body>

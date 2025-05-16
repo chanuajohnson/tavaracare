@@ -109,7 +109,8 @@ const triggerEmergencyRecovery = (errorType: ReactErrorType) => {
       timestamp: new Date().toISOString(),
       errorType,
       phase: getCurrentPhase(),
-      recovery: 'triggered'
+      recovery: 'triggered',
+      errorMessage: `Emergency recovery for: ${errorType}`
     });
     
     // Dispatch event for any listeners
@@ -120,7 +121,7 @@ const triggerEmergencyRecovery = (errorType: ReactErrorType) => {
     // Set a timeout to reload the page if React doesn't initialize
     // Only do this if we haven't already set up a reload
     if (!window._reactRecoveryTimeout) {
-      // Fix: Convert to number type with window.setTimeout instead of NodeJS.Timeout
+      // Using window.setTimeout and explicitly typing as number
       window._reactRecoveryTimeout = window.setTimeout(() => {
         console.error('[reactErrorHandler] React initialization failed, reloading page...');
         

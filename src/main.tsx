@@ -99,6 +99,19 @@ const mountApp = async () => {
   } catch (error) {
     console.error('[main.tsx] Failed to render application:', error);
     
+    // Log detailed error information
+    if (typeof window !== 'undefined') {
+      window._initLogs = window._initLogs || [];
+      window._initLogs.push({
+        timestamp: new Date().toISOString(),
+        errorType: 'mount_failure',
+        phase: 'application_mount',
+        recovery: mountRetryCount < MAX_MOUNT_RETRIES ? 'retry_scheduled' : 'failed',
+        errorMessage: error instanceof Error ? error.message : String(error),
+        errorStack: error instanceof Error ? error.stack : undefined
+      });
+    }
+    
     if (mountRetryCount < MAX_MOUNT_RETRIES) {
       mountRetryCount++;
       // Exponential backoff for retries (100ms, 200ms, 400ms, etc.)

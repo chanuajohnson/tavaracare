@@ -24,9 +24,13 @@ interface Window {
   _staticIconsPreloaded?: boolean;
   _initLogs?: Array<{
     timestamp: string;
-    errorType: string;
-    phase: string;
-    recovery: string;
+    errorType?: string;
+    phase?: string;
+    recovery?: string;
+    error?: string;
+    source?: string;
+    line?: number;
+    col?: number;
     errorMessage?: string;
     errorStack?: string;
   }>;
