@@ -42,6 +42,7 @@ const MedicationList: React.FC<MedicationListProps> = ({ carePlanId, userRole })
     
     try {
       const data = await medicationService.fetchMedications(carePlanId);
+      console.log("Fetched medications:", data);
       setMedications(data);
     } catch (err) {
       setError('Failed to load medications');

@@ -6,7 +6,11 @@ import { Button } from "@/components/ui/button";
 import { Pill, Clock, Calendar, PenSquare, ArrowRight } from "lucide-react";
 import { UpvoteFeatureButton } from "@/components/features/UpvoteFeatureButton";
 
-export const MedicationManagementSection = () => {
+interface MedicationManagementSectionProps {
+  carePlanId?: string;
+}
+
+export const MedicationManagementSection: React.FC<MedicationManagementSectionProps> = ({ carePlanId }) => {
   return (
     <Card className="mb-8">
       <CardHeader>
@@ -14,13 +18,24 @@ export const MedicationManagementSection = () => {
         <CardDescription>Track and manage medications, schedules, and administration</CardDescription>
       </CardHeader>
       <CardContent>
-        <Link to="/family/features-overview">
-          <Button variant="default" className="w-full mb-6">
-            Learn More
-            <ArrowRight className="ml-2 h-4 w-4" />
-          </Button>
-        </Link>
-        <UpvoteFeatureButton featureTitle="Medication Management" className="w-full mb-6" buttonText="Upvote this Feature" />
+        {carePlanId ? (
+          <Link to={`/family/care-management/${carePlanId}`}>
+            <Button variant="default" className="w-full mb-6">
+              Manage Medications
+              <ArrowRight className="ml-2 h-4 w-4" />
+            </Button>
+          </Link>
+        ) : (
+          <>
+            <Link to="/family/features-overview">
+              <Button variant="default" className="w-full mb-6">
+                Learn More
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            </Link>
+            <UpvoteFeatureButton featureTitle="Medication Management" className="w-full mb-6" buttonText="Upvote this Feature" />
+          </>
+        )}
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <Card>
@@ -32,9 +47,15 @@ export const MedicationManagementSection = () => {
               <CardDescription>View and manage medications</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <Link to="/family/features-overview">
-                <Button variant="secondary" className="w-full">View Medications</Button>
-              </Link>
+              {carePlanId ? (
+                <Link to={`/family/care-management/${carePlanId}?tab=medications`}>
+                  <Button variant="secondary" className="w-full">View Medications</Button>
+                </Link>
+              ) : (
+                <Link to="/family/features-overview">
+                  <Button variant="secondary" className="w-full">View Medications</Button>
+                </Link>
+              )}
             </CardContent>
           </Card>
 
@@ -47,9 +68,15 @@ export const MedicationManagementSection = () => {
               <CardDescription>Manage medication schedules</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <Link to="/family/features-overview">
-                <Button variant="secondary" className="w-full">View Schedule</Button>
-              </Link>
+              {carePlanId ? (
+                <Link to={`/family/care-management/${carePlanId}?tab=medications`}>
+                  <Button variant="secondary" className="w-full">View Schedule</Button>
+                </Link>
+              ) : (
+                <Link to="/family/features-overview">
+                  <Button variant="secondary" className="w-full">View Schedule</Button>
+                </Link>
+              )}
             </CardContent>
           </Card>
 
@@ -62,9 +89,15 @@ export const MedicationManagementSection = () => {
               <CardDescription>Plan medication routines</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <Link to="/family/features-overview">
-                <Button variant="secondary" className="w-full">View Planning</Button>
-              </Link>
+              {carePlanId ? (
+                <Link to={`/family/care-management/${carePlanId}?tab=medications`}>
+                  <Button variant="secondary" className="w-full">View Planning</Button>
+                </Link>
+              ) : (
+                <Link to="/family/features-overview">
+                  <Button variant="secondary" className="w-full">View Planning</Button>
+                </Link>
+              )}
             </CardContent>
           </Card>
 
@@ -77,9 +110,15 @@ export const MedicationManagementSection = () => {
               <CardDescription>Track medication administration</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <Link to="/family/features-overview">
-                <Button variant="secondary" className="w-full">View Administration</Button>
-              </Link>
+              {carePlanId ? (
+                <Link to={`/family/care-management/${carePlanId}?tab=medications`}>
+                  <Button variant="secondary" className="w-full">View Administration</Button>
+                </Link>
+              ) : (
+                <Link to="/family/features-overview">
+                  <Button variant="secondary" className="w-full">View Administration</Button>
+                </Link>
+              )}
             </CardContent>
           </Card>
         </div>

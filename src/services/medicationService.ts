@@ -1,7 +1,8 @@
 
 import { supabase } from '@/lib/supabase';
-import { Medication, MedicationAdministration } from '@/types/medicationTypes';
+import { Medication, MedicationAdministration, MedicationSchedule } from '@/types/medicationTypes';
 import { toast } from 'sonner';
+import { Json } from '@/utils/supabaseTypes';
 
 export const medicationService = {
   // Fetch medications for a care plan
@@ -91,8 +92,8 @@ export const medicationService = {
       // Prepare update data for database
       const updateData = {
         ...updates,
-        // Ensure schedule is treated as a JSON object
-        schedule: updates.schedule || undefined
+        // Ensure schedule is treated as a JSON object if it exists
+        ...(updates.schedule && { schedule: updates.schedule })
       };
 
       const { data, error } = await supabase

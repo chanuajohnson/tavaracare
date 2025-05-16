@@ -1,22 +1,25 @@
 
 import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardFooter, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { Medication, MedicationAdministration } from '@/types/medicationTypes';
+import { Pill, Clock, Edit, Trash2, AlertCircle, ChevronDown, ChevronUp, CheckCircle, XCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Clock, Edit, Trash2, Info, CalendarClock, CheckCircle, AlertCircle } from 'lucide-react';
-import { Medication, MedicationAdministration } from '@/types/medicationTypes';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { format } from 'date-fns';
 import { medicationService } from '@/services/medicationService';
 import { useAuth } from '@/components/providers/AuthProvider';
+import { format } from 'date-fns';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface MedicationCardProps {
   medication: Medication;
   onEdit: (medication: Medication) => void;
   onDelete: (medicationId: string) => void;
   onAdministrationRecorded: () => void;
-  isCaregiver?: boolean;
+  isCaregiver: boolean;
 }
 
 const MedicationCard: React.FC<MedicationCardProps> = ({ 
@@ -24,68 +27,66 @@ const MedicationCard: React.FC<MedicationCardProps> = ({
   onEdit, 
   onDelete,
   onAdministrationRecorded,
-  isCaregiver = false
+  isCaregiver
 }) => {
-  const [showDetails, setShowDetails] = useState(false);
+  const [expanded, setExpanded] = useState(false);
   const [administrations, setAdministrations] = useState<MedicationAdministration[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loadingHistory, setLoadingHistory] = useState(false);
   const [showAdministerDialog, setShowAdministerDialog] = useState(false);
   const [administerStatus, setAdministerStatus] = useState<'administered' | 'skipped' | 'refused'>('administered');
   const [notes, setNotes] = useState('');
   const { user } = useAuth();
-
-  const handleShowDetails = async () => {
-    if (!showDetails) {
-      setLoading(true);
+  
+  const toggleExpanded = async () => {
+    const newExpandedState = !expanded;
+    setExpanded(newExpandedState);
+    
+    if (newExpandedState && administrations.length === 0) {
+      setLoadingHistory(true);
       try {
-        const administrationData = await medicationService.fetchAdministrations(medication.id);
-        setAdministrations(administrationData);
-      } catch (error) {
-        console.error('Error fetching medication administrations:', error);
+        const data = await medicationService.fetchAdministrations(medication.id);
+        setAdministrations(data);
+      } catch (err) {
+        console.error('Error loading medication history:', err);
       } finally {
-        setLoading(false);
+        setLoadingHistory(false);
       }
     }
-    setShowDetails(!showDetails);
   };
 
   const handleAdminister = async () => {
-    if (!user?.id) return;
+    if (!user) return;
     
-    try {
-      const administration: Omit<MedicationAdministration, 'id' | 'created_at' | 'updated_at' | 'caregiver_name'> = {
-        medication_id: medication.id,
-        administered_by: user.id,
-        administered_at: new Date().toISOString(),
-        status: administerStatus,
-        notes: notes
-      };
-      
-      await medicationService.recordAdministration(administration);
-      setShowAdministerDialog(false);
+    const administration = {
+      medication_id: medication.id,
+      administered_by: user.id,
+      administered_at: new Date().toISOString(),
+      status: administerStatus,
+      notes: notes.trim() || null
+    };
+    
+    const result = await medicationService.recordAdministration(administration);
+    if (result) {
+      setAdministrations(prev => [result, ...prev]);
       setNotes('');
-      setAdministerStatus('administered');
+      setShowAdministerDialog(false);
       onAdministrationRecorded();
-    } catch (error) {
-      console.error('Error recording administration:', error);
     }
   };
 
-  // Format the schedule display
-  const renderSchedule = () => {
-    if (!medication.schedule) return 'As prescribed';
+  const getScheduleDisplay = () => {
+    const schedule = medication.schedule;
+    if (!schedule) return 'No schedule set';
     
-    const { morning, afternoon, evening, night, custom } = medication.schedule;
-    
-    if (custom) return custom;
+    if (schedule.custom) return schedule.custom;
     
     const times = [];
-    if (morning) times.push('Morning');
-    if (afternoon) times.push('Afternoon');
-    if (evening) times.push('Evening');
-    if (night) times.push('Night');
+    if (schedule.morning) times.push('Morning');
+    if (schedule.afternoon) times.push('Afternoon');
+    if (schedule.evening) times.push('Evening');
+    if (schedule.night) times.push('Night');
     
-    return times.length > 0 ? times.join(', ') : 'As prescribed';
+    return times.length > 0 ? times.join(', ') : 'No schedule set';
   };
 
   const getStatusBadge = (status: string) => {
@@ -93,203 +94,193 @@ const MedicationCard: React.FC<MedicationCardProps> = ({
       case 'administered':
         return <Badge className="bg-green-500">Administered</Badge>;
       case 'skipped':
-        return <Badge className="bg-yellow-500">Skipped</Badge>;
+        return <Badge className="bg-amber-500">Skipped</Badge>;
       case 'refused':
         return <Badge className="bg-red-500">Refused</Badge>;
       default:
-        return <Badge>Unknown</Badge>;
+        return <Badge className="bg-gray-500">Unknown</Badge>;
     }
   };
 
-  // Extract prescription terms if available
-  const prescriptionTerms = medication.prescription_terms ? 
-    medication.prescription_terms.split(' ').map(term => term.trim()).filter(Boolean) : 
-    [];
-
   return (
-    <>
-      <Card className="shadow-sm border-gray-200 transition-all duration-200">
-        <CardHeader className="pb-2">
-          <div className="flex justify-between items-start">
+    <Card className="overflow-hidden">
+      <CardHeader className="bg-muted/30 pb-2 relative">
+        <div className="flex justify-between items-start">
+          <div className="flex items-start space-x-2 w-4/5">
+            <Pill className="h-5 w-5 mt-1.5" />
             <div>
-              <CardTitle className="text-lg">{medication.name}</CardTitle>
-              <CardDescription>
+              <h3 className="font-medium text-lg">{medication.name}</h3>
+              <p className="text-sm text-muted-foreground">
                 {medication.dosage && <span className="font-medium">{medication.dosage}</span>}
-                {medication.instructions && <span> • {medication.instructions}</span>}
-              </CardDescription>
-            </div>
-            <div className="flex gap-1">
-              {!isCaregiver && (
-                <>
-                  <Button variant="ghost" size="icon" onClick={() => onEdit(medication)}>
-                    <Edit className="h-4 w-4" />
-                  </Button>
-                  <Button variant="ghost" size="icon" onClick={() => onDelete(medication.id)}>
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </>
-              )}
+                {medication.dosage && medication.medication_type && <span> · </span>}
+                {medication.medication_type && (
+                  <span className="capitalize">{medication.medication_type}</span>
+                )}
+              </p>
             </div>
           </div>
-        </CardHeader>
-        <CardContent className="pb-2">
-          <div className="flex items-center text-sm text-muted-foreground mb-1.5">
-            <Clock className="h-4 w-4 mr-1.5" /> 
-            <span>{renderSchedule()}</span>
+          
+          <div className="flex items-center space-x-1">
+            {!isCaregiver && (
+              <>
+                <Button variant="ghost" size="icon" onClick={() => onEdit(medication)}>
+                  <Edit className="h-4 w-4" />
+                </Button>
+                <Button variant="ghost" size="icon" onClick={() => onDelete(medication.id)}>
+                  <Trash2 className="h-4 w-4 text-destructive" />
+                </Button>
+              </>
+            )}
+            <Button variant="ghost" size="icon" onClick={toggleExpanded}>
+              {expanded ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
+            </Button>
           </div>
-          
-          {prescriptionTerms.length > 0 && (
-            <div className="flex flex-wrap gap-1.5 mb-2">
-              <TooltipProvider>
-                {prescriptionTerms.map((term, index) => (
-                  <Tooltip key={index}>
-                    <TooltipTrigger asChild>
-                      <Badge variant="secondary" className="cursor-help">
-                        {term}
-                      </Badge>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      {term === 'PO' && 'Per Os - By mouth'}
-                      {term === 'OD' && 'Once Daily - One time per day'}
-                      {term === 'Nocte' && 'At night (before bedtime)'}
-                      {/* Add more term definitions as needed */}
-                    </TooltipContent>
-                  </Tooltip>
-                ))}
-              </TooltipProvider>
-            </div>
-          )}
-          
-          {medication.special_instructions && (
-            <div className="text-sm italic">{medication.special_instructions}</div>
-          )}
-        </CardContent>
-        <CardFooter className="pt-1 flex justify-between">
-          <Button 
-            variant="outline" 
-            size="sm" 
-            className="text-xs" 
-            onClick={handleShowDetails}
-          >
-            <Info className="h-3.5 w-3.5 mr-1" />
-            {showDetails ? 'Hide Details' : 'History & Details'}
-          </Button>
-          
-          {isCaregiver && (
+        </div>
+      </CardHeader>
+      
+      <CardContent className="pt-4">
+        <div className="grid grid-cols-2 gap-2 text-sm mb-3">
+          <div>
+            <p className="text-muted-foreground">Instructions</p>
+            <p>{medication.instructions || 'None specified'}</p>
+          </div>
+          <div>
+            <p className="text-muted-foreground">Schedule</p>
+            <p className="flex items-center">
+              <Clock className="h-3.5 w-3.5 mr-1" />
+              <span>{getScheduleDisplay()}</span>
+            </p>
+          </div>
+        </div>
+
+        {isCaregiver && (
+          <div className="mt-2">
             <Button 
-              variant="default" 
-              size="sm" 
-              className="text-xs" 
+              className="w-full"
               onClick={() => setShowAdministerDialog(true)}
             >
-              <CheckCircle className="h-3.5 w-3.5 mr-1" />
               Record Administration
             </Button>
-          )}
-        </CardFooter>
-      </Card>
-
-      {showDetails && (
-        <Card className="mt-2 shadow-sm border-gray-200 bg-gray-50">
-          <CardHeader className="py-3">
-            <CardTitle className="text-sm">Administration History</CardTitle>
-          </CardHeader>
-          <CardContent className="py-0">
-            {loading ? (
-              <div className="py-4 text-center">Loading history...</div>
+          </div>
+        )}
+        
+        {expanded && (
+          <div className="mt-4 pt-3 border-t">
+            <h4 className="font-medium mb-2">Administration History</h4>
+            
+            {loadingHistory ? (
+              <div className="text-center py-4">
+                <div className="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+                <p className="mt-1 text-sm text-muted-foreground">Loading history...</p>
+              </div>
             ) : administrations.length === 0 ? (
-              <div className="py-4 text-center text-muted-foreground">
-                No administration records found
+              <div className="text-center py-4">
+                <AlertCircle className="h-6 w-6 mx-auto text-muted-foreground" />
+                <p className="mt-1 text-sm text-muted-foreground">No administration records found</p>
               </div>
             ) : (
-              <div className="space-y-3 max-h-60 overflow-y-auto pr-2">
-                {administrations.map(record => (
-                  <div key={record.id} className="bg-white p-3 rounded-md shadow-sm">
-                    <div className="flex justify-between items-start">
-                      <div className="flex items-center">
-                        <CalendarClock className="h-4 w-4 mr-1.5" />
-                        <span className="text-sm">
-                          {format(new Date(record.administered_at), 'MMM d, yyyy h:mm a')}
-                        </span>
+              <ScrollArea className="h-[200px] pr-3">
+                <div className="space-y-2">
+                  {administrations.map(admin => (
+                    <div key={admin.id} className="bg-muted/30 p-2 rounded-md">
+                      <div className="flex justify-between items-center mb-1">
+                        <div>
+                          <span className="text-sm font-medium">
+                            {format(new Date(admin.administered_at), 'MMM d, yyyy h:mm a')}
+                          </span>
+                        </div>
+                        {getStatusBadge(admin.status)}
                       </div>
-                      {getStatusBadge(record.status)}
+                      <div className="text-xs text-muted-foreground">
+                        By: {admin.caregiver_name || 'Unknown'}
+                      </div>
+                      {admin.notes && (
+                        <div className="mt-1 text-sm">
+                          <span className="italic">{admin.notes}</span>
+                        </div>
+                      )}
                     </div>
-                    <div className="text-xs text-muted-foreground mt-1">
-                      By: {record.caregiver_name || 'Unknown'}
-                    </div>
-                    {record.notes && (
-                      <div className="text-xs mt-1 italic">{record.notes}</div>
-                    )}
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              </ScrollArea>
             )}
-          </CardContent>
-        </Card>
-      )}
-
+          </div>
+        )}
+        
+        {medication.special_instructions && (
+          <div className="mt-3 pt-3 border-t">
+            <p className="text-sm text-muted-foreground">Special Instructions</p>
+            <p className="text-sm">{medication.special_instructions}</p>
+          </div>
+        )}
+      </CardContent>
+      
       <Dialog open={showAdministerDialog} onOpenChange={setShowAdministerDialog}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Record Medication Administration</DialogTitle>
-            <DialogDescription>
-              Record that {medication.name} {medication.dosage ? `(${medication.dosage})` : ''} was administered to the patient.
-            </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 py-4">
+          
+          <div className="space-y-4 mt-2">
             <div>
-              <h4 className="text-sm font-medium mb-2">Status</h4>
-              <div className="flex flex-wrap gap-2">
-                <Button 
-                  variant={administerStatus === "administered" ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setAdministerStatus("administered")}
-                >
-                  <CheckCircle className="h-4 w-4 mr-2" /> Administered
-                </Button>
-                <Button 
-                  variant={administerStatus === "skipped" ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setAdministerStatus("skipped")}
-                >
-                  <AlertCircle className="h-4 w-4 mr-2" /> Skipped
-                </Button>
-                <Button 
-                  variant={administerStatus === "refused" ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setAdministerStatus("refused")}
-                >
-                  <AlertCircle className="h-4 w-4 mr-2" /> Refused
-                </Button>
-              </div>
+              <h3 className="font-medium">{medication.name} {medication.dosage}</h3>
+              <p className="text-sm text-muted-foreground">{medication.instructions}</p>
             </div>
             
             <div>
-              <label htmlFor="notes" className="text-sm font-medium block mb-2">
-                Notes (optional)
-              </label>
-              <textarea 
-                id="notes"
-                className="w-full rounded-md border border-gray-300 p-2 text-sm"
-                rows={3}
+              <label className="text-sm font-medium mb-1.5 block">Status</label>
+              <Select 
+                value={administerStatus} 
+                onValueChange={(val) => setAdministerStatus(val as 'administered' | 'skipped' | 'refused')}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="administered">
+                    <div className="flex items-center">
+                      <CheckCircle className="h-4 w-4 mr-2 text-green-500" />
+                      Administered
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="skipped">
+                    <div className="flex items-center">
+                      <Clock className="h-4 w-4 mr-2 text-amber-500" />
+                      Skipped
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="refused">
+                    <div className="flex items-center">
+                      <XCircle className="h-4 w-4 mr-2 text-red-500" />
+                      Refused
+                    </div>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div>
+              <label className="text-sm font-medium mb-1.5 block">Notes</label>
+              <Textarea 
+                placeholder="Add any notes about this administration" 
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
-                placeholder="Add any relevant notes about this administration"
-              ></textarea>
+                rows={3}
+              />
             </div>
             
-            <div className="flex justify-end gap-2 pt-2">
+            <div className="flex justify-end space-x-2 pt-2">
               <Button variant="outline" onClick={() => setShowAdministerDialog(false)}>
                 Cancel
               </Button>
               <Button onClick={handleAdminister}>
-                Record Administration
+                Record
               </Button>
             </div>
           </div>
         </DialogContent>
       </Dialog>
-    </>
+    </Card>
   );
 };
 

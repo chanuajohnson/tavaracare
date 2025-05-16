@@ -24,7 +24,7 @@ export const seedPeltierMedications = async (carePlanId: string) => {
       return false;
     }
     
-    // Define Ms. Peltier's medications
+    // Define Ms. Peltier's medications with proper typing
     const peltierMedications = [
       {
         care_plan_id: carePlanId,
@@ -101,15 +101,14 @@ export const seedPeltierMedications = async (carePlanId: string) => {
     // Insert the medications
     const { data, error } = await supabase
       .from('medications')
-      .insert(peltierMedications)
-      .select();
+      .insert(peltierMedications);
     
     if (error) {
       console.error("Error seeding medications:", error);
       return false;
     }
     
-    console.log("Successfully seeded medications:", data?.length);
+    console.log("Successfully seeded medications:", peltierMedications.length);
     return true;
   } catch (error) {
     console.error("Error in seedPeltierMedications:", error);

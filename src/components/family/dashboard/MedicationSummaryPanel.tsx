@@ -6,6 +6,7 @@ import { medicationService } from '@/services/medicationService';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Medication } from '@/types/medicationTypes';
 
 interface MedicationSummaryPanelProps {
   userCarePlans: any[];
@@ -13,7 +14,7 @@ interface MedicationSummaryPanelProps {
 }
 
 const MedicationSummaryPanel: React.FC<MedicationSummaryPanelProps> = ({ userCarePlans, loading }) => {
-  const [medicationsByPlan, setMedicationsByPlan] = useState<Record<string, any[]>>({});
+  const [medicationsByPlan, setMedicationsByPlan] = useState<Record<string, Medication[]>>({});
   const [loadingMeds, setLoadingMeds] = useState(true);
   const hasCarePlans = userCarePlans.length > 0;
   const activePlan = userCarePlans.length > 0 ? userCarePlans[0] : null;
@@ -27,7 +28,7 @@ const MedicationSummaryPanel: React.FC<MedicationSummaryPanelProps> = ({ userCar
     const fetchMedications = async () => {
       setLoadingMeds(true);
       try {
-        const medsByPlan: Record<string, any[]> = {};
+        const medsByPlan: Record<string, Medication[]> = {};
         
         // Only get medications for the first (most recent) care plan
         if (activePlan) {
@@ -44,7 +45,7 @@ const MedicationSummaryPanel: React.FC<MedicationSummaryPanelProps> = ({ userCar
     };
 
     fetchMedications();
-  }, [userCarePlans]);
+  }, [userCarePlans, hasCarePlans, activePlan]);
 
   const totalMedicationCount = Object.values(medicationsByPlan).reduce(
     (sum, meds) => sum + meds.length, 0
