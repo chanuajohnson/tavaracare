@@ -20,6 +20,7 @@ interface Window {
   
   // Recovery mechanisms
   _reactRecoveryTimeout?: number;
+  _staticIconsPreloaded?: boolean;
   _initLogs?: Array<{
     timestamp: string;
     errorType: string;

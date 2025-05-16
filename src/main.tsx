@@ -8,6 +8,12 @@ import { ensureReact, waitForReactReady } from './utils/reactErrorHandler.ts';
 import { AppMountGuard } from './components/app/AppMountGuard.tsx';
 import { initModuleTracker, registerModuleInit } from './utils/moduleInitTracker.ts';
 import { initBootstrap, registerReactDomReady, BootPhase } from './utils/appBootstrap.ts';
+import { preloadStaticIcons } from './utils/iconFallbacks.ts';
+
+// Preload static icons as early as possible
+if (typeof window !== 'undefined') {
+  preloadStaticIcons();
+}
 
 // Initialize our module tracking system
 if (typeof window !== 'undefined') {
