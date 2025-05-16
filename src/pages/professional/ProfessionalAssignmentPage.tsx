@@ -79,7 +79,7 @@ const ProfessionalAssignmentPage = () => {
           return;
         }
 
-        // Fetch care plan details - FIX: Removing the conflicting profiles reference
+        // Fetch care plan details with family profile
         const { data: planData, error: planError } = await supabase
           .from('care_plans')
           .select(`
@@ -118,7 +118,22 @@ const ProfessionalAssignmentPage = () => {
         console.log("Care plan data loaded:", planData);
         setCarePlan(planData);
 
-        // Fetch team members for this care plan
+        // Create a modified version of the care plan with legacy format for backward compatibility
+        const adaptedCarePlan = {
+          ...planData,
+          care_plan: {
+            ...planData,
+            family_profile: planData.family_profile
+          },
+          care_plans: {
+            ...planData,
+            profiles: planData.family_profile
+          }
+        };
+        
+        setCarePlan(adaptedCarePlan);
+
+        // Fetch team members for this care plan, ensuring care_plan_id is included
         const { data: teamData, error: teamError } = await supabase
           .from('care_team_members')
           .select(`
@@ -126,6 +141,7 @@ const ProfessionalAssignmentPage = () => {
             status,
             role,
             caregiver_id,
+            care_plan_id,
             profiles:caregiver_id (
               full_name,
               professional_type,
@@ -139,7 +155,7 @@ const ProfessionalAssignmentPage = () => {
           throw teamError;
         }
         
-        console.log(`Loaded ${teamData?.length || 0} team members`);
+        console.log(`Loaded ${teamData?.length || 0} team members:`, teamData);
         setTeamMembers(teamData || []);
 
         // Fetch upcoming shifts for this care plan

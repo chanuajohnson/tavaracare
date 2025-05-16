@@ -1,8 +1,9 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import MedicationList from '../../medications/MedicationList';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Pill } from 'lucide-react';
+import { toast } from "sonner";
 
 interface MedicationsTabProps {
   carePlanId: string;
@@ -10,6 +11,12 @@ interface MedicationsTabProps {
 }
 
 export const MedicationsTab: React.FC<MedicationsTabProps> = ({ carePlanId, userId }) => {
+  const [isLoading, setIsLoading] = useState(false);
+  
+  useEffect(() => {
+    console.log("MedicationsTab mounted with:", { carePlanId, userId });
+  }, [carePlanId, userId]);
+
   return (
     <div className="space-y-4">
       <Card>

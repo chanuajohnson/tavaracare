@@ -19,6 +19,12 @@ const MedicationList: React.FC<MedicationListProps> = ({ carePlanId, userRole = 
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!carePlanId) {
+      console.error("MedicationList: carePlanId is missing", { carePlanId });
+      setLoading(false);
+      return;
+    }
+    
     loadMedications();
   }, [carePlanId]);
 
@@ -26,8 +32,14 @@ const MedicationList: React.FC<MedicationListProps> = ({ carePlanId, userRole = 
     try {
       setLoading(true);
       console.log(`Loading medications for care plan: ${carePlanId}`);
+      
+      if (!carePlanId) {
+        console.error("Cannot load medications: carePlanId is missing");
+        return;
+      }
+      
       const data = await medicationService.fetchMedications(carePlanId);
-      console.log(`Loaded ${data.length} medications for care plan: ${carePlanId}`);
+      console.log(`Loaded ${data.length} medications for care plan: ${carePlanId}`, data);
       setMedications(data);
     } catch (error) {
       console.error('Error loading medications:', error);

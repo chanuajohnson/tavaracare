@@ -1,4 +1,3 @@
-
 /**
  * Utility functions for working with schedules and care plan metadata
  */
@@ -141,15 +140,17 @@ export const parseCustomScheduleText = (customText: string): Array<{day: string,
 /**
  * Determines weekday coverage type from schedule array
  */
-export const determineWeekdayCoverage = (scheduleArray: string[]): string => {
+export const determineWeekdayCoverage = (scheduleArray: string[]): 'none' | '8am-4pm' | '8am-6pm' | '6am-6pm' | '6pm-8am' => {
   if (!scheduleArray || scheduleArray.length === 0) return 'none';
   
   const weekdayOptions = ['morning', 'afternoon', 'evening', 'overnight', 'full-day'];
   const hasWeekdayCoverage = scheduleArray.some(item => weekdayOptions.includes(item.toLowerCase()));
   
   if (hasWeekdayCoverage) {
-    if (scheduleArray.includes('full-day')) return 'full-day';
-    return 'partial';
+    if (scheduleArray.includes('full-day')) return '6am-6pm';
+    if (scheduleArray.includes('morning') && scheduleArray.includes('afternoon')) return '8am-6pm';
+    if (scheduleArray.includes('morning')) return '8am-4pm';
+    if (scheduleArray.includes('overnight')) return '6pm-8am';
   }
   
   return 'none';
@@ -158,7 +159,7 @@ export const determineWeekdayCoverage = (scheduleArray: string[]): string => {
 /**
  * Determines weekend coverage from schedule array
  */
-export const determineWeekendCoverage = (scheduleArray: string[]): string => {
+export const determineWeekendCoverage = (scheduleArray: string[]): 'no' | 'yes' => {
   if (!scheduleArray || scheduleArray.length === 0) return 'no';
   
   const hasWeekends = scheduleArray.some(item => 
@@ -174,26 +175,22 @@ export const determineWeekendCoverage = (scheduleArray: string[]): string => {
 /**
  * Determines weekend schedule type based on the schedule array
  */
-export const determineWeekendScheduleType = (scheduleArray: string[]): string => {
+export const determineWeekendScheduleType = (scheduleArray: string[]): 'none' | '8am-6pm' | '6am-6pm' => {
   if (!scheduleArray || scheduleArray.length === 0) return 'none';
   
-  if (scheduleArray.includes('weekend-full')) return 'full-day';
-  if (scheduleArray.includes('weekend-morning')) return 'morning';
-  if (scheduleArray.includes('weekend-afternoon')) return 'afternoon';
-  if (scheduleArray.includes('weekend-evening')) return 'evening';
+  if (scheduleArray.includes('weekend-full')) return '6am-6pm';
+  if (scheduleArray.includes('weekend-morning')) return '8am-6pm';
   
   // Generic weekend coverage
   if (scheduleArray.includes('weekends') || scheduleArray.includes('weekend')) {
-    return 'partial';
+    return '8am-6pm';
   }
   
   // Check for specific days
   const hasSaturday = scheduleArray.includes('saturday');
   const hasSunday = scheduleArray.includes('sunday');
   
-  if (hasSaturday && hasSunday) return 'both-days';
-  if (hasSaturday) return 'saturday-only';
-  if (hasSunday) return 'sunday-only';
+  if (hasSaturday || hasSunday) return '8am-6pm';
   
   return 'none';
 };
