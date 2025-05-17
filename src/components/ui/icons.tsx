@@ -16,9 +16,9 @@ const IconFallback = ({ name, ...props }: { name: string } & LucideProps) => {
   // since createStaticIcon now accepts both string and number
   const size = props.size !== undefined ? props.size : 24;
   
-  // Pass size directly since the iconFallbacks utility has been updated to handle both string and number
+  // Pass size directly since iconFallbacks utility has been updated to handle both string and number types
   const staticIcon = createStaticIcon(name, {
-    size: size, // This is now correctly typed as string | number
+    size, // This passes the size value which can be either string or number
     color: props.color || 'currentColor',
     strokeWidth: props.strokeWidth || 2,
     className: props.className || ''

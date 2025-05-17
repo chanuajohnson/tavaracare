@@ -9,7 +9,7 @@ const staticIconUsage: Record<string, number> = {};
 
 // Configuration for static icons
 interface StaticIconConfig {
-  size?: string | number; // Updated to accept both string and number
+  size?: string | number; // Accepts both string and number
   color?: string;
   className?: string;
   strokeWidth?: number;
