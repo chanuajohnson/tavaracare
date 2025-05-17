@@ -20,8 +20,9 @@ const IconFallback = ({ name, ...props }: { name: string } & LucideProps) => {
   // We need to ensure iconSize is always a number for createStaticIcon
   const safeIconSize = Number.isNaN(iconSize) ? 24 : iconSize;
   
+  // FIX 1: Ensure size is definitely a number type for createStaticIcon
   const staticIcon = createStaticIcon(name, {
-    size: safeIconSize as number, // Force type as number to satisfy TypeScript
+    size: Number(safeIconSize), // Explicitly convert to Number to ensure it's a number type
     color: props.color || 'currentColor',
     strokeWidth: props.strokeWidth || 2,
     className: props.className || ''
@@ -159,16 +160,15 @@ export const Icon = React.forwardRef<SVGSVGElement, LucideProps & { name: string
       // Use type assertion here to fix the TypeScript error
       const safeIconKey = iconKey as keyof typeof dynamicIconImports;
       
-      // We need to explicitly type the return type to avoid the 'never' type error
-      const importPromise: Promise<{default: React.ComponentType<LucideProps>}> = dynamicIconImports[safeIconKey] ? 
+      // FIX 2: Properly type the return value to match React lazy's expectations
+      return (dynamicIconImports[safeIconKey] ? 
         dynamicIconImports[safeIconKey]() : 
-        Promise.reject(new Error(`Icon ${name} (${iconKey}) not found`));
-        
-      return importPromise.catch(err => {
+        Promise.reject(new Error(`Icon ${name} (${iconKey}) not found`))
+      ).catch(err => {
         console.error(`[icons] Failed to load dynamic icon: ${name}`, err);
-        // Return a minimal component as fallback
-        return { 
-          default: (props: LucideProps) => <IconFallback name={name} {...props} /> 
+        // Return a properly typed object to satisfy TypeScript
+        return {
+          default: (props: LucideProps) => <IconFallback name={name} {...props} />
         };
       });
     });
