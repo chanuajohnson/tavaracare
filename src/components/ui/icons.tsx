@@ -1,4 +1,3 @@
-
 import React, { lazy, Suspense, useState, useEffect } from 'react';
 import { LucideProps } from 'lucide-react';
 import dynamicIconImports from 'lucide-react/dynamicIconImports';
@@ -28,7 +27,7 @@ const IconFallback = ({ name, ...props }: { name: string } & LucideProps) => {
   
   // We now have iconSize as a proper number type
   const staticIcon = createStaticIcon(name, {
-    size: iconSize, // This is now guaranteed to be a number
+    size: iconSize, // Pass iconSize as a number
     color: props.color || 'currentColor',
     strokeWidth: props.strokeWidth || 2,
     className: props.className || ''
