@@ -1,4 +1,3 @@
-
 import React, { lazy, Suspense, useState, useEffect } from 'react';
 import { LucideProps } from 'lucide-react';
 import dynamicIconImports from 'lucide-react/dynamicIconImports';
@@ -20,9 +19,9 @@ const IconFallback = ({ name, ...props }: { name: string } & LucideProps) => {
   // We need to ensure iconSize is always a number for createStaticIcon
   const safeIconSize = Number.isNaN(iconSize) ? 24 : iconSize;
   
-  // FIX 1: Explicitly type the size parameter as number to fix the TypeScript error
+  // Fix: Explicitly type the size parameter as number to ensure TypeScript is happy
   const staticIcon = createStaticIcon(name, {
-    size: safeIconSize, 
+    size: safeIconSize as number, // Force TypeScript to treat this as number
     color: props.color || 'currentColor',
     strokeWidth: props.strokeWidth || 2,
     className: props.className || ''
@@ -160,22 +159,23 @@ export const Icon = React.forwardRef<SVGSVGElement, LucideProps & { name: string
       // Use type assertion here to fix the TypeScript error
       const safeIconKey = iconKey as keyof typeof dynamicIconImports;
       
-      // FIX 2: Fix TypeScript error by explicitly typing the Promise
-      type IconModule = {
-        default: React.ComponentType<LucideProps>
-      };
+      // Fix: Define a proper interface for the icon module and use assertion to fix type issues
+      interface IconModule {
+        default: React.ComponentType<LucideProps>;
+      }
       
       return (dynamicIconImports[safeIconKey] ? 
         dynamicIconImports[safeIconKey]() : 
         Promise.reject(new Error(`Icon ${name} (${iconKey}) not found`))
-      ).then((module: any) => module as IconModule)
-       .catch((err: Error) => {
-         console.error(`[icons] Failed to load dynamic icon: ${name}`, err);
-         // Return a properly typed object with default property
-         return {
-           default: (props: LucideProps) => <IconFallback name={name} {...props} />
-         } as IconModule;
-       });
+      ).then((module): IconModule => {
+        return module as IconModule;
+      }).catch((err: Error) => {
+        console.error(`[icons] Failed to load dynamic icon: ${name}`, err);
+        // Return a properly typed object with default property
+        return {
+          default: (props: LucideProps) => <IconFallback name={name} {...props} />
+        } as IconModule;
+      });
     });
 
     return (
