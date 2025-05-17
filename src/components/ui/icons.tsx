@@ -12,8 +12,11 @@ const isReactReady = () => {
 
 // Static placeholder while React is initializing or icon is loading
 const IconFallback = ({ name, ...props }: { name: string } & LucideProps) => {
+  // For size, we need to ensure it's properly typed when passed to createStaticIcon
+  const iconSize = props.size !== undefined ? props.size : 24;
+  
   const staticIcon = createStaticIcon(name, {
-    size: props.size || 24,
+    size: iconSize,
     color: props.color || 'currentColor',
     strokeWidth: props.strokeWidth || 2,
     className: props.className || ''
