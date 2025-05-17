@@ -14,15 +14,21 @@ const isReactReady = () => {
 const IconFallback = ({ name, ...props }: { name: string } & LucideProps) => {
   // For size, we need to ensure it's properly typed when passed to createStaticIcon
   // Convert size to a number before passing to createStaticIcon
-  const iconSize = typeof props.size === 'number' ? props.size : 
-                  (typeof props.size === 'string' ? parseInt(props.size, 10) : 24);
+  let iconSize: number = 24; // Default size
   
-  // We need to ensure iconSize is always a number for createStaticIcon
-  const safeIconSize = Number.isNaN(iconSize) ? 24 : iconSize;
+  if (props.size !== undefined) {
+    if (typeof props.size === 'number') {
+      iconSize = props.size;
+    } else if (typeof props.size === 'string') {
+      // Parse string to a number or use default if parsing fails
+      const parsed = parseInt(props.size, 10);
+      iconSize = isNaN(parsed) ? 24 : parsed;
+    }
+  }
   
-  // Fix for Error #1: Ensure we pass a number type to size parameter
+  // We now have iconSize as a proper number type
   const staticIcon = createStaticIcon(name, {
-    size: Number(safeIconSize), // Force conversion to number
+    size: iconSize, // This is now guaranteed to be a number
     color: props.color || 'currentColor',
     strokeWidth: props.strokeWidth || 2,
     className: props.className || ''
