@@ -17,8 +17,11 @@ const IconFallback = ({ name, ...props }: { name: string } & LucideProps) => {
   const iconSize = typeof props.size === 'number' ? props.size : 
                   (typeof props.size === 'string' ? parseInt(props.size, 10) : 24);
   
+  // We need to ensure iconSize is always a number for createStaticIcon
+  const safeIconSize = Number.isNaN(iconSize) ? 24 : iconSize;
+  
   const staticIcon = createStaticIcon(name, {
-    size: iconSize,
+    size: safeIconSize,
     color: props.color || 'currentColor',
     strokeWidth: props.strokeWidth || 2,
     className: props.className || ''
@@ -155,7 +158,9 @@ export const Icon = React.forwardRef<SVGSVGElement, LucideProps & { name: string
       // Try to load the icon by its kebab-case name
       // Use type assertion here to fix the TypeScript error
       const safeIconKey = iconKey as keyof typeof dynamicIconImports;
-      const importPromise = dynamicIconImports[safeIconKey] ? 
+      
+      // We need to explicitly type the return type to avoid the 'never' type error
+      const importPromise: Promise<any> = dynamicIconImports[safeIconKey] ? 
         dynamicIconImports[safeIconKey]() : 
         Promise.reject(new Error(`Icon ${name} (${iconKey}) not found`));
         
