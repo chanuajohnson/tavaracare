@@ -8,7 +8,7 @@ import { ensureReact, waitForReactReady } from './utils/reactErrorHandler.ts';
 import { AppMountGuard } from './components/app/AppMountGuard.tsx';
 import { initModuleTracker, registerModuleInit } from './utils/moduleInitTracker.ts';
 import { initBootstrap, registerReactReady, BootPhase } from './utils/appBootstrap.ts';
-import { preloadStaticIcons } from './utils/iconFallbacks.ts';
+import { preloadStaticIcons, registerIconsAsReady } from './utils/iconFallbacks.ts';
 
 // Preload static icons as early as possible
 if (typeof window !== 'undefined') {
@@ -30,6 +30,16 @@ if (typeof window !== 'undefined') {
   
   // Track root render state to prevent duplicate renders during recovery
   window._rootRendered = false;
+
+  // Register React and icons as ready if they're already available
+  if (window.reactInitialized) {
+    registerReactReady();
+  }
+  
+  // Register icons after a short delay
+  setTimeout(() => {
+    registerIconsAsReady();
+  }, 200);
 }
 
 // Maximum number of retries before displaying an error

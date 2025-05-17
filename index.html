@@ -141,6 +141,22 @@
     <!-- Enhanced preloading for critical resources -->
     <link rel="preload" href="/node_modules/react/umd/react.production.min.js" as="script" fetchpriority="high" crossorigin="anonymous">
     <link rel="preload" href="/node_modules/react-dom/umd/react-dom.production.min.js" as="script" fetchpriority="high" crossorigin="anonymous">
+    
+    <!-- Load React synchronously first to ensure it's ready before any components are rendered -->
+    <script src="/node_modules/react/umd/react.production.min.js" crossorigin="anonymous"></script>
+    <script>
+      // Mark React as available immediately after loading
+      if (window.React && typeof window.React.forwardRef === 'function') {
+        window.reactInitialized = true;
+        logInitEvent('React loaded from synchronous script');
+        // Dispatch event so other components know React is ready
+        if (typeof window.dispatchEvent === 'function') {
+          window.dispatchEvent(new Event('ReactInitialized'));
+        }
+      } else {
+        console.error('[index.html] React script loaded but React not properly initialized');
+      }
+    </script>
   </head>
 
   <body>
