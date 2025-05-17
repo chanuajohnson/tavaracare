@@ -13,7 +13,9 @@ const isReactReady = () => {
 // Static placeholder while React is initializing or icon is loading
 const IconFallback = ({ name, ...props }: { name: string } & LucideProps) => {
   // For size, we need to ensure it's properly typed when passed to createStaticIcon
-  const iconSize = typeof props.size === 'number' ? props.size : 24;
+  // Convert size to a number before passing to createStaticIcon
+  const iconSize = typeof props.size === 'number' ? props.size : 
+                  (typeof props.size === 'string' ? parseInt(props.size, 10) : 24);
   
   const staticIcon = createStaticIcon(name, {
     size: iconSize,
@@ -151,8 +153,10 @@ export const Icon = React.forwardRef<SVGSVGElement, LucideProps & { name: string
     // Once React is ready, use lazy-loaded component
     const DynamicIcon = lazy(() => {
       // Try to load the icon by its kebab-case name
-      const importPromise = dynamicIconImports[iconKey as keyof typeof dynamicIconImports] ? 
-        dynamicIconImports[iconKey as keyof typeof dynamicIconImports]() : 
+      // Use type assertion here to fix the TypeScript error
+      const safeIconKey = iconKey as keyof typeof dynamicIconImports;
+      const importPromise = dynamicIconImports[safeIconKey] ? 
+        dynamicIconImports[safeIconKey]() : 
         Promise.reject(new Error(`Icon ${name} (${iconKey}) not found`));
         
       return importPromise.catch(err => {
@@ -209,5 +213,3 @@ export const PlusCircle = createLazyIcon('plus-circle');
 export const Plus = createLazyIcon('plus');
 export const Bell = createLazyIcon('bell');
 export const ChevronUp = createLazyIcon('chevron-up');
-
-// Add more icons as needed...
