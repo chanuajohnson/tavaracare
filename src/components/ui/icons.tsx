@@ -1,3 +1,4 @@
+
 import React, { lazy, Suspense, useState, useEffect } from 'react';
 import { LucideProps } from 'lucide-react';
 import dynamicIconImports from 'lucide-react/dynamicIconImports';
@@ -19,9 +20,9 @@ const IconFallback = ({ name, ...props }: { name: string } & LucideProps) => {
   // We need to ensure iconSize is always a number for createStaticIcon
   const safeIconSize = Number.isNaN(iconSize) ? 24 : iconSize;
   
-  // Fix: Explicitly type the size parameter as number to ensure TypeScript is happy
+  // Fix for Error #1: Ensure we pass a number type to size parameter
   const staticIcon = createStaticIcon(name, {
-    size: safeIconSize as number, // Force TypeScript to treat this as number
+    size: Number(safeIconSize), // Force conversion to number
     color: props.color || 'currentColor',
     strokeWidth: props.strokeWidth || 2,
     className: props.className || ''
@@ -57,7 +58,7 @@ export function createLazyIcon(name: keyof typeof dynamicIconImports) {
   const LazyIcon = lazy(() => {
     // Only attempt to load the real icon if React is ready
     if (!isReactReady()) {
-      return new Promise((resolve) => {
+      return new Promise<{ default: React.ComponentType<LucideProps> }>((resolve) => {
         const checkReady = () => {
           if (isReactReady()) {
             window.removeEventListener('ReactInitialized', checkReady);
@@ -80,14 +81,15 @@ export function createLazyIcon(name: keyof typeof dynamicIconImports) {
       });
     }
     
+    // Fix for Error #2: Fix the return type by using explicit type definition
     // React is ready, load the icon normally
     return import(`lucide-react/dist/esm/icons/${name}`)
       .catch(err => {
         console.error(`[icons] Failed to load icon: ${name}`, err);
-        // Return a minimal component as fallback
+        // Return a minimal component as fallback with proper type
         return { 
           default: (props: LucideProps) => <IconFallback name={iconName} {...props} /> 
-        };
+        } as { default: React.ComponentType<LucideProps> };
       });
   });
 
@@ -159,7 +161,7 @@ export const Icon = React.forwardRef<SVGSVGElement, LucideProps & { name: string
       // Use type assertion here to fix the TypeScript error
       const safeIconKey = iconKey as keyof typeof dynamicIconImports;
       
-      // Fix: Define a proper interface for the icon module and use assertion to fix type issues
+      // Fix: Define a proper interface for the icon module
       interface IconModule {
         default: React.ComponentType<LucideProps>;
       }
@@ -169,8 +171,8 @@ export const Icon = React.forwardRef<SVGSVGElement, LucideProps & { name: string
         Promise.reject(new Error(`Icon ${name} (${iconKey}) not found`))
       ).then((module): IconModule => {
         return module as IconModule;
-      }).catch((err: Error) => {
-        console.error(`[icons] Failed to load dynamic icon: ${name}`, err);
+      }).catch((error: Error) => {
+        console.error(`[icons] Failed to load dynamic icon: ${name}`, error);
         // Return a properly typed object with default property
         return {
           default: (props: LucideProps) => <IconFallback name={name} {...props} />
