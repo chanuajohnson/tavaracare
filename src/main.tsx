@@ -14,10 +14,7 @@ import { preloadStaticIcons, registerIconsAsReady } from './utils/iconFallbacks.
 if (typeof window !== 'undefined') {
   console.log('[main.tsx] Preloading static icons early');
   preloadStaticIcons();
-}
-
-// Initialize our module tracking system
-if (typeof window !== 'undefined') {
+  
   // Define React globally as early as possible to prevent "React not defined" errors
   window.React = React;
   
@@ -33,7 +30,10 @@ if (typeof window !== 'undefined') {
 
   // Register React and icons as ready if they're already available
   if (window.reactInitialized) {
+    console.log('[main.tsx] React already initialized, registering');
     registerReactReady();
+    // Also dispatch the event for any listeners
+    window.dispatchEvent(new Event('ReactInitialized'));
   }
   
   // Register icons after a short delay

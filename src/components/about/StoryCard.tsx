@@ -1,6 +1,6 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { BookOpen } from 'lucide-react';
+import { BookOpen } from '@/components/ui/icons';
 
 interface StoryCardProps {
   isActive: boolean;

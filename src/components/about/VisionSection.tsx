@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { FadeIn } from '@/components/framer';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ChevronDown, ChevronUp } from 'lucide-react';
+import { ChevronDown, ChevronUp } from '@/components/ui/icons';
 
 export const VisionSection = () => {
   const [isExpanded, setIsExpanded] = useState(false);
