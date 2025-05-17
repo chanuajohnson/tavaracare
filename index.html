@@ -33,12 +33,12 @@
       logInitEvent('HTML parsing started');
       
       // Create a more comprehensive React placeholder to prevent early errors
-      window.React = window.React || {
-        version: 'placeholder',
-        createElement: function() { 
-          logInitEvent('React placeholder createElement called');
-          return {}; 
-        },
+      //  window.React = window.React || {
+       //   version: 'placeholder',
+        //  createElement: function() { 
+        //    logInitEvent('React placeholder createElement called');
+         //   return {}; 
+        //  },
         forwardRef: function() { 
           logInitEvent('React placeholder forwardRef called');
           return function() {}; 
