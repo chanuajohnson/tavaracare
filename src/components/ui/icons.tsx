@@ -13,7 +13,7 @@ const isReactReady = () => {
 // Static placeholder while React is initializing or icon is loading
 const IconFallback = ({ name, ...props }: { name: string } & LucideProps) => {
   // For size, we need to ensure it's properly typed when passed to createStaticIcon
-  const iconSize = props.size !== undefined ? props.size : 24;
+  const iconSize = typeof props.size === 'number' ? props.size : 24;
   
   const staticIcon = createStaticIcon(name, {
     size: iconSize,
@@ -141,7 +141,7 @@ export const Icon = React.forwardRef<SVGSVGElement, LucideProps & { name: string
     }, [shouldRender]);
 
     // Convert name to kebab-case for dynamic imports
-    const iconKey = name.replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase() as keyof typeof dynamicIconImports;
+    const iconKey = name.replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase();
     
     // Use static icon until React is ready
     if (!shouldRender) {
@@ -151,8 +151,8 @@ export const Icon = React.forwardRef<SVGSVGElement, LucideProps & { name: string
     // Once React is ready, use lazy-loaded component
     const DynamicIcon = lazy(() => {
       // Try to load the icon by its kebab-case name
-      const importPromise = dynamicIconImports[iconKey] ? 
-        dynamicIconImports[iconKey]() : 
+      const importPromise = dynamicIconImports[iconKey as keyof typeof dynamicIconImports] ? 
+        dynamicIconImports[iconKey as keyof typeof dynamicIconImports]() : 
         Promise.reject(new Error(`Icon ${name} (${iconKey}) not found`));
         
       return importPromise.catch(err => {
