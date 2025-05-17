@@ -102,13 +102,18 @@ export function createStaticIcon(
     const fallback = document.createElement('span');
     fallback.textContent = iconName;
     fallback.style.display = 'inline-block';
-    fallback.style.width = typeof size === 'number' ? `${size}px` : size;
-    fallback.style.height = typeof size === 'number' ? `${size}px` : size;
+    
+    // Make sure we use the config.size here since "size" is not accessible in this scope
+    const displaySize = typeof config.size === 'number' ? `${config.size}px` : config.size || '24px';
+    fallback.style.width = displaySize;
+    fallback.style.height = displaySize;
     fallback.style.border = '1px dashed currentColor';
     fallback.style.borderRadius = '4px';
     fallback.style.padding = '2px';
     fallback.style.fontSize = '10px';
-    fallback.style.color = color || 'currentColor';
+    
+    // Use config.color since "color" is not accessible in this scope
+    fallback.style.color = config.color || 'currentColor';
     fallback.style.textAlign = 'center';
     fallback.style.overflow = 'hidden';
     
