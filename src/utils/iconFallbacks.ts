@@ -1,3 +1,4 @@
+
 /**
  * Static icon fallback system that doesn't depend on React initialization
  * Provides DOM-based icon rendering when React isn't ready yet
@@ -8,7 +9,7 @@ const staticIconUsage: Record<string, number> = {};
 
 // Configuration for static icons
 interface StaticIconConfig {
-  size?: number; // Updated to only accept number
+  size?: string | number; // Updated to accept both string and number
   color?: string;
   className?: string;
   strokeWidth?: number;
@@ -32,7 +33,7 @@ export function createStaticIcon(
     } = config;
     
     // Convert size to pixels for SVG attribute
-    const sizeValue = `${size}px`;
+    const sizeValue = typeof size === 'number' ? `${size}px` : size;
     
     // Create the SVG element
     const svgElement = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
@@ -102,8 +103,8 @@ export function createStaticIcon(
     fallback.textContent = iconName;
     fallback.style.display = 'inline-block';
     
-    // Make sure we use a number for size
-    const displaySize = `${config.size || 24}px`;
+    // Make sure we handle both number and string types for size
+    const displaySize = typeof config.size === 'number' ? `${config.size}px` : config.size || '24px';
     fallback.style.width = displaySize;
     fallback.style.height = displaySize;
     fallback.style.border = '1px dashed currentColor';

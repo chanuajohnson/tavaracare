@@ -11,23 +11,13 @@ const isReactReady = () => {
 
 // Static placeholder while React is initializing or icon is loading
 const IconFallback = ({ name, ...props }: { name: string } & LucideProps) => {
-  // For size, we need to ensure it's properly typed when passed to createStaticIcon
-  // Convert size to a number before passing to createStaticIcon
-  let iconSize: number = 24; // Default size
+  // For size, we need to ensure it's properly handled when passed to createStaticIcon
+  // since createStaticIcon now accepts both string and number
+  const size = props.size !== undefined ? props.size : 24;
   
-  if (props.size !== undefined) {
-    if (typeof props.size === 'number') {
-      iconSize = props.size;
-    } else if (typeof props.size === 'string') {
-      // Parse string to a number or use default if parsing fails
-      const parsed = parseInt(props.size, 10);
-      iconSize = isNaN(parsed) ? 24 : parsed;
-    }
-  }
-  
-  // We now have iconSize as a proper number type
+  // We now pass size directly as it can be string or number in the updated createStaticIcon
   const staticIcon = createStaticIcon(name, {
-    size: iconSize, // Pass iconSize as a number
+    size: size,
     color: props.color || 'currentColor',
     strokeWidth: props.strokeWidth || 2,
     className: props.className || ''

@@ -1,4 +1,3 @@
-
 import React, { lazy, Suspense, SVGProps, FC, ReactNode, useState, useEffect, useRef } from 'react';
 import { createStaticIcon, trackStaticIconUsage } from './iconFallbacks';
 
