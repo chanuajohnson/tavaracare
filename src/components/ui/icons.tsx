@@ -1,3 +1,4 @@
+
 import React, { lazy, Suspense, useState, useEffect } from 'react';
 import { LucideProps } from 'lucide-react';
 import dynamicIconImports from 'lucide-react/dynamicIconImports';
@@ -11,13 +12,13 @@ const isReactReady = () => {
 
 // Static placeholder while React is initializing or icon is loading
 const IconFallback = ({ name, ...props }: { name: string } & LucideProps) => {
-  // For size, ensure it's converted to a number if it's a string
-  const sizeValue = props.size !== undefined ? props.size : 24;
+  // For size, we need to ensure it's properly handled when passed to createStaticIcon
+  // since createStaticIcon now accepts both string and number
+  const size = props.size !== undefined ? props.size : 24;
   
-  // Here's the fix: since LucideProps expects size as number, we'll handle the conversion here
-  // But pass it directly to createStaticIcon which accepts both types
+  // Pass size directly since iconFallbacks utility has been updated to handle both string and number types
   const staticIcon = createStaticIcon(name, {
-    size: sizeValue, // This handles both string and number since iconFallbacks accepts both
+    size, // This passes the size value which can be either string or number
     color: props.color || 'currentColor',
     strokeWidth: props.strokeWidth || 2,
     className: props.className || ''
