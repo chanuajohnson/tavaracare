@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 
 type ReceiptFormat = 'pdf' | 'jpg';
@@ -17,20 +16,27 @@ export const useReceiptFormat = (
       // Reset error state
       setConversionError(null);
       
-      // If format is PDF or the URL is already a PDF, just use the receipt URL directly
-      if (fileFormat === 'pdf' || initialReceiptUrl.startsWith('data:application/pdf')) {
+      // Handle preview URLs based on format
+      if (fileFormat === 'pdf') {
+        // For PDF format, always use the original receipt URL
         setPreviewUrl(initialReceiptUrl);
         setIsConverting(false);
-      } 
-      // If we have a JPG URL and we want JPG format
-      else if (fileFormat === 'jpg' && initialReceiptUrl.startsWith('data:image/jpeg')) {
-        setPreviewUrl(initialReceiptUrl);
-        setIsConverting(false);
-      }
-      // Default fallback - just use the URL as is
-      else {
-        setPreviewUrl(initialReceiptUrl);
-        setIsConverting(false);
+      } else if (fileFormat === 'jpg') {
+        // For JPG format
+        if (initialReceiptUrl.startsWith('data:image/jpeg')) {
+          // If we already have a JPG, use it directly
+          setPreviewUrl(initialReceiptUrl);
+          setIsConverting(false);
+        } else if (initialReceiptUrl.startsWith('data:application/pdf')) {
+          // If we have a PDF but want JPG, keep the PDF URL for now
+          // The actual conversion will happen in ShareReceiptDialog
+          setPreviewUrl(initialReceiptUrl);
+          setIsConverting(false);
+        } else {
+          // For any other format, just use what we have
+          setPreviewUrl(initialReceiptUrl);
+          setIsConverting(false);
+        }
       }
     } else {
       setPreviewUrl(null);
@@ -38,9 +44,19 @@ export const useReceiptFormat = (
     }
   }, [initialReceiptUrl, fileFormat]);
 
+  // Define a helper to update file format with proper type checking
+  const updateFileFormat = (newFormat: ReceiptFormat) => {
+    if (newFormat === 'pdf' || newFormat === 'jpg') {
+      setFileFormat(newFormat);
+    } else {
+      console.error(`Invalid format: ${newFormat}, using default 'pdf'`);
+      setFileFormat('pdf');
+    }
+  };
+
   return {
     fileFormat,
-    setFileFormat,
+    setFileFormat: updateFileFormat,
     isConverting,
     setIsConverting,
     previewUrl,

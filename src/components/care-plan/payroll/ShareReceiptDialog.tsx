@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import useReceiptFormat from "@/hooks/payroll/useReceiptFormat";
 import type { WorkLog, PayrollEntry } from '@/services/care-plans/types/workLogTypes';
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface ShareReceiptDialogProps {
   open: boolean;
@@ -29,6 +30,7 @@ export const ShareReceiptDialog: React.FC<ShareReceiptDialogProps> = ({
   const [email, setEmail] = useState('');
   const [isDownloading, setIsDownloading] = useState(false);
   const [isConverting, setIsConverting] = useState(false);
+  const [conversionAttempted, setConversionAttempted] = useState(false);
   const { 
     fileFormat, 
     setFileFormat, 
@@ -37,21 +39,35 @@ export const ShareReceiptDialog: React.FC<ShareReceiptDialogProps> = ({
     setConversionError 
   } = useReceiptFormat(receiptUrl);
   
-  // Function to convert PDF to JPG directly in the component
+  // Function to convert PDF to JPG with enhanced error handling
   const convertPdfToJpg = async (pdfDataUrl: string): Promise<string> => {
     try {
       setIsConverting(true);
       setConversionError(null);
+      setConversionAttempted(true);
       
       // Dynamically import pdfjs only when needed
       const pdfjs = await import('pdfjs-dist');
       
-      // Set worker source using a direct CDN path
+      // Set worker source with better error handling and fallbacks
       if (!window.pdfjsWorker) {
-        // Configure the worker source directly with the version from pdfjs
-        const workerSrc = `https://cdn.jsdelivr.net/npm/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.js`;
-        pdfjs.GlobalWorkerOptions.workerSrc = workerSrc;
-        window.pdfjsWorker = true;
+        try {
+          // First try with the version-specific CDN path
+          const workerSrc = `https://cdn.jsdelivr.net/npm/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.js`;
+          pdfjs.GlobalWorkerOptions.workerSrc = workerSrc;
+          window.pdfjsWorker = true;
+        } catch (workerError) {
+          console.error('Error loading PDF.js worker from CDN:', workerError);
+          
+          // Fallback to a reliable CDN if version-specific fails
+          try {
+            pdfjs.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
+            window.pdfjsWorker = true;
+          } catch (fallbackError) {
+            console.error('Error loading fallback PDF.js worker:', fallbackError);
+            throw new Error('Failed to load PDF.js worker');
+          }
+        }
       }
       
       // Convert base64 to array buffer
@@ -66,9 +82,19 @@ export const ShareReceiptDialog: React.FC<ShareReceiptDialogProps> = ({
         bytes[i] = binaryData.charCodeAt(i);
       }
       
-      // Load PDF document
+      // Load PDF document with timeout
+      const loadTimeout = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('PDF loading timed out')), 10000);
+      });
+      
       const loadingTask = pdfjs.getDocument({ data: bytes });
-      const pdf = await loadingTask.promise;
+      
+      // Use Promise.race to implement timeout
+      const pdf = await Promise.race([
+        loadingTask.promise,
+        loadTimeout
+      ]) as any;
+      
       console.log(`PDF loaded successfully. Number of pages: ${pdf.numPages}`);
       
       // Get first page
@@ -91,13 +117,21 @@ export const ShareReceiptDialog: React.FC<ShareReceiptDialogProps> = ({
       context.fillStyle = 'white';
       context.fillRect(0, 0, canvas.width, canvas.height);
       
-      // Render PDF page to canvas
+      // Render PDF page to canvas with timeout
       const renderContext = {
         canvasContext: context,
         viewport: viewport
       };
       
-      await page.render(renderContext).promise;
+      const renderTimeout = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('PDF rendering timed out')), 10000);
+      });
+      
+      await Promise.race([
+        page.render(renderContext).promise,
+        renderTimeout
+      ]);
+      
       console.log('PDF page rendered to canvas successfully');
       
       // Convert canvas to JPG
@@ -189,6 +223,7 @@ export const ShareReceiptDialog: React.FC<ShareReceiptDialogProps> = ({
   // When format changes, handle conversion
   const handleFormatChange = async (value: FileFormat) => {
     setFileFormat(value);
+    setConversionAttempted(false);
     
     // If changing to JPG and we have a PDF, perform conversion
     if (value === 'jpg' && receiptUrl?.startsWith('data:application/pdf')) {
@@ -205,6 +240,14 @@ export const ShareReceiptDialog: React.FC<ShareReceiptDialogProps> = ({
       }
     }
   };
+
+  // Reset conversion state when dialog opens or closes
+  useEffect(() => {
+    if (open) {
+      setConversionAttempted(false);
+      setConversionError(null);
+    }
+  }, [open]);
 
   const renderPreview = () => {
     if (isConverting) {
@@ -223,7 +266,18 @@ export const ShareReceiptDialog: React.FC<ShareReceiptDialogProps> = ({
         <div className="flex items-center justify-center h-64 bg-gray-100">
           <Alert variant="destructive" className="max-w-xs">
             <AlertCircle className="h-4 w-4" />
-            <AlertDescription>{conversionError}</AlertDescription>
+            <AlertDescription>
+              {conversionError}
+              {conversionAttempted && (
+                <Button 
+                  variant="link" 
+                  onClick={() => setFileFormat('pdf')}
+                  className="mt-2 p-0 text-xs"
+                >
+                  Switch to PDF format
+                </Button>
+              )}
+            </AlertDescription>
           </Alert>
         </div>
       );
@@ -237,7 +291,7 @@ export const ShareReceiptDialog: React.FC<ShareReceiptDialogProps> = ({
       );
     }
     
-    if (fileFormat === 'pdf' || !previewUrl.startsWith('data:image/jpeg')) {
+    if (fileFormat === 'pdf' || previewUrl.startsWith('data:application/pdf')) {
       return (
         <iframe 
           src={previewUrl} 
@@ -245,7 +299,7 @@ export const ShareReceiptDialog: React.FC<ShareReceiptDialogProps> = ({
           title="Receipt Preview"
         />
       );
-    } else {
+    } else if (previewUrl.startsWith('data:image/jpeg')) {
       return (
         <img 
           src={previewUrl} 
@@ -253,6 +307,9 @@ export const ShareReceiptDialog: React.FC<ShareReceiptDialogProps> = ({
           className="w-full h-64 object-contain"
         />
       );
+    } else {
+      // For any other format or loading state
+      return <Skeleton className="w-full h-64" />;
     }
   };
 
