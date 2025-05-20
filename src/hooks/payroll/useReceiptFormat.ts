@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 
 type ReceiptFormat = 'pdf' | 'jpg';
@@ -27,9 +26,8 @@ export const useReceiptFormat = (
           setPreviewUrl(initialReceiptUrl);
           setIsConverting(false);
         } else if (initialReceiptUrl.startsWith('data:application/pdf')) {
-          // For PDF we'll need to convert - but don't do it here
-          // The conversion happens in the ShareReceiptDialog component now
-          setPreviewUrl(initialReceiptUrl); // Keep showing PDF until converted
+          // For PDF, we'll just keep the URL as is - conversion happens in ShareReceiptDialog
+          setPreviewUrl(initialReceiptUrl);
           setIsConverting(false);
         } else {
           setPreviewUrl(initialReceiptUrl);

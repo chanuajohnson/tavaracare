@@ -46,11 +46,10 @@ export const ShareReceiptDialog: React.FC<ShareReceiptDialogProps> = ({
       // Dynamically import pdfjs only when needed
       const pdfjs = await import('pdfjs-dist');
       
-      // Set worker source using a local path instead of CDN
+      // Set worker source using a direct path
       if (!window.pdfjsWorker) {
-        // Load the worker from node_modules
-        const pdfjsWorker = await import('pdfjs-dist/build/pdf.worker.entry');
-        pdfjs.GlobalWorkerOptions.workerSrc = pdfjsWorker;
+        // Configure the worker source directly
+        pdfjs.GlobalWorkerOptions.workerSrc = `https://cdn.jsdelivr.net/npm/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.js`;
         window.pdfjsWorker = true;
       }
       
