@@ -2,12 +2,12 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
-import { MessageSquare } from 'lucide-react';
 import { useChat } from './ChatProvider';
 import { ChatbotWidget } from './ChatbotWidget';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { toast } from 'sonner';
+import { MessageSquareIcon, XIcon } from '@/utils/lazyIcons';
 
 interface ChatbotLauncherProps {
   position?: 'left-of-fab' | 'bottom-right' | 'bottom-left' | 'above-fab';
@@ -24,7 +24,7 @@ export const ChatbotLauncher: React.FC<ChatbotLauncherProps> = (props) => {
     console.error("ChatbotLauncher error:", error);
     return (
       <motion.div 
-        className="fixed bottom-24 right-6 z-50 safe-bottom"
+        className="fixed bottom-24 right-6 z-50"
         initial={{ scale: 0.8, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
       >
@@ -33,7 +33,7 @@ export const ChatbotLauncher: React.FC<ChatbotLauncherProps> = (props) => {
           size="icon"
           className="h-14 w-14 rounded-full shadow-lg bg-primary hover:bg-primary/90"
         >
-          <MessageSquare size={24} />
+          <MessageSquareIcon size={24} />
         </Button>
       </motion.div>
     );
@@ -74,15 +74,15 @@ const ChatbotLauncherInner: React.FC<ChatbotLauncherProps> = ({
     
     switch(position) {
       case 'left-of-fab':
-        return `fixed bottom-[calc(${mobileSpacing}px + ${safeBottomSpacing})] right-[calc(${fabWidth + mobileSpacing * 2}px + env(safe-area-inset-right, 0px))]`;
+        return `fixed bottom-[calc(${mobileSpacing}px + ${safeBottomSpacing})] right-[calc(${fabWidth}px+${mobileSpacing}px+env(safe-area-inset-right, 0px))]`;
       case 'above-fab':
-        return `fixed bottom-[calc(${fabHeight + mobileSpacing * 2}px + ${safeBottomSpacing})] right-[calc(${mobileSpacing}px + env(safe-area-inset-right, 0px))]`;
+        return `fixed bottom-[calc(${fabHeight}px+${mobileSpacing}px+56px+${safeBottomSpacing})] right-[calc(${mobileSpacing}px+env(safe-area-inset-right, 0px))]`;
       case 'bottom-right':
-        return `fixed bottom-[calc(${mobileSpacing}px + ${safeBottomSpacing})] right-[calc(${mobileSpacing}px + env(safe-area-inset-right, 0px))]`;
+        return `fixed bottom-[calc(${mobileSpacing}px + ${safeBottomSpacing})] right-[calc(${mobileSpacing}px+env(safe-area-inset-right, 0px))]`;
       case 'bottom-left':
-        return `fixed bottom-[calc(${mobileSpacing}px + ${safeBottomSpacing})] left-[calc(${mobileSpacing}px + env(safe-area-inset-left, 0px))]`;
+        return `fixed bottom-[calc(${mobileSpacing}px + ${safeBottomSpacing})] left-[calc(${mobileSpacing}px+env(safe-area-inset-left, 0px))]`;
       default:
-        return `fixed bottom-[calc(${mobileSpacing}px + ${safeBottomSpacing})] right-[calc(${mobileSpacing}px + env(safe-area-inset-right, 0px))]`;
+        return `fixed bottom-[calc(${mobileSpacing}px + ${safeBottomSpacing})] right-[calc(${mobileSpacing}px+env(safe-area-inset-right, 0px))]`;
     }
   };
 
@@ -101,7 +101,7 @@ const ChatbotLauncherInner: React.FC<ChatbotLauncherProps> = ({
             size="icon"
             className={cn("h-14 w-14 rounded-full shadow-lg bg-primary hover:bg-primary/90", className)}
           >
-            <MessageSquare size={24} />
+            <MessageSquareIcon size={24} />
           </Button>
         </motion.div>
       )}

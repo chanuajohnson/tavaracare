@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, lazy, Suspense } from "react";
 import { Button } from "@/components/ui/button";
-import { HelpCircle, X, MessageSquare, FileQuestion, Phone, Loader2 } from "lucide-react";
+import { HelpCircleIcon, XIcon, MessageSquareIcon, FileQuestionIcon, PhoneIcon, Loader2Icon } from "@/utils/lazyIcons";
 import { cn } from "@/lib/utils";
 import {
   DropdownMenu,
@@ -26,7 +26,7 @@ interface FabProps {
 }
 
 export const Fab = ({
-  icon = <HelpCircle className="h-5 w-5" />,
+  icon = <HelpCircleIcon className="h-5 w-5" />,
   onClick,
   className,
   position = "bottom-right",
@@ -219,201 +219,202 @@ export const Fab = ({
     }
   };
 
-  if (!showMenu) {
-    return (
-      <Button
-        onClick={onClick}
-        size="icon"
-        className={cn(
-          "fixed z-50 rounded-full w-14 h-14 shadow-lg flex items-center justify-center transition-all hover:scale-105",
-          positionClasses[position],
-          className
-        )}
-        aria-label={label || "Action button"}
-      >
-        {icon}
-      </Button>
-    );
-  }
-
+  // Wrap in a Suspense boundary to protect against React lazy loading errors
   return (
-    <>
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button
-            size="icon"
-            className={cn(
-              "fixed z-50 rounded-full w-14 h-14 shadow-lg flex items-center justify-center transition-all hover:scale-105",
-              positionClasses[position],
-              className
-            )}
-            aria-label={label || "Support options"}
-          >
-            {icon}
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-56 p-2">
-          <DropdownMenuItem
-            className="flex items-center gap-2 cursor-pointer p-3 text-base"
-            onClick={handleFAQClick}
-          >
-            <FileQuestion className="h-5 w-5" />
-            <span>FAQ Section</span>
-          </DropdownMenuItem>
-          <DropdownMenuItem 
-            className="flex items-center gap-2 cursor-pointer p-3 text-base"
-            onClick={handleOpenWhatsApp}
-          >
-            <Phone className="h-5 w-5" />
-            <span>WhatsApp Support</span>
-          </DropdownMenuItem>
-          <DropdownMenuItem
-            className="flex items-center gap-2 cursor-pointer p-3 text-base"
-            onClick={() => setIsContactFormOpen(true)}
-          >
-            <MessageSquare className="h-5 w-5" />
-            <span>Contact Form</span>
-          </DropdownMenuItem>
-          <DropdownMenuItem
-            className="flex items-center gap-2 cursor-pointer p-3 text-base"
-            onClick={toggleChat}
-          >
-            <MessageSquare className="h-5 w-5" />
-            <span>Chat with Assistant</span>
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
-
-      {isContactFormOpen && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-bold">Contact Support</h2>
+    <Suspense fallback={null}>
+      {!showMenu ? (
+        <Button
+          onClick={onClick}
+          size="icon"
+          className={cn(
+            "fixed z-50 rounded-full w-14 h-14 shadow-lg flex items-center justify-center transition-all hover:scale-105",
+            positionClasses[position],
+            className
+          )}
+          aria-label={label || "Action button"}
+        >
+          {icon}
+        </Button>
+      ) : (
+        <>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
               <Button
-                variant="ghost"
                 size="icon"
-                onClick={() => setIsContactFormOpen(false)}
-                disabled={isSubmitting}
-              >
-                <X className="h-5 w-5" />
-              </Button>
-            </div>
-            <form onSubmit={handleContactFormSubmit}>
-              <div className="space-y-4">
-                <div>
-                  <label htmlFor="name" className="block text-sm font-medium mb-1">
-                    Name
-                  </label>
-                  <input
-                    id="name"
-                    name="name"
-                    type="text"
-                    required
-                    value={contactFormData.name}
-                    onChange={handleInputChange}
-                    className="w-full p-2 border rounded"
-                    disabled={isSubmitting}
-                  />
-                </div>
-                <div>
-                  <label htmlFor="email" className="block text-sm font-medium mb-1">
-                    Email
-                  </label>
-                  <input
-                    id="email"
-                    name="email"
-                    type="email"
-                    required
-                    value={contactFormData.email}
-                    onChange={handleInputChange}
-                    className="w-full p-2 border rounded"
-                    disabled={isSubmitting}
-                  />
-                </div>
-                <div>
-                  <label htmlFor="message" className="block text-sm font-medium mb-1">
-                    Issue Description
-                  </label>
-                  <Textarea
-                    id="message"
-                    name="message"
-                    required
-                    value={contactFormData.message}
-                    onChange={handleInputChange}
-                    className="w-full p-2 border rounded"
-                    rows={4}
-                    disabled={isSubmitting}
-                  />
-                </div>
-                <div>
-                  <label htmlFor="screenshot" className="block text-sm font-medium mb-1">
-                    Screenshot (optional)
-                  </label>
-                  <input
-                    id="screenshot"
-                    name="screenshot"
-                    type="file"
-                    accept="image/*"
-                    className="w-full p-2 border rounded"
-                    onChange={handleFileChange}
-                    disabled={isSubmitting}
-                  />
-                  {screenshotFile && (
-                    <p className="text-xs text-green-600 mt-1">
-                      Screenshot selected: {screenshotFile.name}
-                    </p>
-                  )}
-                </div>
-                {prefillData && (
-                  <div className="bg-blue-50 p-2 rounded text-xs">
-                    <p>Including chat session data with your request</p>
-                  </div>
+                className={cn(
+                  "fixed z-50 rounded-full w-14 h-14 shadow-lg flex items-center justify-center transition-all hover:scale-105",
+                  positionClasses[position],
+                  className
                 )}
+                aria-label={label || "Support options"}
+              >
+                {icon}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56 p-2">
+              <DropdownMenuItem
+                className="flex items-center gap-2 cursor-pointer p-3 text-base"
+                onClick={handleFAQClick}
+              >
+                <FileQuestionIcon className="h-5 w-5" />
+                <span>FAQ Section</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem 
+                className="flex items-center gap-2 cursor-pointer p-3 text-base"
+                onClick={handleOpenWhatsApp}
+              >
+                <PhoneIcon className="h-5 w-5" />
+                <span>WhatsApp Support</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                className="flex items-center gap-2 cursor-pointer p-3 text-base"
+                onClick={() => setIsContactFormOpen(true)}
+              >
+                <MessageSquareIcon className="h-5 w-5" />
+                <span>Contact Form</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                className="flex items-center gap-2 cursor-pointer p-3 text-base"
+                onClick={toggleChat}
+              >
+                <MessageSquareIcon className="h-5 w-5" />
+                <span>Chat with Assistant</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          {isContactFormOpen && (
+            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+              <div className="bg-white rounded-lg p-6 w-full max-w-md">
+                <div className="flex justify-between items-center mb-4">
+                  <h2 className="text-xl font-bold">Contact Support</h2>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setIsContactFormOpen(false)}
+                    disabled={isSubmitting}
+                  >
+                    <XIcon className="h-5 w-5" />
+                  </Button>
+                </div>
+                <form onSubmit={handleContactFormSubmit}>
+                  <div className="space-y-4">
+                    <div>
+                      <label htmlFor="name" className="block text-sm font-medium mb-1">
+                        Name
+                      </label>
+                      <input
+                        id="name"
+                        name="name"
+                        type="text"
+                        required
+                        value={contactFormData.name}
+                        onChange={handleInputChange}
+                        className="w-full p-2 border rounded"
+                        disabled={isSubmitting}
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="email" className="block text-sm font-medium mb-1">
+                        Email
+                      </label>
+                      <input
+                        id="email"
+                        name="email"
+                        type="email"
+                        required
+                        value={contactFormData.email}
+                        onChange={handleInputChange}
+                        className="w-full p-2 border rounded"
+                        disabled={isSubmitting}
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="message" className="block text-sm font-medium mb-1">
+                        Issue Description
+                      </label>
+                      <Textarea
+                        id="message"
+                        name="message"
+                        required
+                        value={contactFormData.message}
+                        onChange={handleInputChange}
+                        className="w-full p-2 border rounded"
+                        rows={4}
+                        disabled={isSubmitting}
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="screenshot" className="block text-sm font-medium mb-1">
+                        Screenshot (optional)
+                      </label>
+                      <input
+                        id="screenshot"
+                        name="screenshot"
+                        type="file"
+                        accept="image/*"
+                        className="w-full p-2 border rounded"
+                        onChange={handleFileChange}
+                        disabled={isSubmitting}
+                      />
+                      {screenshotFile && (
+                        <p className="text-xs text-green-600 mt-1">
+                          Screenshot selected: {screenshotFile.name}
+                        </p>
+                      )}
+                    </div>
+                    {prefillData && (
+                      <div className="bg-blue-50 p-2 rounded text-xs">
+                        <p>Including chat session data with your request</p>
+                      </div>
+                    )}
+                  </div>
+                  <div className="mt-6 flex justify-end space-x-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setIsContactFormOpen(false)}
+                      disabled={isSubmitting}
+                    >
+                      Cancel
+                    </Button>
+                    <Button type="submit" disabled={isSubmitting}>
+                      {isSubmitting ? (
+                        <>
+                          <Loader2Icon className="mr-2 h-4 w-4 animate-spin" />
+                          Sending...
+                        </>
+                      ) : (
+                        "Submit"
+                      )}
+                    </Button>
+                  </div>
+                </form>
               </div>
-              <div className="mt-6 flex justify-end space-x-2">
+            </div>
+          )}
+          
+          {/* Chat widget - improved positioning and responsiveness for mobile */}
+          {isChatOpen && (
+            <div className={`fixed z-50 ${isMobile ? "inset-x-4 bottom-24" : "right-6 bottom-24"}`}>
+              <div className="relative">
                 <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setIsContactFormOpen(false)}
-                  disabled={isSubmitting}
+                  size="icon"
+                  variant="ghost"
+                  className="absolute -right-2 -top-2 h-6 w-6 rounded-full bg-background border shadow-sm z-10"
+                  onClick={toggleChat}
                 >
-                  Cancel
+                  <XIcon size={14} />
                 </Button>
-                <Button type="submit" disabled={isSubmitting}>
-                  {isSubmitting ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Sending...
-                    </>
-                  ) : (
-                    "Submit"
-                  )}
-                </Button>
+                <ChatbotWidget 
+                  width={isMobile ? "100%" : "350px"}
+                  onClose={toggleChat}
+                />
               </div>
-            </form>
-          </div>
-        </div>
+            </div>
+          )}
+        </>
       )}
-      
-      {/* Chat widget - improved positioning and responsiveness for mobile */}
-      {isChatOpen && (
-        <div className={`fixed z-50 ${isMobile ? "inset-x-4 bottom-24" : "right-6 bottom-24"}`}>
-          <div className="relative">
-            <Button
-              size="icon"
-              variant="ghost"
-              className="absolute -right-2 -top-2 h-6 w-6 rounded-full bg-background border shadow-sm z-10"
-              onClick={toggleChat}
-            >
-              <X size={14} />
-            </Button>
-            <ChatbotWidget 
-              width={isMobile ? "100%" : "350px"}
-              onClose={toggleChat}
-            />
-          </div>
-        </div>
-      )}
-    </>
+    </Suspense>
   );
 };

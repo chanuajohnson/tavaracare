@@ -1,4 +1,3 @@
-import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,6 +7,7 @@ import { UpvoteFeatureButton } from "@/components/features/UpvoteFeatureButton";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { DashboardCardGrid } from "@/components/dashboard/DashboardCardGrid";
+import { useState, useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { toast } from "sonner";
@@ -36,7 +36,6 @@ const FamilyDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const navigate = useNavigate();
-
   useEffect(() => {
     if (user) {
       fetchMessages();
@@ -44,7 +43,6 @@ const FamilyDashboard = () => {
       setLoading(false);
     }
   }, [user]);
-
   const fetchMessages = async () => {
     try {
       setLoading(true);
@@ -68,7 +66,6 @@ const FamilyDashboard = () => {
       setLoading(false);
     }
   };
-
   const refreshData = async () => {
     try {
       setRefreshing(true);
@@ -97,7 +94,6 @@ const FamilyDashboard = () => {
       setRefreshing(false);
     }
   };
-
   const formatTimePosted = timestamp => {
     if (!timestamp) return "Unknown";
     const posted = new Date(timestamp);
@@ -109,7 +105,6 @@ const FamilyDashboard = () => {
     if (diffInHours < 48) return "Yesterday";
     return `${Math.floor(diffInHours / 24)} days ago`;
   };
-
   const handleViewFullBoard = () => {
     navigate('/subscription-features', {
       state: {
@@ -118,7 +113,6 @@ const FamilyDashboard = () => {
       }
     });
   };
-
   const handleViewAllTasks = () => {
     navigate('/subscription-features', {
       state: {
@@ -129,7 +123,6 @@ const FamilyDashboard = () => {
       }
     });
   };
-
   return <div className="min-h-screen bg-background">
       <DashboardTracker dashboardType="family" />
       <div className="container px-4 py-8">
@@ -593,5 +586,4 @@ const FamilyDashboard = () => {
       </div>
     </div>;
 };
-
 export default FamilyDashboard;

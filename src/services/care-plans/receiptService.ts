@@ -1,12 +1,8 @@
-
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { format } from 'date-fns';
 import { supabase } from '@/lib/supabase';
 import type { WorkLog, PayrollEntry } from './types/workLogTypes';
-import * as pdfjs from 'pdfjs-dist';
-
-pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
 
 type ReceiptEntry = WorkLog | PayrollEntry;
 type ReceiptFormat = 'pdf' | 'jpg';
@@ -353,66 +349,6 @@ const generateConsolidatedReceiptContent = async (doc: jsPDF, entries: PayrollEn
   }
 };
 
-const convertPdfToJpg = async (pdfData: string): Promise<string> => {
-  try {
-    console.log('Starting PDF to JPG conversion with PDF.js');
-    
-    const base64Content = pdfData.split(',')[1];
-    if (!base64Content) {
-      console.error('Invalid PDF data URL format');
-      return pdfData;
-    }
-    
-    const binaryData = atob(base64Content);
-    const bytes = new Uint8Array(binaryData.length);
-    for (let i = 0; i < binaryData.length; i++) {
-      bytes[i] = binaryData.charCodeAt(i);
-    }
-    
-    const loadingTask = pdfjs.getDocument({ data: bytes });
-    const pdf = await loadingTask.promise;
-    console.log(`PDF loaded successfully. Number of pages: ${pdf.numPages}`);
-    
-    const page = await pdf.getPage(1);
-    
-    const scale = 2.0;
-    const viewport = page.getViewport({ scale });
-    
-    const canvas = document.createElement('canvas');
-    canvas.width = viewport.width;
-    canvas.height = viewport.height;
-    
-    const context = canvas.getContext('2d');
-    if (!context) {
-      console.error('Could not get canvas context');
-      return pdfData;
-    }
-    
-    context.fillStyle = 'white';
-    context.fillRect(0, 0, canvas.width, canvas.height);
-    
-    const renderContext = {
-      canvasContext: context,
-      viewport: viewport
-    };
-    
-    await page.render(renderContext).promise;
-    console.log('PDF page rendered successfully');
-    
-    try {
-      const jpgData = canvas.toDataURL('image/jpeg', 0.95);
-      console.log('Canvas converted to JPG successfully');
-      return jpgData;
-    } catch (error) {
-      console.error('Error converting canvas to JPG:', error);
-      return pdfData;
-    }
-  } catch (error) {
-    console.error('Error in PDF to JPG conversion:', error);
-    return pdfData;
-  }
-};
-
 export const generatePayReceipt = async (
   entry: ReceiptEntry, 
   format: ReceiptFormat = 'pdf'
@@ -421,15 +357,17 @@ export const generatePayReceipt = async (
     const doc = new jsPDF();
     await generateReceipt(doc, entry);
     
+    // For PDF we only need to return the data URI
     const pdfData = doc.output('datauristring');
     
-    if (format === 'jpg') {
-      console.log('Converting PDF to JPG...');
-      const jpgData = await convertPdfToJpg(pdfData);
-      console.log('JPG conversion complete');
-      return jpgData;
+    // If format is PDF, return PDF data directly
+    if (format === 'pdf') {
+      return pdfData;
     }
     
+    // For JPG, we'll still return PDF data and handle conversion in the component
+    // This is because PDF.js is not easily importable here
+    console.log('PDF generation complete, JPG conversion will be handled at the component level');
     return pdfData;
   } catch (error) {
     console.error("Error generating receipt:", error);
@@ -449,15 +387,17 @@ export const generateConsolidatedReceipt = async (
     const doc = new jsPDF();
     await generateConsolidatedReceiptContent(doc, entries);
     
+    // For PDF we only need to return the data URI
     const pdfData = doc.output('datauristring');
     
-    if (format === 'jpg') {
-      console.log('Converting consolidated PDF to JPG...');
-      const jpgData = await convertPdfToJpg(pdfData);
-      console.log('Consolidated JPG conversion complete');
-      return jpgData;
+    // If format is PDF, return PDF data directly
+    if (format === 'pdf') {
+      return pdfData;
     }
     
+    // For JPG, we'll still return PDF data and handle conversion in the component
+    // This is because PDF.js is not easily importable here
+    console.log('Consolidated PDF generation complete, JPG conversion will be handled at the component level');
     return pdfData;
   } catch (error) {
     console.error("Error generating consolidated receipt:", error);

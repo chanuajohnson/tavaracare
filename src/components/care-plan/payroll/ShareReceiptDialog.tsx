@@ -10,9 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import useReceiptFormat from "@/hooks/payroll/useReceiptFormat";
 import type { WorkLog, PayrollEntry } from '@/services/care-plans/types/workLogTypes';
-
-// Import pdfjs dynamically to avoid module loading issues
-let pdfjs: any = null;
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface ShareReceiptDialogProps {
   open: boolean;
@@ -31,8 +29,8 @@ export const ShareReceiptDialog: React.FC<ShareReceiptDialogProps> = ({
 }) => {
   const [email, setEmail] = useState('');
   const [isDownloading, setIsDownloading] = useState(false);
-  // Add state for converting
   const [isConverting, setIsConverting] = useState(false);
+  const [conversionAttempted, setConversionAttempted] = useState(false);
   const { 
     fileFormat, 
     setFileFormat, 
@@ -40,31 +38,40 @@ export const ShareReceiptDialog: React.FC<ShareReceiptDialogProps> = ({
     conversionError, 
     setConversionError 
   } = useReceiptFormat(receiptUrl);
-
-  // Load PDF.js dynamically when needed
-  useEffect(() => {
-    if (open && fileFormat === 'jpg' && receiptUrl?.startsWith('data:application/pdf')) {
-      // Only load PDF.js when we actually need to convert a PDF
-      import('pdfjs-dist').then(module => {
-        pdfjs = module;
-        // Set the worker source URL
-        pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
-      }).catch(error => {
-        console.error('Error loading PDF.js library:', error);
-        setConversionError('Failed to load PDF conversion library. Please try again or use PDF format.');
-      });
-    }
-  }, [open, fileFormat, receiptUrl, setConversionError]);
-
-  const convertPdfToJpg = async (pdfData: string): Promise<string> => {
+  
+  // Function to convert PDF to JPG with enhanced error handling
+  const convertPdfToJpg = async (pdfDataUrl: string): Promise<string> => {
     try {
-      console.log('Starting PDF to JPG conversion with PDF.js');
+      setIsConverting(true);
+      setConversionError(null);
+      setConversionAttempted(true);
       
-      if (!pdfjs) {
-        throw new Error('PDF.js library not loaded');
+      // Dynamically import pdfjs only when needed
+      const pdfjs = await import('pdfjs-dist');
+      
+      // Set worker source with better error handling and fallbacks
+      if (!window.pdfjsWorker) {
+        try {
+          // First try with the version-specific CDN path
+          const workerSrc = `https://cdn.jsdelivr.net/npm/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.js`;
+          pdfjs.GlobalWorkerOptions.workerSrc = workerSrc;
+          window.pdfjsWorker = true;
+        } catch (workerError) {
+          console.error('Error loading PDF.js worker from CDN:', workerError);
+          
+          // Fallback to a reliable CDN if version-specific fails
+          try {
+            pdfjs.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
+            window.pdfjsWorker = true;
+          } catch (fallbackError) {
+            console.error('Error loading fallback PDF.js worker:', fallbackError);
+            throw new Error('Failed to load PDF.js worker');
+          }
+        }
       }
       
-      const base64Content = pdfData.split(',')[1];
+      // Convert base64 to array buffer
+      const base64Content = pdfDataUrl.split(',')[1];
       if (!base64Content) {
         throw new Error('Invalid PDF data URL format');
       }
@@ -75,12 +82,25 @@ export const ShareReceiptDialog: React.FC<ShareReceiptDialogProps> = ({
         bytes[i] = binaryData.charCodeAt(i);
       }
       
+      // Load PDF document with timeout
+      const loadTimeout = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('PDF loading timed out')), 10000);
+      });
+      
       const loadingTask = pdfjs.getDocument({ data: bytes });
-      const pdf = await loadingTask.promise;
+      
+      // Use Promise.race to implement timeout
+      const pdf = await Promise.race([
+        loadingTask.promise,
+        loadTimeout
+      ]) as any;
+      
       console.log(`PDF loaded successfully. Number of pages: ${pdf.numPages}`);
       
+      // Get first page
       const page = await pdf.getPage(1);
       
+      // Set up canvas
       const scale = 2.0;
       const viewport = page.getViewport({ scale });
       
@@ -93,44 +113,35 @@ export const ShareReceiptDialog: React.FC<ShareReceiptDialogProps> = ({
         throw new Error('Could not get canvas context');
       }
       
+      // Set white background
       context.fillStyle = 'white';
       context.fillRect(0, 0, canvas.width, canvas.height);
       
+      // Render PDF page to canvas with timeout
       const renderContext = {
         canvasContext: context,
         viewport: viewport
       };
       
-      await page.render(renderContext).promise;
-      console.log('PDF page rendered successfully');
+      const renderTimeout = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('PDF rendering timed out')), 10000);
+      });
       
-      try {
-        const jpgData = canvas.toDataURL('image/jpeg', 0.95);
-        console.log('Canvas converted to JPG successfully');
-        return jpgData;
-      } catch (error) {
-        console.error('Error converting canvas to JPG:', error);
-        throw new Error('Failed to convert PDF to JPG');
-      }
+      await Promise.race([
+        page.render(renderContext).promise,
+        renderTimeout
+      ]);
+      
+      console.log('PDF page rendered to canvas successfully');
+      
+      // Convert canvas to JPG
+      const jpgData = canvas.toDataURL('image/jpeg', 0.95);
+      console.log('Canvas converted to JPG successfully');
+      
+      return jpgData;
     } catch (error) {
       console.error('Error in PDF to JPG conversion:', error);
       throw error;
-    }
-  };
-
-  const handlePdfToJpgConversion = async () => {
-    if (!receiptUrl) return null;
-    
-    try {
-      setIsConverting(true);
-      setConversionError(null);
-      
-      const jpgData = await convertPdfToJpg(receiptUrl);
-      return jpgData;
-    } catch (error) {
-      console.error('PDF to JPG conversion failed:', error);
-      setConversionError('Failed to convert PDF to JPG. Please try using PDF format instead.');
-      return null;
     } finally {
       setIsConverting(false);
     }
@@ -149,39 +160,51 @@ export const ShareReceiptDialog: React.FC<ShareReceiptDialogProps> = ({
 
     try {
       setIsDownloading(true);
-
-      const link = document.createElement('a');
-      const mimeType = fileFormat === 'pdf' ? 'application/pdf' : 'image/jpeg';
       
-      try {
-        let downloadUrl = receiptUrl;
-        
-        // If we need to convert to JPG
-        if (fileFormat === 'jpg' && receiptUrl.startsWith('data:application/pdf')) {
-          const jpgData = await handlePdfToJpgConversion();
-          if (!jpgData) {
-            throw new Error('Failed to convert PDF to JPG');
-          }
+      let downloadUrl = receiptUrl;
+      let filename = `receipt-${workLog.id.slice(0, 8)}.pdf`;
+      
+      // If we need to convert to JPG and have a PDF
+      if (fileFormat === 'jpg' && receiptUrl.startsWith('data:application/pdf')) {
+        try {
+          console.log('Converting PDF to JPG for download...');
+          const jpgData = await convertPdfToJpg(receiptUrl);
           downloadUrl = jpgData;
+          filename = `receipt-${workLog.id.slice(0, 8)}.jpg`;
+          console.log('Conversion successful, ready for download');
+        } catch (error) {
+          console.error('PDF to JPG conversion failed:', error);
+          setConversionError('Failed to convert PDF to JPG. Downloading as PDF instead.');
+          // Fall back to PDF download
+          downloadUrl = receiptUrl;
+          filename = `receipt-${workLog.id.slice(0, 8)}.pdf`;
         }
-        
-        link.href = downloadUrl;
-        link.download = `receipt-${workLog.id.slice(0, 8)}.${fileFormat}`;
-        
-        // Trigger download
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        
-        toast.success(`Receipt downloaded as ${fileFormat.toUpperCase()}`);
-      } catch (error) {
-        console.error('Download error:', error);
-        toast.error(`Failed to download receipt as ${fileFormat.toUpperCase()}`);
-        setConversionError('Failed to download the receipt. Please try again or use PDF format.');
       }
+      
+      // Create a blob from the data URL
+      const response = await fetch(downloadUrl);
+      const blob = await response.blob();
+      
+      // Use the Blob object and createObjectURL for more reliable downloading
+      const blobUrl = URL.createObjectURL(blob);
+      
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      
+      // Clean up
+      setTimeout(() => {
+        document.body.removeChild(link);
+        URL.revokeObjectURL(blobUrl);
+      }, 100);
+      
+      toast.success(`Receipt downloaded as ${fileFormat.toUpperCase()}`);
     } catch (error) {
-      console.error('Download setup error:', error);
-      toast.error('Failed to prepare receipt for download');
+      console.error('Download error:', error);
+      toast.error(`Failed to download receipt`);
+      setConversionError('Download failed. Please try again or use a different format.');
     } finally {
       setIsDownloading(false);
     }
@@ -196,6 +219,35 @@ export const ShareReceiptDialog: React.FC<ShareReceiptDialogProps> = ({
     toast.success(`Receipt would be sent to ${email}`);
     setEmail('');
   };
+
+  // When format changes, handle conversion
+  const handleFormatChange = async (value: FileFormat) => {
+    setFileFormat(value);
+    setConversionAttempted(false);
+    
+    // If changing to JPG and we have a PDF, perform conversion
+    if (value === 'jpg' && receiptUrl?.startsWith('data:application/pdf')) {
+      try {
+        setIsConverting(true);
+        const jpgData = await convertPdfToJpg(receiptUrl);
+        console.log('Format changed and conversion completed');
+        // The hook will handle setting the preview URL
+      } catch (error) {
+        console.error('Format change conversion failed:', error);
+        setConversionError('Failed to convert PDF to JPG. Please try again or use PDF format.');
+      } finally {
+        setIsConverting(false);
+      }
+    }
+  };
+
+  // Reset conversion state when dialog opens or closes
+  useEffect(() => {
+    if (open) {
+      setConversionAttempted(false);
+      setConversionError(null);
+    }
+  }, [open]);
 
   const renderPreview = () => {
     if (isConverting) {
@@ -214,7 +266,18 @@ export const ShareReceiptDialog: React.FC<ShareReceiptDialogProps> = ({
         <div className="flex items-center justify-center h-64 bg-gray-100">
           <Alert variant="destructive" className="max-w-xs">
             <AlertCircle className="h-4 w-4" />
-            <AlertDescription>{conversionError}</AlertDescription>
+            <AlertDescription>
+              {conversionError}
+              {conversionAttempted && (
+                <Button 
+                  variant="link" 
+                  onClick={() => setFileFormat('pdf')}
+                  className="mt-2 p-0 text-xs"
+                >
+                  Switch to PDF format
+                </Button>
+              )}
+            </AlertDescription>
           </Alert>
         </div>
       );
@@ -228,7 +291,7 @@ export const ShareReceiptDialog: React.FC<ShareReceiptDialogProps> = ({
       );
     }
     
-    if (fileFormat === 'pdf' || !previewUrl.startsWith('data:image/jpeg')) {
+    if (fileFormat === 'pdf' || previewUrl.startsWith('data:application/pdf')) {
       return (
         <iframe 
           src={previewUrl} 
@@ -236,7 +299,7 @@ export const ShareReceiptDialog: React.FC<ShareReceiptDialogProps> = ({
           title="Receipt Preview"
         />
       );
-    } else {
+    } else if (previewUrl.startsWith('data:image/jpeg')) {
       return (
         <img 
           src={previewUrl} 
@@ -244,15 +307,9 @@ export const ShareReceiptDialog: React.FC<ShareReceiptDialogProps> = ({
           className="w-full h-64 object-contain"
         />
       );
-    }
-  };
-
-  const handleFormatChange = async (value: FileFormat) => {
-    setFileFormat(value);
-    
-    // If changing to JPG and we have a PDF, perform conversion
-    if (value === 'jpg' && receiptUrl?.startsWith('data:application/pdf')) {
-      handlePdfToJpgConversion();
+    } else {
+      // For any other format or loading state
+      return <Skeleton className="w-full h-64" />;
     }
   };
 

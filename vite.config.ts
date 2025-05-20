@@ -32,7 +32,6 @@ export default defineConfig(({ mode }) => {
     build: {
       outDir: "dist", // Output to 'dist' directory
       sourcemap: mode === 'development', // Enable sourcemaps in development
-      assetsInlineLimit: 0, // Never inline assets (better for mobile)
     },
     define: {
       // Make environment variables available to client code
