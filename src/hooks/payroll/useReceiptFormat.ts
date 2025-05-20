@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 
 type ReceiptFormat = 'pdf' | 'jpg';
@@ -16,23 +17,20 @@ export const useReceiptFormat = (
       // Reset error state
       setConversionError(null);
       
-      // If format is PDF, just use the receipt URL directly
-      if (fileFormat === 'pdf') {
+      // If format is PDF or the URL is already a PDF, just use the receipt URL directly
+      if (fileFormat === 'pdf' || initialReceiptUrl.startsWith('data:application/pdf')) {
         setPreviewUrl(initialReceiptUrl);
         setIsConverting(false);
-      } else {
-        // For JPG, check if the URL already starts with data:image/jpeg
-        if (initialReceiptUrl.startsWith('data:image/jpeg')) {
-          setPreviewUrl(initialReceiptUrl);
-          setIsConverting(false);
-        } else if (initialReceiptUrl.startsWith('data:application/pdf')) {
-          // For PDF, we'll just keep the URL as is - conversion happens in ShareReceiptDialog
-          setPreviewUrl(initialReceiptUrl);
-          setIsConverting(false);
-        } else {
-          setPreviewUrl(initialReceiptUrl);
-          setIsConverting(false);
-        }
+      } 
+      // If we have a JPG URL and we want JPG format
+      else if (fileFormat === 'jpg' && initialReceiptUrl.startsWith('data:image/jpeg')) {
+        setPreviewUrl(initialReceiptUrl);
+        setIsConverting(false);
+      }
+      // Default fallback - just use the URL as is
+      else {
+        setPreviewUrl(initialReceiptUrl);
+        setIsConverting(false);
       }
     } else {
       setPreviewUrl(null);
