@@ -2,12 +2,12 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
-import { MessageSquare } from 'lucide-react';
 import { useChat } from './ChatProvider';
 import { ChatbotWidget } from './ChatbotWidget';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { toast } from 'sonner';
+import { MessageSquareIcon, XIcon } from '@/utils/lazyIcons';
 
 interface ChatbotLauncherProps {
   position?: 'left-of-fab' | 'bottom-right' | 'bottom-left' | 'above-fab';
@@ -33,7 +33,7 @@ export const ChatbotLauncher: React.FC<ChatbotLauncherProps> = (props) => {
           size="icon"
           className="h-14 w-14 rounded-full shadow-lg bg-primary hover:bg-primary/90"
         >
-          <MessageSquare size={24} />
+          <MessageSquareIcon size={24} />
         </Button>
       </motion.div>
     );
@@ -101,7 +101,7 @@ const ChatbotLauncherInner: React.FC<ChatbotLauncherProps> = ({
             size="icon"
             className={cn("h-14 w-14 rounded-full shadow-lg bg-primary hover:bg-primary/90", className)}
           >
-            <MessageSquare size={24} />
+            <MessageSquareIcon size={24} />
           </Button>
         </motion.div>
       )}

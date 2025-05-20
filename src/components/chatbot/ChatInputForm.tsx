@@ -1,7 +1,7 @@
 
 import React, { KeyboardEvent, useState } from 'react';
-import { Send } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { SendIcon } from '@/utils/lazyIcons';
 
 interface ChatInputFormProps {
   input: string;
@@ -101,7 +101,7 @@ export const ChatInputForm: React.FC<ChatInputFormProps> = ({
           } ${isMobile ? "p-2 min-w-8" : "p-2"} transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50`}
           disabled={!shouldShowInput || !input.trim()}
         >
-          <Send size={isMobile ? 18 : 18} />
+          <SendIcon size={isMobile ? 18 : 18} />
         </button>
       </form>
     </div>

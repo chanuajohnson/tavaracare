@@ -53,6 +53,146 @@ export type Database = {
           },
         ]
       }
+      care_needs_family: {
+        Row: {
+          additional_notes: string | null
+          assistance_bathing: boolean | null
+          assistance_companionship: boolean | null
+          assistance_dressing: boolean | null
+          assistance_feeding: boolean | null
+          assistance_medication: boolean | null
+          assistance_mobility: boolean | null
+          assistance_naps: boolean | null
+          assistance_oral_care: boolean | null
+          assistance_toileting: boolean | null
+          cognitive_notes: string | null
+          communication_method: string | null
+          created_at: string | null
+          daily_report_required: boolean | null
+          dementia_redirection: boolean | null
+          diagnosed_conditions: string | null
+          emergency_contact_name: string | null
+          emergency_contact_phone: string | null
+          emergency_contact_relationship: string | null
+          equipment_use: boolean | null
+          escort_to_appointments: boolean | null
+          fall_monitoring: boolean | null
+          fresh_air_walks: boolean | null
+          gentle_engagement: boolean | null
+          grocery_runs: boolean | null
+          id: string
+          laundry_support: boolean | null
+          meal_prep: boolean | null
+          memory_reminders: boolean | null
+          plan_type: string | null
+          preferred_days: string[] | null
+          preferred_time_end: string | null
+          preferred_time_start: string | null
+          profile_id: string | null
+          tidy_room: boolean | null
+          updated_at: string | null
+          vitals_check: boolean | null
+          wandering_prevention: boolean | null
+          weekday_coverage: string | null
+          weekend_coverage: string | null
+          weekend_schedule_type: string | null
+        }
+        Insert: {
+          additional_notes?: string | null
+          assistance_bathing?: boolean | null
+          assistance_companionship?: boolean | null
+          assistance_dressing?: boolean | null
+          assistance_feeding?: boolean | null
+          assistance_medication?: boolean | null
+          assistance_mobility?: boolean | null
+          assistance_naps?: boolean | null
+          assistance_oral_care?: boolean | null
+          assistance_toileting?: boolean | null
+          cognitive_notes?: string | null
+          communication_method?: string | null
+          created_at?: string | null
+          daily_report_required?: boolean | null
+          dementia_redirection?: boolean | null
+          diagnosed_conditions?: string | null
+          emergency_contact_name?: string | null
+          emergency_contact_phone?: string | null
+          emergency_contact_relationship?: string | null
+          equipment_use?: boolean | null
+          escort_to_appointments?: boolean | null
+          fall_monitoring?: boolean | null
+          fresh_air_walks?: boolean | null
+          gentle_engagement?: boolean | null
+          grocery_runs?: boolean | null
+          id?: string
+          laundry_support?: boolean | null
+          meal_prep?: boolean | null
+          memory_reminders?: boolean | null
+          plan_type?: string | null
+          preferred_days?: string[] | null
+          preferred_time_end?: string | null
+          preferred_time_start?: string | null
+          profile_id?: string | null
+          tidy_room?: boolean | null
+          updated_at?: string | null
+          vitals_check?: boolean | null
+          wandering_prevention?: boolean | null
+          weekday_coverage?: string | null
+          weekend_coverage?: string | null
+          weekend_schedule_type?: string | null
+        }
+        Update: {
+          additional_notes?: string | null
+          assistance_bathing?: boolean | null
+          assistance_companionship?: boolean | null
+          assistance_dressing?: boolean | null
+          assistance_feeding?: boolean | null
+          assistance_medication?: boolean | null
+          assistance_mobility?: boolean | null
+          assistance_naps?: boolean | null
+          assistance_oral_care?: boolean | null
+          assistance_toileting?: boolean | null
+          cognitive_notes?: string | null
+          communication_method?: string | null
+          created_at?: string | null
+          daily_report_required?: boolean | null
+          dementia_redirection?: boolean | null
+          diagnosed_conditions?: string | null
+          emergency_contact_name?: string | null
+          emergency_contact_phone?: string | null
+          emergency_contact_relationship?: string | null
+          equipment_use?: boolean | null
+          escort_to_appointments?: boolean | null
+          fall_monitoring?: boolean | null
+          fresh_air_walks?: boolean | null
+          gentle_engagement?: boolean | null
+          grocery_runs?: boolean | null
+          id?: string
+          laundry_support?: boolean | null
+          meal_prep?: boolean | null
+          memory_reminders?: boolean | null
+          plan_type?: string | null
+          preferred_days?: string[] | null
+          preferred_time_end?: string | null
+          preferred_time_start?: string | null
+          profile_id?: string | null
+          tidy_room?: boolean | null
+          updated_at?: string | null
+          vitals_check?: boolean | null
+          wandering_prevention?: boolean | null
+          weekday_coverage?: string | null
+          weekend_coverage?: string | null
+          weekend_schedule_type?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "care_needs_family_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       care_plans: {
         Row: {
           created_at: string | null
@@ -867,6 +1007,107 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      medication_administrations: {
+        Row: {
+          administered_at: string
+          administered_by: string | null
+          created_at: string | null
+          id: string
+          medication_id: string
+          notes: string | null
+          status: string
+          updated_at: string | null
+        }
+        Insert: {
+          administered_at: string
+          administered_by?: string | null
+          created_at?: string | null
+          id?: string
+          medication_id: string
+          notes?: string | null
+          status?: string
+          updated_at?: string | null
+        }
+        Update: {
+          administered_at?: string
+          administered_by?: string | null
+          created_at?: string | null
+          id?: string
+          medication_id?: string
+          notes?: string | null
+          status?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "medication_administrations_administered_by_fkey"
+            columns: ["administered_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "medication_administrations_medication_id_fkey"
+            columns: ["medication_id"]
+            isOneToOne: false
+            referencedRelation: "medications"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      medications: {
+        Row: {
+          care_plan_id: string
+          created_at: string | null
+          dosage: string | null
+          id: string
+          instructions: string | null
+          medication_type: string | null
+          name: string
+          prescription_terms: string | null
+          schedule: Json | null
+          special_instructions: string | null
+          term_definitions: Json | null
+          updated_at: string | null
+        }
+        Insert: {
+          care_plan_id: string
+          created_at?: string | null
+          dosage?: string | null
+          id?: string
+          instructions?: string | null
+          medication_type?: string | null
+          name: string
+          prescription_terms?: string | null
+          schedule?: Json | null
+          special_instructions?: string | null
+          term_definitions?: Json | null
+          updated_at?: string | null
+        }
+        Update: {
+          care_plan_id?: string
+          created_at?: string | null
+          dosage?: string | null
+          id?: string
+          instructions?: string | null
+          medication_type?: string | null
+          name?: string
+          prescription_terms?: string | null
+          schedule?: Json | null
+          special_instructions?: string | null
+          term_definitions?: Json | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "medications_care_plan_id_fkey"
+            columns: ["care_plan_id"]
+            isOneToOne: false
+            referencedRelation: "care_plans"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       message_board_posts: {
         Row: {
@@ -1932,6 +2173,14 @@ export type Database = {
       has_user_voted_for_feature: {
         Args: { feature_id: string; user_id: string }
         Returns: boolean
+      }
+      update_care_plan_status: {
+        Args: { plan_id: string; new_status: string }
+        Returns: undefined
+      }
+      update_site_visit_status: {
+        Args: { plan_id: string; new_status: string }
+        Returns: undefined
       }
     }
     Enums: {
