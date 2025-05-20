@@ -27,16 +27,10 @@ export const useReceiptFormat = (
           setPreviewUrl(initialReceiptUrl);
           setIsConverting(false);
         } else if (initialReceiptUrl.startsWith('data:application/pdf')) {
-          // Need to convert - we'll simulate this with a loading state
-          setIsConverting(true);
-          setPreviewUrl(null); // Clear preview while converting
-          
-          // Signal that conversion is happening but don't actually perform it here
-          // The actual conversion happens in the ShareReceiptDialog component
-          setTimeout(() => {
-            setPreviewUrl(initialReceiptUrl);
-            setIsConverting(false);
-          }, 800);
+          // For PDF we'll need to convert - but don't do it here
+          // The conversion happens in the ShareReceiptDialog component now
+          setPreviewUrl(initialReceiptUrl); // Keep showing PDF until converted
+          setIsConverting(false);
         } else {
           setPreviewUrl(initialReceiptUrl);
           setIsConverting(false);
@@ -52,7 +46,9 @@ export const useReceiptFormat = (
     fileFormat,
     setFileFormat,
     isConverting,
+    setIsConverting,
     previewUrl,
+    setPreviewUrl,
     conversionError,
     setConversionError
   };
