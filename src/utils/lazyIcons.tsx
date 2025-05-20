@@ -19,6 +19,7 @@ const iconComponents = {
   Loader2: lazy(() => import('lucide-react/dist/esm/icons/loader-2')),
 };
 
+// Create a type that only allows the exact keys from our iconComponents object
 type IconName = keyof typeof iconComponents;
 
 interface LazyIconProps extends Omit<LucideProps, 'ref'> {

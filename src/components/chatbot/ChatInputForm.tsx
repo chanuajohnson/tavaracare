@@ -1,4 +1,3 @@
-
 import React, { KeyboardEvent, useState } from 'react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { SendIcon } from '@/utils/lazyIcons';
