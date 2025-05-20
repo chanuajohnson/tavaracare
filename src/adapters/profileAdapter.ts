@@ -1,6 +1,6 @@
 
-import { UserProfile as Profile } from "../types/profile";
-import { UserProfile as DbProfile, UserProfile as DbProfileInsert } from "../types/profile";
+import { Profile } from "../types/profile";
+import type { DbProfile, DbProfileInsert } from "../types/profile";
 import { fromJson, toJson } from "../utils/json";
 
 /**
@@ -10,72 +10,66 @@ export function adaptProfileToDb(profile: Partial<Profile>): DbProfileInsert {
   return {
     id: profile.id!,
     role: profile.role!,
-    full_name: profile.fullName || profile.full_name || "",
-    avatar_url: profile.avatarUrl || profile.avatar_url,
-    phone_number: profile.phoneNumber || profile.phone_number,
+    full_name: profile.fullName || "",
+    avatar_url: profile.avatarUrl,
+    phone_number: profile.phoneNumber,
     address: profile.address,
-    // Handle onboarding_progress properly to ensure it's stored as a JSON string
-    onboarding_progress: profile.onboarding_progress ? 
-      (typeof profile.onboarding_progress === 'string' ? 
-        profile.onboarding_progress : 
-        toJson(profile.onboarding_progress)) : 
-      undefined,
     
     // Family-specific fields
-    care_recipient_name: profile.careRecipientName || profile.care_recipient_name,
+    care_recipient_name: profile.careRecipientName,
     relationship: profile.relationship,
-    care_types: profile.careTypes || profile.care_types,
-    special_needs: profile.specialNeeds || profile.special_needs,
-    specialized_care: profile.specializedCare || profile.specialized_care,
-    other_special_needs: profile.otherSpecialNeeds || profile.other_special_needs,
-    caregiver_type: profile.caregiverType || profile.caregiver_type,
-    preferred_contact_method: profile.preferredContactMethod || profile.preferred_contact_method,
-    care_schedule: profile.careSchedule || profile.care_schedule,
-    budget_preferences: profile.budgetPreferences || profile.budget_preferences,
-    caregiver_preferences: profile.caregiverPreferences || profile.caregiver_preferences,
-    additional_notes: profile.additionalNotes || profile.additional_notes,
+    care_types: profile.careTypes,
+    special_needs: profile.specialNeeds,
+    specialized_care: profile.specializedCare,
+    other_special_needs: profile.otherSpecialNeeds,
+    caregiver_type: profile.caregiverType,
+    preferred_contact_method: profile.preferredContactMethod,
+    care_schedule: profile.careSchedule,
+    budget_preferences: profile.budgetPreferences,
+    caregiver_preferences: profile.caregiverPreferences,
+    additional_notes: profile.additionalNotes,
     
     // Professional-specific fields
-    professional_type: profile.professionalType || profile.professional_type,
-    license_number: profile.licenseNumber || profile.license_number,
+    professional_type: profile.professionalType,
+    license_number: profile.licenseNumber,
     certifications: profile.certifications,
-    other_certification: profile.otherCertification || profile.other_certification,
-    certification_proof_url: profile.certificationProofUrl || profile.certification_proof_url,
-    care_services: profile.careServices || profile.care_services,
+    other_certification: profile.otherCertification,
+    certification_proof_url: profile.certificationProofUrl,
+    care_services: profile.careServices,
     languages: profile.languages,
-    years_of_experience: profile.yearsOfExperience || profile.years_of_experience,
-    work_type: profile.workType || profile.work_type,
+    years_of_experience: profile.yearsOfExperience,
+    work_type: profile.workType,
     availability: profile.availability,
-    background_check: profile.backgroundCheck || profile.background_check,
-    background_check_proof_url: profile.backgroundCheckProofUrl || profile.background_check_proof_url,
-    legally_authorized: profile.legallyAuthorized || profile.legally_authorized,
-    expected_rate: profile.expectedRate || profile.expected_rate,
-    payment_methods: profile.paymentMethods || profile.payment_methods,
+    background_check: profile.backgroundCheck,
+    background_check_proof_url: profile.backgroundCheckProofUrl,
+    legally_authorized: profile.legallyAuthorized,
+    expected_rate: profile.expectedRate,
+    payment_methods: profile.paymentMethods,
     bio: profile.bio,
-    why_choose_caregiving: profile.whyChooseCaregiving || profile.why_choose_caregiving,
-    preferred_work_locations: profile.preferredWorkLocations || profile.preferred_work_locations,
-    commute_mode: profile.commuteMode || profile.commute_mode,
-    list_in_directory: profile.listInDirectory || profile.list_in_directory,
-    enable_job_alerts: profile.enableJobAlerts || profile.enable_job_alerts,
-    job_notification_method: profile.jobNotificationMethod || profile.job_notification_method,
-    job_matching_criteria: profile.jobMatchingCriteria || profile.job_matching_criteria,
-    custom_availability_alerts: profile.customAvailabilityAlerts || profile.custom_availability_alerts,
-    has_training: profile.hasTraining || profile.has_training,
+    why_choose_caregiving: profile.whyChooseCaregiving,
+    preferred_work_locations: profile.preferredWorkLocations,
+    commute_mode: profile.commuteMode,
+    list_in_directory: profile.listInDirectory,
+    enable_job_alerts: profile.enableJobAlerts,
+    job_notification_method: profile.jobNotificationMethod,
+    job_matching_criteria: profile.jobMatchingCriteria,
+    custom_availability_alerts: profile.customAvailabilityAlerts,
+    has_training: profile.hasTraining,
     
     // Community-specific fields
     location: profile.location,
     website: profile.website,
-    community_roles: profile.communityRoles || profile.community_roles,
-    contribution_interests: profile.contributionInterests || profile.contribution_interests,
-    caregiving_experience: profile.caregivingExperience || profile.caregiving_experience,
-    caregiving_areas: profile.caregivingAreas || profile.caregiving_areas,
-    tech_interests: profile.techInterests || profile.tech_interests,
-    involvement_preferences: profile.involvementPreferences || profile.involvement_preferences,
-    communication_channels: profile.communicationChannels || profile.communication_channels,
-    community_motivation: profile.communityMotivation || profile.community_motivation,
-    improvement_ideas: profile.improvementIdeas || profile.improvement_ideas,
-    list_in_community_directory: profile.listInCommunityDirectory || profile.list_in_community_directory,
-    enable_community_notifications: profile.enableCommunityNotifications || profile.enable_community_notifications
+    community_roles: profile.communityRoles,
+    contribution_interests: profile.contributionInterests,
+    caregiving_experience: profile.caregivingExperience,
+    caregiving_areas: profile.caregivingAreas,
+    tech_interests: profile.techInterests,
+    involvement_preferences: profile.involvementPreferences,
+    communication_channels: profile.communicationChannels,
+    community_motivation: profile.communityMotivation,
+    improvement_ideas: profile.improvementIdeas,
+    list_in_community_directory: profile.listInCommunityDirectory,
+    enable_community_notifications: profile.enableCommunityNotifications
   };
 }
 
@@ -83,17 +77,8 @@ export function adaptProfileToDb(profile: Partial<Profile>): DbProfileInsert {
  * Adapts a database Profile to a frontend-ready object
  */
 export function adaptProfileFromDb(dbProfile: DbProfile): Profile {
-  // Parse the onboarding_progress from JSON if it exists and is a string
-  const onboardingProgress = dbProfile.onboarding_progress ? 
-    (typeof dbProfile.onboarding_progress === 'string' ? 
-      fromJson(dbProfile.onboarding_progress as string, {}) : 
-      dbProfile.onboarding_progress) : 
-    undefined;
-    
   return {
     id: dbProfile.id,
-    created_at: dbProfile.created_at,
-    updated_at: dbProfile.updated_at,
     createdAt: dbProfile.created_at,
     updatedAt: dbProfile.updated_at,
     role: dbProfile.role,
@@ -101,7 +86,6 @@ export function adaptProfileFromDb(dbProfile: DbProfile): Profile {
     avatarUrl: dbProfile.avatar_url,
     phoneNumber: dbProfile.phone_number,
     address: dbProfile.address,
-    onboarding_progress: onboardingProgress,
     
     // Family-specific fields
     careRecipientName: dbProfile.care_recipient_name,

@@ -1,6 +1,7 @@
 
 import { supabase } from "@/lib/supabase";
-import { UserProfile as Profile, Json } from "../types/profile";
+import { Profile } from "../types/profile";
+import { DbProfile, DbProfileInsert } from "../types/profile";
 import { adaptProfileFromDb, adaptProfileToDb } from "../adapters/profileAdapter";
 import { UserRole } from "../utils/supabaseTypes";
 
@@ -25,7 +26,7 @@ export class ProfileService {
         throw error;
       }
       
-      return data ? adaptProfileFromDb(data as any) : null;
+      return data ? adaptProfileFromDb(data) : null;
     } catch (error) {
       console.error("[ProfileService] getProfile exception:", error);
       throw error;
@@ -84,11 +85,11 @@ export class ProfileService {
   /**
    * Insert a new profile
    */
-  private async insertProfile(profile: any): Promise<Profile> {
+  private async insertProfile(profile: DbProfileInsert): Promise<Profile> {
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .insert([profile]) // Cast to any to fix type error
+        .insert([profile as any]) // Cast to any to fix type error
         .select()
         .single();
       
@@ -101,7 +102,7 @@ export class ProfileService {
         throw new Error(`Inserted profile with ID ${profile.id} not found`);
       }
       
-      return adaptProfileFromDb(data as any);
+      return adaptProfileFromDb(data);
     } catch (error) {
       console.error("[ProfileService] insertProfile exception:", error);
       throw error;
@@ -111,11 +112,11 @@ export class ProfileService {
   /**
    * Update an existing profile
    */
-  private async updateProfile(id: string, updates: any): Promise<Profile> {
+  private async updateProfile(id: string, updates: Partial<DbProfileInsert>): Promise<Profile> {
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .update(updates) // Cast to any to fix type error
+        .update(updates as any) // Cast to any to fix type error
         .eq('id', id)
         .select()
         .single();
@@ -129,7 +130,7 @@ export class ProfileService {
         throw new Error(`Updated profile with ID ${id} not found`);
       }
       
-      return adaptProfileFromDb(data as any);
+      return adaptProfileFromDb(data);
     } catch (error) {
       console.error("[ProfileService] updateProfile exception:", error);
       throw error;
@@ -152,7 +153,7 @@ export class ProfileService {
         throw error;
       }
       
-      return (data || []).map(item => adaptProfileFromDb(item as any));
+      return (data || []).map(item => adaptProfileFromDb(item));
     } catch (error) {
       console.error("[ProfileService] getProfilesByRole exception:", error);
       throw error;
@@ -162,33 +163,3 @@ export class ProfileService {
 
 // Create a singleton instance
 export const profileService = new ProfileService();
-
-/**
- * Update onboarding progress for a user
- */
-export const updateOnboardingProgress = async (
-  profileId: string, 
-  progress: {
-    currentStep?: string;
-    completedSteps?: Record<string, boolean>;
-  }
-): Promise<boolean> => {
-  try {
-    const { error } = await supabase
-      .from('profiles')
-      .update({
-        onboarding_progress: progress
-      })
-      .eq('id', profileId);
-
-    if (error) {
-      console.error("Error updating onboarding progress:", error);
-      return false;
-    }
-    
-    return true;
-  } catch (error) {
-    console.error("Exception updating onboarding progress:", error);
-    return false;
-  }
-};

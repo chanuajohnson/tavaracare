@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { motion } from "framer-motion";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -11,8 +12,6 @@ import { useTracking } from "@/hooks/useTracking";
 import { supabase } from "@/integrations/supabase/client";
 import { PayPalScriptProvider } from "@paypal/react-paypal-js";
 import { PayPalSubscribeButton } from "@/components/subscription/PayPalSubscribeButton";
-import { FadeIn } from "@/components/framer";
-
 const SubscriptionPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -493,10 +492,15 @@ const SubscriptionPage = () => {
         <div className="container px-4 py-8">
           <DashboardHeader breadcrumbItems={breadcrumbItems} />
           
-          <FadeIn
-            duration={0.5}
-            className="space-y-6"
-          >
+          <motion.div initial={{
+          opacity: 0,
+          y: 20
+        }} animate={{
+          opacity: 1,
+          y: 0
+        }} transition={{
+          duration: 0.5
+        }} className="space-y-6">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
                 <h1 className="text-3xl font-bold">Subscribe to Access Premium Features</h1>
@@ -590,10 +594,9 @@ const SubscriptionPage = () => {
             </div>
             
             
-          </FadeIn>
+          </motion.div>
         </div>
       </div>
     </PayPalScriptProvider>;
 };
-
 export default SubscriptionPage;

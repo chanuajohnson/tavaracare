@@ -1,19 +1,19 @@
 
+import { motion } from "framer-motion";
 import { Book, UserCog, FileText, ArrowRight } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { UpvoteFeatureButton } from "@/components/features/UpvoteFeatureButton";
-import { FadeIn } from "@/components/framer";
 
 export const DashboardCardGrid = () => {
   return (
     <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
       {/* Profile Management Card */}
-      <FadeIn
-        className="h-full"
-        duration={0.5}
-        delay={0}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
       >
         <Card className="h-full">
           <CardHeader>
@@ -45,13 +45,13 @@ export const DashboardCardGrid = () => {
             </Link>
           </CardContent>
         </Card>
-      </FadeIn>
+      </motion.div>
 
       {/* Resources Card */}
-      <FadeIn
-        className="h-full"
-        duration={0.5}
-        delay={0.1}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.1 }}
       >
         <Card className="h-full">
           <CardHeader>
@@ -83,13 +83,13 @@ export const DashboardCardGrid = () => {
             </Link>
           </CardContent>
         </Card>
-      </FadeIn>
+      </motion.div>
 
       {/* Documentation Card */}
-      <FadeIn
-        className="h-full"
-        duration={0.5}
-        delay={0.2}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.2 }}
       >
         <Card className="h-full">
           <CardHeader>
@@ -119,7 +119,7 @@ export const DashboardCardGrid = () => {
             </Link>
           </CardContent>
         </Card>
-      </FadeIn>
+      </motion.div>
     </div>
   );
 };

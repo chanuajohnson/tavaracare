@@ -1,6 +1,5 @@
-
 import { useState } from "react";
-import { FadeIn } from "@/components/framer";
+import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { MessageSquare, ArrowRight, Lock } from "lucide-react";
@@ -15,7 +14,11 @@ export const FamilyPostCareNeedForm = () => {
   const hasSubscription = false; // Replace with actual subscription check
   
   return (
-    <FadeIn delay={0.3} duration={0.5}>
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, delay: 0.3 }}
+    >
       <Card className="h-full border-l-4 border-l-primary-500 shadow-sm">
         <CardHeader className="pb-2 bg-gradient-to-r from-primary-100 to-transparent">
           <CardTitle className="flex items-center gap-2 text-xl">
@@ -104,6 +107,6 @@ export const FamilyPostCareNeedForm = () => {
           )}
         </CardContent>
       </Card>
-    </FadeIn>
+    </motion.div>
   );
 };

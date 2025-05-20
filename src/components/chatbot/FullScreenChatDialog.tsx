@@ -1,58 +1,59 @@
 
-import React, { useState, useEffect } from 'react';
-import { Dialog } from '@/components/ui/dialog';
+import React, { useState } from 'react';
+import { Dialog, DialogContent, DialogClose } from "@/components/ui/dialog";
+import { Settings, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { ChatbotWidget } from './ChatbotWidget';
-import { cn } from '@/lib/utils';
+import { useChat } from './ChatProvider';
+import { ChatSettings } from './ChatSettings';
 
 interface FullScreenChatDialogProps {
   open: boolean;
   onClose: () => void;
 }
 
-export const FullScreenChatDialog: React.FC<FullScreenChatDialogProps> = ({ 
-  open, 
-  onClose 
+export const FullScreenChatDialog: React.FC<FullScreenChatDialogProps> = ({
+  open,
+  onClose
 }) => {
-  const [isTransitioning, setIsTransitioning] = useState(false);
-
-  useEffect(() => {
-    if (open) {
-      setIsTransitioning(true);
-    }
-  }, [open]);
-
-  // Handle animation completion
-  const handleAnimationEnd = () => {
-    if (!open) {
-      setIsTransitioning(false);
-    }
-  };
-
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  
+  if (!open) return null;
+  
   return (
-    <Dialog open={open || isTransitioning} onOpenChange={(isOpen) => {
+    <Dialog open={open} onOpenChange={(isOpen) => {
       if (!isOpen) onClose();
     }}>
-      <div 
-        className={cn(
-          "fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm transition-all duration-300",
-          open ? "opacity-100" : "opacity-0"
-        )}
-        onAnimationEnd={handleAnimationEnd}
-      >
-        <div 
-          className={cn(
-            "flex h-full w-full max-w-md flex-col rounded-lg bg-background shadow-lg transition-all duration-300",
-            open ? "scale-100 opacity-100" : "scale-95 opacity-0"
-          )}
-        >
-          <ChatbotWidget
-            width="100%"
-            onClose={onClose}
-            hideHeader={false}
-            className="h-full rounded-lg"
+      <DialogContent className="max-w-full w-full h-[100dvh] max-h-[100dvh] sm:max-w-full sm:rounded-none p-0 gap-0 flex flex-col">
+        <div className="flex justify-between items-center p-4 border-b shrink-0">
+          <h2 className="text-xl font-semibold">Tavara Chat</h2>
+          <div className="flex gap-2">
+            <Button variant="ghost" size="icon" onClick={() => setSettingsOpen(true)} title="Chat Settings">
+              <Settings className="h-5 w-5" />
+              <span className="sr-only">Settings</span>
+            </Button>
+            <DialogClose asChild>
+              <Button variant="ghost" size="icon" onClick={onClose}>
+                <X className="h-5 w-5" />
+                <span className="sr-only">Close</span>
+              </Button>
+            </DialogClose>
+          </div>
+        </div>
+        
+        <div className="flex-1 overflow-hidden flex flex-col">
+          <ChatbotWidget 
+            className="h-full border-0 shadow-none rounded-none flex-1" 
+            width="100%" 
+            hideHeader
           />
         </div>
-      </div>
+        
+        <ChatSettings
+          open={settingsOpen}
+          onOpenChange={setSettingsOpen}
+        />
+      </DialogContent>
     </Dialog>
   );
 };

@@ -1,6 +1,6 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Target } from '@/components/ui/icons';
+import { Target } from 'lucide-react';
 
 interface MissionCardProps {
   isActive: boolean;

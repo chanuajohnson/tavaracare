@@ -56,7 +56,6 @@ const ProfessionalAssignmentPage = () => {
     const loadCarePlan = async () => {
       try {
         setLoading(true);
-        console.log(`Starting to load care plan with ID: ${planId}`);
 
         // First, check if this caregiver is actually assigned to this care plan
         const { data: memberCheck, error: memberCheckError } = await supabase
@@ -66,10 +65,7 @@ const ProfessionalAssignmentPage = () => {
           .eq('caregiver_id', user.id)
           .maybeSingle();
 
-        if (memberCheckError) {
-          console.error("Error checking team membership:", memberCheckError);
-          throw memberCheckError;
-        }
+        if (memberCheckError) throw memberCheckError;
 
         if (!memberCheck) {
           toast.error("Unauthorized Access", {
@@ -79,7 +75,7 @@ const ProfessionalAssignmentPage = () => {
           return;
         }
 
-        // Fetch care plan details with family profile
+        // Fetch care plan details
         const { data: planData, error: planError } = await supabase
           .from('care_plans')
           .select(`
@@ -90,8 +86,7 @@ const ProfessionalAssignmentPage = () => {
             family_id,
             created_at,
             metadata,
-            family_profile:family_id (
-              id,
+            profiles:family_id (
               full_name,
               phone_number,
               email,
@@ -102,11 +97,7 @@ const ProfessionalAssignmentPage = () => {
           .eq('id', planId)
           .maybeSingle();
 
-        if (planError) {
-          console.error("Error fetching care plan:", planError);
-          throw planError;
-        }
-        
+        if (planError) throw planError;
         if (!planData) {
           toast.error("Care Plan Not Found", {
             description: "The requested care plan could not be found.",
@@ -114,26 +105,10 @@ const ProfessionalAssignmentPage = () => {
           navigate("/professional/profile");
           return;
         }
-        
-        console.log("Care plan data loaded:", planData);
+
         setCarePlan(planData);
 
-        // Create a modified version of the care plan with legacy format for backward compatibility
-        const adaptedCarePlan = {
-          ...planData,
-          care_plan: {
-            ...planData,
-            family_profile: planData.family_profile
-          },
-          care_plans: {
-            ...planData,
-            profiles: planData.family_profile
-          }
-        };
-        
-        setCarePlan(adaptedCarePlan);
-
-        // Fetch team members for this care plan, ensuring care_plan_id is included
+        // Fetch team members for this care plan
         const { data: teamData, error: teamError } = await supabase
           .from('care_team_members')
           .select(`
@@ -141,7 +116,6 @@ const ProfessionalAssignmentPage = () => {
             status,
             role,
             caregiver_id,
-            care_plan_id,
             profiles:caregiver_id (
               full_name,
               professional_type,
@@ -150,12 +124,7 @@ const ProfessionalAssignmentPage = () => {
           `)
           .eq('care_plan_id', planId);
 
-        if (teamError) {
-          console.error("Error fetching team members:", teamError);
-          throw teamError;
-        }
-        
-        console.log(`Loaded ${teamData?.length || 0} team members:`, teamData);
+        if (teamError) throw teamError;
         setTeamMembers(teamData || []);
 
         // Fetch upcoming shifts for this care plan
@@ -168,17 +137,13 @@ const ProfessionalAssignmentPage = () => {
           .order('start_time', { ascending: true })
           .limit(5);
 
-        if (shiftsError) {
-          console.error("Error fetching shifts:", shiftsError);
-          throw shiftsError;
-        }
-        
-        console.log(`Loaded ${shiftsData?.length || 0} shifts`);
+        if (shiftsError) throw shiftsError;
         setShifts(shiftsData || []);
+
+        setLoading(false);
       } catch (error) {
         console.error("Error loading care plan:", error);
         toast.error("Failed to load assignment details");
-      } finally {
         setLoading(false);
       }
     };
@@ -235,7 +200,7 @@ const ProfessionalAssignmentPage = () => {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div>
-            <FamilyDetailsCard familyProfile={carePlan?.family_profile} />
+            <FamilyDetailsCard familyProfile={carePlan?.profiles} />
           </div>
 
           <div className="lg:col-span-2">

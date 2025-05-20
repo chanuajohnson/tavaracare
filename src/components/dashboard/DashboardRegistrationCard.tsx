@@ -1,4 +1,5 @@
 
+import { motion } from "framer-motion";
 import { ArrowRight } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Link } from "react-router-dom";
@@ -6,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import { UpvoteFeatureButton } from "@/components/features/UpvoteFeatureButton";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
-import { SlideIn } from "@/components/framer";
 
 interface DashboardRegistrationCardProps {
   session: any;
@@ -51,9 +51,10 @@ export const DashboardRegistrationCard = ({ session }: DashboardRegistrationCard
   }
 
   return (
-    <SlideIn
-      direction="up"
-      duration={0.5}
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
       className="mb-8"
     >
       <Card>
@@ -74,6 +75,6 @@ export const DashboardRegistrationCard = ({ session }: DashboardRegistrationCard
           />
         </CardContent>
       </Card>
-    </SlideIn>
+    </motion.div>
   );
 };

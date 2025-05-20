@@ -1,24 +1,55 @@
 
 import React from 'react';
+import { motion } from 'framer-motion';
 
 export const TypingIndicator: React.FC = () => {
   return (
-    <div 
-      className="flex items-center space-x-1 p-2 rounded-md bg-muted max-w-fit opacity-0 animate-fade-in"
-      style={{ animationDuration: '300ms', animationFillMode: 'forwards' }}
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className="flex items-center space-x-1 p-2 rounded-md bg-muted max-w-fit"
     >
-      <div 
-        className="w-2 h-2 rounded-full bg-gray-400 animate-typing-pulse"
-        style={{ animationDelay: '0ms' }}
+      <motion.div
+        className="w-2 h-2 rounded-full bg-gray-400"
+        animate={{
+          scale: [1, 1.2, 1],
+          opacity: [1, 0.7, 1],
+        }}
+        transition={{
+          duration: 1,
+          repeat: Infinity,
+          repeatType: "loop",
+          times: [0, 0.5, 1],
+        }}
       />
-      <div 
-        className="w-2 h-2 rounded-full bg-gray-400 animate-typing-pulse"
-        style={{ animationDelay: '300ms' }}
+      <motion.div
+        className="w-2 h-2 rounded-full bg-gray-400"
+        animate={{
+          scale: [1, 1.2, 1],
+          opacity: [1, 0.7, 1],
+        }}
+        transition={{
+          duration: 1,
+          repeat: Infinity,
+          repeatType: "loop",
+          delay: 0.3,
+          times: [0, 0.5, 1],
+        }}
       />
-      <div 
-        className="w-2 h-2 rounded-full bg-gray-400 animate-typing-pulse"
-        style={{ animationDelay: '600ms' }}
+      <motion.div
+        className="w-2 h-2 rounded-full bg-gray-400"
+        animate={{
+          scale: [1, 1.2, 1],
+          opacity: [1, 0.7, 1],
+        }}
+        transition={{
+          duration: 1,
+          repeat: Infinity,
+          repeatType: "loop",
+          delay: 0.6,
+          times: [0, 0.5, 1],
+        }}
       />
-    </div>
+    </motion.div>
   );
 };

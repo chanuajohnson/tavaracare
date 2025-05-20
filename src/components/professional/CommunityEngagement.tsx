@@ -1,5 +1,5 @@
 
-import { SlideIn } from '@/components/framer';
+import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Users, ArrowRight, MessageSquare, Calendar, Bell } from "lucide-react";
@@ -51,11 +51,10 @@ export const CommunityEngagement = () => {
   ];
 
   return (
-    <SlideIn
-      direction="up"
-      className="h-full"
-      delay={0.3}
-      duration={0.5}
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, delay: 0.3 }}
     >
       <Card className="h-full border-l-4 border-l-amber-500">
         <CardHeader className="pb-2">
@@ -128,6 +127,6 @@ export const CommunityEngagement = () => {
           </Button>
         </CardContent>
       </Card>
-    </SlideIn>
+    </motion.div>
   );
 };

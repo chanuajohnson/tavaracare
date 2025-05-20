@@ -1,4 +1,6 @@
+
 import React, { useState } from "react";
+import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import { HandHeart, Users, ShoppingBag, HeartHandshake, Footprints, Heart, MessageCircle, ArrowRight, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -11,7 +13,6 @@ import { toast } from "sonner";
 import { Breadcrumb } from "@/components/ui/breadcrumbs/Breadcrumb";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { supabase } from "@/integrations/supabase/client";
-import { FadeIn, SlideIn } from "@/components/framer";
 
 const CaregiverHealthPage = () => {
   const { user } = useAuth();
@@ -67,9 +68,10 @@ const CaregiverHealthPage = () => {
       <Container className="py-6">
         <Breadcrumb />
         
-        <SlideIn 
-          direction="up"
-          duration={0.6}
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
           className="text-center mb-12"
         >
           <div className="inline-flex items-center justify-center rounded-full bg-primary-100 p-3 mb-4">
@@ -88,7 +90,7 @@ const CaregiverHealthPage = () => {
               This is where we begin to change that.
             </p>
           </div>
-        </SlideIn>
+        </motion.div>
         
         <div className="mb-16">
           <h2 className="text-2xl font-bold text-primary-800 mb-6 flex items-center">
@@ -99,9 +101,10 @@ const CaregiverHealthPage = () => {
           </h2>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <FadeIn
-              duration={0.5}
-              delay={0.1}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.1 }}
             >
               <Card className="h-full border-l-4 border-l-blue-400 shadow-sm">
                 <CardHeader>
@@ -144,11 +147,12 @@ const CaregiverHealthPage = () => {
                   </Button>
                 </CardContent>
               </Card>
-            </FadeIn>
+            </motion.div>
             
-            <FadeIn
-              duration={0.5}
-              delay={0.2}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.2 }}
             >
               <Card className="h-full border-l-4 border-l-green-400 shadow-sm">
                 <CardHeader>
@@ -192,11 +196,12 @@ const CaregiverHealthPage = () => {
                   </div>
                 </CardContent>
               </Card>
-            </FadeIn>
+            </motion.div>
             
-            <FadeIn
-              duration={0.5}
-              delay={0.3}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.3 }}
             >
               <Card className="h-full border-l-4 border-l-amber-400 shadow-sm">
                 <CardHeader>
@@ -233,11 +238,12 @@ const CaregiverHealthPage = () => {
                   </Button>
                 </CardContent>
               </Card>
-            </FadeIn>
+            </motion.div>
             
-            <FadeIn
-              duration={0.5}
-              delay={0.4}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.4 }}
             >
               <Card className="h-full border-l-4 border-l-purple-400 shadow-sm">
                 <CardHeader>
@@ -280,13 +286,14 @@ const CaregiverHealthPage = () => {
                   </Button>
                 </CardContent>
               </Card>
-            </FadeIn>
+            </motion.div>
           </div>
         </div>
         
-        <FadeIn
-          duration={0.5}
-          delay={0.5}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.5 }}
           className="mb-16"
         >
           <Card className="bg-gradient-to-br from-primary-50 to-white border-primary-200">
@@ -330,11 +337,12 @@ const CaregiverHealthPage = () => {
               </div>
             </CardContent>
           </Card>
-        </FadeIn>
+        </motion.div>
         
-        <FadeIn
-          duration={0.5}
-          delay={0.6}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.6 }}
           className="bg-white p-8 rounded-xl shadow-sm border border-gray-100 text-center"
         >
           <div className="inline-flex items-center justify-center rounded-full bg-primary-100 p-2 mb-4">
@@ -353,7 +361,7 @@ const CaregiverHealthPage = () => {
           >
             Share Your Story or Suggest a Feature
           </Button>
-        </FadeIn>
+        </motion.div>
       </Container>
     </div>
   );

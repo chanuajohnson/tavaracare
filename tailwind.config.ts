@@ -77,104 +77,11 @@ export default {
             transform: "translateX(100%)",
           },
         },
-        fadeIn: {
-          "0%": { opacity: "0" },
-          "100%": { opacity: "1" },
-        },
-        scaleIn: {
-          "0%": { opacity: "0", transform: "scale(0.95)" },
-          "100%": { opacity: "1", transform: "scale(1)" },
-        },
-        slideInUp: {
-          "0%": { opacity: "0", transform: "translateY(20px)" },
-          "100%": { opacity: "1", transform: "translateY(0)" },
-        },
-        slideInDown: {
-          "0%": { opacity: "0", transform: "translateY(-20px)" },
-          "100%": { opacity: "1", transform: "translateY(0)" },
-        },
-        slideInLeft: {
-          "0%": { opacity: "0", transform: "translateX(-20px)" },
-          "100%": { opacity: "1", transform: "translateX(0)" },
-        },
-        slideInRight: {
-          "0%": { opacity: "0", transform: "translateX(20px)" },
-          "100%": { opacity: "1", transform: "translateX(0)" },
-        },
-        "slide-in-up": {
-          "0%": { opacity: "0", transform: "translateY(10px)" },
-          "100%": { opacity: "1", transform: "translateY(0)" },
-        },
-        "scale-in": {
-          "0%": { transform: "scale(0.95)", opacity: "0" },
-          "100%": { transform: "scale(1)", opacity: "1" },
-        },
-        "fade-in-scale": {
-          "0%": { opacity: "0", transform: "scale(0.95)" },
-          "100%": { opacity: "1", transform: "scale(1)" },
-        },
-        "fade-out-scale": {
-          "0%": { opacity: "1", transform: "scale(1)" },
-          "100%": { opacity: "0", transform: "scale(0.95)" },
-        },
-        "slide-in-from-top": {
-          "0%": { transform: "translateY(-100%)" },
-          "100%": { transform: "translateY(0)" },
-        },
-        "slide-in-from-bottom": {
-          "0%": { transform: "translateY(100%)" },
-          "100%": { transform: "translateY(0)" },
-        },
-        "slide-in-from-left": {
-          "0%": { transform: "translateX(-100%)" },
-          "100%": { transform: "translateX(0)" },
-        },
-        "slide-in-from-right": {
-          "0%": { transform: "translateX(100%)" },
-          "100%": { transform: "translateX(0)" },
-        },
-        "slide-out-to-top": {
-          "0%": { transform: "translateY(0)" },
-          "100%": { transform: "translateY(-100%)" },
-        },
-        "slide-out-to-bottom": {
-          "0%": { transform: "translateY(0)" },
-          "100%": { transform: "translateY(100%)" },
-        },
-        "slide-out-to-left": {
-          "0%": { transform: "translateX(0)" },
-          "100%": { transform: "translateX(-100%)" },
-        },
-        "slide-out-to-right": {
-          "0%": { transform: "translateX(0)" },
-          "100%": { transform: "translateX(100%)" },
-        },
-        "typingPulse": {
-          "0%": { transform: "scale(1)", opacity: "1" },
-          "50%": { transform: "scale(1.2)", opacity: "0.7" },
-          "100%": { transform: "scale(1)", opacity: "1" },
-        }
       },
       animation: {
         "slide-in": "slide-in 0.3s ease-out",
         "fade-in": "fade-in 0.3s ease-out",
-        "scale-in": "scale-in 0.2s ease-out",
-        "slide-in-up": "slide-in-up 0.3s ease-out",
         shimmer: "shimmer 2s infinite",
-        "fade-in-custom": "fadeIn var(--duration) ease-out forwards var(--delay)",
-        "scale-in-custom": "scaleIn var(--duration) ease-out forwards var(--delay)",
-        "slide-in-custom": "slideIn var(--direction) var(--duration) ease-out forwards var(--delay)",
-        "fade-in-scale": "fade-in-scale 0.3s ease-out forwards",
-        "fade-out-scale": "fade-out-scale 0.2s ease-out forwards",
-        "slide-in-from-top": "slide-in-from-top 0.3s ease-out",
-        "slide-in-from-bottom": "slide-in-from-bottom 0.3s ease-out",
-        "slide-in-from-left": "slide-in-from-left 0.3s ease-out",
-        "slide-in-from-right": "slide-in-from-right 0.3s ease-out",
-        "slide-out-to-top": "slide-out-to-top 0.3s ease-out",
-        "slide-out-to-bottom": "slide-out-to-bottom 0.3s ease-out",
-        "slide-out-to-left": "slide-out-to-left 0.3s ease-out",
-        "slide-out-to-right": "slide-out-to-right 0.3s ease-out",
-        "typing-pulse": "typingPulse 1s infinite",
       },
     },
   },

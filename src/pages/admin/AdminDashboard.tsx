@@ -1,4 +1,5 @@
 
+import { motion } from "framer-motion";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { DashboardCardGrid } from "@/components/dashboard/DashboardCardGrid";
 import { FeatureInterestTracker } from "@/components/admin/FeatureInterestTracker";
@@ -9,7 +10,6 @@ import { Button } from "@/components/ui/button";
 import { BarChart } from "lucide-react";
 import { UserJourneyTracker } from "@/components/tracking/UserJourneyTracker";
 import { useJourneyTracking } from "@/hooks/useJourneyTracking";
-import { FadeIn, SlideIn } from "@/components/framer";
 
 const AdminDashboard = () => {
   const { user } = useAuth();
@@ -45,21 +45,22 @@ const AdminDashboard = () => {
           breadcrumbItems={breadcrumbItems}
         />
 
-        <FadeIn
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
           className="mb-8"
-          duration={0.5}
         >
           <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
           <p className="text-gray-600 mt-2">Manage system settings and user accounts.</p>
-        </FadeIn>
+        </motion.div>
 
         {user?.id === '605540d7-ae87-4a7c-9bd0-5699937f0670' && (
-          <SlideIn
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.2 }}
             className="mb-6"
-            direction="up"
-            distance={10}
-            duration={0.5}
-            delay={0.2}
           >
             <Link to="/admin/user-journey">
               <Button className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700">
@@ -67,7 +68,7 @@ const AdminDashboard = () => {
                 User Journey Analytics
               </Button>
             </Link>
-          </SlideIn>
+          </motion.div>
         )}
 
         <div className="space-y-8">

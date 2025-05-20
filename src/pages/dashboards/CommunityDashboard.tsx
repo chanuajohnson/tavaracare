@@ -1,4 +1,4 @@
-
+import { motion } from "framer-motion";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,7 +8,6 @@ import { Link } from "react-router-dom";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { TechInnovatorsHub } from "@/components/features/TechInnovatorsHub";
 import { CommunityShortcutMenuBar } from "@/components/community/CommunityShortcutMenuBar";
-import { FadeIn } from "@/components/framer";
 
 const CommunityDashboard = () => {
   const {
@@ -27,11 +26,15 @@ const CommunityDashboard = () => {
       <div className="container px-4 py-8">
         <DashboardHeader breadcrumbItems={breadcrumbItems} />
 
-        <FadeIn 
-          className="space-y-6"
-          duration={0.5}
-          delay={0}
-        >
+        <motion.div initial={{
+        opacity: 0,
+        y: 20
+      }} animate={{
+        opacity: 1,
+        y: 0
+      }} transition={{
+        duration: 0.5
+      }} className="space-y-6">
           {!user ? <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 rounded-lg mb-8 border border-blue-100">
               <h2 className="text-2xl font-bold mb-2">Join the Movement! 🌍 Supporting Care, Together.</h2>
               <p className="text-gray-600 mb-4">Help families, participate in care circles, and engage with the growing community</p>
@@ -58,7 +61,7 @@ const CommunityDashboard = () => {
           <p className="text-muted-foreground mt-2">
             Connect and contribute to your local care community.
           </p>
-        </FadeIn>
+        </motion.div>
 
         <div className="grid gap-6 mt-8">
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">

@@ -4,10 +4,6 @@ import { CarePlan } from "../types/carePlan";
 import { DbCarePlan, DbCarePlanInsert } from "../types/carePlan";
 import { adaptCarePlanFromDb, adaptCarePlanToDb } from "../adapters/carePlanAdapter";
 import { v4 as uuidv4 } from 'uuid';
-import { toast } from "sonner";
-
-// Maximum character length for descriptions
-const MAX_DESCRIPTION_LENGTH = 150;
 
 /**
  * Service for managing care plans
@@ -60,28 +56,12 @@ export class CarePlanService {
   }
   
   /**
-   * Validate and trim description to ensure it's appropriate length
-   */
-  private validateAndTrimDescription(description?: string): string {
-    // If no description provided, return empty string
-    if (!description) return "";
-    
-    // Trim and limit description length
-    return description.trim().substring(0, MAX_DESCRIPTION_LENGTH);
-  }
-  
-  /**
    * Create a new care plan
    */
   async createCarePlan(carePlan: Omit<CarePlan, 'id' | 'createdAt' | 'updatedAt'>): Promise<CarePlan> {
     const id = uuidv4();
-    
-    // Validate and trim the description
-    const validatedDescription = this.validateAndTrimDescription(carePlan.description);
-    
     const dbCarePlan = adaptCarePlanToDb({
       ...carePlan,
-      description: validatedDescription,
       id
     });
     
@@ -112,11 +92,6 @@ export class CarePlanService {
    * Update a care plan
    */
   async updateCarePlan(id: string, updates: Partial<CarePlan>): Promise<CarePlan> {
-    // Validate and trim the description if it's being updated
-    if (updates.description !== undefined) {
-      updates.description = this.validateAndTrimDescription(updates.description);
-    }
-    
     const dbUpdates = adaptCarePlanToDb(updates);
     
     try {

@@ -1,124 +1,130 @@
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
+import { motion } from 'framer-motion';
+import { Button } from '@/components/ui/button';
+import { MessageSquare } from 'lucide-react';
 import { useChat } from './ChatProvider';
-import { MessageCircle, X } from 'lucide-react';
 import { ChatbotWidget } from './ChatbotWidget';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { toast } from 'sonner';
 
 interface ChatbotLauncherProps {
   position?: 'left-of-fab' | 'bottom-right' | 'bottom-left' | 'above-fab';
-  spacing?: number;
+  spacing?: number; // Space in px between FAB and chatbot
+  width?: string;  // Width of the chatbot widget
   className?: string;
 }
 
-export const ChatbotLauncher: React.FC<ChatbotLauncherProps> = ({
+// Create a wrapper component that handles the case when no ChatProvider exists
+export const ChatbotLauncher: React.FC<ChatbotLauncherProps> = (props) => {
+  try {
+    return <ChatbotLauncherInner {...props} />;
+  } catch (error) {
+    console.error("ChatbotLauncher error:", error);
+    return (
+      <motion.div 
+        className="fixed bottom-24 right-6 z-50"
+        initial={{ scale: 0.8, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+      >
+        <Button
+          onClick={() => toast.error("Chat system is not available. Please refresh the page.")}
+          size="icon"
+          className="h-14 w-14 rounded-full shadow-lg bg-primary hover:bg-primary/90"
+          aria-label="Chat with Tavara (currently unavailable)"
+        >
+          <MessageSquare size={24} />
+        </Button>
+      </motion.div>
+    );
+  }
+};
+
+// Main component implementation that uses the hook
+const ChatbotLauncherInner: React.FC<ChatbotLauncherProps> = ({ 
   position = 'above-fab',
-  spacing = 24,
+  spacing = 24, // Default spacing of 24px
+  width = '320px',
   className
 }) => {
-  const { isOpen, toggleChat, closeChat } = useChat();
-  const [isExiting, setIsExiting] = useState(false);
+  const { isOpen, toggleChat, closeChat, isFullScreen } = useChat();
   const isMobile = useIsMobile();
   
-  // Calculate position-based classes and styles
-  const getPositionStyles = () => {
-    switch (position) {
-      case 'bottom-right':
-        return {
-          style: { 
-            right: spacing,
-            bottom: spacing
-          },
-          containerClass: 'right-0 bottom-0',
-          buttonClass: ''
-        };
-      case 'bottom-left':
-        return {
-          style: { 
-            left: spacing, 
-            bottom: spacing 
-          },
-          containerClass: 'left-0 bottom-0',
-          buttonClass: ''
-        };
+  // Adjust spacing for mobile
+  const mobileSpacing = isMobile ? 16 : spacing;
+  const safeBottomSpacing = isMobile ? 'env(safe-area-inset-bottom, 16px)' : '0px';
+
+  // Don't render the floating chat if we're in full-screen mode
+  if (isFullScreen) {
+    return null;
+  }
+
+  // Calculate positions based on the selected layout
+  const fabPositionClasses = {
+    'left-of-fab': `bottom-[calc(${mobileSpacing}px + ${safeBottomSpacing})] right-[calc(${mobileSpacing}px + env(safe-area-inset-right, 0px))]`,
+    'bottom-right': `bottom-[calc(${mobileSpacing}px + ${safeBottomSpacing})] right-[calc(${mobileSpacing}px + env(safe-area-inset-right, 0px))]`,
+    'bottom-left': `bottom-[calc(${mobileSpacing}px + ${safeBottomSpacing})] left-[calc(${mobileSpacing}px + env(safe-area-inset-left, 0px))]`,
+    'above-fab': `bottom-[calc(${mobileSpacing}px + ${safeBottomSpacing})] right-[calc(${mobileSpacing}px + env(safe-area-inset-right, 0px))]`,
+  };
+
+  // Calculate chatbot position based on the selected layout and spacing
+  const getChatbotPositionClasses = () => {
+    const fabWidth = 56; // Width of FAB in px (14 * 4)
+    const fabHeight = 56; // Height of FAB in px (14 * 4)
+    
+    switch(position) {
       case 'left-of-fab':
-        return {
-          style: {
-            right: 76 + spacing,
-            bottom: spacing
-          },
-          containerClass: 'right-0 bottom-0',
-          buttonClass: ''
-        };
+        return `fixed bottom-[calc(${mobileSpacing}px + ${safeBottomSpacing})] right-[calc(${fabWidth}px+${mobileSpacing}px+env(safe-area-inset-right, 0px))]`;
       case 'above-fab':
+        return `fixed bottom-[calc(${fabHeight}px+${mobileSpacing}px+56px+${safeBottomSpacing})] right-[calc(${mobileSpacing}px+env(safe-area-inset-right, 0px))]`;
+      case 'bottom-right':
+        return `fixed bottom-[calc(${mobileSpacing}px + ${safeBottomSpacing})] right-[calc(${mobileSpacing}px+env(safe-area-inset-right, 0px))]`;
+      case 'bottom-left':
+        return `fixed bottom-[calc(${mobileSpacing}px + ${safeBottomSpacing})] left-[calc(${mobileSpacing}px+env(safe-area-inset-left, 0px))]`;
       default:
-        return {
-          style: {
-            right: spacing,
-            bottom: 76 + spacing
-          },
-          containerClass: 'right-0 bottom-0',
-          buttonClass: ''
-        };
+        return `fixed bottom-[calc(${mobileSpacing}px + ${safeBottomSpacing})] right-[calc(${mobileSpacing}px+env(safe-area-inset-right, 0px))]`;
     }
   };
-  
-  const { style, containerClass, buttonClass } = getPositionStyles();
-  
-  // Handle animation timing
-  useEffect(() => {
-    if (!isOpen) {
-      setIsExiting(true);
-      const timer = setTimeout(() => {
-        setIsExiting(false);
-      }, 300); // Match the transition duration
-      return () => clearTimeout(timer);
-    }
-  }, [isOpen]);
-  
+
   return (
-    <div
-      className={cn(
-        "fixed overflow-visible z-40",
-        containerClass,
-        className
-      )}
-      style={style}
-    >
-      {/* Chat widget */}
-      {isOpen && (
-        <div 
-          className={`${isMobile ? 'fixed inset-0 z-50 flex items-end justify-center bg-black/20' : 'absolute mb-2 bottom-full right-0'}`}
+    <>
+      {/* Standalone FAB button (only used if not integrated with the main FAB) */}
+      {!position.includes('fab') && (
+        <motion.div 
+          className={`fixed ${fabPositionClasses[position]} z-50`}
+          initial={{ scale: 0.8, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ delay: 0.5 }}
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
         >
-          <div 
-            className={`transition-all duration-300 ${
-              isExiting ? 'opacity-0 scale-95 translate-y-2' : 'opacity-100 scale-100 translate-y-0'
-            }`}
+          <Button
+            onClick={toggleChat}
+            size="icon"
+            className={cn("h-14 w-14 rounded-full shadow-lg bg-primary hover:bg-primary/90", className)}
+            aria-label="Chat with Tavara care assistant"
           >
-            <ChatbotWidget
-              width={isMobile ? "100%" : "320px"}
-              onClose={closeChat}
-            />
-          </div>
-        </div>
+            <MessageSquare size={24} />
+          </Button>
+        </motion.div>
       )}
       
-      {/* Toggle button */}
-      <button
-        onClick={toggleChat}
-        className={cn(
-          "h-12 w-12 rounded-full bg-primary shadow-lg flex items-center justify-center text-white transition-all hover:scale-105 active:scale-95",
-          buttonClass
-        )}
-        aria-label={isOpen ? "Close chat" : "Open chat"}
-      >
-        {isOpen ? (
-          <X size={22} />
-        ) : (
-          <MessageCircle size={22} />
-        )}
-      </button>
-    </div>
+      {/* Chatbot Widget - with improved positioning and responsive width */}
+      {isOpen && !isFullScreen && (
+        <motion.div 
+          className={cn(getChatbotPositionClasses(), "z-40", isMobile && "left-4 right-4")}
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: 10 }}
+          transition={{ duration: 0.2 }}
+        >
+          <ChatbotWidget 
+            width={isMobile ? "100%" : width}
+            onClose={closeChat}
+          />
+        </motion.div>
+      )}
+    </>
   );
 };

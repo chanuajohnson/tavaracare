@@ -1,5 +1,6 @@
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { MessageCircle, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useChat } from './ChatProvider';
@@ -26,20 +27,7 @@ export const MicroChatBubble: React.FC<MicroChatBubbleProps> = ({
   const [isDismissed, setIsDismissed] = useState(false);
   const isMobile = useIsMobile();
   const [bubbleRect, setBubbleRect] = useState<DOMRect | null>(null);
-  const bubbleRef = useRef<HTMLDivElement>(null);
-  const [isMounted, setIsMounted] = useState(false);
-  
-  // Animation timing effect
-  useEffect(() => {
-    if (isVisible) {
-      setIsMounted(true);
-    } else {
-      const timer = setTimeout(() => {
-        setIsMounted(false);
-      }, 300); // Match transition duration
-      return () => clearTimeout(timer);
-    }
-  }, [isVisible]);
+  const bubbleRef = React.useRef<HTMLDivElement>(null);
   
   // Try to get chat context, if it fails, provide fallback behavior
   let chatContextAvailable = true;
@@ -154,9 +142,11 @@ export const MicroChatBubble: React.FC<MicroChatBubbleProps> = ({
       {...handleInteraction}
     >
       <div className="flex items-center justify-center">
-        <div
+        <motion.div
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
           className={cn(
-            "h-10 w-10 rounded-full bg-primary flex items-center justify-center text-white shadow-md relative transition-transform hover:scale-105 active:scale-95",
+            "h-10 w-10 rounded-full bg-primary flex items-center justify-center text-white shadow-md relative",
             {
               "bg-blue-600": role === "family",
               "bg-green-600": role === "professional",
@@ -169,44 +159,48 @@ export const MicroChatBubble: React.FC<MicroChatBubbleProps> = ({
           
           {/* Render text label using portal to appear on top of everything */}
           {isVisible && !isMobile && chatContextAvailable && createPortal(
-            <div 
-              className={`fixed whitespace-nowrap bg-white text-primary-900 text-sm py-1 px-2 rounded shadow-sm z-[1000] transition-all duration-300 ${
-                isMounted ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-[10px]'
-              }`}
+            <motion.div 
+              initial={{ opacity: 0, x: 10 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 10 }}
+              className="fixed whitespace-nowrap bg-white text-primary-900 text-sm py-1 px-2 rounded shadow-sm z-[1000]"
               style={{
                 top: bubbleRect ? bubbleRect.top + bubbleRect.height/2 - 10 : 0,
                 left: bubbleRect ? bubbleRect.right + 10 : 0,
               }}
             >
               {greeting.prompt}
-            </div>,
+            </motion.div>,
             document.body
           )}
-        </div>
+        </motion.div>
       </div>
 
       {/* Render popup in a portal to avoid stacking context issues */}
-      {isMounted && bubbleRect && chatContextAvailable && createPortal(
-        <div
-          className={`fixed z-[1000] w-64 bg-white rounded-lg shadow-lg p-3 border border-gray-200 transition-all duration-300 ${
-            isVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-95'
-          }`}
-          style={{
-            ...getPopupPosition(),
-            position: 'fixed'
-          }}
-          onClick={handleStartChat}
-        >
-          <Button
-            size="icon"
-            variant="ghost"
-            className="absolute top-1 right-1 h-6 w-6 text-gray-500 hover:bg-gray-100 rounded-full"
-            onClick={handleDismiss}
+      {isVisible && bubbleRect && chatContextAvailable && createPortal(
+        <AnimatePresence>
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.8 }}
+            className="fixed z-[1000] w-64 bg-white rounded-lg shadow-lg p-3 border border-gray-200"
+            style={{
+              ...getPopupPosition(),
+              position: 'fixed'
+            }}
+            onClick={handleStartChat}
           >
-            <X size={14} />
-          </Button>
-          <p className="text-sm">{greeting.message}</p>
-        </div>,
+            <Button
+              size="icon"
+              variant="ghost"
+              className="absolute top-1 right-1 h-6 w-6 text-gray-500 hover:bg-gray-100 rounded-full"
+              onClick={handleDismiss}
+            >
+              <X size={14} />
+            </Button>
+            <p className="text-sm">{greeting.message}</p>
+          </motion.div>
+        </AnimatePresence>,
         document.body
       )}
     </div>
