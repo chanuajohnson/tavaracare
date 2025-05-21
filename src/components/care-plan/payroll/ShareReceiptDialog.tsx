@@ -49,23 +49,37 @@ export const ShareReceiptDialog: React.FC<ShareReceiptDialogProps> = ({
       // Dynamically import pdfjs only when needed
       const pdfjs = await import('pdfjs-dist');
       
-      // Set worker source with better error handling and fallbacks
+      // Set worker source with multiple fallback options to improve reliability
       if (!window.pdfjsWorker) {
         try {
-          // First try with the version-specific CDN path
-          const workerSrc = `https://cdn.jsdelivr.net/npm/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.js`;
+          // First try with a reliable CDN path with specific version
+          const pdfjsVersion = "5.2.133"; // Match version in package.json
+          const workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsVersion}/pdf.worker.min.js`;
           pdfjs.GlobalWorkerOptions.workerSrc = workerSrc;
           window.pdfjsWorker = true;
+          console.log('PDF.js worker loaded from CDN:', workerSrc);
         } catch (workerError) {
-          console.error('Error loading PDF.js worker from CDN:', workerError);
+          console.error('Error loading PDF.js worker from primary CDN:', workerError);
           
-          // Fallback to a reliable CDN if version-specific fails
+          // First fallback to jsdelivr CDN
           try {
-            pdfjs.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
+            const workerSrc = `https://cdn.jsdelivr.net/npm/pdfjs-dist@5.2.133/build/pdf.worker.min.js`;
+            pdfjs.GlobalWorkerOptions.workerSrc = workerSrc;
             window.pdfjsWorker = true;
-          } catch (fallbackError) {
-            console.error('Error loading fallback PDF.js worker:', fallbackError);
-            throw new Error('Failed to load PDF.js worker');
+            console.log('PDF.js worker loaded from jsdelivr fallback');
+          } catch (fallbackError1) {
+            console.error('Error loading PDF.js worker from jsdelivr fallback:', fallbackError1);
+            
+            // Second fallback to unpkg
+            try {
+              const workerSrc = `https://unpkg.com/pdfjs-dist@5.2.133/build/pdf.worker.min.js`;
+              pdfjs.GlobalWorkerOptions.workerSrc = workerSrc;
+              window.pdfjsWorker = true;
+              console.log('PDF.js worker loaded from unpkg fallback');
+            } catch (fallbackError2) {
+              console.error('Error loading PDF.js worker from all CDNs:', fallbackError2);
+              throw new Error('Failed to load PDF.js worker from any source');
+            }
           }
         }
       }
