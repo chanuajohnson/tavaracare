@@ -4,11 +4,6 @@
  */
 interface Window {
   /**
-   * Flag to indicate if the PDF.js worker has been loaded
-   */
-  pdfjsWorker?: boolean;
-  
-  /**
    * Flag to indicate if React is initialized
    */
   reactInitialized?: boolean;
