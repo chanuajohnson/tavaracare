@@ -39,6 +39,65 @@ export const ShareReceiptDialog: React.FC<ShareReceiptDialogProps> = ({
     setConversionError 
   } = useReceiptFormat(receiptUrl);
   
+  // Function to initialize PDF.js with better worker loading
+  const initPdfjs = async () => {
+    try {
+      if (!window.pdfjsWorker) {
+        console.log('Initializing PDF.js worker...');
+        
+        // Try to load the worker from various sources in sequence for better reliability
+        const sources = [
+          // Try loading from unpkg first (most reliable)
+          "https://unpkg.com/pdfjs-dist@5.2.133/build/pdf.worker.min.js",
+          // Then from jsdelivr
+          "https://cdn.jsdelivr.net/npm/pdfjs-dist@5.2.133/build/pdf.worker.min.js",
+          // Then from cdnjs
+          "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/5.2.133/pdf.worker.min.js"
+        ];
+        
+        // Dynamically import pdfjs
+        const pdfjs = await import('pdfjs-dist');
+        
+        // Try each source until one works
+        for (const source of sources) {
+          try {
+            console.log(`Attempting to load PDF.js worker from: ${source}`);
+            pdfjs.GlobalWorkerOptions.workerSrc = source;
+            
+            // Create a small test to verify the worker is working
+            const testData = new Uint8Array([]);
+            const loadingTask = pdfjs.getDocument({ data: testData });
+            
+            // Set a timeout in case the worker doesn't respond
+            const testPromise = Promise.race([
+              loadingTask.promise.catch(() => true), // We expect an error with empty data, but it means worker loaded
+              new Promise(resolve => setTimeout(() => resolve(false), 1000))
+            ]);
+            
+            const result = await testPromise;
+            if (result !== false) {
+              console.log(`PDF.js worker successfully loaded from ${source}`);
+              window.pdfjsWorker = true;
+              return true;
+            }
+          } catch (workerError) {
+            console.warn(`Failed to load PDF.js worker from ${source}:`, workerError);
+            // Continue to next source
+          }
+        }
+        
+        // If we get here, all sources failed
+        console.error('Failed to load PDF.js worker from all sources');
+        return false;
+      }
+      
+      return true; // Worker already initialized
+    } catch (error) {
+      console.error('Error initializing PDF.js:', error);
+      return false;
+    }
+  };
+  
   // Function to convert PDF to JPG with enhanced error handling
   const convertPdfToJpg = async (pdfDataUrl: string): Promise<string> => {
     try {
@@ -46,43 +105,14 @@ export const ShareReceiptDialog: React.FC<ShareReceiptDialogProps> = ({
       setConversionError(null);
       setConversionAttempted(true);
       
+      // Initialize PDF.js worker
+      const workerInitialized = await initPdfjs();
+      if (!workerInitialized) {
+        throw new Error('Failed to initialize PDF.js worker');
+      }
+      
       // Dynamically import pdfjs only when needed
       const pdfjs = await import('pdfjs-dist');
-      
-      // Set worker source with multiple fallback options to improve reliability
-      if (!window.pdfjsWorker) {
-        try {
-          // First try with a reliable CDN path with specific version
-          const pdfjsVersion = "5.2.133"; // Match version in package.json
-          const workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsVersion}/pdf.worker.min.js`;
-          pdfjs.GlobalWorkerOptions.workerSrc = workerSrc;
-          window.pdfjsWorker = true;
-          console.log('PDF.js worker loaded from CDN:', workerSrc);
-        } catch (workerError) {
-          console.error('Error loading PDF.js worker from primary CDN:', workerError);
-          
-          // First fallback to jsdelivr CDN
-          try {
-            const workerSrc = `https://cdn.jsdelivr.net/npm/pdfjs-dist@5.2.133/build/pdf.worker.min.js`;
-            pdfjs.GlobalWorkerOptions.workerSrc = workerSrc;
-            window.pdfjsWorker = true;
-            console.log('PDF.js worker loaded from jsdelivr fallback');
-          } catch (fallbackError1) {
-            console.error('Error loading PDF.js worker from jsdelivr fallback:', fallbackError1);
-            
-            // Second fallback to unpkg
-            try {
-              const workerSrc = `https://unpkg.com/pdfjs-dist@5.2.133/build/pdf.worker.min.js`;
-              pdfjs.GlobalWorkerOptions.workerSrc = workerSrc;
-              window.pdfjsWorker = true;
-              console.log('PDF.js worker loaded from unpkg fallback');
-            } catch (fallbackError2) {
-              console.error('Error loading PDF.js worker from all CDNs:', fallbackError2);
-              throw new Error('Failed to load PDF.js worker from any source');
-            }
-          }
-        }
-      }
       
       // Convert base64 to array buffer
       const base64Content = pdfDataUrl.split(',')[1];
@@ -95,6 +125,8 @@ export const ShareReceiptDialog: React.FC<ShareReceiptDialogProps> = ({
       for (let i = 0; i < binaryData.length; i++) {
         bytes[i] = binaryData.charCodeAt(i);
       }
+      
+      console.log('Loading PDF document...');
       
       // Load PDF document with timeout
       const loadTimeout = new Promise((_, reject) => {
@@ -130,6 +162,8 @@ export const ShareReceiptDialog: React.FC<ShareReceiptDialogProps> = ({
       // Set white background
       context.fillStyle = 'white';
       context.fillRect(0, 0, canvas.width, canvas.height);
+      
+      console.log('Rendering PDF page to canvas...');
       
       // Render PDF page to canvas with timeout
       const renderContext = {
@@ -254,6 +288,16 @@ export const ShareReceiptDialog: React.FC<ShareReceiptDialogProps> = ({
       }
     }
   };
+
+  // Initialize PDF.js when the component mounts
+  useEffect(() => {
+    if (open && !window.pdfjsWorker) {
+      initPdfjs().catch(error => {
+        console.error('Failed to initialize PDF.js:', error);
+        setConversionError('PDF conversion is unavailable. Please use PDF format.');
+      });
+    }
+  }, [open]);
 
   // Reset conversion state when dialog opens or closes
   useEffect(() => {
