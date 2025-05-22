@@ -1,13 +1,14 @@
 
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, ArrowRight, Edit, Plus, Trash2, Clock, User } from "lucide-react";
-import { format, addDays, startOfWeek, isSameDay, addWeeks, subWeeks } from 'date-fns';
+import { ArrowLeft, ArrowRight, Edit, Plus, Trash2, Clock, User, Receipt, Calendar } from "lucide-react";
+import { format, addDays, isSameDay, addWeeks, subWeeks } from 'date-fns';
 import { CareShift, CareTeamMemberWithProfile } from "@/types/careTypes";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { toast } from "sonner";
 
 interface ShiftCalendarProps {
   selectedWeek: Date;
@@ -33,7 +34,7 @@ export const ShiftCalendar: React.FC<ShiftCalendarProps> = ({
   const DAYS_OF_WEEK = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedDateShifts, setSelectedDateShifts] = useState<CareShift[]>([]);
-  const [filterByCaregiver, setFilterByCaregiver] = useState<string | null>(null);
+  const [filterByCaregiver, setFilterByCaregiver] = useState<string | 'all'>('all');
 
   const navigateWeek = (direction: 'prev' | 'next') => {
     setSelectedWeek(prev => {
@@ -50,6 +51,7 @@ export const ShiftCalendar: React.FC<ShiftCalendarProps> = ({
 
   const getShiftsForDay = (day: Date) => {
     return careShifts.filter(shift => {
+      if (!shift.startTime) return false;
       const shiftDate = new Date(shift.startTime);
       const matches = isSameDay(shiftDate, day);
       
@@ -114,6 +116,36 @@ export const ShiftCalendar: React.FC<ShiftCalendarProps> = ({
       .toUpperCase();
   };
 
+  const handleViewReceipt = (shift: CareShift) => {
+    // For this implementation, we'll just show a toast
+    // In a real app, this would navigate to a receipt view
+    if (shift.status === 'completed') {
+      toast.success(`Viewing receipt for shift on ${format(new Date(shift.startTime), "MMM d, yyyy")}`);
+    } else {
+      toast.info("No receipt available for this shift yet.");
+    }
+  };
+  
+  const handleDownloadReceipt = (shift: CareShift) => {
+    // For this implementation, we'll just show a toast
+    // In a real app, this would download a receipt PDF
+    if (shift.status === 'completed') {
+      toast.success(`Downloading receipt for shift on ${format(new Date(shift.startTime), "MMM d, yyyy")}`);
+    } else {
+      toast.info("No receipt available for this shift yet.");
+    }
+  };
+
+  // Count shifts by caregiver
+  const shiftsByCaregiver = careTeamMembers.map(member => {
+    const count = careShifts.filter(s => s.caregiverId === member.caregiverId).length;
+    return {
+      caregiverId: member.caregiverId,
+      name: member.professionalDetails?.full_name || "Unknown",
+      count
+    };
+  }).filter(item => item.count > 0);
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -131,10 +163,17 @@ export const ShiftCalendar: React.FC<ShiftCalendarProps> = ({
       </div>
       
       <div className="flex justify-between items-center">
-        <div></div>
+        <div className="text-sm text-muted-foreground">
+          {shiftsByCaregiver.map((item, index) => (
+            <span key={item.caregiverId} className="mr-2">
+              {item.name}: {item.count} shifts
+              {index < shiftsByCaregiver.length - 1 ? ' • ' : ''}
+            </span>
+          ))}
+        </div>
         <Select
-          value={filterByCaregiver || 'all'}
-          onValueChange={(value) => setFilterByCaregiver(value === 'all' ? null : value)}
+          value={filterByCaregiver}
+          onValueChange={(value) => setFilterByCaregiver(value as 'all' | string)}
         >
           <SelectTrigger className="w-[220px]">
             <SelectValue placeholder="Filter by caregiver" />
@@ -228,6 +267,7 @@ export const ShiftCalendar: React.FC<ShiftCalendarProps> = ({
           <li>• Click on a day with shifts to view all shifts for that day</li>
           <li>• Filter by caregiver to view specific assignments</li>
           <li>• Different colors represent different caregivers</li>
+          <li>• Completed shifts have payment receipts available</li>
         </ul>
       </div>
 
@@ -280,7 +320,29 @@ export const ShiftCalendar: React.FC<ShiftCalendarProps> = ({
                   )}
                 </div>
                 
-                <div className="flex justify-end gap-1 mt-3">
+                <div className="flex flex-wrap justify-end gap-1 mt-3">
+                  {shift.status === 'completed' && (
+                    <>
+                      <Button 
+                        size="sm" 
+                        variant="outline" 
+                        className="h-7 px-2"
+                        onClick={() => handleViewReceipt(shift)}
+                      >
+                        <Receipt className="h-3.5 w-3.5 mr-1" />
+                        View Receipt
+                      </Button>
+                      <Button 
+                        size="sm" 
+                        variant="outline" 
+                        className="h-7 px-2"
+                        onClick={() => handleDownloadReceipt(shift)}
+                      >
+                        <Calendar className="h-3.5 w-3.5 mr-1" />
+                        Add to Calendar
+                      </Button>
+                    </>
+                  )}
                   <Button 
                     size="sm" 
                     variant="ghost" 

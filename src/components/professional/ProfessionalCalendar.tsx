@@ -27,6 +27,7 @@ export function ProfessionalCalendar({ shifts, loading = false }: ProfessionalCa
     const dateString = date.toISOString().split('T')[0];
     
     return shifts.filter(shift => {
+      if (!shift.startTime) return false;
       const shiftStartDate = new Date(shift.startTime).toISOString().split('T')[0];
       return shiftStartDate === dateString;
     });
@@ -75,6 +76,9 @@ export function ProfessionalCalendar({ shifts, loading = false }: ProfessionalCa
   console.log("ProfessionalCalendar: Rendering with shifts:", shifts.length);
   console.log("ProfessionalCalendar: Selected date shifts:", selectedDateShifts.length);
 
+  // Days that should be highlighted in the calendar
+  const bookedDays = Object.keys(getDaysWithShifts()).map(date => new Date(date));
+
   return (
     <Card>
       <CardHeader>
@@ -115,7 +119,7 @@ export function ProfessionalCalendar({ shifts, loading = false }: ProfessionalCa
                 }}
                 className="rounded-md border"
                 modifiers={{
-                  booked: Object.keys(getDaysWithShifts()).map(date => new Date(date)),
+                  booked: bookedDays,
                 }}
                 modifiersStyles={{
                   booked: { 
