@@ -27,9 +27,10 @@ interface CareTeamMember {
 interface CareTeamMembersTabProps {
   teamMembers: CareTeamMember[];
   loading: boolean;
+  currentUserId?: string;
 }
 
-export function CareTeamMembersTab({ teamMembers = [], loading = false }: CareTeamMembersTabProps) {
+export function CareTeamMembersTab({ teamMembers = [], loading = false, currentUserId }: CareTeamMembersTabProps) {
   // Enhanced debug logging
   console.log("CareTeamMembersTab rendering with:", { 
     teamMembers, 
@@ -37,7 +38,8 @@ export function CareTeamMembersTab({ teamMembers = [], loading = false }: CareTe
     teamMembersCount: teamMembers.length,
     teamMembersWithDetails: teamMembers.filter(m => m.professionalDetails).length,
     memberIds: teamMembers.map(m => m.id),
-    memberRoles: teamMembers.map(m => m.role)
+    memberRoles: teamMembers.map(m => m.role),
+    currentUserId
   });
 
   const getInitials = (name: string) => {
@@ -96,28 +98,38 @@ export function CareTeamMembersTab({ teamMembers = [], loading = false }: CareTe
           avatar_url: null
         };
 
+        // Check if this member is the current logged-in user
+        const isCurrentUser = currentUserId && member.caregiverId === currentUserId;
+        
         // Debug individual member rendering
         console.log("Rendering team member:", { 
           id: member.id, 
           role: member.role,
           status: member.status,
           caregiverId: member.caregiverId,
-          professionalName: professionalDetails.full_name 
+          professionalName: professionalDetails.full_name,
+          isCurrentUser
         });
         
         return (
-          <Card key={member.id} className="overflow-hidden">
+          <Card 
+            key={member.id} 
+            className={`overflow-hidden ${isCurrentUser ? 'border-primary border-2' : ''}`}
+          >
             <CardContent className="p-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <Avatar className="h-10 w-10">
                     <AvatarImage src={professionalDetails.avatar_url || ''} alt={professionalDetails.full_name} />
-                    <AvatarFallback className="bg-primary text-white">
+                    <AvatarFallback className={`${isCurrentUser ? 'bg-primary' : 'bg-secondary'} text-white`}>
                       {getInitials(professionalDetails.full_name || 'U')}
                     </AvatarFallback>
                   </Avatar>
                   <div>
-                    <p className="font-medium">{professionalDetails.full_name || 'Unknown Professional'}</p>
+                    <p className="font-medium">
+                      {professionalDetails.full_name || 'Unknown Professional'}
+                      {isCurrentUser && <span className="ml-2 text-xs text-primary font-medium">(You)</span>}
+                    </p>
                     <p className="text-sm text-gray-500">{professionalDetails.professional_type || 'Care Professional'}</p>
                   </div>
                 </div>

@@ -1,8 +1,13 @@
-import React from 'react';
+
+import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, ArrowRight, Edit, Plus, Trash2, Clock } from "lucide-react";
+import { ArrowLeft, ArrowRight, Edit, Plus, Trash2, Clock, User } from "lucide-react";
 import { format, addDays, startOfWeek, isSameDay, addWeeks, subWeeks } from 'date-fns';
 import { CareShift, CareTeamMemberWithProfile } from "@/types/careTypes";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface ShiftCalendarProps {
   selectedWeek: Date;
@@ -26,6 +31,9 @@ export const ShiftCalendar: React.FC<ShiftCalendarProps> = ({
   onLogHours,
 }) => {
   const DAYS_OF_WEEK = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [selectedDateShifts, setSelectedDateShifts] = useState<CareShift[]>([]);
+  const [filterByCaregiver, setFilterByCaregiver] = useState<string | null>(null);
 
   const navigateWeek = (direction: 'prev' | 'next') => {
     setSelectedWeek(prev => {
@@ -43,7 +51,13 @@ export const ShiftCalendar: React.FC<ShiftCalendarProps> = ({
   const getShiftsForDay = (day: Date) => {
     return careShifts.filter(shift => {
       const shiftDate = new Date(shift.startTime);
-      return isSameDay(shiftDate, day);
+      const matches = isSameDay(shiftDate, day);
+      
+      if (filterByCaregiver && filterByCaregiver !== 'all') {
+        return matches && shift.caregiverId === filterByCaregiver;
+      }
+      
+      return matches;
     });
   };
 
@@ -57,6 +71,47 @@ export const ShiftCalendar: React.FC<ShiftCalendarProps> = ({
   const getTimeDisplay = (dateString: string) => {
     const date = new Date(dateString);
     return format(date, "h:mm a");
+  };
+
+  const handleDayClick = (day: Date) => {
+    const shiftsForDay = getShiftsForDay(day);
+    if (shiftsForDay.length > 0) {
+      setSelectedDate(day);
+      setSelectedDateShifts(shiftsForDay);
+    } else {
+      onAddShift(day);
+    }
+  };
+
+  // Generate a consistent color for each caregiver
+  const getCaregiverColor = (caregiverId?: string) => {
+    if (!caregiverId) return "bg-gray-100 border-gray-200";
+    
+    // Simple hash function for the caregiver ID
+    const hashCode = caregiverId.split('')
+      .reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    
+    const colorOptions = [
+      "bg-blue-100 border-blue-200",
+      "bg-green-100 border-green-200",
+      "bg-yellow-100 border-yellow-200", 
+      "bg-purple-100 border-purple-200",
+      "bg-pink-100 border-pink-200",
+      "bg-orange-100 border-orange-200",
+      "bg-teal-100 border-teal-200",
+      "bg-cyan-100 border-cyan-200"
+    ];
+    
+    return colorOptions[hashCode % colorOptions.length];
+  };
+
+  const getInitials = (name: string) => {
+    if (!name || name === "Unassigned" || name === "Unknown") return "?";
+    return name.split(' ')
+      .filter(part => part.length > 0)
+      .map(n => n[0])
+      .join('')
+      .toUpperCase();
   };
 
   return (
@@ -75,6 +130,26 @@ export const ShiftCalendar: React.FC<ShiftCalendarProps> = ({
         </Button>
       </div>
       
+      <div className="flex justify-between items-center">
+        <div></div>
+        <Select
+          value={filterByCaregiver || 'all'}
+          onValueChange={(value) => setFilterByCaregiver(value === 'all' ? null : value)}
+        >
+          <SelectTrigger className="w-[220px]">
+            <SelectValue placeholder="Filter by caregiver" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Caregivers</SelectItem>
+            {careTeamMembers.map((member) => (
+              <SelectItem key={member.caregiverId} value={member.caregiverId}>
+                {member.professionalDetails?.full_name || "Unknown"}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+      
       <div className="grid grid-cols-7 gap-2">
         {getWeekDays().map((day, index) => (
           <div key={index} className="text-center font-medium text-xs">
@@ -89,58 +164,49 @@ export const ShiftCalendar: React.FC<ShiftCalendarProps> = ({
         {getWeekDays().map((day, index) => {
           const dayShifts = getShiftsForDay(day);
           const isWeekend = index === 0 || index === 6;
+          const hasShifts = dayShifts.length > 0;
           
           return (
             <div 
               key={index} 
               className={`border rounded-md p-2 min-h-[120px] ${
                 isWeekend ? 'bg-blue-50/30' : ''
-              }`}
+              } ${hasShifts ? 'cursor-pointer hover:border-primary' : ''}`}
+              onClick={() => hasShifts ? handleDayClick(day) : onAddShift(day)}
             >
-              {dayShifts.length > 0 ? (
+              {hasShifts ? (
                 <div className="space-y-2">
-                  {dayShifts.map(shift => (
-                    <div 
-                      key={shift.id} 
-                      className="text-xs p-1.5 rounded bg-blue-100 border border-blue-200 flex flex-col"
-                    >
-                      <div className="font-medium truncate">{shift.title}</div>
-                      <div className="text-muted-foreground truncate">
-                        {getTimeDisplay(shift.startTime)} - {getTimeDisplay(shift.endTime)}
+                  {dayShifts.slice(0, 3).map(shift => {
+                    const caregiverColorClass = getCaregiverColor(shift.caregiverId);
+                    return (
+                      <div 
+                        key={shift.id} 
+                        className={`text-xs p-1.5 rounded ${caregiverColorClass} border flex flex-col`}
+                      >
+                        <div className="font-medium truncate">{shift.title}</div>
+                        <div className="text-muted-foreground truncate">
+                          {getTimeDisplay(shift.startTime)} - {getTimeDisplay(shift.endTime)}
+                        </div>
+                        <div className="flex items-center gap-1 mt-1">
+                          <Avatar className="h-4 w-4">
+                            <AvatarFallback className="text-[8px]">
+                              {getInitials(getCaregiverName(shift.caregiverId))}
+                            </AvatarFallback>
+                          </Avatar>
+                          <span className={`truncate ${
+                            shift.caregiverId ? 'text-green-700' : 'text-orange-700'
+                          }`}>
+                            {getCaregiverName(shift.caregiverId)}
+                          </span>
+                        </div>
                       </div>
-                      <div className={`truncate mt-1 ${
-                        shift.caregiverId ? 'text-green-700' : 'text-orange-700'
-                      }`}>
-                        {getCaregiverName(shift.caregiverId)}
-                      </div>
-                      <div className="flex justify-end gap-1 mt-1">
-                        <Button 
-                          size="icon" 
-                          variant="ghost" 
-                          className="h-6 w-6"
-                          onClick={() => onLogHours(shift)}
-                        >
-                          <Clock className="h-3 w-3" />
-                        </Button>
-                        <Button 
-                          size="icon" 
-                          variant="ghost" 
-                          className="h-6 w-6"
-                          onClick={() => onEditShift(shift)}
-                        >
-                          <Edit className="h-3 w-3" />
-                        </Button>
-                        <Button 
-                          size="icon" 
-                          variant="ghost" 
-                          className="h-6 w-6 text-red-600 hover:text-red-700 hover:bg-red-50"
-                          onClick={() => onDeleteShift(shift.id)}
-                        >
-                          <Trash2 className="h-3 w-3" />
-                        </Button>
-                      </div>
+                    );
+                  })}
+                  {dayShifts.length > 3 && (
+                    <div className="text-xs text-center text-muted-foreground">
+                      +{dayShifts.length - 3} more
                     </div>
-                  ))}
+                  )}
                 </div>
               ) : (
                 <div 
@@ -159,11 +225,101 @@ export const ShiftCalendar: React.FC<ShiftCalendarProps> = ({
         <h3 className="font-medium mb-2">About the Schedule</h3>
         <ul className="space-y-1 text-sm text-muted-foreground">
           <li>• Click on an empty day to add a new shift</li>
-          <li>• You can assign shifts to care team members</li>
-          <li>• Set shifts as recurring for regular schedules</li>
-          <li>• Edit or delete shifts using the icons</li>
+          <li>• Click on a day with shifts to view all shifts for that day</li>
+          <li>• Filter by caregiver to view specific assignments</li>
+          <li>• Different colors represent different caregivers</li>
         </ul>
       </div>
+
+      {/* Dialog for showing shifts for a specific day */}
+      <Dialog 
+        open={selectedDate !== null} 
+        onOpenChange={(open) => !open && setSelectedDate(null)}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              {selectedDate && format(selectedDate, "EEEE, MMMM d, yyyy")}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 mt-2">
+            {selectedDateShifts.map(shift => (
+              <div 
+                key={shift.id} 
+                className={`p-3 border rounded-md ${getCaregiverColor(shift.caregiverId)}`}
+              >
+                <div className="flex justify-between items-start">
+                  <h4 className="font-medium">{shift.title}</h4>
+                  <Badge 
+                    className={
+                      shift.status === 'assigned' ? 'bg-green-100 text-green-700' :
+                      shift.status === 'completed' ? 'bg-blue-100 text-blue-700' :
+                      'bg-yellow-100 text-yellow-700'
+                    }
+                  >
+                    {shift.status}
+                  </Badge>
+                </div>
+                <div className="mt-2 text-sm">
+                  <div className="flex items-center gap-1">
+                    <Clock className="h-3.5 w-3.5 text-muted-foreground" />
+                    <span>{getTimeDisplay(shift.startTime)} - {getTimeDisplay(shift.endTime)}</span>
+                  </div>
+                  
+                  <div className="flex items-center gap-1 mt-1">
+                    <User className="h-3.5 w-3.5 text-muted-foreground" />
+                    <span>{getCaregiverName(shift.caregiverId)}</span>
+                  </div>
+                  
+                  {shift.description && (
+                    <p className="mt-1 text-muted-foreground">{shift.description}</p>
+                  )}
+                  
+                  {shift.location && (
+                    <p className="text-xs mt-1 text-muted-foreground">Location: {shift.location}</p>
+                  )}
+                </div>
+                
+                <div className="flex justify-end gap-1 mt-3">
+                  <Button 
+                    size="sm" 
+                    variant="ghost" 
+                    className="h-7 px-2"
+                    onClick={() => onLogHours(shift)}
+                  >
+                    <Clock className="h-3.5 w-3.5 mr-1" />
+                    Log Hours
+                  </Button>
+                  <Button 
+                    size="sm" 
+                    variant="ghost" 
+                    className="h-7 px-2"
+                    onClick={() => {
+                      onEditShift(shift);
+                      setSelectedDate(null);
+                    }}
+                  >
+                    <Edit className="h-3.5 w-3.5 mr-1" />
+                    Edit
+                  </Button>
+                  <Button 
+                    size="sm" 
+                    variant="ghost" 
+                    className="h-7 px-2 text-red-600 hover:text-red-700 hover:bg-red-50"
+                    onClick={() => {
+                      onDeleteShift(shift.id);
+                      setSelectedDate(null);
+                    }}
+                  >
+                    <Trash2 className="h-3.5 w-3.5 mr-1" />
+                    Delete
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

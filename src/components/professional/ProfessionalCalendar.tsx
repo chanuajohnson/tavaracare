@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Calendar } from "@/components/ui/calendar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -6,6 +7,8 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { ChevronDown, ChevronUp, Clock, Calendar as CalendarIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { CareShift } from "@/types/careTypes";
+import { format } from "date-fns";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 interface ProfessionalCalendarProps {
   shifts: CareShift[];
@@ -15,6 +18,7 @@ interface ProfessionalCalendarProps {
 export function ProfessionalCalendar({ shifts, loading = false }: ProfessionalCalendarProps) {
   const [date, setDate] = useState<Date | undefined>(new Date());
   const [isCalendarExpanded, setIsCalendarExpanded] = useState(true);
+  const [selectedDateDetails, setSelectedDateDetails] = useState<{date: Date, shifts: CareShift[]} | null>(null);
   
   // Filter shifts for the selected date
   const getShiftsForDate = (date?: Date) => {
@@ -43,15 +47,29 @@ export function ProfessionalCalendar({ shifts, loading = false }: ProfessionalCa
   const getDaysWithShifts = () => {
     if (!shifts.length) return {};
     
-    const daysWithShifts = shifts.reduce((acc: Record<string, { shift: CareShift }>, shift) => {
-      const date = new Date(shift.startTime).toISOString().split('T')[0];
-      if (!acc[date]) {
-        acc[date] = { shift };
-      }
-      return acc;
-    }, {});
+    const daysWithShifts: Record<string, { shift: CareShift }> = {};
     
+    shifts.forEach(shift => {
+      if (!shift.startTime) return;
+      
+      const dateStr = new Date(shift.startTime).toISOString().split('T')[0];
+      if (!daysWithShifts[dateStr]) {
+        daysWithShifts[dateStr] = { shift };
+      }
+    });
+    
+    console.log("Days with shifts:", Object.keys(daysWithShifts));
     return daysWithShifts;
+  };
+
+  const handleDateClick = (date: Date) => {
+    const dateShifts = getShiftsForDate(date);
+    if (dateShifts.length > 0) {
+      setSelectedDateDetails({
+        date,
+        shifts: dateShifts
+      });
+    }
   };
 
   console.log("ProfessionalCalendar: Rendering with shifts:", shifts.length);
@@ -89,7 +107,12 @@ export function ProfessionalCalendar({ shifts, loading = false }: ProfessionalCa
               <Calendar
                 mode="single"
                 selected={date}
-                onSelect={setDate}
+                onSelect={(newDate) => {
+                  setDate(newDate);
+                  if (newDate) {
+                    handleDateClick(newDate);
+                  }
+                }}
                 className="rounded-md border"
                 modifiers={{
                   booked: Object.keys(getDaysWithShifts()).map(date => new Date(date)),
@@ -157,6 +180,56 @@ export function ProfessionalCalendar({ shifts, loading = false }: ProfessionalCa
           </CardContent>
         </CollapsibleContent>
       </Collapsible>
+
+      <Dialog 
+        open={selectedDateDetails !== null} 
+        onOpenChange={(open) => !open && setSelectedDateDetails(null)}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              {selectedDateDetails?.date.toLocaleDateString('en-US', {
+                weekday: 'long',
+                month: 'long',
+                day: 'numeric'
+              })}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 mt-2">
+            {selectedDateDetails?.shifts.map((shift) => (
+              <div 
+                key={shift.id} 
+                className="p-3 border rounded-md bg-muted/20"
+              >
+                <div className="flex justify-between items-start">
+                  <h4 className="font-medium">{shift.title}</h4>
+                  <Badge 
+                    className={
+                      shift.status === 'assigned' ? 'bg-green-100 text-green-700' :
+                      shift.status === 'completed' ? 'bg-blue-100 text-blue-700' :
+                      'bg-yellow-100 text-yellow-700'
+                    }
+                  >
+                    {shift.status}
+                  </Badge>
+                </div>
+                <div className="mt-2 text-sm">
+                  <div className="flex items-center gap-1">
+                    <Clock className="h-3.5 w-3.5 text-muted-foreground" />
+                    <span>{formatTime(shift.startTime)} - {formatTime(shift.endTime)}</span>
+                  </div>
+                  {shift.description && (
+                    <p className="mt-1 text-muted-foreground">{shift.description}</p>
+                  )}
+                  {shift.location && (
+                    <p className="text-xs mt-1 text-muted-foreground">Location: {shift.location}</p>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }

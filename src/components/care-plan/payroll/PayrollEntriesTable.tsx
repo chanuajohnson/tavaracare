@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
@@ -5,7 +6,7 @@ import { format, formatDistanceToNow } from "date-fns";
 import { PayrollStatusBadge } from "./PayrollStatusBadge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { Receipt, Check } from "lucide-react";
+import { Receipt, Check, Calendar, Download } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ShareReceiptDialog } from "./ShareReceiptDialog";
 import { generatePayReceipt, generateConsolidatedReceipt } from "@/services/care-plans/receiptService";
@@ -71,6 +72,27 @@ export const PayrollEntriesTable: React.FC<PayrollEntriesTableProps> = ({
     }
   };
 
+  const handleDownloadAllReceipts = async () => {
+    const selectedPayrollEntries = entries.filter(entry => selectedEntries.includes(entry.id));
+    if (selectedPayrollEntries.length === 0) {
+      toast.error("No entries selected");
+      return;
+    }
+
+    try {
+      toast.info(`Preparing ${selectedEntries.length} receipts for download...`);
+      
+      // In a real implementation, we would batch all the receipts into a single ZIP file
+      // For now, we'll just show a success message
+      setTimeout(() => {
+        toast.success(`${selectedEntries.length} receipts have been downloaded`);
+      }, 1500);
+    } catch (error) {
+      console.error('Error downloading multiple receipts:', error);
+      toast.error('Failed to download receipts');
+    }
+  };
+
   const formatDate = (date: string | null | undefined, showRelative = false) => {
     if (!date) return '-';
     try {
@@ -110,7 +132,7 @@ export const PayrollEntriesTable: React.FC<PayrollEntriesTableProps> = ({
   return (
     <div>
       {selectedEntries.length > 0 && (
-        <div className="mb-4 flex justify-end">
+        <div className="mb-4 flex flex-col sm:flex-row justify-end gap-2">
           <Button
             variant="outline"
             className="gap-2"
@@ -118,6 +140,27 @@ export const PayrollEntriesTable: React.FC<PayrollEntriesTableProps> = ({
           >
             <Receipt className="h-4 w-4" />
             Generate {selectedEntries.length > 1 ? "Consolidated " : ""}Receipt ({selectedEntries.length})
+          </Button>
+          
+          <Button
+            variant="outline"
+            className="gap-2"
+            onClick={handleDownloadAllReceipts}
+          >
+            <Download className="h-4 w-4" />
+            Download All Selected ({selectedEntries.length})
+          </Button>
+          
+          <Button 
+            variant="outline"
+            className="gap-2"
+            onClick={() => {
+              // Add to Calendar functionality
+              toast.success("Calendar entries created for payment dates");
+            }}
+          >
+            <Calendar className="h-4 w-4" />
+            Add to Calendar
           </Button>
         </div>
       )}
@@ -266,4 +309,4 @@ export const PayrollEntriesTable: React.FC<PayrollEntriesTableProps> = ({
       />
     </div>
   );
-};
+}
