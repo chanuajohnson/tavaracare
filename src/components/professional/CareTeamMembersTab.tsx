@@ -14,12 +14,12 @@ interface ProfessionalDetails {
 interface CareTeamMember {
   id: string;
   carePlanId: string;
-  familyId: string;
+  familyId?: string;
   caregiverId: string;
   role: string;
   status: string;
   notes?: string;
-  createdAt: string;
+  createdAt?: string;
   updatedAt?: string;
   professionalDetails?: ProfessionalDetails;
 }
@@ -39,7 +39,8 @@ export function CareTeamMembersTab({ teamMembers = [], loading = false, currentU
     teamMembersWithDetails: teamMembers.filter(m => m.professionalDetails).length,
     memberIds: teamMembers.map(m => m.id),
     memberRoles: teamMembers.map(m => m.role),
-    currentUserId
+    currentUserId,
+    caregiverIds: teamMembers.map(m => m.caregiverId)
   });
 
   const getInitials = (name: string) => {
@@ -108,7 +109,8 @@ export function CareTeamMembersTab({ teamMembers = [], loading = false, currentU
           status: member.status,
           caregiverId: member.caregiverId,
           professionalName: professionalDetails.full_name,
-          isCurrentUser
+          isCurrentUser,
+          currentUserId
         });
         
         return (

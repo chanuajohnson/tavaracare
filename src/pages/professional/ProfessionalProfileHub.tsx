@@ -468,7 +468,9 @@ const ProfessionalProfileHub = () => {
         let allTeamMembers: any[] = [];
 
         for (const plan of carePlans) {
-          console.log(`Fetching team members for care plan: ${plan.id}`);
+          // FIX: Use the correct care_plan_id instead of the assignment id
+          const carePlanId = plan.care_plan_id;
+          console.log(`Fetching team members for care plan: ${carePlanId}`);
           
           // Fetch ALL team members for this care plan (not just current user)
           const { data: teamData, error: teamError } = await supabase
@@ -485,15 +487,15 @@ const ProfessionalProfileHub = () => {
                 avatar_url
               )
             `)
-            .eq('care_plan_id', plan.id);
+            .eq('care_plan_id', carePlanId);
 
           if (teamError) {
-            console.error(`Error fetching team members for plan ${plan.id}:`, teamError);
+            console.error(`Error fetching team members for plan ${carePlanId}:`, teamError);
             continue;
           }
 
-          console.log(`Team members for plan ${plan.id}:`, teamData);
-          console.log(`Number of team members for plan ${plan.id}:`, teamData?.length || 0);
+          console.log(`Team members for plan ${carePlanId}:`, teamData);
+          console.log(`Number of team members for plan ${carePlanId}:`, teamData?.length || 0);
 
           if (teamData) {
             // Transform team data to match expected structure
@@ -522,6 +524,7 @@ const ProfessionalProfileHub = () => {
       const allTeamMembers = await fetchCareTeamMembers(transformedCarePlans);
       setCareTeamMembers(allTeamMembers);
       setLoadingCarePlans(false);
+      setLoadingCareTeamMembers(false);
     } catch (err) {
       console.error("Error loading care plans:", err);
       toast.error("Failed to load care assignments");
