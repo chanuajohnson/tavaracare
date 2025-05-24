@@ -39,29 +39,29 @@ export const LazyIcon: React.FC<LazyIconProps> = ({ name, ...props }) => {
 
 // Export individual wrapped icons for direct import with proper typing
 export const MessageSquareIcon: React.FC<Omit<LucideProps, 'ref'>> = (props) => (
-  <LazyIcon name="MessageSquare" {...props} />
+  <LazyIcon name={"MessageSquare" as IconName} {...props} />
 );
 
 export const XIcon: React.FC<Omit<LucideProps, 'ref'>> = (props) => (
-  <LazyIcon name="X" {...props} />
+  <LazyIcon name={"X" as IconName} {...props} />
 );
 
 export const SendIcon: React.FC<Omit<LucideProps, 'ref'>> = (props) => (
-  <LazyIcon name="Send" {...props} />
+  <LazyIcon name={"Send" as IconName} {...props} />
 );
 
 export const HelpCircleIcon: React.FC<Omit<LucideProps, 'ref'>> = (props) => (
-  <LazyIcon name="HelpCircle" {...props} />
+  <LazyIcon name={"HelpCircle" as IconName} {...props} />
 );
 
 export const FileQuestionIcon: React.FC<Omit<LucideProps, 'ref'>> = (props) => (
-  <LazyIcon name="FileQuestion" {...props} />
+  <LazyIcon name={"FileQuestion" as IconName} {...props} />
 );
 
 export const PhoneIcon: React.FC<Omit<LucideProps, 'ref'>> = (props) => (
-  <LazyIcon name="Phone" {...props} />
+  <LazyIcon name={"Phone" as IconName} {...props} />
 );
 
 export const Loader2Icon: React.FC<Omit<LucideProps, 'ref'>> = (props) => (
-  <LazyIcon name="Loader2" {...props} />
+  <LazyIcon name={"Loader2" as IconName} {...props} />
 );
