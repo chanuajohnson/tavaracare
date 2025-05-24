@@ -1,4 +1,3 @@
-
 import { motion } from "framer-motion";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -459,87 +458,69 @@ const ProfessionalProfileHub = () => {
       setCarePlans(transformedCarePlans);
       
       // STEP 6: Fetch ALL team members for these care plans
-      const fetchCareTeamMembers = async () => {
-        try {
-          console.log("Starting to fetch care team members for all plans...");
-          const allTeamMembers = [];
-          
-          for (const carePlanId of carePlanIds) {
-            console.log(`Fetching team members for care plan: ${carePlanId}`);
-            
-            // Improved query to get all team members for this care plan, not just the current user
-            const { data: teamMembers, error: membersError } = await supabase
-              .from('care_team_members')
-              .select(`
-                id,
-                care_plan_id,
-                family_id,
-                caregiver_id,
-                role,
-                status,
-                notes,
-                created_at,
-                updated_at,
-                profiles:caregiver_id (
-                  full_name,
-                  professional_type,
-                  avatar_url
-                )
-              `)
-              .eq('care_plan_id', carePlanId);
-            
-            if (membersError) {
-              console.error(`Error fetching team members for plan ${carePlanId}:`, membersError);
-              continue;
-            }
-            
-            console.log(`Team members for plan ${carePlanId}:`, teamMembers);
-            console.log(`Number of team members for plan ${carePlanId}:`, teamMembers?.length || 0);
-            
-            if (teamMembers && teamMembers.length > 0) {
-              const formattedMembers = teamMembers.map(member => {
-                const profileData = member.profiles || {};
-                
-                return {
-                  id: member.id,
-                  carePlanId: member.care_plan_id,
-                  familyId: member.family_id,
-                  caregiverId: member.caregiver_id,
-                  role: member.role || 'caregiver',
-                  status: member.status || 'invited',
-                  notes: member.notes,
-                  createdAt: member.created_at,
-                  updatedAt: member.updated_at,
-                  professionalDetails: {
-                    full_name: typeof profileData === 'object' && profileData !== null 
-                      ? (profileData as any).full_name || 'Unknown Professional' 
-                      : 'Unknown Professional',
-                    professional_type: typeof profileData === 'object' && profileData !== null 
-                      ? (profileData as any).professional_type || 'Care Professional' 
-                      : 'Care Professional',
-                    avatar_url: typeof profileData === 'object' && profileData !== null 
-                      ? (profileData as any).avatar_url 
-                      : null
-                  }
-                };
-              });
-              
-              allTeamMembers.push(...formattedMembers);
-            }
-          }
-          
-          console.log("All team members data:", allTeamMembers);
-          console.log("Total team members count:", allTeamMembers.length);
-          setCareTeamMembers(allTeamMembers);
-        } catch (err) {
-          console.error("Error processing team members:", err);
-          setCareTeamMembers([]);
-        } finally {
-          setLoadingCareTeamMembers(false);
+      const fetchCareTeamMembers = async (carePlans: any[]) => {
+        if (!carePlans.length) {
+          console.log("No care plans to fetch team members for");
+          return [];
         }
+
+        console.log("Starting to fetch care team members for all plans...");
+        let allTeamMembers: any[] = [];
+
+        for (const plan of carePlans) {
+          console.log(`Fetching team members for care plan: ${plan.id}`);
+          
+          // Fetch ALL team members for this care plan (not just current user)
+          const { data: teamData, error: teamError } = await supabase
+            .from('care_team_members')
+            .select(`
+              id,
+              status,
+              role,
+              caregiver_id,
+              care_plan_id,
+              profiles!care_team_members_caregiver_id_fkey (
+                full_name,
+                professional_type,
+                avatar_url
+              )
+            `)
+            .eq('care_plan_id', plan.id);
+
+          if (teamError) {
+            console.error(`Error fetching team members for plan ${plan.id}:`, teamError);
+            continue;
+          }
+
+          console.log(`Team members for plan ${plan.id}:`, teamData);
+          console.log(`Number of team members for plan ${plan.id}:`, teamData?.length || 0);
+
+          if (teamData) {
+            // Transform team data to match expected structure
+            const transformedMembers = teamData.map(member => ({
+              id: member.id,
+              carePlanId: member.care_plan_id,
+              caregiverId: member.caregiver_id,
+              role: member.role,
+              status: member.status,
+              professionalDetails: member.profiles ? {
+                full_name: member.profiles.full_name,
+                professional_type: member.profiles.professional_type,
+                avatar_url: member.profiles.avatar_url
+              } : null
+            }));
+
+            allTeamMembers = [...allTeamMembers, ...transformedMembers];
+          }
+        }
+
+        console.log("All team members data:", allTeamMembers);
+        console.log("Total team members count:", allTeamMembers.length);
+        return allTeamMembers;
       };
       
-      fetchCareTeamMembers();
+      const allTeamMembers = await fetchCareTeamMembers(transformedCarePlans);
+      setCareTeamMembers(allTeamMembers);
       setLoadingCarePlans(false);
     } catch (err) {
       console.error("Error loading care plans:", err);
