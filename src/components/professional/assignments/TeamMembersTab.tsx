@@ -8,20 +8,15 @@ interface TeamMembersTabProps {
   teamMembers: any[];
   loading?: boolean;
   carePlanId?: string;
-  currentUserId?: string; // Added the currentUserId prop
+  currentUserId?: string;
 }
 
 export function TeamMembersTab({ teamMembers, loading = false, carePlanId, currentUserId }: TeamMembersTabProps) {
-  // Get all team members for the care plan without filtering by current user
-  const filteredTeamMembers = teamMembers.filter(member => 
-    !carePlanId || member.carePlanId === carePlanId || member.care_plan_id === carePlanId
-  );
-  
   console.log("TeamMembersTab rendering with:", { 
     teamMembersCount: teamMembers.length, 
-    filteredCount: filteredTeamMembers.length,
     carePlanId: carePlanId,
-    currentUserId: currentUserId
+    currentUserId: currentUserId,
+    teamMembers: teamMembers
   });
   
   return (
@@ -31,7 +26,7 @@ export function TeamMembersTab({ teamMembers, loading = false, carePlanId, curre
       </CardHeader>
       <CardContent>
         <CareTeamMembersTab 
-          teamMembers={filteredTeamMembers}
+          teamMembers={teamMembers}
           loading={loading}
           currentUserId={currentUserId}
         />

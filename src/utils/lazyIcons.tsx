@@ -37,7 +37,7 @@ export const LazyIcon: React.FC<LazyIconProps> = ({ name, ...props }) => {
   );
 };
 
-// Export individual wrapped icons for direct import
+// Export individual wrapped icons for direct import with proper typing
 export const MessageSquareIcon: React.FC<Omit<LucideProps, 'ref'>> = (props) => (
   <LazyIcon name="MessageSquare" {...props} />
 );
