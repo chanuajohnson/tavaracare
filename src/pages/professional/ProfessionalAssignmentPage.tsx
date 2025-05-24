@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
@@ -85,7 +86,7 @@ const ProfessionalAssignmentPage = () => {
             family_id,
             created_at,
             metadata,
-            profiles:family_id (
+            profiles!care_plans_family_id_fkey (
               full_name,
               phone_number,
               email,
@@ -107,7 +108,7 @@ const ProfessionalAssignmentPage = () => {
 
         setCarePlan(planData);
 
-        // Fetch ALL team members for this care plan (not just current user)
+        // Fetch ALL team members for this care plan with explicit join
         const { data: teamData, error: teamError } = await supabase
           .from('care_team_members')
           .select(`
@@ -116,7 +117,7 @@ const ProfessionalAssignmentPage = () => {
             role,
             caregiver_id,
             care_plan_id,
-            profiles:caregiver_id (
+            profiles!care_team_members_caregiver_id_fkey (
               full_name,
               professional_type,
               avatar_url
