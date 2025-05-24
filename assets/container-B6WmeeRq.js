@@ -1,0 +1,1 @@
+import{j as s,N as t}from"./index-CL68a71s.js";function r({className:x,children:a,...n}){return s.jsx("div",{className:t("container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl",x),...n,children:a})}export{r as C};
