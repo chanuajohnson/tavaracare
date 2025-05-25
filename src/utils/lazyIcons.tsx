@@ -38,31 +38,30 @@ export const LazyIcon: React.FC<LazyIconProps> = ({ name, ...props }) => {
 };
 
 // Export individual wrapped icons for direct import with proper typing
-// Using satisfies operator to ensure type safety while maintaining literal types
 export const MessageSquareIcon: React.FC<Omit<LucideProps, 'ref'>> = (props) => (
-  <LazyIcon name={"MessageSquare" satisfies IconName} {...props} />
+  <LazyIcon name="MessageSquare" {...props} />
 );
 
 export const XIcon: React.FC<Omit<LucideProps, 'ref'>> = (props) => (
-  <LazyIcon name={"X" satisfies IconName} {...props} />
+  <LazyIcon name="X" {...props} />
 );
 
 export const SendIcon: React.FC<Omit<LucideProps, 'ref'>> = (props) => (
-  <LazyIcon name={"Send" satisfies IconName} {...props} />
+  <LazyIcon name="Send" {...props} />
 );
 
 export const HelpCircleIcon: React.FC<Omit<LucideProps, 'ref'>> = (props) => (
-  <LazyIcon name={"HelpCircle" satisfies IconName} {...props} />
+  <LazyIcon name="HelpCircle" {...props} />
 );
 
 export const FileQuestionIcon: React.FC<Omit<LucideProps, 'ref'>> = (props) => (
-  <LazyIcon name={"FileQuestion" satisfies IconName} {...props} />
+  <LazyIcon name="FileQuestion" {...props} />
 );
 
 export const PhoneIcon: React.FC<Omit<LucideProps, 'ref'>> = (props) => (
-  <LazyIcon name={"Phone" satisfies IconName} {...props} />
+  <LazyIcon name="Phone" {...props} />
 );
 
 export const Loader2Icon: React.FC<Omit<LucideProps, 'ref'>> = (props) => (
-  <LazyIcon name={"Loader2" satisfies IconName} {...props} />
+  <LazyIcon name="Loader2" {...props} />
 );

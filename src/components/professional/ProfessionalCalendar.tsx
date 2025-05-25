@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Calendar } from "@/components/ui/calendar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { CareShift } from "@/types/careTypes";
 import { format } from "date-fns";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { useAuth } from "@/components/providers/AuthProvider";
 
 interface ProfessionalCalendarProps {
   shifts: CareShift[];
@@ -16,20 +16,37 @@ interface ProfessionalCalendarProps {
 }
 
 export function ProfessionalCalendar({ shifts, loading = false }: ProfessionalCalendarProps) {
+  const { user } = useAuth();
   const [date, setDate] = useState<Date | undefined>(new Date());
   const [isCalendarExpanded, setIsCalendarExpanded] = useState(true);
   const [selectedDateDetails, setSelectedDateDetails] = useState<{date: Date, shifts: CareShift[]} | null>(null);
   
-  // Filter shifts for the selected date
+  // Filter shifts for the selected date - only for the current user
   const getShiftsForDate = (date?: Date) => {
-    if (!date || !shifts.length) return [];
+    if (!date || !shifts.length || !user) return [];
     
     const dateString = date.toISOString().split('T')[0];
     
     return shifts.filter(shift => {
-      if (!shift.startTime) return false;
+      if (!shift.startTime || !shift.caregiverId) return false;
+      
+      // Only include shifts assigned to the current user
+      const isAssignedToCurrentUser = shift.caregiverId === user.id;
       const shiftStartDate = new Date(shift.startTime).toISOString().split('T')[0];
-      return shiftStartDate === dateString;
+      const isCorrectDate = shiftStartDate === dateString;
+      
+      console.log("Checking shift for date filtering:", {
+        shiftId: shift.id,
+        shiftStartDate,
+        targetDate: dateString,
+        caregiverId: shift.caregiverId,
+        currentUserId: user.id,
+        isAssignedToCurrentUser,
+        isCorrectDate,
+        status: shift.status
+      });
+      
+      return isAssignedToCurrentUser && isCorrectDate;
     });
   };
   
@@ -44,22 +61,42 @@ export function ProfessionalCalendar({ shifts, loading = false }: ProfessionalCa
     });
   };
   
-  // Get days with shifts for highlighting in calendar
+  // Get days with shifts for highlighting in calendar - ONLY for current user's assigned shifts
   const getDaysWithShifts = () => {
-    if (!shifts.length) return {};
+    if (!shifts.length || !user) return {};
     
     const daysWithShifts: Record<string, { shift: CareShift }> = {};
     
     shifts.forEach(shift => {
-      if (!shift.startTime) return;
+      if (!shift.startTime || !shift.caregiverId) return;
+      
+      // CRITICAL FIX: Only include shifts assigned to the current user
+      const isAssignedToCurrentUser = shift.caregiverId === user.id;
+      
+      if (!isAssignedToCurrentUser) {
+        console.log("Skipping shift not assigned to current user:", {
+          shiftId: shift.id,
+          shiftTitle: shift.title,
+          assignedTo: shift.caregiverId,
+          currentUser: user.id,
+          status: shift.status
+        });
+        return;
+      }
       
       const dateStr = new Date(shift.startTime).toISOString().split('T')[0];
       if (!daysWithShifts[dateStr]) {
         daysWithShifts[dateStr] = { shift };
+        console.log("Adding day to highlight:", {
+          date: dateStr,
+          shiftTitle: shift.title,
+          shiftId: shift.id,
+          status: shift.status
+        });
       }
     });
     
-    console.log("Days with shifts:", Object.keys(daysWithShifts));
+    console.log("Days with shifts for current user:", Object.keys(daysWithShifts));
     return daysWithShifts;
   };
 
@@ -73,11 +110,17 @@ export function ProfessionalCalendar({ shifts, loading = false }: ProfessionalCa
     }
   };
 
-  console.log("ProfessionalCalendar: Rendering with shifts:", shifts.length);
+  console.log("ProfessionalCalendar: Current user ID:", user?.id);
+  console.log("ProfessionalCalendar: Total shifts received:", shifts.length);
+  console.log("ProfessionalCalendar: Shifts assigned to current user:", 
+    shifts.filter(s => s.caregiverId === user?.id).length
+  );
   console.log("ProfessionalCalendar: Selected date shifts:", selectedDateShifts.length);
 
-  // Days that should be highlighted in the calendar
+  // Days that should be highlighted in the calendar - ONLY user's assigned shifts
   const bookedDays = Object.keys(getDaysWithShifts()).map(date => new Date(date));
+
+  console.log("Calendar will highlight these dates:", bookedDays.map(d => d.toISOString().split('T')[0]));
 
   return (
     <Card>
