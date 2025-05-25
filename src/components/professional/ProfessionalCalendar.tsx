@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Calendar } from "@/components/ui/calendar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -30,23 +31,27 @@ export function ProfessionalCalendar({ shifts, loading = false }: ProfessionalCa
     return shifts.filter(shift => {
       if (!shift.startTime || !shift.caregiverId) return false;
       
-      // Only include shifts assigned to the current user
+      // CRITICAL: Only include shifts assigned to the current user with 'assigned' status
       const isAssignedToCurrentUser = shift.caregiverId === user.id;
+      const isAssignedStatus = shift.status === 'assigned';
       const shiftStartDate = new Date(shift.startTime).toISOString().split('T')[0];
       const isCorrectDate = shiftStartDate === dateString;
       
       console.log("Checking shift for date filtering:", {
         shiftId: shift.id,
+        shiftTitle: shift.title,
         shiftStartDate,
         targetDate: dateString,
         caregiverId: shift.caregiverId,
         currentUserId: user.id,
+        status: shift.status,
         isAssignedToCurrentUser,
+        isAssignedStatus,
         isCorrectDate,
-        status: shift.status
+        shouldInclude: isAssignedToCurrentUser && isAssignedStatus && isCorrectDate
       });
       
-      return isAssignedToCurrentUser && isCorrectDate;
+      return isAssignedToCurrentUser && isAssignedStatus && isCorrectDate;
     });
   };
   
@@ -61,7 +66,7 @@ export function ProfessionalCalendar({ shifts, loading = false }: ProfessionalCa
     });
   };
   
-  // Get days with shifts for highlighting in calendar - ONLY for current user's assigned shifts
+  // Get days with shifts for highlighting in calendar - ONLY for current user's ASSIGNED shifts
   const getDaysWithShifts = () => {
     if (!shifts.length || !user) return {};
     
@@ -70,16 +75,29 @@ export function ProfessionalCalendar({ shifts, loading = false }: ProfessionalCa
     shifts.forEach(shift => {
       if (!shift.startTime || !shift.caregiverId) return;
       
-      // CRITICAL FIX: Only include shifts assigned to the current user
+      // CRITICAL FIX: Only include shifts that are both assigned to current user AND have 'assigned' status
       const isAssignedToCurrentUser = shift.caregiverId === user.id;
+      const isAssignedStatus = shift.status === 'assigned';
       
-      if (!isAssignedToCurrentUser) {
-        console.log("Skipping shift not assigned to current user:", {
+      console.log("Evaluating shift for calendar highlighting:", {
+        shiftId: shift.id,
+        shiftTitle: shift.title,
+        assignedTo: shift.caregiverId,
+        currentUser: user.id,
+        status: shift.status,
+        isAssignedToCurrentUser,
+        isAssignedStatus,
+        shouldHighlight: isAssignedToCurrentUser && isAssignedStatus
+      });
+      
+      if (!isAssignedToCurrentUser || !isAssignedStatus) {
+        console.log("Skipping shift - not assigned to current user or not assigned status:", {
           shiftId: shift.id,
           shiftTitle: shift.title,
           assignedTo: shift.caregiverId,
           currentUser: user.id,
-          status: shift.status
+          status: shift.status,
+          reason: !isAssignedToCurrentUser ? 'wrong user' : 'wrong status'
         });
         return;
       }
@@ -87,16 +105,17 @@ export function ProfessionalCalendar({ shifts, loading = false }: ProfessionalCa
       const dateStr = new Date(shift.startTime).toISOString().split('T')[0];
       if (!daysWithShifts[dateStr]) {
         daysWithShifts[dateStr] = { shift };
-        console.log("Adding day to highlight:", {
+        console.log("Adding day to highlight - user has assigned shift:", {
           date: dateStr,
           shiftTitle: shift.title,
           shiftId: shift.id,
-          status: shift.status
+          status: shift.status,
+          caregiverId: shift.caregiverId
         });
       }
     });
     
-    console.log("Days with shifts for current user:", Object.keys(daysWithShifts));
+    console.log("Final days with assigned shifts for current user:", Object.keys(daysWithShifts));
     return daysWithShifts;
   };
 
@@ -113,7 +132,10 @@ export function ProfessionalCalendar({ shifts, loading = false }: ProfessionalCa
   console.log("ProfessionalCalendar: Current user ID:", user?.id);
   console.log("ProfessionalCalendar: Total shifts received:", shifts.length);
   console.log("ProfessionalCalendar: Shifts assigned to current user:", 
-    shifts.filter(s => s.caregiverId === user?.id).length
+    shifts.filter(s => s.caregiverId === user?.id && s.status === 'assigned').length
+  );
+  console.log("ProfessionalCalendar: All shifts statuses for current user:", 
+    shifts.filter(s => s.caregiverId === user?.id).map(s => ({ id: s.id, status: s.status, title: s.title }))
   );
   console.log("ProfessionalCalendar: Selected date shifts:", selectedDateShifts.length);
 
