@@ -17,6 +17,10 @@ const iconComponents = {
   FileQuestion: lazy(() => import('lucide-react/dist/esm/icons/file-question')),
   Phone: lazy(() => import('lucide-react/dist/esm/icons/phone')),
   Loader2: lazy(() => import('lucide-react/dist/esm/icons/loader-2')),
+  Calendar: lazy(() => import('lucide-react/dist/esm/icons/calendar')),
+  Clock: lazy(() => import('lucide-react/dist/esm/icons/clock')),
+  ChevronDown: lazy(() => import('lucide-react/dist/esm/icons/chevron-down')),
+  ChevronUp: lazy(() => import('lucide-react/dist/esm/icons/chevron-up')),
 } as const;
 
 // Create a type that only allows the exact keys from our iconComponents object
@@ -64,4 +68,20 @@ export const PhoneIcon: React.FC<Omit<LucideProps, 'ref'>> = (props) => (
 
 export const Loader2Icon: React.FC<Omit<LucideProps, 'ref'>> = (props) => (
   <LazyIcon name="Loader2" {...props} />
+);
+
+export const CalendarIcon: React.FC<Omit<LucideProps, 'ref'>> = (props) => (
+  <LazyIcon name="Calendar" {...props} />
+);
+
+export const ClockIcon: React.FC<Omit<LucideProps, 'ref'>> = (props) => (
+  <LazyIcon name="Clock" {...props} />
+);
+
+export const ChevronDownIcon: React.FC<Omit<LucideProps, 'ref'>> = (props) => (
+  <LazyIcon name="ChevronDown" {...props} />
+);
+
+export const ChevronUpIcon: React.FC<Omit<LucideProps, 'ref'>> = (props) => (
+  <LazyIcon name="ChevronUp" {...props} />
 );
