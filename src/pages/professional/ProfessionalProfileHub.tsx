@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
@@ -99,7 +98,7 @@ const ProfessionalProfileHub = () => {
   const [carePlanAssignments, setCarePlanAssignments] = useState<CarePlanAssignment[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedCarePlanId, setSelectedCarePlanId] = useState<string | null>(null);
-  const [careTeamMembers, setCareTeamMembers] = useState<CareTeamMember[]>({});
+  const [careTeamMembers, setCareTeamMembers] = useState<CareTeamMember[]>([]);
 
   const breadcrumbItems = [
     { label: "Professional Dashboard", path: "/dashboard/professional" },
