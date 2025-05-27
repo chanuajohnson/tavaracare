@@ -43,45 +43,45 @@ export const LazyIcon: React.FC<LazyIconProps> = ({ name, ...props }) => {
 
 // Export individual wrapped icons for direct import with proper typing
 export const MessageSquareIcon: React.FC<Omit<LucideProps, 'ref'>> = (props) => (
-  <LazyIcon name={"MessageSquare" as const} {...props} />
+  <LazyIcon name="MessageSquare" {...props} />
 );
 
 export const XIcon: React.FC<Omit<LucideProps, 'ref'>> = (props) => (
-  <LazyIcon name={"X" as const} {...props} />
+  <LazyIcon name="X" {...props} />
 );
 
 export const SendIcon: React.FC<Omit<LucideProps, 'ref'>> = (props) => (
-  <LazyIcon name={"Send" as const} {...props} />
+  <LazyIcon name="Send" {...props} />
 );
 
 export const HelpCircleIcon: React.FC<Omit<LucideProps, 'ref'>> = (props) => (
-  <LazyIcon name={"HelpCircle" as const} {...props} />
+  <LazyIcon name="HelpCircle" {...props} />
 );
 
 export const FileQuestionIcon: React.FC<Omit<LucideProps, 'ref'>> = (props) => (
-  <LazyIcon name={"FileQuestion" as const} {...props} />
+  <LazyIcon name="FileQuestion" {...props} />
 );
 
 export const PhoneIcon: React.FC<Omit<LucideProps, 'ref'>> = (props) => (
-  <LazyIcon name={"Phone" as const} {...props} />
+  <LazyIcon name="Phone" {...props} />
 );
 
 export const Loader2Icon: React.FC<Omit<LucideProps, 'ref'>> = (props) => (
-  <LazyIcon name={"Loader2" as const} {...props} />
+  <LazyIcon name="Loader2" {...props} />
 );
 
 export const CalendarIcon: React.FC<Omit<LucideProps, 'ref'>> = (props) => (
-  <LazyIcon name={"Calendar" as const} {...props} />
+  <LazyIcon name="Calendar" {...props} />
 );
 
 export const ClockIcon: React.FC<Omit<LucideProps, 'ref'>> = (props) => (
-  <LazyIcon name={"Clock" as const} {...props} />
+  <LazyIcon name="Clock" {...props} />
 );
 
 export const ChevronDownIcon: React.FC<Omit<LucideProps, 'ref'>> = (props) => (
-  <LazyIcon name={"ChevronDown" as const} {...props} />
+  <LazyIcon name="ChevronDown" {...props} />
 );
 
 export const ChevronUpIcon: React.FC<Omit<LucideProps, 'ref'>> = (props) => (
-  <LazyIcon name={"ChevronUp" as const} {...props} />
+  <LazyIcon name="ChevronUp" {...props} />
 );

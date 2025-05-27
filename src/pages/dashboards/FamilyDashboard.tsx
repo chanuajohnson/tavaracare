@@ -36,6 +36,7 @@ const FamilyDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const navigate = useNavigate();
+  
   useEffect(() => {
     if (user) {
       fetchMessages();
@@ -43,6 +44,7 @@ const FamilyDashboard = () => {
       setLoading(false);
     }
   }, [user]);
+  
   const fetchMessages = async () => {
     try {
       setLoading(true);
@@ -66,6 +68,7 @@ const FamilyDashboard = () => {
       setLoading(false);
     }
   };
+  
   const refreshData = async () => {
     try {
       setRefreshing(true);
@@ -94,6 +97,7 @@ const FamilyDashboard = () => {
       setRefreshing(false);
     }
   };
+  
   const formatTimePosted = timestamp => {
     if (!timestamp) return "Unknown";
     const posted = new Date(timestamp);
@@ -105,6 +109,7 @@ const FamilyDashboard = () => {
     if (diffInHours < 48) return "Yesterday";
     return `${Math.floor(diffInHours / 24)} days ago`;
   };
+  
   const handleViewFullBoard = () => {
     navigate('/subscription-features', {
       state: {
@@ -113,6 +118,7 @@ const FamilyDashboard = () => {
       }
     });
   };
+  
   const handleViewAllTasks = () => {
     navigate('/subscription-features', {
       state: {
@@ -123,6 +129,7 @@ const FamilyDashboard = () => {
       }
     });
   };
+
   return <div className="min-h-screen bg-background">
       <DashboardTracker dashboardType="family" />
       <div className="container px-4 py-8">
@@ -163,6 +170,8 @@ const FamilyDashboard = () => {
           <p className="text-gray-600 mb-2">Comprehensive care coordination platform.</p>
           
           {user && <FamilyShortcutMenuBar />}
+
+          <FamilyNextStepsPanel />
 
           <CaregiverMatchingCard />
           
@@ -276,131 +285,6 @@ const FamilyDashboard = () => {
               <UpvoteFeatureButton featureTitle="Profile Management" className="w-full" buttonText="Upvote this Feature" />
             </CardContent>
           </Card>
-
-          <FamilyNextStepsPanel />
-
-          <div className="space-y-6 mb-8">
-            <Card className="mb-2">
-              <CardHeader>
-                <CardTitle className="text-2xl font-semibold">Care Management</CardTitle>
-                <CardDescription>Manage care plans, team members, appointments and more</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Link to="/family/features-overview">
-                  <Button variant="default" className="w-full mb-6">
-                    Learn More
-                    <ArrowRight className="ml-2 h-4 w-4" />
-                  </Button>
-                </Link>
-                <UpvoteFeatureButton featureTitle="Care Management" className="w-full mb-6" buttonText="Upvote this Feature" />
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2 text-lg">
-                        <FileText className="h-5 w-5 text-primary" />
-                        New Care Plan
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <Link to="/family/care-management">
-                        <Button variant="secondary" className="w-full">Create Plan</Button>
-                      </Link>
-                    </CardContent>
-                  </Card>
-
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2 text-lg">
-                        <Users className="h-5 w-5 text-primary" />
-                        Add Team Member
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <Link to="/family/care-management">
-                        <Button variant="secondary" className="w-full">Add Member</Button>
-                      </Link>
-                    </CardContent>
-                  </Card>
-
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2 text-lg">
-                        <Calendar className="h-5 w-5 text-primary" />
-                        Schedule Appointment
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <Link to="/family/care-management">
-                        <Button variant="secondary" className="w-full">Schedule</Button>
-                      </Link>
-                    </CardContent>
-                  </Card>
-
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2 text-lg">
-                        <Bell className="h-5 w-5 text-primary" />
-                        Notifications
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <Link to="/family/care-management">
-                        <Button variant="secondary" className="w-full">View</Button>
-                      </Link>
-                    </CardContent>
-                  </Card>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <FileText className="h-5 w-5 text-primary" />
-                        Care Plans
-                      </CardTitle>
-                      <CardDescription>View and manage care plans</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <Link to="/family/care-management">
-                        <Button variant="secondary" className="w-full">View Plans</Button>
-                      </Link>
-                    </CardContent>
-                  </Card>
-
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <Users className="h-5 w-5 text-primary" />
-                        Care Team
-                      </CardTitle>
-                      <CardDescription>Manage your care team members</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <Link to="/family/care-management/team">
-                        <Button variant="secondary" className="w-full">View Team</Button>
-                      </Link>
-                    </CardContent>
-                  </Card>
-
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <Calendar className="h-5 w-5 text-primary" />
-                        Appointments
-                      </CardTitle>
-                      <CardDescription>Schedule and manage appointments</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <Link to="/family/care-management/schedule">
-                        <Button variant="secondary" className="w-full">View Calendar</Button>
-                      </Link>
-                    </CardContent>
-                  </Card>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
 
           <Card className="mb-8">
             <CardHeader>
