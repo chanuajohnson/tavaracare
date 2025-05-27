@@ -40,6 +40,7 @@ import { ShiftsTab } from "@/components/professional/assignments/ShiftsTab";
 import { CareDetailsTab } from "@/components/professional/assignments/CareDetailsTab";
 import { FamilyDetailsCard } from "@/components/professional/assignments/FamilyDetailsCard";
 import { ProfessionalScheduleView } from "@/components/professional/ProfessionalScheduleView";
+import { useCarePlanShifts } from "@/hooks/useCarePlanShifts";
 
 interface CareAssignment {
   id: string;
@@ -93,6 +94,14 @@ const ProfessionalProfileHub = () => {
   const [selectedCarePlanId, setSelectedCarePlanId] = useState<string | undefined>(undefined);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Get shifts for the selected assignment using the hook
+  const { 
+    shifts: assignmentShifts, 
+    loading: shiftsLoading 
+  } = useCarePlanShifts({ 
+    carePlanId: selectedAssignment?.care_plan_id 
+  });
 
   // Fetch profile data
   useEffect(() => {
@@ -603,11 +612,18 @@ const ProfessionalProfileHub = () => {
                     </TabsContent>
                     
                     <TabsContent value="shifts" className="mt-6">
-                      <ShiftsTab />
+                      <ShiftsTab 
+                        shifts={assignmentShifts}
+                        formatDate={formatDate}
+                        formatTime={formatTime}
+                      />
                     </TabsContent>
                     
                     <TabsContent value="details" className="mt-6">
-                      <CareDetailsTab />
+                      <CareDetailsTab 
+                        carePlan={selectedAssignment.care_plan || selectedAssignment.care_plans}
+                        formatDate={formatDate}
+                      />
                     </TabsContent>
                   </Tabs>
                 </CardContent>
