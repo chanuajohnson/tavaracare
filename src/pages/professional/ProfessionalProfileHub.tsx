@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/components/providers/AuthProvider";
@@ -523,18 +522,6 @@ const ProfessionalProfileHub = () => {
                       <CareAssignmentCard 
                         key={assignment.id} 
                         assignment={assignment}
-                        onViewDetails={(assignmentId) => {
-                          console.log("View assignment details:", assignmentId);
-                          const selected = careAssignments.find(a => a.id === assignmentId);
-                          if (selected) {
-                            setSelectedAssignment(selected);
-                            setSelectedCarePlanId(selected.care_plan_id);
-                          }
-                        }}
-                        onContactFamily={(assignmentId) => {
-                          console.log("Contact family for assignment:", assignmentId);
-                          toast.info("Contact family feature coming soon!");
-                        }}
                       />
                     ))}
                   </div>
@@ -608,15 +595,19 @@ const ProfessionalProfileHub = () => {
                     </TabsList>
                     
                     <TabsContent value="team" className="mt-6">
-                      <CareTeamMembersTab carePlanId={selectedAssignment.care_plan_id} />
+                      <CareTeamMembersTab 
+                        teamMembers={[]} 
+                        loading={false}
+                        currentUserId={user?.id}
+                      />
                     </TabsContent>
                     
                     <TabsContent value="shifts" className="mt-6">
-                      <ShiftsTab carePlanId={selectedAssignment.care_plan_id} />
+                      <ShiftsTab />
                     </TabsContent>
                     
                     <TabsContent value="details" className="mt-6">
-                      <CareDetailsTab carePlanId={selectedAssignment.care_plan_id} />
+                      <CareDetailsTab />
                     </TabsContent>
                   </Tabs>
                 </CardContent>
