@@ -60,8 +60,7 @@ interface CareAssignment {
     family_profile?: {
       full_name: string;
       location: string;
-      contact_phone: string;
-      contact_email: string;
+      phone_number: string;
     };
   };
   care_plans?: {
@@ -71,15 +70,13 @@ interface CareAssignment {
     profiles?: {
       full_name: string;
       location: string;
-      contact_phone: string;
-      contact_email: string;
+      phone_number: string;
     };
   };
   family?: {
     full_name: string;
     location: string;
-    contact_phone: string;
-    contact_email: string;
+    phone_number: string;
   };
 }
 
@@ -155,8 +152,7 @@ const ProfessionalProfileHub = () => {
               family_profile:profiles!care_plans_family_id_fkey(
                 full_name,
                 location,
-                contact_phone,
-                contact_email
+                phone_number
               )
             ),
             care_plans:care_plans!care_team_members_care_plan_id_fkey(
@@ -166,8 +162,7 @@ const ProfessionalProfileHub = () => {
               profiles:profiles!care_plans_family_id_fkey(
                 full_name,
                 location,
-                contact_phone,
-                contact_email
+                phone_number
               )
             )
           `)
