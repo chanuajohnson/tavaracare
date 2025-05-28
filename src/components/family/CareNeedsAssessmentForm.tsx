@@ -175,7 +175,7 @@ export const CareNeedsAssessmentForm = () => {
         
         // Map database fields to form fields with proper fallbacks
         const mappedData: CareNeedsFormData = {
-          // Basic information
+          // Basic information - these fields might not exist in DB yet
           care_recipient_name: data.care_recipient_name || "",
           primary_contact_name: data.primary_contact_name || "",
           primary_contact_phone: data.primary_contact_phone || "",
@@ -200,7 +200,7 @@ export const CareNeedsAssessmentForm = () => {
           memory_reminders: data.memory_reminders || false,
           gentle_engagement: data.gentle_engagement || false,
           wandering_prevention: data.wandering_prevention || false,
-          triggers_soothing_techniques: data.cognitive_notes || data.triggers_soothing_techniques || "",
+          triggers_soothing_techniques: data.cognitive_notes || "",
           
           // Medical conditions
           diagnosed_conditions: data.diagnosed_conditions || "",

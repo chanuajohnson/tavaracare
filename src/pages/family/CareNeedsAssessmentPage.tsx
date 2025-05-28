@@ -10,22 +10,11 @@ import { ArrowLeft } from "lucide-react";
 
 const CareNeedsAssessmentPage = () => {
   const navigate = useNavigate();
-  const { user, loading } = useAuth();
+  const { user } = useAuth();
 
   useEffect(() => {
     document.title = "Care Needs Assessment | Tavara";
   }, []);
-
-  // Show loading state while auth is loading
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-background">
-        <div className="flex items-center justify-center min-h-screen">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-        </div>
-      </div>
-    );
-  }
 
   // Redirect to login if not authenticated
   if (!user) {
