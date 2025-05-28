@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { HelpCircle, X, MessageSquare, FileQuestion, Phone, Loader2 } from 'lucide-react';
@@ -219,9 +220,8 @@ export const Fab = ({
     }
   };
 
-  // Wrap in a Suspense boundary to protect against React lazy loading errors
   return (
-    <Suspense fallback={null}>
+    <>
       {!showMenu ? (
         <Button
           onClick={onClick}
@@ -415,6 +415,6 @@ export const Fab = ({
           )}
         </>
       )}
-    </Suspense>
+    </>
   );
 };
