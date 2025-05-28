@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useAuth } from "@/components/providers/AuthProvider";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
 import { Clock, User, Phone, Heart, AlertCircle, Calendar, Brain, Home, Car, Sparkles } from "lucide-react";
 
 interface CareNeedsFormData {
@@ -131,14 +132,18 @@ const daysOfWeek = [
 
 export const CareNeedsAssessmentForm = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [formData, setFormData] = useState<CareNeedsFormData>(initialFormData);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [existingAssessment, setExistingAssessment] = useState(false);
+  const [dataLoadError, setDataLoadError] = useState<string | null>(null);
 
   useEffect(() => {
     if (user) {
       loadExistingAssessment();
+    } else {
+      setLoading(false);
     }
   }, [user]);
 
@@ -147,6 +152,10 @@ export const CareNeedsAssessmentForm = () => {
     
     try {
       setLoading(true);
+      setDataLoadError(null);
+      
+      console.log("Loading existing assessment for user:", user.id);
+      
       const { data, error } = await supabase
         .from('care_needs_family')
         .select('*')
@@ -155,21 +164,88 @@ export const CareNeedsAssessmentForm = () => {
 
       if (error) {
         console.error("Error loading assessment:", error);
+        setDataLoadError(error.message);
         return;
       }
 
+      console.log("Assessment data loaded:", data);
+
       if (data) {
         setExistingAssessment(true);
-        setFormData({
-          ...initialFormData,
-          ...data,
-          preferred_days: data.preferred_days || [],
+        
+        // Map database fields to form fields with proper fallbacks
+        const mappedData: CareNeedsFormData = {
+          // Basic information
+          care_recipient_name: data.care_recipient_name || "",
+          primary_contact_name: data.primary_contact_name || "",
+          primary_contact_phone: data.primary_contact_phone || "",
+          care_location: data.care_location || "",
           preferred_shift_start: data.preferred_time_start || "",
-          preferred_shift_end: data.preferred_time_end || ""
-        });
+          preferred_shift_end: data.preferred_time_end || "",
+          preferred_days: Array.isArray(data.preferred_days) ? data.preferred_days : [],
+          
+          // ADL assistance
+          assistance_bathing: data.assistance_bathing || false,
+          assistance_dressing: data.assistance_dressing || false,
+          assistance_toileting: data.assistance_toileting || false,
+          assistance_oral_care: data.assistance_oral_care || false,
+          assistance_feeding: data.assistance_feeding || false,
+          assistance_mobility: data.assistance_mobility || false,
+          assistance_medication: data.assistance_medication || false,
+          assistance_companionship: data.assistance_companionship || false,
+          assistance_naps: data.assistance_naps || false,
+          
+          // Cognitive support
+          dementia_redirection: data.dementia_redirection || false,
+          memory_reminders: data.memory_reminders || false,
+          gentle_engagement: data.gentle_engagement || false,
+          wandering_prevention: data.wandering_prevention || false,
+          triggers_soothing_techniques: data.cognitive_notes || data.triggers_soothing_techniques || "",
+          
+          // Medical conditions
+          diagnosed_conditions: data.diagnosed_conditions || "",
+          chronic_illness_type: data.chronic_illness_type || "",
+          vitals_check: data.vitals_check || false,
+          equipment_use: data.equipment_use || false,
+          fall_monitoring: data.fall_monitoring || false,
+          
+          // Housekeeping
+          tidy_room: data.tidy_room || false,
+          laundry_support: data.laundry_support || false,
+          meal_prep: data.meal_prep || false,
+          grocery_runs: data.grocery_runs || false,
+          
+          // Transportation
+          escort_to_appointments: data.escort_to_appointments || false,
+          fresh_air_walks: data.fresh_air_walks || false,
+          
+          // Emergency contacts
+          emergency_contact_name: data.emergency_contact_name || "",
+          emergency_contact_phone: data.emergency_contact_phone || "",
+          emergency_contact_relationship: data.emergency_contact_relationship || "",
+          known_allergies: data.known_allergies || "",
+          emergency_plan: data.emergency_plan || "",
+          
+          // Communication
+          communication_method: data.communication_method || "text",
+          daily_report_required: data.daily_report_required || false,
+          checkin_preference: data.checkin_preference || "written",
+          
+          // Cultural preferences
+          cultural_preferences: data.cultural_preferences || "",
+          additional_notes: data.additional_notes || ""
+        };
+        
+        setFormData(mappedData);
+        console.log("Form data set:", mappedData);
+      } else {
+        console.log("No existing assessment found, using default form data");
+        setFormData(initialFormData);
       }
     } catch (error) {
       console.error("Error loading assessment:", error);
+      setDataLoadError("Failed to load assessment data");
+      toast.error("Failed to load assessment data");
     } finally {
       setLoading(false);
     }
@@ -177,7 +253,25 @@ export const CareNeedsAssessmentForm = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user) return;
+    if (!user) {
+      toast.error("You must be logged in to save assessment");
+      return;
+    }
+    
+    if (!formData.care_recipient_name.trim()) {
+      toast.error("Please provide a care recipient name");
+      return;
+    }
+    
+    if (!formData.primary_contact_name.trim()) {
+      toast.error("Please provide a primary contact name");
+      return;
+    }
+    
+    if (!formData.emergency_contact_name.trim()) {
+      toast.error("Please provide an emergency contact name");
+      return;
+    }
 
     try {
       setSubmitting(true);
@@ -187,6 +281,7 @@ export const CareNeedsAssessmentForm = () => {
         profile_id: user.id,
         preferred_time_start: formData.preferred_shift_start,
         preferred_time_end: formData.preferred_shift_end,
+        cognitive_notes: formData.triggers_soothing_techniques,
         updated_at: new Date().toISOString()
       };
 
@@ -210,8 +305,8 @@ export const CareNeedsAssessmentForm = () => {
 
       toast.success(existingAssessment ? "Assessment updated successfully!" : "Assessment completed successfully!");
       
-      // Redirect back to family dashboard
-      window.location.href = "/dashboard/family";
+      // Use React Router navigation instead of hard redirect
+      navigate("/dashboard/family");
     } catch (error) {
       console.error("Error saving assessment:", error);
       toast.error("Failed to save assessment. Please try again.");
@@ -246,6 +341,23 @@ export const CareNeedsAssessmentForm = () => {
     );
   }
 
+  if (dataLoadError) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="max-w-4xl mx-auto">
+          <div className="text-center">
+            <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+            <h2 className="text-xl font-semibold text-red-600 mb-2">Error Loading Assessment</h2>
+            <p className="text-gray-600 mb-4">{dataLoadError}</p>
+            <Button onClick={() => navigate("/dashboard/family")} variant="outline">
+              Return to Dashboard
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="max-w-4xl mx-auto">
@@ -260,12 +372,17 @@ export const CareNeedsAssessmentForm = () => {
               Client Care Needs Breakdown
             </h1>
             <p className="text-lg text-gray-600">
-              Help us understand your loved one's specific care requirements to match you with the right caregiver.
+              {existingAssessment ? "Update your care requirements" : "Help us understand your loved one's specific care requirements to match you with the right caregiver."}
             </p>
+            {existingAssessment && (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mt-2">
+                <p className="text-blue-700 text-sm">✓ Existing assessment found and loaded</p>
+              </div>
+            )}
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-8">
-            {/* Header Information */}
+            {/* Basic Information Card */}
             <Card className="border-l-4 border-l-primary">
               <CardHeader>
                 <CardTitle className="text-lg font-semibold">Basic Information</CardTitle>
@@ -293,6 +410,7 @@ export const CareNeedsAssessmentForm = () => {
                     />
                   </div>
                 </div>
+                
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="primary_contact_phone">Primary Contact Phone *</Label>
@@ -315,6 +433,7 @@ export const CareNeedsAssessmentForm = () => {
                     />
                   </div>
                 </div>
+                
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="preferred_shift_start">Preferred Shift Start Time</Label>
@@ -335,6 +454,7 @@ export const CareNeedsAssessmentForm = () => {
                     />
                   </div>
                 </div>
+                
                 <div>
                   <Label>Days of Week</Label>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mt-2">
