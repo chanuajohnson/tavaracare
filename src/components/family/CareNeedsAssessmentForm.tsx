@@ -174,17 +174,18 @@ export const CareNeedsAssessmentForm = () => {
         setExistingAssessment(true);
         
         // Map database fields to form fields with proper fallbacks
+        // Note: Many form fields don't have corresponding database columns yet
         const mappedData: CareNeedsFormData = {
-          // Basic information - these fields might not exist in DB yet
-          care_recipient_name: data.care_recipient_name || "",
-          primary_contact_name: data.primary_contact_name || "",
-          primary_contact_phone: data.primary_contact_phone || "",
-          care_location: data.care_location || "",
+          // Basic information - these fields don't exist in DB yet, so use empty defaults
+          care_recipient_name: "",
+          primary_contact_name: "",
+          primary_contact_phone: "",
+          care_location: "",
           preferred_shift_start: data.preferred_time_start || "",
           preferred_shift_end: data.preferred_time_end || "",
           preferred_days: Array.isArray(data.preferred_days) ? data.preferred_days : [],
           
-          // ADL assistance
+          // ADL assistance - these exist in DB
           assistance_bathing: data.assistance_bathing || false,
           assistance_dressing: data.assistance_dressing || false,
           assistance_toileting: data.assistance_toileting || false,
@@ -195,44 +196,44 @@ export const CareNeedsAssessmentForm = () => {
           assistance_companionship: data.assistance_companionship || false,
           assistance_naps: data.assistance_naps || false,
           
-          // Cognitive support
+          // Cognitive support - these exist in DB
           dementia_redirection: data.dementia_redirection || false,
           memory_reminders: data.memory_reminders || false,
           gentle_engagement: data.gentle_engagement || false,
           wandering_prevention: data.wandering_prevention || false,
           triggers_soothing_techniques: data.cognitive_notes || "",
           
-          // Medical conditions
+          // Medical conditions - partial support in DB
           diagnosed_conditions: data.diagnosed_conditions || "",
-          chronic_illness_type: data.chronic_illness_type || "",
+          chronic_illness_type: "", // This field doesn't exist in DB yet
           vitals_check: data.vitals_check || false,
           equipment_use: data.equipment_use || false,
           fall_monitoring: data.fall_monitoring || false,
           
-          // Housekeeping
+          // Housekeeping - these exist in DB
           tidy_room: data.tidy_room || false,
           laundry_support: data.laundry_support || false,
           meal_prep: data.meal_prep || false,
           grocery_runs: data.grocery_runs || false,
           
-          // Transportation
+          // Transportation - these exist in DB
           escort_to_appointments: data.escort_to_appointments || false,
           fresh_air_walks: data.fresh_air_walks || false,
           
-          // Emergency contacts
+          // Emergency contacts - partial support in DB
           emergency_contact_name: data.emergency_contact_name || "",
           emergency_contact_phone: data.emergency_contact_phone || "",
           emergency_contact_relationship: data.emergency_contact_relationship || "",
-          known_allergies: data.known_allergies || "",
-          emergency_plan: data.emergency_plan || "",
+          known_allergies: "", // This field doesn't exist in DB yet
+          emergency_plan: "", // This field doesn't exist in DB yet
           
-          // Communication
+          // Communication - partial support in DB
           communication_method: data.communication_method || "text",
           daily_report_required: data.daily_report_required || false,
-          checkin_preference: data.checkin_preference || "written",
+          checkin_preference: "", // This field doesn't exist in DB yet
           
-          // Cultural preferences
-          cultural_preferences: data.cultural_preferences || "",
+          // Cultural preferences - partial support in DB
+          cultural_preferences: "", // This field doesn't exist in DB yet
           additional_notes: data.additional_notes || ""
         };
         
@@ -276,12 +277,58 @@ export const CareNeedsAssessmentForm = () => {
     try {
       setSubmitting(true);
 
+      // Map form data to database fields (only include fields that exist in DB)
       const assessmentData = {
-        ...formData,
         profile_id: user.id,
         preferred_time_start: formData.preferred_shift_start,
         preferred_time_end: formData.preferred_shift_end,
+        preferred_days: formData.preferred_days,
+        
+        // ADL fields
+        assistance_bathing: formData.assistance_bathing,
+        assistance_dressing: formData.assistance_dressing,
+        assistance_toileting: formData.assistance_toileting,
+        assistance_oral_care: formData.assistance_oral_care,
+        assistance_feeding: formData.assistance_feeding,
+        assistance_mobility: formData.assistance_mobility,
+        assistance_medication: formData.assistance_medication,
+        assistance_companionship: formData.assistance_companionship,
+        assistance_naps: formData.assistance_naps,
+        
+        // Cognitive fields
+        dementia_redirection: formData.dementia_redirection,
+        memory_reminders: formData.memory_reminders,
+        gentle_engagement: formData.gentle_engagement,
+        wandering_prevention: formData.wandering_prevention,
         cognitive_notes: formData.triggers_soothing_techniques,
+        
+        // Medical fields
+        diagnosed_conditions: formData.diagnosed_conditions,
+        vitals_check: formData.vitals_check,
+        equipment_use: formData.equipment_use,
+        fall_monitoring: formData.fall_monitoring,
+        
+        // Housekeeping fields
+        tidy_room: formData.tidy_room,
+        laundry_support: formData.laundry_support,
+        meal_prep: formData.meal_prep,
+        grocery_runs: formData.grocery_runs,
+        
+        // Transportation fields
+        escort_to_appointments: formData.escort_to_appointments,
+        fresh_air_walks: formData.fresh_air_walks,
+        
+        // Emergency contact fields
+        emergency_contact_name: formData.emergency_contact_name,
+        emergency_contact_phone: formData.emergency_contact_phone,
+        emergency_contact_relationship: formData.emergency_contact_relationship,
+        
+        // Communication fields
+        communication_method: formData.communication_method,
+        daily_report_required: formData.daily_report_required,
+        
+        // Additional notes
+        additional_notes: formData.additional_notes,
         updated_at: new Date().toISOString()
       };
 
