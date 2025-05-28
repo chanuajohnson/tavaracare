@@ -7,17 +7,23 @@ import { PageViewTracker } from "@/components/tracking/PageViewTracker";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
+import LoadingScreen from "@/components/common/LoadingScreen";
 
 const CareNeedsAssessmentPage = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, isLoading } = useAuth();
 
   useEffect(() => {
     document.title = "Care Needs Assessment | Tavara";
   }, []);
 
-  // Redirect to login if not authenticated
-  if (!user) {
+  // Show loading screen while authentication state is being determined
+  if (isLoading) {
+    return <LoadingScreen message="Loading your account..." />;
+  }
+
+  // Only redirect if not loading AND no user
+  if (!isLoading && !user) {
     navigate("/auth");
     return null;
   }
