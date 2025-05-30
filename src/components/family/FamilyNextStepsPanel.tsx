@@ -1,3 +1,4 @@
+
 import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -128,7 +129,12 @@ export const FamilyNextStepsPanel = () => {
 
   const getButtonText = (step: any) => {
     if (step.completed) {
-      return step.id === 4 ? "Edit Assessment" : "Edit";
+      if (step.id === 1) {
+        return "Edit Registration Form";
+      } else if (step.id === 4) {
+        return "Edit Assessment";
+      }
+      return "Edit";
     }
     return step.id === 4 ? "Start Assessment" : "Complete";
   };
