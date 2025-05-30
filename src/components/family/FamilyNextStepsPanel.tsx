@@ -1,4 +1,3 @@
-
 import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -127,6 +126,20 @@ export const FamilyNextStepsPanel = () => {
   const completedSteps = steps.filter(step => step.completed).length;
   const progress = Math.round((completedSteps / steps.length) * 100);
 
+  const getButtonText = (step: any) => {
+    if (step.completed) {
+      return step.id === 4 ? "Edit Assessment" : "Edit";
+    }
+    return step.id === 4 ? "Start Assessment" : "Complete";
+  };
+
+  const getButtonIcon = (step: any) => {
+    if (step.completed) {
+      return <ArrowRight className="ml-1 h-3 w-3" />;
+    }
+    return <ArrowRight className="ml-1 h-3 w-3" />;
+  };
+
   if (loading) {
     return (
       <motion.div
@@ -204,14 +217,16 @@ export const FamilyNextStepsPanel = () => {
                   </div>
                   <p className="text-sm text-gray-500">{step.description}</p>
                 </div>
-                {!step.completed && (
-                  <Link to={step.link}>
-                    <Button variant="ghost" size="sm" className="p-0 h-6 text-primary hover:text-primary-600">
-                      {step.id === 4 ? "Start Assessment" : "Complete"}
-                      <ArrowRight className="ml-1 h-3 w-3" />
-                    </Button>
-                  </Link>
-                )}
+                <Link to={step.link}>
+                  <Button 
+                    variant={step.completed ? "outline" : "ghost"} 
+                    size="sm" 
+                    className={`p-0 h-6 ${step.completed ? 'text-blue-600 hover:text-blue-700' : 'text-primary hover:text-primary-600'}`}
+                  >
+                    {getButtonText(step)}
+                    {getButtonIcon(step)}
+                  </Button>
+                </Link>
               </li>
             ))}
           </ul>

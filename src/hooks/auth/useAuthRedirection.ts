@@ -23,6 +23,12 @@ export const useAuthRedirection = (
       return;
     }
 
+    // Skip redirect on family-specific pages like care assessment
+    if (location.pathname.startsWith('/family/')) {
+      console.log('[AuthProvider] On family page, skipping redirection');
+      return;
+    }
+
     const skipRedirect = sessionStorage.getItem('skipPostLoginRedirect');
     if (skipRedirect) {
       console.log('[AuthProvider] Skipping post-login redirect due to skipPostLoginRedirect flag');

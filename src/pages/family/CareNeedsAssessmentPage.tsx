@@ -7,6 +7,14 @@ import { PageViewTracker } from "@/components/tracking/PageViewTracker";
 const CareNeedsAssessmentPage = () => {
   useEffect(() => {
     document.title = "Care Needs Assessment | Tavara";
+    
+    // Prevent auth redirection by setting skip flag
+    sessionStorage.setItem('skipPostLoginRedirect', 'true');
+    
+    // Clean up on unmount
+    return () => {
+      sessionStorage.removeItem('skipPostLoginRedirect');
+    };
   }, []);
 
   return (
