@@ -2,6 +2,7 @@
 import { useLocation } from 'react-router-dom';
 import { User } from '@supabase/supabase-js';
 import { UserRole } from '@/types/database';
+import { startTransition } from 'react';
 
 export const useAuthRedirection = (
   user: User | null,
@@ -19,6 +20,12 @@ export const useAuthRedirection = (
     // Skip redirect on reset password page
     if (location.pathname.includes('/auth/reset-password/confirm')) {
       console.log('[AuthProvider] On reset password confirmation page, skipping redirection');
+      return;
+    }
+
+    // Skip redirect on family-specific pages like care assessment
+    if (location.pathname.startsWith('/family/')) {
+      console.log('[AuthProvider] On family page, skipping redirection');
       return;
     }
 
@@ -41,7 +48,9 @@ export const useAuthRedirection = (
 
       const locationState = location.state as { returnPath?: string; action?: string } | null;
       if (locationState?.returnPath === "/family/story" && locationState?.action === "tellStory") {
-        safeNavigate('/family/story', { skipCheck: true });
+        startTransition(() => {
+          safeNavigate('/family/story', { skipCheck: true });
+        });
         isRedirectingRef.current = false;
         return;
       }
@@ -65,9 +74,50 @@ export const useAuthRedirection = (
           'admin': '/dashboard/admin'
         };
         
-        safeNavigate(dashboardRoutes[effectiveRole], { skipCheck: true });
+        const targetDashboard = dashboardRoutes[effectiveRole];
+        
+        // Check if user is already on the correct dashboard - if so, don't redirect
+        if (location.pathname === targetDashboard) {
+          console.log('[AuthProvider] User already on correct dashboard, skipping redirect');
+          isRedirectingRef.current = false;
+          return;
+        }
+
+        // Check if user is on a registration page that matches their role
+        const registrationRoutes: Record<UserRole, string> = {
+          'family': '/registration/family',
+          'professional': '/registration/professional',
+          'community': '/registration/community',
+          'admin': '/dashboard/admin'
+        };
+
+        const targetRegistration = registrationRoutes[effectiveRole];
+        
+        // If user is on the correct registration page, don't redirect
+        if (location.pathname === targetRegistration) {
+          console.log('[AuthProvider] User on correct registration page, skipping redirect');
+          isRedirectingRef.current = false;
+          return;
+        }
+        
+        // Only redirect to dashboard if not already there and profile is complete
+        if (profileComplete) {
+          startTransition(() => {
+            safeNavigate(targetDashboard, { skipCheck: true });
+          });
+        } else {
+          // Redirect to registration if profile incomplete
+          startTransition(() => {
+            safeNavigate(targetRegistration, { skipCheck: true });
+          });
+        }
       } else {
-        safeNavigate('/', { skipCheck: true });
+        // Only redirect to home if not already on correct dashboard
+        if (location.pathname !== '/') {
+          startTransition(() => {
+            safeNavigate('/', { skipCheck: true });
+          });
+        }
       }
     } catch (error) {
       console.error('[AuthProvider] Error during post-login redirection:', error);

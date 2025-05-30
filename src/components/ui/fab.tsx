@@ -1,6 +1,7 @@
-import React, { useState, useEffect, lazy, Suspense } from "react";
+
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { HelpCircleIcon, XIcon, MessageSquareIcon, FileQuestionIcon, PhoneIcon, Loader2Icon } from "@/utils/lazyIcons";
+import { HelpCircle, X, MessageSquare, FileQuestion, Phone, Loader2 } from 'lucide-react';
 import { cn } from "@/lib/utils";
 import {
   DropdownMenu,
@@ -26,7 +27,7 @@ interface FabProps {
 }
 
 export const Fab = ({
-  icon = <HelpCircleIcon className="h-5 w-5" />,
+  icon = <HelpCircle className="h-5 w-5" />,
   onClick,
   className,
   position = "bottom-right",
@@ -219,9 +220,8 @@ export const Fab = ({
     }
   };
 
-  // Wrap in a Suspense boundary to protect against React lazy loading errors
   return (
-    <Suspense fallback={null}>
+    <>
       {!showMenu ? (
         <Button
           onClick={onClick}
@@ -256,28 +256,28 @@ export const Fab = ({
                 className="flex items-center gap-2 cursor-pointer p-3 text-base"
                 onClick={handleFAQClick}
               >
-                <FileQuestionIcon className="h-5 w-5" />
+                <FileQuestion className="h-5 w-5" />
                 <span>FAQ Section</span>
               </DropdownMenuItem>
               <DropdownMenuItem 
                 className="flex items-center gap-2 cursor-pointer p-3 text-base"
                 onClick={handleOpenWhatsApp}
               >
-                <PhoneIcon className="h-5 w-5" />
+                <Phone className="h-5 w-5" />
                 <span>WhatsApp Support</span>
               </DropdownMenuItem>
               <DropdownMenuItem
                 className="flex items-center gap-2 cursor-pointer p-3 text-base"
                 onClick={() => setIsContactFormOpen(true)}
               >
-                <MessageSquareIcon className="h-5 w-5" />
+                <MessageSquare className="h-5 w-5" />
                 <span>Contact Form</span>
               </DropdownMenuItem>
               <DropdownMenuItem
                 className="flex items-center gap-2 cursor-pointer p-3 text-base"
                 onClick={toggleChat}
               >
-                <MessageSquareIcon className="h-5 w-5" />
+                <MessageSquare className="h-5 w-5" />
                 <span>Chat with Assistant</span>
               </DropdownMenuItem>
             </DropdownMenuContent>
@@ -294,7 +294,7 @@ export const Fab = ({
                     onClick={() => setIsContactFormOpen(false)}
                     disabled={isSubmitting}
                   >
-                    <XIcon className="h-5 w-5" />
+                    <X className="h-5 w-5" />
                   </Button>
                 </div>
                 <form onSubmit={handleContactFormSubmit}>
@@ -381,7 +381,7 @@ export const Fab = ({
                     <Button type="submit" disabled={isSubmitting}>
                       {isSubmitting ? (
                         <>
-                          <Loader2Icon className="mr-2 h-4 w-4 animate-spin" />
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                           Sending...
                         </>
                       ) : (
@@ -404,7 +404,7 @@ export const Fab = ({
                   className="absolute -right-2 -top-2 h-6 w-6 rounded-full bg-background border shadow-sm z-10"
                   onClick={toggleChat}
                 >
-                  <XIcon size={14} />
+                  <X size={14} />
                 </Button>
                 <ChatbotWidget 
                   width={isMobile ? "100%" : "350px"}
@@ -415,6 +415,6 @@ export const Fab = ({
           )}
         </>
       )}
-    </Suspense>
+    </>
   );
 };

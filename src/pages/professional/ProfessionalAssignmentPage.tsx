@@ -86,7 +86,7 @@ const ProfessionalAssignmentPage = () => {
             family_id,
             created_at,
             metadata,
-            profiles:family_id (
+            profiles!care_plans_family_id_fkey (
               full_name,
               phone_number,
               email,
@@ -108,7 +108,7 @@ const ProfessionalAssignmentPage = () => {
 
         setCarePlan(planData);
 
-        // Fetch team members for this care plan
+        // Fetch ALL team members for this care plan with explicit join
         const { data: teamData, error: teamError } = await supabase
           .from('care_team_members')
           .select(`
@@ -116,7 +116,8 @@ const ProfessionalAssignmentPage = () => {
             status,
             role,
             caregiver_id,
-            profiles:caregiver_id (
+            care_plan_id,
+            profiles!care_team_members_caregiver_id_fkey (
               full_name,
               professional_type,
               avatar_url
@@ -125,20 +126,52 @@ const ProfessionalAssignmentPage = () => {
           .eq('care_plan_id', planId);
 
         if (teamError) throw teamError;
-        setTeamMembers(teamData || []);
+        
+        // Transform team data to match expected structure
+        const transformedTeamMembers = teamData?.map(member => ({
+          id: member.id,
+          carePlanId: member.care_plan_id,
+          caregiverId: member.caregiver_id,
+          role: member.role,
+          status: member.status,
+          professionalDetails: member.profiles ? {
+            full_name: member.profiles.full_name,
+            professional_type: member.profiles.professional_type,
+            avatar_url: member.profiles.avatar_url
+          } : null
+        })) || [];
 
-        // Fetch upcoming shifts for this care plan
+        console.log("Transformed team members:", transformedTeamMembers);
+        setTeamMembers(transformedTeamMembers);
+
+        // Fetch ALL upcoming shifts for this care plan (not filtered by user)
         const { data: shiftsData, error: shiftsError } = await supabase
           .from('care_shifts')
           .select('*')
           .eq('care_plan_id', planId)
-          .eq('caregiver_id', user.id)
           .gte('start_time', new Date().toISOString())
           .order('start_time', { ascending: true })
-          .limit(5);
+          .limit(10);
 
         if (shiftsError) throw shiftsError;
-        setShifts(shiftsData || []);
+        
+        // Transform shifts data to match expected structure
+        const transformedShifts = shiftsData?.map(shift => ({
+          id: shift.id,
+          title: shift.title,
+          description: shift.description,
+          status: shift.status,
+          start_time: shift.start_time,
+          end_time: shift.end_time,
+          startTime: shift.start_time, // Add camelCase alias
+          endTime: shift.end_time,     // Add camelCase alias
+          location: shift.location,
+          caregiverId: shift.caregiver_id,
+          carePlanId: shift.care_plan_id
+        })) || [];
+
+        console.log("Transformed shifts:", transformedShifts);
+        setShifts(transformedShifts);
 
         setLoading(false);
       } catch (error) {

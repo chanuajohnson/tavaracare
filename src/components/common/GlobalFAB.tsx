@@ -1,7 +1,7 @@
 
 import { useLocation } from 'react-router-dom';
 import { Fab } from "@/components/ui/fab";
-import { HelpCircleIcon } from "@/utils/lazyIcons";
+import { HelpCircle } from 'lucide-react';
 
 export function GlobalFAB() {
   const location = useLocation();
@@ -14,7 +14,7 @@ export function GlobalFAB() {
   return (
     <Fab 
       className="bg-primary-500 hover:bg-primary-600 text-white"
-      icon={<HelpCircleIcon className="h-5 w-5" />}
+      icon={<HelpCircle className="h-5 w-5" />}
       label="Support options"
     />
   );

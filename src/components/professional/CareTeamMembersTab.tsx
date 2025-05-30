@@ -14,12 +14,12 @@ interface ProfessionalDetails {
 interface CareTeamMember {
   id: string;
   carePlanId: string;
-  familyId: string;
+  familyId?: string;
   caregiverId: string;
   role: string;
   status: string;
   notes?: string;
-  createdAt: string;
+  createdAt?: string;
   updatedAt?: string;
   professionalDetails?: ProfessionalDetails;
 }
@@ -27,9 +27,10 @@ interface CareTeamMember {
 interface CareTeamMembersTabProps {
   teamMembers: CareTeamMember[];
   loading: boolean;
+  currentUserId?: string;
 }
 
-export function CareTeamMembersTab({ teamMembers = [], loading = false }: CareTeamMembersTabProps) {
+export function CareTeamMembersTab({ teamMembers = [], loading = false, currentUserId }: CareTeamMembersTabProps) {
   // Enhanced debug logging
   console.log("CareTeamMembersTab rendering with:", { 
     teamMembers, 
@@ -37,7 +38,9 @@ export function CareTeamMembersTab({ teamMembers = [], loading = false }: CareTe
     teamMembersCount: teamMembers.length,
     teamMembersWithDetails: teamMembers.filter(m => m.professionalDetails).length,
     memberIds: teamMembers.map(m => m.id),
-    memberRoles: teamMembers.map(m => m.role)
+    memberRoles: teamMembers.map(m => m.role),
+    currentUserId,
+    caregiverIds: teamMembers.map(m => m.caregiverId)
   });
 
   const getInitials = (name: string) => {
@@ -76,7 +79,7 @@ export function CareTeamMembersTab({ teamMembers = [], loading = false }: CareTe
   if (!teamMembers || teamMembers.length === 0) {
     return (
       <div className="text-center py-8 text-gray-500">
-        No team members found
+        No team members found for this care plan
       </div>
     );
   }
@@ -96,36 +99,47 @@ export function CareTeamMembersTab({ teamMembers = [], loading = false }: CareTe
           avatar_url: null
         };
 
+        // Check if this member is the current logged-in user
+        const isCurrentUser = currentUserId && member.caregiverId === currentUserId;
+        
         // Debug individual member rendering
         console.log("Rendering team member:", { 
           id: member.id, 
           role: member.role,
           status: member.status,
           caregiverId: member.caregiverId,
-          professionalName: professionalDetails.full_name 
+          professionalName: professionalDetails.full_name,
+          isCurrentUser,
+          currentUserId
         });
         
         return (
-          <Card key={member.id} className="overflow-hidden">
+          <Card 
+            key={member.id} 
+            className={`overflow-hidden ${isCurrentUser ? 'border-primary border-2 bg-primary/5' : ''}`}
+          >
             <CardContent className="p-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <Avatar className="h-10 w-10">
                     <AvatarImage src={professionalDetails.avatar_url || ''} alt={professionalDetails.full_name} />
-                    <AvatarFallback className="bg-primary text-white">
+                    <AvatarFallback className={`${isCurrentUser ? 'bg-primary text-white' : 'bg-secondary'} text-white`}>
                       {getInitials(professionalDetails.full_name || 'U')}
                     </AvatarFallback>
                   </Avatar>
                   <div>
-                    <p className="font-medium">{professionalDetails.full_name || 'Unknown Professional'}</p>
+                    <p className="font-medium">
+                      {professionalDetails.full_name || 'Unknown Professional'}
+                      {isCurrentUser && <span className="ml-2 text-xs text-primary font-semibold">(You)</span>}
+                    </p>
                     <p className="text-sm text-gray-500">{professionalDetails.professional_type || 'Care Professional'}</p>
                   </div>
                 </div>
-                <div className="flex flex-col items-end">
+                <div className="flex flex-col items-end gap-1">
                   <Badge variant="outline" className={getStatusColor(member.status)}>
                     {member.status ? member.status.charAt(0).toUpperCase() + member.status.slice(1) : 'Unknown'}
                   </Badge>
-                  <span className="text-xs text-gray-500 mt-1">
+                  <span className="text-xs text-gray-500">
                     {member.role ? member.role.charAt(0).toUpperCase() + member.role.slice(1) : 'Unknown Role'}
                   </span>
                 </div>

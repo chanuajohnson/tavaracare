@@ -8,10 +8,17 @@ interface TeamMembersTabProps {
   teamMembers: any[];
   loading?: boolean;
   carePlanId?: string;
-  currentUserId?: string; // Added the currentUserId prop
+  currentUserId?: string;
 }
 
 export function TeamMembersTab({ teamMembers, loading = false, carePlanId, currentUserId }: TeamMembersTabProps) {
+  console.log("TeamMembersTab rendering with:", { 
+    teamMembersCount: teamMembers.length, 
+    carePlanId: carePlanId,
+    currentUserId: currentUserId,
+    teamMembers: teamMembers
+  });
+  
   return (
     <Card>
       <CardHeader>
@@ -19,10 +26,9 @@ export function TeamMembersTab({ teamMembers, loading = false, carePlanId, curre
       </CardHeader>
       <CardContent>
         <CareTeamMembersTab 
-          teamMembers={teamMembers.filter(member => 
-            !carePlanId || member.carePlanId === carePlanId || member.care_plan_id === carePlanId
-          )}
+          teamMembers={teamMembers}
           loading={loading}
+          currentUserId={currentUserId}
         />
       </CardContent>
     </Card>

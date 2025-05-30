@@ -1,12 +1,11 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Copy, Download, Mail, File, FileImage, AlertCircle } from 'lucide-react';
+import { Copy, Download, Mail, File, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import useReceiptFormat from "@/hooks/payroll/useReceiptFormat";
 import type { WorkLog, PayrollEntry } from '@/services/care-plans/types/workLogTypes';
@@ -19,8 +18,6 @@ interface ShareReceiptDialogProps {
   workLog: WorkLog | PayrollEntry | null;
 }
 
-type FileFormat = 'pdf' | 'jpg';
-
 export const ShareReceiptDialog: React.FC<ShareReceiptDialogProps> = ({
   open,
   onOpenChange,
@@ -29,124 +26,11 @@ export const ShareReceiptDialog: React.FC<ShareReceiptDialogProps> = ({
 }) => {
   const [email, setEmail] = useState('');
   const [isDownloading, setIsDownloading] = useState(false);
-  const [isConverting, setIsConverting] = useState(false);
-  const [conversionAttempted, setConversionAttempted] = useState(false);
   const { 
-    fileFormat, 
-    setFileFormat, 
     previewUrl, 
-    conversionError, 
-    setConversionError 
+    conversionError
   } = useReceiptFormat(receiptUrl);
   
-  // Function to convert PDF to JPG with enhanced error handling
-  const convertPdfToJpg = async (pdfDataUrl: string): Promise<string> => {
-    try {
-      setIsConverting(true);
-      setConversionError(null);
-      setConversionAttempted(true);
-      
-      // Dynamically import pdfjs only when needed
-      const pdfjs = await import('pdfjs-dist');
-      
-      // Set worker source with better error handling and fallbacks
-      if (!window.pdfjsWorker) {
-        try {
-          // First try with the version-specific CDN path
-          const workerSrc = `https://cdn.jsdelivr.net/npm/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.js`;
-          pdfjs.GlobalWorkerOptions.workerSrc = workerSrc;
-          window.pdfjsWorker = true;
-        } catch (workerError) {
-          console.error('Error loading PDF.js worker from CDN:', workerError);
-          
-          // Fallback to a reliable CDN if version-specific fails
-          try {
-            pdfjs.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
-            window.pdfjsWorker = true;
-          } catch (fallbackError) {
-            console.error('Error loading fallback PDF.js worker:', fallbackError);
-            throw new Error('Failed to load PDF.js worker');
-          }
-        }
-      }
-      
-      // Convert base64 to array buffer
-      const base64Content = pdfDataUrl.split(',')[1];
-      if (!base64Content) {
-        throw new Error('Invalid PDF data URL format');
-      }
-      
-      const binaryData = atob(base64Content);
-      const bytes = new Uint8Array(binaryData.length);
-      for (let i = 0; i < binaryData.length; i++) {
-        bytes[i] = binaryData.charCodeAt(i);
-      }
-      
-      // Load PDF document with timeout
-      const loadTimeout = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('PDF loading timed out')), 10000);
-      });
-      
-      const loadingTask = pdfjs.getDocument({ data: bytes });
-      
-      // Use Promise.race to implement timeout
-      const pdf = await Promise.race([
-        loadingTask.promise,
-        loadTimeout
-      ]) as any;
-      
-      console.log(`PDF loaded successfully. Number of pages: ${pdf.numPages}`);
-      
-      // Get first page
-      const page = await pdf.getPage(1);
-      
-      // Set up canvas
-      const scale = 2.0;
-      const viewport = page.getViewport({ scale });
-      
-      const canvas = document.createElement('canvas');
-      canvas.width = viewport.width;
-      canvas.height = viewport.height;
-      
-      const context = canvas.getContext('2d');
-      if (!context) {
-        throw new Error('Could not get canvas context');
-      }
-      
-      // Set white background
-      context.fillStyle = 'white';
-      context.fillRect(0, 0, canvas.width, canvas.height);
-      
-      // Render PDF page to canvas with timeout
-      const renderContext = {
-        canvasContext: context,
-        viewport: viewport
-      };
-      
-      const renderTimeout = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('PDF rendering timed out')), 10000);
-      });
-      
-      await Promise.race([
-        page.render(renderContext).promise,
-        renderTimeout
-      ]);
-      
-      console.log('PDF page rendered to canvas successfully');
-      
-      // Convert canvas to JPG
-      const jpgData = canvas.toDataURL('image/jpeg', 0.95);
-      console.log('Canvas converted to JPG successfully');
-      
-      return jpgData;
-    } catch (error) {
-      console.error('Error in PDF to JPG conversion:', error);
-      throw error;
-    } finally {
-      setIsConverting(false);
-    }
-  };
-
   const handleCopyLink = () => {
     if (!receiptUrl) return;
     
@@ -161,28 +45,8 @@ export const ShareReceiptDialog: React.FC<ShareReceiptDialogProps> = ({
     try {
       setIsDownloading(true);
       
-      let downloadUrl = receiptUrl;
-      let filename = `receipt-${workLog.id.slice(0, 8)}.pdf`;
-      
-      // If we need to convert to JPG and have a PDF
-      if (fileFormat === 'jpg' && receiptUrl.startsWith('data:application/pdf')) {
-        try {
-          console.log('Converting PDF to JPG for download...');
-          const jpgData = await convertPdfToJpg(receiptUrl);
-          downloadUrl = jpgData;
-          filename = `receipt-${workLog.id.slice(0, 8)}.jpg`;
-          console.log('Conversion successful, ready for download');
-        } catch (error) {
-          console.error('PDF to JPG conversion failed:', error);
-          setConversionError('Failed to convert PDF to JPG. Downloading as PDF instead.');
-          // Fall back to PDF download
-          downloadUrl = receiptUrl;
-          filename = `receipt-${workLog.id.slice(0, 8)}.pdf`;
-        }
-      }
-      
       // Create a blob from the data URL
-      const response = await fetch(downloadUrl);
+      const response = await fetch(receiptUrl);
       const blob = await response.blob();
       
       // Use the Blob object and createObjectURL for more reliable downloading
@@ -190,7 +54,7 @@ export const ShareReceiptDialog: React.FC<ShareReceiptDialogProps> = ({
       
       const link = document.createElement('a');
       link.href = blobUrl;
-      link.download = filename;
+      link.download = `receipt-${workLog.id.slice(0, 8)}.pdf`;
       document.body.appendChild(link);
       link.click();
       
@@ -200,11 +64,10 @@ export const ShareReceiptDialog: React.FC<ShareReceiptDialogProps> = ({
         URL.revokeObjectURL(blobUrl);
       }, 100);
       
-      toast.success(`Receipt downloaded as ${fileFormat.toUpperCase()}`);
+      toast.success('Receipt downloaded as PDF');
     } catch (error) {
       console.error('Download error:', error);
-      toast.error(`Failed to download receipt`);
-      setConversionError('Download failed. Please try again or use a different format.');
+      toast.error('Failed to download receipt');
     } finally {
       setIsDownloading(false);
     }
@@ -220,64 +83,13 @@ export const ShareReceiptDialog: React.FC<ShareReceiptDialogProps> = ({
     setEmail('');
   };
 
-  // When format changes, handle conversion
-  const handleFormatChange = async (value: FileFormat) => {
-    setFileFormat(value);
-    setConversionAttempted(false);
-    
-    // If changing to JPG and we have a PDF, perform conversion
-    if (value === 'jpg' && receiptUrl?.startsWith('data:application/pdf')) {
-      try {
-        setIsConverting(true);
-        const jpgData = await convertPdfToJpg(receiptUrl);
-        console.log('Format changed and conversion completed');
-        // The hook will handle setting the preview URL
-      } catch (error) {
-        console.error('Format change conversion failed:', error);
-        setConversionError('Failed to convert PDF to JPG. Please try again or use PDF format.');
-      } finally {
-        setIsConverting(false);
-      }
-    }
-  };
-
-  // Reset conversion state when dialog opens or closes
-  useEffect(() => {
-    if (open) {
-      setConversionAttempted(false);
-      setConversionError(null);
-    }
-  }, [open]);
-
   const renderPreview = () => {
-    if (isConverting) {
-      return (
-        <div className="flex items-center justify-center h-64 bg-gray-100">
-          <div className="flex flex-col items-center space-y-2">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-            <p className="text-sm text-gray-500">Converting to JPG...</p>
-          </div>
-        </div>
-      );
-    }
-    
     if (conversionError) {
       return (
         <div className="flex items-center justify-center h-64 bg-gray-100">
           <Alert variant="destructive" className="max-w-xs">
             <AlertCircle className="h-4 w-4" />
-            <AlertDescription>
-              {conversionError}
-              {conversionAttempted && (
-                <Button 
-                  variant="link" 
-                  onClick={() => setFileFormat('pdf')}
-                  className="mt-2 p-0 text-xs"
-                >
-                  Switch to PDF format
-                </Button>
-              )}
-            </AlertDescription>
+            <AlertDescription>{conversionError}</AlertDescription>
           </Alert>
         </div>
       );
@@ -291,26 +103,13 @@ export const ShareReceiptDialog: React.FC<ShareReceiptDialogProps> = ({
       );
     }
     
-    if (fileFormat === 'pdf' || previewUrl.startsWith('data:application/pdf')) {
-      return (
-        <iframe 
-          src={previewUrl} 
-          className="w-full h-64"
-          title="Receipt Preview"
-        />
-      );
-    } else if (previewUrl.startsWith('data:image/jpeg')) {
-      return (
-        <img 
-          src={previewUrl} 
-          alt="Receipt Preview"
-          className="w-full h-64 object-contain"
-        />
-      );
-    } else {
-      // For any other format or loading state
-      return <Skeleton className="w-full h-64" />;
-    }
+    return (
+      <iframe 
+        src={previewUrl} 
+        className="w-full h-64"
+        title="Receipt Preview"
+      />
+    );
   };
 
   return (
@@ -330,49 +129,24 @@ export const ShareReceiptDialog: React.FC<ShareReceiptDialogProps> = ({
                 variant="outline" 
                 className="flex-1"
                 onClick={handleCopyLink}
-                disabled={!receiptUrl || isConverting}
+                disabled={!receiptUrl}
               >
                 <Copy className="mr-2 h-4 w-4" />
                 Copy Link
               </Button>
-              <div className="flex-1 flex space-x-2">
-                <Select 
-                  value={fileFormat} 
-                  onValueChange={(value: FileFormat) => handleFormatChange(value)}
-                  disabled={isConverting || isDownloading}
-                >
-                  <SelectTrigger className="w-24">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="pdf">
-                      <div className="flex items-center">
-                        <File className="h-4 w-4 mr-2" />
-                        PDF
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="jpg">
-                      <div className="flex items-center">
-                        <FileImage className="h-4 w-4 mr-2" />
-                        JPG
-                      </div>
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-                <Button 
-                  variant="outline"
-                  onClick={handleDownload}
-                  disabled={!receiptUrl || isDownloading || isConverting}
-                  className="flex-1"
-                >
-                  {isDownloading ? (
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary mr-2" />
-                  ) : (
-                    <Download className="mr-2 h-4 w-4" />
-                  )}
-                  Download
-                </Button>
-              </div>
+              <Button 
+                variant="outline"
+                onClick={handleDownload}
+                disabled={!receiptUrl || isDownloading}
+                className="flex-1"
+              >
+                {isDownloading ? (
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary mr-2" />
+                ) : (
+                  <Download className="mr-2 h-4 w-4" />
+                )}
+                Download PDF
+              </Button>
             </div>
             
             <div className="flex items-end space-x-2">
@@ -384,13 +158,12 @@ export const ShareReceiptDialog: React.FC<ShareReceiptDialogProps> = ({
                   placeholder="Enter email address" 
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  disabled={isConverting}
                 />
               </div>
               <Button 
                 variant="outline" 
                 onClick={handleEmailShare}
-                disabled={!receiptUrl || isConverting}
+                disabled={!receiptUrl}
               >
                 <Mail className="h-4 w-4" />
               </Button>

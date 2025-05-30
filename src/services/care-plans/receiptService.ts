@@ -5,7 +5,6 @@ import { supabase } from '@/lib/supabase';
 import type { WorkLog, PayrollEntry } from './types/workLogTypes';
 
 type ReceiptEntry = WorkLog | PayrollEntry;
-type ReceiptFormat = 'pdf' | 'jpg';
 
 const isWorkLog = (entry: ReceiptEntry): entry is WorkLog => {
   return 'start_time' in entry && 'end_time' in entry && 'status' in entry;
@@ -349,36 +348,20 @@ const generateConsolidatedReceiptContent = async (doc: jsPDF, entries: PayrollEn
   }
 };
 
-export const generatePayReceipt = async (
-  entry: ReceiptEntry, 
-  format: ReceiptFormat = 'pdf'
-): Promise<string> => {
+export const generatePayReceipt = async (entry: ReceiptEntry): Promise<string> => {
   try {
     const doc = new jsPDF();
     await generateReceipt(doc, entry);
     
-    // For PDF we only need to return the data URI
-    const pdfData = doc.output('datauristring');
-    
-    // If format is PDF, return PDF data directly
-    if (format === 'pdf') {
-      return pdfData;
-    }
-    
-    // For JPG, we'll still return PDF data and handle conversion in the component
-    // This is because PDF.js is not easily importable here
-    console.log('PDF generation complete, JPG conversion will be handled at the component level');
-    return pdfData;
+    // Return PDF data as URI
+    return doc.output('datauristring');
   } catch (error) {
     console.error("Error generating receipt:", error);
     throw new Error('Failed to generate receipt');
   }
 };
 
-export const generateConsolidatedReceipt = async (
-  entries: PayrollEntry[], 
-  format: ReceiptFormat = 'pdf'
-): Promise<string> => {
+export const generateConsolidatedReceipt = async (entries: PayrollEntry[]): Promise<string> => {
   try {
     if (!entries.length) {
       throw new Error('No entries provided for consolidated receipt');
@@ -387,18 +370,8 @@ export const generateConsolidatedReceipt = async (
     const doc = new jsPDF();
     await generateConsolidatedReceiptContent(doc, entries);
     
-    // For PDF we only need to return the data URI
-    const pdfData = doc.output('datauristring');
-    
-    // If format is PDF, return PDF data directly
-    if (format === 'pdf') {
-      return pdfData;
-    }
-    
-    // For JPG, we'll still return PDF data and handle conversion in the component
-    // This is because PDF.js is not easily importable here
-    console.log('Consolidated PDF generation complete, JPG conversion will be handled at the component level');
-    return pdfData;
+    // Return PDF data as URI
+    return doc.output('datauristring');
   } catch (error) {
     console.error("Error generating consolidated receipt:", error);
     throw new Error('Failed to generate consolidated receipt');

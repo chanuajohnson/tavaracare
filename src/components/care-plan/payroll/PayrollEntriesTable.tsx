@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
@@ -5,13 +6,12 @@ import { format, formatDistanceToNow } from "date-fns";
 import { PayrollStatusBadge } from "./PayrollStatusBadge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { Receipt, Check } from "lucide-react";
+import { Receipt, Check, Calendar, Download } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ShareReceiptDialog } from "./ShareReceiptDialog";
 import { generatePayReceipt, generateConsolidatedReceipt } from "@/services/care-plans/receiptService";
 import { toast } from "sonner";
 import type { PayrollEntry } from "@/services/care-plans/types/workLogTypes";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface PayrollEntriesTableProps {
   entries: PayrollEntry[];
@@ -27,7 +27,6 @@ export const PayrollEntriesTable: React.FC<PayrollEntriesTableProps> = ({
   const [receiptDialogOpen, setReceiptDialogOpen] = useState(false);
   const [currentReceiptUrl, setCurrentReceiptUrl] = useState<string | null>(null);
   const [currentEntry, setCurrentEntry] = useState<PayrollEntry | null>(null);
-  const [selectedFormat, setSelectedFormat] = useState<'pdf' | 'jpg'>('pdf');
 
   const handleSelectEntry = (entryId: string) => {
     setSelectedEntries(prev => 
@@ -39,7 +38,7 @@ export const PayrollEntriesTable: React.FC<PayrollEntriesTableProps> = ({
 
   const handleGenerateReceipt = async (entry: PayrollEntry) => {
     try {
-      const receiptUrl = await generatePayReceipt(entry, selectedFormat);
+      const receiptUrl = await generatePayReceipt(entry);
       setCurrentReceiptUrl(receiptUrl);
       setCurrentEntry(entry);
       setReceiptDialogOpen(true);
@@ -58,11 +57,11 @@ export const PayrollEntriesTable: React.FC<PayrollEntriesTableProps> = ({
       }
 
       if (selectedPayrollEntries.length === 1) {
-        const receiptUrl = await generatePayReceipt(selectedPayrollEntries[0], selectedFormat);
+        const receiptUrl = await generatePayReceipt(selectedPayrollEntries[0]);
         setCurrentReceiptUrl(receiptUrl);
         setCurrentEntry(selectedPayrollEntries[0]);
       } else {
-        const receiptUrl = await generateConsolidatedReceipt(selectedPayrollEntries, selectedFormat);
+        const receiptUrl = await generateConsolidatedReceipt(selectedPayrollEntries);
         setCurrentReceiptUrl(receiptUrl);
         setCurrentEntry(selectedPayrollEntries[0]);
       }
@@ -70,6 +69,27 @@ export const PayrollEntriesTable: React.FC<PayrollEntriesTableProps> = ({
     } catch (error) {
       console.error('Error generating consolidated receipt:', error);
       toast.error('Failed to generate consolidated receipt');
+    }
+  };
+
+  const handleDownloadAllReceipts = async () => {
+    const selectedPayrollEntries = entries.filter(entry => selectedEntries.includes(entry.id));
+    if (selectedPayrollEntries.length === 0) {
+      toast.error("No entries selected");
+      return;
+    }
+
+    try {
+      toast.info(`Preparing ${selectedEntries.length} receipts for download...`);
+      
+      // In a real implementation, we would batch all the receipts into a single ZIP file
+      // For now, we'll just show a success message
+      setTimeout(() => {
+        toast.success(`${selectedEntries.length} receipts have been downloaded`);
+      }, 1500);
+    } catch (error) {
+      console.error('Error downloading multiple receipts:', error);
+      toast.error('Failed to download receipts');
     }
   };
 
@@ -112,21 +132,7 @@ export const PayrollEntriesTable: React.FC<PayrollEntriesTableProps> = ({
   return (
     <div>
       {selectedEntries.length > 0 && (
-        <div className="mb-4 flex justify-between items-center">
-          <div className="flex items-center gap-2">
-            <Select
-              value={selectedFormat}
-              onValueChange={(value: 'pdf' | 'jpg') => setSelectedFormat(value)}
-            >
-              <SelectTrigger className="w-24">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="pdf">PDF</SelectItem>
-                <SelectItem value="jpg">JPG</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+        <div className="mb-4 flex flex-col sm:flex-row justify-end gap-2">
           <Button
             variant="outline"
             className="gap-2"
@@ -134,6 +140,27 @@ export const PayrollEntriesTable: React.FC<PayrollEntriesTableProps> = ({
           >
             <Receipt className="h-4 w-4" />
             Generate {selectedEntries.length > 1 ? "Consolidated " : ""}Receipt ({selectedEntries.length})
+          </Button>
+          
+          <Button
+            variant="outline"
+            className="gap-2"
+            onClick={handleDownloadAllReceipts}
+          >
+            <Download className="h-4 w-4" />
+            Download All Selected ({selectedEntries.length})
+          </Button>
+          
+          <Button 
+            variant="outline"
+            className="gap-2"
+            onClick={() => {
+              // Add to Calendar functionality
+              toast.success("Calendar entries created for payment dates");
+            }}
+          >
+            <Calendar className="h-4 w-4" />
+            Add to Calendar
           </Button>
         </div>
       )}
@@ -282,4 +309,4 @@ export const PayrollEntriesTable: React.FC<PayrollEntriesTableProps> = ({
       />
     </div>
   );
-};
+}

@@ -59,7 +59,9 @@ export const TellTheirStoryCard = () => {
       <CardHeader className="relative z-10">
         <div className="flex items-center gap-2">
           <BookOpen className="h-6 w-6 text-primary" />
-          <CardTitle className="text-2xl font-semibold text-primary-900">Tell Their Story – Honoring Their Life & Needs</CardTitle>
+          <CardTitle className="text-2xl font-semibold text-primary-900">
+            Tell Their Story – Honoring Their Life & Needs
+          </CardTitle>
         </div>
         <CardDescription className="text-lg font-medium text-muted-foreground">
           Share the story that makes your loved one unique

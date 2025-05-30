@@ -10,7 +10,6 @@ import {
 } from "@/components/ui/table";
 import { ShareReceiptDialog } from './ShareReceiptDialog';
 import { generatePayReceipt } from '@/services/care-plans/receiptService';
-import { ReceiptFormatSelector } from './table/ReceiptFormatSelector';
 import { WorkLogTableRow } from './table/WorkLogTableRow';
 import type { WorkLog } from '@/services/care-plans/types/workLogTypes';
 
@@ -28,7 +27,6 @@ export const WorkLogsTable: React.FC<WorkLogsTableProps> = ({
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
   const [currentWorkLog, setCurrentWorkLog] = useState<WorkLog | null>(null);
   const [receiptUrl, setReceiptUrl] = useState<string | null>(null);
-  const [selectedFormat, setSelectedFormat] = useState<'pdf' | 'jpg'>('pdf');
 
   if (workLogs.length === 0) {
     return <div className="text-center p-4">No work logs found.</div>;
@@ -36,7 +34,7 @@ export const WorkLogsTable: React.FC<WorkLogsTableProps> = ({
 
   const handleGenerateReceipt = async (workLog: WorkLog) => {
     try {
-      const url = await generatePayReceipt(workLog, selectedFormat);
+      const url = await generatePayReceipt(workLog);
       setReceiptUrl(url);
       setCurrentWorkLog(workLog);
       setShareDialogOpen(true);
@@ -47,11 +45,6 @@ export const WorkLogsTable: React.FC<WorkLogsTableProps> = ({
 
   return (
     <>
-      <ReceiptFormatSelector
-        selectedFormat={selectedFormat}
-        onFormatChange={setSelectedFormat}
-      />
-      
       <Table>
         <TableCaption>Submitted work logs</TableCaption>
         <TableHeader>
