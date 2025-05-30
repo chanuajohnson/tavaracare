@@ -4,36 +4,27 @@ import { useNavigate } from "react-router-dom";
 import { CareNeedsAssessmentForm } from "@/components/family/CareNeedsAssessmentForm";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { PageViewTracker } from "@/components/tracking/PageViewTracker";
+import { useAuth } from "@/components/providers/AuthProvider";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import LoadingScreen from "@/components/common/LoadingScreen";
-import { useIndependentAuth } from "@/hooks/auth/useIndependentAuth";
 
 const CareNeedsAssessmentPage = () => {
   const navigate = useNavigate();
-  
-  const { user, isLoading, authChecked } = useIndependentAuth({
-    redirectPath: '/auth',
-    returnPath: '/family/care-assessment',
-    requireAuthMessage: 'Please sign in to access the care assessment'
-  });
+  const { user, isLoading } = useAuth();
 
   useEffect(() => {
     document.title = "Care Needs Assessment | Tavara";
   }, []);
 
-  // Show loading screen while checking authentication
+  // Show loading screen while authentication state is being determined
   if (isLoading) {
-    return <LoadingScreen message="Verifying access..." />;
+    return <LoadingScreen message="Loading your account..." />;
   }
 
-  // If auth check completed but no user, the redirect is in progress
-  if (authChecked && !user) {
-    return <LoadingScreen message="Redirecting to sign in..." />;
-  }
-
-  // Only render the main content if we have an authenticated user
-  if (!user) {
+  // Only redirect if not loading AND no user
+  if (!isLoading && !user) {
+    navigate("/auth");
     return null;
   }
 
