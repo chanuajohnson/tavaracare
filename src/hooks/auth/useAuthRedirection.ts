@@ -76,11 +76,35 @@ export const useAuthRedirection = (
           isRedirectingRef.current = false;
           return;
         }
+
+        // Check if user is on a registration page that matches their role
+        const registrationRoutes: Record<UserRole, string> = {
+          'family': '/registration/family',
+          'professional': '/registration/professional',
+          'community': '/registration/community',
+          'admin': '/dashboard/admin'
+        };
+
+        const targetRegistration = registrationRoutes[effectiveRole];
         
-        // Only redirect to dashboard if not already there
-        startTransition(() => {
-          safeNavigate(targetDashboard, { skipCheck: true });
-        });
+        // If user is on the correct registration page, don't redirect
+        if (location.pathname === targetRegistration) {
+          console.log('[AuthProvider] User on correct registration page, skipping redirect');
+          isRedirectingRef.current = false;
+          return;
+        }
+        
+        // Only redirect to dashboard if not already there and profile is complete
+        if (profileComplete) {
+          startTransition(() => {
+            safeNavigate(targetDashboard, { skipCheck: true });
+          });
+        } else {
+          // Redirect to registration if profile incomplete
+          startTransition(() => {
+            safeNavigate(targetRegistration, { skipCheck: true });
+          });
+        }
       } else {
         // Only redirect to home if not already on correct dashboard
         if (location.pathname !== '/') {
