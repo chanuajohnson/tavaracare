@@ -31,9 +31,9 @@ export const FamilyNextStepsPanel = () => {
     { 
       id: 3, 
       title: "Complete your loved one's Legacy Story", 
-      description: "Because care is more than tasks — our Legacy Story feature honors the voices, memories, and wisdom of those we care for, preserving the human story behind the support.", 
+      description: "Because care is more than tasks — our Legacy Story feature honors the voices, memories, and wisdom of those we care for.", 
       completed: false, 
-      link: "/family/tell-story" 
+      link: "/family/story" 
     },
     { 
       id: 4, 
@@ -81,7 +81,7 @@ export const FamilyNextStepsPanel = () => {
       // Check if care recipient profile exists
       const { data: careRecipient } = await supabase
         .from('care_recipient_profiles')
-        .select('id')
+        .select('id, full_name, life_story')
         .eq('user_id', user.id)
         .maybeSingle();
 
@@ -104,6 +104,11 @@ export const FamilyNextStepsPanel = () => {
         updatedSteps[1].completed = true;
       }
       
+      // Mark third step (Legacy Story) as completed if care recipient profile exists with meaningful data
+      if (careRecipient && careRecipient.full_name) {
+        updatedSteps[2].completed = true;
+      }
+      
       // Mark fourth step (care recipient profile) as completed if care recipient profile exists
       if (careRecipient) {
         updatedSteps[3].completed = true;
@@ -114,7 +119,7 @@ export const FamilyNextStepsPanel = () => {
         updatedSteps[4].completed = true;
       }
       
-      // Note: Steps 3 and 6 will be checked once those features are implemented
+      // Note: Step 6 will be checked once that feature is implemented
       
       setSteps(updatedSteps);
     } catch (error) {
