@@ -23,31 +23,31 @@ export const FamilyNextStepsPanel = () => {
     },
     { 
       id: 2, 
-      title: "Complete your loved one's profile", 
-      description: "Add details about your care recipient", 
-      completed: false, 
-      link: "/registration/family" 
-    },
-    { 
-      id: 3, 
-      title: "Set care type preferences", 
-      description: "Specify the types of care needed", 
-      completed: false, 
-      link: "/registration/family" 
-    },
-    { 
-      id: 4, 
       title: "Complete initial care assessment", 
       description: "Help us understand your care needs better", 
       completed: false, 
       link: "/family/care-assessment" 
     },
     { 
-      id: 5, 
-      title: "Tell their story", 
-      description: "Share your loved one's life story and preferences", 
+      id: 3, 
+      title: "Complete your loved one's Legacy Story", 
+      description: "Because care is more than tasks — our Legacy Story feature honors the voices, memories, and wisdom of those we care for, preserving the human story behind the support.", 
       completed: false, 
       link: "/family/tell-story" 
+    },
+    { 
+      id: 4, 
+      title: "Complete your loved one's profile", 
+      description: "Add details about your care recipient", 
+      completed: false, 
+      link: "/registration/family" 
+    },
+    { 
+      id: 5, 
+      title: "Set care type preferences", 
+      description: "Specify the types of care needed", 
+      completed: false, 
+      link: "/registration/family" 
     },
     { 
       id: 6, 
@@ -99,22 +99,22 @@ export const FamilyNextStepsPanel = () => {
         updatedSteps[0].completed = true;
       }
       
-      // Mark second step as completed if care recipient profile exists
-      if (careRecipient) {
+      // Mark second step (care assessment) as completed if care assessment exists
+      if (careAssessment) {
         updatedSteps[1].completed = true;
       }
       
-      // Mark third step as completed if care types are set
-      if (profile?.care_types && profile.care_types.length > 0) {
-        updatedSteps[2].completed = true;
-      }
-      
-      // Mark fourth step as completed if care assessment exists
-      if (careAssessment) {
+      // Mark fourth step (care recipient profile) as completed if care recipient profile exists
+      if (careRecipient) {
         updatedSteps[3].completed = true;
       }
       
-      // Note: Steps 5 and 6 will be checked once those features are implemented
+      // Mark fifth step (care types) as completed if care types are set
+      if (profile?.care_types && profile.care_types.length > 0) {
+        updatedSteps[4].completed = true;
+      }
+      
+      // Note: Steps 3 and 6 will be checked once those features are implemented
       
       setSteps(updatedSteps);
     } catch (error) {
@@ -131,12 +131,14 @@ export const FamilyNextStepsPanel = () => {
     if (step.completed) {
       if (step.id === 1) {
         return "Edit Registration Form";
-      } else if (step.id === 4) {
+      } else if (step.id === 2) {
         return "Edit Assessment";
+      } else if (step.id === 3) {
+        return "Edit Legacy Story";
       }
       return "Edit";
     }
-    return step.id === 4 ? "Start Assessment" : "Complete";
+    return step.id === 2 ? "Start Assessment" : "Complete";
   };
 
   const getButtonIcon = (step: any) => {
