@@ -51,17 +51,6 @@ const FamilyRegistration = () => {
   const formRef = useRef<HTMLFormElement>(null);
   const navigate = useNavigate();
 
-  // Add sessionStorage flag to prevent AuthProvider redirection
-  useEffect(() => {
-    // Set skip flag to prevent AuthProvider redirection
-    sessionStorage.setItem('skipPostLoginRedirect', 'true');
-    
-    // Clean up the flag when component unmounts
-    return () => {
-      sessionStorage.removeItem('skipPostLoginRedirect');
-    };
-  }, []);
-
   // Check for auto-redirect flag from chat
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
@@ -627,7 +616,7 @@ const FamilyRegistration = () => {
             </div>
 
             <div className="space-y-2">
-              <Label>Primary Care Type Needed – What type of care is needed? (Select all that apply)</Label>
+              <Label>Primary Care Type Needed ��� What type of care is needed? (Select all that apply)</Label>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                 {[
                   { id: 'care-inhome', label: '🏠 In-Home Care (Daily, Nighttime, Weekend, Live-in)', value: 'In-Home Care' },
