@@ -65,9 +65,22 @@ export const useAuthRedirection = (
           'admin': '/dashboard/admin'
         };
         
-        safeNavigate(dashboardRoutes[effectiveRole], { skipCheck: true });
+        const targetDashboard = dashboardRoutes[effectiveRole];
+        
+        // Check if user is already on the correct dashboard - if so, don't redirect
+        if (location.pathname === targetDashboard) {
+          console.log('[AuthProvider] User already on correct dashboard, skipping redirect');
+          isRedirectingRef.current = false;
+          return;
+        }
+        
+        // Only redirect to dashboard if not already there
+        safeNavigate(targetDashboard, { skipCheck: true });
       } else {
-        safeNavigate('/', { skipCheck: true });
+        // Only redirect to home if not already on correct dashboard
+        if (location.pathname !== '/') {
+          safeNavigate('/', { skipCheck: true });
+        }
       }
     } catch (error) {
       console.error('[AuthProvider] Error during post-login redirection:', error);
