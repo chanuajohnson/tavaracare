@@ -2,6 +2,7 @@
 import { useLocation } from 'react-router-dom';
 import { User } from '@supabase/supabase-js';
 import { UserRole } from '@/types/database';
+import { startTransition } from 'react';
 
 export const useAuthRedirection = (
   user: User | null,
@@ -41,7 +42,9 @@ export const useAuthRedirection = (
 
       const locationState = location.state as { returnPath?: string; action?: string } | null;
       if (locationState?.returnPath === "/family/story" && locationState?.action === "tellStory") {
-        safeNavigate('/family/story', { skipCheck: true });
+        startTransition(() => {
+          safeNavigate('/family/story', { skipCheck: true });
+        });
         isRedirectingRef.current = false;
         return;
       }
@@ -75,11 +78,15 @@ export const useAuthRedirection = (
         }
         
         // Only redirect to dashboard if not already there
-        safeNavigate(targetDashboard, { skipCheck: true });
+        startTransition(() => {
+          safeNavigate(targetDashboard, { skipCheck: true });
+        });
       } else {
         // Only redirect to home if not already on correct dashboard
         if (location.pathname !== '/') {
-          safeNavigate('/', { skipCheck: true });
+          startTransition(() => {
+            safeNavigate('/', { skipCheck: true });
+          });
         }
       }
     } catch (error) {
