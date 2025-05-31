@@ -333,6 +333,22 @@ const ProfessionalProfileHub = () => {
     }
   };
 
+  // Helper functions for medication filtering
+  const getUpcomingMedications = () => {
+    return medications.filter(med => 
+      med.next_dose && 
+      new Date(med.next_dose) <= new Date(Date.now() + 2 * 60 * 60 * 1000) && // Next 2 hours
+      new Date(med.next_dose) > new Date() // Not overdue
+    );
+  };
+
+  const getOverdueMedications = () => {
+    return medications.filter(med => 
+      med.next_dose && 
+      new Date(med.next_dose) < new Date()
+    );
+  };
+
   const getInitials = (name: string) => {
     if (!name) return "?";
     return name.split(' ')
