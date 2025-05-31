@@ -1,4 +1,3 @@
-
 import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -165,7 +164,7 @@ export const FamilyNextStepsPanel = () => {
   };
 
   const openWhatsApp = () => {
-    const phoneNumber = "18687770000"; // Replace with your actual WhatsApp business number
+    const phoneNumber = "8687865357"; // Updated WhatsApp business number
     const message = "I am ready to schedule my initial site visit with matched nurses";
     const encodedMessage = encodeURIComponent(message);
     const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodedMessage}`;

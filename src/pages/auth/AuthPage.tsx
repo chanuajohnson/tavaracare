@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -51,6 +50,13 @@ export default function AuthPage() {
       }
 
       console.log("[AuthPage] Login successful:", data.session ? "Has session" : "No session");
+      
+      // Clear the skipPostLoginRedirect flag to allow normal redirection
+      if (sessionStorage.getItem('skipPostLoginRedirect')) {
+        console.log("[AuthPage] Clearing skipPostLoginRedirect flag after successful login");
+        sessionStorage.removeItem('skipPostLoginRedirect');
+      }
+      
     } catch (error: any) {
       console.error("[AuthPage] Login error:", error);
       toast.error(error.message || "Failed to log in");
@@ -102,6 +108,12 @@ export default function AuthPage() {
             last_name: lastName
           }
         });
+        
+        // Clear the skipPostLoginRedirect flag to allow normal redirection
+        if (sessionStorage.getItem('skipPostLoginRedirect')) {
+          console.log("[AuthPage] Clearing skipPostLoginRedirect flag after successful signup");
+          sessionStorage.removeItem('skipPostLoginRedirect');
+        }
         
         toast.success("Account created successfully! You'll be redirected to your dashboard shortly.");
         return true;
