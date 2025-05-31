@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -12,6 +11,7 @@ import { MedicationCard } from "@/components/medication/MedicationCard";
 import { MedicationForm } from "@/components/medication/MedicationForm";
 import { MedicationScheduleView } from "@/components/medication/MedicationScheduleView";
 import { MedicationReportsTab } from "@/components/medication/MedicationReportsTab";
+import { ConflictAwareAdministrationForm } from "@/components/medication/ConflictAwareAdministrationForm";
 import { MedicationWithAdministrations, medicationService } from "@/services/medicationService";
 import { fetchCarePlanById } from "@/services/care-plans/carePlanService";
 import { useAuth } from "@/components/providers/AuthProvider";
@@ -28,6 +28,7 @@ export default function MedicationManagementPage() {
   const [editingMedication, setEditingMedication] = useState<MedicationWithAdministrations | undefined>();
   const [carePlanTitle, setCarePlanTitle] = useState('');
   const [activeTab, setActiveTab] = useState('list');
+  const [administeringMedication, setAdministeringMedication] = useState<MedicationWithAdministrations | null>(null);
 
   const breadcrumbItems = [
     { label: "Family Dashboard", path: "/dashboard/family" },
@@ -89,6 +90,15 @@ export default function MedicationManagementPage() {
     }
   };
 
+  const handleAdministerMedication = (medication: MedicationWithAdministrations) => {
+    setAdministeringMedication(medication);
+  };
+
+  const handleAdministrationComplete = () => {
+    setAdministeringMedication(null);
+    loadMedications(); // Refresh the list to show updated status
+  };
+
   const filteredMedications = medications.filter(med =>
     med.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     med.medication_type?.toLowerCase().includes(searchTerm.toLowerCase())
@@ -114,6 +124,60 @@ export default function MedicationManagementPage() {
               }}
             />
           </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show administration form if administering a medication
+  if (administeringMedication) {
+    return (
+      <div className="min-h-screen bg-background">
+        <div className="container px-4 py-8">
+          <DashboardHeader breadcrumbItems={breadcrumbItems} />
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            className="mt-8 space-y-6"
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-3xl font-bold flex items-center gap-2">
+                  <Pill className="h-8 w-8 text-blue-500" />
+                  Administer Medication
+                </h1>
+                <p className="text-muted-foreground mt-2">
+                  Recording administration for: {administeringMedication.name}
+                </p>
+              </div>
+              
+              <Button 
+                variant="outline"
+                onClick={() => setAdministeringMedication(null)}
+              >
+                Cancel
+              </Button>
+            </div>
+
+            <div className="grid md:grid-cols-2 gap-6">
+              <div>
+                <MedicationCard
+                  medication={administeringMedication}
+                  showEditActions={false}
+                  showAdminActions={false}
+                  userRole="family"
+                />
+              </div>
+              <div>
+                <ConflictAwareAdministrationForm
+                  medicationId={administeringMedication.id}
+                  medicationName={administeringMedication.name}
+                  onAdministrationRecorded={handleAdministrationComplete}
+                />
+              </div>
+            </div>
+          </motion.div>
         </div>
       </div>
     );
@@ -210,7 +274,9 @@ export default function MedicationManagementPage() {
                       medication={medication}
                       onEdit={() => handleEditMedication(medication)}
                       onDelete={() => handleDeleteMedication(medication)}
+                      onAdminister={() => handleAdministerMedication(medication)}
                       showEditActions={true}
+                      showAdminActions={true}
                       userRole="family"
                     />
                   ))}
