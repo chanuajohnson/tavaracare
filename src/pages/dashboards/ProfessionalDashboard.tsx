@@ -1,4 +1,3 @@
-
 import { motion } from "framer-motion";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,7 +16,6 @@ import { DashboardFamilyMatches } from "@/components/professional/DashboardFamil
 import { CaregiverMatchingCard } from "@/components/professional/CaregiverMatchingCard";
 import { ProfessionalShortcutMenuBar } from "@/components/professional/ProfessionalShortcutMenuBar";
 import { CaregiverHealthCard } from "@/components/professional/CaregiverHealthCard";
-import { MedicationDashboard } from "@/components/professional/MedicationDashboard";
 
 const ProfessionalDashboard = () => {
   const { user } = useAuth();
@@ -89,13 +87,6 @@ const ProfessionalDashboard = () => {
         <div className="mt-8">
           <CaregiverHealthCard />
         </div>
-
-        {/* Medication Management Dashboard - NEW */}
-        {user && (
-          <div className="mt-8">
-            <MedicationDashboard />
-          </div>
-        )}
 
         {/* Next Steps and Profile Management - side by side */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
