@@ -37,6 +37,16 @@ export interface MedicationWithAdministrations extends Medication {
 
 export class MedicationService {
   /**
+   * Helper function to ensure proper typing for medication administrations
+   */
+  private mapAdministrationData(data: any[]): MedicationAdministration[] {
+    return data.map(admin => ({
+      ...admin,
+      status: admin.status as 'administered' | 'missed' | 'refused'
+    }));
+  }
+
+  /**
    * Get all medications for a care plan
    */
   async getMedicationsForCarePlan(carePlanId: string): Promise<MedicationWithAdministrations[]> {
@@ -62,11 +72,13 @@ export class MedicationService {
             .order('administered_at', { ascending: false })
             .limit(5);
 
+          const mappedAdministrations = this.mapAdministrationData(administrations || []);
+
           return {
             ...med,
-            recent_administrations: administrations || [],
+            recent_administrations: mappedAdministrations,
             next_dose: this.calculateNextDose(med.schedule),
-            adherence_rate: this.calculateAdherenceRate(administrations || [])
+            adherence_rate: this.calculateAdherenceRate(mappedAdministrations)
           };
         })
       );
@@ -195,7 +207,11 @@ export class MedicationService {
       }
 
       toast.success("Medication administration recorded");
-      return data;
+      // Apply proper typing to the returned data
+      return {
+        ...data,
+        status: data.status as 'administered' | 'missed' | 'refused'
+      };
     } catch (error) {
       console.error("[MedicationService] Exception in recordAdministration:", error);
       toast.error("Failed to record administration");
@@ -225,7 +241,7 @@ export class MedicationService {
         throw error;
       }
 
-      return data || [];
+      return this.mapAdministrationData(data || []);
     } catch (error) {
       console.error("[MedicationService] Exception in getMedicationAdministrations:", error);
       return [];
