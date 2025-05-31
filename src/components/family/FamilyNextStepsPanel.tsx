@@ -37,10 +37,10 @@ export const FamilyNextStepsPanel = () => {
     },
     { 
       id: 4, 
-      title: "Complete your loved one's profile", 
-      description: "Add details about your care recipient", 
+      title: "See your instant caregiver matches", 
+      description: "Now that your loved one's profile is complete unlock personalized caregiver recommendations.", 
       completed: false, 
-      link: "/registration/family" 
+      link: "/caregiver-matching" 
     },
     { 
       id: 5, 
@@ -51,8 +51,8 @@ export const FamilyNextStepsPanel = () => {
     },
     { 
       id: 6, 
-      title: "Schedule initial site visit", 
-      description: "Arrange a care coordinator visit", 
+      title: "Schedule your Visit", 
+      description: "Ready to meet your care coordinator? Send us a message to schedule.", 
       completed: false, 
       link: "/family/schedule-visit" 
     }
@@ -132,7 +132,21 @@ export const FamilyNextStepsPanel = () => {
   const completedSteps = steps.filter(step => step.completed).length;
   const progress = Math.round((completedSteps / steps.length) * 100);
 
+  // Check if first three steps are completed for step 4 access
+  const canAccessMatching = steps[0]?.completed && steps[1]?.completed && steps[2]?.completed;
+
   const getButtonText = (step: any) => {
+    if (step.id === 4) {
+      if (!canAccessMatching) {
+        return "Complete Above Steps to View";
+      }
+      return step.completed ? "View Matches" : "View Matches";
+    }
+    
+    if (step.id === 6) {
+      return "Schedule your Visit";
+    }
+    
     if (step.completed) {
       if (step.id === 1) {
         return "Edit Registration Form";
@@ -147,10 +161,26 @@ export const FamilyNextStepsPanel = () => {
   };
 
   const getButtonIcon = (step: any) => {
-    if (step.completed) {
-      return <ArrowRight className="ml-1 h-3 w-3" />;
-    }
     return <ArrowRight className="ml-1 h-3 w-3" />;
+  };
+
+  const openWhatsApp = () => {
+    const phoneNumber = "18687770000"; // Replace with your actual WhatsApp business number
+    const message = "I am ready to schedule my initial site visit with matched nurses";
+    const encodedMessage = encodeURIComponent(message);
+    const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodedMessage}`;
+    window.open(whatsappUrl, '_blank');
+  };
+
+  const handleStepClick = (step: any) => {
+    if (step.id === 4 && !canAccessMatching) {
+      return; // Don't navigate if prerequisites not met
+    }
+    if (step.id === 6) {
+      openWhatsApp();
+      return;
+    }
+    navigate(step.link);
   };
 
   if (loading) {
@@ -230,16 +260,35 @@ export const FamilyNextStepsPanel = () => {
                   </div>
                   <p className="text-sm text-gray-500">{step.description}</p>
                 </div>
-                <Link to={step.link}>
+                {(step.id === 4 || step.id === 6) ? (
                   <Button 
                     variant={step.completed ? "outline" : "ghost"} 
                     size="sm" 
-                    className={`p-0 h-6 ${step.completed ? 'text-blue-600 hover:text-blue-700' : 'text-primary hover:text-primary-600'}`}
+                    className={`p-0 h-6 ${
+                      step.id === 4 && !canAccessMatching 
+                        ? 'text-gray-400 cursor-not-allowed' 
+                        : step.completed 
+                          ? 'text-blue-600 hover:text-blue-700' 
+                          : 'text-primary hover:text-primary-600'
+                    }`}
+                    disabled={step.id === 4 && !canAccessMatching}
+                    onClick={() => handleStepClick(step)}
                   >
                     {getButtonText(step)}
                     {getButtonIcon(step)}
                   </Button>
-                </Link>
+                ) : (
+                  <Link to={step.link}>
+                    <Button 
+                      variant={step.completed ? "outline" : "ghost"} 
+                      size="sm" 
+                      className={`p-0 h-6 ${step.completed ? 'text-blue-600 hover:text-blue-700' : 'text-primary hover:text-primary-600'}`}
+                    >
+                      {getButtonText(step)}
+                      {getButtonIcon(step)}
+                    </Button>
+                  </Link>
+                )}
               </li>
             ))}
           </ul>
