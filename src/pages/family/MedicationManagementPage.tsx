@@ -10,6 +10,8 @@ import { Plus, Search, Pill, Calendar, BarChart3 } from "lucide-react";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { MedicationCard } from "@/components/medication/MedicationCard";
 import { MedicationForm } from "@/components/medication/MedicationForm";
+import { MedicationScheduleView } from "@/components/medication/MedicationScheduleView";
+import { MedicationReportsTab } from "@/components/medication/MedicationReportsTab";
 import { MedicationWithAdministrations, medicationService } from "@/services/medicationService";
 import { fetchCarePlanById } from "@/services/care-plans/carePlanService";
 import { useAuth } from "@/components/providers/AuthProvider";
@@ -25,6 +27,7 @@ export default function MedicationManagementPage() {
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingMedication, setEditingMedication] = useState<MedicationWithAdministrations | undefined>();
   const [carePlanTitle, setCarePlanTitle] = useState('');
+  const [activeTab, setActiveTab] = useState('list');
 
   const breadcrumbItems = [
     { label: "Family Dashboard", path: "/dashboard/family" },
@@ -149,7 +152,7 @@ export default function MedicationManagementPage() {
             </Button>
           </div>
 
-          <Tabs defaultValue="list" className="w-full">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="list" className="flex items-center gap-2">
                 <Pill className="h-4 w-4" />
@@ -216,23 +219,14 @@ export default function MedicationManagementPage() {
             </TabsContent>
 
             <TabsContent value="schedule" className="space-y-6">
-              <Card className="p-8 text-center">
-                <Calendar className="h-12 w-12 mx-auto text-gray-300 mb-4" />
-                <h3 className="text-lg font-medium mb-2">Schedule View</h3>
-                <p className="text-muted-foreground">
-                  Calendar view of medication schedules coming soon...
-                </p>
-              </Card>
+              <MedicationScheduleView 
+                carePlanId={carePlanId}
+                onAdministrationUpdate={loadMedications}
+              />
             </TabsContent>
 
             <TabsContent value="reports" className="space-y-6">
-              <Card className="p-8 text-center">
-                <BarChart3 className="h-12 w-12 mx-auto text-gray-300 mb-4" />
-                <h3 className="text-lg font-medium mb-2">Medication Reports</h3>
-                <p className="text-muted-foreground">
-                  Adherence reports and analytics coming soon...
-                </p>
-              </Card>
+              <MedicationReportsTab carePlanId={carePlanId} />
             </TabsContent>
           </Tabs>
         </motion.div>
