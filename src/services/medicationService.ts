@@ -1,6 +1,6 @@
-
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
+import { medicationConflictService, ConflictResolution } from "./medicationConflictService";
 
 // Types aligned with your database schema
 export interface Medication {
@@ -191,13 +191,37 @@ export class MedicationService {
   }
 
   /**
-   * Record medication administration
+   * Record medication administration with conflict detection
+   */
+  async recordAdministrationWithConflictDetection(
+    medicationId: string,
+    administeredAt: string,
+    administeredBy: string,
+    userRole: 'family' | 'professional',
+    notes?: string,
+    conflictResolution?: ConflictResolution
+  ) {
+    return await medicationConflictService.recordAdministrationWithConflictCheck(
+      medicationId,
+      administeredAt,
+      administeredBy,
+      userRole,
+      notes,
+      conflictResolution
+    );
+  }
+
+  /**
+   * Enhanced record administration (backwards compatible)
    */
   async recordAdministration(administration: Omit<MedicationAdministration, 'id' | 'created_at' | 'updated_at'>): Promise<MedicationAdministration | null> {
     try {
       const { data, error } = await supabase
         .from('medication_administrations')
-        .insert([administration])
+        .insert([{
+          ...administration,
+          administered_by_role: 'professional' // Default for backwards compatibility
+        }])
         .select()
         .single();
 
@@ -207,7 +231,6 @@ export class MedicationService {
       }
 
       toast.success("Medication administration recorded");
-      // Apply proper typing to the returned data
       return {
         ...data,
         status: data.status as 'administered' | 'missed' | 'refused'
@@ -217,6 +240,13 @@ export class MedicationService {
       toast.error("Failed to record administration");
       return null;
     }
+  }
+
+  /**
+   * Get administrations with conflict information
+   */
+  async getMedicationAdministrationsWithConflicts(medicationId: string, limit?: number) {
+    return await medicationConflictService.getAdministrationHistory(medicationId, limit);
   }
 
   /**

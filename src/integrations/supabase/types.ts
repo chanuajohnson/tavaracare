@@ -1012,30 +1012,45 @@ export type Database = {
         Row: {
           administered_at: string
           administered_by: string | null
+          administered_by_role: string | null
+          conflict_detected: boolean | null
+          conflict_resolution_method: string | null
+          conflict_resolved_at: string | null
           created_at: string | null
           id: string
           medication_id: string
           notes: string | null
+          original_administration_id: string | null
           status: string
           updated_at: string | null
         }
         Insert: {
           administered_at: string
           administered_by?: string | null
+          administered_by_role?: string | null
+          conflict_detected?: boolean | null
+          conflict_resolution_method?: string | null
+          conflict_resolved_at?: string | null
           created_at?: string | null
           id?: string
           medication_id: string
           notes?: string | null
+          original_administration_id?: string | null
           status?: string
           updated_at?: string | null
         }
         Update: {
           administered_at?: string
           administered_by?: string | null
+          administered_by_role?: string | null
+          conflict_detected?: boolean | null
+          conflict_resolution_method?: string | null
+          conflict_resolved_at?: string | null
           created_at?: string | null
           id?: string
           medication_id?: string
           notes?: string | null
+          original_administration_id?: string | null
           status?: string
           updated_at?: string | null
         }
@@ -1052,6 +1067,13 @@ export type Database = {
             columns: ["medication_id"]
             isOneToOne: false
             referencedRelation: "medications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "medication_administrations_original_administration_id_fkey"
+            columns: ["original_administration_id"]
+            isOneToOne: false
+            referencedRelation: "medication_administrations"
             referencedColumns: ["id"]
           },
         ]
@@ -2165,6 +2187,21 @@ export type Database = {
       admin_delete_user: {
         Args: { target_user_id: string }
         Returns: undefined
+      }
+      detect_medication_conflicts: {
+        Args: {
+          p_medication_id: string
+          p_administered_at: string
+          p_time_window_hours?: number
+        }
+        Returns: {
+          id: string
+          administered_at: string
+          administered_by: string
+          administered_by_role: string
+          status: string
+          notes: string
+        }[]
       }
       get_feature_vote_count: {
         Args: { feature_id: string }
