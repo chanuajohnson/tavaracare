@@ -1,6 +1,6 @@
 
-import { useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { Container } from "@/components/ui/container";
 import { PageViewTracker } from "@/components/tracking/PageViewTracker";
@@ -22,8 +22,13 @@ const CarePlanDetailPage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const [searchParams] = useSearchParams();
   const [confirmRemoveDialogOpen, setConfirmRemoveDialogOpen] = useState(false);
   const [memberToRemove, setMemberToRemove] = useState<CareTeamMemberWithProfile | null>(null);
+
+  // Get the tab from URL parameters, default to 'details'
+  const initialTab = searchParams.get('tab') || 'details';
+  const [activeTab, setActiveTab] = useState(initialTab);
 
   const {
     loading,
@@ -40,6 +45,14 @@ const CarePlanDetailPage = () => {
     userId: user!.id,
   });
 
+  // Update active tab when URL parameter changes
+  useEffect(() => {
+    const tabFromUrl = searchParams.get('tab');
+    if (tabFromUrl && tabFromUrl !== activeTab) {
+      setActiveTab(tabFromUrl);
+    }
+  }, [searchParams]);
+
   if (loading) {
     return <CarePlanLoadingState />;
   }
@@ -55,7 +68,7 @@ const CarePlanDetailPage = () => {
       <Container className="py-8">
         <CarePlanHeader carePlan={carePlan} />
 
-        <Tabs defaultValue="details" className="w-full">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="mb-6">
             <TabsTrigger value="details">Plan Details</TabsTrigger>
             <TabsTrigger value="team">Care Team</TabsTrigger>

@@ -45,6 +45,10 @@ const CareManagementPage = () => {
     navigate(`/family/care-management/${planId}`);
   };
 
+  const handleNavigateToTab = (planId: string, tab: string) => {
+    navigate(`/family/care-management/${planId}?tab=${tab}`);
+  };
+
   const getPlanTypeDisplay = (plan: CarePlan) => {
     if (!plan.metadata?.planType) return "Not specified";
     
@@ -173,16 +177,36 @@ const CareManagementPage = () => {
                     <FileText className="h-5 w-5 text-primary" />
                     Care Plans
                   </CardTitle>
-                  <CardDescription>Manage all care plans</CardDescription>
+                  <CardDescription>View and edit care plan details</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <p className="text-sm text-muted-foreground mb-4">
-                    Create and manage detailed care plans for your loved ones.
+                    Access detailed care plan information and make updates.
                   </p>
-                  <Button variant="secondary" className="w-full" onClick={handleCreatePlan}>
-                    <Plus className="mr-2 h-4 w-4" />
-                    New Plan
-                  </Button>
+                  {carePlans.length > 0 ? (
+                    <div className="space-y-2">
+                      {carePlans.map((plan) => (
+                        <Button 
+                          key={plan.id}
+                          variant="outline" 
+                          size="sm" 
+                          className="w-full justify-start text-left"
+                          onClick={() => handleNavigateToTab(plan.id, 'details')}
+                        >
+                          {plan.title}
+                        </Button>
+                      ))}
+                      <Button variant="secondary" className="w-full mt-2" onClick={handleCreatePlan}>
+                        <Plus className="mr-2 h-4 w-4" />
+                        Create New Plan
+                      </Button>
+                    </div>
+                  ) : (
+                    <Button variant="secondary" className="w-full" onClick={handleCreatePlan}>
+                      <Plus className="mr-2 h-4 w-4" />
+                      Create First Plan
+                    </Button>
+                  )}
                 </CardContent>
               </Card>
 
@@ -198,9 +222,25 @@ const CareManagementPage = () => {
                   <p className="text-sm text-muted-foreground mb-4">
                     Add and manage caregivers and other members of your care team.
                   </p>
-                  <Button variant="secondary" className="w-full" disabled={carePlans.length === 0}>
-                    Manage Team
-                  </Button>
+                  {carePlans.length > 0 ? (
+                    <div className="space-y-2">
+                      {carePlans.map((plan) => (
+                        <Button 
+                          key={plan.id}
+                          variant="outline" 
+                          size="sm" 
+                          className="w-full justify-start text-left"
+                          onClick={() => handleNavigateToTab(plan.id, 'team')}
+                        >
+                          {plan.title}
+                        </Button>
+                      ))}
+                    </div>
+                  ) : (
+                    <Button variant="secondary" className="w-full" disabled>
+                      No Care Plans
+                    </Button>
+                  )}
                 </CardContent>
               </Card>
 
@@ -210,15 +250,31 @@ const CareManagementPage = () => {
                     <Calendar className="h-5 w-5 text-primary" />
                     Schedule
                   </CardTitle>
-                  <CardDescription>Manage care calendar</CardDescription>
+                  <CardDescription>Manage care shifts and calendar</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <p className="text-sm text-muted-foreground mb-4">
                     Schedule appointments, tasks, and manage care shifts.
                   </p>
-                  <Button variant="secondary" className="w-full" disabled={carePlans.length === 0}>
-                    View Schedule
-                  </Button>
+                  {carePlans.length > 0 ? (
+                    <div className="space-y-2">
+                      {carePlans.map((plan) => (
+                        <Button 
+                          key={plan.id}
+                          variant="outline" 
+                          size="sm" 
+                          className="w-full justify-start text-left"
+                          onClick={() => handleNavigateToTab(plan.id, 'schedule')}
+                        >
+                          {plan.title}
+                        </Button>
+                      ))}
+                    </div>
+                  ) : (
+                    <Button variant="secondary" className="w-full" disabled>
+                      No Care Plans
+                    </Button>
+                  )}
                 </CardContent>
               </Card>
             </div>
