@@ -1,3 +1,4 @@
+
 import { Suspense, lazy, startTransition } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { Skeleton } from "@/components/ui/skeleton";
@@ -76,6 +77,7 @@ const FamilyStoryPage = lazy(() => import("@/pages/family/FamilyStoryPage"));
 const CareManagementPage = lazy(() => import("@/pages/family/care-management/CareManagementPage"));
 const CreateCarePlanPage = lazy(() => import("@/pages/family/care-management/CreateCarePlanPage"));
 const CarePlanDetailPage = lazy(() => import("@/pages/family/care-management/CarePlanDetailPage"));
+const MedicationManagementPage = lazy(() => import("@/pages/family/MedicationManagementPage"));
 const LegacyStoriesPage = lazy(() => import("@/pages/legacy/LegacyStoriesPage"));
 const FAQPage = lazy(() => import("@/pages/support/FAQPage"));
 const SubscriptionPage = lazy(() => import("@/pages/subscription/SubscriptionPage"));
@@ -164,6 +166,7 @@ export const AppRoutes = () => {
           <Route path="/family/care-management/create" element={<CreateCarePlanPage />} />
           <Route path="/family/care-management/create/:id" element={<CreateCarePlanPage />} />
           <Route path="/family/care-management/:id" element={<CarePlanDetailPage />} />
+          <Route path="/family/care-management/:carePlanId/medications" element={<MedicationManagementPage />} />
           <Route path="/legacy-stories" element={<LegacyStoriesPage />} />
           <Route path="/faq" element={<FAQPage />} />
           <Route path="/subscription" element={<SubscriptionPage />} />

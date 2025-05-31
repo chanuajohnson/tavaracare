@@ -12,6 +12,7 @@ import { CareTeamTab } from "@/components/care-plan/CareTeamTab";
 import { PlanDetailsTab } from "@/components/care-plan/PlanDetailsTab";
 import { ScheduleTab } from "@/components/care-plan/ScheduleTab";
 import { PayrollTab } from "@/components/care-plan/PayrollTab";
+import { MedicationsTab } from "@/components/care-plan/MedicationsTab";
 import { CarePlanHeader } from "@/components/care-plan/CarePlanHeader";
 import { CarePlanLoadingState } from "@/components/care-plan/CarePlanLoadingState";
 import { CarePlanNotFound } from "@/components/care-plan/CarePlanNotFound";
@@ -58,6 +59,7 @@ const CarePlanDetailPage = () => {
           <TabsList className="mb-6">
             <TabsTrigger value="details">Plan Details</TabsTrigger>
             <TabsTrigger value="team">Care Team</TabsTrigger>
+            <TabsTrigger value="medications">Medications</TabsTrigger>
             <TabsTrigger value="schedule">Schedule</TabsTrigger>
             <TabsTrigger value="payroll">Payroll & Hours</TabsTrigger>
           </TabsList>
@@ -78,6 +80,10 @@ const CarePlanDetailPage = () => {
                 setConfirmRemoveDialogOpen(true);
               }}
             />
+          </TabsContent>
+
+          <TabsContent value="medications">
+            <MedicationsTab carePlanId={id!} />
           </TabsContent>
           
           <TabsContent value="schedule">
