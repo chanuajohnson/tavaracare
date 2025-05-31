@@ -35,15 +35,33 @@ const FamilyDashboard = () => {
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [carePlans, setCarePlans] = useState([]);
   const navigate = useNavigate();
   
   useEffect(() => {
     if (user) {
       fetchMessages();
+      fetchCarePlans();
     } else {
       setLoading(false);
     }
   }, [user]);
+
+  const fetchCarePlans = async () => {
+    if (!user) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('care_plans')
+        .select('id, title')
+        .eq('family_id', user.id);
+      
+      if (error) throw error;
+      setCarePlans(data || []);
+    } catch (error) {
+      console.error("Error fetching care plans:", error);
+    }
+  };
   
   const fetchMessages = async () => {
     try {
@@ -292,13 +310,39 @@ const FamilyDashboard = () => {
               <CardDescription>Track and manage medications, schedules, and administration</CardDescription>
             </CardHeader>
             <CardContent>
-              <Link to="/family/features-overview">
-                <Button variant="default" className="w-full mb-6">
-                  Learn More
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
-              </Link>
-              <UpvoteFeatureButton featureTitle="Medication Management" className="w-full mb-6" buttonText="Upvote this Feature" />
+              {carePlans.length > 0 ? (
+                <div className="space-y-4">
+                  <p className="text-gray-600">Manage medications for your care plans:</p>
+                  <div className="space-y-2">
+                    {carePlans.map((plan) => (
+                      <Link 
+                        key={plan.id} 
+                        to={`/family/care-management/${plan.id}/medications`}
+                        className="block"
+                      >
+                        <Button variant="outline" className="w-full justify-between">
+                          <span>{plan.title} - Medications</span>
+                          <ArrowRight className="h-4 w-4" />
+                        </Button>
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-4">
+                  <p className="text-gray-600 mb-4">Create a care plan first to manage medications.</p>
+                  <Link to="/family/care-management/create">
+                    <Button variant="default">
+                      Create Care Plan
+                      <ArrowRight className="ml-2 h-4 w-4" />
+                    </Button>
+                  </Link>
+                </div>
+              )}
+              
+              <div className="mt-6">
+                <UpvoteFeatureButton featureTitle="Medication Management" className="w-full mb-6" buttonText="Upvote this Feature" />
+              </div>
               
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <Card>
@@ -310,9 +354,15 @@ const FamilyDashboard = () => {
                     <CardDescription>View and manage medications</CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    <Link to="/family/features-overview">
-                      <Button variant="secondary" className="w-full">View Medications</Button>
-                    </Link>
+                    {carePlans.length > 0 ? (
+                      <Link to={`/family/care-management/${carePlans[0].id}/medications`}>
+                        <Button variant="secondary" className="w-full">View Medications</Button>
+                      </Link>
+                    ) : (
+                      <Button variant="secondary" className="w-full" disabled>
+                        No Care Plans
+                      </Button>
+                    )}
                   </CardContent>
                 </Card>
 
@@ -325,9 +375,15 @@ const FamilyDashboard = () => {
                     <CardDescription>Manage medication schedules</CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    <Link to="/family/features-overview">
-                      <Button variant="secondary" className="w-full">View Schedule</Button>
-                    </Link>
+                    {carePlans.length > 0 ? (
+                      <Link to={`/family/care-management/${carePlans[0].id}/medications`}>
+                        <Button variant="secondary" className="w-full">View Schedule</Button>
+                      </Link>
+                    ) : (
+                      <Button variant="secondary" className="w-full" disabled>
+                        No Care Plans
+                      </Button>
+                    )}
                   </CardContent>
                 </Card>
 
@@ -340,9 +396,15 @@ const FamilyDashboard = () => {
                     <CardDescription>Plan medication routines</CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    <Link to="/family/features-overview">
-                      <Button variant="secondary" className="w-full">View Planning</Button>
-                    </Link>
+                    {carePlans.length > 0 ? (
+                      <Link to={`/family/care-management/${carePlans[0].id}/medications`}>
+                        <Button variant="secondary" className="w-full">View Planning</Button>
+                      </Link>
+                    ) : (
+                      <Button variant="secondary" className="w-full" disabled>
+                        No Care Plans
+                      </Button>
+                    )}
                   </CardContent>
                 </Card>
 
@@ -355,9 +417,15 @@ const FamilyDashboard = () => {
                     <CardDescription>Track medication administration</CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    <Link to="/family/features-overview">
-                      <Button variant="secondary" className="w-full">View Administration</Button>
-                    </Link>
+                    {carePlans.length > 0 ? (
+                      <Link to={`/family/care-management/${carePlans[0].id}/medications`}>
+                        <Button variant="secondary" className="w-full">View Administration</Button>
+                      </Link>
+                    ) : (
+                      <Button variant="secondary" className="w-full" disabled>
+                        No Care Plans
+                      </Button>
+                    )}
                   </CardContent>
                 </Card>
               </div>

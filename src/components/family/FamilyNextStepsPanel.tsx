@@ -1,4 +1,3 @@
-
 import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -23,36 +22,36 @@ export const FamilyNextStepsPanel = () => {
     },
     { 
       id: 2, 
-      title: "Complete your loved one's profile", 
-      description: "Add details about your care recipient", 
-      completed: false, 
-      link: "/registration/family" 
-    },
-    { 
-      id: 3, 
-      title: "Set care type preferences", 
-      description: "Specify the types of care needed", 
-      completed: false, 
-      link: "/registration/family" 
-    },
-    { 
-      id: 4, 
       title: "Complete initial care assessment", 
       description: "Help us understand your care needs better", 
       completed: false, 
       link: "/family/care-assessment" 
     },
     { 
-      id: 5, 
-      title: "Tell their story", 
-      description: "Share your loved one's life story and preferences", 
+      id: 3, 
+      title: "Complete your loved one's Legacy Story", 
+      description: "Because care is more than tasks — our Legacy Story feature honors the voices, memories, and wisdom of those we care for.", 
       completed: false, 
-      link: "/family/tell-story" 
+      link: "/family/story" 
+    },
+    { 
+      id: 4, 
+      title: "See your instant caregiver matches", 
+      description: "Now that your loved one's profile is complete unlock personalized caregiver recommendations.", 
+      completed: false, 
+      link: "/caregiver-matching" 
+    },
+    { 
+      id: 5, 
+      title: "Set care type preferences", 
+      description: "Specify the types of care needed", 
+      completed: false, 
+      link: "/registration/family" 
     },
     { 
       id: 6, 
-      title: "Schedule initial site visit", 
-      description: "Arrange a care coordinator visit", 
+      title: "Schedule your Visit", 
+      description: "Ready to meet your care coordinator? Send us a message to schedule.", 
       completed: false, 
       link: "/family/schedule-visit" 
     }
@@ -81,7 +80,7 @@ export const FamilyNextStepsPanel = () => {
       // Check if care recipient profile exists
       const { data: careRecipient } = await supabase
         .from('care_recipient_profiles')
-        .select('id')
+        .select('id, full_name, life_story')
         .eq('user_id', user.id)
         .maybeSingle();
 
@@ -99,22 +98,27 @@ export const FamilyNextStepsPanel = () => {
         updatedSteps[0].completed = true;
       }
       
-      // Mark second step as completed if care recipient profile exists
-      if (careRecipient) {
+      // Mark second step (care assessment) as completed if care assessment exists
+      if (careAssessment) {
         updatedSteps[1].completed = true;
       }
       
-      // Mark third step as completed if care types are set
-      if (profile?.care_types && profile.care_types.length > 0) {
+      // Mark third step (Legacy Story) as completed if care recipient profile exists with meaningful data
+      if (careRecipient && careRecipient.full_name) {
         updatedSteps[2].completed = true;
       }
       
-      // Mark fourth step as completed if care assessment exists
-      if (careAssessment) {
+      // Mark fourth step (care recipient profile) as completed if care recipient profile exists
+      if (careRecipient) {
         updatedSteps[3].completed = true;
       }
       
-      // Note: Steps 5 and 6 will be checked once those features are implemented
+      // Mark fifth step (care types) as completed if care types are set
+      if (profile?.care_types && profile.care_types.length > 0) {
+        updatedSteps[4].completed = true;
+      }
+      
+      // Note: Step 6 will be checked once that feature is implemented
       
       setSteps(updatedSteps);
     } catch (error) {
@@ -127,23 +131,55 @@ export const FamilyNextStepsPanel = () => {
   const completedSteps = steps.filter(step => step.completed).length;
   const progress = Math.round((completedSteps / steps.length) * 100);
 
+  // Check if first three steps are completed for step 4 access
+  const canAccessMatching = steps[0]?.completed && steps[1]?.completed && steps[2]?.completed;
+
   const getButtonText = (step: any) => {
+    if (step.id === 4) {
+      if (!canAccessMatching) {
+        return "Complete Above Steps to View";
+      }
+      return step.completed ? "View Matches" : "View Matches";
+    }
+    
+    if (step.id === 6) {
+      return "Schedule your Visit";
+    }
+    
     if (step.completed) {
       if (step.id === 1) {
         return "Edit Registration Form";
-      } else if (step.id === 4) {
+      } else if (step.id === 2) {
         return "Edit Assessment";
+      } else if (step.id === 3) {
+        return "Edit Legacy Story";
       }
       return "Edit";
     }
-    return step.id === 4 ? "Start Assessment" : "Complete";
+    return step.id === 2 ? "Start Assessment" : "Complete";
   };
 
   const getButtonIcon = (step: any) => {
-    if (step.completed) {
-      return <ArrowRight className="ml-1 h-3 w-3" />;
-    }
     return <ArrowRight className="ml-1 h-3 w-3" />;
+  };
+
+  const openWhatsApp = () => {
+    const phoneNumber = "8687865357"; // Updated WhatsApp business number
+    const message = "I am ready to schedule my initial site visit with matched nurses";
+    const encodedMessage = encodeURIComponent(message);
+    const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodedMessage}`;
+    window.open(whatsappUrl, '_blank');
+  };
+
+  const handleStepClick = (step: any) => {
+    if (step.id === 4 && !canAccessMatching) {
+      return; // Don't navigate if prerequisites not met
+    }
+    if (step.id === 6) {
+      openWhatsApp();
+      return;
+    }
+    navigate(step.link);
   };
 
   if (loading) {
@@ -223,16 +259,35 @@ export const FamilyNextStepsPanel = () => {
                   </div>
                   <p className="text-sm text-gray-500">{step.description}</p>
                 </div>
-                <Link to={step.link}>
+                {(step.id === 4 || step.id === 6) ? (
                   <Button 
                     variant={step.completed ? "outline" : "ghost"} 
                     size="sm" 
-                    className={`p-0 h-6 ${step.completed ? 'text-blue-600 hover:text-blue-700' : 'text-primary hover:text-primary-600'}`}
+                    className={`p-0 h-6 ${
+                      step.id === 4 && !canAccessMatching 
+                        ? 'text-gray-400 cursor-not-allowed' 
+                        : step.completed 
+                          ? 'text-blue-600 hover:text-blue-700' 
+                          : 'text-primary hover:text-primary-600'
+                    }`}
+                    disabled={step.id === 4 && !canAccessMatching}
+                    onClick={() => handleStepClick(step)}
                   >
                     {getButtonText(step)}
                     {getButtonIcon(step)}
                   </Button>
-                </Link>
+                ) : (
+                  <Link to={step.link}>
+                    <Button 
+                      variant={step.completed ? "outline" : "ghost"} 
+                      size="sm" 
+                      className={`p-0 h-6 ${step.completed ? 'text-blue-600 hover:text-blue-700' : 'text-primary hover:text-primary-600'}`}
+                    >
+                      {getButtonText(step)}
+                      {getButtonIcon(step)}
+                    </Button>
+                  </Link>
+                )}
               </li>
             ))}
           </ul>
