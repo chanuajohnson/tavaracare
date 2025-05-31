@@ -3,7 +3,7 @@ import React from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Container } from "@/components/ui/container";
-import { Clipboard, Calendar, ArrowRight, ClipboardEdit } from "lucide-react";
+import { Clipboard, ArrowRight, ClipboardEdit, FileCheck } from "lucide-react";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useTracking } from "@/hooks/useTracking";
 
@@ -21,19 +21,17 @@ export function FamilyShortcutMenuBar() {
         <div className="flex items-center overflow-x-auto whitespace-nowrap py-1 gap-2">
           <span className="text-sm font-medium text-muted-foreground mr-2">Quick Access:</span>
           
-          {/* Only show the Complete Registration button if registration is not complete */}
-          {!isProfileComplete && (
-            <Link 
-              to="/registration/family"
-              onClick={() => handleTrackButtonClick('navigation_click', 'complete_registration')}
-            >
-              <Button variant="outline" size="sm" className="flex items-center gap-1">
-                <ClipboardEdit className="h-4 w-4" />
-                <span>Complete Registration</span>
-                <ArrowRight className="h-3 w-3" />
-              </Button>
-            </Link>
-          )}
+          {/* Edit Profile button (changed from Complete Registration) */}
+          <Link 
+            to="/registration/family"
+            onClick={() => handleTrackButtonClick('navigation_click', 'edit_profile')}
+          >
+            <Button variant="outline" size="sm" className="flex items-center gap-1">
+              <ClipboardEdit className="h-4 w-4" />
+              <span>Edit Profile</span>
+              <ArrowRight className="h-3 w-3" />
+            </Button>
+          </Link>
           
           <Link to="/family/care-management">
             <Button variant="outline" size="sm" className="flex items-center gap-1">
@@ -42,10 +40,14 @@ export function FamilyShortcutMenuBar() {
               <ArrowRight className="h-3 w-3" />
             </Button>
           </Link>
-          <Link to="/family/care-management/schedule">
+
+          <Link 
+            to="/family/care-assessment"
+            onClick={() => handleTrackButtonClick('navigation_click', 'edit_assessment')}
+          >
             <Button variant="outline" size="sm" className="flex items-center gap-1">
-              <Calendar className="h-4 w-4" />
-              <span>Care Schedule</span>
+              <FileCheck className="h-4 w-4" />
+              <span>Edit Assessment</span>
               <ArrowRight className="h-3 w-3" />
             </Button>
           </Link>
