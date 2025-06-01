@@ -89,7 +89,12 @@ export const mealPlanService = {
       .single();
 
     if (error) throw error;
-    return data;
+    
+    // Return with empty meal_plan_items array since it's a new meal plan
+    return {
+      ...data,
+      meal_plan_items: []
+    };
   },
 
   // Add meal to plan
@@ -134,7 +139,12 @@ export const mealPlanService = {
       .single();
 
     if (error) throw error;
-    return data;
+    
+    // Return with empty grocery_list_items array since it's a new grocery list
+    return {
+      ...data,
+      grocery_list_items: []
+    };
   },
 
   // Add item to grocery list
