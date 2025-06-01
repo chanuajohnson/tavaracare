@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -5,11 +6,12 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Plus, ShoppingCart, Check, X, Edit2, Star, Trash2 } from "lucide-react";
+import { Plus, ShoppingCart, Check, X, Edit2, Star, Trash2, Upload } from "lucide-react";
 import { useCarePlanMealPlan } from "./hooks/useCarePlanMealPlan";
 import { GroceryItem } from "@/services/mealPlanService";
 import { EditGroceryItemDialog } from "./components/EditGroceryItemDialog";
 import { DeleteGroceryItemDialog } from "./components/DeleteGroceryItemDialog";
+import { CSVUploadDialog } from "./components/CSVUploadDialog";
 
 interface GroceryListManagerProps {
   carePlanId: string;
@@ -34,6 +36,7 @@ export const GroceryListManager = ({ carePlanId }: GroceryListManagerProps) => {
   const [selectedListId, setSelectedListId] = useState<string>('');
   const [editingItem, setEditingItem] = useState<GroceryItem | null>(null);
   const [deletingItem, setDeletingItem] = useState<GroceryItem | null>(null);
+  const [showCSVUpload, setShowCSVUpload] = useState(false);
   
   // New item form state
   const [newItem, setNewItem] = useState({
@@ -55,6 +58,7 @@ export const GroceryListManager = ({ carePlanId }: GroceryListManagerProps) => {
     mealPlans,
     createGroceryListMutation, 
     addGroceryItemMutation,
+    bulkAddGroceryItemsMutation,
     updateGroceryItemMutation,
     markItemCompletedMutation,
     deleteGroceryItemMutation,
@@ -155,6 +159,11 @@ export const GroceryListManager = ({ carePlanId }: GroceryListManagerProps) => {
     }
   };
 
+  const handleCSVUploadComplete = (results: { success: number; errors: string[] }) => {
+    console.log('CSV Upload Results:', results);
+    setShowCSVUpload(false);
+  };
+
   if (isLoading) {
     return (
       <div className="text-center py-8">
@@ -168,16 +177,28 @@ export const GroceryListManager = ({ carePlanId }: GroceryListManagerProps) => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-semibold">Enhanced Grocery Lists</h2>
-        {mealPlans && mealPlans.length > 0 && (
-          <Button 
-            onClick={handleGenerateFromMealPlans}
-            disabled={generateGroceryListMutation.isPending}
-            className="bg-green-600 hover:bg-green-700"
-          >
-            <Star className="h-4 w-4 mr-2" />
-            Generate from Meal Plans
-          </Button>
-        )}
+        <div className="flex gap-2">
+          {groceryLists && groceryLists.length > 0 && (
+            <Button 
+              onClick={() => setShowCSVUpload(true)}
+              variant="outline"
+              className="flex items-center gap-2"
+            >
+              <Upload className="h-4 w-4" />
+              Bulk Upload CSV
+            </Button>
+          )}
+          {mealPlans && mealPlans.length > 0 && (
+            <Button 
+              onClick={handleGenerateFromMealPlans}
+              disabled={generateGroceryListMutation.isPending}
+              className="bg-green-600 hover:bg-green-700"
+            >
+              <Star className="h-4 w-4 mr-2" />
+              Generate from Meal Plans
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Create New List */}
@@ -336,6 +357,17 @@ export const GroceryListManager = ({ carePlanId }: GroceryListManagerProps) => {
                       {list.grocery_items?.filter(item => item.is_completed).length || 0} completed
                     </p>
                   </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setSelectedListId(list.id);
+                      setShowCSVUpload(true);
+                    }}
+                  >
+                    <Upload className="h-4 w-4 mr-2" />
+                    CSV Upload
+                  </Button>
                 </div>
               </CardHeader>
               <CardContent>
@@ -450,6 +482,14 @@ export const GroceryListManager = ({ carePlanId }: GroceryListManagerProps) => {
           onConfirm={handleDeleteItem}
         />
       )}
+
+      {/* CSV Upload Dialog */}
+      <CSVUploadDialog
+        open={showCSVUpload}
+        onOpenChange={setShowCSVUpload}
+        groceryListId={selectedListId}
+        onUploadComplete={handleCSVUploadComplete}
+      />
     </div>
   );
 };

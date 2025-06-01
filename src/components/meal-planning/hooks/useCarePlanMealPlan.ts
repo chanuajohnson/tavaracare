@@ -1,3 +1,4 @@
+
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { mealPlanService } from "@/services/mealPlanService";
 import { toast } from "sonner";
@@ -69,6 +70,23 @@ export const useCarePlanMealPlan = (carePlanId: string) => {
     }
   });
 
+  const bulkAddGroceryItemsMutation = useMutation({
+    mutationFn: (params: { groceryListId: string; items: any[] }) =>
+      mealPlanService.bulkAddGroceryItems(params.groceryListId, params.items),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['grocery-lists', carePlanId] });
+      if (data.errors.length > 0) {
+        toast.warning(`Added ${data.success} items with ${data.errors.length} errors`);
+      } else {
+        toast.success(`Successfully added ${data.success} items to grocery list`);
+      }
+    },
+    onError: (error: any) => {
+      toast.error('Failed to bulk upload grocery items');
+      console.error('Error bulk uploading items:', error);
+    }
+  });
+
   const updateGroceryItemMutation = useMutation({
     mutationFn: (params: { itemId: string; updates: any }) =>
       mealPlanService.updateGroceryItem(params.itemId, params.updates),
@@ -127,6 +145,7 @@ export const useCarePlanMealPlan = (carePlanId: string) => {
     addMealMutation,
     createGroceryListMutation,
     addGroceryItemMutation,
+    bulkAddGroceryItemsMutation,
     updateGroceryItemMutation,
     deleteGroceryItemMutation,
     markItemCompletedMutation,

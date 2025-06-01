@@ -261,6 +261,69 @@ export const mealPlanService = {
     if (error) throw error;
   },
 
+  // Bulk add grocery items
+  async bulkAddGroceryItems(
+    groceryListId: string,
+    items: Array<{
+      category: string;
+      item_name: string;
+      description?: string;
+      brand?: string;
+      quantity?: string;
+      size_weight?: string;
+      estimated_price?: number;
+      store_section?: string;
+      substitutes?: string;
+      notes?: string;
+      urgency_level?: 'low' | 'medium' | 'high' | 'urgent';
+      preferred_store?: string;
+      priority?: number;
+    }>
+  ): Promise<{ success: number; errors: string[] }> {
+    const chunkSize = 50;
+    let successCount = 0;
+    const errors: string[] = [];
+
+    // Process items in chunks to avoid database limits
+    for (let i = 0; i < items.length; i += chunkSize) {
+      const chunk = items.slice(i, i + chunkSize);
+      
+      const insertData = chunk.map(item => ({
+        grocery_list_id: groceryListId,
+        category: item.category || 'Food Goods',
+        item_name: item.item_name,
+        description: item.description || null,
+        brand: item.brand || null,
+        quantity: item.quantity || null,
+        size_weight: item.size_weight || null,
+        estimated_price: item.estimated_price || null,
+        store_section: item.store_section || null,
+        substitutes: item.substitutes || null,
+        notes: item.notes || null,
+        urgency_level: item.urgency_level || 'medium',
+        preferred_store: item.preferred_store || null,
+        priority: item.priority || 1,
+        is_completed: false
+      }));
+
+      try {
+        const { error } = await supabase
+          .from('grocery_items')
+          .insert(insertData);
+
+        if (error) {
+          errors.push(`Chunk ${Math.floor(i / chunkSize) + 1}: ${error.message}`);
+        } else {
+          successCount += chunk.length;
+        }
+      } catch (error) {
+        errors.push(`Chunk ${Math.floor(i / chunkSize) + 1}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      }
+    }
+
+    return { success: successCount, errors };
+  },
+
   // Update grocery item
   async updateGroceryItem(itemId: string, updates: Partial<GroceryItem>): Promise<void> {
     const { error } = await supabase
@@ -354,14 +417,16 @@ export const mealPlanService = {
     });
 
     // Add ingredients as grocery items
-    for (const [itemName, details] of ingredientMap) {
-      await this.addGroceryItem(groceryList.id, {
-        category: details.category,
-        item_name: itemName,
-        quantity: details.quantity,
-        notes: details.notes.join('; '),
-        urgency_level: 'medium'
-      });
+    const itemsToAdd = Array.from(ingredientMap.entries()).map(([itemName, details]) => ({
+      category: details.category,
+      item_name: itemName,
+      quantity: details.quantity,
+      notes: details.notes.join('; '),
+      urgency_level: 'medium' as const
+    }));
+
+    if (itemsToAdd.length > 0) {
+      await this.bulkAddGroceryItems(groceryList.id, itemsToAdd);
     }
 
     return groceryList;
