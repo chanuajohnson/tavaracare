@@ -43,13 +43,20 @@ export const FamilyNextStepsPanel = () => {
     },
     { 
       id: 5, 
-      title: "Set care type preferences", 
-      description: "Specify the types of care needed", 
+      title: "Set up medication management", 
+      description: "Add medications and set up schedules for your care plan", 
       completed: false, 
-      link: "/registration/family" 
+      link: "/family/care-management" 
     },
     { 
       id: 6, 
+      title: "Set up meal management", 
+      description: "Plan meals and create grocery lists for your care plan", 
+      completed: false, 
+      link: "/family/care-management" 
+    },
+    { 
+      id: 7, 
       title: "Schedule your Visit", 
       description: "Ready to meet your care coordinator? Send us a message to schedule.", 
       completed: false, 
@@ -57,6 +64,7 @@ export const FamilyNextStepsPanel = () => {
     }
   ]);
   const [loading, setLoading] = useState(true);
+  const [carePlans, setCarePlans] = useState([]);
 
   useEffect(() => {
     if (user) {
@@ -91,6 +99,26 @@ export const FamilyNextStepsPanel = () => {
         .eq('id', user.id)
         .maybeSingle();
 
+      // Check for care plans
+      const { data: careRlansData } = await supabase
+        .from('care_plans')
+        .select('id, title')
+        .eq('family_id', user.id);
+
+      setCarePlans(careRlansData || []);
+
+      // Check for medications
+      const { data: medications } = await supabase
+        .from('medications')
+        .select('id')
+        .in('care_plan_id', (careRlansData || []).map(cp => cp.id));
+
+      // Check for meal plans
+      const { data: mealPlans } = await supabase
+        .from('meal_plans')
+        .select('id')
+        .in('care_plan_id', (careRlansData || []).map(cp => cp.id));
+
       const updatedSteps = [...steps];
       
       // Mark first step as completed if user exists and has basic info
@@ -113,12 +141,17 @@ export const FamilyNextStepsPanel = () => {
         updatedSteps[3].completed = true;
       }
       
-      // Mark fifth step (care types) as completed if care types are set
-      if (profile?.care_types && profile.care_types.length > 0) {
+      // Mark fifth step (medication management) as completed if medications exist
+      if (medications && medications.length > 0) {
         updatedSteps[4].completed = true;
       }
       
-      // Note: Step 6 will be checked once that feature is implemented
+      // Mark sixth step (meal management) as completed if meal plans exist
+      if (mealPlans && mealPlans.length > 0) {
+        updatedSteps[5].completed = true;
+      }
+      
+      // Note: Step 7 will be checked once that feature is implemented
       
       setSteps(updatedSteps);
     } catch (error) {
@@ -142,7 +175,15 @@ export const FamilyNextStepsPanel = () => {
       return step.completed ? "View Matches" : "View Matches";
     }
     
+    if (step.id === 5) {
+      return step.completed ? "Edit Medications" : "Start Medication Setup";
+    }
+    
     if (step.id === 6) {
+      return step.completed ? "Edit Meal Plans" : "Start Meal Planning";
+    }
+    
+    if (step.id === 7) {
       return "Schedule your Visit";
     }
     
@@ -164,7 +205,7 @@ export const FamilyNextStepsPanel = () => {
   };
 
   const openWhatsApp = () => {
-    const phoneNumber = "8687865357"; // Updated WhatsApp business number
+    const phoneNumber = "8687865357";
     const message = "I am ready to schedule my initial site visit with matched nurses";
     const encodedMessage = encodeURIComponent(message);
     const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodedMessage}`;
@@ -173,9 +214,27 @@ export const FamilyNextStepsPanel = () => {
 
   const handleStepClick = (step: any) => {
     if (step.id === 4 && !canAccessMatching) {
-      return; // Don't navigate if prerequisites not met
+      return;
+    }
+    if (step.id === 5) {
+      // Navigate to medication management
+      if (carePlans.length > 0) {
+        navigate(`/family/care-management/${carePlans[0].id}/medications`);
+      } else {
+        navigate('/family/care-management/create');
+      }
+      return;
     }
     if (step.id === 6) {
+      // Navigate to meal planning
+      if (carePlans.length > 0) {
+        navigate(`/family/care-management/${carePlans[0].id}?tab=meal-planning`);
+      } else {
+        navigate('/family/care-management/create');
+      }
+      return;
+    }
+    if (step.id === 7) {
       openWhatsApp();
       return;
     }
@@ -259,7 +318,7 @@ export const FamilyNextStepsPanel = () => {
                   </div>
                   <p className="text-sm text-gray-500">{step.description}</p>
                 </div>
-                {(step.id === 4 || step.id === 6) ? (
+                {(step.id === 4 || step.id === 6 || step.id === 5) ? (
                   <Button 
                     variant={step.completed ? "outline" : "ghost"} 
                     size="sm" 
@@ -269,25 +328,25 @@ export const FamilyNextStepsPanel = () => {
                         : step.completed 
                           ? 'text-blue-600 hover:text-blue-700' 
                           : 'text-primary hover:text-primary-600'
-                    }`}
-                    disabled={step.id === 4 && !canAccessMatching}
-                    onClick={() => handleStepClick(step)}
+                  }`}
+                  disabled={step.id === 4 && !canAccessMatching}
+                  onClick={() => handleStepClick(step)}
+                >
+                  {getButtonText(step)}
+                  {getButtonIcon(step)}
+                </Button>
+              ) : (
+                <Link to={step.link}>
+                  <Button 
+                    variant={step.completed ? "outline" : "ghost"} 
+                    size="sm" 
+                    className={`p-0 h-6 ${step.completed ? 'text-blue-600 hover:text-blue-700' : 'text-primary hover:text-primary-600'}`}
                   >
                     {getButtonText(step)}
                     {getButtonIcon(step)}
                   </Button>
-                ) : (
-                  <Link to={step.link}>
-                    <Button 
-                      variant={step.completed ? "outline" : "ghost"} 
-                      size="sm" 
-                      className={`p-0 h-6 ${step.completed ? 'text-blue-600 hover:text-blue-700' : 'text-primary hover:text-primary-600'}`}
-                    >
-                      {getButtonText(step)}
-                      {getButtonIcon(step)}
-                    </Button>
-                  </Link>
-                )}
+                </Link>
+              )}
               </li>
             ))}
           </ul>

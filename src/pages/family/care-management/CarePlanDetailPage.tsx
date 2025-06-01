@@ -7,16 +7,19 @@ import { PageViewTracker } from "@/components/tracking/PageViewTracker";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useCarePlanData } from "@/hooks/useCarePlanData";
 import { CareTeamMemberWithProfile } from "@/types/careTypes";
+import { ChefHat } from "lucide-react";
 
 import { CareTeamTab } from "@/components/care-plan/CareTeamTab";
 import { PlanDetailsTab } from "@/components/care-plan/PlanDetailsTab";
-import { ScheduleTab } from "@/components/care-plan/ScheduleTab";
+import { EnhancedScheduleTab } from "@/components/care-plan/EnhancedScheduleTab";
 import { PayrollTab } from "@/components/care-plan/PayrollTab";
 import { MedicationsTab } from "@/components/care-plan/MedicationsTab";
+import { MedicationReportsTab } from "@/components/medication/MedicationReportsTab";
 import { CarePlanHeader } from "@/components/care-plan/CarePlanHeader";
 import { CarePlanLoadingState } from "@/components/care-plan/CarePlanLoadingState";
 import { CarePlanNotFound } from "@/components/care-plan/CarePlanNotFound";
 import { RemoveTeamMemberDialog } from "@/components/care-plan/RemoveTeamMemberDialog";
+import { MealPlanner } from "@/components/meal-planning/MealPlanner";
 
 const CarePlanDetailPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -73,7 +76,12 @@ const CarePlanDetailPage = () => {
             <TabsTrigger value="details">Plan Details</TabsTrigger>
             <TabsTrigger value="team">Care Team</TabsTrigger>
             <TabsTrigger value="medications">Medications</TabsTrigger>
+            <TabsTrigger value="meals" className="flex items-center gap-2">
+              <ChefHat className="h-4 w-4" />
+              Meals
+            </TabsTrigger>
             <TabsTrigger value="schedule">Schedule</TabsTrigger>
+            <TabsTrigger value="reports">Reports</TabsTrigger>
             <TabsTrigger value="payroll">Payroll & Hours</TabsTrigger>
           </TabsList>
           
@@ -98,9 +106,13 @@ const CarePlanDetailPage = () => {
           <TabsContent value="medications">
             <MedicationsTab carePlanId={id!} />
           </TabsContent>
+
+          <TabsContent value="meals">
+            <MealPlanner carePlanId={id!} />
+          </TabsContent>
           
           <TabsContent value="schedule">
-            <ScheduleTab
+            <EnhancedScheduleTab
               carePlanId={id!}
               familyId={user!.id}
               careShifts={careShifts}
@@ -108,6 +120,10 @@ const CarePlanDetailPage = () => {
               onShiftUpdated={reloadCareShifts}
               onDeleteShift={handleDeleteShift}
             />
+          </TabsContent>
+
+          <TabsContent value="reports">
+            <MedicationReportsTab carePlanId={id!} />
           </TabsContent>
           
           <TabsContent value="payroll">

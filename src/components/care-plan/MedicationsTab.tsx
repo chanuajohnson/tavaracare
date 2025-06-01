@@ -3,8 +3,10 @@ import { useState, useEffect } from "react";
 import { Link, useParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Pill, Plus, Calendar, Clock, ArrowRight } from "lucide-react";
+import { Pill, Plus, Calendar, Clock, ArrowRight, AlertTriangle } from "lucide-react";
 import { MedicationWithAdministrations, medicationService } from "@/services/medicationService";
+import { ConflictAwareAdministrationForm } from "@/components/medication/ConflictAwareAdministrationForm";
+import { Badge } from "@/components/ui/badge";
 
 interface MedicationsTabProps {
   carePlanId: string;
@@ -13,6 +15,7 @@ interface MedicationsTabProps {
 export function MedicationsTab({ carePlanId }: MedicationsTabProps) {
   const [medications, setMedications] = useState<MedicationWithAdministrations[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedMedicationForAdmin, setSelectedMedicationForAdmin] = useState<string | null>(null);
 
   useEffect(() => {
     loadMedications();
@@ -86,13 +89,29 @@ export function MedicationsTab({ carePlanId }: MedicationsTabProps) {
         </Card>
       </div>
 
-      {/* Recent Medications */}
+      {/* Conflict Detection Notice */}
+      <Card className="border-blue-200 bg-blue-50">
+        <CardContent className="pt-4">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="h-5 w-5 text-blue-600 mt-0.5" />
+            <div>
+              <h4 className="font-medium text-blue-800">Conflict Detection Active</h4>
+              <p className="text-sm text-blue-700 mt-1">
+                The system now automatically detects when medications have been recently administered 
+                by other caregivers and will alert you before recording duplicate entries.
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Recent Medications with Quick Administration */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
             <span className="flex items-center gap-2">
               <Pill className="h-5 w-5" />
-              Recent Medications
+              Medications & Quick Administration
             </span>
             <Link to={`/family/care-management/${carePlanId}/medications`}>
               <Button variant="outline" size="sm">
@@ -118,34 +137,63 @@ export function MedicationsTab({ carePlanId }: MedicationsTabProps) {
               </Link>
             </div>
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-4">
               {medications.slice(0, 5).map((medication) => (
-                <div key={medication.id} className="flex items-center justify-between p-3 border rounded-lg">
-                  <div className="flex-1">
-                    <h4 className="font-medium">{medication.name}</h4>
-                    <div className="flex items-center gap-4 text-sm text-muted-foreground mt-1">
-                      {medication.dosage && <span>Dosage: {medication.dosage}</span>}
-                      {medication.medication_type && <span>Type: {medication.medication_type}</span>}
-                      {medication.adherence_rate !== undefined && (
-                        <span className={`px-2 py-1 rounded-full text-xs ${
-                          medication.adherence_rate >= 80 ? 'bg-green-100 text-green-700' :
-                          medication.adherence_rate >= 60 ? 'bg-yellow-100 text-yellow-700' :
-                          'bg-red-100 text-red-700'
-                        }`}>
-                          {medication.adherence_rate}% adherence
-                        </span>
+                <div key={medication.id} className="border rounded-lg">
+                  <div className="flex items-center justify-between p-4">
+                    <div className="flex-1">
+                      <h4 className="font-medium">{medication.name}</h4>
+                      <div className="flex items-center gap-4 text-sm text-muted-foreground mt-1">
+                        {medication.dosage && <span>Dosage: {medication.dosage}</span>}
+                        {medication.medication_type && <span>Type: {medication.medication_type}</span>}
+                        {medication.adherence_rate !== undefined && (
+                          <Badge className={
+                            medication.adherence_rate >= 80 ? 'bg-green-100 text-green-700' :
+                            medication.adherence_rate >= 60 ? 'bg-yellow-100 text-yellow-700' :
+                            'bg-red-100 text-red-700'
+                          }>
+                            {medication.adherence_rate}% adherence
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center gap-3">
+                      {medication.next_dose && (
+                        <div className="text-right text-sm">
+                          <div className="text-muted-foreground">Next dose</div>
+                          <div className="font-medium">
+                            {new Date(medication.next_dose).toLocaleTimeString([], { 
+                              hour: '2-digit', 
+                              minute: '2-digit' 
+                            })}
+                          </div>
+                        </div>
                       )}
+                      
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => setSelectedMedicationForAdmin(
+                          selectedMedicationForAdmin === medication.id ? null : medication.id
+                        )}
+                      >
+                        {selectedMedicationForAdmin === medication.id ? 'Cancel' : 'Administer'}
+                      </Button>
                     </div>
                   </div>
-                  {medication.next_dose && (
-                    <div className="text-right text-sm">
-                      <div className="text-muted-foreground">Next dose</div>
-                      <div className="font-medium">
-                        {new Date(medication.next_dose).toLocaleTimeString([], { 
-                          hour: '2-digit', 
-                          minute: '2-digit' 
-                        })}
-                      </div>
+                  
+                  {/* Quick Administration Form */}
+                  {selectedMedicationForAdmin === medication.id && (
+                    <div className="border-t p-4 bg-gray-50">
+                      <ConflictAwareAdministrationForm
+                        medicationId={medication.id}
+                        medicationName={medication.name}
+                        onAdministrationRecorded={() => {
+                          setSelectedMedicationForAdmin(null);
+                          loadMedications(); // Refresh the list
+                        }}
+                      />
                     </div>
                   )}
                 </div>

@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Pill, Clock, CheckCircle2, AlertCircle, Calendar } from "lucide-react";
 import { MedicationCard } from "@/components/medication/MedicationCard";
 import { QuickAdministrationForm } from "@/components/medication/QuickAdministrationForm";
+import { MedicationScheduleView } from "@/components/medication/MedicationScheduleView";
 import { MedicationWithAdministrations, medicationService } from "@/services/medicationService";
 import { useAuth } from "@/components/providers/AuthProvider";
 
@@ -16,6 +17,7 @@ export const MedicationDashboard = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [selectedMedication, setSelectedMedication] = useState<MedicationWithAdministrations | null>(null);
   const [showAdminForm, setShowAdminForm] = useState(false);
+  const [scheduledTime, setScheduledTime] = useState<string | undefined>(undefined);
 
   useEffect(() => {
     if (user) {
@@ -37,8 +39,9 @@ export const MedicationDashboard = () => {
     }
   };
 
-  const handleQuickAdminister = (medication: MedicationWithAdministrations) => {
+  const handleQuickAdminister = (medication: MedicationWithAdministrations, scheduledAt?: string) => {
     setSelectedMedication(medication);
+    setScheduledTime(scheduledAt);
     setShowAdminForm(true);
   };
 
@@ -63,6 +66,9 @@ export const MedicationDashboard = () => {
   const upcomingMeds = getUpcomingMedications();
   const overdueMeds = getOverdueMedications();
   const allMeds = getAllMedications();
+
+  // Get all care plan IDs for the schedule view
+  const carePlanIds = Object.keys(medicationsByCarePlan);
 
   if (isLoading) {
     return (
@@ -149,8 +155,12 @@ export const MedicationDashboard = () => {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <Tabs defaultValue="urgent" className="w-full">
+          <Tabs defaultValue="schedule" className="w-full">
             <TabsList className="grid w-full grid-cols-3">
+              <TabsTrigger value="schedule" className="flex items-center gap-2">
+                <Calendar className="h-4 w-4" />
+                Today's Schedule
+              </TabsTrigger>
               <TabsTrigger value="urgent" className="flex items-center gap-2">
                 <AlertCircle className="h-4 w-4" />
                 Urgent ({overdueMeds.length + upcomingMeds.length})
@@ -159,11 +169,31 @@ export const MedicationDashboard = () => {
                 <Pill className="h-4 w-4" />
                 All Medications ({allMeds.length})
               </TabsTrigger>
-              <TabsTrigger value="schedule" className="flex items-center gap-2">
-                <Calendar className="h-4 w-4" />
-                Today's Schedule
-              </TabsTrigger>
             </TabsList>
+
+            <TabsContent value="schedule" className="space-y-4 mt-6">
+              {carePlanIds.length > 0 ? (
+                <div className="space-y-6">
+                  {carePlanIds.map((carePlanId) => (
+                    <div key={carePlanId} className="space-y-4">
+                      <h3 className="text-lg font-medium">Care Plan: {carePlanId.substring(0, 8)}...</h3>
+                      <MedicationScheduleView 
+                        carePlanId={carePlanId}
+                        onAdministrationUpdate={handleAdministrationSuccess}
+                      />
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <Calendar className="h-12 w-12 mx-auto text-gray-300 mb-4" />
+                  <h3 className="text-lg font-medium mb-2">No care plans assigned</h3>
+                  <p className="text-muted-foreground">
+                    You don't have any care plans with medication schedules at this time.
+                  </p>
+                </div>
+              )}
+            </TabsContent>
 
             <TabsContent value="urgent" className="space-y-4 mt-6">
               {overdueMeds.length > 0 && (
@@ -229,16 +259,6 @@ export const MedicationDashboard = () => {
                 </div>
               ))}
             </TabsContent>
-
-            <TabsContent value="schedule" className="space-y-4 mt-6">
-              <div className="text-center py-8">
-                <Calendar className="h-12 w-12 mx-auto text-gray-300 mb-4" />
-                <h3 className="text-lg font-medium mb-2">Daily Schedule View</h3>
-                <p className="text-muted-foreground">
-                  Calendar view of today's medication schedule coming soon...
-                </p>
-              </div>
-            </TabsContent>
           </Tabs>
         </CardContent>
       </Card>
@@ -251,8 +271,10 @@ export const MedicationDashboard = () => {
           onClose={() => {
             setShowAdminForm(false);
             setSelectedMedication(null);
+            setScheduledTime(undefined);
           }}
           onSuccess={handleAdministrationSuccess}
+          scheduledTime={scheduledTime}
         />
       )}
     </div>

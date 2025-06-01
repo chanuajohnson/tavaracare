@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
@@ -12,8 +13,8 @@ import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { ProfessionalScheduleView } from "@/components/professional/ProfessionalScheduleView";
-import { MedicationCard } from "@/components/medication/MedicationCard";
-import { QuickAdministrationForm } from "@/components/medication/QuickAdministrationForm";
+import { MedicationDashboard } from "@/components/professional/MedicationDashboard";
+import { CarePlanMealPlanner } from "@/components/meal-planning/CarePlanMealPlanner";
 import { 
   User, 
   MapPin, 
@@ -30,10 +31,10 @@ import {
   DollarSign,
   CheckCircle,
   AlertCircle,
-  Pill
+  Pill,
+  ChefHat
 } from "lucide-react";
 import { toast } from "sonner";
-import { MedicationWithAdministrations, medicationService } from "@/services/medicationService";
 
 // Types for the data structures
 interface ProfessionalDetails {
@@ -104,9 +105,6 @@ const ProfessionalProfileHub = () => {
   const [loading, setLoading] = useState(true);
   const [selectedCarePlanId, setSelectedCarePlanId] = useState<string | null>(null);
   const [careTeamMembers, setCareTeamMembers] = useState<CareTeamMember[]>([]);
-  const [medications, setMedications] = useState<MedicationWithAdministrations[]>([]);
-  const [selectedMedication, setSelectedMedication] = useState<MedicationWithAdministrations | null>(null);
-  const [showAdminForm, setShowAdminForm] = useState(false);
 
   const breadcrumbItems = [
     { label: "Professional Dashboard", path: "/dashboard/professional" },
@@ -136,11 +134,10 @@ const ProfessionalProfileHub = () => {
     }
   }, [carePlanAssignments, selectedCarePlanId]);
 
-  // Fetch care team members and medications when selected care plan changes
+  // Fetch care team members when selected care plan changes
   useEffect(() => {
     if (selectedCarePlanId) {
       fetchCareTeamMembers(selectedCarePlanId);
-      fetchMedicationsForCarePlan(selectedCarePlanId);
     }
   }, [selectedCarePlanId]);
 
@@ -312,43 +309,6 @@ const ProfessionalProfileHub = () => {
     }
   };
 
-  const fetchMedicationsForCarePlan = async (carePlanId: string) => {
-    try {
-      const medicationData = await medicationService.getMedicationsForCarePlan(carePlanId);
-      setMedications(medicationData);
-    } catch (error) {
-      console.error("Error loading medications:", error);
-      toast.error("Failed to load medications");
-    }
-  };
-
-  const handleQuickAdminister = (medication: MedicationWithAdministrations) => {
-    setSelectedMedication(medication);
-    setShowAdminForm(true);
-  };
-
-  const handleAdministrationSuccess = () => {
-    if (selectedCarePlanId) {
-      fetchMedicationsForCarePlan(selectedCarePlanId); // Refresh medications
-    }
-  };
-
-  // Helper functions for medication filtering
-  const getUpcomingMedications = () => {
-    return medications.filter(med => 
-      med.next_dose && 
-      new Date(med.next_dose) <= new Date(Date.now() + 2 * 60 * 60 * 1000) && // Next 2 hours
-      new Date(med.next_dose) > new Date() // Not overdue
-    );
-  };
-
-  const getOverdueMedications = () => {
-    return medications.filter(med => 
-      med.next_dose && 
-      new Date(med.next_dose) < new Date()
-    );
-  };
-
   const getInitials = (name: string) => {
     if (!name) return "?";
     return name.split(' ')
@@ -372,9 +332,6 @@ const ProfessionalProfileHub = () => {
   };
 
   const selectedCarePlan = carePlanAssignments.find(assignment => assignment.carePlanId === selectedCarePlanId);
-
-  const upcomingMeds = getUpcomingMedications();
-  const overdueMeds = getOverdueMedications();
 
   if (loading) {
     return (
@@ -510,139 +467,59 @@ const ProfessionalProfileHub = () => {
             </Card>
           </div>
 
-          {/* Care Plan Assignments */}
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle className="flex items-center gap-2">
-                    <Users className="h-5 w-5 text-primary" />
-                    Care Plan Assignments
-                  </CardTitle>
-                  <CardDescription>
-                    Families and care plans you're assigned to
-                  </CardDescription>
-                </div>
-                {carePlanAssignments.length > 1 && (
-                  <Select value={selectedCarePlanId || ''} onValueChange={setSelectedCarePlanId}>
-                    <SelectTrigger className="w-[250px]">
-                      <SelectValue placeholder="Select care plan" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {carePlanAssignments.map((assignment) => (
-                        <SelectItem key={assignment.carePlanId} value={assignment.carePlanId}>
-                          {assignment.carePlan?.title || 'Untitled Care Plan'}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )}
-              </div>
-            </CardHeader>
-            <CardContent>
-              {carePlanAssignments.length === 0 ? (
-                <div className="text-center py-8">
-                  <AlertCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <h3 className="text-lg font-medium">No Care Plan Assignments</h3>
-                  <p className="text-muted-foreground mt-1">
-                    You're not currently assigned to any care plans.
-                  </p>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {carePlanAssignments.map((assignment) => (
-                    <Card key={assignment.id} className={`border-l-4 ${
-                      assignment.carePlanId === selectedCarePlanId ? 'border-l-primary bg-primary/5' : 'border-l-gray-200'
-                    }`}>
-                      <CardContent className="pt-4">
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-3">
-                              <Avatar className="h-12 w-12">
-                                <AvatarImage src={assignment.carePlan?.familyProfile?.avatarUrl || ''} />
-                                <AvatarFallback className="bg-primary text-white">
-                                  {getInitials(assignment.carePlan?.familyProfile?.fullName || 'Family')}
-                                </AvatarFallback>
-                              </Avatar>
-                              <div>
-                                <h3 className="font-medium">
-                                  {assignment.carePlan?.title || 'Untitled Care Plan'}
-                                </h3>
-                                <p className="text-sm text-muted-foreground">
-                                  Family: {assignment.carePlan?.familyProfile?.fullName || 'Unknown'}
-                                </p>
-                                {assignment.carePlan?.familyProfile?.phoneNumber && (
-                                  <p className="text-xs text-muted-foreground">
-                                    {assignment.carePlan.familyProfile.phoneNumber}
-                                  </p>
-                                )}
-                              </div>
-                            </div>
-                            <p className="text-sm text-muted-foreground mt-2">
-                              {assignment.carePlan?.description || 'No description available'}
-                            </p>
-                          </div>
-                          <div className="flex flex-col items-end gap-2">
-                            <Badge 
-                              variant={assignment.status === 'active' ? 'default' : 'secondary'}
-                              className="text-xs"
-                            >
-                              {assignment.status}
-                            </Badge>
-                            <Badge variant="outline" className="text-xs">
-                              {assignment.role}
-                            </Badge>
-                            <Link to={`/professional/assignment/${assignment.carePlanId}`}>
-                              <Button variant="ghost" size="sm">
-                                View Details
-                                <ArrowRight className="h-4 w-4 ml-1" />
-                              </Button>
-                            </Link>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Calendar Section */}
-          {selectedCarePlanId && (
+          {/* Care Plan Selection */}
+          {carePlanAssignments.length > 0 && (
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Calendar className="h-5 w-5 text-primary" />
-                  Upcoming Schedule
-                  {selectedCarePlan && (
-                    <Badge variant="outline" className="ml-2">
-                      {selectedCarePlan.carePlan?.title}
-                    </Badge>
-                  )}
-                </CardTitle>
-                <CardDescription>
-                  Your upcoming shifts and care plan schedule
-                </CardDescription>
+                <CardTitle>Select Care Plan</CardTitle>
+                <CardDescription>Choose a care plan to manage its schedule, medications, and meal planning</CardDescription>
               </CardHeader>
               <CardContent>
-                <ProfessionalScheduleView 
-                  carePlanId={selectedCarePlanId}
-                  loading={loading}
-                />
+                <Select value={selectedCarePlanId || ''} onValueChange={setSelectedCarePlanId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a care plan..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {carePlanAssignments.map((assignment) => (
+                      <SelectItem key={assignment.id} value={assignment.carePlanId}>
+                        <div className="flex items-center gap-2">
+                          <span>{assignment.carePlan?.title || 'Unnamed Care Plan'}</span>
+                          <Badge variant="outline" className="text-xs">
+                            {assignment.carePlan?.familyProfile?.fullName || 'Unknown Family'}
+                          </Badge>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </CardContent>
             </Card>
           )}
 
-          {/* Medication Management Section */}
-          {selectedCarePlanId && medications.length > 0 && (
-            <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div>
+          {/* Tabs for Different Views */}
+          {selectedCarePlanId && (
+            <Tabs defaultValue="schedule" className="w-full">
+              <TabsList className="grid w-full grid-cols-3">
+                <TabsTrigger value="schedule" className="flex items-center gap-2">
+                  <Calendar className="h-4 w-4" />
+                  Schedule
+                </TabsTrigger>
+                <TabsTrigger value="medications" className="flex items-center gap-2">
+                  <Pill className="h-4 w-4" />
+                  Medications
+                </TabsTrigger>
+                <TabsTrigger value="meals" className="flex items-center gap-2">
+                  <ChefHat className="h-4 w-4" />
+                  Meal Planning
+                </TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="schedule" className="space-y-6">
+                <Card>
+                  <CardHeader>
                     <CardTitle className="flex items-center gap-2">
-                      <Pill className="h-5 w-5 text-primary" />
-                      Medication Management
+                      <Calendar className="h-5 w-5 text-primary" />
+                      Upcoming Schedule
                       {selectedCarePlan && (
                         <Badge variant="outline" className="ml-2">
                           {selectedCarePlan.carePlan?.title}
@@ -650,120 +527,29 @@ const ProfessionalProfileHub = () => {
                       )}
                     </CardTitle>
                     <CardDescription>
-                      Manage medications for your assigned care plan
+                      Your upcoming shifts and care plan schedule
                     </CardDescription>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                {/* Quick Stats */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                  <Card>
-                    <CardContent className="flex items-center justify-between p-4">
-                      <div>
-                        <p className="text-sm font-medium text-muted-foreground">Total Medications</p>
-                        <p className="text-2xl font-bold">{medications.length}</p>
-                      </div>
-                      <Pill className="h-8 w-8 text-blue-500" />
-                    </CardContent>
-                  </Card>
-                  
-                  <Card>
-                    <CardContent className="flex items-center justify-between p-4">
-                      <div>
-                        <p className="text-sm font-medium text-muted-foreground">Upcoming (2h)</p>
-                        <p className="text-2xl font-bold text-orange-600">{upcomingMeds.length}</p>
-                      </div>
-                      <Clock className="h-8 w-8 text-orange-500" />
-                    </CardContent>
-                  </Card>
-                  
-                  <Card>
-                    <CardContent className="flex items-center justify-between p-4">
-                      <div>
-                        <p className="text-sm font-medium text-muted-foreground">Overdue</p>
-                        <p className="text-2xl font-bold text-red-600">{overdueMeds.length}</p>
-                      </div>
-                      <AlertCircle className="h-8 w-8 text-red-500" />
-                    </CardContent>
-                  </Card>
-                </div>
+                  </CardHeader>
+                  <CardContent>
+                    <ProfessionalScheduleView 
+                      carePlanId={selectedCarePlanId}
+                      loading={loading}
+                    />
+                  </CardContent>
+                </Card>
+              </TabsContent>
 
-                {/* Medication Tabs */}
-                <Tabs defaultValue="urgent" className="w-full">
-                  <TabsList className="grid w-full grid-cols-2">
-                    <TabsTrigger value="urgent" className="flex items-center gap-2">
-                      <AlertCircle className="h-4 w-4" />
-                      Urgent ({overdueMeds.length + upcomingMeds.length})
-                    </TabsTrigger>
-                    <TabsTrigger value="all" className="flex items-center gap-2">
-                      <Pill className="h-4 w-4" />
-                      All Medications ({medications.length})
-                    </TabsTrigger>
-                  </TabsList>
+              <TabsContent value="medications" className="space-y-6">
+                <MedicationDashboard />
+              </TabsContent>
 
-                  <TabsContent value="urgent" className="space-y-4 mt-6">
-                    {overdueMeds.length > 0 && (
-                      <div className="space-y-4">
-                        <div className="flex items-center gap-2">
-                          <AlertCircle className="h-5 w-5 text-red-500" />
-                          <h3 className="text-lg font-medium text-red-700">Overdue Medications</h3>
-                        </div>
-                        {overdueMeds.map((medication) => (
-                          <MedicationCard
-                            key={medication.id}
-                            medication={medication}
-                            onAdminister={() => handleQuickAdminister(medication)}
-                            showAdminActions={true}
-                            userRole="professional"
-                          />
-                        ))}
-                      </div>
-                    )}
-
-                    {upcomingMeds.length > 0 && (
-                      <div className="space-y-4">
-                        <div className="flex items-center gap-2">
-                          <Clock className="h-5 w-5 text-orange-500" />
-                          <h3 className="text-lg font-medium text-orange-700">Upcoming Medications (Next 2 Hours)</h3>
-                        </div>
-                        {upcomingMeds.map((medication) => (
-                          <MedicationCard
-                            key={medication.id}
-                            medication={medication}
-                            onAdminister={() => handleQuickAdminister(medication)}
-                            showAdminActions={true}
-                            userRole="professional"
-                          />
-                        ))}
-                      </div>
-                    )}
-
-                    {overdueMeds.length === 0 && upcomingMeds.length === 0 && (
-                      <div className="text-center py-8">
-                        <CheckCircle className="h-12 w-12 mx-auto text-green-500 mb-4" />
-                        <h3 className="text-lg font-medium mb-2">All caught up!</h3>
-                        <p className="text-muted-foreground">
-                          No urgent medication administrations at this time.
-                        </p>
-                      </div>
-                    )}
-                  </TabsContent>
-
-                  <TabsContent value="all" className="space-y-4 mt-6">
-                    {medications.map((medication) => (
-                      <MedicationCard
-                        key={medication.id}
-                        medication={medication}
-                        onAdminister={() => handleQuickAdminister(medication)}
-                        showAdminActions={true}
-                        userRole="professional"
-                      />
-                    ))}
-                  </TabsContent>
-                </Tabs>
-              </CardContent>
-            </Card>
+              <TabsContent value="meals" className="space-y-6">
+                <CarePlanMealPlanner 
+                  carePlanId={selectedCarePlanId}
+                  carePlanTitle={selectedCarePlan?.carePlan?.title || 'Care Plan'}
+                />
+              </TabsContent>
+            </Tabs>
           )}
 
           {/* Action Cards */}
@@ -812,19 +598,6 @@ const ProfessionalProfileHub = () => {
           </div>
         </motion.div>
       </div>
-
-      {/* Quick Administration Form */}
-      {selectedMedication && (
-        <QuickAdministrationForm
-          medication={selectedMedication}
-          isOpen={showAdminForm}
-          onClose={() => {
-            setShowAdminForm(false);
-            setSelectedMedication(null);
-          }}
-          onSuccess={handleAdministrationSuccess}
-        />
-      )}
     </div>
   );
 };

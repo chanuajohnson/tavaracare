@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/components/providers/AuthProvider";
@@ -6,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Container } from "@/components/ui/container";
 import { PageViewTracker } from "@/components/tracking/PageViewTracker";
-import { FileText, Plus, Users, Calendar, ArrowLeft, Clock, Pill, PenSquare, ActivitySquare } from "lucide-react";
+import { FileText, Plus, Users, Calendar, ArrowLeft, Clock, Pill, PenSquare, ActivitySquare, ChefHat } from "lucide-react";
 import { fetchCarePlans, CarePlan } from "@/services/care-plans";
 import { toast } from "sonner";
 
@@ -49,6 +48,10 @@ const CareManagementPage = () => {
     navigate(`/family/care-management/${planId}?tab=${tab}`);
   };
 
+  const handleNavigateToMealManagement = (planId: string) => {
+    navigate(`/family/care-management/${planId}/meals`);
+  };
+
   const getPlanTypeDisplay = (plan: CarePlan) => {
     if (!plan.metadata?.planType) return "Not specified";
     
@@ -89,7 +92,7 @@ const CareManagementPage = () => {
             <div>
               <h1 className="text-3xl font-bold">Care Management Hub</h1>
               <p className="text-muted-foreground mt-1">
-                Manage care plans, medications, scheduling, and care teams all in one place
+                Manage care plans, medications, meal planning, scheduling, and care teams all in one place
               </p>
             </div>
             
@@ -407,6 +410,148 @@ const CareManagementPage = () => {
                           size="sm" 
                           className="w-full justify-start text-left"
                           onClick={() => navigate(`/family/care-management/${plan.id}/medications`)}
+                        >
+                          {plan.title}
+                        </Button>
+                      ))}
+                    </div>
+                  ) : (
+                    <Button variant="secondary" className="w-full" disabled>
+                      No Care Plans
+                    </Button>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+
+          {/* Meal Management Tools */}
+          <div>
+            <h2 className="text-2xl font-semibold mb-4">Meal Management</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <ChefHat className="h-5 w-5 text-primary" />
+                    Meal Planning
+                  </CardTitle>
+                  <CardDescription>Plan and schedule meals</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <p className="text-sm text-muted-foreground">
+                    Create meal plans and schedule recipes for each care plan.
+                  </p>
+                  {carePlans.length > 0 ? (
+                    <div className="space-y-2">
+                      {carePlans.map((plan) => (
+                        <Button 
+                          key={plan.id}
+                          variant="outline" 
+                          size="sm" 
+                          className="w-full justify-start text-left"
+                          onClick={() => handleNavigateToMealManagement(plan.id)}
+                        >
+                          {plan.title}
+                        </Button>
+                      ))}
+                    </div>
+                  ) : (
+                    <Button variant="secondary" className="w-full" disabled>
+                      No Care Plans
+                    </Button>
+                  )}
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <ActivitySquare className="h-5 w-5 text-primary" />
+                    Recipe Library
+                  </CardTitle>
+                  <CardDescription>Browse and manage recipes</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <p className="text-sm text-muted-foreground">
+                    Access and organize recipes for meal planning.
+                  </p>
+                  {carePlans.length > 0 ? (
+                    <div className="space-y-2">
+                      {carePlans.map((plan) => (
+                        <Button 
+                          key={plan.id}
+                          variant="outline" 
+                          size="sm" 
+                          className="w-full justify-start text-left"
+                          onClick={() => handleNavigateToMealManagement(plan.id)}
+                        >
+                          {plan.title}
+                        </Button>
+                      ))}
+                    </div>
+                  ) : (
+                    <Button variant="secondary" className="w-full" disabled>
+                      No Care Plans
+                    </Button>
+                  )}
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Clock className="h-5 w-5 text-primary" />
+                    Grocery Lists
+                  </CardTitle>
+                  <CardDescription>Manage shopping lists</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <p className="text-sm text-muted-foreground">
+                    Create and manage grocery lists for meal plans.
+                  </p>
+                  {carePlans.length > 0 ? (
+                    <div className="space-y-2">
+                      {carePlans.map((plan) => (
+                        <Button 
+                          key={plan.id}
+                          variant="outline" 
+                          size="sm" 
+                          className="w-full justify-start text-left"
+                          onClick={() => handleNavigateToMealManagement(plan.id)}
+                        >
+                          {plan.title}
+                        </Button>
+                      ))}
+                    </div>
+                  ) : (
+                    <Button variant="secondary" className="w-full" disabled>
+                      No Care Plans
+                    </Button>
+                  )}
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Calendar className="h-5 w-5 text-primary" />
+                    Nutrition Tracking
+                  </CardTitle>
+                  <CardDescription>Track nutritional goals</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <p className="text-sm text-muted-foreground">
+                    Monitor nutrition and dietary requirements.
+                  </p>
+                  {carePlans.length > 0 ? (
+                    <div className="space-y-2">
+                      {carePlans.map((plan) => (
+                        <Button 
+                          key={plan.id}
+                          variant="outline" 
+                          size="sm" 
+                          className="w-full justify-start text-left"
+                          onClick={() => handleNavigateToMealManagement(plan.id)}
                         >
                           {plan.title}
                         </Button>

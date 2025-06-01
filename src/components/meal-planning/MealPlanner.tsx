@@ -1,7 +1,6 @@
 
 import React, { useState } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { ChefHat } from "lucide-react";
 import { format } from "date-fns";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
@@ -9,18 +8,54 @@ import RecipeBrowser from './RecipeBrowser';
 import DateSelector from './components/DateSelector';
 import MealTypeSelector, { mealTypes } from './components/MealTypeSelector';
 import FeatureCard from './components/FeatureCard';
+import { MealItemCard } from './components/MealItemCard';
 import { useMealPlan } from './hooks/useMealPlan';
 
 interface MealPlannerProps {
-  userId: string;
+  carePlanId: string;
 }
 
-const MealPlanner = ({ userId }: MealPlannerProps) => {
+export const MealPlanner = ({ carePlanId }: MealPlannerProps) => {
   const [selectedDate, setSelectedDate] = useState<Date>();
   const [selectedMealType, setSelectedMealType] = useState<string>('');
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
 
-  const { mealPlan, createMealPlanMutation } = useMealPlan(userId, selectedDate);
+  const { 
+    mealPlan, 
+    createMealPlanMutation,
+    deleteMealItemMutation,
+    updateMealItemMutation,
+    replaceMealItemMutation
+  } = useMealPlan(carePlanId, selectedDate);
+
+  const handleRecipeSelect = (recipe: any) => {
+    if (!selectedDate) {
+      toast.error("Please select a date first");
+      return;
+    }
+    if (!selectedMealType) {
+      toast.error("Please select a meal type first");
+      return;
+    }
+    
+    createMealPlanMutation.mutate({ 
+      recipe, 
+      selectedMealType, 
+      selectedDate 
+    });
+  };
+
+  const handleDeleteMealItem = (itemId: string) => {
+    deleteMealItemMutation.mutate(itemId);
+  };
+
+  const handleUpdateMealItem = (itemId: string, updates: { serving_size?: number; notes?: string }) => {
+    updateMealItemMutation.mutate({ itemId, updates });
+  };
+
+  const handleReplaceMealItem = (itemId: string, newRecipeId: string) => {
+    replaceMealItemMutation.mutate({ itemId, newRecipeId });
+  };
 
   return (
     <div className="w-full space-y-6">
@@ -53,11 +88,7 @@ const MealPlanner = ({ userId }: MealPlannerProps) => {
               <div className="w-full overflow-x-auto">
                 <RecipeBrowser 
                   category={selectedMealType}
-                  onSelectRecipe={(recipe) => createMealPlanMutation.mutate({ 
-                    recipe, 
-                    selectedMealType, 
-                    selectedDate 
-                  })}
+                  onSelectRecipe={handleRecipeSelect}
                 />
               </div>
             </div>
@@ -78,19 +109,24 @@ const MealPlanner = ({ userId }: MealPlannerProps) => {
                     );
 
                     return (
-                      <div key={type.value} className="space-y-2">
-                        <h4 className="font-medium text-sm">{type.label}</h4>
+                      <div key={type.value} className="space-y-3">
+                        <h4 className="font-medium text-sm border-b pb-2">{type.label}</h4>
                         {meals.length > 0 ? (
-                          <div className="space-y-2">
+                          <div className="space-y-3">
                             {meals.map((meal: any) => (
-                              <div key={meal.id} className="flex items-center gap-2 text-sm">
-                                <ChefHat className="h-4 w-4 shrink-0" />
-                                <span className="truncate">{meal.recipe.title}</span>
-                              </div>
+                              <MealItemCard
+                                key={meal.id}
+                                mealItem={meal}
+                                onDelete={handleDeleteMealItem}
+                                onUpdate={handleUpdateMealItem}
+                                onReplace={handleReplaceMealItem}
+                              />
                             ))}
                           </div>
                         ) : (
-                          <p className="text-sm text-muted-foreground">No meals planned</p>
+                          <p className="text-sm text-muted-foreground bg-gray-50 p-3 rounded-md text-center">
+                            No meals planned
+                          </p>
                         )}
                       </div>
                     );
@@ -110,17 +146,7 @@ const MealPlanner = ({ userId }: MealPlannerProps) => {
               <p className="text-muted-foreground mb-4">Browse our collection of recipes and add them to your meal plan.</p>
               <div className="w-full overflow-x-auto">
                 <RecipeBrowser 
-                  onSelectRecipe={(recipe) => {
-                    if (!selectedDate) {
-                      toast.error("Please select a date first");
-                      return;
-                    }
-                    createMealPlanMutation.mutate({ 
-                      recipe, 
-                      selectedMealType, 
-                      selectedDate 
-                    });
-                  }}
+                  onSelectRecipe={handleRecipeSelect}
                 />
               </div>
             </CardContent>
@@ -145,4 +171,3 @@ const MealPlanner = ({ userId }: MealPlannerProps) => {
 };
 
 export default MealPlanner;
-

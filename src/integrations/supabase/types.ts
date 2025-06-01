@@ -832,6 +832,91 @@ export type Database = {
         }
         Relationships: []
       }
+      grocery_list_items: {
+        Row: {
+          category: string | null
+          created_at: string
+          grocery_list_id: string
+          id: string
+          item_name: string
+          notes: string | null
+          purchased: boolean
+          purchased_at: string | null
+          purchased_by: string | null
+          quantity: string | null
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          grocery_list_id: string
+          id?: string
+          item_name: string
+          notes?: string | null
+          purchased?: boolean
+          purchased_at?: string | null
+          purchased_by?: string | null
+          quantity?: string | null
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          grocery_list_id?: string
+          id?: string
+          item_name?: string
+          notes?: string | null
+          purchased?: boolean
+          purchased_at?: string | null
+          purchased_by?: string | null
+          quantity?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "grocery_list_items_grocery_list_id_fkey"
+            columns: ["grocery_list_id"]
+            isOneToOne: false
+            referencedRelation: "grocery_lists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      grocery_lists: {
+        Row: {
+          care_plan_id: string
+          created_at: string
+          created_by: string
+          id: string
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          care_plan_id: string
+          created_at?: string
+          created_by: string
+          id?: string
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          care_plan_id?: string
+          created_at?: string
+          created_by?: string
+          id?: string
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "grocery_lists_care_plan_id_fkey"
+            columns: ["care_plan_id"]
+            isOneToOne: false
+            referencedRelation: "care_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       holidays: {
         Row: {
           created_at: string | null
@@ -945,24 +1030,30 @@ export type Database = {
           id: string
           meal_plan_id: string
           meal_type: string
+          notes: string | null
           recipe_id: string
           scheduled_for: string
+          serving_size: number | null
         }
         Insert: {
           created_at?: string
           id?: string
           meal_plan_id: string
           meal_type: string
+          notes?: string | null
           recipe_id: string
           scheduled_for: string
+          serving_size?: number | null
         }
         Update: {
           created_at?: string
           id?: string
           meal_plan_id?: string
           meal_type?: string
+          notes?: string | null
           recipe_id?: string
           scheduled_for?: string
+          serving_size?: number | null
         }
         Relationships: [
           {
@@ -983,59 +1074,82 @@ export type Database = {
       }
       meal_plans: {
         Row: {
+          care_plan_id: string
           created_at: string
           end_date: string
           id: string
           start_date: string
           title: string
-          user_id: string
         }
         Insert: {
+          care_plan_id: string
           created_at?: string
           end_date: string
           id?: string
           start_date: string
           title: string
-          user_id: string
         }
         Update: {
+          care_plan_id?: string
           created_at?: string
           end_date?: string
           id?: string
           start_date?: string
           title?: string
-          user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "meal_plans_care_plan_id_fkey"
+            columns: ["care_plan_id"]
+            isOneToOne: false
+            referencedRelation: "care_plans"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       medication_administrations: {
         Row: {
           administered_at: string
           administered_by: string | null
+          administered_by_role: string | null
+          conflict_detected: boolean | null
+          conflict_resolution_method: string | null
+          conflict_resolved_at: string | null
           created_at: string | null
           id: string
           medication_id: string
           notes: string | null
+          original_administration_id: string | null
           status: string
           updated_at: string | null
         }
         Insert: {
           administered_at: string
           administered_by?: string | null
+          administered_by_role?: string | null
+          conflict_detected?: boolean | null
+          conflict_resolution_method?: string | null
+          conflict_resolved_at?: string | null
           created_at?: string | null
           id?: string
           medication_id: string
           notes?: string | null
+          original_administration_id?: string | null
           status?: string
           updated_at?: string | null
         }
         Update: {
           administered_at?: string
           administered_by?: string | null
+          administered_by_role?: string | null
+          conflict_detected?: boolean | null
+          conflict_resolution_method?: string | null
+          conflict_resolved_at?: string | null
           created_at?: string | null
           id?: string
           medication_id?: string
           notes?: string | null
+          original_administration_id?: string | null
           status?: string
           updated_at?: string | null
         }
@@ -1052,6 +1166,13 @@ export type Database = {
             columns: ["medication_id"]
             isOneToOne: false
             referencedRelation: "medications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "medication_administrations_original_administration_id_fkey"
+            columns: ["original_administration_id"]
+            isOneToOne: false
+            referencedRelation: "medication_administrations"
             referencedColumns: ["id"]
           },
         ]
@@ -2165,6 +2286,21 @@ export type Database = {
       admin_delete_user: {
         Args: { target_user_id: string }
         Returns: undefined
+      }
+      detect_medication_conflicts: {
+        Args: {
+          p_medication_id: string
+          p_administered_at: string
+          p_time_window_hours?: number
+        }
+        Returns: {
+          id: string
+          administered_at: string
+          administered_by: string
+          administered_by_role: string
+          status: string
+          notes: string
+        }[]
       }
       get_feature_vote_count: {
         Args: { feature_id: string }

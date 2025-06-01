@@ -10,11 +10,12 @@ interface MedicationCardProps {
   medication: MedicationWithAdministrations;
   onEdit?: () => void;
   onDelete?: () => void;
-  onAdminister?: () => void;
+  onAdminister?: (scheduledTime?: string) => void;
   onViewHistory?: () => void;
   showAdminActions?: boolean;
   showEditActions?: boolean;
   userRole?: 'family' | 'professional';
+  scheduledTime?: string; // Optional scheduled time for this administration
 }
 
 export const MedicationCard = ({
@@ -25,7 +26,8 @@ export const MedicationCard = ({
   onViewHistory,
   showAdminActions = false,
   showEditActions = false,
-  userRole = 'family'
+  userRole = 'family',
+  scheduledTime
 }: MedicationCardProps) => {
   const getStatusColor = (adherenceRate?: number) => {
     if (!adherenceRate) return "bg-gray-100 text-gray-600";
@@ -47,8 +49,33 @@ export const MedicationCard = ({
     };
   };
 
+  const getAdministratorName = (administration: any) => {
+    const profile = administration.administered_by_profile || administration.profiles;
+    
+    if (profile?.full_name) {
+      return profile.full_name;
+    }
+    
+    if (profile?.first_name || profile?.last_name) {
+      return `${profile.first_name || ''} ${profile.last_name || ''}`.trim();
+    }
+    
+    // Fallback based on role
+    if (administration.administered_by_role === 'family') {
+      return 'family member';
+    }
+    
+    return 'caregiver';
+  };
+
   const nextDoseInfo = getNextDoseInfo(medication.next_dose);
   const lastAdministration = medication.recent_administrations?.[0];
+
+  const handleAdminister = () => {
+    if (onAdminister) {
+      onAdminister(scheduledTime);
+    }
+  };
 
   return (
     <Card className="w-full">
@@ -108,9 +135,7 @@ export const MedicationCard = ({
             )}
             <span>
               Last {lastAdministration.status}: {new Date(lastAdministration.administered_at).toLocaleDateString()} 
-              {lastAdministration.administered_by && (
-                <span className="ml-1">by caregiver</span>
-              )}
+              <span className="ml-1">by {getAdministratorName(lastAdministration)}</span>
             </span>
           </div>
         )}
@@ -119,12 +144,12 @@ export const MedicationCard = ({
         <div className="flex flex-wrap gap-2 pt-2">
           {showAdminActions && onAdminister && (
             <Button 
-              onClick={onAdminister}
+              onClick={handleAdminister}
               size="sm"
               className="bg-green-600 hover:bg-green-700"
             >
               <CheckCircle2 className="h-4 w-4 mr-1" />
-              Mark Administered
+              {scheduledTime ? 'Mark as Administered' : 'Mark Administered'}
             </Button>
           )}
           

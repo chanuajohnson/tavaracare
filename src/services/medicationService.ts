@@ -1,6 +1,7 @@
 
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
+import { medicationConflictService, ConflictResolution } from "./medicationConflictService";
 
 // Types aligned with your database schema
 export interface Medication {
@@ -23,10 +24,17 @@ export interface MedicationAdministration {
   medication_id: string;
   administered_at: string;
   administered_by?: string;
+  administered_by_role?: 'family' | 'professional';
   status: 'administered' | 'missed' | 'refused';
   notes?: string;
   created_at?: string;
   updated_at?: string;
+  administered_by_profile?: {
+    full_name?: string;
+    first_name?: string;
+    last_name?: string;
+    role?: string;
+  };
 }
 
 export interface MedicationWithAdministrations extends Medication {
@@ -42,7 +50,9 @@ export class MedicationService {
   private mapAdministrationData(data: any[]): MedicationAdministration[] {
     return data.map(admin => ({
       ...admin,
-      status: admin.status as 'administered' | 'missed' | 'refused'
+      status: admin.status as 'administered' | 'missed' | 'refused',
+      administered_by_role: admin.administered_by_role as 'family' | 'professional' || 'professional',
+      administered_by_profile: admin.profiles || admin.administered_by_profile
     }));
   }
 
@@ -62,12 +72,20 @@ export class MedicationService {
         throw error;
       }
 
-      // Get recent administrations for each medication
+      // Get recent administrations for each medication with profile information
       const medicationsWithAdministrations = await Promise.all(
         (medications || []).map(async (med) => {
           const { data: administrations } = await supabase
             .from('medication_administrations')
-            .select('*')
+            .select(`
+              *,
+              profiles!administered_by (
+                full_name,
+                first_name,
+                last_name,
+                role
+              )
+            `)
             .eq('medication_id', med.id)
             .order('administered_at', { ascending: false })
             .limit(5);
@@ -191,13 +209,37 @@ export class MedicationService {
   }
 
   /**
-   * Record medication administration
+   * Record medication administration with conflict detection
+   */
+  async recordAdministrationWithConflictDetection(
+    medicationId: string,
+    administeredAt: string,
+    administeredBy: string,
+    userRole: 'family' | 'professional',
+    notes?: string,
+    conflictResolution?: ConflictResolution
+  ) {
+    return await medicationConflictService.recordAdministrationWithConflictCheck(
+      medicationId,
+      administeredAt,
+      administeredBy,
+      userRole,
+      notes,
+      conflictResolution
+    );
+  }
+
+  /**
+   * Enhanced record administration (backwards compatible)
    */
   async recordAdministration(administration: Omit<MedicationAdministration, 'id' | 'created_at' | 'updated_at'>): Promise<MedicationAdministration | null> {
     try {
       const { data, error } = await supabase
         .from('medication_administrations')
-        .insert([administration])
+        .insert([{
+          ...administration,
+          administered_by_role: administration.administered_by_role || 'professional' // Default for backwards compatibility
+        }])
         .select()
         .single();
 
@@ -207,10 +249,12 @@ export class MedicationService {
       }
 
       toast.success("Medication administration recorded");
-      // Apply proper typing to the returned data
+      
+      // Properly type the returned data
       return {
         ...data,
-        status: data.status as 'administered' | 'missed' | 'refused'
+        status: data.status as 'administered' | 'missed' | 'refused',
+        administered_by_role: (data.administered_by_role as 'family' | 'professional') || 'professional'
       };
     } catch (error) {
       console.error("[MedicationService] Exception in recordAdministration:", error);
@@ -220,13 +264,28 @@ export class MedicationService {
   }
 
   /**
-   * Get administrations for a medication
+   * Get administrations with conflict information
+   */
+  async getMedicationAdministrationsWithConflicts(medicationId: string, limit?: number) {
+    return await medicationConflictService.getAdministrationHistory(medicationId, limit);
+  }
+
+  /**
+   * Get administrations for a medication with profile information
    */
   async getMedicationAdministrations(medicationId: string, limit?: number): Promise<MedicationAdministration[]> {
     try {
       let query = supabase
         .from('medication_administrations')
-        .select('*')
+        .select(`
+          *,
+          profiles!administered_by (
+            full_name,
+            first_name,
+            last_name,
+            role
+          )
+        `)
         .eq('medication_id', medicationId)
         .order('administered_at', { ascending: false });
 
