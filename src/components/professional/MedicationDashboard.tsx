@@ -259,16 +259,6 @@ export const MedicationDashboard = () => {
                 </div>
               ))}
             </TabsContent>
-
-            <TabsContent value="schedule" className="space-y-4 mt-6">
-              <div className="text-center py-8">
-                <Calendar className="h-12 w-12 mx-auto text-gray-300 mb-4" />
-                <h3 className="text-lg font-medium mb-2">Daily Schedule View</h3>
-                <p className="text-muted-foreground">
-                  Calendar view of today's medication schedule coming soon...
-                </p>
-              </div>
-            </TabsContent>
           </Tabs>
         </CardContent>
       </Card>
