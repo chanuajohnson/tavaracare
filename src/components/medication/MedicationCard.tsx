@@ -47,6 +47,25 @@ export const MedicationCard = ({
     };
   };
 
+  const getAdministratorName = (administration: any) => {
+    const profile = administration.administered_by_profile || administration.profiles;
+    
+    if (profile?.full_name) {
+      return profile.full_name;
+    }
+    
+    if (profile?.first_name || profile?.last_name) {
+      return `${profile.first_name || ''} ${profile.last_name || ''}`.trim();
+    }
+    
+    // Fallback based on role
+    if (administration.administered_by_role === 'family') {
+      return 'family member';
+    }
+    
+    return 'caregiver';
+  };
+
   const nextDoseInfo = getNextDoseInfo(medication.next_dose);
   const lastAdministration = medication.recent_administrations?.[0];
 
@@ -108,9 +127,7 @@ export const MedicationCard = ({
             )}
             <span>
               Last {lastAdministration.status}: {new Date(lastAdministration.administered_at).toLocaleDateString()} 
-              {lastAdministration.administered_by && (
-                <span className="ml-1">by caregiver</span>
-              )}
+              <span className="ml-1">by {getAdministratorName(lastAdministration)}</span>
             </span>
           </div>
         )}

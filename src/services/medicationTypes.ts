@@ -13,6 +13,12 @@ export interface MedicationAdministration {
   original_administration_id?: string;
   created_at?: string;
   updated_at?: string;
+  administered_by_profile?: {
+    full_name?: string;
+    first_name?: string;
+    last_name?: string;
+    role?: string;
+  };
 }
 
 export interface MedicationAdministrationWithProfile extends MedicationAdministration {
