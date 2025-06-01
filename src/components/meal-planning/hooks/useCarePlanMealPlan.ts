@@ -23,9 +23,9 @@ export const useCarePlanMealPlan = (carePlanId: string) => {
       mealPlanService.createMealPlan(carePlanId, params.title, params.startDate, params.endDate),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['meal-plans', carePlanId] });
-      toast.success('Meal plan created');
+      toast.success('Meal plan created successfully');
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast.error('Failed to create meal plan');
       console.error('Error creating meal plan:', error);
     }
@@ -36,23 +36,75 @@ export const useCarePlanMealPlan = (carePlanId: string) => {
       mealPlanService.addMealToPlan(params.mealPlanId, params.recipeId, params.mealType, params.scheduledFor),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['meal-plans', carePlanId] });
-      toast.success('Recipe added to meal plan');
+      toast.success('Recipe added to meal plan successfully');
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast.error('Failed to add recipe to meal plan');
       console.error('Error adding recipe:', error);
     }
   });
 
   const createGroceryListMutation = useMutation({
-    mutationFn: (title: string) => mealPlanService.createGroceryList(carePlanId, title),
+    mutationFn: (params: { name: string; description?: string }) => 
+      mealPlanService.createGroceryList(carePlanId, params.name, params.description),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['grocery-lists', carePlanId] });
-      toast.success('Grocery list created');
+      toast.success('Grocery list created successfully');
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast.error('Failed to create grocery list');
       console.error('Error creating grocery list:', error);
+    }
+  });
+
+  const addGroceryItemMutation = useMutation({
+    mutationFn: (params: { groceryListId: string; itemData: any }) =>
+      mealPlanService.addGroceryItem(params.groceryListId, params.itemData),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['grocery-lists', carePlanId] });
+      toast.success('Item added to grocery list successfully');
+    },
+    onError: (error: any) => {
+      toast.error('Failed to add item to grocery list');
+      console.error('Error adding grocery item:', error);
+    }
+  });
+
+  const updateGroceryItemMutation = useMutation({
+    mutationFn: (params: { itemId: string; updates: any }) =>
+      mealPlanService.updateGroceryItem(params.itemId, params.updates),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['grocery-lists', carePlanId] });
+      toast.success('Item updated successfully');
+    },
+    onError: (error: any) => {
+      toast.error('Failed to update item');
+      console.error('Error updating grocery item:', error);
+    }
+  });
+
+  const markItemCompletedMutation = useMutation({
+    mutationFn: (params: { itemId: string; completed: boolean }) =>
+      mealPlanService.markItemCompleted(params.itemId, params.completed),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['grocery-lists', carePlanId] });
+    },
+    onError: (error: any) => {
+      toast.error('Failed to update item status');
+      console.error('Error updating item status:', error);
+    }
+  });
+
+  const generateGroceryListMutation = useMutation({
+    mutationFn: (params: { mealPlanIds: string[]; listName: string }) =>
+      mealPlanService.generateGroceryListFromMealPlan(carePlanId, params.mealPlanIds, params.listName),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['grocery-lists', carePlanId] });
+      toast.success('Grocery list generated from meal plans successfully');
+    },
+    onError: (error: any) => {
+      toast.error('Failed to generate grocery list from meal plans');
+      console.error('Error generating grocery list:', error);
     }
   });
 
@@ -63,5 +115,9 @@ export const useCarePlanMealPlan = (carePlanId: string) => {
     createMealPlanMutation,
     addMealMutation,
     createGroceryListMutation,
+    addGroceryItemMutation,
+    updateGroceryItemMutation,
+    markItemCompletedMutation,
+    generateGroceryListMutation,
   };
 };

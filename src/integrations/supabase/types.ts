@@ -832,46 +832,70 @@ export type Database = {
         }
         Relationships: []
       }
-      grocery_list_items: {
+      grocery_items: {
         Row: {
-          category: string | null
-          created_at: string
+          brand: string | null
+          category: string
+          created_at: string | null
+          description: string | null
+          estimated_price: number | null
           grocery_list_id: string
           id: string
+          is_completed: boolean | null
           item_name: string
           notes: string | null
-          purchased: boolean
-          purchased_at: string | null
-          purchased_by: string | null
+          preferred_store: string | null
+          priority: number | null
           quantity: string | null
+          size_weight: string | null
+          store_section: string | null
+          substitutes: string | null
+          updated_at: string | null
+          urgency_level: string | null
         }
         Insert: {
-          category?: string | null
-          created_at?: string
+          brand?: string | null
+          category: string
+          created_at?: string | null
+          description?: string | null
+          estimated_price?: number | null
           grocery_list_id: string
           id?: string
+          is_completed?: boolean | null
           item_name: string
           notes?: string | null
-          purchased?: boolean
-          purchased_at?: string | null
-          purchased_by?: string | null
+          preferred_store?: string | null
+          priority?: number | null
           quantity?: string | null
+          size_weight?: string | null
+          store_section?: string | null
+          substitutes?: string | null
+          updated_at?: string | null
+          urgency_level?: string | null
         }
         Update: {
-          category?: string | null
-          created_at?: string
+          brand?: string | null
+          category?: string
+          created_at?: string | null
+          description?: string | null
+          estimated_price?: number | null
           grocery_list_id?: string
           id?: string
+          is_completed?: boolean | null
           item_name?: string
           notes?: string | null
-          purchased?: boolean
-          purchased_at?: string | null
-          purchased_by?: string | null
+          preferred_store?: string | null
+          priority?: number | null
           quantity?: string | null
+          size_weight?: string | null
+          store_section?: string | null
+          substitutes?: string | null
+          updated_at?: string | null
+          urgency_level?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "grocery_list_items_grocery_list_id_fkey"
+            foreignKeyName: "grocery_items_grocery_list_id_fkey"
             columns: ["grocery_list_id"]
             isOneToOne: false
             referencedRelation: "grocery_lists"
@@ -884,28 +908,43 @@ export type Database = {
           care_plan_id: string
           created_at: string
           created_by: string
+          description: string | null
           id: string
+          is_active: boolean | null
+          is_template: boolean | null
+          name: string
           status: string
           title: string
           updated_at: string
+          user_id: string
         }
         Insert: {
           care_plan_id: string
           created_at?: string
           created_by: string
+          description?: string | null
           id?: string
+          is_active?: boolean | null
+          is_template?: boolean | null
+          name: string
           status?: string
           title: string
           updated_at?: string
+          user_id: string
         }
         Update: {
           care_plan_id?: string
           created_at?: string
           created_by?: string
+          description?: string | null
           id?: string
+          is_active?: boolean | null
+          is_template?: boolean | null
+          name?: string
           status?: string
           title?: string
           updated_at?: string
+          user_id?: string
         }
         Relationships: [
           {
@@ -913,6 +952,44 @@ export type Database = {
             columns: ["care_plan_id"]
             isOneToOne: false
             referencedRelation: "care_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      grocery_shares: {
+        Row: {
+          can_edit: boolean | null
+          created_at: string | null
+          expires_at: string | null
+          grocery_list_id: string
+          id: string
+          share_token: string
+          shared_by: string
+        }
+        Insert: {
+          can_edit?: boolean | null
+          created_at?: string | null
+          expires_at?: string | null
+          grocery_list_id: string
+          id?: string
+          share_token: string
+          shared_by: string
+        }
+        Update: {
+          can_edit?: boolean | null
+          created_at?: string | null
+          expires_at?: string | null
+          grocery_list_id?: string
+          id?: string
+          share_token?: string
+          shared_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "grocery_shares_grocery_list_id_fkey"
+            columns: ["grocery_list_id"]
+            isOneToOne: false
+            referencedRelation: "grocery_lists"
             referencedColumns: ["id"]
           },
         ]
