@@ -5,22 +5,25 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { CheckCircle2, XCircle, AlertTriangle } from "lucide-react";
+import { CheckCircle2, XCircle, AlertTriangle, Clock } from "lucide-react";
 import { MedicationWithAdministrations, medicationService } from "@/services/medicationService";
 import { useAuth } from "@/components/providers/AuthProvider";
+import { format } from "date-fns";
 
 interface QuickAdministrationFormProps {
   medication: MedicationWithAdministrations;
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
+  scheduledTime?: string; // Optional scheduled time for this dose
 }
 
 export const QuickAdministrationForm = ({
   medication,
   isOpen,
   onClose,
-  onSuccess
+  onSuccess,
+  scheduledTime
 }: QuickAdministrationFormProps) => {
   const { user } = useAuth();
   const [status, setStatus] = useState<'administered' | 'missed' | 'refused'>('administered');
@@ -33,17 +36,18 @@ export const QuickAdministrationForm = ({
     setIsLoading(true);
     
     try {
-      const administrationData = {
-        medication_id: medication.id,
-        administered_at: new Date().toISOString(),
-        administered_by: user.id,
-        status,
-        notes: notes.trim() || undefined
-      };
+      // Use scheduled time if provided, otherwise use current time
+      const administeredAt = scheduledTime || new Date().toISOString();
 
-      const result = await medicationService.recordAdministration(administrationData);
-      
-      if (result) {
+      const result = await medicationService.recordAdministrationWithConflictDetection(
+        medication.id,
+        administeredAt,
+        user.id,
+        'professional',
+        notes.trim() || undefined
+      );
+
+      if (result && result.success) {
         onSuccess();
         onClose();
         setNotes('');
@@ -69,6 +73,11 @@ export const QuickAdministrationForm = ({
     }
   };
 
+  const formatScheduledTime = (timeString: string) => {
+    const date = new Date(timeString);
+    return format(date, 'PPp'); // e.g., "Jan 1, 2024 at 8:00 AM"
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-md">
@@ -89,6 +98,18 @@ export const QuickAdministrationForm = ({
               <p className="text-sm text-gray-600">Instructions: {medication.instructions}</p>
             )}
           </div>
+
+          {scheduledTime && (
+            <div className="p-3 bg-amber-50 rounded-lg border border-amber-200">
+              <div className="flex items-center gap-2">
+                <Clock className="h-4 w-4 text-amber-600" />
+                <span className="text-sm font-medium text-amber-800">Scheduled Time</span>
+              </div>
+              <p className="text-sm text-amber-700 mt-1">
+                {formatScheduledTime(scheduledTime)}
+              </p>
+            </div>
+          )}
 
           <div className="space-y-2">
             <Label>Status</Label>
