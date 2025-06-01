@@ -4,13 +4,13 @@ import { supabase } from "@/lib/supabase";
 import { format } from "date-fns";
 import { toast } from "sonner";
 
-export const useMealPlan = (userId: string, selectedDate: Date | undefined) => {
+export const useMealPlan = (carePlanId: string, selectedDate: Date | undefined) => {
   const queryClient = useQueryClient();
 
   const { data: mealPlan, isLoading } = useQuery({
-    queryKey: ['meal-plan', selectedDate],
+    queryKey: ['meal-plan', carePlanId, selectedDate],
     queryFn: async () => {
-      if (!selectedDate) return null;
+      if (!selectedDate || !carePlanId) return null;
       
       const { data, error } = await supabase
         .from('meal_plans')
@@ -21,18 +21,19 @@ export const useMealPlan = (userId: string, selectedDate: Date | undefined) => {
             recipe:recipes (*)
           )
         `)
-        .eq('user_id', userId)
+        .eq('care_plan_id', carePlanId)
         .eq('start_date', format(selectedDate, 'yyyy-MM-dd'));
       
       if (error) throw error;
       return data?.[0];
     },
+    enabled: !!selectedDate && !!carePlanId,
   });
 
   const createMealPlanMutation = useMutation({
     mutationFn: async (params: { recipe: any; selectedMealType: string; selectedDate: Date }) => {
       const { recipe, selectedMealType, selectedDate } = params;
-      if (!selectedDate || !selectedMealType) return;
+      if (!selectedDate || !selectedMealType || !carePlanId) return;
 
       // Create or get meal plan
       let mealPlanId = mealPlan?.id;
@@ -41,7 +42,7 @@ export const useMealPlan = (userId: string, selectedDate: Date | undefined) => {
         const { data: newPlan, error: planError } = await supabase
           .from('meal_plans')
           .insert({
-            user_id: userId,
+            care_plan_id: carePlanId,
             start_date: format(selectedDate, 'yyyy-MM-dd'),
             end_date: format(selectedDate, 'yyyy-MM-dd'),
             title: `Meal Plan for ${format(selectedDate, 'MMM d, yyyy')}`
@@ -77,4 +78,3 @@ export const useMealPlan = (userId: string, selectedDate: Date | undefined) => {
 
   return { mealPlan, isLoading, createMealPlanMutation };
 };
-

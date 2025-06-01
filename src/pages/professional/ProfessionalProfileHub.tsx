@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
@@ -13,6 +14,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { ProfessionalScheduleView } from "@/components/professional/ProfessionalScheduleView";
 import { MedicationDashboard } from "@/components/professional/MedicationDashboard";
+import { CarePlanMealPlanner } from "@/components/meal-planning/CarePlanMealPlanner";
 import { 
   User, 
   MapPin, 
@@ -29,7 +31,8 @@ import {
   DollarSign,
   CheckCircle,
   AlertCircle,
-  Pill
+  Pill,
+  ChefHat
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -464,10 +467,39 @@ const ProfessionalProfileHub = () => {
             </Card>
           </div>
 
+          {/* Care Plan Selection */}
+          {carePlanAssignments.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Select Care Plan</CardTitle>
+                <CardDescription>Choose a care plan to manage its schedule, medications, and meal planning</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Select value={selectedCarePlanId || ''} onValueChange={setSelectedCarePlanId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a care plan..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {carePlanAssignments.map((assignment) => (
+                      <SelectItem key={assignment.id} value={assignment.carePlanId}>
+                        <div className="flex items-center gap-2">
+                          <span>{assignment.carePlan?.title || 'Unnamed Care Plan'}</span>
+                          <Badge variant="outline" className="text-xs">
+                            {assignment.carePlan?.familyProfile?.fullName || 'Unknown Family'}
+                          </Badge>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </CardContent>
+            </Card>
+          )}
+
           {/* Tabs for Different Views */}
           {selectedCarePlanId && (
             <Tabs defaultValue="schedule" className="w-full">
-              <TabsList className="grid w-full grid-cols-2">
+              <TabsList className="grid w-full grid-cols-3">
                 <TabsTrigger value="schedule" className="flex items-center gap-2">
                   <Calendar className="h-4 w-4" />
                   Schedule
@@ -475,6 +507,10 @@ const ProfessionalProfileHub = () => {
                 <TabsTrigger value="medications" className="flex items-center gap-2">
                   <Pill className="h-4 w-4" />
                   Medications
+                </TabsTrigger>
+                <TabsTrigger value="meals" className="flex items-center gap-2">
+                  <ChefHat className="h-4 w-4" />
+                  Meal Planning
                 </TabsTrigger>
               </TabsList>
 
@@ -505,6 +541,13 @@ const ProfessionalProfileHub = () => {
 
               <TabsContent value="medications" className="space-y-6">
                 <MedicationDashboard />
+              </TabsContent>
+
+              <TabsContent value="meals" className="space-y-6">
+                <CarePlanMealPlanner 
+                  carePlanId={selectedCarePlanId}
+                  carePlanTitle={selectedCarePlan?.carePlan?.title || 'Care Plan'}
+                />
               </TabsContent>
             </Tabs>
           )}

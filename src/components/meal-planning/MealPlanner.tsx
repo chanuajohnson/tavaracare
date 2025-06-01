@@ -12,15 +12,15 @@ import FeatureCard from './components/FeatureCard';
 import { useMealPlan } from './hooks/useMealPlan';
 
 interface MealPlannerProps {
-  userId: string;
+  carePlanId: string;
 }
 
-const MealPlanner = ({ userId }: MealPlannerProps) => {
+const MealPlanner = ({ carePlanId }: MealPlannerProps) => {
   const [selectedDate, setSelectedDate] = useState<Date>();
   const [selectedMealType, setSelectedMealType] = useState<string>('');
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
 
-  const { mealPlan, createMealPlanMutation } = useMealPlan(userId, selectedDate);
+  const { mealPlan, createMealPlanMutation } = useMealPlan(carePlanId, selectedDate);
 
   return (
     <div className="w-full space-y-6">
@@ -145,4 +145,3 @@ const MealPlanner = ({ userId }: MealPlannerProps) => {
 };
 
 export default MealPlanner;
-

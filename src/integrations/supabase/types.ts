@@ -832,6 +832,91 @@ export type Database = {
         }
         Relationships: []
       }
+      grocery_list_items: {
+        Row: {
+          category: string | null
+          created_at: string
+          grocery_list_id: string
+          id: string
+          item_name: string
+          notes: string | null
+          purchased: boolean
+          purchased_at: string | null
+          purchased_by: string | null
+          quantity: string | null
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          grocery_list_id: string
+          id?: string
+          item_name: string
+          notes?: string | null
+          purchased?: boolean
+          purchased_at?: string | null
+          purchased_by?: string | null
+          quantity?: string | null
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          grocery_list_id?: string
+          id?: string
+          item_name?: string
+          notes?: string | null
+          purchased?: boolean
+          purchased_at?: string | null
+          purchased_by?: string | null
+          quantity?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "grocery_list_items_grocery_list_id_fkey"
+            columns: ["grocery_list_id"]
+            isOneToOne: false
+            referencedRelation: "grocery_lists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      grocery_lists: {
+        Row: {
+          care_plan_id: string
+          created_at: string
+          created_by: string
+          id: string
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          care_plan_id: string
+          created_at?: string
+          created_by: string
+          id?: string
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          care_plan_id?: string
+          created_at?: string
+          created_by?: string
+          id?: string
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "grocery_lists_care_plan_id_fkey"
+            columns: ["care_plan_id"]
+            isOneToOne: false
+            referencedRelation: "care_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       holidays: {
         Row: {
           created_at: string | null
@@ -983,30 +1068,38 @@ export type Database = {
       }
       meal_plans: {
         Row: {
+          care_plan_id: string
           created_at: string
           end_date: string
           id: string
           start_date: string
           title: string
-          user_id: string
         }
         Insert: {
+          care_plan_id: string
           created_at?: string
           end_date: string
           id?: string
           start_date: string
           title: string
-          user_id: string
         }
         Update: {
+          care_plan_id?: string
           created_at?: string
           end_date?: string
           id?: string
           start_date?: string
           title?: string
-          user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "meal_plans_care_plan_id_fkey"
+            columns: ["care_plan_id"]
+            isOneToOne: false
+            referencedRelation: "care_plans"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       medication_administrations: {
         Row: {
