@@ -1,6 +1,7 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
+import { mealPlanService } from "@/services/mealPlanService";
 import { format } from "date-fns";
 import { toast } from "sonner";
 
@@ -61,7 +62,8 @@ export const useMealPlan = (carePlanId: string, selectedDate: Date | undefined) 
           meal_plan_id: mealPlanId,
           recipe_id: recipe.id,
           meal_type: selectedMealType,
-          scheduled_for: format(selectedDate, 'yyyy-MM-dd')
+          scheduled_for: format(selectedDate, 'yyyy-MM-dd'),
+          serving_size: 1
         });
 
       if (itemError) throw itemError;
@@ -76,5 +78,50 @@ export const useMealPlan = (carePlanId: string, selectedDate: Date | undefined) 
     }
   });
 
-  return { mealPlan, isLoading, createMealPlanMutation };
+  const deleteMealItemMutation = useMutation({
+    mutationFn: (itemId: string) => mealPlanService.deleteMealPlanItem(itemId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['meal-plan'] });
+      toast.success('Meal removed from plan');
+    },
+    onError: (error) => {
+      toast.error('Failed to remove meal');
+      console.error('Error:', error);
+    }
+  });
+
+  const updateMealItemMutation = useMutation({
+    mutationFn: ({ itemId, updates }: { itemId: string; updates: { serving_size?: number; notes?: string } }) =>
+      mealPlanService.updateMealPlanItem(itemId, updates),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['meal-plan'] });
+      toast.success('Meal updated successfully');
+    },
+    onError: (error) => {
+      toast.error('Failed to update meal');
+      console.error('Error:', error);
+    }
+  });
+
+  const replaceMealItemMutation = useMutation({
+    mutationFn: ({ itemId, newRecipeId }: { itemId: string; newRecipeId: string }) =>
+      mealPlanService.replaceMealPlanItem(itemId, newRecipeId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['meal-plan'] });
+      toast.success('Meal replaced successfully');
+    },
+    onError: (error) => {
+      toast.error('Failed to replace meal');
+      console.error('Error:', error);
+    }
+  });
+
+  return { 
+    mealPlan, 
+    isLoading, 
+    createMealPlanMutation,
+    deleteMealItemMutation,
+    updateMealItemMutation,
+    replaceMealItemMutation
+  };
 };

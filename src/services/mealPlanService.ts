@@ -17,6 +17,8 @@ export interface MealPlanItem {
   recipe_id: string;
   meal_type: string;
   scheduled_for: string;
+  serving_size?: number;
+  notes?: string;
   created_at: string;
   recipe: Recipe;
 }
@@ -105,8 +107,39 @@ export const mealPlanService = {
         meal_plan_id: mealPlanId,
         recipe_id: recipeId,
         meal_type: mealType,
-        scheduled_for: scheduledFor
+        scheduled_for: scheduledFor,
+        serving_size: 1 // Default serving size
       });
+
+    if (error) throw error;
+  },
+
+  // Delete meal plan item
+  async deleteMealPlanItem(itemId: string): Promise<void> {
+    const { error } = await supabase
+      .from('meal_plan_items')
+      .delete()
+      .eq('id', itemId);
+
+    if (error) throw error;
+  },
+
+  // Update meal plan item
+  async updateMealPlanItem(itemId: string, updates: { serving_size?: number; notes?: string }): Promise<void> {
+    const { error } = await supabase
+      .from('meal_plan_items')
+      .update(updates)
+      .eq('id', itemId);
+
+    if (error) throw error;
+  },
+
+  // Replace meal plan item recipe
+  async replaceMealPlanItem(itemId: string, newRecipeId: string): Promise<void> {
+    const { error } = await supabase
+      .from('meal_plan_items')
+      .update({ recipe_id: newRecipeId })
+      .eq('id', itemId);
 
     if (error) throw error;
   },

@@ -1030,24 +1030,30 @@ export type Database = {
           id: string
           meal_plan_id: string
           meal_type: string
+          notes: string | null
           recipe_id: string
           scheduled_for: string
+          serving_size: number | null
         }
         Insert: {
           created_at?: string
           id?: string
           meal_plan_id: string
           meal_type: string
+          notes?: string | null
           recipe_id: string
           scheduled_for: string
+          serving_size?: number | null
         }
         Update: {
           created_at?: string
           id?: string
           meal_plan_id?: string
           meal_type?: string
+          notes?: string | null
           recipe_id?: string
           scheduled_for?: string
+          serving_size?: number | null
         }
         Relationships: [
           {
