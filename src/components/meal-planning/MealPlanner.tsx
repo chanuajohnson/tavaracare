@@ -15,12 +15,29 @@ interface MealPlannerProps {
   carePlanId: string;
 }
 
-const MealPlanner = ({ carePlanId }: MealPlannerProps) => {
+export const MealPlanner = ({ carePlanId }: MealPlannerProps) => {
   const [selectedDate, setSelectedDate] = useState<Date>();
   const [selectedMealType, setSelectedMealType] = useState<string>('');
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
 
   const { mealPlan, createMealPlanMutation } = useMealPlan(carePlanId, selectedDate);
+
+  const handleRecipeSelect = (recipe: any) => {
+    if (!selectedDate) {
+      toast.error("Please select a date first");
+      return;
+    }
+    if (!selectedMealType) {
+      toast.error("Please select a meal type first");
+      return;
+    }
+    
+    createMealPlanMutation.mutate({ 
+      recipe, 
+      selectedMealType, 
+      selectedDate 
+    });
+  };
 
   return (
     <div className="w-full space-y-6">
@@ -53,11 +70,7 @@ const MealPlanner = ({ carePlanId }: MealPlannerProps) => {
               <div className="w-full overflow-x-auto">
                 <RecipeBrowser 
                   category={selectedMealType}
-                  onSelectRecipe={(recipe) => createMealPlanMutation.mutate({ 
-                    recipe, 
-                    selectedMealType, 
-                    selectedDate 
-                  })}
+                  onSelectRecipe={handleRecipeSelect}
                 />
               </div>
             </div>
@@ -110,17 +123,7 @@ const MealPlanner = ({ carePlanId }: MealPlannerProps) => {
               <p className="text-muted-foreground mb-4">Browse our collection of recipes and add them to your meal plan.</p>
               <div className="w-full overflow-x-auto">
                 <RecipeBrowser 
-                  onSelectRecipe={(recipe) => {
-                    if (!selectedDate) {
-                      toast.error("Please select a date first");
-                      return;
-                    }
-                    createMealPlanMutation.mutate({ 
-                      recipe, 
-                      selectedMealType, 
-                      selectedDate 
-                    });
-                  }}
+                  onSelectRecipe={handleRecipeSelect}
                 />
               </div>
             </CardContent>

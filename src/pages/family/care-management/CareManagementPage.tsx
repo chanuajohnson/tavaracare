@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/components/providers/AuthProvider";
@@ -47,6 +46,10 @@ const CareManagementPage = () => {
 
   const handleNavigateToTab = (planId: string, tab: string) => {
     navigate(`/family/care-management/${planId}?tab=${tab}`);
+  };
+
+  const handleNavigateToMealManagement = (planId: string) => {
+    navigate(`/family/care-management/${planId}/meals`);
   };
 
   const getPlanTypeDisplay = (plan: CarePlan) => {
@@ -446,7 +449,7 @@ const CareManagementPage = () => {
                           variant="outline" 
                           size="sm" 
                           className="w-full justify-start text-left"
-                          onClick={() => navigate(`/family/care-management/${plan.id}?tab=meal-planning`)}
+                          onClick={() => handleNavigateToMealManagement(plan.id)}
                         >
                           {plan.title}
                         </Button>
@@ -480,7 +483,7 @@ const CareManagementPage = () => {
                           variant="outline" 
                           size="sm" 
                           className="w-full justify-start text-left"
-                          onClick={() => navigate(`/family/care-management/${plan.id}?tab=meal-planning`)}
+                          onClick={() => handleNavigateToMealManagement(plan.id)}
                         >
                           {plan.title}
                         </Button>
@@ -514,7 +517,7 @@ const CareManagementPage = () => {
                           variant="outline" 
                           size="sm" 
                           className="w-full justify-start text-left"
-                          onClick={() => navigate(`/family/care-management/${plan.id}?tab=meal-planning`)}
+                          onClick={() => handleNavigateToMealManagement(plan.id)}
                         >
                           {plan.title}
                         </Button>
@@ -548,7 +551,7 @@ const CareManagementPage = () => {
                           variant="outline" 
                           size="sm" 
                           className="w-full justify-start text-left"
-                          onClick={() => navigate(`/family/care-management/${plan.id}?tab=meal-planning`)}
+                          onClick={() => handleNavigateToMealManagement(plan.id)}
                         >
                           {plan.title}
                         </Button>

@@ -1,4 +1,3 @@
-
 import { Suspense, lazy, startTransition } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { Skeleton } from "@/components/ui/skeleton";
@@ -87,6 +86,7 @@ const CaregiverHealthPage = lazy(() => import("@/pages/caregiver/CaregiverHealth
 const FamilyMatchingPage = lazy(() => import("@/pages/family/FamilyMatchingPage"));
 const NotFound = lazy(() => import("@/pages/NotFound"));
 const CareNeedsAssessmentPage = lazy(() => import("@/pages/family/CareNeedsAssessmentPage"));
+const MealManagementPage = lazy(() => import("@/pages/family/MealManagementPage"));
 
 // Enhanced loading fallback component
 const PageLoader = () => (
