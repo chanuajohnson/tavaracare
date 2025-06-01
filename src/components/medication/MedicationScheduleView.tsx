@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
-import { CalendarDays, Clock, CheckCircle, AlertTriangle, Calendar } from "lucide-react";
+import { CalendarDays, Clock, CheckCircle, AlertTriangle, Calendar, Pill } from "lucide-react";
 import { format, isToday, startOfDay, endOfDay } from "date-fns";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { medicationService, MedicationWithAdministrations } from "@/services/medicationService";
@@ -22,10 +22,20 @@ interface ScheduledDose {
   medicationName: string;
   dosage: string;
   time: string;
+  timeLabel: string; // morning, afternoon, evening, night
   administered: boolean;
   administrationId?: string;
   conflictDetected?: boolean;
+  instructions?: string;
 }
+
+// Time mappings for schedule flags
+const TIME_MAPPINGS = {
+  morning: "08:00",
+  afternoon: "13:00", 
+  evening: "18:00",
+  night: "22:00"
+};
 
 export function MedicationScheduleView({ carePlanId, onAdministrationUpdate }: MedicationScheduleViewProps) {
   const { user } = useAuth();
@@ -35,6 +45,7 @@ export function MedicationScheduleView({ carePlanId, onAdministrationUpdate }: M
   const [selectedDoses, setSelectedDoses] = useState<Set<string>>(new Set());
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [administeringDose, setAdministeringDose] = useState<string | null>(null);
   const [showConflictDialog, setShowConflictDialog] = useState(false);
   const [conflictInfo, setConflictInfo] = useState<any>(null);
 
@@ -65,33 +76,72 @@ export function MedicationScheduleView({ carePlanId, onAdministrationUpdate }: M
     const dateEnd = endOfDay(date);
 
     meds.forEach(med => {
-      if (med.schedule?.times && Array.isArray(med.schedule.times)) {
-        med.schedule.times.forEach((time: string) => {
-          const doseDateTime = new Date(`${format(date, 'yyyy-MM-dd')}T${time}`);
+      // Handle boolean-based schedule format
+      if (med.schedule && typeof med.schedule === 'object') {
+        // Check for boolean flags (morning, afternoon, evening, night)
+        Object.entries(TIME_MAPPINGS).forEach(([timeLabel, time]) => {
+          const scheduleFlag = med.schedule?.[timeLabel];
           
-          // Check if this dose was already administered
-          const administered = med.recent_administrations?.some(admin => {
-            const adminDate = new Date(admin.administered_at);
-            return adminDate >= dateStart && adminDate <= dateEnd &&
-                   Math.abs(adminDate.getTime() - doseDateTime.getTime()) < 2 * 60 * 60 * 1000; // 2 hour window
-          });
+          if (scheduleFlag === true) {
+            const doseDateTime = new Date(`${format(date, 'yyyy-MM-dd')}T${time}`);
+            
+            // Check if this dose was already administered
+            const administered = med.recent_administrations?.some(admin => {
+              const adminDate = new Date(admin.administered_at);
+              return adminDate >= dateStart && adminDate <= dateEnd &&
+                     Math.abs(adminDate.getTime() - doseDateTime.getTime()) < 4 * 60 * 60 * 1000; // 4 hour window
+            });
 
-          const administrationRecord = med.recent_administrations?.find(admin => {
-            const adminDate = new Date(admin.administered_at);
-            return adminDate >= dateStart && adminDate <= dateEnd &&
-                   Math.abs(adminDate.getTime() - doseDateTime.getTime()) < 2 * 60 * 60 * 1000;
-          });
+            const administrationRecord = med.recent_administrations?.find(admin => {
+              const adminDate = new Date(admin.administered_at);
+              return adminDate >= dateStart && adminDate <= dateEnd &&
+                     Math.abs(adminDate.getTime() - doseDateTime.getTime()) < 4 * 60 * 60 * 1000;
+            });
 
-          doses.push({
-            medicationId: med.id,
-            medicationName: med.name,
-            dosage: med.dosage || '',
-            time: time,
-            administered: !!administered,
-            administrationId: administrationRecord?.id,
-            conflictDetected: false // Will be updated during administration
-          });
+            doses.push({
+              medicationId: med.id,
+              medicationName: med.name,
+              dosage: med.dosage || '',
+              time: time,
+              timeLabel: timeLabel,
+              administered: !!administered,
+              administrationId: administrationRecord?.id,
+              conflictDetected: false,
+              instructions: med.instructions
+            });
+          }
         });
+
+        // Also handle array-based times format (legacy support)
+        if (med.schedule?.times && Array.isArray(med.schedule.times)) {
+          med.schedule.times.forEach((time: string) => {
+            const doseDateTime = new Date(`${format(date, 'yyyy-MM-dd')}T${time}`);
+            
+            const administered = med.recent_administrations?.some(admin => {
+              const adminDate = new Date(admin.administered_at);
+              return adminDate >= dateStart && adminDate <= dateEnd &&
+                     Math.abs(adminDate.getTime() - doseDateTime.getTime()) < 2 * 60 * 60 * 1000;
+            });
+
+            const administrationRecord = med.recent_administrations?.find(admin => {
+              const adminDate = new Date(admin.administered_at);
+              return adminDate >= dateStart && adminDate <= dateEnd &&
+                     Math.abs(adminDate.getTime() - doseDateTime.getTime()) < 2 * 60 * 60 * 1000;
+            });
+
+            doses.push({
+              medicationId: med.id,
+              medicationName: med.name,
+              dosage: med.dosage || '',
+              time: time,
+              timeLabel: time,
+              administered: !!administered,
+              administrationId: administrationRecord?.id,
+              conflictDetected: false,
+              instructions: med.instructions
+            });
+          });
+        }
       }
     });
 
@@ -109,6 +159,38 @@ export function MedicationScheduleView({ carePlanId, onAdministrationUpdate }: M
   };
 
   const getDoseKey = (dose: ScheduledDose) => `${dose.medicationId}-${dose.time}`;
+
+  const handleIndividualAdministration = async (dose: ScheduledDose) => {
+    if (!user || dose.administered) return;
+
+    const doseKey = getDoseKey(dose);
+    setAdministeringDose(doseKey);
+
+    try {
+      const administeredAt = new Date(`${format(selectedDate, 'yyyy-MM-dd')}T${dose.time}`).toISOString();
+      
+      const result = await medicationService.recordAdministrationWithConflictDetection(
+        dose.medicationId,
+        administeredAt,
+        user.id,
+        'family'
+      );
+
+      if (result.requiresResolution) {
+        setConflictInfo({ dose, result });
+        setShowConflictDialog(true);
+      } else if (result.success) {
+        toast.success(`${dose.medicationName} administered successfully`);
+        loadMedicationsAndSchedule();
+        onAdministrationUpdate?.();
+      }
+    } catch (error) {
+      console.error("Error administering medication:", error);
+      toast.error("Failed to record administration");
+    } finally {
+      setAdministeringDose(null);
+    }
+  };
 
   const handleBatchAdministration = async () => {
     if (!user || selectedDoses.size === 0) return;
@@ -139,11 +221,9 @@ export function MedicationScheduleView({ carePlanId, onAdministrationUpdate }: M
       }
 
       if (conflicts.length > 0) {
-        // Handle conflicts - for now, show the first one
         setConflictInfo(conflicts[0]);
         setShowConflictDialog(true);
       } else {
-        // All successful
         toast.success(`${successful.length} medication(s) administered successfully`);
         setSelectedDoses(new Set());
         loadMedicationsAndSchedule();
@@ -178,7 +258,6 @@ export function MedicationScheduleView({ carePlanId, onAdministrationUpdate }: M
         setShowConflictDialog(false);
         setConflictInfo(null);
         
-        // Remove this dose from selected
         const doseKey = getDoseKey(dose);
         const newSelected = new Set(selectedDoses);
         newSelected.delete(doseKey);
@@ -206,6 +285,11 @@ export function MedicationScheduleView({ carePlanId, onAdministrationUpdate }: M
     }
     
     return <Badge variant="outline">Pending</Badge>;
+  };
+
+  const formatTimeLabel = (timeLabel: string, time: string) => {
+    const capitalizedLabel = timeLabel.charAt(0).toUpperCase() + timeLabel.slice(1);
+    return `${capitalizedLabel} (${time})`;
   };
 
   if (isLoading) {
@@ -257,7 +341,7 @@ export function MedicationScheduleView({ carePlanId, onAdministrationUpdate }: M
                   size="sm"
                   className="ml-auto"
                 >
-                  {isSubmitting ? "Recording..." : "Mark as Administered"}
+                  {isSubmitting ? "Recording..." : "Mark Selected as Administered"}
                 </Button>
               </div>
             )}
@@ -277,6 +361,8 @@ export function MedicationScheduleView({ carePlanId, onAdministrationUpdate }: M
           ) : (
             scheduledDoses.map((dose) => {
               const doseKey = getDoseKey(dose);
+              const isAdministering = administeringDose === doseKey;
+              
               return (
                 <Card key={doseKey} className={`${dose.administered ? 'bg-gray-50' : ''}`}>
                   <CardContent className="py-4">
@@ -288,23 +374,48 @@ export function MedicationScheduleView({ carePlanId, onAdministrationUpdate }: M
                       />
                       
                       <div className="flex-1">
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 mb-1">
+                          <Pill className="h-4 w-4 text-blue-500" />
                           <h4 className="font-medium">{dose.medicationName}</h4>
                           {getStatusBadge(dose)}
                         </div>
-                        <div className="flex items-center gap-4 text-sm text-muted-foreground mt-1">
+                        <div className="flex items-center gap-4 text-sm text-muted-foreground">
                           <div className="flex items-center gap-1">
                             <Clock className="h-3 w-3" />
-                            {dose.time}
+                            {formatTimeLabel(dose.timeLabel, dose.time)}
                           </div>
                           {dose.dosage && (
                             <span>Dosage: {dose.dosage}</span>
                           )}
                         </div>
+                        {dose.instructions && (
+                          <p className="text-sm text-gray-600 mt-1">{dose.instructions}</p>
+                        )}
                       </div>
 
                       {dose.conflictDetected && (
                         <AlertTriangle className="h-5 w-5 text-orange-500" />
+                      )}
+
+                      {!dose.administered && (
+                        <Button
+                          onClick={() => handleIndividualAdministration(dose)}
+                          disabled={isAdministering}
+                          size="sm"
+                          className="bg-green-600 hover:bg-green-700"
+                        >
+                          {isAdministering ? (
+                            <div className="flex items-center gap-1">
+                              <div className="animate-spin rounded-full h-3 w-3 border-b border-white"></div>
+                              Recording...
+                            </div>
+                          ) : (
+                            <>
+                              <CheckCircle className="h-3 w-3 mr-1" />
+                              Mark Administered
+                            </>
+                          )}
+                        </Button>
                       )}
                     </div>
                   </CardContent>
