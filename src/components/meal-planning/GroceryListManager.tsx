@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -6,9 +5,11 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Plus, ShoppingCart, Check, X, Edit2, Star } from "lucide-react";
+import { Plus, ShoppingCart, Check, X, Edit2, Star, Trash2 } from "lucide-react";
 import { useCarePlanMealPlan } from "./hooks/useCarePlanMealPlan";
 import { GroceryItem } from "@/services/mealPlanService";
+import { EditGroceryItemDialog } from "./components/EditGroceryItemDialog";
+import { DeleteGroceryItemDialog } from "./components/DeleteGroceryItemDialog";
 
 interface GroceryListManagerProps {
   carePlanId: string;
@@ -31,7 +32,8 @@ export const GroceryListManager = ({ carePlanId }: GroceryListManagerProps) => {
   const [newListName, setNewListName] = useState('');
   const [newListDescription, setNewListDescription] = useState('');
   const [selectedListId, setSelectedListId] = useState<string>('');
-  const [editingItem, setEditingItem] = useState<string | null>(null);
+  const [editingItem, setEditingItem] = useState<GroceryItem | null>(null);
+  const [deletingItem, setDeletingItem] = useState<GroceryItem | null>(null);
   
   // New item form state
   const [newItem, setNewItem] = useState({
@@ -55,6 +57,7 @@ export const GroceryListManager = ({ carePlanId }: GroceryListManagerProps) => {
     addGroceryItemMutation,
     updateGroceryItemMutation,
     markItemCompletedMutation,
+    deleteGroceryItemMutation,
     generateGroceryListMutation,
     isLoading 
   } = useCarePlanMealPlan(carePlanId);
@@ -124,6 +127,31 @@ export const GroceryListManager = ({ carePlanId }: GroceryListManagerProps) => {
       });
     } catch (error) {
       console.error('Error generating grocery list:', error);
+    }
+  };
+
+  const handleEditItem = async (updates: Partial<GroceryItem>) => {
+    if (!editingItem) return;
+
+    try {
+      await updateGroceryItemMutation.mutateAsync({
+        itemId: editingItem.id,
+        updates
+      });
+      setEditingItem(null);
+    } catch (error) {
+      console.error('Error updating item:', error);
+    }
+  };
+
+  const handleDeleteItem = async () => {
+    if (!deletingItem) return;
+
+    try {
+      await deleteGroceryItemMutation.mutateAsync(deletingItem.id);
+      setDeletingItem(null);
+    } catch (error) {
+      console.error('Error deleting item:', error);
     }
   };
 
@@ -370,6 +398,25 @@ export const GroceryListManager = ({ carePlanId }: GroceryListManagerProps) => {
                             <p className="text-sm text-gray-600 italic">{item.notes}</p>
                           )}
                         </div>
+
+                        <div className="flex items-center gap-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setEditingItem(item)}
+                            className="h-8 w-8 p-0"
+                          >
+                            <Edit2 className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setDeletingItem(item)}
+                            className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -382,6 +429,26 @@ export const GroceryListManager = ({ carePlanId }: GroceryListManagerProps) => {
             </Card>
           ))}
         </div>
+      )}
+
+      {/* Edit Item Dialog */}
+      {editingItem && (
+        <EditGroceryItemDialog
+          open={!!editingItem}
+          onOpenChange={(open) => !open && setEditingItem(null)}
+          groceryItem={editingItem}
+          onSave={handleEditItem}
+        />
+      )}
+
+      {/* Delete Item Dialog */}
+      {deletingItem && (
+        <DeleteGroceryItemDialog
+          open={!!deletingItem}
+          onOpenChange={(open) => !open && setDeletingItem(null)}
+          groceryItem={deletingItem}
+          onConfirm={handleDeleteItem}
+        />
       )}
     </div>
   );

@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { mealPlanService } from "@/services/mealPlanService";
 import { toast } from "sonner";
@@ -83,6 +82,18 @@ export const useCarePlanMealPlan = (carePlanId: string) => {
     }
   });
 
+  const deleteGroceryItemMutation = useMutation({
+    mutationFn: (itemId: string) => mealPlanService.deleteGroceryItem(itemId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['grocery-lists', carePlanId] });
+      toast.success('Item deleted successfully');
+    },
+    onError: (error: any) => {
+      toast.error('Failed to delete item');
+      console.error('Error deleting grocery item:', error);
+    }
+  });
+
   const markItemCompletedMutation = useMutation({
     mutationFn: (params: { itemId: string; completed: boolean }) =>
       mealPlanService.markItemCompleted(params.itemId, params.completed),
@@ -117,6 +128,7 @@ export const useCarePlanMealPlan = (carePlanId: string) => {
     createGroceryListMutation,
     addGroceryItemMutation,
     updateGroceryItemMutation,
+    deleteGroceryItemMutation,
     markItemCompletedMutation,
     generateGroceryListMutation,
   };
