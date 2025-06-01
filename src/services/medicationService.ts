@@ -1,3 +1,4 @@
+
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import { medicationConflictService, ConflictResolution } from "./medicationConflictService";
@@ -50,6 +51,7 @@ export class MedicationService {
     return data.map(admin => ({
       ...admin,
       status: admin.status as 'administered' | 'missed' | 'refused',
+      administered_by_role: admin.administered_by_role as 'family' | 'professional' || 'professional',
       administered_by_profile: admin.profiles || admin.administered_by_profile
     }));
   }
@@ -247,9 +249,12 @@ export class MedicationService {
       }
 
       toast.success("Medication administration recorded");
+      
+      // Properly type the returned data
       return {
         ...data,
-        status: data.status as 'administered' | 'missed' | 'refused'
+        status: data.status as 'administered' | 'missed' | 'refused',
+        administered_by_role: (data.administered_by_role as 'family' | 'professional') || 'professional'
       };
     } catch (error) {
       console.error("[MedicationService] Exception in recordAdministration:", error);
