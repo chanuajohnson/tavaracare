@@ -1,4 +1,3 @@
-
 import { supabase } from "@/lib/supabase";
 
 export interface MealPlan {
@@ -179,7 +178,17 @@ export const mealPlanService = {
       .order('created_at', { ascending: false });
 
     if (error) throw error;
-    return data || [];
+    
+    // Type cast the urgency_level to ensure it matches our interface
+    const typedData = data?.map(list => ({
+      ...list,
+      grocery_items: list.grocery_items?.map((item: any) => ({
+        ...item,
+        urgency_level: item.urgency_level as 'low' | 'medium' | 'high' | 'urgent'
+      })) || []
+    }));
+    
+    return typedData || [];
   },
 
   // Create grocery list with enhanced fields
