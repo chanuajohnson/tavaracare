@@ -13,7 +13,14 @@ export const assistantSupabase = {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      return data || [];
+      
+      // Transform the data to match our AssistantNudge interface
+      return (data || []).map(item => ({
+        ...item,
+        context: typeof item.context === 'object' && item.context !== null 
+          ? item.context as { [key: string]: any; role?: string; progress_stage?: string; action_type?: string; }
+          : {}
+      }));
     } catch (error) {
       console.error('Error fetching nudges:', error);
       return [];
