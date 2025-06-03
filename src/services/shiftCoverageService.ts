@@ -34,7 +34,7 @@ export const shiftCoverageService = {
       await this.notifyFamilyOfRequest(data.id);
       
       toast.success('Time-off request submitted successfully');
-      return { success: true, request: data };
+      return { success: true, request: data as ShiftCoverageRequest };
     } catch (error: any) {
       console.error('Error creating coverage request:', error);
       toast.error('Failed to submit time-off request');
@@ -56,7 +56,7 @@ export const shiftCoverageService = {
         .order('requested_at', { ascending: false });
 
       if (error) throw error;
-      return data || [];
+      return (data || []) as ShiftCoverageRequest[];
     } catch (error) {
       console.error('Error fetching coverage requests:', error);
       return [];
@@ -78,7 +78,7 @@ export const shiftCoverageService = {
         .order('requested_at', { ascending: false });
 
       if (error) throw error;
-      return data || [];
+      return (data || []) as ShiftCoverageRequest[];
     } catch (error) {
       console.error('Error fetching pending requests:', error);
       return [];
@@ -139,7 +139,7 @@ export const shiftCoverageService = {
       await this.notifyFamilyOfClaim(data.id);
       
       toast.success('Shift claimed successfully! Awaiting family confirmation');
-      return { success: true, claim: data };
+      return { success: true, claim: data as ShiftCoverageClaim };
     } catch (error: any) {
       console.error('Error claiming shift:', error);
       toast.error('Failed to claim shift');
@@ -167,7 +167,7 @@ export const shiftCoverageService = {
         .order('requested_at', { ascending: false });
 
       if (error) throw error;
-      return data || [];
+      return (data || []) as ShiftCoverageRequest[];
     } catch (error) {
       console.error('Error fetching available shifts:', error);
       return [];
@@ -192,7 +192,7 @@ export const shiftCoverageService = {
         .order('claimed_at', { ascending: false });
 
       if (error) throw error;
-      return data || [];
+      return (data || []) as ShiftCoverageClaim[];
     } catch (error) {
       console.error('Error fetching pending claims:', error);
       return [];
@@ -293,7 +293,7 @@ export const shiftCoverageService = {
         .limit(50);
 
       if (error) throw error;
-      return data || [];
+      return (data || []) as ShiftNotification[];
     } catch (error) {
       console.error('Error fetching notifications:', error);
       return [];
