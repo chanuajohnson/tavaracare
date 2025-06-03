@@ -638,68 +638,7 @@ const ProfessionalProfileHub = () => {
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <div className="space-y-6">
-                      <CertificateUpload onUploadSuccess={handleCertificateUploadSuccess} />
-
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <Card>
-                          <CardContent className="pt-6">
-                            <div className="space-y-4">
-                              <div className="flex items-center gap-3">
-                                <div className="bg-primary/10 p-3 rounded-full">
-                                  <Shield className="h-6 w-6 text-primary" />
-                                </div>
-                                <div>
-                                  <h3 className="font-medium">Background Check</h3>
-                                  <p className="text-sm text-muted-foreground">Certificate of Character from T&T Police</p>
-                                </div>
-                              </div>
-                              <Button variant="outline" className="w-full">
-                                Upload Background Check
-                              </Button>
-                            </div>
-                          </CardContent>
-                        </Card>
-
-                        <Card>
-                          <CardContent className="pt-6">
-                            <div className="space-y-4">
-                              <div className="flex items-center gap-3">
-                                <div className="bg-primary/10 p-3 rounded-full">
-                                  <Award className="h-6 w-6 text-primary" />
-                                </div>
-                                <div>
-                                  <h3 className="font-medium">Training Records</h3>
-                                  <p className="text-sm text-muted-foreground">Training completion certificates</p>
-                                </div>
-                              </div>
-                              <Button variant="outline" className="w-full">
-                                View Training Records
-                              </Button>
-                            </div>
-                          </CardContent>
-                        </Card>
-
-                        <Card>
-                          <CardContent className="pt-6">
-                            <div className="space-y-4">
-                              <div className="flex items-center gap-3">
-                                <div className="bg-primary/10 p-3 rounded-full">
-                                  <Clock className="h-6 w-6 text-primary" />
-                                </div>
-                                <div>
-                                  <h3 className="font-medium">Work Log Reports</h3>
-                                  <p className="text-sm text-muted-foreground">Download work summaries</p>
-                                </div>
-                              </div>
-                              <Button variant="outline" className="w-full">
-                                Generate Report
-                              </Button>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      </div>
-                    </div>
+                    <CertificateUpload onUploadSuccess={handleCertificateUploadSuccess} />
                   </CardContent>
                 </Card>
               </HorizontalTabsContent>
