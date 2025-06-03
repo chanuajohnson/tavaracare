@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { supabase } from "@/lib/supabase";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -102,12 +102,24 @@ interface CareTeamMember {
 
 const ProfessionalProfileHub = () => {
   const { user } = useAuth();
+  const [searchParams] = useSearchParams();
   const [profile, setProfile] = useState<any>(null);
   const [carePlanAssignments, setCarePlanAssignments] = useState<CarePlanAssignment[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedCarePlanId, setSelectedCarePlanId] = useState<string | null>(null);
   const [careTeamMembers, setCareTeamMembers] = useState<CareTeamMember[]>([]);
-  const [activeTab, setActiveTab] = useState("schedule"); // Add state for active tab
+  
+  // Get initial tab from URL params, default to "schedule"
+  const tabFromUrl = searchParams.get('tab');
+  const [activeTab, setActiveTab] = useState(tabFromUrl || "schedule");
+
+  // Update active tab when URL changes
+  useEffect(() => {
+    const urlTab = searchParams.get('tab');
+    if (urlTab && urlTab !== activeTab) {
+      setActiveTab(urlTab);
+    }
+  }, [searchParams]);
 
   const breadcrumbItems = [
     { label: "Professional Dashboard", path: "/dashboard/professional" },
@@ -338,7 +350,6 @@ const ProfessionalProfileHub = () => {
 
   const handleCertificateUploadSuccess = () => {
     toast.success("Document uploaded successfully! Redirecting to documents tab...");
-    // Switch to documents tab after successful upload
     setActiveTab("documents");
   };
 
