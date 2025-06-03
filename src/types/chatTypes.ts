@@ -18,6 +18,9 @@ export interface LegacyChatMessage {
   isFormatted?: boolean;
 }
 
+// Legacy export for compatibility
+export interface ChatMessage extends LegacyChatMessage {}
+
 // These types are deprecated and will be removed in a future update
 export interface PrefillData {
   [key: string]: string | string[] | number | boolean | undefined;
