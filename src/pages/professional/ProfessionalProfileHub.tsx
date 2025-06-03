@@ -35,6 +35,8 @@ import {
   Shield
 } from "lucide-react";
 import { toast } from "sonner";
+import { CertificateUpload } from "@/components/professional/CertificateUpload";
+import { HorizontalTabs, HorizontalTabsList, HorizontalTabsTrigger, HorizontalTabsContent } from "@/components/ui/horizontal-scroll-tabs";
 
 // Types for the data structures
 interface ProfessionalDetails {
@@ -498,31 +500,31 @@ const ProfessionalProfileHub = () => {
 
           {/* Tabs for Different Views */}
           {selectedCarePlanId && (
-            <Tabs defaultValue="schedule" className="w-full">
-              <TabsList className="grid w-full grid-cols-5">
-                <TabsTrigger value="schedule" className="flex items-center gap-2">
+            <HorizontalTabs defaultValue="schedule" className="w-full">
+              <HorizontalTabsList className="grid w-full grid-cols-5 lg:grid-cols-5">
+                <HorizontalTabsTrigger value="schedule" className="flex items-center gap-2">
                   <Calendar className="h-4 w-4" />
-                  Schedule
-                </TabsTrigger>
-                <TabsTrigger value="medications" className="flex items-center gap-2">
+                  <span className="hidden sm:inline">Schedule</span>
+                </HorizontalTabsTrigger>
+                <HorizontalTabsTrigger value="medications" className="flex items-center gap-2">
                   <Pill className="h-4 w-4" />
-                  Medications
-                </TabsTrigger>
-                <TabsTrigger value="meals" className="flex items-center gap-2">
+                  <span className="hidden sm:inline">Medications</span>
+                </HorizontalTabsTrigger>
+                <HorizontalTabsTrigger value="meals" className="flex items-center gap-2">
                   <ChefHat className="h-4 w-4" />
-                  Meal Planning
-                </TabsTrigger>
-                <TabsTrigger value="admin-assist" className="flex items-center gap-2">
+                  <span className="hidden sm:inline">Meal Planning</span>
+                </HorizontalTabsTrigger>
+                <HorizontalTabsTrigger value="admin-assist" className="flex items-center gap-2">
                   <Shield className="h-4 w-4" />
-                  Admin Assist
-                </TabsTrigger>
-                <TabsTrigger value="documents" className="flex items-center gap-2">
+                  <span className="hidden sm:inline">Admin Assist</span>
+                </HorizontalTabsTrigger>
+                <HorizontalTabsTrigger value="documents" className="flex items-center gap-2">
                   <FileText className="h-4 w-4" />
-                  Documents
-                </TabsTrigger>
-              </TabsList>
+                  <span className="hidden sm:inline">Documents</span>
+                </HorizontalTabsTrigger>
+              </HorizontalTabsList>
 
-              <TabsContent value="schedule" className="space-y-6">
+              <HorizontalTabsContent value="schedule" className="space-y-6">
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
@@ -545,20 +547,20 @@ const ProfessionalProfileHub = () => {
                     />
                   </CardContent>
                 </Card>
-              </TabsContent>
+              </HorizontalTabsContent>
 
-              <TabsContent value="medications" className="space-y-6">
+              <HorizontalTabsContent value="medications" className="space-y-6">
                 <MedicationDashboard />
-              </TabsContent>
+              </HorizontalTabsContent>
 
-              <TabsContent value="meals" className="space-y-6">
+              <HorizontalTabsContent value="meals" className="space-y-6">
                 <CarePlanMealPlanner 
                   carePlanId={selectedCarePlanId}
                   carePlanTitle={selectedCarePlan?.carePlan?.title || 'Care Plan'}
                 />
-              </TabsContent>
+              </HorizontalTabsContent>
 
-              <TabsContent value="admin-assist" className="space-y-6">
+              <HorizontalTabsContent value="admin-assist" className="space-y-6">
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
@@ -615,9 +617,9 @@ const ProfessionalProfileHub = () => {
                     </div>
                   </CardContent>
                 </Card>
-              </TabsContent>
+              </HorizontalTabsContent>
 
-              <TabsContent value="documents" className="space-y-6">
+              <HorizontalTabsContent value="documents" className="space-y-6">
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
@@ -630,26 +632,11 @@ const ProfessionalProfileHub = () => {
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-6">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <Card>
-                          <CardContent className="pt-6">
-                            <div className="space-y-4">
-                              <div className="flex items-center gap-3">
-                                <div className="bg-primary/10 p-3 rounded-full">
-                                  <FileText className="h-6 w-6 text-primary" />
-                                </div>
-                                <div>
-                                  <h3 className="font-medium">Certificates & Licenses</h3>
-                                  <p className="text-sm text-muted-foreground">Upload your professional certificates</p>
-                                </div>
-                              </div>
-                              <Button variant="outline" className="w-full">
-                                Upload Certificate
-                              </Button>
-                            </div>
-                          </CardContent>
-                        </Card>
+                      <CertificateUpload onUploadSuccess={() => {
+                        toast.success("Document uploaded successfully! You can now share it with employers.");
+                      }} />
 
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <Card>
                           <CardContent className="pt-6">
                             <div className="space-y-4">
@@ -710,8 +697,8 @@ const ProfessionalProfileHub = () => {
                     </div>
                   </CardContent>
                 </Card>
-              </TabsContent>
-            </Tabs>
+              </HorizontalTabsContent>
+            </HorizontalTabs>
           )}
 
           {/* Action Cards */}
