@@ -569,23 +569,6 @@ export const NextStepsPanel = () => {
                     )}
                   </div>
                   <p className="text-sm text-gray-500">{step.description}</p>
-                  
-                  {step.id === 2 && (
-                    <div className="mt-1 flex flex-col space-y-1">
-                      <a 
-                        href="mailto:chanuajohnson@gmail.com" 
-                        className="text-sm text-primary hover:underline flex items-center"
-                      >
-                        <Mail className="h-3 w-3 mr-1" /> E-mail
-                      </a>
-                      <a 
-                        href="https://wa.me/18687865357" 
-                        className="text-sm text-primary hover:underline flex items-center"
-                      >
-                        <Phone className="h-3 w-3 mr-1" /> WhatsApp
-                      </a>
-                    </div>
-                  )}
                 </div>
                 <div className="flex-shrink-0">
                   {renderActionButton(step)}
