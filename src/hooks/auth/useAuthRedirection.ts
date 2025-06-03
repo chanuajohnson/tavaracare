@@ -3,6 +3,7 @@ import { useLocation } from 'react-router-dom';
 import { User } from '@supabase/supabase-js';
 import { UserRole } from '@/types/database';
 import { startTransition } from 'react';
+import { ensureUserProfile } from '@/lib/profile-utils';
 
 export const useAuthRedirection = (
   user: User | null,
@@ -41,8 +42,11 @@ export const useAuthRedirection = (
       console.log('[AuthProvider] Handling post-login redirection for user:', user.id);
       
       let effectiveRole = userRole;
+      
+      // If no role detected, ensure profile exists and try to get role from metadata
       if (!effectiveRole && user.user_metadata?.role) {
-        console.log('[AuthProvider] Setting user role from metadata:', user.user_metadata.role);
+        console.log('[AuthProvider] No role detected, ensuring profile exists with metadata role:', user.user_metadata.role);
+        await ensureUserProfile(user.id, user.user_metadata.role);
         effectiveRole = user.user_metadata.role;
       }
 
@@ -102,11 +106,13 @@ export const useAuthRedirection = (
         
         // Only redirect to dashboard if not already there and profile is complete
         if (profileComplete) {
+          console.log('[AuthProvider] Redirecting to dashboard:', targetDashboard);
           startTransition(() => {
             safeNavigate(targetDashboard, { skipCheck: true });
           });
         } else {
           // Redirect to registration if profile incomplete
+          console.log('[AuthProvider] Redirecting to registration:', targetRegistration);
           startTransition(() => {
             safeNavigate(targetRegistration, { skipCheck: true });
           });
@@ -114,6 +120,7 @@ export const useAuthRedirection = (
       } else {
         // Only redirect to home if not already on correct dashboard
         if (location.pathname !== '/') {
+          console.log('[AuthProvider] No role detected, redirecting to home');
           startTransition(() => {
             safeNavigate('/', { skipCheck: true });
           });
