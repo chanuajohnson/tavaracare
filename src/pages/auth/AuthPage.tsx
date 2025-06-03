@@ -67,7 +67,7 @@ export default function AuthPage() {
     }
   };
 
-  const handleSignup = async (email: string, password: string, firstName: string, lastName: string, role: string) => {
+  const handleSignup = async (email: string, password: string, firstName: string, lastName: string, role: string, adminCode?: string) => {
     try {
       console.log("[AuthPage] Starting signup process...");
       setIsLoading(true);
@@ -82,7 +82,9 @@ export default function AuthPage() {
             role,
             full_name: fullName,
             first_name: firstName,
-            last_name: lastName
+            last_name: lastName,
+            // Include admin code in metadata for server-side validation
+            ...(role === "admin" && adminCode && { admin_code: adminCode })
           },
         },
       });
@@ -115,7 +117,8 @@ export default function AuthPage() {
           sessionStorage.removeItem('skipPostLoginRedirect');
         }
         
-        toast.success("Account created successfully! You'll be redirected to your dashboard shortly.");
+        const accountType = role === "admin" ? "administrator" : role;
+        toast.success(`${accountType} account created successfully! You'll be redirected to your dashboard shortly.`);
         return true;
       } else {
         console.log("[AuthPage] No session after signup - auto-confirm may be disabled");
@@ -125,7 +128,13 @@ export default function AuthPage() {
 
     } catch (error: any) {
       console.error("[AuthPage] Signup error:", error);
-      toast.error(error.message || "Failed to create account");
+      
+      // Provide specific error message for admin code validation
+      if (error.message && error.message.includes('Invalid admin signup code')) {
+        toast.error("Invalid admin code provided. Please check your admin code and try again.");
+      } else {
+        toast.error(error.message || "Failed to create account");
+      }
       throw error;
     } finally {
       setIsLoading(false);

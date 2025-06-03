@@ -2667,6 +2667,10 @@ export type Database = {
         Args: { plan_id: string; new_status: string }
         Returns: undefined
       }
+      validate_admin_signup_code: {
+        Args: { provided_code: string }
+        Returns: boolean
+      }
     }
     Enums: {
       care_urgency:
