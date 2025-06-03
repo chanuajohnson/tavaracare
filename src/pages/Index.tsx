@@ -7,8 +7,6 @@ import { toast } from "sonner";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Fab } from "@/components/ui/fab";
-import { MicroChatBubble } from "@/components/chatbot/MicroChatBubble";
-import { ChatbotSystem } from "@/components/chatbot/ChatbotSystem";
 import { EnvironmentInfo } from "@/components/debug/EnvironmentInfo";
 import { SupabaseDebugger } from "@/components/debug/SupabaseDebugger";
 
@@ -118,8 +116,6 @@ const Index = () => {
                     {role.cta}
                     <ArrowRight className="ml-2 w-4 h-4 transition-transform duration-300 group-hover/button:translate-x-1" />
                   </button>
-                  
-                  <MicroChatBubble role={role.id as 'family' | 'professional' | 'community'} />
                 </div>
               </div>
             </motion.div>
@@ -139,10 +135,6 @@ const Index = () => {
             >
               Get Started
             </button>
-            
-            <div className="ml-3">
-              <MicroChatBubble role="family" position="right" />
-            </div>
           </div>
         </motion.div>
 
@@ -193,8 +185,6 @@ const Index = () => {
                           {role.cta}
                         </Button>
                       </Link>
-                      
-                      <MicroChatBubble role={role.id as 'family' | 'professional' | 'community'} position="right" />
                     </div>
                   </CardContent>
                 </Card>
@@ -248,8 +238,6 @@ const Index = () => {
                         {communityRole.cta}
                       </Button>
                     </Link>
-                    
-                    <MicroChatBubble role="community" position="right" />
                   </div>
                 </CardContent>
               </Card>
@@ -305,12 +293,6 @@ const Index = () => {
           </motion.div>
         </div>
       </div>
-      
-      <ChatbotSystem
-        position="left-of-fab" 
-        spacing={24}
-        className="bg-primary-500 hover:bg-primary-600 text-white"
-      />
       
       <Fab
         position="bottom-right"

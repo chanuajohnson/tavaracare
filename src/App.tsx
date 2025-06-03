@@ -7,6 +7,7 @@ import { SupabaseInitializer } from "@/components/supabase/SupabaseInitializer";
 import { AppRoutes } from "@/components/routing/AppRoutes";
 import { RedirectHandler } from "@/components/routing/RedirectHandler";
 import { GlobalFAB } from "@/components/common/GlobalFAB";
+import { TavaraAssistantPanel } from "@/components/tav/TavaraAssistantPanel";
 
 function AppContent() {
   const location = useLocation();
@@ -23,6 +24,7 @@ function AppContent() {
         <AppRoutes />
       </main>
       {!isIndexPage && <GlobalFAB />}
+      <TavaraAssistantPanel />
     </div>
   );
 }
