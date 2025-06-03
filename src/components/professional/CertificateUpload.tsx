@@ -51,7 +51,7 @@ export const CertificateUpload: React.FC<CertificateUploadProps> = ({ onUploadSu
 
         if (uploadError) throw uploadError;
 
-        // Save to database
+        // Save to database - the table now exists after the migration
         const { error: dbError } = await supabase
           .from('professional_documents')
           .insert({

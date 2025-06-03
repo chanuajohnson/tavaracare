@@ -107,6 +107,7 @@ const ProfessionalProfileHub = () => {
   const [loading, setLoading] = useState(true);
   const [selectedCarePlanId, setSelectedCarePlanId] = useState<string | null>(null);
   const [careTeamMembers, setCareTeamMembers] = useState<CareTeamMember[]>([]);
+  const [activeTab, setActiveTab] = useState("schedule"); // Add state for active tab
 
   const breadcrumbItems = [
     { label: "Professional Dashboard", path: "/dashboard/professional" },
@@ -335,6 +336,12 @@ const ProfessionalProfileHub = () => {
 
   const selectedCarePlan = carePlanAssignments.find(assignment => assignment.carePlanId === selectedCarePlanId);
 
+  const handleCertificateUploadSuccess = () => {
+    toast.success("Document uploaded successfully! Redirecting to documents tab...");
+    // Switch to documents tab after successful upload
+    setActiveTab("documents");
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background">
@@ -500,7 +507,7 @@ const ProfessionalProfileHub = () => {
 
           {/* Tabs for Different Views */}
           {selectedCarePlanId && (
-            <HorizontalTabs defaultValue="schedule" className="w-full">
+            <HorizontalTabs value={activeTab} onValueChange={setActiveTab} className="w-full">
               <HorizontalTabsList className="grid w-full grid-cols-5 lg:grid-cols-5">
                 <HorizontalTabsTrigger value="schedule" className="flex items-center gap-2">
                   <Calendar className="h-4 w-4" />
@@ -632,9 +639,7 @@ const ProfessionalProfileHub = () => {
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-6">
-                      <CertificateUpload onUploadSuccess={() => {
-                        toast.success("Document uploaded successfully! You can now share it with employers.");
-                      }} />
+                      <CertificateUpload onUploadSuccess={handleCertificateUploadSuccess} />
 
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <Card>
