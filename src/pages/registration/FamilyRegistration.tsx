@@ -642,7 +642,7 @@ const FamilyRegistration = () => {
               </div>
 
               <div className="space-y-2">
-                <Label>Primary Care Type Needed ��� What type of care is needed? (Select all that apply)</Label>
+                <Label>Primary Care Type Needed – What type of care is needed? (Select all that apply)</Label>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                   {[
                     { id: 'care-inhome', label: '🏠 In-Home Care (Daily, Nighttime, Weekend, Live-in)', value: 'In-Home Care' },
