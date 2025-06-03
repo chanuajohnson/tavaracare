@@ -1,27 +1,20 @@
 
-// This file is kept for backwards compatibility but is no longer used
-// All chat functionality has been replaced with the TAV system
-
-export interface LegacyChatOption {
+export interface ChatOption {
   id: string;
   label: string;
   subtext?: string;
 }
 
-export interface LegacyChatMessage {
-  id?: string;
-  content: string;
-  formattedContent?: string;
+export interface ChatMessage {
+  id?: string;            // Add unique ID for each message
+  content: string;        // Original unformatted content
+  formattedContent?: string; // Pre-formatted content to display
   isUser: boolean;
   timestamp: number;
-  options?: LegacyChatOption[];
-  isFormatted?: boolean;
+  options?: ChatOption[];
+  isFormatted?: boolean;  // Flag to track if message has been formatted
 }
 
-// Legacy export for compatibility
-export interface ChatMessage extends LegacyChatMessage {}
-
-// These types are deprecated and will be removed in a future update
 export interface PrefillData {
   [key: string]: string | string[] | number | boolean | undefined;
 }

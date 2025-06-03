@@ -7,24 +7,22 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ChevronDown, Database, Sparkles } from "lucide-react";
+import { loadChatConfig, resetChatConfig, debugChatConfig } from "@/utils/chat/chatConfig";
 
 export function ChatDebugger() {
   const [isLoading, setIsLoading] = useState(false);
   const [tableData, setTableData] = useState<Record<string, any[]>>({});
+  const [chatConfig, setChatConfig] = useState(() => loadChatConfig());
   
   const checkTables = async () => {
     setIsLoading(true);
-    const tables = ['assistant_nudges', 'profiles', 'auth.users'];
+    const tables = ['chatbot_conversations', 'chatbot_responses', 'chatbot_progress'];
     const results: Record<string, any[]> = {};
     
     try {
       for (const table of tables) {
-        if (table === 'auth.users') {
-          // Skip auth.users as it requires special permissions
-          results[table] = [{ note: 'Requires special permissions' }];
-          continue;
-        }
-        
+        // Using type assertion to handle the dynamic table name
+        // This is safe because we're explicitly checking tables we know exist in our schema
         const { data, error } = await supabase
           .from(table as any)
           .select('*')
@@ -47,8 +45,15 @@ export function ChatDebugger() {
     }
   };
   
+  const resetConfig = () => {
+    const newConfig = resetChatConfig();
+    setChatConfig(newConfig);
+    debugChatConfig();
+  };
+  
   const clearLocalStorage = () => {
     localStorage.clear();
+    setChatConfig(loadChatConfig());
     alert('Local storage cleared!');
   };
   
@@ -69,18 +74,37 @@ export function ChatDebugger() {
       <CardHeader>
         <CardTitle className="text-lg flex items-center gap-2">
           <Sparkles className="h-4 w-4" />
-          TAV System Debugger
+          Chat System Debugger
         </CardTitle>
         <CardDescription>
-          Diagnose TAV assistant and database connectivity
+          Diagnose chat system configuration and data
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <Tabs defaultValue="data">
+        <Tabs defaultValue="config">
           <TabsList className="w-full">
+            <TabsTrigger value="config" className="flex-1">Configuration</TabsTrigger>
             <TabsTrigger value="data" className="flex-1">Database</TabsTrigger>
             <TabsTrigger value="storage" className="flex-1">Local Storage</TabsTrigger>
           </TabsList>
+          
+          <TabsContent value="config" className="space-y-4 pt-4">
+            <div className="bg-muted/50 rounded-md p-3">
+              <h3 className="text-sm font-medium mb-2">Chat Config</h3>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="bg-background p-2 rounded text-xs">
+                  <span className="font-semibold">Mode:</span> {chatConfig.mode}
+                </div>
+                <div className="bg-background p-2 rounded text-xs">
+                  <span className="font-semibold">Temperature:</span> {chatConfig.temperature}
+                </div>
+                <div className="bg-background p-2 rounded text-xs">
+                  <span className="font-semibold">Fallback Threshold:</span> {chatConfig.fallbackThreshold}
+                </div>
+              </div>
+            </div>
+            <Button onClick={resetConfig} variant="outline" size="sm">Reset to Defaults</Button>
+          </TabsContent>
           
           <TabsContent value="data" className="space-y-4 pt-4">
             <div className="flex justify-between items-center">
@@ -92,12 +116,16 @@ export function ChatDebugger() {
             
             <div className="space-y-2">
               <div className="flex justify-between items-center p-2 bg-muted/50 rounded-md">
-                <div className="font-medium text-xs">assistant_nudges</div>
-                {getStatusBadge('assistant_nudges')}
+                <div className="font-medium text-xs">chatbot_conversations</div>
+                {getStatusBadge('chatbot_conversations')}
               </div>
               <div className="flex justify-between items-center p-2 bg-muted/50 rounded-md">
-                <div className="font-medium text-xs">profiles</div>
-                {getStatusBadge('profiles')}
+                <div className="font-medium text-xs">chatbot_responses</div>
+                {getStatusBadge('chatbot_responses')}
+              </div>
+              <div className="flex justify-between items-center p-2 bg-muted/50 rounded-md">
+                <div className="font-medium text-xs">chatbot_progress</div>
+                {getStatusBadge('chatbot_progress')}
               </div>
             </div>
             
@@ -144,7 +172,7 @@ export function ChatDebugger() {
         </Tabs>
       </CardContent>
       <CardFooter className="text-xs text-muted-foreground">
-        TAV system debugger - check database connectivity and local storage.
+        Add ?debug=true to your URL to enable detailed debug logs.
       </CardFooter>
     </Card>
   );

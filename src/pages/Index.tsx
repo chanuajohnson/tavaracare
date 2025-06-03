@@ -1,350 +1,335 @@
 
+import { useState, useRef } from "react";
 import { motion } from "framer-motion";
+import { Users, UserCog, Heart, ArrowRight, Check, Vote, HelpCircle } from "lucide-react";
+import { useNavigate, Link } from "react-router-dom";
+import { toast } from "sonner";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Heart, Users, Briefcase, MapPin, Phone, Mail, Clock, CheckCircle, Star, Calendar, Shield, MessageSquare, BookOpen, Award } from "lucide-react";
-import { Link } from "react-router-dom";
 import { Fab } from "@/components/ui/fab";
-import { TavaraAssistantPanel } from "@/components/tav/TavaraAssistantPanel";
+import { MicroChatBubble } from "@/components/chatbot/MicroChatBubble";
+import { ChatbotSystem } from "@/components/chatbot/ChatbotSystem";
+import { EnvironmentInfo } from "@/components/debug/EnvironmentInfo";
+import { SupabaseDebugger } from "@/components/debug/SupabaseDebugger";
+
+const roles = [
+  {
+    id: "family",
+    title: "Family",
+    description: "Coordinate care for your loved ones",
+    icon: Users,
+    color: "bg-primary-100",
+    path: "/dashboard/family",
+    cta: "Find Care Now",
+    features: ["Create and manage care plans", "Find qualified caregivers", "Track medications and appointments", "Coordinate with care team", "Monitor care activities", "Access care logs and reports"]
+  },
+  {
+    id: "professional",
+    title: "Professional",
+    description: "Provide care services and expertise",
+    icon: UserCog,
+    color: "bg-primary-200",
+    path: "/dashboard/professional",
+    cta: "Get Hired as a Skilled Care Professional",
+    features: ["Showcase qualifications", "Find care opportunities", "Manage client relationships", "Track care delivery", "Access training resources", "Professional development"]
+  }
+];
+
+const communityRole = {
+  id: "community",
+  title: "Community",
+  description: "Support and contribute to care networks",
+  icon: Heart,
+  color: "bg-primary-300",
+  path: "/dashboard/community",
+  cta: "Join the Village",
+  features: ["Join care circles", "Share local resources", "Participate in community events", "Offer support services", "Connect with families", "Track community impact"]
+};
 
 const Index = () => {
+  const [selectedRole, setSelectedRole] = useState<string | null>(null);
+  const navigate = useNavigate();
+  const comparisonRef = useRef<HTMLDivElement>(null);
+
+  const handleRoleSelect = (roleId: string) => {
+    if (roleId === "community") {
+      const role = communityRole;
+      setSelectedRole(roleId);
+      navigate(role.path);
+      toast.success(`Welcome to the ${role.title} Dashboard! Sign in to access all features.`);
+    } else {
+      const role = roles.find(r => r.id === roleId);
+      if (role) {
+        setSelectedRole(roleId);
+        navigate(role.path);
+        toast.success(`Welcome to the ${role.title} Dashboard! Sign in to access all features.`);
+      }
+    }
+  };
+
+  const handleGetStarted = () => {
+    comparisonRef.current?.scrollIntoView({
+      behavior: "smooth"
+    });
+  };
+
+  const isDebug = new URLSearchParams(window.location.search).get('debug') === 'true';
+
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background to-muted/20">
-      {/* Hero Section */}
-      <section className="relative px-6 pt-20 pb-16 text-center">
+    <div className="min-h-screen w-full bg-gradient-to-b from-white to-primary-100">
+      <div className="container px-4 py-12 mx-auto">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8 }}
-          className="max-w-4xl mx-auto"
+          transition={{ duration: 0.5 }}
+          className="text-center mb-16"
         >
-          <Badge variant="secondary" className="mb-4 bg-blue-100 text-blue-800">
+          <span className="px-4 py-1.5 rounded-full text-sm font-medium bg-primary-100 text-primary-800 mb-4 inline-block">
             Care Coordination Platform
-          </Badge>
-          <h1 className="text-4xl md:text-6xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent mb-6">
-            Tavara
-          </h1>
-          <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
-            Join our community of care coordinators, families, and professionals 
-            working together to provide exceptional care across Trinidad & Tobago.
+          </span>
+          <h1 className="text-4xl md:text-6xl font-bold text-gray-900 mb-6">Tavara</h1>
+          <p className="text-lg md:text-xl text-gray-600 max-w-2xl mx-auto">
+            Join our community of care coordinators, families, and professionals to make
+            caring easier and more effective.
           </p>
-          <Button asChild size="lg" className="text-lg px-8 py-6">
-            <Link to="/auth">Get Started</Link>
-          </Button>
         </motion.div>
-      </section>
 
-      {/* Two-Card Layout */}
-      <section className="py-16 px-6">
-        <div className="max-w-6xl mx-auto">
-          <div className="grid md:grid-cols-2 gap-8">
-            {/* Family Card */}
+        <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
+          {roles.map((role, index) => (
             <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.6 }}
+              key={role.id}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: index * 0.1 }}
+              className={`relative group`}
             >
-              <Card className="h-full hover:shadow-lg transition-shadow">
-                <CardHeader>
-                  <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center mb-4">
-                    <Heart className="w-6 h-6 text-primary" />
-                  </div>
-                  <CardTitle className="text-xl mb-2">Family</CardTitle>
-                  <CardDescription>Coordinate care for your loved ones</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <Button asChild className="w-full">
-                    <Link to="/auth">Find Care Now</Link>
-                  </Button>
-                </CardContent>
-              </Card>
+              <div className={`${role.color} rounded-2xl p-6 h-full transition-transform duration-300 group-hover:scale-[1.02]`}>
+                <div className="mb-4">
+                  <role.icon className="w-8 h-8 text-primary-600" />
+                </div>
+                <h3 className="text-xl font-semibold mb-2 text-gray-900">{role.title}</h3>
+                <p className="text-gray-600 mb-6">{role.description}</p>
+                
+                <div className="flex justify-between items-center">
+                  <button
+                    onClick={() => handleRoleSelect(role.id)}
+                    className="inline-flex items-center text-primary-700 font-medium group/button"
+                  >
+                    {role.cta}
+                    <ArrowRight className="ml-2 w-4 h-4 transition-transform duration-300 group-hover/button:translate-x-1" />
+                  </button>
+                  
+                  <MicroChatBubble role={role.id as 'family' | 'professional' | 'community'} />
+                </div>
+              </div>
             </motion.div>
-
-            {/* Professional Card */}
-            <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.6, delay: 0.2 }}
-            >
-              <Card className="h-full hover:shadow-lg transition-shadow">
-                <CardHeader>
-                  <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center mb-4">
-                    <Briefcase className="w-6 h-6 text-primary" />
-                  </div>
-                  <CardTitle className="text-xl mb-2">Professional</CardTitle>
-                  <CardDescription>Provide care services and expertise</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <Button asChild className="w-full">
-                    <Link to="/auth">Get Hired as a Skilled Care Professional</Link>
-                  </Button>
-                </CardContent>
-              </Card>
-            </motion.div>
-          </div>
+          ))}
         </div>
-      </section>
 
-      {/* Who is Tavara For? Section */}
-      <section className="py-20 px-6 bg-primary/5">
-        <div className="max-w-6xl mx-auto">
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.5, delay: 0.6 }}
+          className="text-center mt-16"
+        >
+          <div className="relative inline-flex items-center">
+            <button
+              onClick={handleGetStarted}
+              className="inline-flex items-center justify-center h-11 px-8 font-medium text-white bg-primary-500 rounded-full transition-colors duration-300 hover:bg-primary-600"
+            >
+              Get Started
+            </button>
+            
+            <div className="ml-3">
+              <MicroChatBubble role="family" position="right" />
+            </div>
+          </div>
+        </motion.div>
+
+        <div ref={comparisonRef} className="mt-32">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            viewport={{ once: true }}
             className="text-center mb-16"
           >
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">
-              Who is Tavara For?
-            </h2>
-            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              Our platform serves different members of the caregiving community, 
-              each with unique needs and goals.
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">Who is Tavara For?</h2>
+            <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+              Find your perfect match, whether you're seeking care or providing care
             </p>
           </motion.div>
 
-          <div className="grid md:grid-cols-2 gap-12">
-            {/* Family Features */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6 }}
-              className="space-y-6"
-            >
-              <div className="flex items-center space-x-3 mb-6">
-                <Heart className="w-8 h-8 text-primary" />
-                <h3 className="text-2xl font-bold">For Families</h3>
-              </div>
-              
-              <div className="space-y-4">
-                <div className="flex items-start space-x-3">
-                  <CheckCircle className="w-5 h-5 text-green-500 mt-0.5" />
-                  <div>
-                    <h4 className="font-semibold">Care Coordination</h4>
-                    <p className="text-muted-foreground text-sm">Connect with vetted caregivers and coordinate schedules</p>
-                  </div>
-                </div>
-                
-                <div className="flex items-start space-x-3">
-                  <Calendar className="w-5 h-5 text-blue-500 mt-0.5" />
-                  <div>
-                    <h4 className="font-semibold">Schedule Management</h4>
-                    <p className="text-muted-foreground text-sm">Organize care schedules and track caregiver availability</p>
-                  </div>
-                </div>
-                
-                <div className="flex items-start space-x-3">
-                  <Shield className="w-5 h-5 text-purple-500 mt-0.5" />
-                  <div>
-                    <h4 className="font-semibold">Trusted Network</h4>
-                    <p className="text-muted-foreground text-sm">Access background-checked and certified professionals</p>
-                  </div>
-                </div>
-                
-                <div className="flex items-start space-x-3">
-                  <MessageSquare className="w-5 h-5 text-orange-500 mt-0.5" />
-                  <div>
-                    <h4 className="font-semibold">Communication Hub</h4>
-                    <p className="text-muted-foreground text-sm">Stay connected with your care team through our platform</p>
-                  </div>
-                </div>
-              </div>
-            </motion.div>
-
-            {/* Professional Features */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.2 }}
-              className="space-y-6"
-            >
-              <div className="flex items-center space-x-3 mb-6">
-                <Briefcase className="w-8 h-8 text-primary" />
-                <h3 className="text-2xl font-bold">For Professionals</h3>
-              </div>
-              
-              <div className="space-y-4">
-                <div className="flex items-start space-x-3">
-                  <Star className="w-5 h-5 text-yellow-500 mt-0.5" />
-                  <div>
-                    <h4 className="font-semibold">Career Opportunities</h4>
-                    <p className="text-muted-foreground text-sm">Find meaningful work with families who need your expertise</p>
-                  </div>
-                </div>
-                
-                <div className="flex items-start space-x-3">
-                  <BookOpen className="w-5 h-5 text-green-500 mt-0.5" />
-                  <div>
-                    <h4 className="font-semibold">Professional Development</h4>
-                    <p className="text-muted-foreground text-sm">Access training resources and certification programs</p>
-                  </div>
-                </div>
-                
-                <div className="flex items-start space-x-3">
-                  <Award className="w-5 h-5 text-blue-500 mt-0.5" />
-                  <div>
-                    <h4 className="font-semibold">Recognition & Reviews</h4>
-                    <p className="text-muted-foreground text-sm">Build your reputation through family feedback and ratings</p>
-                  </div>
-                </div>
-                
-                <div className="flex items-start space-x-3">
-                  <Calendar className="w-5 h-5 text-purple-500 mt-0.5" />
-                  <div>
-                    <h4 className="font-semibold">Flexible Scheduling</h4>
-                    <p className="text-muted-foreground text-sm">Choose assignments that fit your availability and preferences</p>
-                  </div>
-                </div>
-              </div>
-            </motion.div>
+          <div className="grid md:grid-cols-2 gap-8 max-w-6xl mx-auto">
+            {roles.map((role, index) => (
+              <motion.div
+                key={role.id}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: index * 0.1 }}
+                viewport={{ once: true }}
+              >
+                <Card className="h-full">
+                  <CardHeader>
+                    <div className="mb-4">
+                      <role.icon className="w-8 h-8 text-primary-600" />
+                    </div>
+                    <CardTitle>{role.title}</CardTitle>
+                    <CardDescription>{role.description}</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <ul className="space-y-4">
+                      {role.features.map((feature, i) => (
+                        <li key={i} className="flex items-start">
+                          <ArrowRight className="w-4 h-4 text-primary-500 mr-2 mt-1 flex-shrink-0" />
+                          <span className="text-gray-600">{feature}</span>
+                        </li>
+                      ))}
+                    </ul>
+                    
+                    <div className="flex justify-between items-center mt-6">
+                      <Link to={role.path}>
+                        <Button className="inline-flex items-center justify-center h-10 px-4 font-medium text-white bg-primary-500 rounded-lg transition-colors duration-300 hover:bg-primary-600">
+                          {role.cta}
+                        </Button>
+                      </Link>
+                      
+                      <MicroChatBubble role={role.id as 'family' | 'professional' | 'community'} position="right" />
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            ))}
           </div>
         </div>
-      </section>
 
-      {/* Community Engagement Section */}
-      <section className="py-20 px-6">
-        <div className="max-w-6xl mx-auto">
+        <div className="mt-32 max-w-5xl mx-auto">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            viewport={{ once: true }}
             className="text-center mb-16"
           >
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">
-              Community Engagement
-            </h2>
-            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              Be part of a supportive community that values collaboration and shared care.
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">Community Engagement</h2>
+            <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+              Discover how you can support and contribute to care networks in your community.
             </p>
           </motion.div>
 
-          <div className="max-w-2xl mx-auto">
+          <div className="max-w-3xl mx-auto">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+              viewport={{ once: true }}
             >
-              <Card className="hover:shadow-lg transition-shadow">
+              <Card className="h-full">
                 <CardHeader>
-                  <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center mb-4 mx-auto">
-                    <Users className="w-6 h-6 text-primary" />
+                  <div className="mb-4">
+                    <communityRole.icon className="w-8 h-8 text-primary-600" />
                   </div>
-                  <CardTitle className="text-xl mb-2 text-center">Community</CardTitle>
-                  <CardDescription className="text-center">Building stronger communities through collective caregiving</CardDescription>
+                  <CardTitle>{communityRole.title}</CardTitle>
+                  <CardDescription>{communityRole.description}</CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-3">
-                    <div className="flex items-center text-sm">
-                      <div className="w-1.5 h-1.5 rounded-full bg-primary mr-3" />
-                      Volunteer Network
-                    </div>
-                    <div className="flex items-center text-sm">
-                      <div className="w-1.5 h-1.5 rounded-full bg-primary mr-3" />
-                      Resource Sharing
-                    </div>
-                    <div className="flex items-center text-sm">
-                      <div className="w-1.5 h-1.5 rounded-full bg-primary mr-3" />
-                      Community Events
-                    </div>
-                    <div className="flex items-center text-sm">
-                      <div className="w-1.5 h-1.5 rounded-full bg-primary mr-3" />
-                      Peer Support Groups
-                    </div>
+                <CardContent>
+                  <ul className="space-y-4">
+                    {communityRole.features.map((feature, i) => (
+                      <li key={i} className="flex items-start">
+                        <ArrowRight className="w-4 h-4 text-primary-500 mr-2 mt-1 flex-shrink-0" />
+                        <span className="text-gray-600">{feature}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  
+                  <div className="flex justify-between items-center mt-6">
+                    <Link to={communityRole.path}>
+                      <Button className="inline-flex items-center justify-center h-10 px-4 font-medium text-white bg-primary-500 rounded-lg transition-colors duration-300 hover:bg-primary-600">
+                        {communityRole.cta}
+                      </Button>
+                    </Link>
+                    
+                    <MicroChatBubble role="community" position="right" />
                   </div>
-                  <Button asChild className="w-full mt-6">
-                    <Link to="/auth">Join the Village</Link>
-                  </Button>
                 </CardContent>
               </Card>
             </motion.div>
           </div>
         </div>
-      </section>
 
-      {/* Shape Our Future Features Section */}
-      <section className="py-20 px-6 bg-primary/5">
-        <div className="max-w-4xl mx-auto text-center">
+        <div className="mt-32 max-w-5xl mx-auto">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            viewport={{ once: true }}
+            className="text-center mb-16"
           >
-            <h2 className="text-3xl md:text-4xl font-bold mb-6">
-              Shape Our Future Features
-            </h2>
-            <p className="text-xl text-muted-foreground mb-8">
-              Your voice matters! Help us prioritize the features that will make the biggest 
-              difference in your caregiving journey. Vote on upcoming features and suggest new ones.
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">Shape Our Future Features</h2>
+            <p className="text-lg text-gray-600 max-w-2xl mx-auto mb-8">
+              See our feature roadmap to up-vote the capabilities you'd like to see next and influence our product development priorities.
             </p>
-            <div className="space-y-4">
-              <p className="text-lg font-semibold text-primary">
-                Feature Voting System
-              </p>
-              <p className="text-muted-foreground">
-                See what's coming next and influence our development roadmap by voting on 
-                features that matter most to you and your care community.
-              </p>
-              <Button asChild variant="outline" className="mt-6">
-                <Link to="/features">View Feature Roadmap</Link>
-              </Button>
-            </div>
+            <Link to="/features">
+              <Card className="p-6 text-left bg-white cursor-pointer hover:shadow-lg transition-shadow">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Vote className="w-5 h-5 text-primary-600" />
+                    Feature Voting System
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-gray-600 mb-4">Our feature voting system lets you:</p>
+                  <ul className="space-y-2">
+                    <li className="flex items-center gap-2 text-gray-600">
+                      <Check className="w-4 h-4 text-green-500" />
+                      Vote for features you want to see implemented
+                    </li>
+                    <li className="flex items-center gap-2 text-gray-600">
+                      <Check className="w-4 h-4 text-green-500" />
+                      Track feature development progress
+                    </li>
+                    <li className="flex items-center gap-2 text-gray-600">
+                      <Check className="w-4 h-4 text-green-500" />
+                      Get notified when features are launched
+                    </li>
+                  </ul>
+                  <div className="mt-6 flex justify-end">
+                    <span className="inline-flex items-center text-primary-600 hover:text-primary-700 font-medium">
+                      View Feature Roadmap
+                      <ArrowRight className="ml-2 w-4 h-4" />
+                    </span>
+                  </div>
+                </CardContent>
+              </Card>
+            </Link>
           </motion.div>
         </div>
-      </section>
-
-      {/* Contact Section */}
-      <section className="py-16 px-6">
-        <div className="max-w-4xl mx-auto">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8 }}
-            className="text-center mb-12"
-          >
-            <h2 className="text-3xl font-bold mb-4">Get In Touch</h2>
-            <p className="text-lg text-muted-foreground">
-              Have questions? Our team is here to help you every step of the way.
-            </p>
-          </motion.div>
-
-          <div className="grid md:grid-cols-3 gap-8">
-            <div className="text-center">
-              <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
-                <Phone className="w-6 h-6 text-primary" />
-              </div>
-              <h3 className="font-semibold mb-2">Phone</h3>
-              <p className="text-muted-foreground">+1 (868) 786-5357</p>
-            </div>
-            
-            <div className="text-center">
-              <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
-                <Mail className="w-6 h-6 text-primary" />
-              </div>
-              <h3 className="font-semibold mb-2">Email</h3>
-              <p className="text-muted-foreground">hello@tavara.care</p>
-            </div>
-            
-            <div className="text-center">
-              <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
-                <MapPin className="w-6 h-6 text-primary" />
-              </div>
-              <h3 className="font-semibold mb-2">Location</h3>
-              <p className="text-muted-foreground">Trinidad & Tobago</p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* FAB Component */}
+      </div>
+      
+      <ChatbotSystem
+        position="left-of-fab" 
+        spacing={24}
+        className="bg-primary-500 hover:bg-primary-600 text-white"
+      />
+      
       <Fab
         position="bottom-right"
-        showMenu={true}
-        className="bg-primary hover:bg-primary/90 text-white"
+        icon={<HelpCircle className="h-5 w-5" />}
+        className="bg-primary-500 hover:bg-primary-600 text-white"
       />
-
-      {/* TAV Assistant Panel */}
-      <TavaraAssistantPanel />
+      
+      {isDebug && (
+        <div className="mt-12 space-y-6 border-t pt-8">
+          <h2 className="text-2xl font-semibold">Debug Tools</h2>
+          <div className="grid md:grid-cols-2 gap-6">
+            <EnvironmentInfo />
+            <SupabaseDebugger />
+          </div>
+          <div className="text-xs text-muted-foreground text-center">
+            These tools are only visible when ?debug=true is added to the URL
+          </div>
+        </div>
+      )}
     </div>
   );
 };

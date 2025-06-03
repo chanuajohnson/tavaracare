@@ -6,6 +6,7 @@ import { AppProviders } from "@/components/providers/AppProviders";
 import { SupabaseInitializer } from "@/components/supabase/SupabaseInitializer";
 import { AppRoutes } from "@/components/routing/AppRoutes";
 import { RedirectHandler } from "@/components/routing/RedirectHandler";
+import { GlobalFAB } from "@/components/common/GlobalFAB";
 
 function AppContent() {
   const location = useLocation();
@@ -21,6 +22,7 @@ function AppContent() {
       <main className="flex-1">
         <AppRoutes />
       </main>
+      {!isIndexPage && <GlobalFAB />}
     </div>
   );
 }
