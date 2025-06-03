@@ -1930,6 +1930,192 @@ export type Database = {
         }
         Relationships: []
       }
+      shift_coverage_claims: {
+        Row: {
+          claimed_at: string
+          claiming_caregiver_id: string
+          coverage_request_id: string
+          created_at: string
+          family_confirmed_at: string | null
+          family_confirmed_by: string | null
+          id: string
+          status: Database["public"]["Enums"]["coverage_claim_status"]
+          updated_at: string
+        }
+        Insert: {
+          claimed_at?: string
+          claiming_caregiver_id: string
+          coverage_request_id: string
+          created_at?: string
+          family_confirmed_at?: string | null
+          family_confirmed_by?: string | null
+          id?: string
+          status?: Database["public"]["Enums"]["coverage_claim_status"]
+          updated_at?: string
+        }
+        Update: {
+          claimed_at?: string
+          claiming_caregiver_id?: string
+          coverage_request_id?: string
+          created_at?: string
+          family_confirmed_at?: string | null
+          family_confirmed_by?: string | null
+          id?: string
+          status?: Database["public"]["Enums"]["coverage_claim_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shift_coverage_claims_claiming_caregiver_id_fkey"
+            columns: ["claiming_caregiver_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shift_coverage_claims_coverage_request_id_fkey"
+            columns: ["coverage_request_id"]
+            isOneToOne: false
+            referencedRelation: "shift_coverage_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shift_coverage_claims_family_confirmed_by_fkey"
+            columns: ["family_confirmed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shift_coverage_requests: {
+        Row: {
+          created_at: string
+          expires_at: string
+          family_response_at: string | null
+          family_response_by: string | null
+          id: string
+          reason: string
+          request_message: string | null
+          requested_at: string
+          requesting_caregiver_id: string
+          shift_id: string
+          status: Database["public"]["Enums"]["coverage_request_status"]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at?: string
+          family_response_at?: string | null
+          family_response_by?: string | null
+          id?: string
+          reason: string
+          request_message?: string | null
+          requested_at?: string
+          requesting_caregiver_id: string
+          shift_id: string
+          status?: Database["public"]["Enums"]["coverage_request_status"]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          family_response_at?: string | null
+          family_response_by?: string | null
+          id?: string
+          reason?: string
+          request_message?: string | null
+          requested_at?: string
+          requesting_caregiver_id?: string
+          shift_id?: string
+          status?: Database["public"]["Enums"]["coverage_request_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shift_coverage_requests_family_response_by_fkey"
+            columns: ["family_response_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shift_coverage_requests_requesting_caregiver_id_fkey"
+            columns: ["requesting_caregiver_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shift_coverage_requests_shift_id_fkey"
+            columns: ["shift_id"]
+            isOneToOne: false
+            referencedRelation: "care_shifts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shift_notifications: {
+        Row: {
+          coverage_request_id: string | null
+          created_at: string
+          delivery_status: Database["public"]["Enums"]["delivery_status"]
+          id: string
+          message_content: string | null
+          notification_type: Database["public"]["Enums"]["shift_notification_type"]
+          sent_at: string
+          sent_to: string
+          shift_id: string | null
+          whatsapp_message_id: string | null
+        }
+        Insert: {
+          coverage_request_id?: string | null
+          created_at?: string
+          delivery_status?: Database["public"]["Enums"]["delivery_status"]
+          id?: string
+          message_content?: string | null
+          notification_type: Database["public"]["Enums"]["shift_notification_type"]
+          sent_at?: string
+          sent_to: string
+          shift_id?: string | null
+          whatsapp_message_id?: string | null
+        }
+        Update: {
+          coverage_request_id?: string | null
+          created_at?: string
+          delivery_status?: Database["public"]["Enums"]["delivery_status"]
+          id?: string
+          message_content?: string | null
+          notification_type?: Database["public"]["Enums"]["shift_notification_type"]
+          sent_at?: string
+          sent_to?: string
+          shift_id?: string | null
+          whatsapp_message_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shift_notifications_coverage_request_id_fkey"
+            columns: ["coverage_request_id"]
+            isOneToOne: false
+            referencedRelation: "shift_coverage_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shift_notifications_sent_to_fkey"
+            columns: ["sent_to"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shift_notifications_shift_id_fkey"
+            columns: ["shift_id"]
+            isOneToOne: false
+            referencedRelation: "care_shifts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       subscription_plans: {
         Row: {
           created_at: string | null
@@ -2201,6 +2387,56 @@ export type Database = {
         }
         Relationships: []
       }
+      whatsapp_message_log: {
+        Row: {
+          content: string
+          created_at: string
+          direction: string
+          id: string
+          message_id: string | null
+          message_type: string
+          phone_number: string
+          processed: boolean
+          processed_at: string | null
+          template_name: string | null
+          user_id: string | null
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          direction: string
+          id?: string
+          message_id?: string | null
+          message_type: string
+          phone_number: string
+          processed?: boolean
+          processed_at?: string | null
+          template_name?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          direction?: string
+          id?: string
+          message_id?: string | null
+          message_type?: string
+          phone_number?: string
+          processed?: boolean
+          processed_at?: string | null
+          template_name?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_message_log_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       work_log_expenses: {
         Row: {
           amount: number
@@ -2406,6 +2642,16 @@ export type Database = {
       chatbot_sender_type: "user" | "bot" | "human_agent"
       chatbot_status: "active" | "completed" | "abandoned"
       content_type: "text" | "image" | "video"
+      coverage_claim_status:
+        | "pending_family_confirmation"
+        | "confirmed"
+        | "declined"
+      coverage_request_status:
+        | "pending_family_approval"
+        | "approved"
+        | "denied"
+        | "expired"
+      delivery_status: "sent" | "delivered" | "failed" | "pending"
       feature_status:
         | "planned"
         | "in_development"
@@ -2422,6 +2668,13 @@ export type Database = {
       module_status: "not_started" | "in_progress" | "completed"
       registration_status: "started" | "in_progress" | "completed" | "abandoned"
       section_status: "not_started" | "in_progress" | "completed"
+      shift_notification_type:
+        | "reminder_2_days"
+        | "reminder_night_before"
+        | "coverage_available"
+        | "assignment_confirmed"
+        | "time_off_request"
+        | "coverage_claimed"
       user_role: "family" | "professional" | "community" | "admin"
     }
     CompositeTypes: {
@@ -2548,6 +2801,18 @@ export const Constants = {
       chatbot_sender_type: ["user", "bot", "human_agent"],
       chatbot_status: ["active", "completed", "abandoned"],
       content_type: ["text", "image", "video"],
+      coverage_claim_status: [
+        "pending_family_confirmation",
+        "confirmed",
+        "declined",
+      ],
+      coverage_request_status: [
+        "pending_family_approval",
+        "approved",
+        "denied",
+        "expired",
+      ],
+      delivery_status: ["sent", "delivered", "failed", "pending"],
       feature_status: [
         "planned",
         "in_development",
@@ -2566,6 +2831,14 @@ export const Constants = {
       module_status: ["not_started", "in_progress", "completed"],
       registration_status: ["started", "in_progress", "completed", "abandoned"],
       section_status: ["not_started", "in_progress", "completed"],
+      shift_notification_type: [
+        "reminder_2_days",
+        "reminder_night_before",
+        "coverage_available",
+        "assignment_confirmed",
+        "time_off_request",
+        "coverage_claimed",
+      ],
       user_role: ["family", "professional", "community", "admin"],
     },
   },
