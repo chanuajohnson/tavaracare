@@ -19,7 +19,8 @@ export const assistantSupabase = {
         ...item,
         context: typeof item.context === 'object' && item.context !== null 
           ? item.context as { [key: string]: any; role?: string; progress_stage?: string; action_type?: string; }
-          : {}
+          : {},
+        sender: (item.sender === 'Chan' ? 'Chan' : 'TAV') as 'TAV' | 'Chan'
       }));
     } catch (error) {
       console.error('Error fetching nudges:', error);
