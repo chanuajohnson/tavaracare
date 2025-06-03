@@ -67,7 +67,7 @@ export const NextStepsPanel = () => {
   const { user } = useAuth();
   const { trackEngagement } = useTracking();
   const { toast } = useToast();
-  const { redirectToDocumentUpload, getUploadButtonText, isLoading: uploadCheckLoading } = useDocumentUploadRedirect();
+  const { redirectToDocumentUpload, getUploadButtonText, isLoading: uploadCheckLoading, hasExistingUploads } = useDocumentUploadRedirect();
   
   const [isAvailabilityModalOpen, setIsAvailabilityModalOpen] = useState(false);
   const [selectedAvailability, setSelectedAvailability] = useState<string[]>([]);
@@ -107,6 +107,12 @@ export const NextStepsPanel = () => {
         if (dataSource === 'none' && user) {
           const updatedSteps = [...initialSteps];
           updatedSteps[0].completed = true;
+          
+          // Check if user has uploaded documents and mark step 2 accordingly
+          if (hasExistingUploads) {
+            updatedSteps[1].completed = true;
+          }
+          
           setSteps(updatedSteps);
           saveProgressToLocalStorage(updatedSteps, []);
         }
@@ -119,7 +125,7 @@ export const NextStepsPanel = () => {
     };
     
     loadProgress();
-  }, [user]);
+  }, [user, hasExistingUploads]);
 
   const loadProgressFromLocalStorage = () => {
     try {
@@ -135,6 +141,12 @@ export const NextStepsPanel = () => {
               updatedSteps[index].completed = parsedData.steps[stepId];
             }
           });
+          
+          // Override step 2 completion based on actual uploads
+          if (hasExistingUploads) {
+            updatedSteps[1].completed = true;
+          }
+          
           setSteps(updatedSteps);
         }
         
@@ -187,6 +199,12 @@ export const NextStepsPanel = () => {
             
             const updatedSteps = [...initialSteps];
             updatedSteps[0].completed = true;
+            
+            // Check uploads for step 2 completion
+            if (hasExistingUploads) {
+              updatedSteps[1].completed = true;
+            }
+            
             setSteps(updatedSteps);
             
             return true;
@@ -208,6 +226,12 @@ export const NextStepsPanel = () => {
               updatedSteps[index].completed = data.onboarding_progress[stepId];
             }
           });
+          
+          // Override step 2 completion based on actual uploads
+          if (hasExistingUploads) {
+            updatedSteps[1].completed = true;
+          }
+          
           setSteps(updatedSteps);
         }
         
@@ -344,17 +368,11 @@ export const NextStepsPanel = () => {
   }, [steps, selectedAvailability, loading]);
 
   const handleUploadCertificates = () => {
-    const updatedSteps = [...steps];
-    const index = updatedSteps.findIndex(s => s.id === 2);
-    if (index >= 0 && !updatedSteps[index].completed) {
-      updatedSteps[index].completed = true;
-      setSteps(updatedSteps);
-      
-      trackEngagement('onboarding_step_complete', { 
-        step: 'certificates',
-        progress_percent: Math.round(((completedSteps + 1) / steps.length) * 100)
-      });
-    }
+    // Don't mark the step as completed here - let the actual upload status determine completion
+    trackEngagement('onboarding_step_interact', { 
+      step: 'certificates',
+      action: 'redirect_to_upload'
+    });
     
     redirectToDocumentUpload();
   };
@@ -404,10 +422,9 @@ export const NextStepsPanel = () => {
   };
 
   const renderActionButton = (step: typeof initialSteps[0]) => {
-    if (step.completed) return null;
-    
     switch (step.action) {
       case "upload":
+        // Always show the upload button, regardless of completion status
         return (
           <Button 
             variant="ghost" 
@@ -422,6 +439,7 @@ export const NextStepsPanel = () => {
         );
       
       case "availability":
+        if (step.completed) return null;
         return (
           <Button 
             variant="ghost" 
@@ -440,6 +458,7 @@ export const NextStepsPanel = () => {
       case "training":
       case "complete":
       default:
+        if (step.completed) return null;
         return (
           <Link to={step.link}>
             <Button 
