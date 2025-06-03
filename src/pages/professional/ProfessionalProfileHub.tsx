@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
@@ -32,7 +31,8 @@ import {
   CheckCircle,
   AlertCircle,
   Pill,
-  ChefHat
+  ChefHat,
+  Shield
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -499,7 +499,7 @@ const ProfessionalProfileHub = () => {
           {/* Tabs for Different Views */}
           {selectedCarePlanId && (
             <Tabs defaultValue="schedule" className="w-full">
-              <TabsList className="grid w-full grid-cols-3">
+              <TabsList className="grid w-full grid-cols-5">
                 <TabsTrigger value="schedule" className="flex items-center gap-2">
                   <Calendar className="h-4 w-4" />
                   Schedule
@@ -511,6 +511,14 @@ const ProfessionalProfileHub = () => {
                 <TabsTrigger value="meals" className="flex items-center gap-2">
                   <ChefHat className="h-4 w-4" />
                   Meal Planning
+                </TabsTrigger>
+                <TabsTrigger value="admin-assist" className="flex items-center gap-2">
+                  <Shield className="h-4 w-4" />
+                  Admin Assist
+                </TabsTrigger>
+                <TabsTrigger value="documents" className="flex items-center gap-2">
+                  <FileText className="h-4 w-4" />
+                  Documents
                 </TabsTrigger>
               </TabsList>
 
@@ -548,6 +556,160 @@ const ProfessionalProfileHub = () => {
                   carePlanId={selectedCarePlanId}
                   carePlanTitle={selectedCarePlan?.carePlan?.title || 'Care Plan'}
                 />
+              </TabsContent>
+
+              <TabsContent value="admin-assist" className="space-y-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Shield className="h-5 w-5 text-primary" />
+                      Administrative Assistance
+                    </CardTitle>
+                    <CardDescription>
+                      Tools and resources to help with administrative tasks
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      <Card>
+                        <CardContent className="pt-6">
+                          <div className="flex items-center gap-3">
+                            <div className="bg-primary/10 p-3 rounded-full">
+                              <FileText className="h-6 w-6 text-primary" />
+                            </div>
+                            <div>
+                              <h3 className="font-medium">Care Plan Documentation</h3>
+                              <p className="text-sm text-muted-foreground">Generate care reports</p>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                      
+                      <Card>
+                        <CardContent className="pt-6">
+                          <div className="flex items-center gap-3">
+                            <div className="bg-primary/10 p-3 rounded-full">
+                              <CheckCircle className="h-6 w-6 text-primary" />
+                            </div>
+                            <div>
+                              <h3 className="font-medium">Compliance Tracking</h3>
+                              <p className="text-sm text-muted-foreground">Monitor compliance status</p>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+
+                      <Card>
+                        <CardContent className="pt-6">
+                          <div className="flex items-center gap-3">
+                            <div className="bg-primary/10 p-3 rounded-full">
+                              <Settings className="h-6 w-6 text-primary" />
+                            </div>
+                            <div>
+                              <h3 className="font-medium">Task Management</h3>
+                              <p className="text-sm text-muted-foreground">Organize admin tasks</p>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              <TabsContent value="documents" className="space-y-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <FileText className="h-5 w-5 text-primary" />
+                      Document Management
+                    </CardTitle>
+                    <CardDescription>
+                      Upload and manage your professional documents
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-6">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <Card>
+                          <CardContent className="pt-6">
+                            <div className="space-y-4">
+                              <div className="flex items-center gap-3">
+                                <div className="bg-primary/10 p-3 rounded-full">
+                                  <FileText className="h-6 w-6 text-primary" />
+                                </div>
+                                <div>
+                                  <h3 className="font-medium">Certificates & Licenses</h3>
+                                  <p className="text-sm text-muted-foreground">Upload your professional certificates</p>
+                                </div>
+                              </div>
+                              <Button variant="outline" className="w-full">
+                                Upload Certificate
+                              </Button>
+                            </div>
+                          </CardContent>
+                        </Card>
+
+                        <Card>
+                          <CardContent className="pt-6">
+                            <div className="space-y-4">
+                              <div className="flex items-center gap-3">
+                                <div className="bg-primary/10 p-3 rounded-full">
+                                  <Shield className="h-6 w-6 text-primary" />
+                                </div>
+                                <div>
+                                  <h3 className="font-medium">Background Check</h3>
+                                  <p className="text-sm text-muted-foreground">Certificate of Character from T&T Police</p>
+                                </div>
+                              </div>
+                              <Button variant="outline" className="w-full">
+                                Upload Background Check
+                              </Button>
+                            </div>
+                          </CardContent>
+                        </Card>
+
+                        <Card>
+                          <CardContent className="pt-6">
+                            <div className="space-y-4">
+                              <div className="flex items-center gap-3">
+                                <div className="bg-primary/10 p-3 rounded-full">
+                                  <Award className="h-6 w-6 text-primary" />
+                                </div>
+                                <div>
+                                  <h3 className="font-medium">Training Records</h3>
+                                  <p className="text-sm text-muted-foreground">Training completion certificates</p>
+                                </div>
+                              </div>
+                              <Button variant="outline" className="w-full">
+                                View Training Records
+                              </Button>
+                            </div>
+                          </CardContent>
+                        </Card>
+
+                        <Card>
+                          <CardContent className="pt-6">
+                            <div className="space-y-4">
+                              <div className="flex items-center gap-3">
+                                <div className="bg-primary/10 p-3 rounded-full">
+                                  <Clock className="h-6 w-6 text-primary" />
+                                </div>
+                                <div>
+                                  <h3 className="font-medium">Work Log Reports</h3>
+                                  <p className="text-sm text-muted-foreground">Download work summaries</p>
+                                </div>
+                              </div>
+                              <Button variant="outline" className="w-full">
+                                Generate Report
+                              </Button>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
               </TabsContent>
             </Tabs>
           )}
