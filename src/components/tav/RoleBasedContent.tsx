@@ -86,7 +86,7 @@ export const RoleBasedContent: React.FC<RoleBasedContentProps> = ({
           your caregiving journey with warmth and expertise.
         </p>
 
-        {/* Enhanced Welcome Back Option for Returning Users */}
+        {/* Enhanced Welcome Back Card for Returning Users */}
         {isReturningUser && (
           <motion.div
             initial={{ opacity: 0, y: -10, scale: 0.95 }}
@@ -94,34 +94,28 @@ export const RoleBasedContent: React.FC<RoleBasedContentProps> = ({
             transition={{ duration: 0.4, ease: "easeOut" }}
             className="mb-6"
           >
-            <Button 
-              variant="default" 
-              size="sm" 
-            className="w-full bg-blue-50 hover:bg-blue-100 text-blue-700 shadow-sm border border-blue-200 min-h-[4rem] h-auto py-4 px-4 relative overflow-hidden group rounded-xl"
-
+            <motion.div
+              className="p-3 bg-gradient-to-r from-primary/10 via-primary/5 to-transparent rounded-xl border border-primary/20 shadow-sm cursor-pointer hover:from-primary/15 hover:via-primary/8 hover:shadow-md transition-all duration-200"
               onClick={() => navigate('/auth')}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
             >
-              {/* Sparkle effect for VIP treatment */}
-              <div className="absolute inset-0 opacity-30 group-hover:opacity-40 transition-opacity duration-300">
- <Sparkles className="h-3 w-3 absolute top-2 right-3 text-blue-400 animate-pulse" />
-<Sparkles className="h-2 w-2 absolute bottom-2 left-3 text-blue-300 animate-pulse" style={{ animationDelay: '0.5s' }} />
-</div>
-              
-              <div className="flex items-center justify-between w-full min-w-0 relative z-10">
+              <div className="flex items-center justify-between w-full">
                 <div className="flex flex-col items-start text-left min-w-0 flex-1 mr-3">
-                  <span className="text-base font-semibold leading-tight mb-1">
+                  <p className="text-xs font-semibold text-primary mb-1 leading-tight flex items-center gap-1">
+                    <Sparkles className="h-3 w-3" />
                     {getContextualWelcomeMessage().main}
-                  </span>
-                  <span className="text-sm opacity-95 leading-tight mb-1 break-words">
+                  </p>
+                  <p className="text-xs text-muted-foreground leading-tight mb-1">
                     {getContextualWelcomeMessage().sub}
-                  </span>
-                  <span className="text-xs opacity-80 leading-tight break-words">
+                  </p>
+                  <p className="text-xs text-muted-foreground/80 leading-tight">
                     {getContextualWelcomeMessage().detail}
-                  </span>
+                  </p>
                 </div>
-                <ArrowRight className="h-5 w-5 flex-shrink-0 group-hover:translate-x-1 transition-transform duration-200" />
+                <ArrowRight className="h-4 w-4 flex-shrink-0 text-primary/70 group-hover:translate-x-1 transition-transform duration-200" />
               </div>
-            </Button>
+            </motion.div>
             
             {/* Debug info for development */}
             {process.env.NODE_ENV === 'development' && (
