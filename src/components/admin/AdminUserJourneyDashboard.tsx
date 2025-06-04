@@ -12,10 +12,13 @@ import { BulkActionPanel } from "./BulkActionPanel";
 import { UserDetailModal } from "./UserDetailModal";
 import type { UserWithProgress, RoleStats } from "@/types/adminTypes";
 
+// Define the role type inline to avoid conflicts
+type AdminUserRole = 'all' | 'family' | 'professional' | 'community' | 'admin';
+
 export function AdminUserJourneyDashboard() {
   const [users, setUsers] = useState<UserWithProgress[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedRole, setSelectedRole] = useState<'all' | 'family' | 'professional' | 'community' | 'admin'>('all');
+  const [selectedRole, setSelectedRole] = useState<AdminUserRole>('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStage, setFilterStage] = useState<'all' | string>('all');
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
