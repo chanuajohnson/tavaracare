@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { supabase } from '@/lib/supabase';
+import { useNavigate } from 'react-router-dom';
 
 interface FamilyStep {
   id: number;
@@ -9,6 +10,8 @@ interface FamilyStep {
   description: string;
   completed: boolean;
   link: string;
+  buttonText?: string;
+  action?: () => void;
 }
 
 interface FamilyProgressData {
@@ -16,11 +19,14 @@ interface FamilyProgressData {
   completionPercentage: number;
   nextStep?: FamilyStep;
   loading: boolean;
+  carePlans: any[];
 }
 
 export const useFamilyProgress = (): FamilyProgressData => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
+  const [carePlans, setCarePlans] = useState([]);
   const [steps, setSteps] = useState<FamilyStep[]>([
     { 
       id: 1, 
@@ -73,6 +79,75 @@ export const useFamilyProgress = (): FamilyProgressData => {
     }
   ]);
 
+  const openWhatsApp = () => {
+    const phoneNumber = "8687865357";
+    const message = "I am ready to schedule my initial site visit with matched nurses";
+    const encodedMessage = encodeURIComponent(message);
+    const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodedMessage}`;
+    window.open(whatsappUrl, '_blank');
+  };
+
+  const handleStepAction = (step: FamilyStep) => {
+    if (step.id === 4) {
+      const canAccessMatching = steps[0]?.completed && steps[1]?.completed && steps[2]?.completed;
+      if (!canAccessMatching) return;
+    }
+    
+    if (step.id === 5) {
+      if (carePlans.length > 0) {
+        navigate(`/family/care-management/${carePlans[0].id}/medications`);
+      } else {
+        navigate('/family/care-management/create');
+      }
+      return;
+    }
+    
+    if (step.id === 6) {
+      if (carePlans.length > 0) {
+        navigate(`/family/care-management/${carePlans[0].id}?tab=meal-planning`);
+      } else {
+        navigate('/family/care-management/create');
+      }
+      return;
+    }
+    
+    if (step.id === 7) {
+      openWhatsApp();
+      return;
+    }
+    
+    navigate(step.link);
+  };
+
+  const getButtonText = (step: FamilyStep) => {
+    if (step.id === 4) {
+      const canAccessMatching = steps[0]?.completed && steps[1]?.completed && steps[2]?.completed;
+      if (!canAccessMatching) return "Complete Above Steps";
+      return step.completed ? "View Matches" : "View Matches";
+    }
+    
+    if (step.id === 5) {
+      return step.completed ? "Edit Medications" : "Start Setup";
+    }
+    
+    if (step.id === 6) {
+      return step.completed ? "Edit Meal Plans" : "Start Planning";
+    }
+    
+    if (step.id === 7) {
+      return "Schedule Visit";
+    }
+    
+    if (step.completed) {
+      if (step.id === 1) return "Edit Profile";
+      if (step.id === 2) return "Edit Assessment";
+      if (step.id === 3) return "Edit Story";
+      return "Edit";
+    }
+    
+    return step.id === 2 ? "Start Assessment" : "Complete";
+  };
+
   const checkStepCompletion = async () => {
     if (!user) return;
     
@@ -103,8 +178,10 @@ export const useFamilyProgress = (): FamilyProgressData => {
       // Check for care plans
       const { data: carePlansData } = await supabase
         .from('care_plans')
-        .select('id')
+        .select('id, title')
         .eq('family_id', user.id);
+
+      setCarePlans(carePlansData || []);
 
       // Check for medications
       const { data: medications } = await supabase
@@ -118,9 +195,13 @@ export const useFamilyProgress = (): FamilyProgressData => {
         .select('id')
         .in('care_plan_id', (carePlansData || []).map(cp => cp.id));
 
-      const updatedSteps = [...steps];
+      const updatedSteps = steps.map(step => ({
+        ...step,
+        action: () => handleStepAction(step),
+        buttonText: getButtonText(step)
+      }));
       
-      // Mark steps as completed based on data
+      // Mark steps as completed based on data - exact same logic as FamilyNextStepsPanel
       if (user && profile?.full_name) {
         updatedSteps[0].completed = true;
       }
@@ -167,6 +248,7 @@ export const useFamilyProgress = (): FamilyProgressData => {
     steps,
     completionPercentage,
     nextStep,
-    loading
+    loading,
+    carePlans
   };
 };

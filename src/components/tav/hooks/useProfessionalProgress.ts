@@ -1,6 +1,8 @@
+
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { supabase } from '@/lib/supabase';
+import { useNavigate } from 'react-router-dom';
 
 interface ProfessionalStep {
   id: number;
@@ -8,6 +10,8 @@ interface ProfessionalStep {
   description: string;
   completed: boolean;
   link: string;
+  buttonText?: string;
+  action?: () => void;
 }
 
 interface ProfessionalProgressData {
@@ -19,6 +23,7 @@ interface ProfessionalProgressData {
 
 export const useProfessionalProgress = (): ProfessionalProgressData => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [steps, setSteps] = useState<ProfessionalStep[]>([
     { 
@@ -58,13 +63,36 @@ export const useProfessionalProgress = (): ProfessionalProgressData => {
     }
   ]);
 
+  const handleStepAction = (step: ProfessionalStep) => {
+    navigate(step.link);
+  };
+
+  const getButtonText = (step: ProfessionalStep) => {
+    if (step.completed) {
+      if (step.id === 1) return "Edit Profile";
+      if (step.id === 2) return "View Documents";
+      if (step.id === 3) return "Edit Availability";
+      if (step.id === 4) return "Continue Training";
+      if (step.id === 5) return "Reschedule";
+      return "Edit";
+    }
+    
+    if (step.id === 1) return "Complete Profile";
+    if (step.id === 2) return "Upload Docs";
+    if (step.id === 3) return "Set Availability";
+    if (step.id === 4) return "Start Training";
+    if (step.id === 5) return "Schedule";
+    
+    return "Complete";
+  };
+
   const checkStepCompletion = async () => {
     if (!user) return;
     
     try {
       setLoading(true);
       
-      // Check user profile completion
+      // Check user profile completion - exact same logic as NextStepsPanel
       const { data: profile } = await supabase
         .from('profiles')
         .select('full_name, years_of_experience, certifications, availability')
@@ -77,9 +105,13 @@ export const useProfessionalProgress = (): ProfessionalProgressData => {
         .select('id')
         .eq('user_id', user.id);
 
-      const updatedSteps = [...steps];
+      const updatedSteps = steps.map(step => ({
+        ...step,
+        action: () => handleStepAction(step),
+        buttonText: getButtonText(step)
+      }));
       
-      // Mark steps as completed based on data
+      // Mark steps as completed based on data - exact same logic as NextStepsPanel
       if (profile?.full_name && profile?.years_of_experience) {
         updatedSteps[0].completed = true;
       }

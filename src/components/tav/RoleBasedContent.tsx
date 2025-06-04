@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Heart, UserCog, Users, Globe, Shield, ArrowRight, Sparkles, Clock } from 'lucide-react';
+import { Heart, UserCog, Users, Globe, Shield, ArrowRight, Sparkles, Clock, CheckCircle2, Circle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useReturningUser } from './hooks/useReturningUser';
 import { useFamilyProgress } from './hooks/useFamilyProgress';
@@ -216,6 +216,43 @@ export const RoleBasedContent: React.FC<RoleBasedContentProps> = ({
           care for your loved one.
         </p>
         
+        {/* Granular Steps Section - NEW */}
+        <div className="space-y-2">
+          <p className="text-xs font-medium text-blue-800 mb-2">Journey Steps:</p>
+          <div className="space-y-1">
+            {steps.map((step, index) => {
+              const canAccess = step.id !== 4 || (steps[0]?.completed && steps[1]?.completed && steps[2]?.completed);
+              return (
+                <div key={step.id} className="flex items-center gap-2 text-xs">
+                  <div className="flex items-center gap-1 flex-1 min-w-0">
+                    {step.completed ? (
+                      <CheckCircle2 className="h-3 w-3 text-green-500 flex-shrink-0" />
+                    ) : (
+                      <Circle className="h-3 w-3 text-gray-300 flex-shrink-0" />
+                    )}
+                    <span className={`truncate ${step.completed ? 'text-gray-500 line-through' : 'text-gray-700'}`}>
+                      {index + 1}. {step.title}
+                    </span>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className={`h-5 px-2 text-xs ${
+                      step.id === 4 && !canAccess 
+                        ? 'text-gray-400 cursor-not-allowed' 
+                        : 'text-blue-600 hover:text-blue-700'
+                    }`}
+                    disabled={step.id === 4 && !canAccess}
+                    onClick={() => step.action?.()}
+                  >
+                    {step.buttonText}
+                  </Button>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+        
         {nextStep && (
           <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
             <div className="flex items-center gap-2 mb-1">
@@ -231,7 +268,7 @@ export const RoleBasedContent: React.FC<RoleBasedContentProps> = ({
           variant="default" 
           size="sm" 
           className="w-full h-auto py-3"
-          onClick={() => navigate(nextStep?.link || '/dashboard/family')}
+          onClick={() => nextStep?.action?.() || navigate('/dashboard/family')}
         >
           {nextStep ? `Continue: ${nextStep.title}` : 'View Dashboard'}
         </Button>
@@ -283,6 +320,35 @@ export const RoleBasedContent: React.FC<RoleBasedContentProps> = ({
           Complete your profile to start receiving job opportunities that match your skills.
         </p>
         
+        {/* Granular Steps Section - NEW */}
+        <div className="space-y-2">
+          <p className="text-xs font-medium text-green-800 mb-2">Setup Steps:</p>
+          <div className="space-y-1">
+            {steps.map((step, index) => (
+              <div key={step.id} className="flex items-center gap-2 text-xs">
+                <div className="flex items-center gap-1 flex-1 min-w-0">
+                  {step.completed ? (
+                    <CheckCircle2 className="h-3 w-3 text-green-500 flex-shrink-0" />
+                  ) : (
+                    <Circle className="h-3 w-3 text-gray-300 flex-shrink-0" />
+                  )}
+                  <span className={`truncate ${step.completed ? 'text-gray-500 line-through' : 'text-gray-700'}`}>
+                    {index + 1}. {step.title}
+                  </span>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-5 px-2 text-xs text-green-600 hover:text-green-700"
+                  onClick={() => step.action?.()}
+                >
+                  {step.buttonText}
+                </Button>
+              </div>
+            ))}
+          </div>
+        </div>
+        
         {nextStep && (
           <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
             <div className="flex items-center gap-2 mb-1">
@@ -298,7 +364,7 @@ export const RoleBasedContent: React.FC<RoleBasedContentProps> = ({
           variant="default" 
           size="sm" 
           className="w-full h-auto py-3"
-          onClick={() => navigate(nextStep?.link || '/dashboard/professional')}
+          onClick={() => nextStep?.action?.() || navigate('/dashboard/professional')}
         >
           {nextStep ? `Continue: ${nextStep.title}` : 'View Dashboard'}
         </Button>
