@@ -109,7 +109,7 @@ export function Navigation() {
         <div className="flex items-center flex-col sm:flex-row">
           <Link to="/" className="flex items-center">
             <img 
-              src="/lovable-uploads/4d3f1358-624d-476e-a08f-2a4d0892f424.png" 
+              src="/TAVARACARElogo.JPG
               alt="Tavara" 
               className="h-8 w-auto sm:h-10"
             />
