@@ -9,6 +9,7 @@ import { motion } from 'framer-motion';
 import { FamilyJourneyPreview } from './components/FamilyJourneyPreview';
 import { ProfessionalJourneyPreview } from './components/ProfessionalJourneyPreview';
 import { CommunityJourneyPreview } from './components/CommunityJourneyPreview';
+import { ExpandableChatSection } from './components/ExpandableChatSection';
 
 interface RoleBasedContentProps {
   role: 'guest' | 'family' | 'professional' | 'community' | 'admin' | null;
@@ -282,6 +283,9 @@ export const RoleBasedContent: React.FC<RoleBasedContentProps> = ({
         >
           {nextStep ? `Continue: ${nextStep.title}` : 'View Dashboard'}
         </Button>
+
+        {/* Add Expandable Chat Section */}
+        <ExpandableChatSection role="family" />
       </div>
     );
   }
@@ -388,6 +392,9 @@ export const RoleBasedContent: React.FC<RoleBasedContentProps> = ({
         >
           {nextStep ? `Continue: ${nextStep.title}` : 'View Dashboard'}
         </Button>
+
+        {/* Add Expandable Chat Section */}
+        <ExpandableChatSection role="professional" />
       </div>
     );
   }
@@ -413,6 +420,9 @@ export const RoleBasedContent: React.FC<RoleBasedContentProps> = ({
         >
           View Community Dashboard
         </Button>
+
+        {/* Add Expandable Chat Section */}
+        <ExpandableChatSection role="community" />
       </div>
     );
   }
