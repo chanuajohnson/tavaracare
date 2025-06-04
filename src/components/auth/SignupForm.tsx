@@ -1,15 +1,16 @@
+
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { EyeIcon, EyeOffIcon, Loader2, MailIcon } from "lucide-react";
+import { EyeIcon, EyeOffIcon, Loader2, MailIcon, ShieldCheckIcon } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { UserRole } from "@/types/database";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 
 interface SignupFormProps {
-  onSubmit: (email: string, password: string, firstName: string, lastName: string, role: string) => Promise<any>;
+  onSubmit: (email: string, password: string, firstName: string, lastName: string, role: string, adminCode?: string) => Promise<any>;
   isLoading: boolean;
 }
 
@@ -19,6 +20,7 @@ export function SignupForm({ onSubmit, isLoading }: SignupFormProps) {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [role, setRole] = useState<UserRole>("family");
+  const [adminCode, setAdminCode] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [formSubmitted, setFormSubmitted] = useState(false);
   const [submissionStatus, setSubmissionStatus] = useState<"idle" | "submitting" | "success" | "error">("idle");
@@ -33,6 +35,12 @@ export function SignupForm({ onSubmit, isLoading }: SignupFormProps) {
     
     if (password.length < 6) {
       toast.error("Password must be at least 6 characters long");
+      return;
+    }
+
+    // Validate admin code if admin role is selected
+    if (role === "admin" && !adminCode.trim()) {
+      toast.error("Admin code is required for administrator accounts");
       return;
     }
     
@@ -50,13 +58,15 @@ export function SignupForm({ onSubmit, isLoading }: SignupFormProps) {
         first_name: firstName,
         last_name: lastName,
         full_name: `${firstName} ${lastName}`.trim(),
-        role: role
+        role: role,
+        // Include admin code in metadata if admin role selected
+        ...(role === "admin" && { admin_code: adminCode })
       };
       
       console.log('Setting user metadata:', metadata);
       
       // Pass the registration to the parent component
-      await onSubmit(email, password, firstName, lastName, role);
+      await onSubmit(email, password, firstName, lastName, role, role === "admin" ? adminCode : undefined);
       
       // Show success message
       toast.success("Account created successfully! Please check your email to confirm your account.");
@@ -64,7 +74,14 @@ export function SignupForm({ onSubmit, isLoading }: SignupFormProps) {
       
     } catch (error: any) {
       console.error("Signup error:", error);
-      toast.error(error.message || "Failed to create account. Please try again.");
+      
+      // Show specific error for invalid admin code
+      if (error.message && error.message.includes('Invalid admin signup code')) {
+        toast.error("Invalid admin code provided. Please check your admin code and try again.");
+      } else {
+        toast.error(error.message || "Failed to create account. Please try again.");
+      }
+      
       setFormSubmitted(false);
       setSubmissionStatus("error");
     }
@@ -79,7 +96,7 @@ export function SignupForm({ onSubmit, isLoading }: SignupFormProps) {
             <h3 className="font-medium text-lg">Registration Started!</h3>
             <div className="mt-2 space-y-4">
               <p>
-                Your account has been created successfully. We've sent a confirmation email to <strong>{email}</strong>.
+                Your {role === "admin" ? "administrator" : role} account has been created successfully. We've sent a confirmation email to <strong>{email}</strong>.
               </p>
               <div className="bg-amber-50 border border-amber-200 p-3 rounded-md text-amber-800 text-sm">
                 <h4 className="font-medium mb-1 flex items-center">
@@ -188,6 +205,10 @@ export function SignupForm({ onSubmit, isLoading }: SignupFormProps) {
           onValueChange={(value) => {
             console.log('Role selected:', value);
             setRole(value as UserRole);
+            // Clear admin code when switching away from admin role
+            if (value !== "admin") {
+              setAdminCode("");
+            }
           }}
           disabled={isLoading || formSubmitted}
         >
@@ -198,9 +219,34 @@ export function SignupForm({ onSubmit, isLoading }: SignupFormProps) {
             <SelectItem value="family">Family Member</SelectItem>
             <SelectItem value="professional">Care Professional</SelectItem>
             <SelectItem value="community">Community Member</SelectItem>
+            <SelectItem value="admin">Administrator</SelectItem>
           </SelectContent>
         </Select>
       </div>
+      
+      {/* Admin Code Input - Only show when admin role is selected */}
+      {role === "admin" && (
+        <div className="space-y-2">
+          <Label htmlFor="adminCode" className="flex items-center gap-2">
+            <ShieldCheckIcon className="h-4 w-4 text-red-600" />
+            Admin Code
+          </Label>
+          <Input
+            id="adminCode"
+            type="password"
+            placeholder="Enter admin verification code"
+            value={adminCode}
+            onChange={(e) => setAdminCode(e.target.value)}
+            required
+            disabled={isLoading || formSubmitted}
+            className="border-red-200 focus:border-red-400"
+          />
+          <p className="text-xs text-red-600">
+            A special admin code is required to create administrator accounts.
+          </p>
+        </div>
+      )}
+      
       <Button 
         type="submit" 
         className="w-full mt-6" 

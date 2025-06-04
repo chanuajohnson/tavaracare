@@ -18,6 +18,7 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Calendar, Sun, Moon, Home } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getCurrentEnvironment } from "@/integrations/supabase/client";
+import { useDocumentUploadRedirect } from "@/hooks/professional/useDocumentUploadRedirect";
 
 const initialSteps = [
   { 
@@ -66,6 +67,7 @@ export const NextStepsPanel = () => {
   const { user } = useAuth();
   const { trackEngagement } = useTracking();
   const { toast } = useToast();
+  const { redirectToDocumentUpload, getUploadButtonText, isLoading: uploadCheckLoading, hasExistingUploads } = useDocumentUploadRedirect();
   
   const [isAvailabilityModalOpen, setIsAvailabilityModalOpen] = useState(false);
   const [selectedAvailability, setSelectedAvailability] = useState<string[]>([]);
@@ -105,6 +107,12 @@ export const NextStepsPanel = () => {
         if (dataSource === 'none' && user) {
           const updatedSteps = [...initialSteps];
           updatedSteps[0].completed = true;
+          
+          // Check if user has uploaded documents and mark step 2 accordingly
+          if (hasExistingUploads) {
+            updatedSteps[1].completed = true;
+          }
+          
           setSteps(updatedSteps);
           saveProgressToLocalStorage(updatedSteps, []);
         }
@@ -117,7 +125,7 @@ export const NextStepsPanel = () => {
     };
     
     loadProgress();
-  }, [user]);
+  }, [user, hasExistingUploads]);
 
   const loadProgressFromLocalStorage = () => {
     try {
@@ -133,6 +141,12 @@ export const NextStepsPanel = () => {
               updatedSteps[index].completed = parsedData.steps[stepId];
             }
           });
+          
+          // Override step 2 completion based on actual uploads
+          if (hasExistingUploads) {
+            updatedSteps[1].completed = true;
+          }
+          
           setSteps(updatedSteps);
         }
         
@@ -156,7 +170,6 @@ export const NextStepsPanel = () => {
       const env = getCurrentEnvironment();
       console.log(`Loading progress from database in ${env} environment`);
       
-      // First try to load onboarding_progress
       try {
         const { data, error } = await supabase
           .from('profiles')
@@ -165,7 +178,6 @@ export const NextStepsPanel = () => {
           .maybeSingle();
         
         if (error) {
-          // If column doesn't exist, try to load only availability
           if (error.message.includes('column') || error.message.includes('schema')) {
             console.warn(`The onboarding_progress column might not exist in the ${env} environment`);
             
@@ -185,9 +197,14 @@ export const NextStepsPanel = () => {
               console.log("Loaded availability only (onboarding_progress not available)");
             }
             
-            // Mark first step as completed since user exists
             const updatedSteps = [...initialSteps];
             updatedSteps[0].completed = true;
+            
+            // Check uploads for step 2 completion
+            if (hasExistingUploads) {
+              updatedSteps[1].completed = true;
+            }
+            
             setSteps(updatedSteps);
             
             return true;
@@ -209,6 +226,12 @@ export const NextStepsPanel = () => {
               updatedSteps[index].completed = data.onboarding_progress[stepId];
             }
           });
+          
+          // Override step 2 completion based on actual uploads
+          if (hasExistingUploads) {
+            updatedSteps[1].completed = true;
+          }
+          
           setSteps(updatedSteps);
         }
         
@@ -258,8 +281,6 @@ export const NextStepsPanel = () => {
         return acc;
       }, {} as Record<number, boolean>);
       
-      // Check if onboarding_progress column exists by first trying to fetch
-      // an existing profile with onboarding_progress
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .select('onboarding_progress')
@@ -270,7 +291,6 @@ export const NextStepsPanel = () => {
         if (profileError.message.includes('column') || profileError.message.includes('schema')) {
           console.warn(`The onboarding_progress column might not exist in the ${env} environment`);
           
-          // Try updating only availability without the onboarding_progress
           const { error: availError } = await supabase
             .from('profiles')
             .update({ 
@@ -292,7 +312,6 @@ export const NextStepsPanel = () => {
         return false;
       }
       
-      // Column exists, proceed with full update
       const { error } = await supabase
         .from('profiles')
         .update({ 
@@ -305,7 +324,6 @@ export const NextStepsPanel = () => {
       if (error) {
         console.error("Supabase error saving progress:", error);
         
-        // If error is about schema, try updating only availability
         if (error.message.includes('column') || error.message.includes('schema')) {
           const { error: fallbackError } = await supabase
             .from('profiles')
@@ -350,42 +368,13 @@ export const NextStepsPanel = () => {
   }, [steps, selectedAvailability, loading]);
 
   const handleUploadCertificates = () => {
-    trackEngagement('upload_documents_click', { step: 'certificates' });
-    
-    const updatedSteps = [...steps];
-    const index = updatedSteps.findIndex(s => s.id === 2);
-    if (index >= 0 && !updatedSteps[index].completed) {
-      updatedSteps[index].completed = true;
-      setSteps(updatedSteps);
-      
-      trackEngagement('onboarding_step_complete', { 
-        step: 'certificates',
-        progress_percent: Math.round(((completedSteps + 1) / steps.length) * 100)
-      });
-    }
-    
-    toast({
-      title: "📩 Submit Your Documents",
-      description: (
-        <div className="space-y-2">
-          <p>Please email or WhatsApp your documents, including:</p>
-          <ul className="list-disc pl-5 space-y-1">
-            <li>Professional certifications</li>
-            <li>Valid government-issued ID</li>
-            <li>Certificate of Character from the Trinidad & Tobago Police</li>
-          </ul>
-          <div className="pt-2">
-            <a href="mailto:chanuajohnson@gmail.com" className="text-primary hover:underline block">
-              Email: chanuajohnson@gmail.com
-            </a>
-            <a href="https://wa.me/18687865357" className="text-primary hover:underline block">
-              WhatsApp: +1 (868) 786-5357
-            </a>
-          </div>
-        </div>
-      ) as any,
-      duration: 8000,
+    // Don't mark the step as completed here - let the actual upload status determine completion
+    trackEngagement('onboarding_step_interact', { 
+      step: 'certificates',
+      action: 'redirect_to_upload'
     });
+    
+    redirectToDocumentUpload();
   };
 
   const saveAvailability = async () => {
@@ -433,23 +422,24 @@ export const NextStepsPanel = () => {
   };
 
   const renderActionButton = (step: typeof initialSteps[0]) => {
-    if (step.completed) return null;
-    
     switch (step.action) {
       case "upload":
+        // Always show the upload button, regardless of completion status
         return (
           <Button 
             variant="ghost" 
             size="sm" 
             className="p-0 h-6 text-primary hover:text-primary-600"
             onClick={handleUploadCertificates}
+            disabled={uploadCheckLoading}
           >
-            Upload
+            {uploadCheckLoading ? 'Loading...' : getUploadButtonText()}
             <Upload className="ml-1 h-3 w-3" />
           </Button>
         );
       
       case "availability":
+        if (step.completed) return null;
         return (
           <Button 
             variant="ghost" 
@@ -468,6 +458,7 @@ export const NextStepsPanel = () => {
       case "training":
       case "complete":
       default:
+        if (step.completed) return null;
         return (
           <Link to={step.link}>
             <Button 
@@ -597,23 +588,6 @@ export const NextStepsPanel = () => {
                     )}
                   </div>
                   <p className="text-sm text-gray-500">{step.description}</p>
-                  
-                  {step.id === 2 && (
-                    <div className="mt-1 flex flex-col space-y-1">
-                      <a 
-                        href="mailto:chanuajohnson@gmail.com" 
-                        className="text-sm text-primary hover:underline flex items-center"
-                      >
-                        <Mail className="h-3 w-3 mr-1" /> E-mail
-                      </a>
-                      <a 
-                        href="https://wa.me/18687865357" 
-                        className="text-sm text-primary hover:underline flex items-center"
-                      >
-                        <Phone className="h-3 w-3 mr-1" /> WhatsApp
-                      </a>
-                    </div>
-                  )}
                 </div>
                 <div className="flex-shrink-0">
                   {renderActionButton(step)}

@@ -103,7 +103,7 @@ export const CarePlanMealPlanner = ({ carePlanId, carePlanTitle }: CarePlanMealP
 
   const handleToggleItemPurchased = async (itemId: string, purchased: boolean) => {
     try {
-      await mealPlanService.markItemPurchased(itemId, !purchased);
+      await mealPlanService.markItemCompleted(itemId, !purchased);
       toast.success(purchased ? 'Item marked as unpurchased' : 'Item marked as purchased');
       loadData();
     } catch (error) {
@@ -227,27 +227,27 @@ export const CarePlanMealPlanner = ({ carePlanId, carePlanTitle }: CarePlanMealP
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       <ShoppingCart className="h-5 w-5" />
-                      {list.title}
+                      {list.name}
                       <Badge variant="outline">{list.status}</Badge>
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    {list.grocery_list_items.length > 0 ? (
+                    {list.grocery_items && list.grocery_items.length > 0 ? (
                       <div className="space-y-2">
-                        {list.grocery_list_items.map((item) => (
+                        {list.grocery_items.map((item) => (
                           <div key={item.id} className="flex items-center gap-2 p-2 border rounded">
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => handleToggleItemPurchased(item.id, item.purchased)}
+                              onClick={() => handleToggleItemPurchased(item.id, item.is_completed)}
                             >
-                              {item.purchased ? (
+                              {item.is_completed ? (
                                 <Check className="h-4 w-4 text-green-600" />
                               ) : (
                                 <div className="h-4 w-4 border rounded" />
                               )}
                             </Button>
-                            <span className={item.purchased ? 'line-through text-muted-foreground' : ''}>
+                            <span className={item.is_completed ? 'line-through text-muted-foreground' : ''}>
                               {item.item_name}
                             </span>
                             {item.quantity && (

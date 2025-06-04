@@ -1,7 +1,6 @@
-
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { supabase } from "@/lib/supabase";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -32,9 +31,12 @@ import {
   CheckCircle,
   AlertCircle,
   Pill,
-  ChefHat
+  ChefHat,
+  Shield
 } from "lucide-react";
 import { toast } from "sonner";
+import { CertificateUpload } from "@/components/professional/CertificateUpload";
+import { HorizontalTabs, HorizontalTabsList, HorizontalTabsTrigger, HorizontalTabsContent } from "@/components/ui/horizontal-scroll-tabs";
 
 // Types for the data structures
 interface ProfessionalDetails {
@@ -100,11 +102,24 @@ interface CareTeamMember {
 
 const ProfessionalProfileHub = () => {
   const { user } = useAuth();
+  const [searchParams] = useSearchParams();
   const [profile, setProfile] = useState<any>(null);
   const [carePlanAssignments, setCarePlanAssignments] = useState<CarePlanAssignment[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedCarePlanId, setSelectedCarePlanId] = useState<string | null>(null);
   const [careTeamMembers, setCareTeamMembers] = useState<CareTeamMember[]>([]);
+  
+  // Get initial tab from URL params, default to "schedule"
+  const tabFromUrl = searchParams.get('tab');
+  const [activeTab, setActiveTab] = useState(tabFromUrl || "schedule");
+
+  // Update active tab when URL changes
+  useEffect(() => {
+    const urlTab = searchParams.get('tab');
+    if (urlTab && urlTab !== activeTab) {
+      setActiveTab(urlTab);
+    }
+  }, [searchParams]);
 
   const breadcrumbItems = [
     { label: "Professional Dashboard", path: "/dashboard/professional" },
@@ -333,6 +348,11 @@ const ProfessionalProfileHub = () => {
 
   const selectedCarePlan = carePlanAssignments.find(assignment => assignment.carePlanId === selectedCarePlanId);
 
+  const handleCertificateUploadSuccess = () => {
+    toast.success("Document uploaded successfully! Redirecting to documents tab...");
+    setActiveTab("documents");
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background">
@@ -498,23 +518,31 @@ const ProfessionalProfileHub = () => {
 
           {/* Tabs for Different Views */}
           {selectedCarePlanId && (
-            <Tabs defaultValue="schedule" className="w-full">
-              <TabsList className="grid w-full grid-cols-3">
-                <TabsTrigger value="schedule" className="flex items-center gap-2">
+            <HorizontalTabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+              <HorizontalTabsList className="grid w-full grid-cols-5 lg:grid-cols-5">
+                <HorizontalTabsTrigger value="schedule" className="flex items-center gap-2">
                   <Calendar className="h-4 w-4" />
-                  Schedule
-                </TabsTrigger>
-                <TabsTrigger value="medications" className="flex items-center gap-2">
+                  <span className="hidden sm:inline">Schedule</span>
+                </HorizontalTabsTrigger>
+                <HorizontalTabsTrigger value="medications" className="flex items-center gap-2">
                   <Pill className="h-4 w-4" />
-                  Medications
-                </TabsTrigger>
-                <TabsTrigger value="meals" className="flex items-center gap-2">
+                  <span className="hidden sm:inline">Medications</span>
+                </HorizontalTabsTrigger>
+                <HorizontalTabsTrigger value="meals" className="flex items-center gap-2">
                   <ChefHat className="h-4 w-4" />
-                  Meal Planning
-                </TabsTrigger>
-              </TabsList>
+                  <span className="hidden sm:inline">Meal Planning</span>
+                </HorizontalTabsTrigger>
+                <HorizontalTabsTrigger value="admin-assist" className="flex items-center gap-2">
+                  <Shield className="h-4 w-4" />
+                  <span className="hidden sm:inline">Admin Assist</span>
+                </HorizontalTabsTrigger>
+                <HorizontalTabsTrigger value="documents" className="flex items-center gap-2">
+                  <FileText className="h-4 w-4" />
+                  <span className="hidden sm:inline">Documents</span>
+                </HorizontalTabsTrigger>
+              </HorizontalTabsList>
 
-              <TabsContent value="schedule" className="space-y-6">
+              <HorizontalTabsContent value="schedule" className="space-y-6">
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
@@ -537,19 +565,95 @@ const ProfessionalProfileHub = () => {
                     />
                   </CardContent>
                 </Card>
-              </TabsContent>
+              </HorizontalTabsContent>
 
-              <TabsContent value="medications" className="space-y-6">
+              <HorizontalTabsContent value="medications" className="space-y-6">
                 <MedicationDashboard />
-              </TabsContent>
+              </HorizontalTabsContent>
 
-              <TabsContent value="meals" className="space-y-6">
+              <HorizontalTabsContent value="meals" className="space-y-6">
                 <CarePlanMealPlanner 
                   carePlanId={selectedCarePlanId}
                   carePlanTitle={selectedCarePlan?.carePlan?.title || 'Care Plan'}
                 />
-              </TabsContent>
-            </Tabs>
+              </HorizontalTabsContent>
+
+              <HorizontalTabsContent value="admin-assist" className="space-y-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Shield className="h-5 w-5 text-primary" />
+                      Administrative Assistance
+                    </CardTitle>
+                    <CardDescription>
+                      Tools and resources to help with administrative tasks
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      <Card>
+                        <CardContent className="pt-6">
+                          <div className="flex items-center gap-3">
+                            <div className="bg-primary/10 p-3 rounded-full">
+                              <FileText className="h-6 w-6 text-primary" />
+                            </div>
+                            <div>
+                              <h3 className="font-medium">Care Plan Documentation</h3>
+                              <p className="text-sm text-muted-foreground">Generate care reports</p>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                      
+                      <Card>
+                        <CardContent className="pt-6">
+                          <div className="flex items-center gap-3">
+                            <div className="bg-primary/10 p-3 rounded-full">
+                              <CheckCircle className="h-6 w-6 text-primary" />
+                            </div>
+                            <div>
+                              <h3 className="font-medium">Compliance Tracking</h3>
+                              <p className="text-sm text-muted-foreground">Monitor compliance status</p>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+
+                      <Card>
+                        <CardContent className="pt-6">
+                          <div className="flex items-center gap-3">
+                            <div className="bg-primary/10 p-3 rounded-full">
+                              <Settings className="h-6 w-6 text-primary" />
+                            </div>
+                            <div>
+                              <h3 className="font-medium">Task Management</h3>
+                              <p className="text-sm text-muted-foreground">Organize admin tasks</p>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </div>
+                  </CardContent>
+                </Card>
+              </HorizontalTabsContent>
+
+              <HorizontalTabsContent value="documents" className="space-y-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <FileText className="h-5 w-5 text-primary" />
+                      Document Management
+                    </CardTitle>
+                    <CardDescription>
+                      Upload and manage your professional documents
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <CertificateUpload onUploadSuccess={handleCertificateUploadSuccess} />
+                  </CardContent>
+                </Card>
+              </HorizontalTabsContent>
+            </HorizontalTabs>
           )}
 
           {/* Action Cards */}
