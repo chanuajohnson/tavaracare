@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Heart, UserCog, Users, Globe, Shield, ArrowRight } from 'lucide-react';
@@ -32,23 +33,17 @@ export const RoleBasedContent: React.FC<RoleBasedContentProps> = ({
 
   const getWelcomeBackMessage = () => {
     if (lastRole) {
-      return {
-        main: "Welcome back!",
-        sub: `Continue as a ${getRoleDisplayName(lastRole)}`
-      };
+      return `Welcome back! Ready to continue as a ${getRoleDisplayName(lastRole)}?`;
     }
-    return {
-      main: "Welcome back!",
-      sub: "Log in to access your dashboard"
-    };
+    return "Welcome back! Ready to log in to access your dashboard?";
   };
 
   if (role === 'guest') {
     return (
       <div className="space-y-4">
         <div className="flex items-center gap-3 mb-4">
-          <Heart className="h-6 w-6 text-primary flex-shrink-0" />
-          <h3 className="text-lg font-semibold leading-tight">Welcome to Tavara</h3>
+          <Heart className="h-6 w-6 text-primary" />
+          <h3 className="text-lg font-semibold">Welcome to Tavara</h3>
         </div>
         
         <p className="text-sm text-muted-foreground leading-relaxed">
@@ -67,20 +62,13 @@ export const RoleBasedContent: React.FC<RoleBasedContentProps> = ({
             <Button 
               variant="default" 
               size="sm" 
-              className="w-full bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary text-white shadow-md min-h-[3rem] h-auto py-3 px-4"
+              className="w-full justify-between bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary text-white shadow-md"
               onClick={() => navigate('/auth')}
             >
-              <div className="flex items-center justify-between w-full min-w-0">
-                <div className="flex flex-col items-start text-left min-w-0 flex-1 mr-2">
-                  <span className="text-sm font-medium leading-tight">
-                    {getWelcomeBackMessage().main}
-                  </span>
-                  <span className="text-xs opacity-90 leading-tight break-words">
-                    {getWelcomeBackMessage().sub}
-                  </span>
-                </div>
-                <ArrowRight className="h-4 w-4 flex-shrink-0" />
-              </div>
+              <span className="text-sm font-medium">
+                {getWelcomeBackMessage()}
+              </span>
+              <ArrowRight className="h-4 w-4" />
             </Button>
           </motion.div>
         )}
@@ -93,31 +81,31 @@ export const RoleBasedContent: React.FC<RoleBasedContentProps> = ({
           <Button 
             variant="outline" 
             size="sm" 
-            className="w-full justify-start h-auto py-3 px-4"
+            className="w-full justify-start"
             onClick={() => navigate('/registration/family')}
           >
-            <Users className="h-4 w-4 mr-3 flex-shrink-0" />
-            <span className="text-left leading-tight">I need care for a loved one</span>
+            <Users className="h-4 w-4 mr-2" />
+            I need care for a loved one
           </Button>
           
           <Button 
             variant="outline" 
             size="sm" 
-            className="w-full justify-start h-auto py-3 px-4"
+            className="w-full justify-start"
             onClick={() => navigate('/registration/professional')}
           >
-            <UserCog className="h-4 w-4 mr-3 flex-shrink-0" />
-            <span className="text-left leading-tight">I want to provide care services</span>
+            <UserCog className="h-4 w-4 mr-2" />
+            I want to provide care services
           </Button>
           
           <Button 
             variant="outline" 
             size="sm" 
-            className="w-full justify-start h-auto py-3 px-4"
+            className="w-full justify-start"
             onClick={() => navigate('/registration/community')}
           >
-            <Globe className="h-4 w-4 mr-3 flex-shrink-0" />
-            <span className="text-left leading-tight">I want to support my community</span>
+            <Globe className="h-4 w-4 mr-2" />
+            I want to support my community
           </Button>
         </div>
       </div>
@@ -128,8 +116,8 @@ export const RoleBasedContent: React.FC<RoleBasedContentProps> = ({
     return (
       <div className="space-y-4">
         <div className="flex items-center gap-3 mb-4">
-          <Users className="h-6 w-6 text-blue-600 flex-shrink-0" />
-          <h3 className="text-lg font-semibold leading-tight">Your Care Journey</h3>
+          <Users className="h-6 w-6 text-blue-600" />
+          <h3 className="text-lg font-semibold">Your Care Journey</h3>
         </div>
         
         <div className="bg-blue-50 rounded-lg p-3 border border-blue-200">
@@ -147,7 +135,7 @@ export const RoleBasedContent: React.FC<RoleBasedContentProps> = ({
           </div>
         </div>
         
-        <p className="text-sm text-muted-foreground leading-relaxed">
+        <p className="text-sm text-muted-foreground">
           You're doing great! I'm here to guide you through each step of setting up 
           care for your loved one.
         </p>
@@ -155,14 +143,14 @@ export const RoleBasedContent: React.FC<RoleBasedContentProps> = ({
         {progressContext.nextAction && (
           <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
             <p className="text-sm font-medium text-amber-800 mb-2">Next Step:</p>
-            <p className="text-sm text-amber-700 leading-relaxed">{progressContext.nextAction}</p>
+            <p className="text-sm text-amber-700">{progressContext.nextAction}</p>
           </div>
         )}
         
         <Button 
           variant="default" 
           size="sm" 
-          className="w-full h-auto py-3"
+          className="w-full"
           onClick={() => navigate('/dashboard/family')}
         >
           Continue Your Journey
@@ -175,8 +163,8 @@ export const RoleBasedContent: React.FC<RoleBasedContentProps> = ({
     return (
       <div className="space-y-4">
         <div className="flex items-center gap-3 mb-4">
-          <UserCog className="h-6 w-6 text-green-600 flex-shrink-0" />
-          <h3 className="text-lg font-semibold leading-tight">Professional Dashboard</h3>
+          <UserCog className="h-6 w-6 text-green-600" />
+          <h3 className="text-lg font-semibold">Professional Dashboard</h3>
         </div>
         
         <div className="bg-green-50 rounded-lg p-3 border border-green-200">
@@ -194,14 +182,14 @@ export const RoleBasedContent: React.FC<RoleBasedContentProps> = ({
           </div>
         </div>
         
-        <p className="text-sm text-muted-foreground leading-relaxed">
+        <p className="text-sm text-muted-foreground">
           Complete your profile to start receiving job opportunities that match your skills.
         </p>
         
         <Button 
           variant="default" 
           size="sm" 
-          className="w-full h-auto py-3"
+          className="w-full"
           onClick={() => navigate('/dashboard/professional')}
         >
           Complete Profile
@@ -214,11 +202,11 @@ export const RoleBasedContent: React.FC<RoleBasedContentProps> = ({
     return (
       <div className="space-y-4">
         <div className="flex items-center gap-3 mb-4">
-          <Globe className="h-6 w-6 text-amber-600 flex-shrink-0" />
-          <h3 className="text-lg font-semibold leading-tight">Community Impact</h3>
+          <Globe className="h-6 w-6 text-amber-600" />
+          <h3 className="text-lg font-semibold">Community Impact</h3>
         </div>
         
-        <p className="text-sm text-muted-foreground leading-relaxed">
+        <p className="text-sm text-muted-foreground">
           Thank you for being part of our care community. Your involvement makes 
           a real difference in families' lives.
         </p>
@@ -226,7 +214,7 @@ export const RoleBasedContent: React.FC<RoleBasedContentProps> = ({
         <Button 
           variant="default" 
           size="sm" 
-          className="w-full h-auto py-3"
+          className="w-full"
           onClick={() => navigate('/dashboard/community')}
         >
           View Community Dashboard
@@ -239,11 +227,11 @@ export const RoleBasedContent: React.FC<RoleBasedContentProps> = ({
     return (
       <div className="space-y-4">
         <div className="flex items-center gap-3 mb-4">
-          <Shield className="h-6 w-6 text-purple-600 flex-shrink-0" />
-          <h3 className="text-lg font-semibold leading-tight">Admin Controls</h3>
+          <Shield className="h-6 w-6 text-purple-600" />
+          <h3 className="text-lg font-semibold">Admin Controls</h3>
         </div>
         
-        <p className="text-sm text-muted-foreground leading-relaxed">
+        <p className="text-sm text-muted-foreground">
           I can help you send targeted nudges to users or review system insights.
         </p>
         
@@ -251,7 +239,7 @@ export const RoleBasedContent: React.FC<RoleBasedContentProps> = ({
           <Button 
             variant="outline" 
             size="sm" 
-            className="w-full justify-start h-auto py-3"
+            className="w-full justify-start"
           >
             Send Manual Nudge
           </Button>
@@ -259,7 +247,7 @@ export const RoleBasedContent: React.FC<RoleBasedContentProps> = ({
           <Button 
             variant="outline" 
             size="sm" 
-            className="w-full justify-start h-auto py-3"
+            className="w-full justify-start"
           >
             View User Progress
           </Button>
@@ -270,7 +258,7 @@ export const RoleBasedContent: React.FC<RoleBasedContentProps> = ({
 
   return (
     <div className="space-y-4">
-      <p className="text-sm text-muted-foreground leading-relaxed">
+      <p className="text-sm text-muted-foreground">
         I'm here to help guide you through your Tavara journey. 
         How can I assist you today?
       </p>

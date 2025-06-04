@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, MessageCircle, Sparkles } from 'lucide-react';
@@ -105,17 +106,15 @@ export const TavaraAssistantPanel: React.FC = () => {
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -10, scale: 0.9 }}
               transition={{ type: "spring", damping: 20, stiffness: 300 }}
-              className={`absolute bottom-16 left-0 bg-white rounded-lg shadow-lg p-3 border border-primary/20 ${
-                isMobile ? 'max-w-72 text-sm' : 'max-w-64'
-              }`}
+              className="absolute bottom-16 left-0 bg-white rounded-lg shadow-lg p-3 max-w-64 border border-primary/20"
               onAnimationComplete={() => {
                 setTimeout(() => setShowGreeting(false), 3000);
               }}
             >
-              <p className="font-medium text-primary mb-1 leading-tight">
+              <p className="text-sm font-medium text-primary mb-1">
                 {AUTO_GREET_MESSAGES[state.currentRole || 'guest'].split('.')[0]}
               </p>
-              <p className="text-xs text-muted-foreground leading-relaxed">
+              <p className="text-xs text-muted-foreground">
                 {AUTO_GREET_MESSAGES[state.currentRole || 'guest'].split('.').slice(1).join('.')}
               </p>
               {/* Speech bubble tail */}
@@ -196,40 +195,40 @@ export const TavaraAssistantPanel: React.FC = () => {
             className={`fixed z-50 bg-white border shadow-2xl ${
               isMobile
                 ? 'bottom-0 left-0 right-0 rounded-t-2xl max-h-[85vh] border-t'
-                : 'bottom-6 left-6 rounded-2xl border max-h-[calc(100vh-3rem)] w-[min(24rem,calc(100vw-3rem))]'
+                : 'bottom-6 left-6 w-96 rounded-2xl border max-h-[calc(100vh-3rem)]'
             }`}
           >
             {/* Header */}
-            <div className={`flex items-center justify-between border-b bg-gradient-to-r from-primary/5 to-transparent ${
-              isMobile ? 'p-4 pb-3' : 'p-4'
+            <div className={`flex items-center justify-between p-4 border-b bg-gradient-to-r from-primary/5 to-transparent ${
+              isMobile ? 'pb-2' : ''
             }`}>
-              <div className="flex items-center gap-3 min-w-0 flex-1">
-                <div className="h-10 w-10 rounded-full bg-gradient-to-r from-primary to-primary/80 flex items-center justify-center shadow-md flex-shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-full bg-gradient-to-r from-primary to-primary/80 flex items-center justify-center shadow-md">
                   <MessageCircle className="h-5 w-5 text-white" />
                 </div>
-                <div className="min-w-0 flex-1">
-                  <h2 className="font-semibold text-base leading-tight">TAV Assistant</h2>
-                  <p className="text-xs text-muted-foreground leading-tight truncate">
+                <div>
+                  <h2 className="font-semibold text-base">TAV Assistant</h2>
+                  <p className="text-xs text-muted-foreground">
                     Your personal care coordinator
                   </p>
                 </div>
               </div>
               
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={closePanel}
-                className="h-8 w-8 hover:bg-primary/10 flex-shrink-0"
-              >
-                <X className="h-4 w-4" />
-              </Button>
+              <div className="flex items-center gap-1">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={closePanel}
+                  className="h-8 w-8 hover:bg-primary/10"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
 
             {/* Content */}
-            <div className={`overflow-y-auto ${
-              isMobile 
-                ? 'p-4 max-h-[calc(85vh-140px)]' 
-                : 'p-4 max-h-[calc(100vh-13rem)]'
+            <div className={`p-4 overflow-y-auto ${
+              isMobile ? 'max-h-[calc(85vh-120px)]' : 'max-h-[calc(100vh-12rem)]'
             }`}>
               {/* Auto-greeting message */}
               {hasAutoGreeted && state.currentRole && (
@@ -238,10 +237,10 @@ export const TavaraAssistantPanel: React.FC = () => {
                   animate={{ opacity: 1, y: 0 }}
                   className="mb-4 p-3 bg-gradient-to-r from-primary/10 to-transparent rounded-lg border border-primary/20"
                 >
-                  <p className="text-sm font-medium text-primary mb-1 leading-tight">
+                  <p className="text-sm font-medium text-primary mb-1">
                     Welcome! 👋
                   </p>
-                  <p className="text-xs text-muted-foreground leading-relaxed">
+                  <p className="text-xs text-muted-foreground">
                     {AUTO_GREET_MESSAGES[state.currentRole]}
                   </p>
                 </motion.div>
@@ -251,7 +250,7 @@ export const TavaraAssistantPanel: React.FC = () => {
               {nudges.length > 0 && (
                 <div className="mb-6 space-y-3">
                   <h3 className="text-sm font-medium text-amber-800 flex items-center gap-2">
-                    <Sparkles className="h-4 w-4 flex-shrink-0" />
+                    <Sparkles className="h-4 w-4" />
                     Messages for you:
                   </h3>
                   {nudges.map((nudge) => (
@@ -262,8 +261,8 @@ export const TavaraAssistantPanel: React.FC = () => {
                       className="bg-gradient-to-r from-amber-50 to-amber-50/50 border border-amber-200 rounded-lg p-3 cursor-pointer hover:from-amber-100 hover:to-amber-100/50 transition-all duration-200"
                       onClick={() => handleNudgeClick(nudge)}
                     >
-                      <p className="text-sm text-amber-800 leading-relaxed">{nudge.message}</p>
-                      <p className="text-xs text-amber-600 mt-1 leading-tight">
+                      <p className="text-sm text-amber-800">{nudge.message}</p>
+                      <p className="text-xs text-amber-600 mt-1">
                         From {nudge.sender} • Click to dismiss
                       </p>
                     </motion.div>
