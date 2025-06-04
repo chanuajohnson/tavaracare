@@ -33,7 +33,7 @@ export const TavaraAssistantPanel: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [hasInitialGreeted, setHasInitialGreeted] = useState(false);
   const [showGreeting, setShowGreeting] = useState(false);
-  const [lastGreetedPath, setLastGreetedPath] = useState<string>('');
+  const [greetedPages, setGreetedPages] = useState<Set<string>>(new Set());
 
   // Get real progress data based on user role
   const professionalProgress = useProfessionalProgress();
@@ -89,23 +89,25 @@ export const TavaraAssistantPanel: React.FC = () => {
     }
   }, [hasInitialGreeted, state.isOpen, openPanel, location.pathname]);
 
-  // FORM/JOURNEY NAVIGATION AUTO-GREETING (contextual magic!)
+  // NAVIGATION AUTO-GREETING (contextual magic on every form navigation!)
   useEffect(() => {
     const currentPath = location.pathname;
     
-    // Skip if this is initial greeting or already greeted for this path or panel is open
-    if (!hasInitialGreeted || lastGreetedPath === currentPath || state.isOpen) {
+    // Skip if panel is already open
+    if (state.isOpen) {
       return;
     }
 
-    // Check if this is a journey touchpoint where TAV should appear
-    if (isJourneyTouchpoint(currentPath) && state.currentRole) {
-      console.log('TAV: Detected journey touchpoint navigation:', currentPath, 'for role:', state.currentRole);
+    // Check if this is a journey touchpoint and we haven't greeted for this specific page
+    if (isJourneyTouchpoint(currentPath) && !greetedPages.has(currentPath)) {
+      console.log('TAV: Detected NEW journey touchpoint navigation:', currentPath, 'for role:', state.currentRole);
       
-      // Set greeting message based on form context or use default
+      // Add page to greeted pages to prevent spam
+      setGreetedPages(prev => new Set([...prev, currentPath]));
+      
+      // Show contextual greeting with a delay for page load
       setTimeout(() => {
         setShowGreeting(true);
-        setLastGreetedPath(currentPath);
         
         // Auto open panel after greeting animation
         setTimeout(() => {
@@ -113,7 +115,7 @@ export const TavaraAssistantPanel: React.FC = () => {
         }, 2000);
       }, 800); // Slight delay so page loads first
     }
-  }, [location.pathname, isJourneyTouchpoint, currentForm, state.currentRole, state.isOpen, lastGreetedPath, hasInitialGreeted, openPanel]);
+  }, [location.pathname, isJourneyTouchpoint, state.isOpen, greetedPages, openPanel, state.currentRole]);
 
   // Auto-open for nudges
   useEffect(() => {
@@ -173,11 +175,11 @@ export const TavaraAssistantPanel: React.FC = () => {
   // Enhanced greeting message with form context or initial welcome
   const getContextualGreeting = () => {
     // For form-specific pages, use form context
-    if (currentForm?.autoGreetingMessage && hasInitialGreeted) {
+    if (currentForm?.autoGreetingMessage) {
       return currentForm.autoGreetingMessage;
     }
     
-    // For initial greeting, use role-based or default
+    // For initial greeting or pages without forms, use role-based or default
     if (state.currentRole && AUTO_GREET_MESSAGES[state.currentRole]) {
       return AUTO_GREET_MESSAGES[state.currentRole];
     }
@@ -228,7 +230,7 @@ export const TavaraAssistantPanel: React.FC = () => {
                 <p className="font-semibold text-primary text-sm leading-tight">
                   TAV Assistant
                 </p>
-                {currentForm && hasInitialGreeted && (
+                {currentForm && (
                   <span className="bg-primary/10 text-primary text-xs px-2 py-1 rounded-full">
                     {currentForm.formTitle}
                   </span>
@@ -239,8 +241,8 @@ export const TavaraAssistantPanel: React.FC = () => {
                 {getContextualGreeting()}
               </p>
               
-              {/* Form-specific context (only for form navigation, not initial greeting) */}
-              {currentForm && hasInitialGreeted && (
+              {/* Form-specific context (for form navigation) */}
+              {currentForm && (
                 <div className="mt-2 p-2 bg-primary/5 rounded-lg">
                   <p className={`text-primary font-medium ${isMobile ? 'text-xs' : 'text-xs'}`}>
                     ✨ I can help you fill this out conversationally or guide you step by step!
