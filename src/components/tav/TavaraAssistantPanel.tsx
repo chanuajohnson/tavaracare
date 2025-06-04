@@ -282,24 +282,6 @@ export const TavaraAssistantPanel: React.FC = () => {
                 ? 'p-2 max-h-[calc(40vh-70px)]' 
                 : 'p-3 max-h-[calc(40vh-80px)]'
             }`}>
-              {/* Compact auto-greeting message */}
-              {hasAutoGreeted && state.currentRole && (
-                <motion.div
-                  initial={{ opacity: 0, y: 15 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.2 }}
-                  className="mb-3 p-3 bg-gradient-to-r from-primary/10 via-primary/5 to-transparent rounded-xl border border-primary/20 shadow-sm"
-                >
-                  <p className="text-xs font-semibold text-primary mb-1 leading-tight flex items-center gap-1">
-                    <Sparkles className="h-3 w-3" />
-                    Welcome! 👋
-                  </p>
-                  <p className={`text-muted-foreground leading-relaxed ${isMobile ? 'text-xs' : 'text-xs'}`}>
-                    {AUTO_GREET_MESSAGES[state.currentRole]}
-                  </p>
-                </motion.div>
-              )}
-
               {/* Compact nudges */}
               {nudges.length > 0 && (
                 <div className="mb-4 space-y-2">
