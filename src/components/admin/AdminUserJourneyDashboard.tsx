@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -81,7 +80,7 @@ export function AdminUserJourneyDashboard() {
           years_of_experience: profile.years_of_experience,
           care_types: profile.care_types,
           specialized_care: profile.specialized_care,
-        };
+        } as UserWithProgress;
       });
 
       setUsers(usersWithProgress);
