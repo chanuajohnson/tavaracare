@@ -217,18 +217,18 @@ export const FamilyNextStepsPanel = () => {
       return;
     }
     if (step.id === 5) {
-      // Navigate to medication management
+      // Navigate to medication management tab in care plan
       if (carePlans.length > 0) {
-        navigate(`/family/care-management/${carePlans[0].id}/medications`);
+        navigate(`/family/care-management/${carePlans[0].id}?tab=medications`);
       } else {
         navigate('/family/care-management/create');
       }
       return;
     }
     if (step.id === 6) {
-      // Navigate to meal planning
+      // Navigate to meal planning tab in care plan
       if (carePlans.length > 0) {
-        navigate(`/family/care-management/${carePlans[0].id}?tab=meal-planning`);
+        navigate(`/family/care-management/${carePlans[0].id}?tab=meals`);
       } else {
         navigate('/family/care-management/create');
       }

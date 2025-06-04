@@ -10,10 +10,50 @@ import { UserJourneyCard } from "./UserJourneyCard";
 import { NudgeSystem } from "./NudgeSystem";
 import { BulkActionPanel } from "./BulkActionPanel";
 import { UserDetailModal } from "./UserDetailModal";
-import type { UserWithProgress, RoleStats } from "@/types/adminTypes";
+import type { UserRole } from "@/types/userRoles";
 
-// Define the role type inline to avoid conflicts
-type AdminUserRole = 'all' | 'family' | 'professional' | 'community' | 'admin';
+// Define UserWithProgress interface directly to avoid conflicts
+interface UserJourneyProgress {
+  id: string;
+  user_id: string;
+  role: string;
+  current_step: number;
+  total_steps: number;
+  completion_percentage: number;
+  last_activity_at: string;
+  completed_steps: any;
+  created_at: string;
+  updated_at: string;
+}
+
+interface UserWithProgress {
+  id: string;
+  email: string;
+  full_name: string;
+  role: UserRole;
+  email_verified: boolean;
+  last_login_at: string;
+  created_at: string;
+  avatar_url?: string;
+  journey_progress?: UserJourneyProgress;
+  onboarding_progress?: any;
+  location?: string;
+  phone_number?: string;
+  professional_type?: string;
+  years_of_experience?: string;
+  care_types?: string[];
+  specialized_care?: string[];
+}
+
+interface RoleStats {
+  total: number;
+  verified: number;
+  active: number;
+  stalled: number;
+}
+
+// Define the role type for this component
+type AdminUserRole = 'all' | UserRole;
 
 export function AdminUserJourneyDashboard() {
   const [users, setUsers] = useState<UserWithProgress[]>([]);
@@ -70,7 +110,7 @@ export function AdminUserJourneyDashboard() {
           id: profile.id,
           email: realEmail,
           full_name: profile.full_name || 'Unnamed User',
-          role: profile.role,
+          role: profile.role as UserRole,
           email_verified: authUser?.email_confirmed_at ? true : false,
           last_login_at: profile.last_login_at || profile.created_at,
           created_at: profile.created_at,
