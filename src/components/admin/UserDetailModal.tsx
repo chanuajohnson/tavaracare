@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -22,7 +23,7 @@ export function UserDetailModal({ user, open, onOpenChange, onRefresh }: UserDet
   const [sending, setSending] = React.useState(false);
   const { steps, completionPercentage, nextStep, loading } = useUserJourneyProgress(
     user?.id || '', 
-    user?.role || 'family'  // Provide fallback to 'family' instead of empty string
+    user?.role || 'family'
   );
 
   if (!user) return null;
@@ -30,6 +31,8 @@ export function UserDetailModal({ user, open, onOpenChange, onRefresh }: UserDet
   const sendNudgeEmail = async (stepType: string) => {
     setSending(true);
     try {
+      console.log('Sending nudge email to user:', user.id, 'Type:', stepType);
+      
       const { error } = await supabase.functions.invoke('send-nudge-email', {
         body: { 
           userId: user.id,
@@ -43,11 +46,106 @@ export function UserDetailModal({ user, open, onOpenChange, onRefresh }: UserDet
 
       if (error) throw error;
       
-      toast.success(`Nudge email sent to ${user.full_name || user.email}`);
+      toast.success(`Email nudge sent to ${user.full_name || user.email}`);
       onRefresh();
     } catch (error: any) {
-      console.error('Error sending nudge:', error);
-      toast.error(`Failed to send nudge: ${error.message}`);
+      console.error('Error sending email nudge:', error);
+      toast.error(`Failed to send email nudge: ${error.message}`);
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const sendNudgeWhatsApp = async (stepType: string) => {
+    setSending(true);
+    try {
+      console.log('Sending WhatsApp nudge to user:', user.id, 'Type:', stepType);
+      
+      const { error } = await supabase.functions.invoke('send-nudge-whatsapp', {
+        body: { 
+          userId: user.id,
+          userPhone: user.phone_number,
+          userName: user.full_name || 'User',
+          userRole: user.role,
+          currentStep: nextStep?.id || steps.length,
+          stepType
+        }
+      });
+
+      if (error) throw error;
+      
+      toast.success(`WhatsApp nudge sent to ${user.full_name || user.email}`);
+      onRefresh();
+    } catch (error: any) {
+      console.error('Error sending WhatsApp nudge:', error);
+      toast.error(`Failed to send WhatsApp nudge: ${error.message}`);
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const sendBothNudges = async (stepType: string) => {
+    setSending(true);
+    try {
+      console.log('Sending both email and WhatsApp nudges to user:', user.id, 'Type:', stepType);
+      
+      // Send email nudge
+      const emailPromise = supabase.functions.invoke('send-nudge-email', {
+        body: { 
+          userId: user.id,
+          userEmail: user.email,
+          userName: user.full_name || 'User',
+          userRole: user.role,
+          currentStep: nextStep?.id || steps.length,
+          stepType
+        }
+      });
+
+      // Send WhatsApp nudge if phone number exists
+      let whatsappPromise = Promise.resolve();
+      if (user.phone_number) {
+        whatsappPromise = supabase.functions.invoke('send-nudge-whatsapp', {
+          body: { 
+            userId: user.id,
+            userPhone: user.phone_number,
+            userName: user.full_name || 'User',
+            userRole: user.role,
+            currentStep: nextStep?.id || steps.length,
+            stepType
+          }
+        });
+      }
+
+      const [emailResult, whatsappResult] = await Promise.allSettled([emailPromise, whatsappPromise]);
+      
+      let successCount = 0;
+      let errors = [];
+      
+      if (emailResult.status === 'fulfilled' && !emailResult.value.error) {
+        successCount++;
+      } else {
+        errors.push('Email failed');
+      }
+      
+      if (user.phone_number && whatsappResult.status === 'fulfilled' && !whatsappResult.value.error) {
+        successCount++;
+      } else if (user.phone_number) {
+        errors.push('WhatsApp failed');
+      }
+
+      if (successCount > 0) {
+        toast.success(`Nudges sent via ${successCount === 2 ? 'email and WhatsApp' : successCount === 1 && user.phone_number ? 'email only' : 'email'} to ${user.full_name || user.email}`);
+        if (errors.length > 0) {
+          toast.warning(`Some channels failed: ${errors.join(', ')}`);
+        }
+      } else {
+        throw new Error('All nudge channels failed');
+      }
+      
+      onRefresh();
+    } catch (error: any) {
+      console.error('Error sending nudges:', error);
+      toast.error(`Failed to send nudges: ${error.message}`);
     } finally {
       setSending(false);
     }
@@ -94,10 +192,10 @@ export function UserDetailModal({ user, open, onOpenChange, onRefresh }: UserDet
         </DialogHeader>
 
         <div className="space-y-6">
-          {/* User Overview */}
+          {/* User Overview - Updated title */}
           <Card>
             <CardHeader>
-              <CardTitle>User Overview</CardTitle>
+              <CardTitle>{user.full_name || 'User Details'}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -114,6 +212,12 @@ export function UserDetailModal({ user, open, onOpenChange, onRefresh }: UserDet
                     <div className="flex items-center gap-2">
                       <MapPin className="h-4 w-4 text-muted-foreground" />
                       <span className="text-sm">{user.location}</span>
+                    </div>
+                  )}
+                  {user.phone_number && (
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium">Phone:</span>
+                      <span className="text-sm">{user.phone_number}</span>
                     </div>
                   )}
                 </div>
@@ -234,41 +338,81 @@ export function UserDetailModal({ user, open, onOpenChange, onRefresh }: UserDet
 
           <Separator />
 
-          {/* Admin Actions */}
+          {/* Admin Actions - Enhanced with separate channels */}
           <Card>
             <CardHeader>
               <CardTitle>Admin Actions</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <Button 
-                  onClick={() => sendNudgeEmail('current_step')}
-                  disabled={sending}
-                  className="flex items-center gap-2"
-                >
-                  <Send className="h-4 w-4" />
-                  Send Current Step Nudge
-                </Button>
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <Button 
+                    onClick={() => sendNudgeEmail('current_step')}
+                    disabled={sending}
+                    className="flex items-center gap-2"
+                  >
+                    <Mail className="h-4 w-4" />
+                    Email Current Step
+                  </Button>
+                  
+                  <Button 
+                    onClick={() => sendNudgeWhatsApp('current_step')}
+                    disabled={sending || !user.phone_number}
+                    variant="outline"
+                    className="flex items-center gap-2"
+                  >
+                    <Send className="h-4 w-4" />
+                    WhatsApp Current Step
+                  </Button>
+                  
+                  <Button 
+                    onClick={() => sendBothNudges('current_step')}
+                    disabled={sending}
+                    variant="default"
+                    className="flex items-center gap-2 bg-green-600 hover:bg-green-700"
+                  >
+                    <Send className="h-4 w-4" />
+                    Both Channels
+                  </Button>
+                  
+                  <Button 
+                    onClick={advanceUserStep}
+                    disabled={completionPercentage >= 100}
+                    variant="outline"
+                    className="flex items-center gap-2"
+                  >
+                    <ArrowRight className="h-4 w-4" />
+                    Advance Step
+                  </Button>
+                </div>
                 
-                <Button 
-                  onClick={() => sendNudgeEmail('welcome')}
-                  disabled={sending}
-                  variant="outline"
-                  className="flex items-center gap-2"
-                >
-                  <Mail className="h-4 w-4" />
-                  Send Welcome Email
-                </Button>
-                
-                <Button 
-                  onClick={advanceUserStep}
-                  disabled={completionPercentage >= 100}
-                  variant="outline"
-                  className="flex items-center gap-2"
-                >
-                  <ArrowRight className="h-4 w-4" />
-                  Advance to Next Step
-                </Button>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <Button 
+                    onClick={() => sendNudgeEmail('welcome')}
+                    disabled={sending}
+                    variant="outline"
+                    className="flex items-center gap-2"
+                  >
+                    <Mail className="h-4 w-4" />
+                    Send Welcome Email
+                  </Button>
+                  
+                  <Button 
+                    onClick={() => sendNudgeWhatsApp('welcome')}
+                    disabled={sending || !user.phone_number}
+                    variant="outline"
+                    className="flex items-center gap-2"
+                  >
+                    <Send className="h-4 w-4" />
+                    Send Welcome WhatsApp
+                  </Button>
+                </div>
+
+                {!user.phone_number && (
+                  <p className="text-sm text-muted-foreground">
+                    WhatsApp options disabled - no phone number on file
+                  </p>
+                )}
               </div>
             </CardContent>
           </Card>
