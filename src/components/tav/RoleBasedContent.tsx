@@ -69,7 +69,8 @@ export const RoleBasedContent: React.FC<RoleBasedContentProps> = ({
             <Button 
               variant="default" 
               size="sm" 
-              className="w-full bg-gradient-to-r from-primary/10 via-primary/5 to-primary/10 hover:from-primary/20 hover:via-primary/10 hover:to-primary/20 text-primary shadow-lg border-2 border-primary/20 min-h-[4rem] h-auto py-4 px-4 relative overflow-hidden group"
+              className="w-full bg-gradient-to-r from-primary/5 via-primary/3 to-primary/5 hover:from-primary/10 hover:via-primary/5 hover:to-primary/10 text-primary shadow-lg border-2 border-primary/20 min-h-[4rem] h-auto py-4 px-4 relative overflow-hidden group"
+
               onClick={() => navigate('/auth')}
             >
               {/* Sparkle effect for VIP treatment */}
