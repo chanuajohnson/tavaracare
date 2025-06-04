@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -58,6 +59,75 @@ export function AdminUserJourneyDashboard() {
   const [showNudgeSystem, setShowNudgeSystem] = useState(false);
   const [selectedUserForModal, setSelectedUserForModal] = useState<UserWithProgress | null>(null);
   const [roleStats, setRoleStats] = useState<Record<string, RoleStats>>({});
+
+  const fetchUsersWithProgress = async () => {
+    try {
+      setLoading(true);
+
+      // First, get all profiles with their data
+      const { data: profiles, error: profilesError } = await supabase
+        .from('profiles')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (profilesError) {
+        console.error('Error fetching profiles:', profilesError);
+        return;
+      }
+
+      // Get real emails from auth.users using the service role (admin only)
+      const { data: authUsers, error: authError } = await supabase.auth.admin.listUsers();
+      
+      if (authError) {
+        console.error('Error fetching auth users:', authError);
+      }
+
+      // Get journey progress data
+      const { data: journeyProgress, error: journeyError } = await supabase
+        .from('user_journey_progress')
+        .select('*');
+
+      if (journeyError) {
+        console.error('Error fetching journey progress:', journeyError);
+      }
+
+      // Combine the data
+      const usersWithProgress: UserWithProgress[] = (profiles || []).map(profile => {
+        // Find real email from auth users
+        const authUser = authUsers?.users.find(u => u.id === profile.id);
+        const realEmail = authUser?.email || profile.id; // fallback to ID if email not found
+
+        // Find journey progress
+        const userJourneyProgress = journeyProgress?.find(jp => jp.user_id === profile.id);
+
+        return {
+          id: profile.id,
+          email: realEmail,
+          full_name: profile.full_name || 'Unnamed User',
+          role: profile.role,
+          email_verified: authUser?.email_confirmed_at ? true : false,
+          last_login_at: profile.last_login_at || profile.created_at,
+          created_at: profile.created_at,
+          avatar_url: profile.avatar_url,
+          journey_progress: userJourneyProgress,
+          onboarding_progress: profile.onboarding_progress,
+          location: profile.location,
+          phone_number: profile.phone_number,
+          professional_type: profile.professional_type,
+          years_of_experience: profile.years_of_experience,
+          care_types: profile.care_types,
+          specialized_care: profile.specialized_care,
+        };
+      });
+
+      setUsers(usersWithProgress);
+      calculateRoleStats(usersWithProgress);
+    } catch (error) {
+      console.error('Error in fetchUsersWithProgress:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     fetchUsersWithProgress();
