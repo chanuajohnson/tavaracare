@@ -28,18 +28,22 @@ export const useTavaraState = () => {
   }, [user]);
 
   const openPanel = () => {
+    console.log('TAV: Opening panel');
     setState(prev => ({ ...prev, isOpen: true, isMinimized: false }));
   };
 
   const closePanel = () => {
+    console.log('TAV: Closing panel');
     setState(prev => ({ ...prev, isOpen: false }));
   };
 
   const minimizePanel = () => {
+    console.log('TAV: Minimizing panel');
     setState(prev => ({ ...prev, isMinimized: true, isOpen: false }));
   };
 
   const markNudgesAsRead = () => {
+    console.log('TAV: Marking nudges as read');
     setState(prev => ({ ...prev, hasUnreadNudges: false }));
   };
 
