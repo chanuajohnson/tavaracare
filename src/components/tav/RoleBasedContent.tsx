@@ -69,14 +69,14 @@ export const RoleBasedContent: React.FC<RoleBasedContentProps> = ({
             <Button 
               variant="default" 
               size="sm" 
-              className="w-full bg-gradient-to-r from-primary/5 via-primary/3 to-primary/5 hover:from-primary/10 hover:via-primary/5 hover:to-primary/10 text-primary shadow-lg border-2 border-primary/20 min-h-[4rem] h-auto py-4 px-4 relative overflow-hidden group"
+            className="w-full bg-blue-50 hover:bg-blue-100 text-blue-700 shadow-sm border border-blue-200 min-h-[4rem] h-auto py-4 px-4 relative overflow-hidden group rounded-xl"
 
               onClick={() => navigate('/auth')}
             >
               {/* Sparkle effect for VIP treatment */}
               <div className="absolute inset-0 opacity-30 group-hover:opacity-40 transition-opacity duration-300">
-  <Sparkles className="h-3 w-3 absolute top-2 right-3 text-primary/60 animate-pulse" />
-  <Sparkles className="h-2 w-2 absolute bottom-2 left-3 text-primary/40 animate-pulse" style={{ animationDelay: '0.5s' }} />
+ <Sparkles className="h-3 w-3 absolute top-2 right-3 text-blue-400 animate-pulse" />
+<Sparkles className="h-2 w-2 absolute bottom-2 left-3 text-blue-300 animate-pulse" style={{ animationDelay: '0.5s' }} />
 </div>
               
               <div className="flex items-center justify-between w-full min-w-0 relative z-10">
