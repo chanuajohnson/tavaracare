@@ -4,6 +4,7 @@ import { X, MessageCircle, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useTavaraState } from './hooks/useTavaraState';
+import { useFormDetection } from './hooks/useFormDetection';
 import { RoleBasedContent } from './RoleBasedContent';
 import { assistantSupabase } from './assistantSupabase';
 import { ManualNudgeService } from './ManualNudgeService';
@@ -11,6 +12,7 @@ import { useAuth } from '@/components/providers/AuthProvider';
 import { AssistantNudge } from './types';
 import { useProfessionalProgress } from './hooks/useProfessionalProgress';
 import { useFamilyProgress } from './hooks/useFamilyProgress';
+import { useLocation } from 'react-router-dom';
 
 const AUTO_GREET_MESSAGES = {
   guest: "👋 Welcome to Tavara! I'm TAV, your personal care coordinator. Let me help you find the perfect care solution.",
@@ -22,12 +24,15 @@ const AUTO_GREET_MESSAGES = {
 
 export const TavaraAssistantPanel: React.FC = () => {
   const { user } = useAuth();
+  const location = useLocation();
   const isMobile = useIsMobile();
   const { state, openPanel, closePanel, minimizePanel, markNudgesAsRead } = useTavaraState();
+  const { currentForm, isFormPage, isJourneyTouchpoint } = useFormDetection();
   const [nudges, setNudges] = useState<AssistantNudge[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [hasAutoGreeted, setHasAutoGreeted] = useState(false);
   const [showGreeting, setShowGreeting] = useState(false);
+  const [lastGreetedPath, setLastGreetedPath] = useState<string>('');
 
   // Get real progress data based on user role
   const professionalProgress = useProfessionalProgress();
@@ -51,14 +56,43 @@ export const TavaraAssistantPanel: React.FC = () => {
     }
   }, [user]);
 
-  // Enhanced auto-greeting logic - appears more frequently and reliably
+  // Enhanced route change detection for form/journey auto-greeting
+  useEffect(() => {
+    const currentPath = location.pathname;
+    
+    // Skip if already greeted for this path or if panel is already open
+    if (lastGreetedPath === currentPath || state.isOpen) {
+      return;
+    }
+
+    // Check if this is a journey touchpoint where TAV should appear
+    if (isJourneyTouchpoint(currentPath) && state.currentRole) {
+      console.log('TAV: Detected journey touchpoint:', currentPath, 'for role:', state.currentRole);
+      
+      // Set greeting message based on form context or use default
+      const greetingMessage = currentForm?.autoGreetingMessage || AUTO_GREET_MESSAGES[state.currentRole];
+      
+      // Trigger the magic greeting experience
+      setTimeout(() => {
+        setShowGreeting(true);
+        setLastGreetedPath(currentPath);
+        
+        // Auto open panel after greeting animation
+        setTimeout(() => {
+          openPanel();
+        }, 2000); // Longer delay to let users read the contextual message
+      }, 800); // Slight delay so page loads first
+    }
+  }, [location.pathname, isJourneyTouchpoint, currentForm, state.currentRole, state.isOpen, lastGreetedPath, openPanel]);
+
+  // Original auto-greeting logic for initial site visits
   useEffect(() => {
     const sessionKey = `tavara_session_greeted_${state.currentRole}`;
     const hasGreetedThisSession = sessionStorage.getItem(sessionKey);
     
-    // Show greeting if haven't greeted this session AND role is available
-    if (!hasGreetedThisSession && state.currentRole && !hasAutoGreeted && !state.isOpen) {
-      console.log('TAV: Triggering auto-greeting for role:', state.currentRole);
+    // Show greeting if haven't greeted this session AND role is available AND not on a journey page
+    if (!hasGreetedThisSession && state.currentRole && !hasAutoGreeted && !state.isOpen && !isJourneyTouchpoint(location.pathname)) {
+      console.log('TAV: Triggering initial auto-greeting for role:', state.currentRole);
       
       // Show magic entrance after a brief delay
       setTimeout(() => {
@@ -73,27 +107,7 @@ export const TavaraAssistantPanel: React.FC = () => {
         }, 1000);
       }, 1000);
     }
-  }, [state.currentRole, hasAutoGreeted, state.isOpen, openPanel]);
-
-  // Additional proactive greeting triggers
-  useEffect(() => {
-    if (state.currentRole && !hasAutoGreeted && !state.isOpen) {
-      // Show greeting after user has been on page for a few seconds
-      const idleTimer = setTimeout(() => {
-        if (!hasAutoGreeted && !state.isOpen) {
-          console.log('TAV: Triggering idle greeting');
-          setShowGreeting(true);
-          setHasAutoGreeted(true);
-          
-          setTimeout(() => {
-            openPanel();
-          }, 1500);
-        }
-      }, 3000);
-
-      return () => clearTimeout(idleTimer);
-    }
-  }, [state.currentRole, hasAutoGreeted, state.isOpen, openPanel]);
+  }, [state.currentRole, hasAutoGreeted, state.isOpen, location.pathname, isJourneyTouchpoint, openPanel]);
 
   // Auto-open for nudges
   useEffect(() => {
@@ -150,6 +164,19 @@ export const TavaraAssistantPanel: React.FC = () => {
 
   const progressContext = getProgressContext();
 
+  // Enhanced greeting message with form context
+  const getContextualGreeting = () => {
+    if (currentForm?.autoGreetingMessage) {
+      return currentForm.autoGreetingMessage;
+    }
+    
+    if (state.currentRole && AUTO_GREET_MESSAGES[state.currentRole]) {
+      return AUTO_GREET_MESSAGES[state.currentRole];
+    }
+    
+    return "👋 Welcome to Tavara! I'm TAV, your personal care coordinator. Let me help you find the perfect care solution.";
+  };
+
   // Floating button with enhanced magic effects
   if (!state.isOpen && !state.isMinimized) {
     return (
@@ -157,7 +184,7 @@ export const TavaraAssistantPanel: React.FC = () => {
         ? 'bottom-20 left-4' 
         : 'bottom-6 left-6'
       }`}>
-        {/* Enhanced greeting bubble with compact mobile design */}
+        {/* Enhanced contextual greeting bubble */}
         <AnimatePresence>
           {showGreeting && (
             <motion.div
@@ -172,12 +199,12 @@ export const TavaraAssistantPanel: React.FC = () => {
               }}
               className={`absolute bottom-16 left-0 bg-white rounded-xl shadow-xl border-2 border-primary/30 ${
                 isMobile 
-                  ? 'max-w-[240px] text-xs p-2' 
-                  : 'max-w-64 p-3'
+                  ? 'max-w-[280px] text-xs p-3' 
+                  : 'max-w-80 p-4'
               }`}
               onAnimationComplete={() => {
                 // Keep greeting visible longer for better visibility
-                setTimeout(() => setShowGreeting(false), 4500);
+                setTimeout(() => setShowGreeting(false), 6000);
               }}
             >
               {/* Enhanced sparkle effects */}
@@ -188,20 +215,30 @@ export const TavaraAssistantPanel: React.FC = () => {
                 <Sparkles className="h-2 w-2 text-primary/60 animate-pulse" style={{ animationDelay: '0.5s' }} />
               </div>
               
-              <div className="flex items-center gap-2 mb-1">
-                <span className="text-xs">💙</span>
-                <p className="font-semibold text-primary text-xs leading-tight">
-                  Welcome to
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-sm">💙</span>
+                <p className="font-semibold text-primary text-sm leading-tight">
+                  TAV Assistant
                 </p>
-                <img 
-                  src="/TAVARACARElogo.JPG"
-                  alt="Tavara" 
-                  className="h-3 w-auto"
-                />
+                {currentForm && (
+                  <span className="bg-primary/10 text-primary text-xs px-2 py-1 rounded-full">
+                    {currentForm.formTitle}
+                  </span>
+                )}
               </div>
-              <p className={`text-muted-foreground leading-relaxed ${isMobile ? 'text-xs' : 'text-xs'}`}>
-                I'm TAV, your personal care coordinator. Let me help you find the perfect care solution.
+              
+              <p className={`text-muted-foreground leading-relaxed ${isMobile ? 'text-xs' : 'text-sm'}`}>
+                {getContextualGreeting()}
               </p>
+              
+              {/* Form-specific context */}
+              {currentForm && (
+                <div className="mt-2 p-2 bg-primary/5 rounded-lg">
+                  <p className={`text-primary font-medium ${isMobile ? 'text-xs' : 'text-xs'}`}>
+                    ✨ I can help you fill this out conversationally or guide you step by step!
+                  </p>
+                </div>
+              )}
               
               {/* Enhanced speech bubble tail */}
               <div className="absolute bottom-[-8px] left-6 w-3 h-3 bg-white border-r-2 border-b-2 border-primary/30 transform rotate-45"></div>
@@ -231,16 +268,20 @@ export const TavaraAssistantPanel: React.FC = () => {
             
             <MessageCircle className="h-6 w-6 transition-transform group-hover:scale-110" />
             
-            {/* Compact notification badge */}
-            {nudges.length > 0 && (
+            {/* Enhanced notification badge with form awareness */}
+            {(nudges.length > 0 || isFormPage) && (
               <motion.div
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
-                className="absolute -top-1 -right-1 h-6 w-6 rounded-full bg-gradient-to-r from-red-500 to-red-600 flex items-center justify-center shadow-lg border-2 border-white"
+                className="absolute -top-1 -right-1 h-6 w-6 rounded-full bg-gradient-to-r from-primary/80 to-primary flex items-center justify-center shadow-lg border-2 border-white"
               >
-                <span className="text-xs text-white font-bold">
-                  {nudges.length}
-                </span>
+                {nudges.length > 0 ? (
+                  <span className="text-xs text-white font-bold">
+                    {nudges.length}
+                  </span>
+                ) : (
+                  <Sparkles className="h-3 w-3 text-white" />
+                )}
               </motion.div>
             )}
           </Button>
@@ -285,7 +326,7 @@ export const TavaraAssistantPanel: React.FC = () => {
                 : 'bottom-6 left-6 rounded-2xl border max-h-[40vh] w-[min(20rem,40vw)]'
             }`}
           >
-            {/* Compact header */}
+            {/* Compact header with form context */}
             <div className={`flex items-center justify-between border-b bg-gradient-to-r from-primary/5 to-transparent ${
               isMobile ? 'p-2 pb-1' : 'p-3'
             }`}>
@@ -296,7 +337,7 @@ export const TavaraAssistantPanel: React.FC = () => {
                 <div className="min-w-0 flex-1">
                   <h2 className="font-semibold text-sm leading-tight">TAV Assistant</h2>
                   <p className="text-xs text-muted-foreground leading-tight truncate">
-                    Your care coordinator
+                    {currentForm ? `Helping with ${currentForm.formTitle}` : 'Your care coordinator'}
                   </p>
                 </div>
               </div>
@@ -317,6 +358,21 @@ export const TavaraAssistantPanel: React.FC = () => {
                 ? 'p-2 max-h-[calc(40vh-70px)]' 
                 : 'p-3 max-h-[calc(40vh-80px)]'
             }`}>
+              {/* Form context banner */}
+              {currentForm && (
+                <div className="mb-3 p-2 bg-gradient-to-r from-primary/5 to-primary/10 rounded-lg border border-primary/20">
+                  <div className="flex items-center gap-1 mb-1">
+                    <Sparkles className="h-3 w-3 text-primary flex-shrink-0" />
+                    <h3 className="text-xs font-medium text-primary">
+                      {currentForm.formTitle} Assistance
+                    </h3>
+                  </div>
+                  <p className="text-xs text-primary/80 leading-relaxed">
+                    {currentForm.autoGreetingMessage || "I can help you fill this out conversationally or guide you step by step. What would be most helpful?"}
+                  </p>
+                </div>
+              )}
+
               {/* Compact nudges */}
               {nudges.length > 0 && (
                 <div className="mb-4 space-y-2">
