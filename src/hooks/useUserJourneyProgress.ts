@@ -1,6 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
+import type { UserRole } from '@/types/userRoles';
 
 interface JourneyStep {
   id: number;
@@ -17,11 +18,11 @@ interface UserJourneyData {
   loading: boolean;
 }
 
-export const useUserJourneyProgress = (userId: string, userRole: string): UserJourneyData => {
+export const useUserJourneyProgress = (userId: string, userRole: UserRole): UserJourneyData => {
   const [loading, setLoading] = useState(true);
   const [steps, setSteps] = useState<JourneyStep[]>([]);
 
-  const getStepsForRole = (role: string): JourneyStep[] => {
+  const getStepsForRole = (role: UserRole): JourneyStep[] => {
     switch (role) {
       case 'family':
         return [

@@ -4,10 +4,11 @@ import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { CheckCircle2, Clock, Circle } from "lucide-react";
 import { useUserJourneyProgress } from "@/hooks/useUserJourneyProgress";
+import type { UserRole } from "@/types/userRoles";
 
 interface MiniJourneyProgressProps {
   userId: string;
-  userRole: string;
+  userRole: UserRole;
 }
 
 export const MiniJourneyProgress: React.FC<MiniJourneyProgressProps> = ({ userId, userRole }) => {
