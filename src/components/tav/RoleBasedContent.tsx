@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Heart, UserCog, Users, Globe, Shield, ArrowRight, Sparkles } from 'lucide-react';
+import { Heart, UserCog, Users, Globe, Shield, ArrowRight, Sparkles, Clock } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useReturningUser } from './hooks/useReturningUser';
+import { useFamilyProgress } from './hooks/useFamilyProgress';
+import { useProfessionalProgress } from './hooks/useProfessionalProgress';
 import { motion } from 'framer-motion';
 import { FamilyJourneyPreview } from './components/FamilyJourneyPreview';
 import { ProfessionalJourneyPreview } from './components/ProfessionalJourneyPreview';
@@ -26,6 +28,10 @@ export const RoleBasedContent: React.FC<RoleBasedContentProps> = ({
   const navigate = useNavigate();
   const { isReturningUser, lastRole, hasVisitedBefore, detectionMethod } = useReturningUser();
   const [previewState, setPreviewState] = useState<PreviewState>('selection');
+  
+  // Get real progress data for logged-in users
+  const familyProgress = useFamilyProgress();
+  const professionalProgress = useProfessionalProgress();
 
   const getRoleDisplayName = (roleType: string) => {
     switch (roleType) {
@@ -165,25 +171,42 @@ export const RoleBasedContent: React.FC<RoleBasedContentProps> = ({
     );
   }
 
-  if (role === 'family' && progressContext) {
+  if (role === 'family') {
+    const { steps, completionPercentage, nextStep, loading } = familyProgress;
+
+    if (loading) {
+      return (
+        <div className="space-y-4">
+          <div className="flex items-center gap-3 mb-4">
+            <Users className="h-6 w-6 text-blue-600 flex-shrink-0" />
+            <h3 className="text-lg font-semibold leading-tight">Your Journey Ahead</h3>
+          </div>
+          <div className="text-center py-4">
+            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto"></div>
+            <p className="text-sm text-gray-500 mt-2">Loading progress...</p>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="space-y-4">
         <div className="flex items-center gap-3 mb-4">
           <Users className="h-6 w-6 text-blue-600 flex-shrink-0" />
-          <h3 className="text-lg font-semibold leading-tight">Your Care Journey</h3>
+          <h3 className="text-lg font-semibold leading-tight">Your Journey Ahead</h3>
         </div>
         
         <div className="bg-blue-50 rounded-lg p-3 border border-blue-200">
           <div className="flex justify-between items-center mb-2">
             <span className="text-sm font-medium">Progress</span>
             <span className="text-sm text-blue-600 font-semibold">
-              {progressContext.completionPercentage}%
+              {completionPercentage}%
             </span>
           </div>
           <div className="w-full bg-blue-200 rounded-full h-2">
             <div 
               className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-              style={{ width: `${progressContext.completionPercentage}%` }}
+              style={{ width: `${completionPercentage}%` }}
             />
           </div>
         </div>
@@ -193,10 +216,14 @@ export const RoleBasedContent: React.FC<RoleBasedContentProps> = ({
           care for your loved one.
         </p>
         
-        {progressContext.nextAction && (
+        {nextStep && (
           <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
-            <p className="text-sm font-medium text-amber-800 mb-2">Next Step:</p>
-            <p className="text-sm text-amber-700 leading-relaxed">{progressContext.nextAction}</p>
+            <div className="flex items-center gap-2 mb-1">
+              <Clock className="h-3 w-3 text-amber-600" />
+              <p className="text-sm font-medium text-amber-800">Next Step:</p>
+            </div>
+            <p className="text-sm text-amber-700 leading-relaxed mb-2">{nextStep.title}</p>
+            <p className="text-xs text-amber-600 leading-relaxed">{nextStep.description}</p>
           </div>
         )}
         
@@ -204,33 +231,50 @@ export const RoleBasedContent: React.FC<RoleBasedContentProps> = ({
           variant="default" 
           size="sm" 
           className="w-full h-auto py-3"
-          onClick={() => navigate('/dashboard/family')}
+          onClick={() => navigate(nextStep?.link || '/dashboard/family')}
         >
-          Continue Your Journey
+          {nextStep ? `Continue: ${nextStep.title}` : 'View Dashboard'}
         </Button>
       </div>
     );
   }
 
-  if (role === 'professional' && progressContext) {
+  if (role === 'professional') {
+    const { steps, completionPercentage, nextStep, loading } = professionalProgress;
+
+    if (loading) {
+      return (
+        <div className="space-y-4">
+          <div className="flex items-center gap-3 mb-4">
+            <UserCog className="h-6 w-6 text-green-600 flex-shrink-0" />
+            <h3 className="text-lg font-semibold leading-tight">Next Steps</h3>
+          </div>
+          <div className="text-center py-4">
+            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto"></div>
+            <p className="text-sm text-gray-500 mt-2">Loading progress...</p>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="space-y-4">
         <div className="flex items-center gap-3 mb-4">
           <UserCog className="h-6 w-6 text-green-600 flex-shrink-0" />
-          <h3 className="text-lg font-semibold leading-tight">Professional Dashboard</h3>
+          <h3 className="text-lg font-semibold leading-tight">Next Steps</h3>
         </div>
         
         <div className="bg-green-50 rounded-lg p-3 border border-green-200">
           <div className="flex justify-between items-center mb-2">
             <span className="text-sm font-medium">Profile Completion</span>
             <span className="text-sm text-green-600 font-semibold">
-              {progressContext.completionPercentage}%
+              {completionPercentage}%
             </span>
           </div>
           <div className="w-full bg-green-200 rounded-full h-2">
             <div 
               className="bg-green-600 h-2 rounded-full transition-all duration-300"
-              style={{ width: `${progressContext.completionPercentage}%` }}
+              style={{ width: `${completionPercentage}%` }}
             />
           </div>
         </div>
@@ -239,13 +283,24 @@ export const RoleBasedContent: React.FC<RoleBasedContentProps> = ({
           Complete your profile to start receiving job opportunities that match your skills.
         </p>
         
+        {nextStep && (
+          <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+            <div className="flex items-center gap-2 mb-1">
+              <Clock className="h-3 w-3 text-amber-600" />
+              <p className="text-sm font-medium text-amber-800">Next Step:</p>
+            </div>
+            <p className="text-sm text-amber-700 leading-relaxed mb-2">{nextStep.title}</p>
+            <p className="text-xs text-amber-600 leading-relaxed">{nextStep.description}</p>
+          </div>
+        )}
+        
         <Button 
           variant="default" 
           size="sm" 
           className="w-full h-auto py-3"
-          onClick={() => navigate('/dashboard/professional')}
+          onClick={() => navigate(nextStep?.link || '/dashboard/professional')}
         >
-          Complete Profile
+          {nextStep ? `Continue: ${nextStep.title}` : 'View Dashboard'}
         </Button>
       </div>
     );
