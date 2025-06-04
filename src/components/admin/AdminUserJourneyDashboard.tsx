@@ -11,11 +11,12 @@ import { NudgeSystem } from "./NudgeSystem";
 import { BulkActionPanel } from "./BulkActionPanel";
 import { UserDetailModal } from "./UserDetailModal";
 import type { UserWithProgress, RoleStats } from "@/types/adminTypes";
+import type { UserRole } from "@/types/userRoles";
 
 export function AdminUserJourneyDashboard() {
   const [users, setUsers] = useState<UserWithProgress[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedRole, setSelectedRole] = useState<'all' | 'family' | 'professional' | 'community' | 'admin'>('all');
+  const [selectedRole, setSelectedRole] = useState<'all' | UserRole>('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStage, setFilterStage] = useState<'all' | string>('all');
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
@@ -67,7 +68,7 @@ export function AdminUserJourneyDashboard() {
           id: profile.id,
           email: realEmail,
           full_name: profile.full_name || 'Unnamed User',
-          role: profile.role,
+          role: profile.role as UserRole,
           email_verified: authUser?.email_confirmed_at ? true : false,
           last_login_at: profile.last_login_at || profile.created_at,
           created_at: profile.created_at,
@@ -80,7 +81,7 @@ export function AdminUserJourneyDashboard() {
           years_of_experience: profile.years_of_experience,
           care_types: profile.care_types,
           specialized_care: profile.specialized_care,
-        } as UserWithProgress;
+        };
       });
 
       setUsers(usersWithProgress);
