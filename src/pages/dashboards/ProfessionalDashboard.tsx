@@ -1,4 +1,6 @@
+
 import { motion } from "framer-motion";
+import { useEffect } from "react";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -19,6 +21,11 @@ import { CaregiverHealthCard } from "@/components/professional/CaregiverHealthCa
 
 const ProfessionalDashboard = () => {
   const { user } = useAuth();
+  
+  // Ensure dashboard always loads at the top
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
   
   const breadcrumbItems = [
     {

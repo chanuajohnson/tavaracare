@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/components/providers/AuthProvider';
@@ -372,9 +371,11 @@ const ProfessionalRegistrationFix = () => {
       
       toast.success("Professional profile created successfully!");
       
-      // Delay navigation slightly to ensure toast is visible
+      // Delay navigation slightly to ensure toast is visible, then navigate and scroll to top
       setTimeout(() => {
-        navigate('/dashboard/professional');
+        navigate('/dashboard/professional', { replace: true });
+        // Ensure we scroll to top after navigation
+        window.scrollTo(0, 0);
       }, 1500);
     } catch (error: any) {
       console.error("Error in handleSubmit:", error);
