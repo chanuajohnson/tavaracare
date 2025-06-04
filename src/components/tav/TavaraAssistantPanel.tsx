@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, MessageCircle, Sparkles } from 'lucide-react';
@@ -131,7 +130,7 @@ export const TavaraAssistantPanel: React.FC = () => {
         ? 'bottom-20 left-4' 
         : 'bottom-6 left-6'
       }`}>
-        {/* Enhanced greeting bubble with improved mobile responsiveness */}
+        {/* Enhanced greeting bubble with compact mobile design */}
         <AnimatePresence>
           {showGreeting && (
             <motion.div
@@ -146,8 +145,8 @@ export const TavaraAssistantPanel: React.FC = () => {
               }}
               className={`absolute bottom-16 left-0 bg-white rounded-xl shadow-xl border-2 border-primary/30 ${
                 isMobile 
-                  ? 'max-w-[280px] text-sm p-3' 
-                  : 'max-w-72 p-4'
+                  ? 'max-w-[240px] text-xs p-2' 
+                  : 'max-w-64 p-3'
               }`}
               onAnimationComplete={() => {
                 // Keep greeting visible longer for better visibility
@@ -156,13 +155,13 @@ export const TavaraAssistantPanel: React.FC = () => {
             >
               {/* Enhanced sparkle effects */}
               <div className="absolute -top-1 -right-1">
-                <Sparkles className="h-4 w-4 text-primary animate-pulse" />
+                <Sparkles className="h-3 w-3 text-primary animate-pulse" />
               </div>
-              <div className="absolute top-1 right-6">
-                <Sparkles className="h-3 w-3 text-primary/60 animate-pulse" style={{ animationDelay: '0.5s' }} />
+              <div className="absolute top-1 right-5">
+                <Sparkles className="h-2 w-2 text-primary/60 animate-pulse" style={{ animationDelay: '0.5s' }} />
               </div>
               
-              <p className="font-semibold text-primary mb-2 leading-tight text-sm sm:text-base">
+              <p className="font-semibold text-primary mb-1 leading-tight text-xs">
                 {AUTO_GREET_MESSAGES[state.currentRole || 'guest'].split('!')[0]}!
               </p>
               <p className={`text-muted-foreground leading-relaxed ${isMobile ? 'text-xs' : 'text-xs'}`}>
@@ -170,12 +169,12 @@ export const TavaraAssistantPanel: React.FC = () => {
               </p>
               
               {/* Enhanced speech bubble tail */}
-              <div className="absolute bottom-[-8px] left-8 w-4 h-4 bg-white border-r-2 border-b-2 border-primary/30 transform rotate-45"></div>
+              <div className="absolute bottom-[-8px] left-6 w-3 h-3 bg-white border-r-2 border-b-2 border-primary/30 transform rotate-45"></div>
             </motion.div>
           )}
         </AnimatePresence>
 
-        {/* Enhanced main TAV button with more sparkles */}
+        {/* Compact TAV button */}
         <motion.div
           initial={{ scale: 0, rotate: -180 }}
           animate={{ scale: 1, rotate: 0 }}
@@ -186,23 +185,23 @@ export const TavaraAssistantPanel: React.FC = () => {
           <Button
             onClick={openPanel}
             size="icon"
-            className="h-16 w-16 rounded-full bg-gradient-to-r from-primary via-primary/90 to-primary shadow-xl relative overflow-hidden group hover:shadow-2xl transition-all duration-300"
+            className="h-14 w-14 rounded-full bg-gradient-to-r from-primary via-primary/90 to-primary shadow-xl relative overflow-hidden group hover:shadow-2xl transition-all duration-300"
           >
             {/* Enhanced magic sparkle effect */}
             <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-              <Sparkles className="h-4 w-4 absolute top-2 right-2 text-white/70 animate-pulse" />
-              <Sparkles className="h-3 w-3 absolute bottom-3 left-3 text-white/50 animate-pulse" style={{ animationDelay: '0.3s' }} />
-              <Sparkles className="h-2 w-2 absolute top-4 left-4 text-white/60 animate-pulse" style={{ animationDelay: '0.7s' }} />
+              <Sparkles className="h-3 w-3 absolute top-2 right-2 text-white/70 animate-pulse" />
+              <Sparkles className="h-2 w-2 absolute bottom-2 left-2 text-white/50 animate-pulse" style={{ animationDelay: '0.3s' }} />
+              <Sparkles className="h-2 w-2 absolute top-3 left-3 text-white/60 animate-pulse" style={{ animationDelay: '0.7s' }} />
             </div>
             
-            <MessageCircle className="h-7 w-7 transition-transform group-hover:scale-110" />
+            <MessageCircle className="h-6 w-6 transition-transform group-hover:scale-110" />
             
-            {/* Enhanced notification badge */}
+            {/* Compact notification badge */}
             {nudges.length > 0 && (
               <motion.div
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
-                className="absolute -top-2 -right-2 h-7 w-7 rounded-full bg-gradient-to-r from-red-500 to-red-600 flex items-center justify-center shadow-lg border-2 border-white"
+                className="absolute -top-1 -right-1 h-6 w-6 rounded-full bg-gradient-to-r from-red-500 to-red-600 flex items-center justify-center shadow-lg border-2 border-white"
               >
                 <span className="text-xs text-white font-bold">
                   {nudges.length}
@@ -230,7 +229,7 @@ export const TavaraAssistantPanel: React.FC = () => {
             />
           )}
           
-          {/* Enhanced panel with better mobile responsiveness and reduced height */}
+          {/* Compact panel with 40% height and width */}
           <motion.div
             initial={isMobile 
               ? { x: '-100%', opacity: 0 } 
@@ -247,22 +246,22 @@ export const TavaraAssistantPanel: React.FC = () => {
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
             className={`fixed z-50 bg-white border shadow-2xl ${
               isMobile
-                ? 'bottom-0 left-0 right-0 rounded-t-2xl max-h-[60vh] border-t'
-                : 'bottom-6 left-6 rounded-2xl border max-h-[calc(100vh-3rem)] w-[min(26rem,calc(100vw-3rem))]'
+                ? 'bottom-4 right-4 left-auto rounded-2xl max-h-[40vh] w-[40vw] min-w-[280px] border'
+                : 'bottom-6 left-6 rounded-2xl border max-h-[40vh] w-[min(20rem,40vw)]'
             }`}
           >
-            {/* Header with reduced padding on mobile */}
+            {/* Compact header */}
             <div className={`flex items-center justify-between border-b bg-gradient-to-r from-primary/5 to-transparent ${
-              isMobile ? 'p-3 pb-2' : 'p-4'
+              isMobile ? 'p-2 pb-1' : 'p-3'
             }`}>
-              <div className="flex items-center gap-3 min-w-0 flex-1">
-                <div className="h-10 w-10 rounded-full bg-gradient-to-r from-primary to-primary/80 flex items-center justify-center shadow-md flex-shrink-0">
-                  <MessageCircle className="h-5 w-5 text-white" />
+              <div className="flex items-center gap-2 min-w-0 flex-1">
+                <div className="h-8 w-8 rounded-full bg-gradient-to-r from-primary to-primary/80 flex items-center justify-center shadow-md flex-shrink-0">
+                  <MessageCircle className="h-4 w-4 text-white" />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <h2 className="font-semibold text-base leading-tight">TAV Assistant</h2>
+                  <h2 className="font-semibold text-sm leading-tight">TAV Assistant</h2>
                   <p className="text-xs text-muted-foreground leading-tight truncate">
-                    Your personal care coordinator
+                    Your care coordinator
                   </p>
                 </div>
               </div>
@@ -271,28 +270,28 @@ export const TavaraAssistantPanel: React.FC = () => {
                 variant="ghost"
                 size="icon"
                 onClick={closePanel}
-                className="h-8 w-8 hover:bg-primary/10 flex-shrink-0"
+                className="h-7 w-7 hover:bg-primary/10 flex-shrink-0"
               >
-                <X className="h-4 w-4" />
+                <X className="h-3 w-3" />
               </Button>
             </div>
 
-            {/* Content with improved scrolling and optimized height */}
+            {/* Compact content with optimized scrolling */}
             <div className={`overflow-y-auto ${
               isMobile 
-                ? 'p-3 max-h-[calc(60vh-100px)]' 
-                : 'p-4 max-h-[calc(100vh-13rem)]'
+                ? 'p-2 max-h-[calc(40vh-70px)]' 
+                : 'p-3 max-h-[calc(40vh-80px)]'
             }`}>
-              {/* Enhanced auto-greeting message */}
+              {/* Compact auto-greeting message */}
               {hasAutoGreeted && state.currentRole && (
                 <motion.div
                   initial={{ opacity: 0, y: 15 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.2 }}
-                  className="mb-4 p-4 bg-gradient-to-r from-primary/10 via-primary/5 to-transparent rounded-xl border border-primary/20 shadow-sm"
+                  className="mb-3 p-3 bg-gradient-to-r from-primary/10 via-primary/5 to-transparent rounded-xl border border-primary/20 shadow-sm"
                 >
-                  <p className="text-sm font-semibold text-primary mb-2 leading-tight flex items-center gap-2">
-                    <Sparkles className="h-4 w-4" />
+                  <p className="text-xs font-semibold text-primary mb-1 leading-tight flex items-center gap-1">
+                    <Sparkles className="h-3 w-3" />
                     Welcome! 👋
                   </p>
                   <p className={`text-muted-foreground leading-relaxed ${isMobile ? 'text-xs' : 'text-xs'}`}>
@@ -301,11 +300,11 @@ export const TavaraAssistantPanel: React.FC = () => {
                 </motion.div>
               )}
 
-              {/* Nudges */}
+              {/* Compact nudges */}
               {nudges.length > 0 && (
-                <div className="mb-6 space-y-3">
-                  <h3 className="text-sm font-medium text-amber-800 flex items-center gap-2">
-                    <Sparkles className="h-4 w-4 flex-shrink-0" />
+                <div className="mb-4 space-y-2">
+                  <h3 className="text-xs font-medium text-amber-800 flex items-center gap-1">
+                    <Sparkles className="h-3 w-3 flex-shrink-0" />
                     Messages for you:
                   </h3>
                   {nudges.map((nudge) => (
@@ -313,10 +312,10 @@ export const TavaraAssistantPanel: React.FC = () => {
                       key={nudge.id}
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
-                      className="bg-gradient-to-r from-amber-50 to-amber-50/50 border border-amber-200 rounded-lg p-3 cursor-pointer hover:from-amber-100 hover:to-amber-100/50 transition-all duration-200"
+                      className="bg-gradient-to-r from-amber-50 to-amber-50/50 border border-amber-200 rounded-lg p-2 cursor-pointer hover:from-amber-100 hover:to-amber-100/50 transition-all duration-200"
                       onClick={() => handleNudgeClick(nudge)}
                     >
-                      <p className={`text-amber-800 leading-relaxed ${isMobile ? 'text-xs' : 'text-sm'}`}>{nudge.message}</p>
+                      <p className={`text-amber-800 leading-relaxed ${isMobile ? 'text-xs' : 'text-xs'}`}>{nudge.message}</p>
                       <p className={`text-amber-600 mt-1 leading-tight ${isMobile ? 'text-xs' : 'text-xs'}`}>
                         From {nudge.sender} • Click to dismiss
                       </p>
@@ -325,17 +324,17 @@ export const TavaraAssistantPanel: React.FC = () => {
                 </div>
               )}
 
-              {/* Role-based content with enhanced mobile support */}
+              {/* Role-based content with compact mobile support */}
               <RoleBasedContent 
                 role={state.currentRole} 
                 progressContext={progressContext}
               />
             </div>
 
-            {/* Mobile handle */}
+            {/* Compact mobile handle */}
             {isMobile && (
-              <div className="flex justify-center py-2 bg-gray-50/50">
-                <div className="w-8 h-1 bg-gray-300 rounded-full" />
+              <div className="flex justify-center py-1 bg-gray-50/50">
+                <div className="w-6 h-1 bg-gray-300 rounded-full" />
               </div>
             )}
           </motion.div>
