@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -11,7 +10,7 @@ import { UserJourneyCard } from "./UserJourneyCard";
 import { NudgeSystem } from "./NudgeSystem";
 import { BulkActionPanel } from "./BulkActionPanel";
 import { UserDetailModal } from "./UserDetailModal";
-import { UserWithProgress, RoleStats } from "@/types/adminTypes";
+import type { UserWithProgress, RoleStats } from "@/types/adminTypes";
 
 export function AdminUserJourneyDashboard() {
   const [users, setUsers] = useState<UserWithProgress[]>([]);
