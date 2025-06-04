@@ -10,9 +10,11 @@ import { UserJourneyCard } from "./UserJourneyCard";
 import { NudgeSystem } from "./NudgeSystem";
 import { BulkActionPanel } from "./BulkActionPanel";
 import { UserDetailModal } from "./UserDetailModal";
-import type { UserRole } from "@/types/userRoles";
 
-// Define UserWithProgress interface directly to avoid conflicts
+// Use inline role definitions like TAV pattern
+type UserRole = 'family' | 'professional' | 'community' | 'admin';
+type AdminUserRole = 'all' | UserRole;
+
 interface UserJourneyProgress {
   id: string;
   user_id: string;
@@ -51,9 +53,6 @@ interface RoleStats {
   active: number;
   stalled: number;
 }
-
-// Define the role type for this component
-type AdminUserRole = 'all' | UserRole;
 
 export function AdminUserJourneyDashboard() {
   const [users, setUsers] = useState<UserWithProgress[]>([]);
