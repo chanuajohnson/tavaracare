@@ -1,6 +1,6 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Heart, UserCog, Users, Globe, Shield, ArrowRight } from 'lucide-react';
+import { Heart, UserCog, Users, Globe, Shield, ArrowRight, Sparkles } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useReturningUser } from './hooks/useReturningUser';
 import { motion } from 'framer-motion';
@@ -19,7 +19,7 @@ export const RoleBasedContent: React.FC<RoleBasedContentProps> = ({
   progressContext 
 }) => {
   const navigate = useNavigate();
-  const { isReturningUser, lastRole, hasVisitedBefore } = useReturningUser();
+  const { isReturningUser, lastRole, hasVisitedBefore, detectionMethod } = useReturningUser();
 
   const getRoleDisplayName = (roleType: string) => {
     switch (roleType) {
@@ -30,16 +30,18 @@ export const RoleBasedContent: React.FC<RoleBasedContentProps> = ({
     }
   };
 
-  const getWelcomeBackMessage = () => {
+  const getContextualWelcomeMessage = () => {
     if (lastRole) {
       return {
-        main: "Welcome back!",
-        sub: `Continue as a ${getRoleDisplayName(lastRole)}`
+        main: "Welcome back! 👋",
+        sub: `Ready to continue as a ${getRoleDisplayName(lastRole)}?`,
+        detail: "Log in to access your dashboard"
       };
     }
     return {
-      main: "Welcome back!",
-      sub: "Log in to access your dashboard"
+      main: "Welcome back! 🎉",
+      sub: "Ready to log in?",
+      detail: "Access your personalized dashboard"
     };
   };
 
@@ -56,44 +58,60 @@ export const RoleBasedContent: React.FC<RoleBasedContentProps> = ({
           your caregiving journey with warmth and expertise.
         </p>
 
-        {/* Welcome Back Option for Returning Users */}
+        {/* Enhanced Welcome Back Option for Returning Users */}
         {isReturningUser && (
           <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3 }}
-            className="mb-4"
+            initial={{ opacity: 0, y: -10, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            transition={{ duration: 0.4, ease: "easeOut" }}
+            className="mb-6"
           >
             <Button 
               variant="default" 
               size="sm" 
-              className="w-full bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary text-white shadow-md min-h-[3rem] h-auto py-3 px-4"
+              className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-lg border-2 border-blue-300/30 min-h-[4rem] h-auto py-4 px-4 relative overflow-hidden group"
               onClick={() => navigate('/auth')}
             >
-              <div className="flex items-center justify-between w-full min-w-0">
-                <div className="flex flex-col items-start text-left min-w-0 flex-1 mr-2">
-                  <span className="text-sm font-medium leading-tight">
-                    {getWelcomeBackMessage().main}
+              {/* Sparkle effect for VIP treatment */}
+              <div className="absolute inset-0 opacity-20 group-hover:opacity-30 transition-opacity duration-300">
+                <Sparkles className="h-3 w-3 absolute top-2 right-3 text-white animate-pulse" />
+                <Sparkles className="h-2 w-2 absolute bottom-2 left-3 text-white animate-pulse" style={{ animationDelay: '0.5s' }} />
+              </div>
+              
+              <div className="flex items-center justify-between w-full min-w-0 relative z-10">
+                <div className="flex flex-col items-start text-left min-w-0 flex-1 mr-3">
+                  <span className="text-base font-semibold leading-tight mb-1">
+                    {getContextualWelcomeMessage().main}
                   </span>
-                  <span className="text-xs opacity-90 leading-tight break-words">
-                    {getWelcomeBackMessage().sub}
+                  <span className="text-sm opacity-95 leading-tight mb-1 break-words">
+                    {getContextualWelcomeMessage().sub}
+                  </span>
+                  <span className="text-xs opacity-80 leading-tight break-words">
+                    {getContextualWelcomeMessage().detail}
                   </span>
                 </div>
-                <ArrowRight className="h-4 w-4 flex-shrink-0" />
+                <ArrowRight className="h-5 w-5 flex-shrink-0 group-hover:translate-x-1 transition-transform duration-200" />
               </div>
             </Button>
+            
+            {/* Debug info for development */}
+            {process.env.NODE_ENV === 'development' && (
+              <p className="text-xs text-muted-foreground mt-2 opacity-70">
+                Detection: {detectionMethod} • Role: {lastRole || 'unknown'}
+              </p>
+            )}
           </motion.div>
         )}
         
         <div className="space-y-3">
-          <p className="text-sm font-medium">
+          <p className="text-sm font-medium text-muted-foreground">
             {isReturningUser ? "Or start fresh:" : "How can I help you today?"}
           </p>
           
           <Button 
             variant="outline" 
             size="sm" 
-            className="w-full justify-start h-auto py-3 px-4"
+            className="w-full justify-start h-auto py-3 px-4 hover:bg-blue-50 hover:border-blue-200 transition-colors duration-200"
             onClick={() => navigate('/registration/family')}
           >
             <Users className="h-4 w-4 mr-3 flex-shrink-0" />
@@ -103,7 +121,7 @@ export const RoleBasedContent: React.FC<RoleBasedContentProps> = ({
           <Button 
             variant="outline" 
             size="sm" 
-            className="w-full justify-start h-auto py-3 px-4"
+            className="w-full justify-start h-auto py-3 px-4 hover:bg-green-50 hover:border-green-200 transition-colors duration-200"
             onClick={() => navigate('/registration/professional')}
           >
             <UserCog className="h-4 w-4 mr-3 flex-shrink-0" />
@@ -113,7 +131,7 @@ export const RoleBasedContent: React.FC<RoleBasedContentProps> = ({
           <Button 
             variant="outline" 
             size="sm" 
-            className="w-full justify-start h-auto py-3 px-4"
+            className="w-full justify-start h-auto py-3 px-4 hover:bg-amber-50 hover:border-amber-200 transition-colors duration-200"
             onClick={() => navigate('/registration/community')}
           >
             <Globe className="h-4 w-4 mr-3 flex-shrink-0" />

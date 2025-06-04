@@ -27,6 +27,15 @@ export const TavaraAssistantPanel: React.FC = () => {
   const [hasAutoGreeted, setHasAutoGreeted] = useState(false);
   const [showGreeting, setShowGreeting] = useState(false);
 
+  // Initialize session tracking
+  useEffect(() => {
+    // Mark session as started
+    sessionStorage.setItem('tavara_session_started', 'true');
+    if (!sessionStorage.getItem('tavara_session_start_time')) {
+      sessionStorage.setItem('tavara_session_start_time', Date.now().toString());
+    }
+  }, []);
+
   // Initialize nudge service and fetch nudges
   useEffect(() => {
     if (user) {
@@ -36,7 +45,7 @@ export const TavaraAssistantPanel: React.FC = () => {
     }
   }, [user]);
 
-  // Enhanced auto-greeting logic - appears more frequently
+  // Enhanced auto-greeting logic - appears more frequently and reliably
   useEffect(() => {
     const sessionKey = `tavara_session_greeted_${state.currentRole}`;
     const hasGreetedThisSession = sessionStorage.getItem(sessionKey);
@@ -55,8 +64,8 @@ export const TavaraAssistantPanel: React.FC = () => {
         // Auto open panel after greeting animation
         setTimeout(() => {
           openPanel();
-        }, 1500);
-      }, 1500); // Reduced delay for faster appearance
+        }, 1000); // Reduced delay for faster appearance
+      }, 1000); // Reduced delay for faster appearance
     }
   }, [state.currentRole, hasAutoGreeted, state.isOpen, openPanel]);
 
@@ -74,7 +83,7 @@ export const TavaraAssistantPanel: React.FC = () => {
             openPanel();
           }, 1500);
         }
-      }, 4000); // Show after 4 seconds of being on page
+      }, 3000); // Reduced to 3 seconds for more responsive greeting
 
       return () => clearTimeout(idleTimer);
     }
@@ -114,14 +123,14 @@ export const TavaraAssistantPanel: React.FC = () => {
     nextAction: 'Upload your caregiver certificates to complete your profile'
   };
 
-  // Floating button with magic effects
+  // Floating button with enhanced magic effects
   if (!state.isOpen && !state.isMinimized) {
     return (
       <div className={`fixed z-50 ${isMobile 
         ? 'bottom-20 left-4' 
         : 'bottom-6 left-6'
       }`}>
-        {/* Enhanced greeting bubble with more prominent animation */}
+        {/* Enhanced greeting bubble with improved mobile responsiveness */}
         <AnimatePresence>
           {showGreeting && (
             <motion.div
@@ -134,12 +143,14 @@ export const TavaraAssistantPanel: React.FC = () => {
                 stiffness: 300,
                 duration: 0.6
               }}
-              className={`absolute bottom-16 left-0 bg-white rounded-xl shadow-xl p-4 border-2 border-primary/30 ${
-                isMobile ? 'max-w-80 text-sm' : 'max-w-72'
+              className={`absolute bottom-16 left-0 bg-white rounded-xl shadow-xl border-2 border-primary/30 ${
+                isMobile 
+                  ? 'max-w-[280px] text-sm p-3' 
+                  : 'max-w-72 p-4'
               }`}
               onAnimationComplete={() => {
                 // Keep greeting visible longer for better visibility
-                setTimeout(() => setShowGreeting(false), 4000);
+                setTimeout(() => setShowGreeting(false), 4500);
               }}
             >
               {/* Enhanced sparkle effects */}
@@ -150,10 +161,10 @@ export const TavaraAssistantPanel: React.FC = () => {
                 <Sparkles className="h-3 w-3 text-primary/60 animate-pulse" style={{ animationDelay: '0.5s' }} />
               </div>
               
-              <p className="font-semibold text-primary mb-2 leading-tight">
+              <p className="font-semibold text-primary mb-2 leading-tight text-sm sm:text-base">
                 {AUTO_GREET_MESSAGES[state.currentRole || 'guest'].split('!')[0]}!
               </p>
-              <p className="text-xs text-muted-foreground leading-relaxed">
+              <p className={`text-muted-foreground leading-relaxed ${isMobile ? 'text-xs' : 'text-xs'}`}>
                 {AUTO_GREET_MESSAGES[state.currentRole || 'guest'].split('!').slice(1).join('!').trim()}
               </p>
               
@@ -218,7 +229,7 @@ export const TavaraAssistantPanel: React.FC = () => {
             />
           )}
           
-          {/* Panel */}
+          {/* Enhanced panel with better mobile responsiveness */}
           <motion.div
             initial={isMobile 
               ? { x: '-100%', opacity: 0 } 
@@ -236,7 +247,7 @@ export const TavaraAssistantPanel: React.FC = () => {
             className={`fixed z-50 bg-white border shadow-2xl ${
               isMobile
                 ? 'bottom-0 left-0 right-0 rounded-t-2xl max-h-[85vh] border-t'
-                : 'bottom-6 left-6 rounded-2xl border max-h-[calc(100vh-3rem)] w-[min(24rem,calc(100vw-3rem))]'
+                : 'bottom-6 left-6 rounded-2xl border max-h-[calc(100vh-3rem)] w-[min(26rem,calc(100vw-3rem))]'
             }`}
           >
             {/* Header */}
@@ -265,7 +276,7 @@ export const TavaraAssistantPanel: React.FC = () => {
               </Button>
             </div>
 
-            {/* Content */}
+            {/* Content with improved scrolling */}
             <div className={`overflow-y-auto ${
               isMobile 
                 ? 'p-4 max-h-[calc(85vh-140px)]' 
@@ -283,7 +294,7 @@ export const TavaraAssistantPanel: React.FC = () => {
                     <Sparkles className="h-4 w-4" />
                     Welcome! 👋
                   </p>
-                  <p className="text-xs text-muted-foreground leading-relaxed">
+                  <p className={`text-muted-foreground leading-relaxed ${isMobile ? 'text-xs' : 'text-xs'}`}>
                     {AUTO_GREET_MESSAGES[state.currentRole]}
                   </p>
                 </motion.div>
@@ -304,8 +315,8 @@ export const TavaraAssistantPanel: React.FC = () => {
                       className="bg-gradient-to-r from-amber-50 to-amber-50/50 border border-amber-200 rounded-lg p-3 cursor-pointer hover:from-amber-100 hover:to-amber-100/50 transition-all duration-200"
                       onClick={() => handleNudgeClick(nudge)}
                     >
-                      <p className="text-sm text-amber-800 leading-relaxed">{nudge.message}</p>
-                      <p className="text-xs text-amber-600 mt-1 leading-tight">
+                      <p className={`text-amber-800 leading-relaxed ${isMobile ? 'text-xs' : 'text-sm'}`}>{nudge.message}</p>
+                      <p className={`text-amber-600 mt-1 leading-tight ${isMobile ? 'text-xs' : 'text-xs'}`}>
                         From {nudge.sender} • Click to dismiss
                       </p>
                     </motion.div>
@@ -313,7 +324,7 @@ export const TavaraAssistantPanel: React.FC = () => {
                 </div>
               )}
 
-              {/* Role-based content */}
+              {/* Role-based content with enhanced mobile support */}
               <RoleBasedContent 
                 role={state.currentRole} 
                 progressContext={progressContext}
