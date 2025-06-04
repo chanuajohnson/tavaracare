@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, MessageCircle, Sparkles } from 'lucide-react';
@@ -30,7 +31,7 @@ export const TavaraAssistantPanel: React.FC = () => {
   const { currentForm, isFormPage, isJourneyTouchpoint } = useFormDetection();
   const [nudges, setNudges] = useState<AssistantNudge[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [hasAutoGreeted, setHasAutoGreeted] = useState(false);
+  const [hasInitialGreeted, setHasInitialGreeted] = useState(false);
   const [showGreeting, setShowGreeting] = useState(false);
   const [lastGreetedPath, setLastGreetedPath] = useState<string>('');
 
@@ -56,23 +57,52 @@ export const TavaraAssistantPanel: React.FC = () => {
     }
   }, [user]);
 
-  // Enhanced route change detection for form/journey auto-greeting
+  // INITIAL SITE VISIT AUTO-GREETING (restored magic!)
+  useEffect(() => {
+    const sessionKey = `tavara_session_greeted`;
+    const hasGreetedThisSession = sessionStorage.getItem(sessionKey);
+    
+    console.log('TAV: Initial greeting check:', {
+      hasGreetedThisSession,
+      hasInitialGreeted,
+      isOpen: state.isOpen,
+      currentRole: state.currentRole,
+      pathname: location.pathname
+    });
+    
+    // Show initial greeting if haven't greeted this session AND not already open
+    if (!hasGreetedThisSession && !hasInitialGreeted && !state.isOpen) {
+      console.log('TAV: Triggering initial magic greeting!');
+      
+      // Show magic entrance after a brief delay
+      setTimeout(() => {
+        setShowGreeting(true);
+        setHasInitialGreeted(true);
+        // Mark as greeted for this session
+        sessionStorage.setItem(sessionKey, 'true');
+        
+        // Auto open panel after greeting animation
+        setTimeout(() => {
+          openPanel();
+        }, 2500); // Longer delay to let users read the message
+      }, 1500); // Initial delay for page load
+    }
+  }, [hasInitialGreeted, state.isOpen, openPanel, location.pathname]);
+
+  // FORM/JOURNEY NAVIGATION AUTO-GREETING (contextual magic!)
   useEffect(() => {
     const currentPath = location.pathname;
     
-    // Skip if already greeted for this path or if panel is already open
-    if (lastGreetedPath === currentPath || state.isOpen) {
+    // Skip if this is initial greeting or already greeted for this path or panel is open
+    if (!hasInitialGreeted || lastGreetedPath === currentPath || state.isOpen) {
       return;
     }
 
     // Check if this is a journey touchpoint where TAV should appear
     if (isJourneyTouchpoint(currentPath) && state.currentRole) {
-      console.log('TAV: Detected journey touchpoint:', currentPath, 'for role:', state.currentRole);
+      console.log('TAV: Detected journey touchpoint navigation:', currentPath, 'for role:', state.currentRole);
       
       // Set greeting message based on form context or use default
-      const greetingMessage = currentForm?.autoGreetingMessage || AUTO_GREET_MESSAGES[state.currentRole];
-      
-      // Trigger the magic greeting experience
       setTimeout(() => {
         setShowGreeting(true);
         setLastGreetedPath(currentPath);
@@ -80,41 +110,17 @@ export const TavaraAssistantPanel: React.FC = () => {
         // Auto open panel after greeting animation
         setTimeout(() => {
           openPanel();
-        }, 2000); // Longer delay to let users read the contextual message
+        }, 2000);
       }, 800); // Slight delay so page loads first
     }
-  }, [location.pathname, isJourneyTouchpoint, currentForm, state.currentRole, state.isOpen, lastGreetedPath, openPanel]);
-
-  // Original auto-greeting logic for initial site visits
-  useEffect(() => {
-    const sessionKey = `tavara_session_greeted_${state.currentRole}`;
-    const hasGreetedThisSession = sessionStorage.getItem(sessionKey);
-    
-    // Show greeting if haven't greeted this session AND role is available AND not on a journey page
-    if (!hasGreetedThisSession && state.currentRole && !hasAutoGreeted && !state.isOpen && !isJourneyTouchpoint(location.pathname)) {
-      console.log('TAV: Triggering initial auto-greeting for role:', state.currentRole);
-      
-      // Show magic entrance after a brief delay
-      setTimeout(() => {
-        setShowGreeting(true);
-        setHasAutoGreeted(true);
-        // Mark as greeted for this session only
-        sessionStorage.setItem(sessionKey, 'true');
-        
-        // Auto open panel after greeting animation
-        setTimeout(() => {
-          openPanel();
-        }, 1000);
-      }, 1000);
-    }
-  }, [state.currentRole, hasAutoGreeted, state.isOpen, location.pathname, isJourneyTouchpoint, openPanel]);
+  }, [location.pathname, isJourneyTouchpoint, currentForm, state.currentRole, state.isOpen, lastGreetedPath, hasInitialGreeted, openPanel]);
 
   // Auto-open for nudges
   useEffect(() => {
-    if (nudges.length > 0 && !state.isOpen && !hasAutoGreeted) {
+    if (nudges.length > 0 && !state.isOpen && hasInitialGreeted) {
       setTimeout(() => openPanel(), 500);
     }
-  }, [nudges.length, state.isOpen, hasAutoGreeted, openPanel]);
+  }, [nudges.length, state.isOpen, hasInitialGreeted, openPanel]);
 
   const fetchNudges = async () => {
     if (!user) return;
@@ -164,17 +170,19 @@ export const TavaraAssistantPanel: React.FC = () => {
 
   const progressContext = getProgressContext();
 
-  // Enhanced greeting message with form context
+  // Enhanced greeting message with form context or initial welcome
   const getContextualGreeting = () => {
-    if (currentForm?.autoGreetingMessage) {
+    // For form-specific pages, use form context
+    if (currentForm?.autoGreetingMessage && hasInitialGreeted) {
       return currentForm.autoGreetingMessage;
     }
     
+    // For initial greeting, use role-based or default
     if (state.currentRole && AUTO_GREET_MESSAGES[state.currentRole]) {
       return AUTO_GREET_MESSAGES[state.currentRole];
     }
     
-    return "👋 Welcome to Tavara! I'm TAV, your personal care coordinator. Let me help you find the perfect care solution.";
+    return AUTO_GREET_MESSAGES.guest;
   };
 
   // Floating button with enhanced magic effects
@@ -220,7 +228,7 @@ export const TavaraAssistantPanel: React.FC = () => {
                 <p className="font-semibold text-primary text-sm leading-tight">
                   TAV Assistant
                 </p>
-                {currentForm && (
+                {currentForm && hasInitialGreeted && (
                   <span className="bg-primary/10 text-primary text-xs px-2 py-1 rounded-full">
                     {currentForm.formTitle}
                   </span>
@@ -231,8 +239,8 @@ export const TavaraAssistantPanel: React.FC = () => {
                 {getContextualGreeting()}
               </p>
               
-              {/* Form-specific context */}
-              {currentForm && (
+              {/* Form-specific context (only for form navigation, not initial greeting) */}
+              {currentForm && hasInitialGreeted && (
                 <div className="mt-2 p-2 bg-primary/5 rounded-lg">
                   <p className={`text-primary font-medium ${isMobile ? 'text-xs' : 'text-xs'}`}>
                     ✨ I can help you fill this out conversationally or guide you step by step!
