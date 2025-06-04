@@ -48,6 +48,11 @@ export const useUserJourneyProgress = (userId: string, userRole: string): UserJo
           { id: 2, title: "Tell us about your interests", description: "Share how you'd like to help", completed: false, link: "/community/interests" },
           { id: 3, title: "Join community activities", description: "Start supporting families", completed: false, link: "/community/activities" }
         ];
+      case 'admin':
+        return [
+          { id: 1, title: "Admin account setup", description: "Configure admin settings", completed: false, link: "/admin/dashboard" },
+          { id: 2, title: "System configuration", description: "Set up system preferences", completed: false, link: "/admin/settings" }
+        ];
       default:
         return [{ id: 1, title: "Getting Started", description: "Complete your profile", completed: false, link: "/dashboard" }];
     }
@@ -128,6 +133,10 @@ export const useUserJourneyProgress = (userId: string, userRole: string): UserJo
         // Mark steps as completed for community
         if (profile.full_name) updatedSteps[0].completed = true;
         if (profile.contribution_interests && profile.contribution_interests.length > 0) updatedSteps[1].completed = true;
+      } else if (userRole === 'admin') {
+        // Mark admin steps as completed based on admin-specific criteria
+        if (profile.full_name) updatedSteps[0].completed = true;
+        updatedSteps[1].completed = true; // Assume system config is done for existing admins
       }
 
       setSteps(updatedSteps);
