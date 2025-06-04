@@ -36,25 +36,49 @@ export const TavaraAssistantPanel: React.FC = () => {
     }
   }, [user]);
 
-  // Auto-greeting logic
+  // Enhanced auto-greeting logic - appears more frequently
   useEffect(() => {
-    const hasVisitedKey = `tavara_visited_${state.currentRole}`;
-    const hasVisited = localStorage.getItem(hasVisitedKey);
+    const sessionKey = `tavara_session_greeted_${state.currentRole}`;
+    const hasGreetedThisSession = sessionStorage.getItem(sessionKey);
     
-    if (!hasVisited && state.currentRole && !hasAutoGreeted) {
+    // Show greeting if haven't greeted this session AND role is available
+    if (!hasGreetedThisSession && state.currentRole && !hasAutoGreeted && !state.isOpen) {
+      console.log('TAV: Triggering auto-greeting for role:', state.currentRole);
+      
       // Show magic entrance after a brief delay
       setTimeout(() => {
         setShowGreeting(true);
         setHasAutoGreeted(true);
-        localStorage.setItem(hasVisitedKey, 'true');
+        // Mark as greeted for this session only
+        sessionStorage.setItem(sessionKey, 'true');
         
         // Auto open panel after greeting animation
         setTimeout(() => {
           openPanel();
         }, 1500);
-      }, 2000);
+      }, 1500); // Reduced delay for faster appearance
     }
-  }, [state.currentRole, hasAutoGreeted, openPanel]);
+  }, [state.currentRole, hasAutoGreeted, state.isOpen, openPanel]);
+
+  // Additional proactive greeting triggers
+  useEffect(() => {
+    if (state.currentRole && !hasAutoGreeted && !state.isOpen) {
+      // Show greeting after user has been on page for a few seconds
+      const idleTimer = setTimeout(() => {
+        if (!hasAutoGreeted && !state.isOpen) {
+          console.log('TAV: Triggering idle greeting');
+          setShowGreeting(true);
+          setHasAutoGreeted(true);
+          
+          setTimeout(() => {
+            openPanel();
+          }, 1500);
+        }
+      }, 4000); // Show after 4 seconds of being on page
+
+      return () => clearTimeout(idleTimer);
+    }
+  }, [state.currentRole, hasAutoGreeted, state.isOpen, openPanel]);
 
   // Auto-open for nudges
   useEffect(() => {
@@ -97,60 +121,76 @@ export const TavaraAssistantPanel: React.FC = () => {
         ? 'bottom-20 left-4' 
         : 'bottom-6 left-6'
       }`}>
-        {/* Greeting bubble */}
+        {/* Enhanced greeting bubble with more prominent animation */}
         <AnimatePresence>
           {showGreeting && (
             <motion.div
-              initial={{ opacity: 0, y: 20, scale: 0.8 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: -10, scale: 0.9 }}
-              transition={{ type: "spring", damping: 20, stiffness: 300 }}
-              className={`absolute bottom-16 left-0 bg-white rounded-lg shadow-lg p-3 border border-primary/20 ${
-                isMobile ? 'max-w-72 text-sm' : 'max-w-64'
+              initial={{ opacity: 0, y: 30, scale: 0.7, x: -10 }}
+              animate={{ opacity: 1, y: 0, scale: 1, x: 0 }}
+              exit={{ opacity: 0, y: -15, scale: 0.8 }}
+              transition={{ 
+                type: "spring", 
+                damping: 18, 
+                stiffness: 300,
+                duration: 0.6
+              }}
+              className={`absolute bottom-16 left-0 bg-white rounded-xl shadow-xl p-4 border-2 border-primary/30 ${
+                isMobile ? 'max-w-80 text-sm' : 'max-w-72'
               }`}
               onAnimationComplete={() => {
-                setTimeout(() => setShowGreeting(false), 3000);
+                // Keep greeting visible longer for better visibility
+                setTimeout(() => setShowGreeting(false), 4000);
               }}
             >
-              <p className="font-medium text-primary mb-1 leading-tight">
-                {AUTO_GREET_MESSAGES[state.currentRole || 'guest'].split('.')[0]}
+              {/* Enhanced sparkle effects */}
+              <div className="absolute -top-1 -right-1">
+                <Sparkles className="h-4 w-4 text-primary animate-pulse" />
+              </div>
+              <div className="absolute top-1 right-6">
+                <Sparkles className="h-3 w-3 text-primary/60 animate-pulse" style={{ animationDelay: '0.5s' }} />
+              </div>
+              
+              <p className="font-semibold text-primary mb-2 leading-tight">
+                {AUTO_GREET_MESSAGES[state.currentRole || 'guest'].split('!')[0]}!
               </p>
               <p className="text-xs text-muted-foreground leading-relaxed">
-                {AUTO_GREET_MESSAGES[state.currentRole || 'guest'].split('.').slice(1).join('.')}
+                {AUTO_GREET_MESSAGES[state.currentRole || 'guest'].split('!').slice(1).join('!').trim()}
               </p>
-              {/* Speech bubble tail */}
-              <div className="absolute bottom-[-6px] left-6 w-3 h-3 bg-white border-r border-b border-primary/20 transform rotate-45"></div>
+              
+              {/* Enhanced speech bubble tail */}
+              <div className="absolute bottom-[-8px] left-8 w-4 h-4 bg-white border-r-2 border-b-2 border-primary/30 transform rotate-45"></div>
             </motion.div>
           )}
         </AnimatePresence>
 
-        {/* Main TAV button */}
+        {/* Enhanced main TAV button with more sparkles */}
         <motion.div
           initial={{ scale: 0, rotate: -180 }}
           animate={{ scale: 1, rotate: 0 }}
-          transition={{ type: "spring", damping: 15, stiffness: 200, delay: 0.5 }}
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
+          transition={{ type: "spring", damping: 15, stiffness: 200, delay: 0.3 }}
+          whileHover={{ scale: 1.08 }}
+          whileTap={{ scale: 0.92 }}
         >
           <Button
             onClick={openPanel}
             size="icon"
-            className="h-14 w-14 rounded-full bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary shadow-lg relative overflow-hidden group"
+            className="h-16 w-16 rounded-full bg-gradient-to-r from-primary via-primary/90 to-primary shadow-xl relative overflow-hidden group hover:shadow-2xl transition-all duration-300"
           >
-            {/* Magic sparkle effect */}
+            {/* Enhanced magic sparkle effect */}
             <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-              <Sparkles className="h-4 w-4 absolute top-1 right-1 text-white/60 animate-pulse" />
-              <Sparkles className="h-3 w-3 absolute bottom-2 left-2 text-white/40 animate-pulse" style={{ animationDelay: '0.5s' }} />
+              <Sparkles className="h-4 w-4 absolute top-2 right-2 text-white/70 animate-pulse" />
+              <Sparkles className="h-3 w-3 absolute bottom-3 left-3 text-white/50 animate-pulse" style={{ animationDelay: '0.3s' }} />
+              <Sparkles className="h-2 w-2 absolute top-4 left-4 text-white/60 animate-pulse" style={{ animationDelay: '0.7s' }} />
             </div>
             
-            <MessageCircle className="h-6 w-6 transition-transform group-hover:scale-110" />
+            <MessageCircle className="h-7 w-7 transition-transform group-hover:scale-110" />
             
-            {/* Notification badge */}
+            {/* Enhanced notification badge */}
             {nudges.length > 0 && (
               <motion.div
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
-                className="absolute -top-1 -right-1 h-6 w-6 rounded-full bg-gradient-to-r from-red-500 to-red-600 flex items-center justify-center shadow-lg"
+                className="absolute -top-2 -right-2 h-7 w-7 rounded-full bg-gradient-to-r from-red-500 to-red-600 flex items-center justify-center shadow-lg border-2 border-white"
               >
                 <span className="text-xs text-white font-bold">
                   {nudges.length}
@@ -231,14 +271,16 @@ export const TavaraAssistantPanel: React.FC = () => {
                 ? 'p-4 max-h-[calc(85vh-140px)]' 
                 : 'p-4 max-h-[calc(100vh-13rem)]'
             }`}>
-              {/* Auto-greeting message */}
+              {/* Enhanced auto-greeting message */}
               {hasAutoGreeted && state.currentRole && (
                 <motion.div
-                  initial={{ opacity: 0, y: 10 }}
+                  initial={{ opacity: 0, y: 15 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="mb-4 p-3 bg-gradient-to-r from-primary/10 to-transparent rounded-lg border border-primary/20"
+                  transition={{ delay: 0.2 }}
+                  className="mb-4 p-4 bg-gradient-to-r from-primary/10 via-primary/5 to-transparent rounded-xl border border-primary/20 shadow-sm"
                 >
-                  <p className="text-sm font-medium text-primary mb-1 leading-tight">
+                  <p className="text-sm font-semibold text-primary mb-2 leading-tight flex items-center gap-2">
+                    <Sparkles className="h-4 w-4" />
                     Welcome! 👋
                   </p>
                   <p className="text-xs text-muted-foreground leading-relaxed">
