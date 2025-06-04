@@ -33,6 +33,7 @@ interface UserJourneyCardProps {
   onSelect: (selected: boolean) => void;
   onResendVerification: () => void;
   onRefresh: () => void;
+  onClick?: () => void;
 }
 
 export function UserJourneyCard({
@@ -40,7 +41,8 @@ export function UserJourneyCard({
   selected,
   onSelect,
   onResendVerification,
-  onRefresh
+  onRefresh,
+  onClick
 }: UserJourneyCardProps) {
   const progress = user.journey_progress?.completion_percentage || 0;
   const currentStep = user.journey_progress?.current_step || 1;
@@ -73,13 +75,17 @@ export function UserJourneyCard({
     : Math.floor((Date.now() - new Date(user.created_at).getTime()) / (1000 * 60 * 60 * 24));
 
   return (
-    <Card className={`hover:shadow-md transition-shadow ${selected ? 'ring-2 ring-blue-500' : ''}`}>
+    <Card 
+      className={`hover:shadow-md transition-shadow cursor-pointer ${selected ? 'ring-2 ring-blue-500' : ''}`}
+      onClick={onClick}
+    >
       <CardHeader className="pb-2">
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-3 flex-1">
             <Checkbox
               checked={selected}
               onCheckedChange={onSelect}
+              onClick={(e) => e.stopPropagation()}
             />
             <Avatar className="h-10 w-10">
               <AvatarImage src={user.avatar_url} />
@@ -153,7 +159,10 @@ export function UserJourneyCard({
         <div className="flex gap-2">
           {!user.email_verified && (
             <Button
-              onClick={onResendVerification}
+              onClick={(e) => {
+                e.stopPropagation();
+                onResendVerification();
+              }}
               size="sm"
               variant="outline"
               className="text-xs flex-1"

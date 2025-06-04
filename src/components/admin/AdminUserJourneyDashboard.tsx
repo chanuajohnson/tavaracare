@@ -58,13 +58,54 @@ export function AdminUserJourneyDashboard() {
     fetchUsersWithProgress();
   }, []);
 
+  const calculateJourneyProgress = (profile: any) => {
+    const role = profile.role;
+    const onboardingProgress = profile.onboarding_progress;
+    
+    let totalSteps: number;
+    let currentStep: number;
+    let completionPercentage: number;
+    
+    // Define total steps per role
+    switch (role) {
+      case 'family':
+        totalSteps = 7;
+        break;
+      case 'professional':
+        totalSteps = 5;
+        break;
+      case 'community':
+        totalSteps = 3;
+        break;
+      default:
+        totalSteps = 1;
+    }
+    
+    // Calculate current step based on onboarding progress
+    if (!onboardingProgress || !onboardingProgress.completed_steps) {
+      currentStep = 1;
+      completionPercentage = 0;
+    } else {
+      const completedStepsCount = Array.isArray(onboardingProgress.completed_steps) 
+        ? onboardingProgress.completed_steps.length 
+        : Object.keys(onboardingProgress.completed_steps || {}).length;
+      
+      currentStep = Math.min(totalSteps, Math.max(1, completedStepsCount + 1));
+      completionPercentage = Math.min(100, Math.round((completedStepsCount / totalSteps) * 100));
+    }
+    
+    return {
+      current_step: currentStep,
+      total_steps: totalSteps,
+      completion_percentage: completionPercentage,
+      last_activity_at: profile.updated_at || profile.created_at
+    };
+  };
+
   const fetchUsersWithProgress = async () => {
     setLoading(true);
     try {
-      // First, run the sync function to ensure data is up to date
-      await supabase.rpc('sync_user_journey_progress');
-
-      // Fetch profiles with journey progress
+      // Fetch profiles with their data
       const { data: profilesData, error: profilesError } = await supabase
         .from('profiles')
         .select(`
@@ -74,6 +115,7 @@ export function AdminUserJourneyDashboard() {
           email_verified,
           last_login_at,
           created_at,
+          updated_at,
           avatar_url,
           onboarding_progress,
           location,
@@ -88,31 +130,35 @@ export function AdminUserJourneyDashboard() {
 
       if (profilesError) throw profilesError;
 
-      // Fetch journey progress
+      // Fetch existing journey progress
       const { data: progressData, error: progressError } = await supabase
         .from('user_journey_progress')
         .select('*');
 
       if (progressError) throw progressError;
 
-      // Fetch emails from auth.users via edge function or use a view
-      const { data: authData, error: authError } = await supabase
-        .from('profiles')
-        .select('id')
-        .neq('role', 'admin');
-
-      // For now, we'll use user ID as email placeholder until we can get actual emails
+      // For demo purposes, we'll use placeholder emails
+      // In production, you'd need proper email access through admin functions
       const usersWithProgress: UserWithProgress[] = (profilesData || []).map(profile => {
-        const progress = progressData?.find(p => p.user_id === profile.id);
+        // Try to get existing progress, otherwise calculate it
+        let journeyProgress = progressData?.find(p => p.user_id === profile.id);
+        
+        if (!journeyProgress) {
+          journeyProgress = calculateJourneyProgress(profile);
+        } else {
+          // Ensure we have the correct format
+          journeyProgress = {
+            current_step: journeyProgress.current_step || 1,
+            total_steps: journeyProgress.total_steps || (profile.role === 'family' ? 7 : profile.role === 'professional' ? 5 : 3),
+            completion_percentage: journeyProgress.completion_percentage || 0,
+            last_activity_at: journeyProgress.last_activity_at || profile.created_at
+          };
+        }
+
         return {
           ...profile,
-          email: `user-${profile.id.slice(0, 8)}@placeholder.com`, // Placeholder until we get real emails
-          journey_progress: progress || {
-            current_step: 1,
-            total_steps: profile.role === 'family' ? 7 : profile.role === 'professional' ? 5 : 3,
-            completion_percentage: 0,
-            last_activity_at: profile.created_at
-          },
+          email: `${profile.full_name?.toLowerCase().replace(/\s+/g, '.') || 'user'}@example.com`, // Placeholder email
+          journey_progress: journeyProgress,
           role: profile.role as 'family' | 'professional' | 'community'
         };
       });
@@ -275,6 +321,7 @@ export function AdminUserJourneyDashboard() {
               }}
               onResendVerification={() => resendVerificationEmail(user.id)}
               onRefresh={fetchUsersWithProgress}
+              onClick={() => setSelectedUserForModal(user)}
             />
             <Button
               onClick={() => setSelectedUserForModal(user)}
