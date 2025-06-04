@@ -2,7 +2,6 @@
 /**
  * Shared types for admin components
  */
-import type { UserRole } from './userRoles';
 
 export interface UserJourneyProgress {
   id: string;
@@ -21,7 +20,7 @@ export interface UserWithProgress {
   id: string;
   email: string;
   full_name: string;
-  role: UserRole;
+  role: 'family' | 'professional' | 'community' | 'admin';
   email_verified: boolean;
   last_login_at: string;
   created_at: string;
