@@ -32,7 +32,7 @@ const AboutPage = () => {
               className="flex justify-center mb-4"
             >
               <img 
-                src="/lovable-uploads/4d3f1358-624d-476e-a08f-2a4d0892f424.png" 
+                src="/TAVARACARElogo.JPG
                 alt="About Tavara" 
                 className="h-16 w-auto md:h-20"
               />
