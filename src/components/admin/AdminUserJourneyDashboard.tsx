@@ -29,6 +29,25 @@ interface AdminUserWithProgress {
   onboarding_progress?: any;
 }
 
+// Type for non-admin users only
+interface UserWithProgress {
+  id: string;
+  email: string;
+  full_name: string;
+  role: 'family' | 'professional' | 'community';
+  email_verified: boolean;
+  last_login_at: string;
+  created_at: string;
+  avatar_url?: string;
+  journey_progress?: {
+    current_step: number;
+    total_steps: number;
+    completion_percentage: number;
+    last_activity_at: string;
+  };
+  onboarding_progress?: any;
+}
+
 interface RoleStats {
   total: number;
   verified: number;
@@ -37,7 +56,7 @@ interface RoleStats {
 }
 
 export function AdminUserJourneyDashboard() {
-  const [users, setUsers] = useState<AdminUserWithProgress[]>([]);
+  const [users, setUsers] = useState<UserWithProgress[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedRole, setSelectedRole] = useState<'all' | 'family' | 'professional' | 'community'>('all');
   const [searchTerm, setSearchTerm] = useState('');
@@ -78,14 +97,15 @@ export function AdminUserJourneyDashboard() {
       if (progressError) throw progressError;
 
       // Combine user data with progress and filter out admin users
-      const usersWithProgress = (usersData || [])
+      const usersWithProgress: UserWithProgress[] = (usersData || [])
         .filter(user => user.role !== 'admin') // Exclude admin users
         .map(user => {
           const progress = progressData?.find(p => p.user_id === user.id);
           return {
             ...user,
             email: user.id, // Temporary until we get email from auth
-            journey_progress: progress || null
+            journey_progress: progress || undefined,
+            role: user.role as 'family' | 'professional' | 'community' // Type assertion since we filtered out admin
           };
         });
 
@@ -98,7 +118,7 @@ export function AdminUserJourneyDashboard() {
     }
   };
 
-  const calculateRoleStats = (userData: AdminUserWithProgress[]) => {
+  const calculateRoleStats = (userData: UserWithProgress[]) => {
     const stats: Record<string, RoleStats> = {};
     
     ['family', 'professional', 'community'].forEach(role => {
