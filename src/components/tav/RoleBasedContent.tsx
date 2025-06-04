@@ -1,9 +1,12 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Heart, UserCog, Users, Globe, Shield, ArrowRight, Sparkles } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useReturningUser } from './hooks/useReturningUser';
 import { motion } from 'framer-motion';
+import { FamilyJourneyPreview } from './components/FamilyJourneyPreview';
+import { ProfessionalJourneyPreview } from './components/ProfessionalJourneyPreview';
+import { CommunityJourneyPreview } from './components/CommunityJourneyPreview';
 
 interface RoleBasedContentProps {
   role: 'guest' | 'family' | 'professional' | 'community' | 'admin' | null;
@@ -14,12 +17,15 @@ interface RoleBasedContentProps {
   };
 }
 
+type PreviewState = 'selection' | 'family-preview' | 'professional-preview' | 'community-preview';
+
 export const RoleBasedContent: React.FC<RoleBasedContentProps> = ({ 
   role, 
   progressContext 
 }) => {
   const navigate = useNavigate();
   const { isReturningUser, lastRole, hasVisitedBefore, detectionMethod } = useReturningUser();
+  const [previewState, setPreviewState] = useState<PreviewState>('selection');
 
   const getRoleDisplayName = (roleType: string) => {
     switch (roleType) {
@@ -45,7 +51,29 @@ export const RoleBasedContent: React.FC<RoleBasedContentProps> = ({
     };
   };
 
+  const handleRolePreview = (roleType: 'family' | 'professional' | 'community') => {
+    setPreviewState(`${roleType}-preview` as PreviewState);
+  };
+
+  const handleBackToSelection = () => {
+    setPreviewState('selection');
+  };
+
   if (role === 'guest') {
+    // Show journey previews when user has selected a role to preview
+    if (previewState === 'family-preview') {
+      return <FamilyJourneyPreview onBack={handleBackToSelection} />;
+    }
+    
+    if (previewState === 'professional-preview') {
+      return <ProfessionalJourneyPreview onBack={handleBackToSelection} />;
+    }
+    
+    if (previewState === 'community-preview') {
+      return <CommunityJourneyPreview onBack={handleBackToSelection} />;
+    }
+
+    // Default guest view with role selection
     return (
       <div className="space-y-4">
         <div className="flex items-center gap-3 mb-4">
@@ -113,7 +141,7 @@ export const RoleBasedContent: React.FC<RoleBasedContentProps> = ({
             variant="outline" 
             size="sm" 
             className="w-full justify-start h-auto py-3 px-4 hover:bg-blue-50 hover:border-blue-200 transition-colors duration-200"
-            onClick={() => navigate('/auth?tab=signup&role=family')}
+            onClick={() => handleRolePreview('family')}
           >
             <Users className="h-4 w-4 mr-3 flex-shrink-0" />
             <span className="text-left leading-tight">I need care for a loved one</span>
@@ -123,7 +151,7 @@ export const RoleBasedContent: React.FC<RoleBasedContentProps> = ({
             variant="outline" 
             size="sm" 
             className="w-full justify-start h-auto py-3 px-4 hover:bg-green-50 hover:border-green-200 transition-colors duration-200"
-            onClick={() => navigate('/auth?tab=signup&role=professional')}
+            onClick={() => handleRolePreview('professional')}
           >
             <UserCog className="h-4 w-4 mr-3 flex-shrink-0" />
             <span className="text-left leading-tight">I want to provide care services</span>
@@ -133,7 +161,7 @@ export const RoleBasedContent: React.FC<RoleBasedContentProps> = ({
             variant="outline" 
             size="sm" 
             className="w-full justify-start h-auto py-3 px-4 hover:bg-amber-50 hover:border-amber-200 transition-colors duration-200"
-            onClick={() => navigate('/auth?tab=signup&role=community')}
+            onClick={() => handleRolePreview('community')}
           >
             <Globe className="h-4 w-4 mr-3 flex-shrink-0" />
             <span className="text-left leading-tight">I want to support my community</span>
