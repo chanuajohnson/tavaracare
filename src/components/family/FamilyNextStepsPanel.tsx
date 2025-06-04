@@ -39,7 +39,7 @@ export const FamilyNextStepsPanel = () => {
       title: "See your instant caregiver matches", 
       description: "Now that your loved one's profile is complete unlock personalized caregiver recommendations.", 
       completed: false, 
-      link: "/caregiver-matching" 
+      link: "/caregiver/matching" 
     },
     { 
       id: 5, 

@@ -1,3 +1,4 @@
+
 import { motion } from "framer-motion";
 import { useEffect } from "react";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
@@ -168,7 +169,7 @@ const FamilyDashboard = () => {
                   <p className="text-sm text-gray-600">Get Advice</p>
                   <p className="text-sm text-gray-600">Build Connections</p>
                 </div>
-                <Link to="/family/features-overview">
+                <Link to="/features">
                   <Button 
                     variant="default"
                     className="w-full bg-primary hover:bg-primary-600 text-white"
@@ -242,7 +243,7 @@ const FamilyDashboard = () => {
                   <p className="text-sm text-gray-600">Best Practices</p>
                   <p className="text-sm text-gray-600">Expert Advice</p>
                 </div>
-                <Link to="/family/features-overview">
+                <Link to="/features">
                   <Button 
                     variant="default"
                     className="w-full bg-primary hover:bg-primary-600 text-white"
