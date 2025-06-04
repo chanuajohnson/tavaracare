@@ -216,7 +216,7 @@ export const RoleBasedContent: React.FC<RoleBasedContentProps> = ({
           care for your loved one.
         </p>
         
-        {/* Granular Steps Section - NEW */}
+        {/* Granular Steps Section */}
         <div className="space-y-2">
           <p className="text-xs font-medium text-blue-800 mb-2">Journey Steps:</p>
           <div className="space-y-1">
@@ -243,7 +243,11 @@ export const RoleBasedContent: React.FC<RoleBasedContentProps> = ({
                         : 'text-blue-600 hover:text-blue-700'
                     }`}
                     disabled={step.id === 4 && !canAccess}
-                    onClick={() => step.action?.()}
+                    onClick={() => {
+                      if (step.action) {
+                        step.action();
+                      }
+                    }}
                   >
                     {step.buttonText}
                   </Button>
@@ -268,7 +272,13 @@ export const RoleBasedContent: React.FC<RoleBasedContentProps> = ({
           variant="default" 
           size="sm" 
           className="w-full h-auto py-3"
-          onClick={() => nextStep?.action?.() || navigate('/dashboard/family')}
+          onClick={() => {
+            if (nextStep?.action) {
+              nextStep.action();
+            } else {
+              navigate('/dashboard/family');
+            }
+          }}
         >
           {nextStep ? `Continue: ${nextStep.title}` : 'View Dashboard'}
         </Button>
@@ -320,7 +330,7 @@ export const RoleBasedContent: React.FC<RoleBasedContentProps> = ({
           Complete your profile to start receiving job opportunities that match your skills.
         </p>
         
-        {/* Granular Steps Section - NEW */}
+        {/* Granular Steps Section */}
         <div className="space-y-2">
           <p className="text-xs font-medium text-green-800 mb-2">Setup Steps:</p>
           <div className="space-y-1">
@@ -340,7 +350,11 @@ export const RoleBasedContent: React.FC<RoleBasedContentProps> = ({
                   variant="ghost"
                   size="sm"
                   className="h-5 px-2 text-xs text-green-600 hover:text-green-700"
-                  onClick={() => step.action?.()}
+                  onClick={() => {
+                    if (step.action) {
+                      step.action();
+                    }
+                  }}
                 >
                   {step.buttonText}
                 </Button>
@@ -364,7 +378,13 @@ export const RoleBasedContent: React.FC<RoleBasedContentProps> = ({
           variant="default" 
           size="sm" 
           className="w-full h-auto py-3"
-          onClick={() => nextStep?.action?.() || navigate('/dashboard/professional')}
+          onClick={() => {
+            if (nextStep?.action) {
+              nextStep.action();
+            } else {
+              navigate('/dashboard/professional');
+            }
+          }}
         >
           {nextStep ? `Continue: ${nextStep.title}` : 'View Dashboard'}
         </Button>
