@@ -61,7 +61,7 @@ export function UserDetailModal({ user, open, onOpenChange, onRefresh }: UserDet
     try {
       console.log('Sending WhatsApp nudge to user:', user.id, 'Type:', stepType);
       
-      const { error } = await supabase.functions.invoke('send-nudge-whatsapp', {
+      const response = await supabase.functions.invoke('send-nudge-whatsapp', {
         body: { 
           userId: user.id,
           userPhone: user.phone_number,
@@ -72,7 +72,7 @@ export function UserDetailModal({ user, open, onOpenChange, onRefresh }: UserDet
         }
       });
 
-      if (error) throw error;
+      if (response.error) throw response.error;
       
       toast.success(`WhatsApp nudge sent to ${user.full_name || user.email}`);
       onRefresh();
@@ -102,7 +102,7 @@ export function UserDetailModal({ user, open, onOpenChange, onRefresh }: UserDet
       });
 
       // Send WhatsApp nudge if phone number exists
-      let whatsappPromise = Promise.resolve();
+      let whatsappPromise = Promise.resolve({ data: null, error: null });
       if (user.phone_number) {
         whatsappPromise = supabase.functions.invoke('send-nudge-whatsapp', {
           body: { 
@@ -192,7 +192,7 @@ export function UserDetailModal({ user, open, onOpenChange, onRefresh }: UserDet
         </DialogHeader>
 
         <div className="space-y-6">
-          {/* User Overview - Updated title */}
+          {/* User Overview - Updated title to show user name */}
           <Card>
             <CardHeader>
               <CardTitle>{user.full_name || 'User Details'}</CardTitle>

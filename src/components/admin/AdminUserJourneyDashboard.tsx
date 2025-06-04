@@ -12,12 +12,11 @@ import { NudgeSystem } from "./NudgeSystem";
 import { BulkActionPanel } from "./BulkActionPanel";
 import { UserDetailModal } from "./UserDetailModal";
 import type { UserWithProgress, RoleStats } from "@/types/adminTypes";
-import type { UserRole } from "@/types/userRoles";
 
 export function AdminUserJourneyDashboard() {
   const [users, setUsers] = useState<UserWithProgress[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedRole, setSelectedRole] = useState<'all' | UserRole>('all');
+  const [selectedRole, setSelectedRole] = useState<'all' | 'family' | 'professional' | 'community' | 'admin'>('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStage, setFilterStage] = useState<'all' | string>('all');
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
@@ -69,7 +68,7 @@ export function AdminUserJourneyDashboard() {
           id: profile.id,
           email: realEmail,
           full_name: profile.full_name || 'Unnamed User',
-          role: profile.role as UserRole,
+          role: profile.role,
           email_verified: authUser?.email_confirmed_at ? true : false,
           last_login_at: profile.last_login_at || profile.created_at,
           created_at: profile.created_at,
@@ -101,7 +100,7 @@ export function AdminUserJourneyDashboard() {
   const calculateRoleStats = (userData: UserWithProgress[]) => {
     const stats: Record<string, RoleStats> = {};
     
-    (['family', 'professional', 'community', 'admin'] as UserRole[]).forEach(role => {
+    (['family', 'professional', 'community', 'admin'] as const).forEach(role => {
       const roleUsers = userData.filter(u => u.role === role);
       const verified = roleUsers.filter(u => u.email_verified).length;
       const recentActivity = new Date();
