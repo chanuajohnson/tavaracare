@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -57,7 +58,7 @@ export function AdminUserJourneyDashboard() {
       // Combine the data
       const usersWithProgress: UserWithProgress[] = (profiles || []).map(profile => {
         // Find real email from auth users
-        const authUser = authUsers?.users.find(u => u.id === profile.id);
+        const authUser = authUsers?.users?.find((u: any) => u.id === profile.id);
         const realEmail = authUser?.email || profile.id; // fallback to ID if email not found
 
         // Find journey progress
