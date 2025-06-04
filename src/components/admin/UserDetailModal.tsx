@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -23,7 +22,7 @@ export function UserDetailModal({ user, open, onOpenChange, onRefresh }: UserDet
   const [sending, setSending] = React.useState(false);
   const { steps, completionPercentage, nextStep, loading } = useUserJourneyProgress(
     user?.id || '', 
-    user?.role || ''
+    user?.role || 'family'  // Provide fallback to 'family' instead of empty string
   );
 
   if (!user) return null;
