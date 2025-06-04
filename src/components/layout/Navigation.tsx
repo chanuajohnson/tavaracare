@@ -107,7 +107,13 @@ export function Navigation() {
     <nav className="bg-background border-b py-3 px-4 sm:px-6">
       <div className="container mx-auto flex justify-between items-center">
         <div className="flex items-center flex-col sm:flex-row">
-          <Link to="/" className="text-xl font-bold">Tavara</Link>
+          <Link to="/" className="flex items-center">
+            <img 
+              src="/TAVARACARElogo.JPG
+              alt="Tavara" 
+              className="h-8 w-auto sm:h-10"
+            />
+          </Link>
           <span className="text-xs text-gray-600 italic sm:ml-2">It takes a village to care</span>
         </div>
         
@@ -159,8 +165,26 @@ export function Navigation() {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-56">
-                    {/* Keep existing dropdown menu content */}
-                    {/* ... keep existing code (dropdown menu groups and items) */}
+                    <DropdownMenuGroup>
+                      <DropdownMenuLabel>Dashboards</DropdownMenuLabel>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem>
+                        <Link to="/dashboard/family">Family Dashboard</Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem>
+                        <Link to="/dashboard/professional">Professional Dashboard</Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem>
+                        <Link to="/dashboard/community">Community Dashboard</Link>
+                      </DropdownMenuItem>
+                    </DropdownMenuGroup>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem>
+                      <Link to="/auth/register">Create Account</Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem>
+                      <Link to="/auth/reset-password">Forgot Password</Link>
+                    </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
               ) : null}
