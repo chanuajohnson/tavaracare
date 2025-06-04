@@ -13,6 +13,7 @@ export const ProfessionalJourneyPreview: React.FC<ProfessionalJourneyPreviewProp
   const navigate = useNavigate();
 
   const professionalSteps = [
+    "Create your account",
     "Complete your professional profile",
     "Upload certifications & documents", 
     "Set your availability preferences",
@@ -49,19 +50,31 @@ export const ProfessionalJourneyPreview: React.FC<ProfessionalJourneyPreviewProp
       <div className="bg-green-50 rounded-lg p-3 border border-green-200">
         <div className="flex justify-between items-center mb-2">
           <span className="text-sm font-medium">Your Onboarding Steps</span>
-          <span className="text-sm text-green-600 font-semibold">0%</span>
+          <span className="text-sm text-green-600 font-semibold">17%</span>
         </div>
         <div className="w-full bg-green-200 rounded-full h-2 mb-3">
-          <div className="bg-green-600 h-2 rounded-full w-0" />
+          <div className="bg-green-600 h-2 rounded-full w-1/6" />
         </div>
         
         <div className="space-y-2">
           {professionalSteps.map((step, index) => (
             <div key={index} className="flex items-center gap-2 text-xs">
-              <div className="w-4 h-4 rounded-full border border-green-300 bg-white flex items-center justify-center flex-shrink-0">
-                <span className="text-xs text-green-400 font-semibold">{index + 1}</span>
+              <div className={`w-4 h-4 rounded-full border flex items-center justify-center flex-shrink-0 ${
+                index === 0 
+                  ? 'border-green-500 bg-green-500' 
+                  : 'border-green-300 bg-white'
+              }`}>
+                {index === 0 ? (
+                  <span className="text-xs text-white font-bold">✓</span>
+                ) : (
+                  <span className="text-xs text-green-400 font-semibold">{index + 1}</span>
+                )}
               </div>
-              <span className="text-green-700 leading-tight">{step}</span>
+              <span className={`leading-tight ${
+                index === 0 ? 'text-green-500 line-through' : 'text-green-700'
+              }`}>
+                {step}
+              </span>
             </div>
           ))}
         </div>

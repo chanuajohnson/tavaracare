@@ -11,7 +11,7 @@ import { UserJourneyCard } from "./UserJourneyCard";
 import { NudgeSystem } from "./NudgeSystem";
 import { BulkActionPanel } from "./BulkActionPanel";
 
-interface UserWithProgress {
+interface AdminUserWithProgress {
   id: string;
   email: string;
   full_name: string;
@@ -37,7 +37,7 @@ interface RoleStats {
 }
 
 export function AdminUserJourneyDashboard() {
-  const [users, setUsers] = useState<UserWithProgress[]>([]);
+  const [users, setUsers] = useState<AdminUserWithProgress[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedRole, setSelectedRole] = useState<'all' | 'family' | 'professional' | 'community'>('all');
   const [searchTerm, setSearchTerm] = useState('');
@@ -77,15 +77,17 @@ export function AdminUserJourneyDashboard() {
 
       if (progressError) throw progressError;
 
-      // Combine user data with progress
-      const usersWithProgress = usersData?.map(user => {
-        const progress = progressData?.find(p => p.user_id === user.id);
-        return {
-          ...user,
-          email: user.id, // Temporary until we get email from auth
-          journey_progress: progress || null
-        };
-      }) || [];
+      // Combine user data with progress and filter out admin users
+      const usersWithProgress = (usersData || [])
+        .filter(user => user.role !== 'admin') // Exclude admin users
+        .map(user => {
+          const progress = progressData?.find(p => p.user_id === user.id);
+          return {
+            ...user,
+            email: user.id, // Temporary until we get email from auth
+            journey_progress: progress || null
+          };
+        });
 
       setUsers(usersWithProgress);
       calculateRoleStats(usersWithProgress);
@@ -96,7 +98,7 @@ export function AdminUserJourneyDashboard() {
     }
   };
 
-  const calculateRoleStats = (userData: UserWithProgress[]) => {
+  const calculateRoleStats = (userData: AdminUserWithProgress[]) => {
     const stats: Record<string, RoleStats> = {};
     
     ['family', 'professional', 'community'].forEach(role => {
@@ -127,9 +129,6 @@ export function AdminUserJourneyDashboard() {
   };
 
   const filteredUsers = users.filter(user => {
-    // Exclude admin users from the dashboard
-    if (user.role === 'admin') return false;
-    
     const matchesRole = selectedRole === 'all' || user.role === selectedRole;
     const matchesSearch = !searchTerm || 
       user.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||

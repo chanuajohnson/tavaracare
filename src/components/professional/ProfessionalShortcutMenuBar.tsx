@@ -41,15 +41,15 @@ export function ProfessionalShortcutMenuBar() {
         <div className="flex items-center overflow-x-auto whitespace-nowrap py-1 gap-2">
           <span className="text-sm font-medium text-muted-foreground mr-2">Quick Access:</span>
           
-          {/* Only show the Complete Registration button if registration is not complete */}
+          {/* Complete Profile button - prioritized when registration is not complete */}
           {!isRegistrationComplete() && (
             <Link 
               to="/registration/professional"
-              onClick={() => handleTrackButtonClick('navigation_click', 'complete_registration')}
+              onClick={() => handleTrackButtonClick('navigation_click', 'complete_profile')}
             >
-              <Button variant="outline" size="sm" className="flex items-center gap-1">
+              <Button variant="default" size="sm" className="flex items-center gap-1 bg-primary hover:bg-primary-600">
                 <ClipboardEdit className="h-4 w-4" />
-                <span>Complete Registration</span>
+                <span>Complete Profile</span>
                 <ArrowRight className="h-3 w-3" />
               </Button>
             </Link>
