@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, MessageCircle, Sparkles } from 'lucide-react';
@@ -229,7 +230,7 @@ export const TavaraAssistantPanel: React.FC = () => {
             />
           )}
           
-          {/* Enhanced panel with better mobile responsiveness */}
+          {/* Enhanced panel with better mobile responsiveness and reduced height */}
           <motion.div
             initial={isMobile 
               ? { x: '-100%', opacity: 0 } 
@@ -246,13 +247,13 @@ export const TavaraAssistantPanel: React.FC = () => {
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
             className={`fixed z-50 bg-white border shadow-2xl ${
               isMobile
-                ? 'bottom-0 left-0 right-0 rounded-t-2xl max-h-[85vh] border-t'
+                ? 'bottom-0 left-0 right-0 rounded-t-2xl max-h-[60vh] border-t'
                 : 'bottom-6 left-6 rounded-2xl border max-h-[calc(100vh-3rem)] w-[min(26rem,calc(100vw-3rem))]'
             }`}
           >
-            {/* Header */}
+            {/* Header with reduced padding on mobile */}
             <div className={`flex items-center justify-between border-b bg-gradient-to-r from-primary/5 to-transparent ${
-              isMobile ? 'p-4 pb-3' : 'p-4'
+              isMobile ? 'p-3 pb-2' : 'p-4'
             }`}>
               <div className="flex items-center gap-3 min-w-0 flex-1">
                 <div className="h-10 w-10 rounded-full bg-gradient-to-r from-primary to-primary/80 flex items-center justify-center shadow-md flex-shrink-0">
@@ -276,10 +277,10 @@ export const TavaraAssistantPanel: React.FC = () => {
               </Button>
             </div>
 
-            {/* Content with improved scrolling */}
+            {/* Content with improved scrolling and optimized height */}
             <div className={`overflow-y-auto ${
               isMobile 
-                ? 'p-4 max-h-[calc(85vh-140px)]' 
+                ? 'p-3 max-h-[calc(60vh-100px)]' 
                 : 'p-4 max-h-[calc(100vh-13rem)]'
             }`}>
               {/* Enhanced auto-greeting message */}
