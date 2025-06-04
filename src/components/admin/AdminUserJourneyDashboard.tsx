@@ -63,119 +63,6 @@ export function AdminUserJourneyDashboard() {
     fetchUsersWithProgress();
   }, []);
 
-  const calculateJourneyProgress = (profile: any) => {
-    const role = profile.role;
-    const onboardingProgress = profile.onboarding_progress;
-    
-    let totalSteps: number;
-    let currentStep: number;
-    let completionPercentage: number;
-    
-    // Define total steps per role
-    switch (role) {
-      case 'family':
-        totalSteps = 7;
-        break;
-      case 'professional':
-        totalSteps = 5;
-        break;
-      case 'community':
-        totalSteps = 3;
-        break;
-      default:
-        totalSteps = 1;
-    }
-    
-    // Calculate current step based on onboarding progress
-    if (!onboardingProgress || !onboardingProgress.completed_steps) {
-      currentStep = 1;
-      completionPercentage = 0;
-    } else {
-      const completedStepsCount = Array.isArray(onboardingProgress.completed_steps) 
-        ? onboardingProgress.completed_steps.length 
-        : Object.keys(onboardingProgress.completed_steps || {}).length;
-      
-      currentStep = Math.min(totalSteps, Math.max(1, completedStepsCount + 1));
-      completionPercentage = Math.min(100, Math.round((completedStepsCount / totalSteps) * 100));
-    }
-    
-    // Return object that matches the expected interface structure
-    return {
-      id: `calc-${profile.id}`,
-      user_id: profile.id,
-      role: profile.role,
-      current_step: currentStep,
-      total_steps: totalSteps,
-      completion_percentage: completionPercentage,
-      last_activity_at: profile.updated_at || profile.created_at,
-      completed_steps: onboardingProgress?.completed_steps || {},
-      created_at: profile.created_at,
-      updated_at: profile.updated_at || profile.created_at
-    };
-  };
-
-  const fetchUsersWithProgress = async () => {
-    setLoading(true);
-    try {
-      // Fetch profiles with their data
-      const { data: profilesData, error: profilesError } = await supabase
-        .from('profiles')
-        .select(`
-          id,
-          full_name,
-          role,
-          email_verified,
-          last_login_at,
-          created_at,
-          updated_at,
-          avatar_url,
-          onboarding_progress,
-          location,
-          phone_number,
-          professional_type,
-          years_of_experience,
-          care_types,
-          specialized_care
-        `)
-        .neq('role', 'admin')
-        .order('created_at', { ascending: false });
-
-      if (profilesError) throw profilesError;
-
-      // Fetch existing journey progress
-      const { data: progressData, error: progressError } = await supabase
-        .from('user_journey_progress')
-        .select('*');
-
-      if (progressError) throw progressError;
-
-      // For demo purposes, we'll use placeholder emails
-      // In production, you'd need proper email access through admin functions
-      const usersWithProgress: UserWithProgress[] = (profilesData || []).map(profile => {
-        // Try to get existing progress, otherwise calculate it
-        let journeyProgress = progressData?.find(p => p.user_id === profile.id);
-        
-        if (!journeyProgress) {
-          journeyProgress = calculateJourneyProgress(profile);
-        }
-
-        return {
-          ...profile,
-          email: `${profile.full_name?.toLowerCase().replace(/\s+/g, '.') || 'user'}@example.com`, // Placeholder email
-          journey_progress: journeyProgress,
-          role: profile.role as 'family' | 'professional' | 'community'
-        };
-      });
-
-      setUsers(usersWithProgress);
-      calculateRoleStats(usersWithProgress);
-    } catch (error) {
-      console.error('Error fetching users:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const calculateRoleStats = (userData: UserWithProgress[]) => {
     const stats: Record<string, RoleStats> = {};
     
@@ -309,33 +196,24 @@ export function AdminUserJourneyDashboard() {
         ))}
       </div>
 
-      {/* Users Grid - Always in grid format */}
+      {/* Users Grid - Always in grid format with proper layout */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         {filteredUsers.map(user => (
-          <div key={user.id} className="relative">
-            <UserJourneyCard
-              user={user}
-              selected={selectedUsers.includes(user.id)}
-              onSelect={(selected) => {
-                if (selected) {
-                  setSelectedUsers(prev => [...prev, user.id]);
-                } else {
-                  setSelectedUsers(prev => prev.filter(id => id !== user.id));
-                }
-              }}
-              onResendVerification={() => resendVerificationEmail(user.id)}
-              onRefresh={fetchUsersWithProgress}
-              onClick={() => setSelectedUserForModal(user)}
-            />
-            <Button
-              onClick={() => setSelectedUserForModal(user)}
-              size="sm"
-              variant="outline"
-              className="absolute top-2 right-2 h-8 w-8 p-0"
-            >
-              <Eye className="h-4 w-4" />
-            </Button>
-          </div>
+          <UserJourneyCard
+            key={user.id}
+            user={user}
+            selected={selectedUsers.includes(user.id)}
+            onSelect={(selected) => {
+              if (selected) {
+                setSelectedUsers(prev => [...prev, user.id]);
+              } else {
+                setSelectedUsers(prev => prev.filter(id => id !== user.id));
+              }
+            }}
+            onResendVerification={() => resendVerificationEmail(user.id)}
+            onRefresh={fetchUsersWithProgress}
+            onClick={() => setSelectedUserForModal(user)}
+          />
         ))}
       </div>
 

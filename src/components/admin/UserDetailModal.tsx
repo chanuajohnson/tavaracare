@@ -6,9 +6,10 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
-import { User, Mail, MapPin, Calendar, CheckCircle2, Clock, Send, ArrowRight } from "lucide-react";
+import { User, Mail, MapPin, Calendar, CheckCircle2, Clock, Send, ArrowRight, Circle } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
+import { useUserJourneyProgress } from "@/hooks/useUserJourneyProgress";
 
 interface UserWithProgress {
   id: string;
@@ -43,39 +44,12 @@ interface UserDetailModalProps {
 
 export function UserDetailModal({ user, open, onOpenChange, onRefresh }: UserDetailModalProps) {
   const [sending, setSending] = React.useState(false);
+  const { steps, completionPercentage, nextStep, loading } = useUserJourneyProgress(
+    user?.id || '', 
+    user?.role || ''
+  );
 
   if (!user) return null;
-
-  const getJourneySteps = (role: string) => {
-    switch (role) {
-      case 'family':
-        return [
-          'Basic Information',
-          'Care Story',
-          'Care Needs Assessment',
-          'Caregiver Preferences', 
-          'Schedule & Budget',
-          'Profile Review',
-          'Profile Complete'
-        ];
-      case 'professional':
-        return [
-          'Basic Information',
-          'Professional Details',
-          'Certifications',
-          'Background Check',
-          'Profile Complete'
-        ];
-      case 'community':
-        return [
-          'Basic Information',
-          'Interests & Skills',
-          'Profile Complete'
-        ];
-      default:
-        return ['Getting Started'];
-    }
-  };
 
   const sendNudgeEmail = async (stepType: string) => {
     setSending(true);
@@ -86,7 +60,7 @@ export function UserDetailModal({ user, open, onOpenChange, onRefresh }: UserDet
           userEmail: user.email,
           userName: user.full_name || 'User',
           userRole: user.role,
-          currentStep: user.journey_progress?.current_step || 1,
+          currentStep: nextStep?.id || steps.length,
           stepType
         }
       });
@@ -105,9 +79,9 @@ export function UserDetailModal({ user, open, onOpenChange, onRefresh }: UserDet
 
   const advanceUserStep = async () => {
     try {
-      const currentStep = user.journey_progress?.current_step || 1;
-      const totalSteps = user.journey_progress?.total_steps || getJourneySteps(user.role).length;
-      const newStep = Math.min(currentStep + 1, totalSteps);
+      const currentStepId = nextStep?.id || steps.length;
+      const totalSteps = steps.length;
+      const newStep = Math.min(currentStepId + 1, totalSteps);
       
       const { error } = await supabase
         .from('user_journey_progress')
@@ -129,10 +103,6 @@ export function UserDetailModal({ user, open, onOpenChange, onRefresh }: UserDet
       toast.error(`Failed to advance step: ${error.message}`);
     }
   };
-
-  const journeySteps = getJourneySteps(user.role);
-  const currentStep = user.journey_progress?.current_step || 1;
-  const progress = user.journey_progress?.completion_percentage || 0;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -187,49 +157,57 @@ export function UserDetailModal({ user, open, onOpenChange, onRefresh }: UserDet
             </CardContent>
           </Card>
 
-          {/* Journey Progress */}
+          {/* Journey Progress - Using the same UI as TAV dashboards */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center justify-between">
-                Journey Progress
+                {user.role.charAt(0).toUpperCase() + user.role.slice(1)} Journey Progress
                 <Badge variant="outline">
-                  {progress}% Complete
+                  {completionPercentage}% Complete
                 </Badge>
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <Progress value={progress} className="w-full" />
+              <Progress value={completionPercentage} className="w-full" />
               
-              <div className="space-y-2">
-                {journeySteps.map((step, index) => {
-                  const stepNumber = index + 1;
-                  const isCompleted = stepNumber < currentStep;
-                  const isCurrent = stepNumber === currentStep;
-                  
-                  return (
-                    <div key={stepNumber} className={`flex items-center gap-2 p-2 rounded ${
-                      isCurrent ? 'bg-blue-50 border border-blue-200' : 
-                      isCompleted ? 'bg-green-50' : 'bg-gray-50'
-                    }`}>
-                      {isCompleted ? (
-                        <CheckCircle2 className="h-4 w-4 text-green-500" />
-                      ) : isCurrent ? (
-                        <Clock className="h-4 w-4 text-blue-500" />
-                      ) : (
-                        <div className="h-4 w-4 rounded-full border-2 border-gray-300" />
-                      )}
-                      <span className={`text-sm ${isCurrent ? 'font-medium text-blue-700' : ''}`}>
-                        {stepNumber}. {step}
-                      </span>
-                      {isCurrent && (
-                        <Badge variant="secondary" className="ml-auto">
-                          Current
-                        </Badge>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
+              {loading ? (
+                <div className="text-center py-4">
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto"></div>
+                  <p className="text-sm text-gray-500 mt-2">Loading journey progress...</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {steps.map((step) => {
+                    const isCurrent = nextStep?.id === step.id;
+                    
+                    return (
+                      <div key={step.id} className={`flex items-center gap-2 p-2 rounded ${
+                        isCurrent ? 'bg-blue-50 border border-blue-200' : 
+                        step.completed ? 'bg-green-50' : 'bg-gray-50'
+                      }`}>
+                        {step.completed ? (
+                          <CheckCircle2 className="h-4 w-4 text-green-500" />
+                        ) : isCurrent ? (
+                          <Clock className="h-4 w-4 text-blue-500" />
+                        ) : (
+                          <Circle className="h-4 w-4 text-gray-300" />
+                        )}
+                        <span className={`text-sm flex-1 ${isCurrent ? 'font-medium text-blue-700' : ''}`}>
+                          {step.id}. {step.title}
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                          {step.description}
+                        </span>
+                        {isCurrent && (
+                          <Badge variant="secondary" className="ml-auto">
+                            Current
+                          </Badge>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -308,7 +286,7 @@ export function UserDetailModal({ user, open, onOpenChange, onRefresh }: UserDet
                 
                 <Button 
                   onClick={advanceUserStep}
-                  disabled={progress >= 100}
+                  disabled={completionPercentage >= 100}
                   variant="outline"
                   className="flex items-center gap-2"
                 >

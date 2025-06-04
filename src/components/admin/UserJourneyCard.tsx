@@ -4,9 +4,9 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Progress } from "@/components/ui/progress";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Calendar, Mail, MapPin, User, CheckCircle2, AlertCircle, Clock } from "lucide-react";
+import { Calendar, Mail, MapPin, User } from "lucide-react";
+import { MiniJourneyProgress } from "./MiniJourneyProgress";
 
 interface UserWithProgress {
   id: string;
@@ -44,23 +44,6 @@ export function UserJourneyCard({
   onRefresh,
   onClick
 }: UserJourneyCardProps) {
-  const progress = user.journey_progress?.completion_percentage || 0;
-  const currentStep = user.journey_progress?.current_step || 1;
-  const totalSteps = user.journey_progress?.total_steps || 1;
-  
-  const getStatusColor = () => {
-    if (progress >= 100) return 'text-green-600';
-    if (progress >= 50) return 'text-blue-600';
-    if (progress > 0) return 'text-yellow-600';
-    return 'text-gray-600';
-  };
-
-  const getStatusIcon = () => {
-    if (progress >= 100) return <CheckCircle2 className="h-4 w-4 text-green-600" />;
-    if (progress >= 50) return <Clock className="h-4 w-4 text-blue-600" />;
-    return <AlertCircle className="h-4 w-4 text-yellow-600" />;
-  };
-
   const getInitials = (name: string) => {
     return name
       .split(' ')
@@ -70,9 +53,7 @@ export function UserJourneyCard({
       .slice(0, 2);
   };
 
-  const daysSinceActivity = user.journey_progress?.last_activity_at 
-    ? Math.floor((Date.now() - new Date(user.journey_progress.last_activity_at).getTime()) / (1000 * 60 * 60 * 24))
-    : Math.floor((Date.now() - new Date(user.created_at).getTime()) / (1000 * 60 * 60 * 24));
+  const daysSinceCreated = Math.floor((Date.now() - new Date(user.created_at).getTime()) / (1000 * 60 * 60 * 24));
 
   return (
     <Card 
@@ -113,7 +94,6 @@ export function UserJourneyCard({
               </div>
             </div>
           </div>
-          {getStatusIcon()}
         </div>
       </CardHeader>
 
@@ -136,21 +116,13 @@ export function UserJourneyCard({
           )}
         </div>
 
-        {/* Journey Progress */}
+        {/* Journey Progress - Using the reusable component */}
         <div className="space-y-2">
-          <div className="flex items-center justify-between text-sm">
-            <span className={getStatusColor()}>
-              Step {currentStep} of {totalSteps}
-            </span>
-            <span className="text-xs text-muted-foreground">
-              {progress}% complete
-            </span>
-          </div>
-          <Progress value={progress} className="h-2" />
+          <MiniJourneyProgress userId={user.id} userRole={user.role} />
           
-          {daysSinceActivity > 0 && (
+          {daysSinceCreated > 0 && (
             <div className="text-xs text-muted-foreground">
-              {daysSinceActivity === 1 ? 'Last activity 1 day ago' : `Last activity ${daysSinceActivity} days ago`}
+              {daysSinceCreated === 1 ? 'Joined 1 day ago' : `Joined ${daysSinceCreated} days ago`}
             </div>
           )}
         </div>
