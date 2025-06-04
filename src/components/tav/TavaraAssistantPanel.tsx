@@ -57,12 +57,12 @@ export const TavaraAssistantPanel: React.FC = () => {
     }
   }, [user]);
 
-  // INITIAL SITE VISIT AUTO-GREETING (restored magic!)
+  // MAGIC AUTO-GREETING - Automatically shows and opens without user interaction
   useEffect(() => {
     const sessionKey = `tavara_session_greeted`;
     const hasGreetedThisSession = sessionStorage.getItem(sessionKey);
     
-    console.log('TAV: Initial greeting check:', {
+    console.log('TAV: Auto-greeting check:', {
       hasGreetedThisSession,
       hasInitialGreeted,
       isOpen: state.isOpen,
@@ -70,9 +70,9 @@ export const TavaraAssistantPanel: React.FC = () => {
       pathname: location.pathname
     });
     
-    // Show initial greeting if haven't greeted this session AND not already open
+    // Show magic greeting if haven't greeted this session AND not already open
     if (!hasGreetedThisSession && !hasInitialGreeted && !state.isOpen) {
-      console.log('TAV: Triggering initial magic greeting!');
+      console.log('TAV: Triggering magic auto-greeting!');
       
       // Show magic entrance after a brief delay
       setTimeout(() => {
@@ -81,21 +81,21 @@ export const TavaraAssistantPanel: React.FC = () => {
         // Mark as greeted for this session
         sessionStorage.setItem(sessionKey, 'true');
         
-        // Auto-open the panel after showing the magic for a bit
+        // Auto-open the panel after showing the magic - NO USER INTERACTION NEEDED
         setTimeout(() => {
           setShowGreeting(false);
           openPanel();
-        }, 3000); // Show greeting for 3 seconds then auto-open
-      }, 1500); // Initial delay for page load
+        }, 2500); // Show greeting for 2.5 seconds then auto-open
+      }, 1200); // Initial delay for page load
     }
   }, [hasInitialGreeted, state.isOpen, openPanel, location.pathname]);
 
-  // NAVIGATION AUTO-GREETING (contextual magic on every form navigation!)
+  // NAVIGATION AUTO-GREETING (contextual magic on journey touchpoints)
   useEffect(() => {
     const currentPath = location.pathname;
     
-    // Skip if panel is already open
-    if (state.isOpen) {
+    // Skip if panel is already open or we haven't done initial greeting
+    if (state.isOpen || !hasInitialGreeted) {
       return;
     }
 
@@ -106,17 +106,17 @@ export const TavaraAssistantPanel: React.FC = () => {
       // Add page to greeted pages to prevent spam
       setGreetedPages(prev => new Set([...prev, currentPath]));
       
-      // Show contextual greeting with a delay for page load
+      // Show contextual greeting with auto-open
       setTimeout(() => {
         setShowGreeting(true);
-        // Auto-open after brief display
+        // Auto-open after brief display - NO USER INTERACTION
         setTimeout(() => {
           setShowGreeting(false);
           openPanel();
-        }, 2500);
-      }, 800); // Slight delay so page loads first
+        }, 2000);
+      }, 600);
     }
-  }, [location.pathname, isJourneyTouchpoint, state.isOpen, greetedPages, openPanel, state.currentRole]);
+  }, [location.pathname, isJourneyTouchpoint, state.isOpen, greetedPages, openPanel, state.currentRole, hasInitialGreeted]);
 
   // Auto-open for nudges
   useEffect(() => {
@@ -195,73 +195,79 @@ export const TavaraAssistantPanel: React.FC = () => {
         ? 'bottom-20 left-4' 
         : 'bottom-6 left-6'
       }`}>
-        {/* Enhanced vertical contextual greeting bubble - magic mode without interaction */}
+        {/* VERTICAL magic greeting bubble - AUTO-LOADING without user interaction */}
         <AnimatePresence>
           {showGreeting && (
             <motion.div
-              initial={{ opacity: 0, y: 30, scale: 0.7 }}
+              initial={{ opacity: 0, y: 30, scale: 0.8, x: -10 }}
               animate={{ 
                 opacity: 1, 
                 y: 0, 
-                scale: 1
+                scale: 1,
+                x: 0
               }}
-              exit={{ opacity: 0, y: -15, scale: 0.8 }}
+              exit={{ opacity: 0, y: -20, scale: 0.85 }}
               transition={{ 
                 type: "spring", 
-                damping: 18, 
-                stiffness: 300,
-                duration: 0.6
+                damping: 20, 
+                stiffness: 350,
+                duration: 0.5
               }}
-              className={`absolute bottom-16 left-0 bg-white rounded-xl shadow-xl border-2 border-primary/30 ${
+              className={`absolute bottom-16 left-0 bg-white rounded-xl shadow-2xl border-2 border-primary/40 ${
                 isMobile 
-                  ? 'w-72 max-w-[90vw] text-sm p-4' 
-                  : 'w-80 p-6'
+                  ? 'w-64 max-w-[85vw] text-sm p-3' 
+                  : 'w-72 p-5'
               }`}
             >
-              {/* Enhanced sparkle effects */}
-              <div className="absolute -top-1 -right-1">
-                <Sparkles className="h-4 w-4 text-primary animate-pulse" />
+              {/* Enhanced vertical sparkle effects */}
+              <div className="absolute -top-2 -right-2">
+                <Sparkles className="h-5 w-5 text-primary animate-pulse" />
               </div>
-              <div className="absolute top-2 right-8">
-                <Sparkles className="h-3 w-3 text-primary/60 animate-pulse" style={{ animationDelay: '0.5s' }} />
+              <div className="absolute top-1 right-6">
+                <Sparkles className="h-3 w-3 text-primary/70 animate-pulse" style={{ animationDelay: '0.3s' }} />
               </div>
-              <div className="absolute bottom-2 left-2">
-                <Sparkles className="h-2 w-2 text-primary/40 animate-pulse" style={{ animationDelay: '1s' }} />
+              <div className="absolute bottom-1 left-1">
+                <Sparkles className="h-2 w-2 text-primary/50 animate-pulse" style={{ animationDelay: '0.8s' }} />
+              </div>
+              <div className="absolute top-8 left-2">
+                <Sparkles className="h-2 w-2 text-primary/40 animate-pulse" style={{ animationDelay: '1.2s' }} />
               </div>
               
-              <div className="flex items-center gap-3 mb-3">
-                <span className="text-lg">💙</span>
-                <div className="flex-1">
-                  <p className="font-semibold text-primary text-base leading-tight">
-                    TAV Assistant
-                  </p>
-                  {currentForm && (
-                    <span className="bg-primary/10 text-primary text-xs px-2 py-1 rounded-full inline-block mt-1">
-                      Helping with {currentForm.formTitle}
-                    </span>
-                  )}
+              <div className="flex flex-col gap-3">
+                <div className="flex items-center gap-3">
+                  <span className="text-xl">💙</span>
+                  <div className="flex-1">
+                    <p className="font-semibold text-primary text-base leading-tight">
+                      TAV Assistant
+                    </p>
+                    {currentForm && (
+                      <span className="bg-primary/10 text-primary text-xs px-2 py-1 rounded-full inline-block mt-1">
+                        Helping with {currentForm.formTitle}
+                      </span>
+                    )}
+                  </div>
                 </div>
-              </div>
-              
-              <p className={`text-muted-foreground leading-relaxed mb-2 ${isMobile ? 'text-sm' : 'text-base'}`}>
-                {getContextualGreeting()}
-              </p>
-              
-              {/* Form-specific context (for form navigation) */}
-              {currentForm && (
-                <div className="mb-2 p-2 bg-primary/5 rounded-lg">
-                  <p className={`text-primary font-medium ${isMobile ? 'text-xs' : 'text-sm'}`}>
-                    ✨ I can help you fill this out conversationally!
-                  </p>
-                </div>
-              )}
+                
+                <p className={`text-muted-foreground leading-relaxed ${isMobile ? 'text-sm' : 'text-sm'}`}>
+                  {getContextualGreeting()}
+                </p>
+                
+                {/* Form-specific context (for form navigation) */}
+                {currentForm && (
+                  <div className="p-2 bg-primary/5 rounded-lg">
+                    <p className={`text-primary font-medium ${isMobile ? 'text-xs' : 'text-sm'}`}>
+                      ✨ I can help you fill this out conversationally!
+                    </p>
+                  </div>
+                )}
 
-              <p className="text-xs text-primary/70 text-center">
-                Opening assistant panel...
-              </p>
+                <p className="text-xs text-primary/70 text-center animate-pulse">
+                  Opening assistant panel...
+                </p>
+              </div>
               
-              {/* Enhanced speech bubble tail */}
-              <div className="absolute bottom-[-8px] left-8 w-4 h-4 bg-white border-r-2 border-b-2 border-primary/30 transform rotate-45"></div>
+              {/* Enhanced speech bubble tail - positioned for vertical layout */}
+              <div className="absolute bottom-[-8px] left-6 w-4 h-4 bg-white border-r-2 border-b-2 border-primary/40 transform rotate-45"></div>
             </motion.div>
           )}
         </AnimatePresence>
@@ -325,7 +331,7 @@ export const TavaraAssistantPanel: React.FC = () => {
             />
           )}
           
-          {/* Vertical panel with better height and width for vertical layout */}
+          {/* Vertical panel optimized for vertical layout */}
           <motion.div
             initial={isMobile 
               ? { x: '-100%', opacity: 0 } 
@@ -342,8 +348,8 @@ export const TavaraAssistantPanel: React.FC = () => {
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
             className={`fixed z-50 bg-white border shadow-2xl ${
               isMobile
-                ? 'bottom-4 left-4 right-4 rounded-2xl max-h-[60vh] border'
-                : 'bottom-6 left-6 rounded-2xl border max-h-[60vh] w-[min(24rem,35vw)]'
+                ? 'bottom-4 left-4 right-4 rounded-2xl max-h-[65vh] border'
+                : 'bottom-6 left-6 rounded-2xl border max-h-[65vh] w-[min(26rem,38vw)]'
             }`}
           >
             {/* Header */}
@@ -375,8 +381,8 @@ export const TavaraAssistantPanel: React.FC = () => {
             {/* Content with optimized scrolling for vertical layout */}
             <div className={`overflow-y-auto ${
               isMobile 
-                ? 'p-3 max-h-[calc(60vh-80px)]' 
-                : 'p-4 max-h-[calc(60vh-90px)]'
+                ? 'p-3 max-h-[calc(65vh-80px)]' 
+                : 'p-4 max-h-[calc(65vh-90px)]'
             }`}>
               {/* Form context banner */}
               {currentForm && (

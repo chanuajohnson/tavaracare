@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -12,7 +11,7 @@ import { NudgeSystem } from "./NudgeSystem";
 import { BulkActionPanel } from "./BulkActionPanel";
 import { UserDetailModal } from "./UserDetailModal";
 
-// Use inline role definitions like TAV pattern
+// Use inline role definitions matching the actual database schema
 type UserRole = 'family' | 'professional' | 'community' | 'admin';
 type AdminUserRole = 'all' | UserRole;
 
