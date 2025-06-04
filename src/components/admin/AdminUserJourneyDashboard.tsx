@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -22,10 +21,16 @@ interface UserWithProgress {
   created_at: string;
   avatar_url?: string;
   journey_progress?: {
+    id: string;
+    user_id: string;
+    role: string;
     current_step: number;
     total_steps: number;
     completion_percentage: number;
     last_activity_at: string;
+    completed_steps: any;
+    created_at: string;
+    updated_at: string;
   };
   onboarding_progress?: any;
   location?: string;
@@ -94,11 +99,18 @@ export function AdminUserJourneyDashboard() {
       completionPercentage = Math.min(100, Math.round((completedStepsCount / totalSteps) * 100));
     }
     
+    // Return object that matches the expected interface structure
     return {
+      id: `calc-${profile.id}`,
+      user_id: profile.id,
+      role: profile.role,
       current_step: currentStep,
       total_steps: totalSteps,
       completion_percentage: completionPercentage,
-      last_activity_at: profile.updated_at || profile.created_at
+      last_activity_at: profile.updated_at || profile.created_at,
+      completed_steps: onboardingProgress?.completed_steps || {},
+      created_at: profile.created_at,
+      updated_at: profile.updated_at || profile.created_at
     };
   };
 
@@ -145,14 +157,6 @@ export function AdminUserJourneyDashboard() {
         
         if (!journeyProgress) {
           journeyProgress = calculateJourneyProgress(profile);
-        } else {
-          // Ensure we have the correct format
-          journeyProgress = {
-            current_step: journeyProgress.current_step || 1,
-            total_steps: journeyProgress.total_steps || (profile.role === 'family' ? 7 : profile.role === 'professional' ? 5 : 3),
-            completion_percentage: journeyProgress.completion_percentage || 0,
-            last_activity_at: journeyProgress.last_activity_at || profile.created_at
-          };
         }
 
         return {
