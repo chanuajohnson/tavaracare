@@ -69,13 +69,13 @@ export const RoleBasedContent: React.FC<RoleBasedContentProps> = ({
             <Button 
               variant="default" 
               size="sm" 
-              className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-lg border-2 border-blue-300/30 min-h-[4rem] h-auto py-4 px-4 relative overflow-hidden group"
+              className="w-full bg-gradient-to-r from-primary/10 via-primary/5 to-primary/10 hover:from-primary/20 hover:via-primary/10 hover:to-primary/20 text-primary border-2 border-primary/20 hover:border-primary/30 min-h-[4rem] h-auto py-4 px-4 relative overflow-hidden group shadow-sm hover:shadow-md transition-all duration-300"
               onClick={() => navigate('/auth')}
             >
-              {/* Sparkle effect for VIP treatment */}
+              {/* Subtle sparkle effect for VIP treatment */}
               <div className="absolute inset-0 opacity-20 group-hover:opacity-30 transition-opacity duration-300">
-                <Sparkles className="h-3 w-3 absolute top-2 right-3 text-white animate-pulse" />
-                <Sparkles className="h-2 w-2 absolute bottom-2 left-3 text-white animate-pulse" style={{ animationDelay: '0.5s' }} />
+                <Sparkles className="h-3 w-3 absolute top-2 right-3 text-primary/60 animate-pulse" />
+                <Sparkles className="h-2 w-2 absolute bottom-2 left-3 text-primary/40 animate-pulse" style={{ animationDelay: '0.5s' }} />
               </div>
               
               <div className="flex items-center justify-between w-full min-w-0 relative z-10">
@@ -105,7 +105,7 @@ export const RoleBasedContent: React.FC<RoleBasedContentProps> = ({
         
         <div className="space-y-3">
           <p className="text-sm font-medium text-muted-foreground">
-            {isReturningUser ? "Or start fresh:" : "How can I help you today?"}
+            {isReturningUser ? "Or explore other options:" : "How can I help you today?"}
           </p>
           
           <Button 
