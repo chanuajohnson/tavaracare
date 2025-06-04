@@ -113,7 +113,7 @@ export const RoleBasedContent: React.FC<RoleBasedContentProps> = ({
             variant="outline" 
             size="sm" 
             className="w-full justify-start h-auto py-3 px-4 hover:bg-blue-50 hover:border-blue-200 transition-colors duration-200"
-            onClick={() => navigate('/registration/family')}
+            onClick={() => navigate('/auth?tab=signup&role=family')}
           >
             <Users className="h-4 w-4 mr-3 flex-shrink-0" />
             <span className="text-left leading-tight">I need care for a loved one</span>
@@ -123,7 +123,7 @@ export const RoleBasedContent: React.FC<RoleBasedContentProps> = ({
             variant="outline" 
             size="sm" 
             className="w-full justify-start h-auto py-3 px-4 hover:bg-green-50 hover:border-green-200 transition-colors duration-200"
-            onClick={() => navigate('/registration/professional')}
+            onClick={() => navigate('/auth?tab=signup&role=professional')}
           >
             <UserCog className="h-4 w-4 mr-3 flex-shrink-0" />
             <span className="text-left leading-tight">I want to provide care services</span>
@@ -133,7 +133,7 @@ export const RoleBasedContent: React.FC<RoleBasedContentProps> = ({
             variant="outline" 
             size="sm" 
             className="w-full justify-start h-auto py-3 px-4 hover:bg-amber-50 hover:border-amber-200 transition-colors duration-200"
-            onClick={() => navigate('/registration/community')}
+            onClick={() => navigate('/auth?tab=signup&role=community')}
           >
             <Globe className="h-4 w-4 mr-3 flex-shrink-0" />
             <span className="text-left leading-tight">I want to support my community</span>
