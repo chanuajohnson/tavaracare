@@ -105,7 +105,7 @@ export const RoleBasedContent: React.FC<RoleBasedContentProps> = ({
         
         <div className="space-y-3">
           <p className="text-sm font-medium text-muted-foreground">
-            {isReturningUser ? "Or start fresh:" : "How can I help you today?"}
+            {isReturningUser ? "Or explore our other options:" : "How can I help you today?"}
           </p>
           
           <Button 
