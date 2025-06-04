@@ -26,12 +26,12 @@ export const ScheduleVisitModal: React.FC<ScheduleVisitModalProps> = ({
     
     setIsSubmitting(true);
     try {
-      // Record the user's choice
+      // Record the user's choice using existing profile fields
       const { error } = await supabase
         .from('profiles')
         .update({ 
-          visit_scheduling_status: choice,
-          visit_scheduling_updated_at: new Date().toISOString()
+          additional_notes: `Visit scheduling: ${choice} - ${new Date().toISOString()}`,
+          updated_at: new Date().toISOString()
         })
         .eq('id', user.id);
 

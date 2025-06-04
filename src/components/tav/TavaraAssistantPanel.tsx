@@ -34,8 +34,6 @@ export const TavaraAssistantPanel: React.FC = () => {
   const [hasInitialGreeted, setHasInitialGreeted] = useState(false);
   const [showGreeting, setShowGreeting] = useState(false);
   const [greetedPages, setGreetedPages] = useState<Set<string>>(new Set());
-  const [awaitingResponse, setAwaitingResponse] = useState(false);
-  const [isTransitioning, setIsTransitioning] = useState(false);
 
   // Get real progress data based on user role
   const professionalProgress = useProfessionalProgress();
@@ -79,10 +77,15 @@ export const TavaraAssistantPanel: React.FC = () => {
       // Show magic entrance after a brief delay
       setTimeout(() => {
         setShowGreeting(true);
-        setAwaitingResponse(true);
         setHasInitialGreeted(true);
         // Mark as greeted for this session
         sessionStorage.setItem(sessionKey, 'true');
+        
+        // Auto-open the panel after showing the magic for a bit
+        setTimeout(() => {
+          setShowGreeting(false);
+          openPanel();
+        }, 3000); // Show greeting for 3 seconds then auto-open
       }, 1500); // Initial delay for page load
     }
   }, [hasInitialGreeted, state.isOpen, openPanel, location.pathname]);
@@ -106,7 +109,11 @@ export const TavaraAssistantPanel: React.FC = () => {
       // Show contextual greeting with a delay for page load
       setTimeout(() => {
         setShowGreeting(true);
-        setAwaitingResponse(true);
+        // Auto-open after brief display
+        setTimeout(() => {
+          setShowGreeting(false);
+          openPanel();
+        }, 2500);
       }, 800); // Slight delay so page loads first
     }
   }, [location.pathname, isJourneyTouchpoint, state.isOpen, greetedPages, openPanel, state.currentRole]);
@@ -136,27 +143,6 @@ export const TavaraAssistantPanel: React.FC = () => {
     await assistantSupabase.markNudgeAsSeen(nudge.id);
     setNudges(prev => prev.filter(n => n.id !== nudge.id));
     markNudgesAsRead();
-  };
-
-  // Handle Yes/No responses for interactive greeting
-  const handleGreetingResponse = (response: 'yes' | 'no') => {
-    setAwaitingResponse(false);
-    setIsTransitioning(true);
-    
-    if (response === 'yes') {
-      // Transition to chat panel
-      setTimeout(() => {
-        setShowGreeting(false);
-        setIsTransitioning(false);
-        openPanel();
-      }, 300);
-    } else {
-      // Gracefully dismiss
-      setTimeout(() => {
-        setShowGreeting(false);
-        setIsTransitioning(false);
-      }, 300);
-    }
   };
 
   // Create real progress context based on user role
@@ -209,17 +195,15 @@ export const TavaraAssistantPanel: React.FC = () => {
         ? 'bottom-20 left-4' 
         : 'bottom-6 left-6'
       }`}>
-        {/* Enhanced contextual greeting bubble with interactive Yes/No options */}
+        {/* Enhanced vertical contextual greeting bubble - magic mode without interaction */}
         <AnimatePresence>
           {showGreeting && (
             <motion.div
-              initial={{ opacity: 0, y: 30, scale: 0.7, x: -10 }}
+              initial={{ opacity: 0, y: 30, scale: 0.7 }}
               animate={{ 
                 opacity: 1, 
                 y: 0, 
-                scale: 1, 
-                x: 0,
-                width: isTransitioning ? (isMobile ? '90vw' : '40vw') : (isMobile ? '90vw' : '60vw')
+                scale: 1
               }}
               exit={{ opacity: 0, y: -15, scale: 0.8 }}
               transition={{ 
@@ -230,8 +214,8 @@ export const TavaraAssistantPanel: React.FC = () => {
               }}
               className={`absolute bottom-16 left-0 bg-white rounded-xl shadow-xl border-2 border-primary/30 ${
                 isMobile 
-                  ? 'w-[90vw] max-w-[400px] text-sm p-4' 
-                  : 'w-[60vw] max-w-2xl p-6'
+                  ? 'w-72 max-w-[90vw] text-sm p-4' 
+                  : 'w-80 p-6'
               }`}
             >
               {/* Enhanced sparkle effects */}
@@ -241,6 +225,9 @@ export const TavaraAssistantPanel: React.FC = () => {
               <div className="absolute top-2 right-8">
                 <Sparkles className="h-3 w-3 text-primary/60 animate-pulse" style={{ animationDelay: '0.5s' }} />
               </div>
+              <div className="absolute bottom-2 left-2">
+                <Sparkles className="h-2 w-2 text-primary/40 animate-pulse" style={{ animationDelay: '1s' }} />
+              </div>
               
               <div className="flex items-center gap-3 mb-3">
                 <span className="text-lg">💙</span>
@@ -249,50 +236,29 @@ export const TavaraAssistantPanel: React.FC = () => {
                     TAV Assistant
                   </p>
                   {currentForm && (
-                    <span className="bg-primary/10 text-primary text-sm px-3 py-1 rounded-full inline-block mt-1">
+                    <span className="bg-primary/10 text-primary text-xs px-2 py-1 rounded-full inline-block mt-1">
                       Helping with {currentForm.formTitle}
                     </span>
                   )}
                 </div>
               </div>
               
-              <p className={`text-muted-foreground leading-relaxed mb-4 ${isMobile ? 'text-sm' : 'text-base'}`}>
+              <p className={`text-muted-foreground leading-relaxed mb-2 ${isMobile ? 'text-sm' : 'text-base'}`}>
                 {getContextualGreeting()}
               </p>
               
               {/* Form-specific context (for form navigation) */}
               {currentForm && (
-                <div className="mb-4 p-3 bg-primary/5 rounded-lg">
-                  <p className={`text-primary font-medium ${isMobile ? 'text-sm' : 'text-base'}`}>
-                    ✨ I can help you fill this out conversationally or guide you step by step!
+                <div className="mb-2 p-2 bg-primary/5 rounded-lg">
+                  <p className={`text-primary font-medium ${isMobile ? 'text-xs' : 'text-sm'}`}>
+                    ✨ I can help you fill this out conversationally!
                   </p>
                 </div>
               )}
 
-              {/* Interactive Yes/No Buttons */}
-              {awaitingResponse && !isTransitioning && (
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="flex gap-3 mt-4"
-                >
-                  <Button
-                    onClick={() => handleGreetingResponse('yes')}
-                    className="flex-1 bg-primary hover:bg-primary/90 text-white font-medium py-3 px-4 rounded-lg transition-all duration-200 hover:scale-105"
-                  >
-                    <Check className="h-4 w-4 mr-2" />
-                    Yes, I'd love help!
-                  </Button>
-                  <Button
-                    onClick={() => handleGreetingResponse('no')}
-                    variant="outline"
-                    className="flex-1 border-2 border-gray-200 hover:border-gray-300 text-gray-600 hover:text-gray-700 font-medium py-3 px-4 rounded-lg transition-all duration-200 hover:scale-105"
-                  >
-                    <XIcon className="h-4 w-4 mr-2" />
-                    No thanks
-                  </Button>
-                </motion.div>
-              )}
+              <p className="text-xs text-primary/70 text-center">
+                Opening assistant panel...
+              </p>
               
               {/* Enhanced speech bubble tail */}
               <div className="absolute bottom-[-8px] left-8 w-4 h-4 bg-white border-r-2 border-b-2 border-primary/30 transform rotate-45"></div>
@@ -359,7 +325,7 @@ export const TavaraAssistantPanel: React.FC = () => {
             />
           )}
           
-          {/* Compact panel with 40% height and width */}
+          {/* Vertical panel with better height and width for vertical layout */}
           <motion.div
             initial={isMobile 
               ? { x: '-100%', opacity: 0 } 
@@ -376,21 +342,21 @@ export const TavaraAssistantPanel: React.FC = () => {
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
             className={`fixed z-50 bg-white border shadow-2xl ${
               isMobile
-                ? 'bottom-4 right-4 left-auto rounded-2xl max-h-[40vh] w-[40vw] min-w-[280px] border'
-                : 'bottom-6 left-6 rounded-2xl border max-h-[40vh] w-[min(20rem,40vw)]'
+                ? 'bottom-4 left-4 right-4 rounded-2xl max-h-[60vh] border'
+                : 'bottom-6 left-6 rounded-2xl border max-h-[60vh] w-[min(24rem,35vw)]'
             }`}
           >
-            {/* Compact header with form context */}
+            {/* Header */}
             <div className={`flex items-center justify-between border-b bg-gradient-to-r from-primary/5 to-transparent ${
-              isMobile ? 'p-2 pb-1' : 'p-3'
+              isMobile ? 'p-3' : 'p-4'
             }`}>
-              <div className="flex items-center gap-2 min-w-0 flex-1">
+              <div className="flex items-center gap-3 min-w-0 flex-1">
                 <div className="h-8 w-8 rounded-full bg-gradient-to-r from-primary to-primary/80 flex items-center justify-center shadow-md flex-shrink-0">
                   <MessageCircle className="h-4 w-4 text-white" />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <h2 className="font-semibold text-sm leading-tight">TAV Assistant</h2>
-                  <p className="text-xs text-muted-foreground leading-tight truncate">
+                  <h2 className="font-semibold text-base leading-tight">TAV Assistant</h2>
+                  <p className="text-sm text-muted-foreground leading-tight truncate">
                     {currentForm ? `Helping with ${currentForm.formTitle}` : 'Your care coordinator'}
                   </p>
                 </div>
@@ -400,38 +366,38 @@ export const TavaraAssistantPanel: React.FC = () => {
                 variant="ghost"
                 size="icon"
                 onClick={closePanel}
-                className="h-7 w-7 hover:bg-primary/10 flex-shrink-0"
+                className="h-8 w-8 hover:bg-primary/10 flex-shrink-0"
               >
-                <X className="h-3 w-3" />
+                <X className="h-4 w-4" />
               </Button>
             </div>
 
-            {/* Compact content with optimized scrolling */}
+            {/* Content with optimized scrolling for vertical layout */}
             <div className={`overflow-y-auto ${
               isMobile 
-                ? 'p-2 max-h-[calc(40vh-70px)]' 
-                : 'p-3 max-h-[calc(40vh-80px)]'
+                ? 'p-3 max-h-[calc(60vh-80px)]' 
+                : 'p-4 max-h-[calc(60vh-90px)]'
             }`}>
               {/* Form context banner */}
               {currentForm && (
-                <div className="mb-3 p-2 bg-gradient-to-r from-primary/5 to-primary/10 rounded-lg border border-primary/20">
-                  <div className="flex items-center gap-1 mb-1">
-                    <Sparkles className="h-3 w-3 text-primary flex-shrink-0" />
-                    <h3 className="text-xs font-medium text-primary">
+                <div className="mb-4 p-3 bg-gradient-to-r from-primary/5 to-primary/10 rounded-lg border border-primary/20">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Sparkles className="h-4 w-4 text-primary flex-shrink-0" />
+                    <h3 className="text-sm font-medium text-primary">
                       {currentForm.formTitle} Assistance
                     </h3>
                   </div>
-                  <p className="text-xs text-primary/80 leading-relaxed">
+                  <p className="text-sm text-primary/80 leading-relaxed">
                     {currentForm.autoGreetingMessage || "I can help you fill this out conversationally or guide you step by step. What would be most helpful?"}
                   </p>
                 </div>
               )}
 
-              {/* Compact nudges */}
+              {/* Nudges */}
               {nudges.length > 0 && (
-                <div className="mb-4 space-y-2">
-                  <h3 className="text-xs font-medium text-amber-800 flex items-center gap-1">
-                    <Sparkles className="h-3 w-3 flex-shrink-0" />
+                <div className="mb-4 space-y-3">
+                  <h3 className="text-sm font-medium text-amber-800 flex items-center gap-2">
+                    <Sparkles className="h-4 w-4 flex-shrink-0" />
                     Messages for you:
                   </h3>
                   {nudges.map((nudge) => (
@@ -439,11 +405,11 @@ export const TavaraAssistantPanel: React.FC = () => {
                       key={nudge.id}
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
-                      className="bg-gradient-to-r from-amber-50 to-amber-50/50 border border-amber-200 rounded-lg p-2 cursor-pointer hover:from-amber-100 hover:to-amber-100/50 transition-all duration-200"
+                      className="bg-gradient-to-r from-amber-50 to-amber-50/50 border border-amber-200 rounded-lg p-3 cursor-pointer hover:from-amber-100 hover:to-amber-100/50 transition-all duration-200"
                       onClick={() => handleNudgeClick(nudge)}
                     >
-                      <p className={`text-amber-800 leading-relaxed ${isMobile ? 'text-xs' : 'text-xs'}`}>{nudge.message}</p>
-                      <p className={`text-amber-600 mt-1 leading-tight ${isMobile ? 'text-xs' : 'text-xs'}`}>
+                      <p className="text-sm text-amber-800 leading-relaxed">{nudge.message}</p>
+                      <p className="text-xs text-amber-600 mt-2 leading-tight">
                         From {nudge.sender} • Click to dismiss
                       </p>
                     </motion.div>
@@ -458,10 +424,10 @@ export const TavaraAssistantPanel: React.FC = () => {
               />
             </div>
 
-            {/* Compact mobile handle */}
+            {/* Mobile handle */}
             {isMobile && (
-              <div className="flex justify-center py-1 bg-gray-50/50">
-                <div className="w-6 h-1 bg-gray-300 rounded-full" />
+              <div className="flex justify-center py-2 bg-gray-50/50">
+                <div className="w-8 h-1 bg-gray-300 rounded-full" />
               </div>
             )}
           </motion.div>

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -28,7 +29,7 @@ interface UserJourneyProgress {
   updated_at: string;
 }
 
-interface UserWithProgress {
+interface AdminUserWithProgress {
   id: string;
   email: string;
   full_name: string;
@@ -55,14 +56,14 @@ interface RoleStats {
 }
 
 export function AdminUserJourneyDashboard() {
-  const [users, setUsers] = useState<UserWithProgress[]>([]);
+  const [users, setUsers] = useState<AdminUserWithProgress[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedRole, setSelectedRole] = useState<AdminUserRole>('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStage, setFilterStage] = useState<'all' | string>('all');
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
   const [showNudgeSystem, setShowNudgeSystem] = useState(false);
-  const [selectedUserForModal, setSelectedUserForModal] = useState<UserWithProgress | null>(null);
+  const [selectedUserForModal, setSelectedUserForModal] = useState<AdminUserWithProgress | null>(null);
   const [roleStats, setRoleStats] = useState<Record<string, RoleStats>>({});
 
   const fetchUsersWithProgress = async () => {
@@ -97,7 +98,7 @@ export function AdminUserJourneyDashboard() {
       }
 
       // Combine the data
-      const usersWithProgress: UserWithProgress[] = (profiles || []).map(profile => {
+      const usersWithProgress: AdminUserWithProgress[] = (profiles || []).map(profile => {
         // Find real email from auth users
         const authUser = authUsers?.users?.find((u: any) => u.id === profile.id);
         const realEmail = authUser?.email || profile.id; // fallback to ID if email not found
@@ -138,7 +139,7 @@ export function AdminUserJourneyDashboard() {
     fetchUsersWithProgress();
   }, []);
 
-  const calculateRoleStats = (userData: UserWithProgress[]) => {
+  const calculateRoleStats = (userData: AdminUserWithProgress[]) => {
     const stats: Record<string, RoleStats> = {};
     
     (['family', 'professional', 'community', 'admin'] as const).forEach(role => {
