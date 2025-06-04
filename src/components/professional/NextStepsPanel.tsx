@@ -1,477 +1,148 @@
+
 import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { CheckCircle2, Circle, List, ArrowRight, Upload, Clock, Mail, Phone } from "lucide-react";
+import { CheckCircle2, Circle, List, ArrowRight, Clock } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useState, useEffect } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Progress } from "@/components/ui/progress";
-import { useToast } from "@/hooks/use-toast";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
-import { useJourneyTracking } from "@/hooks/useJourneyTracking";
-import { useTracking } from "@/hooks/useTracking";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { Calendar, Sun, Moon, Home } from "lucide-react";
-import { Skeleton } from "@/components/ui/skeleton";
-import { getCurrentEnvironment } from "@/integrations/supabase/client";
-import { useDocumentUploadRedirect } from "@/hooks/professional/useDocumentUploadRedirect";
-
-const initialSteps = [
-  { 
-    id: 1, 
-    title: "Complete your profile", 
-    description: "Add your qualifications, experience, and preferences", 
-    completed: false, 
-    link: "/registration/professional",
-    action: "complete" 
-  },
-  { 
-    id: 2, 
-    title: "Upload certifications", 
-    description: "Share your professional certifications and required documents", 
-    completed: false,
-    link: "",
-    action: "upload" 
-  },
-  { 
-    id: 3, 
-    title: "Set your availability", 
-    description: "Let clients know when you're available for work", 
-    completed: false,
-    link: "",
-    action: "availability" 
-  },
-  { 
-    id: 4, 
-    title: "Complete training", 
-    description: "Learn essential caregiving techniques and protocols", 
-    completed: false,
-    link: "/professional/training-resources",
-    action: "training" 
-  },
-  { 
-    id: 5, 
-    title: "Orientation and shadowing", 
-    description: "Complete in-person orientation and care shadowing", 
-    completed: false,
-    link: "",
-    action: "orientation" 
-  }
-];
 
 export const NextStepsPanel = () => {
   const { user } = useAuth();
-  const { trackEngagement } = useTracking();
-  const { toast } = useToast();
-  const { redirectToDocumentUpload, getUploadButtonText, isLoading: uploadCheckLoading, hasExistingUploads } = useDocumentUploadRedirect();
-  
-  const [isAvailabilityModalOpen, setIsAvailabilityModalOpen] = useState(false);
-  const [selectedAvailability, setSelectedAvailability] = useState<string[]>([]);
-  const [otherAvailability, setOtherAvailability] = useState("");
-
-  const [steps, setSteps] = useState(initialSteps);
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [dataSource, setDataSource] = useState<'local' | 'database' | 'none'>('none');
+  const [steps, setSteps] = useState([
+    { 
+      id: 1, 
+      title: "Create your account", 
+      description: "Set up your Tavara account", 
+      completed: true, // Always completed if user exists
+      link: "/auth" 
+    },
+    { 
+      id: 2, 
+      title: "Complete your professional profile", 
+      description: "Add your experience and certifications", 
+      completed: false, 
+      link: "/registration/professional" 
+    },
+    { 
+      id: 3, 
+      title: "Upload certifications & documents", 
+      description: "Verify your credentials", 
+      completed: false, 
+      link: "/professional/profile" 
+    },
+    { 
+      id: 4, 
+      title: "Set your availability preferences", 
+      description: "Configure your work schedule", 
+      completed: false, 
+      link: "/professional/profile" 
+    },
+    { 
+      id: 5, 
+      title: "Complete training modules", 
+      description: "Enhance your skills", 
+      completed: false, 
+      link: "/professional/training" 
+    },
+    { 
+      id: 6, 
+      title: "Schedule orientation session", 
+      description: "Complete your onboarding", 
+      completed: false, 
+      link: "/professional/profile" 
+    }
+  ]);
 
-  useJourneyTracking({
-    journeyStage: 'profile_creation',
-    additionalData: { section: 'next_steps_panel' },
-    trackOnce: true
-  });
+  useEffect(() => {
+    if (user) {
+      checkStepCompletion();
+    }
+  }, [user]);
+
+  const checkStepCompletion = async () => {
+    if (!user) return;
+    
+    try {
+      setLoading(true);
+      
+      // Check user profile completion from profiles table
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('professional_type, years_of_experience, certifications, availability')
+        .eq('id', user.id)
+        .maybeSingle();
+
+      // Check for uploaded documents
+      const { data: documents } = await supabase
+        .from('professional_documents')
+        .select('id')
+        .eq('user_id', user.id);
+
+      const updatedSteps = [...steps];
+      
+      // Step 1: Account creation - always completed if user exists
+      updatedSteps[0].completed = true;
+      
+      // Step 2: Complete professional profile - check if professional details are filled
+      if (profile && profile.professional_type && profile.years_of_experience) {
+        updatedSteps[1].completed = true;
+      }
+      
+      // Step 3: Upload documents - check if any documents exist
+      if (documents && documents.length > 0) {
+        updatedSteps[2].completed = true;
+      }
+      
+      // Step 4: Availability - check if availability is set
+      if (profile && profile.availability && profile.availability.length > 0) {
+        updatedSteps[3].completed = true;
+      }
+      
+      // Steps 5 and 6 will be completed based on future implementations
+      
+      setSteps(updatedSteps);
+    } catch (error) {
+      console.error("Error checking step completion:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const completedSteps = steps.filter(step => step.completed).length;
   const progress = Math.round((completedSteps / steps.length) * 100);
 
-  useEffect(() => {
-    const loadProgress = async () => {
-      setLoading(true);
-      
-      try {
-        const localDataLoaded = loadProgressFromLocalStorage();
-        if (localDataLoaded) {
-          setDataSource('local');
-        }
-        
-        if (user && navigator.onLine) {
-          const databaseDataLoaded = await loadProgressFromDatabase();
-          if (databaseDataLoaded) {
-            setDataSource('database');
-          }
-        }
-        
-        if (dataSource === 'none' && user) {
-          const updatedSteps = [...initialSteps];
-          updatedSteps[0].completed = true;
-          
-          // Check if user has uploaded documents and mark step 2 accordingly
-          if (hasExistingUploads) {
-            updatedSteps[1].completed = true;
-          }
-          
-          setSteps(updatedSteps);
-          saveProgressToLocalStorage(updatedSteps, []);
-        }
-      } catch (err) {
-        console.error("Error loading progress:", err);
-        setError("Failed to load progress. Please refresh the page.");
-      } finally {
-        setLoading(false);
-      }
-    };
-    
-    loadProgress();
-  }, [user, hasExistingUploads]);
-
-  const loadProgressFromLocalStorage = () => {
-    try {
-      const savedProgress = localStorage.getItem('professionalOnboardingProgress');
-      if (savedProgress) {
-        const parsedData = JSON.parse(savedProgress);
-        
-        if (parsedData.steps) {
-          const updatedSteps = [...initialSteps];
-          Object.keys(parsedData.steps).forEach(stepId => {
-            const index = updatedSteps.findIndex(s => s.id === parseInt(stepId));
-            if (index >= 0) {
-              updatedSteps[index].completed = parsedData.steps[stepId];
-            }
-          });
-          
-          // Override step 2 completion based on actual uploads
-          if (hasExistingUploads) {
-            updatedSteps[1].completed = true;
-          }
-          
-          setSteps(updatedSteps);
-        }
-        
-        if (parsedData.availability) {
-          setSelectedAvailability(Array.isArray(parsedData.availability) ? parsedData.availability : []);
-        }
-        
-        return true;
-      }
-      return false;
-    } catch (e) {
-      console.error("Error parsing saved local progress:", e);
-      return false;
+  const getButtonText = (step: any) => {
+    if (step.completed) {
+      if (step.id === 1) return "Account Created";
+      if (step.id === 2) return "Edit Profile";
+      if (step.id === 3) return "View Documents";
+      if (step.id === 4) return "Edit Availability";
+      if (step.id === 5) return "Continue Training";
+      if (step.id === 6) return "Reschedule";
+      return "Edit";
     }
+    
+    if (step.id === 1) return "Complete";
+    if (step.id === 2) return "Complete Profile";
+    if (step.id === 3) return "Upload Docs";
+    if (step.id === 4) return "Set Availability";
+    if (step.id === 5) return "Start Training";
+    if (step.id === 6) return "Schedule";
+    
+    return "Complete";
   };
 
-  const loadProgressFromDatabase = async () => {
-    if (!user) return false;
-    
-    try {
-      const env = getCurrentEnvironment();
-      console.log(`Loading progress from database in ${env} environment`);
-      
-      try {
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('onboarding_progress, availability')
-          .eq('id', user.id)
-          .maybeSingle();
-        
-        if (error) {
-          if (error.message.includes('column') || error.message.includes('schema')) {
-            console.warn(`The onboarding_progress column might not exist in the ${env} environment`);
-            
-            const { data: availData, error: availError } = await supabase
-              .from('profiles')
-              .select('availability')
-              .eq('id', user.id)
-              .maybeSingle();
-            
-            if (availError) {
-              console.error("Error loading availability:", availError);
-              return false;
-            }
-            
-            if (availData?.availability) {
-              setSelectedAvailability(Array.isArray(availData.availability) ? availData.availability : []);
-              console.log("Loaded availability only (onboarding_progress not available)");
-            }
-            
-            const updatedSteps = [...initialSteps];
-            updatedSteps[0].completed = true;
-            
-            // Check uploads for step 2 completion
-            if (hasExistingUploads) {
-              updatedSteps[1].completed = true;
-            }
-            
-            setSteps(updatedSteps);
-            
-            return true;
-          }
-          
-          console.error("Supabase error loading progress:", error);
-          return false;
-        }
-        
-        if (!data) {
-          return false;
-        }
-        
-        if (data.onboarding_progress) {
-          const updatedSteps = [...initialSteps];
-          Object.keys(data.onboarding_progress).forEach(stepId => {
-            const index = updatedSteps.findIndex(s => s.id === parseInt(stepId));
-            if (index >= 0) {
-              updatedSteps[index].completed = data.onboarding_progress[stepId];
-            }
-          });
-          
-          // Override step 2 completion based on actual uploads
-          if (hasExistingUploads) {
-            updatedSteps[1].completed = true;
-          }
-          
-          setSteps(updatedSteps);
-        }
-        
-        if (data.availability) {
-          setSelectedAvailability(Array.isArray(data.availability) ? data.availability : []);
-        }
-        
-        return true;
-      } catch (err) {
-        console.error("Error in loadProgressFromDatabase:", err);
-        return false;
-      }
-    } catch (err) {
-      console.error("Error loading from database:", err);
-      return false;
-    }
+  const getButtonIcon = (step: any) => {
+    return <ArrowRight className="ml-1 h-3 w-3" />;
   };
 
-  const saveProgressToLocalStorage = (currentSteps: typeof initialSteps, availability: string[]) => {
-    try {
-      const progressData = currentSteps.reduce((acc, step) => {
-        acc[step.id] = step.completed;
-        return acc;
-      }, {} as Record<number, boolean>);
-      
-      localStorage.setItem('professionalOnboardingProgress', JSON.stringify({
-        steps: progressData,
-        availability: availability || selectedAvailability
-      }));
-      
-      return true;
-    } catch (err) {
-      console.error("Error saving to localStorage:", err);
-      return false;
-    }
-  };
-
-  const saveProgressToDatabase = async (currentSteps: typeof initialSteps, availability: string[]) => {
-    if (!user || !navigator.onLine) return false;
-    
-    try {
-      const env = getCurrentEnvironment();
-      console.log(`Saving progress to database in ${env} environment`);
-      
-      const progressData = currentSteps.reduce((acc, step) => {
-        acc[step.id] = step.completed;
-        return acc;
-      }, {} as Record<number, boolean>);
-      
-      const { data: profileData, error: profileError } = await supabase
-        .from('profiles')
-        .select('onboarding_progress')
-        .eq('id', user.id)
-        .maybeSingle();
-      
-      if (profileError) {
-        if (profileError.message.includes('column') || profileError.message.includes('schema')) {
-          console.warn(`The onboarding_progress column might not exist in the ${env} environment`);
-          
-          const { error: availError } = await supabase
-            .from('profiles')
-            .update({ 
-              availability: availability || selectedAvailability,
-              updated_at: new Date().toISOString()
-            })
-            .eq('id', user.id);
-          
-          if (availError) {
-            console.error("Error saving availability:", availError);
-            return false;
-          }
-          
-          console.log("Saved availability only (onboarding_progress not available)");
-          return true;
-        }
-        
-        console.error("Error checking for onboarding_progress column:", profileError);
-        return false;
-      }
-      
-      const { error } = await supabase
-        .from('profiles')
-        .update({ 
-          onboarding_progress: progressData,
-          availability: availability || selectedAvailability,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', user.id);
-      
-      if (error) {
-        console.error("Supabase error saving progress:", error);
-        
-        if (error.message.includes('column') || error.message.includes('schema')) {
-          const { error: fallbackError } = await supabase
-            .from('profiles')
-            .update({ 
-              availability: availability || selectedAvailability,
-              updated_at: new Date().toISOString()
-            })
-            .eq('id', user.id);
-          
-          if (fallbackError) {
-            console.error("Fallback error saving availability:", fallbackError);
-            return false;
-          }
-          
-          console.log("Saved availability only as fallback");
-          return true;
-        }
-        
-        return false;
-      }
-      
-      console.log("Successfully saved progress and availability to database");
-      return true;
-    } catch (err) {
-      console.error("Error saving to database:", err);
-      return false;
-    }
-  };
-
-  useEffect(() => {
-    if (loading) return;
-    
-    const saveProgress = async () => {
-      saveProgressToLocalStorage(steps, selectedAvailability);
-      
-      if (user && navigator.onLine) {
-        saveProgressToDatabase(steps, selectedAvailability);
-      }
-    };
-    
-    saveProgress();
-  }, [steps, selectedAvailability, loading]);
-
-  const handleUploadCertificates = () => {
-    // Don't mark the step as completed here - let the actual upload status determine completion
-    trackEngagement('onboarding_step_interact', { 
-      step: 'certificates',
-      action: 'redirect_to_upload'
-    });
-    
-    redirectToDocumentUpload();
-  };
-
-  const saveAvailability = async () => {
-    if (selectedAvailability.length === 0 && !otherAvailability) {
-      toast({
-        title: "Please select at least one option",
-        description: "Choose when you're available to work",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    const finalAvailability = [...selectedAvailability];
-    if (otherAvailability) {
-      finalAvailability.push(`Other: ${otherAvailability}`);
-    }
-
-    setSelectedAvailability(finalAvailability);
-    
-    const updatedSteps = [...steps];
-    const index = updatedSteps.findIndex(s => s.id === 3);
-    if (index >= 0) {
-      updatedSteps[index].completed = true;
-      setSteps(updatedSteps);
-      
-      trackEngagement('onboarding_step_complete', { 
-        step: 'availability',
-        progress_percent: Math.round(((completedSteps + 1) / steps.length) * 100)
-      });
-    }
-
-    setIsAvailabilityModalOpen(false);
-    
-    saveProgressToLocalStorage(updatedSteps, finalAvailability);
-    
-    if (user && navigator.onLine) {
-      await saveProgressToDatabase(updatedSteps, finalAvailability);
-    }
-    
-    toast({
-      title: "Availability saved",
-      description: "Your availability preferences have been saved.",
-      variant: "success",
-    });
-  };
-
-  const renderActionButton = (step: typeof initialSteps[0]) => {
-    switch (step.action) {
-      case "upload":
-        // Always show the upload button, regardless of completion status
-        return (
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            className="p-0 h-6 text-primary hover:text-primary-600"
-            onClick={handleUploadCertificates}
-            disabled={uploadCheckLoading}
-          >
-            {uploadCheckLoading ? 'Loading...' : getUploadButtonText()}
-            <Upload className="ml-1 h-3 w-3" />
-          </Button>
-        );
-      
-      case "availability":
-        if (step.completed) return null;
-        return (
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            className="p-0 h-6 text-primary hover:text-primary-600"
-            onClick={() => setIsAvailabilityModalOpen(true)}
-          >
-            Set
-            <ArrowRight className="ml-1 h-3 w-3" />
-          </Button>
-        );
-      
-      case "orientation":
-        return null;
-      
-      case "training":
-      case "complete":
-      default:
-        if (step.completed) return null;
-        return (
-          <Link to={step.link}>
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              className="p-0 h-6 text-primary hover:text-primary-600"
-            >
-              Complete
-              <ArrowRight className="ml-1 h-3 w-3" />
-            </Button>
-          </Link>
-        );
-    }
+  const handleStepClick = (step: any) => {
+    navigate(step.link);
   };
 
   if (loading) {
@@ -479,61 +150,20 @@ export const NextStepsPanel = () => {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3 }}
+        transition={{ duration: 0.5 }}
+        className="mb-8"
       >
-        <Card className="h-full border-l-4 border-l-primary">
+        <Card className="border-l-4 border-l-primary">
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center gap-2 text-xl">
               <List className="h-5 w-5 text-primary" />
               Next Steps
             </CardTitle>
-            <div className="flex justify-between items-center">
-              <Skeleton className="h-4 w-[150px]" />
-              <div className="flex items-center space-x-2">
-                <Skeleton className="h-4 w-8" />
-                <Skeleton className="h-2 w-24" />
-              </div>
-            </div>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              {[1, 2, 3, 4, 5].map((item) => (
-                <div key={item} className="flex items-start gap-3">
-                  <Skeleton className="h-5 w-5 rounded-full mt-0.5" />
-                  <div className="flex-1 space-y-2">
-                    <Skeleton className="h-5 w-[200px]" />
-                    <Skeleton className="h-4 w-full" />
-                  </div>
-                </div>
-              ))}
-              <Skeleton className="h-10 w-full mt-4" />
-            </div>
-          </CardContent>
-        </Card>
-      </motion.div>
-    );
-  }
-
-  if (error) {
-    return (
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3 }}
-      >
-        <Card className="h-full border-l-4 border-l-red-500">
-          <CardHeader className="pb-2">
-            <CardTitle className="flex items-center gap-2 text-xl">
-              <List className="h-5 w-5 text-red-500" />
-              Next Steps
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-center py-8">
-              <p className="text-red-500 mb-4">{error}</p>
-              <Button onClick={() => window.location.reload()}>
-                Refresh Page
-              </Button>
+            <div className="text-center py-4">
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto"></div>
+              <p className="text-sm text-gray-500 mt-2">Loading progress...</p>
             </div>
           </CardContent>
         </Card>
@@ -546,21 +176,24 @@ export const NextStepsPanel = () => {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
+      className="mb-8"
     >
-      <Card className="h-full border-l-4 border-l-primary">
+      <Card className="border-l-4 border-l-primary">
         <CardHeader className="pb-2">
           <CardTitle className="flex items-center gap-2 text-xl">
             <List className="h-5 w-5 text-primary" />
-            Next Steps
+            Your Professional Journey Progress
           </CardTitle>
           <div className="flex justify-between items-center">
-            <p className="text-sm text-gray-500">Your onboarding progress</p>
+            <p className="text-sm text-gray-500">Complete these steps to start connecting with families</p>
             <div className="flex items-center space-x-1">
               <p className="text-sm font-medium">{progress}%</p>
-              <Progress 
-                value={progress} 
-                className="w-24 h-2"
-              />
+              <div className="w-24 h-2 bg-gray-100 rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-primary rounded-full transition-all duration-300" 
+                  style={{ width: `${progress}%` }}
+                />
+              </div>
             </div>
           </div>
         </CardHeader>
@@ -589,248 +222,25 @@ export const NextStepsPanel = () => {
                   </div>
                   <p className="text-sm text-gray-500">{step.description}</p>
                 </div>
-                <div className="flex-shrink-0">
-                  {renderActionButton(step)}
-                </div>
+                <Button 
+                  variant={step.completed ? "outline" : "ghost"} 
+                  size="sm" 
+                  className={`p-0 h-6 ${
+                    step.completed 
+                      ? 'text-blue-600 hover:text-blue-700' 
+                      : 'text-primary hover:text-primary-600'
+                  }`}
+                  onClick={() => handleStepClick(step)}
+                  disabled={step.id === 1 && step.completed}
+                >
+                  {getButtonText(step)}
+                  {step.id !== 1 && getButtonIcon(step)}
+                </Button>
               </li>
             ))}
           </ul>
-          
-          <div className="space-y-4 mt-4">
-            <Link to="/professional/profile">
-              <Button variant="default" className="w-full">
-                View all tasks
-              </Button>
-            </Link>
-          </div>
         </CardContent>
       </Card>
-
-      <Dialog open={isAvailabilityModalOpen} onOpenChange={setIsAvailabilityModalOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Set Your Availability</DialogTitle>
-            <DialogDescription>
-              Let clients know when you're available for care shifts.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="py-4">
-            <div className="space-y-5">
-              <div>
-                <h3 className="text-sm font-medium mb-2 flex items-center">
-                  <Calendar className="h-4 w-4 mr-2 text-primary" /> Standard Weekday Shifts
-                </h3>
-                <div className="space-y-3">
-                  <div className="flex items-center space-x-2">
-                    <Checkbox 
-                      id="weekday-standard" 
-                      checked={selectedAvailability.includes("Monday - Friday, 8 AM - 4 PM")}
-                      onCheckedChange={(checked) => {
-                        if (checked) {
-                          setSelectedAvailability([...selectedAvailability, "Monday - Friday, 8 AM - 4 PM"]);
-                        } else {
-                          setSelectedAvailability(selectedAvailability.filter(a => a !== "Monday - Friday, 8 AM - 4 PM"));
-                        }
-                      }}
-                    />
-                    <Label htmlFor="weekday-standard" className="flex items-center">
-                      <Sun className="h-4 w-4 mr-2 text-amber-400" /> Monday - Friday, 8 AM - 4 PM (Standard daytime coverage)
-                    </Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Checkbox 
-                      id="weekday-extended" 
-                      checked={selectedAvailability.includes("Monday - Friday, 6 AM - 6 PM")}
-                      onCheckedChange={(checked) => {
-                        if (checked) {
-                          setSelectedAvailability([...selectedAvailability, "Monday - Friday, 6 AM - 6 PM"]);
-                        } else {
-                          setSelectedAvailability(selectedAvailability.filter(a => a !== "Monday - Friday, 6 AM - 6 PM"));
-                        }
-                      }}
-                    />
-                    <Label htmlFor="weekday-extended" className="flex items-center">
-                      <Sun className="h-4 w-4 mr-2 text-amber-400" /> Monday - Friday, 6 AM - 6 PM (Extended daytime coverage)
-                    </Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Checkbox 
-                      id="weekday-night" 
-                      checked={selectedAvailability.includes("Monday - Friday, 6 PM - 8 AM")}
-                      onCheckedChange={(checked) => {
-                        if (checked) {
-                          setSelectedAvailability([...selectedAvailability, "Monday - Friday, 6 PM - 8 AM"]);
-                        } else {
-                          setSelectedAvailability(selectedAvailability.filter(a => a !== "Monday - Friday, 6 PM - 8 AM"));
-                        }
-                      }}
-                    />
-                    <Label htmlFor="weekday-night" className="flex items-center">
-                      <Moon className="h-4 w-4 mr-2 text-indigo-400" /> Monday - Friday, 6 PM - 8 AM (Nighttime coverage)
-                    </Label>
-                  </div>
-                </div>
-              </div>
-
-              <div>
-                <h3 className="text-sm font-medium mb-2 flex items-center">
-                  <Calendar className="h-4 w-4 mr-2 text-primary" /> Weekend Shifts
-                </h3>
-                <div className="space-y-3">
-                  <div className="flex items-center space-x-2">
-                    <Checkbox 
-                      id="weekend-day" 
-                      checked={selectedAvailability.includes("Saturday - Sunday, 6 AM - 6 PM")}
-                      onCheckedChange={(checked) => {
-                        if (checked) {
-                          setSelectedAvailability([...selectedAvailability, "Saturday - Sunday, 6 AM - 6 PM"]);
-                        } else {
-                          setSelectedAvailability(selectedAvailability.filter(a => a !== "Saturday - Sunday, 6 AM - 6 PM"));
-                        }
-                      }}
-                    />
-                    <Label htmlFor="weekend-day" className="flex items-center">
-                      <Sun className="h-4 w-4 mr-2 text-amber-400" /> Saturday - Sunday, 6 AM - 6 PM (Daytime weekend coverage)
-                    </Label>
-                  </div>
-                </div>
-              </div>
-
-              <div>
-                <h3 className="text-sm font-medium mb-2 flex items-center">
-                  <Calendar className="h-4 w-4 mr-2 text-primary" /> Evening & Overnight Shifts
-                </h3>
-                <div className="space-y-3">
-                  <div className="flex items-center space-x-2">
-                    <Checkbox 
-                      id="evening-1" 
-                      checked={selectedAvailability.includes("Weekday Evening Shift (4 PM - 6 AM)")}
-                      onCheckedChange={(checked) => {
-                        if (checked) {
-                          setSelectedAvailability([...selectedAvailability, "Weekday Evening Shift (4 PM - 6 AM)"]);
-                        } else {
-                          setSelectedAvailability(selectedAvailability.filter(a => a !== "Weekday Evening Shift (4 PM - 6 AM)"));
-                        }
-                      }}
-                    />
-                    <Label htmlFor="evening-1" className="flex items-center">
-                      <Moon className="h-4 w-4 mr-2 text-indigo-400" /> Weekday Evening Shift (4 PM - 6 AM)
-                    </Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Checkbox 
-                      id="evening-2" 
-                      checked={selectedAvailability.includes("Weekday Evening Shift (4 PM - 8 AM)")}
-                      onCheckedChange={(checked) => {
-                        if (checked) {
-                          setSelectedAvailability([...selectedAvailability, "Weekday Evening Shift (4 PM - 8 AM)"]);
-                        } else {
-                          setSelectedAvailability(selectedAvailability.filter(a => a !== "Weekday Evening Shift (4 PM - 8 AM)"));
-                        }
-                      }}
-                    />
-                    <Label htmlFor="evening-2" className="flex items-center">
-                      <Moon className="h-4 w-4 mr-2 text-indigo-400" /> Weekday Evening Shift (4 PM - 8 AM)
-                    </Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Checkbox 
-                      id="evening-3" 
-                      checked={selectedAvailability.includes("Weekday Evening Shift (6 PM - 6 AM)")}
-                      onCheckedChange={(checked) => {
-                        if (checked) {
-                          setSelectedAvailability([...selectedAvailability, "Weekday Evening Shift (6 PM - 6 AM)"]);
-                        } else {
-                          setSelectedAvailability(selectedAvailability.filter(a => a !== "Weekday Evening Shift (6 PM - 6 AM)"));
-                        }
-                      }}
-                    />
-                    <Label htmlFor="evening-3" className="flex items-center">
-                      <Moon className="h-4 w-4 mr-2 text-indigo-400" /> Weekday Evening Shift (6 PM - 6 AM)
-                    </Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Checkbox 
-                      id="evening-4" 
-                      checked={selectedAvailability.includes("Weekday Evening Shift (6 PM - 8 AM)")}
-                      onCheckedChange={(checked) => {
-                        if (checked) {
-                          setSelectedAvailability([...selectedAvailability, "Weekday Evening Shift (6 PM - 8 AM)"]);
-                        } else {
-                          setSelectedAvailability(selectedAvailability.filter(a => a !== "Weekday Evening Shift (6 PM - 8 AM)"));
-                        }
-                      }}
-                    />
-                    <Label htmlFor="evening-4" className="flex items-center">
-                      <Moon className="h-4 w-4 mr-2 text-indigo-400" /> Weekday Evening Shift (6 PM - 8 AM)
-                    </Label>
-                  </div>
-                </div>
-              </div>
-
-              <div>
-                <h3 className="text-sm font-medium mb-2 flex items-center">
-                  <Calendar className="h-4 w-4 mr-2 text-primary" /> Other Options
-                </h3>
-                <div className="space-y-2">
-                  <div className="flex items-center space-x-2">
-                    <Checkbox 
-                      id="on-demand" 
-                      checked={selectedAvailability.includes("Flexible / On-Demand Availability")}
-                      onCheckedChange={(checked) => {
-                        if (checked) {
-                          setSelectedAvailability([...selectedAvailability, "Flexible / On-Demand Availability"]);
-                        } else {
-                          setSelectedAvailability(selectedAvailability.filter(a => a !== "Flexible / On-Demand Availability"));
-                        }
-                      }}
-                    />
-                    <Label htmlFor="on-demand" className="flex items-center">
-                      <Clock className="h-4 w-4 mr-2 text-gray-600" /> Flexible / On-Demand Availability
-                    </Label>
-                  </div>
-                  <div className="space-y-1 pt-2">
-                    <Label htmlFor="other-availability" className="flex items-center mb-1">
-                      <Clock className="h-4 w-4 mr-2 text-gray-600" /> Other (Custom shift — specify your hours):
-                    </Label>
-                    <textarea
-                      id="other-availability"
-                      value={otherAvailability}
-                      onChange={(e) => setOtherAvailability(e.target.value)}
-                      className="w-full h-20 px-3 py-2 text-sm border rounded-md"
-                      placeholder="Please specify any other availability or special arrangements..."
-                    />
-                  </div>
-                  <div className="flex items-center space-x-2 mt-3">
-                    <Checkbox 
-                      id="live-in" 
-                      checked={selectedAvailability.includes("Live-In Care (Full-time in-home support)")}
-                      onCheckedChange={(checked) => {
-                        if (checked) {
-                          setSelectedAvailability([...selectedAvailability, "Live-In Care (Full-time in-home support)"]);
-                        } else {
-                          setSelectedAvailability(selectedAvailability.filter(a => a !== "Live-In Care (Full-time in-home support)"));
-                        }
-                      }}
-                    />
-                    <Label htmlFor="live-in" className="flex items-center">
-                      <Home className="h-4 w-4 mr-2 text-green-600" /> Live-In Care (Full-time in-home support)
-                    </Label>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div className="flex justify-end space-x-2">
-            <Button variant="outline" onClick={() => setIsAvailabilityModalOpen(false)}>
-              Cancel
-            </Button>
-            <Button onClick={saveAvailability}>
-              Save Availability
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
     </motion.div>
   );
 };

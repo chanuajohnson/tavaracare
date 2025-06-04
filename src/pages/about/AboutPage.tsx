@@ -35,7 +35,7 @@ const AboutPage = () => {
               <img 
                 src="/TAVARACARElogo.JPG"
                 alt="About Tavara" 
-                className="h-16 w-auto md:h-20"
+                className="h-12 w-auto md:h-14"
               />
             </motion.div>
             <motion.p initial={{
