@@ -1,4 +1,3 @@
-
 import { motion } from "framer-motion";
 import { useEffect } from "react";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
@@ -22,9 +21,23 @@ import { CaregiverHealthCard } from "@/components/professional/CaregiverHealthCa
 const ProfessionalDashboard = () => {
   const { user } = useAuth();
   
-  // Ensure dashboard always loads at the top
+  // Ensure dashboard always loads at the top with enhanced scroll behavior
   useEffect(() => {
-    window.scrollTo(0, 0);
+    // Use a small delay to ensure DOM is fully rendered
+    const scrollToTop = () => {
+      window.scrollTo({ 
+        top: 0, 
+        left: 0, 
+        behavior: 'instant' 
+      });
+    };
+    
+    // Immediate scroll
+    scrollToTop();
+    
+    // Additional delayed scroll to ensure it takes effect
+    setTimeout(scrollToTop, 50);
+    setTimeout(scrollToTop, 150);
   }, []);
   
   const breadcrumbItems = [

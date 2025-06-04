@@ -371,11 +371,9 @@ const ProfessionalRegistrationFix = () => {
       
       toast.success("Professional profile created successfully!");
       
-      // Delay navigation slightly to ensure toast is visible, then navigate and scroll to top
+      // Navigate to dashboard without premature scroll - let dashboard handle scrolling
       setTimeout(() => {
         navigate('/dashboard/professional', { replace: true });
-        // Ensure we scroll to top after navigation
-        window.scrollTo(0, 0);
       }, 1500);
     } catch (error: any) {
       console.error("Error in handleSubmit:", error);
