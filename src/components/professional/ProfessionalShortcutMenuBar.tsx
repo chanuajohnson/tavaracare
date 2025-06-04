@@ -39,7 +39,7 @@ export function ProfessionalShortcutMenuBar() {
     try {
       setCheckingProfile(true);
       
-      // Use exact same logic as NextStepsPanel for consistency
+      // Use exact same logic as NextStepsPanel and useProfessionalProgress for consistency
       const { data: profile } = await supabase
         .from('profiles')
         .select('professional_type, years_of_experience')
@@ -69,13 +69,13 @@ export function ProfessionalShortcutMenuBar() {
         <div className="flex items-center overflow-x-auto whitespace-nowrap py-1 gap-2">
           <span className="text-sm font-medium text-muted-foreground mr-2">Quick Access:</span>
           
-          {/* Complete Profile button - prioritized when profile is not complete */}
+          {/* Complete Profile button - ALWAYS show as first button when profile is not complete */}
           {!checkingProfile && !profileComplete && (
             <Link 
               to="/registration/professional"
               onClick={() => handleTrackButtonClick('navigation_click', 'complete_professional_profile')}
             >
-              <Button variant="default" size="sm" className="flex items-center gap-1 bg-primary hover:bg-primary-600">
+              <Button variant="default" size="sm" className="flex items-center gap-1 bg-primary hover:bg-primary/90">
                 <ClipboardEdit className="h-4 w-4" />
                 <span>Complete your professional profile</span>
                 <ArrowRight className="h-3 w-3" />

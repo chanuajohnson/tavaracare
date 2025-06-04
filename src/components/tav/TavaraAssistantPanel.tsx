@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, MessageCircle, Sparkles } from 'lucide-react';
@@ -10,6 +9,8 @@ import { assistantSupabase } from './assistantSupabase';
 import { ManualNudgeService } from './ManualNudgeService';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { AssistantNudge } from './types';
+import { useProfessionalProgress } from './hooks/useProfessionalProgress';
+import { useFamilyProgress } from './hooks/useFamilyProgress';
 
 const AUTO_GREET_MESSAGES = {
   guest: "👋 Welcome to Tavara! I'm TAV, your personal care coordinator. Let me help you find the perfect care solution.",
@@ -27,6 +28,10 @@ export const TavaraAssistantPanel: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [hasAutoGreeted, setHasAutoGreeted] = useState(false);
   const [showGreeting, setShowGreeting] = useState(false);
+
+  // Get real progress data based on user role
+  const professionalProgress = useProfessionalProgress();
+  const familyProgress = useFamilyProgress();
 
   // Initialize session tracking
   useEffect(() => {
@@ -117,12 +122,33 @@ export const TavaraAssistantPanel: React.FC = () => {
     markNudgesAsRead();
   };
 
-  // Progress context - this would read from existing progress systems
-  const progressContext = {
-    completionPercentage: 65,
-    currentStep: 'Upload Documents',
-    nextAction: 'Upload your caregiver certificates to complete your profile'
+  // Create real progress context based on user role
+  const getProgressContext = () => {
+    if (state.currentRole === 'professional') {
+      const { completionPercentage, nextStep } = professionalProgress;
+      return {
+        completionPercentage: completionPercentage || 0,
+        currentStep: nextStep?.title || 'Complete your professional profile',
+        nextAction: nextStep?.description || 'Add your experience and certifications'
+      };
+    } else if (state.currentRole === 'family') {
+      const { completionPercentage, nextStep } = familyProgress;
+      return {
+        completionPercentage: completionPercentage || 0,
+        currentStep: nextStep?.title || 'Complete your profile',
+        nextAction: nextStep?.description || 'Add your care needs information'
+      };
+    }
+    
+    // Default fallback
+    return {
+      completionPercentage: 0,
+      currentStep: 'Get Started',
+      nextAction: 'Complete your registration'
+    };
   };
+
+  const progressContext = getProgressContext();
 
   // Floating button with enhanced magic effects
   if (!state.isOpen && !state.isMinimized) {
@@ -315,7 +341,7 @@ export const TavaraAssistantPanel: React.FC = () => {
                 </div>
               )}
 
-              {/* Role-based content with compact mobile support */}
+              {/* Role-based content with real progress context */}
               <RoleBasedContent 
                 role={state.currentRole} 
                 progressContext={progressContext}

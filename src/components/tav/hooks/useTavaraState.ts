@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { TavaraState } from '../types';
 import { useAuth } from '@/components/providers/AuthProvider';
+import { supabase } from '@/lib/supabase';
 
 export const useTavaraState = () => {
   const { user } = useAuth();
@@ -13,18 +14,35 @@ export const useTavaraState = () => {
   });
 
   useEffect(() => {
-    if (user) {
-      // Determine user role from profiles table or default to family
-      setState(prev => ({
-        ...prev,
-        currentRole: 'family' // This will be enhanced to read from profiles
-      }));
-    } else {
-      setState(prev => ({
-        ...prev,
-        currentRole: 'guest'
-      }));
-    }
+    const fetchUserRole = async () => {
+      if (user) {
+        try {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('role')
+            .eq('id', user.id)
+            .maybeSingle();
+          
+          setState(prev => ({
+            ...prev,
+            currentRole: profile?.role || 'family'
+          }));
+        } catch (error) {
+          console.error('Error fetching user role:', error);
+          setState(prev => ({
+            ...prev,
+            currentRole: 'family'
+          }));
+        }
+      } else {
+        setState(prev => ({
+          ...prev,
+          currentRole: 'guest'
+        }));
+      }
+    };
+
+    fetchUserRole();
   }, [user]);
 
   const openPanel = () => {
