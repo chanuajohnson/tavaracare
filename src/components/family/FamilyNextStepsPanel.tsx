@@ -220,10 +220,10 @@ export const FamilyNextStepsPanel = () => {
       return;
     }
     if (step.id === 5) {
-      // Navigate to medication management tab in care plan
+      // Navigate to medication management tab in care plan - FIXED URL WITH /plan/ SEGMENT
       if (carePlans.length > 0) {
         console.log('Navigating to medications tab for care plan:', carePlans[0].id);
-        navigate(`/family/care-management/${carePlans[0].id}?tab=medications`);
+        navigate(`/family/care-management/plan/${carePlans[0].id}?tab=medications`);
       } else {
         console.log('No care plans found, navigating to create care plan');
         navigate('/family/care-management/create');
@@ -231,10 +231,10 @@ export const FamilyNextStepsPanel = () => {
       return;
     }
     if (step.id === 6) {
-      // Navigate to meal planning tab in care plan
+      // Navigate to meal planning tab in care plan - FIXED URL WITH /plan/ SEGMENT
       if (carePlans.length > 0) {
         console.log('Navigating to meals tab for care plan:', carePlans[0].id);
-        navigate(`/family/care-management/${carePlans[0].id}?tab=meals`);
+        navigate(`/family/care-management/plan/${carePlans[0].id}?tab=meals`);
       } else {
         console.log('No care plans found, navigating to create care plan');
         navigate('/family/care-management/create');
