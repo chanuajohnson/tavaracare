@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -302,11 +303,11 @@ export function AdminUserJourneyDashboard() {
         </div>
       )}
 
-      {/* Bulk action panel */}
+      {/* Bulk action panel - Pass AdminUserWithProgress array */}
       {selectedUsers.length > 0 && (
         <BulkActionPanel
           selectedUsers={selectedUsers}
-          users={users}
+          users={users} // This is AdminUserWithProgress[]
           onClearSelection={() => setSelectedUsers([])}
           onRefresh={fetchUsersWithProgress}
         />
