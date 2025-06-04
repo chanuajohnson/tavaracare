@@ -12,7 +12,7 @@ interface UserWithProgress {
   id: string;
   email: string;
   full_name: string;
-  role: 'family' | 'professional' | 'community';
+  role: 'family' | 'professional' | 'community' | 'admin';
   email_verified: boolean;
   last_login_at: string;
   created_at: string;
