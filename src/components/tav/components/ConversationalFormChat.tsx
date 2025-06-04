@@ -1,16 +1,21 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Send, Brain, FormInput, HelpCircle } from 'lucide-react';
+import { Send, Brain, FormInput, HelpCircle, Loader2 } from 'lucide-react';
 import { useConversationalForm } from '../hooks/useConversationalForm';
+import { useTAVConversation } from '../hooks/useTAVConversation';
+import { useLocation } from 'react-router-dom';
+import { v4 as uuidv4 } from 'uuid';
 
 interface ConversationalFormChatProps {
   role: 'family' | 'professional' | 'community' | null;
 }
 
 export const ConversationalFormChat: React.FC<ConversationalFormChatProps> = ({ role }) => {
+  const location = useLocation();
   const [message, setMessage] = useState('');
+  const [sessionId] = useState(() => uuidv4());
+  
   const {
     conversationState,
     currentForm,
@@ -18,28 +23,48 @@ export const ConversationalFormChat: React.FC<ConversationalFormChatProps> = ({ 
     startConversation,
     stopConversation,
     handleUserResponse,
-    addMessage,
     getSuggestedResponses,
     generateFormGuidance
   } = useConversationalForm();
 
-  const handleSendMessage = () => {
+  // TAV AI conversation context
+  const tavContext = {
+    currentPage: location.pathname,
+    currentForm: currentForm?.formId,
+    formFields: currentForm?.fields.reduce((acc, field) => {
+      acc[field.name] = field.label;
+      return acc;
+    }, {} as Record<string, string>),
+    userRole: role || undefined,
+    sessionId
+  };
+
+  const { messages: aiMessages, isTyping, sendMessage: sendAIMessage } = useTAVConversation(tavContext);
+
+  // Initialize with welcome message based on context
+  useEffect(() => {
+    if (aiMessages.length === 0) {
+      // Send initial context message to AI
+      if (isFormPage && currentForm) {
+        sendAIMessage(`I'm on the ${currentForm.formTitle} page. Can you help me understand what I need to do?`);
+      }
+    }
+  }, [isFormPage, currentForm, aiMessages.length]);
+
+  const handleSendMessage = async () => {
     if (!message.trim()) return;
 
+    const userMessage = message.trim();
+    setMessage('');
+
+    // If in active form filling mode, use form logic
     if (conversationState.isActive && conversationState.mode === 'filling') {
-      // In active filling mode, treat as form response
-      handleUserResponse(message);
-    } else {
-      // Generate guidance or general help
-      addMessage(message, 'user');
-      
-      setTimeout(() => {
-        const guidance = generateFormGuidance(message);
-        addMessage(guidance, 'tav');
-      }, 1000);
+      handleUserResponse(userMessage);
+      return;
     }
 
-    setMessage('');
+    // Otherwise, use AI conversation
+    await sendAIMessage(userMessage);
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -59,6 +84,17 @@ export const ConversationalFormChat: React.FC<ConversationalFormChatProps> = ({ 
     }
   };
 
+  // Combine form conversation history with AI messages
+  const allMessages = [
+    ...conversationState.conversationHistory.map(msg => ({
+      id: msg.id,
+      content: msg.content,
+      isUser: msg.type === 'user',
+      timestamp: msg.timestamp
+    })),
+    ...aiMessages
+  ].sort((a, b) => a.timestamp - b.timestamp);
+
   const suggestedResponses = getSuggestedResponses();
 
   return (
@@ -76,16 +112,16 @@ export const ConversationalFormChat: React.FC<ConversationalFormChatProps> = ({ 
       )}
 
       {/* Conversation History */}
-      {conversationState.conversationHistory.length > 0 && (
+      {allMessages.length > 0 && (
         <div className="max-h-40 overflow-y-auto space-y-2 border-t pt-2">
-          {conversationState.conversationHistory.map((msg) => (
+          {allMessages.map((msg) => (
             <div
               key={msg.id}
-              className={`flex ${msg.type === 'user' ? 'justify-end' : 'justify-start'}`}
+              className={`flex ${msg.isUser ? 'justify-end' : 'justify-start'}`}
             >
               <div
                 className={`max-w-[85%] p-2 rounded-lg text-xs ${
-                  msg.type === 'user'
+                  msg.isUser
                     ? 'bg-primary text-white'
                     : 'bg-gray-100 text-gray-800'
                 }`}
@@ -94,6 +130,16 @@ export const ConversationalFormChat: React.FC<ConversationalFormChatProps> = ({ 
               </div>
             </div>
           ))}
+          
+          {/* Typing indicator */}
+          {isTyping && (
+            <div className="flex justify-start">
+              <div className="bg-gray-100 text-gray-800 p-2 rounded-lg text-xs flex items-center gap-2">
+                <Loader2 className="h-3 w-3 animate-spin" />
+                TAV is typing...
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -153,20 +199,25 @@ export const ConversationalFormChat: React.FC<ConversationalFormChatProps> = ({ 
           value={message}
           onChange={(e) => setMessage(e.target.value)}
           onKeyPress={handleKeyPress}
+          disabled={isTyping}
           className="text-sm"
         />
         <Button
           size="sm"
           onClick={handleSendMessage}
-          disabled={!message.trim()}
+          disabled={!message.trim() || isTyping}
           className="px-3"
         >
-          <Send className="h-3 w-3" />
+          {isTyping ? (
+            <Loader2 className="h-3 w-3 animate-spin" />
+          ) : (
+            <Send className="h-3 w-3" />
+          )}
         </Button>
       </div>
 
       {/* Form-Specific Quick Actions */}
-      {isFormPage && !conversationState.isActive && (
+      {isFormPage && !conversationState.isActive && allMessages.length === 0 && (
         <div className="flex flex-wrap gap-1">
           <Button
             variant="outline"

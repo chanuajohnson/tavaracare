@@ -64,8 +64,8 @@ export const TavaraAssistantPanel: React.FC = () => {
         // Auto open panel after greeting animation
         setTimeout(() => {
           openPanel();
-        }, 1000); // Reduced delay for faster appearance
-      }, 1000); // Reduced delay for faster appearance
+        }, 1000);
+      }, 1000);
     }
   }, [state.currentRole, hasAutoGreeted, state.isOpen, openPanel]);
 
@@ -83,7 +83,7 @@ export const TavaraAssistantPanel: React.FC = () => {
             openPanel();
           }, 1500);
         }
-      }, 3000); // Reduced to 3 seconds for more responsive greeting
+      }, 3000);
 
       return () => clearTimeout(idleTimer);
     }
