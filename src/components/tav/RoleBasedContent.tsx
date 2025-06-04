@@ -1,8 +1,10 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Heart, UserCog, Users, Globe, Shield } from 'lucide-react';
+import { Heart, UserCog, Users, Globe, Shield, ArrowRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useReturningUser } from './hooks/useReturningUser';
+import { motion } from 'framer-motion';
 
 interface RoleBasedContentProps {
   role: 'guest' | 'family' | 'professional' | 'community' | 'admin' | null;
@@ -18,6 +20,23 @@ export const RoleBasedContent: React.FC<RoleBasedContentProps> = ({
   progressContext 
 }) => {
   const navigate = useNavigate();
+  const { isReturningUser, lastRole, hasVisitedBefore } = useReturningUser();
+
+  const getRoleDisplayName = (roleType: string) => {
+    switch (roleType) {
+      case 'family': return 'family member';
+      case 'professional': return 'care professional';
+      case 'community': return 'community supporter';
+      default: return 'user';
+    }
+  };
+
+  const getWelcomeBackMessage = () => {
+    if (lastRole) {
+      return `Welcome back! Ready to continue as a ${getRoleDisplayName(lastRole)}?`;
+    }
+    return "Welcome back! Ready to log in to access your dashboard?";
+  };
 
   if (role === 'guest') {
     return (
@@ -31,9 +50,33 @@ export const RoleBasedContent: React.FC<RoleBasedContentProps> = ({
           I'm TAV, your virtual care coordinator. I'm here to help you navigate 
           your caregiving journey with warmth and expertise.
         </p>
+
+        {/* Welcome Back Option for Returning Users */}
+        {isReturningUser && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+            className="mb-4"
+          >
+            <Button 
+              variant="default" 
+              size="sm" 
+              className="w-full justify-between bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary text-white shadow-md"
+              onClick={() => navigate('/auth')}
+            >
+              <span className="text-sm font-medium">
+                {getWelcomeBackMessage()}
+              </span>
+              <ArrowRight className="h-4 w-4" />
+            </Button>
+          </motion.div>
+        )}
         
         <div className="space-y-3">
-          <p className="text-sm font-medium">How can I help you today?</p>
+          <p className="text-sm font-medium">
+            {isReturningUser ? "Or start fresh:" : "How can I help you today?"}
+          </p>
           
           <Button 
             variant="outline" 
