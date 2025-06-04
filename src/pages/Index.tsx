@@ -88,7 +88,7 @@ const Index = () => {
             <img 
               src="/TAVARACARElogo.JPG"
               alt="Tavara" 
-              className="h-16 w-auto md:h-24"
+              className="h-12 w-auto md:h-16"
             />
           </div>
           <p className="text-lg md:text-xl text-gray-600 max-w-2xl mx-auto">

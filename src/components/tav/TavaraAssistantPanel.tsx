@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, MessageCircle, Sparkles } from 'lucide-react';
@@ -161,11 +162,19 @@ export const TavaraAssistantPanel: React.FC = () => {
                 <Sparkles className="h-2 w-2 text-primary/60 animate-pulse" style={{ animationDelay: '0.5s' }} />
               </div>
               
-              <p className="font-semibold text-primary mb-1 leading-tight text-xs">
-                {AUTO_GREET_MESSAGES[state.currentRole || 'guest'].split('!')[0]}!
-              </p>
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-xs">💙</span>
+                <p className="font-semibold text-primary text-xs leading-tight">
+                  Welcome to
+                </p>
+                <img 
+                  src="/TAVARACARElogo.JPG"
+                  alt="Tavara" 
+                  className="h-3 w-auto"
+                />
+              </div>
               <p className={`text-muted-foreground leading-relaxed ${isMobile ? 'text-xs' : 'text-xs'}`}>
-                {AUTO_GREET_MESSAGES[state.currentRole || 'guest'].split('!').slice(1).join('!').trim()}
+                I'm TAV, your personal care coordinator. Let me help you find the perfect care solution.
               </p>
               
               {/* Enhanced speech bubble tail */}

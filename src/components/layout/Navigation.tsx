@@ -112,7 +112,7 @@ export function Navigation() {
             <img 
               src="/TAVARACARElogo.JPG"
               alt="Tavara" 
-              className="h-8 w-auto sm:h-10"
+              className="h-6 w-auto sm:h-7"
             />
           </Link>
           <span className="text-xs text-gray-600 italic sm:ml-2">It takes a village to care</span>
