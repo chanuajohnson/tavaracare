@@ -10,30 +10,7 @@ import { User, Mail, MapPin, Calendar, CheckCircle2, Clock, Send, ArrowRight, Ci
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import { useUserJourneyProgress } from "@/hooks/useUserJourneyProgress";
-
-interface UserWithProgress {
-  id: string;
-  email: string;
-  full_name: string;
-  role: 'family' | 'professional' | 'community' | 'admin';
-  email_verified: boolean;
-  last_login_at: string;
-  created_at: string;
-  avatar_url?: string;
-  journey_progress?: {
-    current_step: number;
-    total_steps: number;
-    completion_percentage: number;
-    last_activity_at: string;
-  };
-  onboarding_progress?: any;
-  location?: string;
-  phone_number?: string;
-  professional_type?: string;
-  years_of_experience?: string;
-  care_types?: string[];
-  specialized_care?: string[];
-}
+import { UserWithProgress } from "@/types/adminTypes";
 
 interface UserDetailModalProps {
   user: UserWithProgress | null;

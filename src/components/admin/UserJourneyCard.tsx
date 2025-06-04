@@ -7,25 +7,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Calendar, Mail, MapPin, User } from "lucide-react";
 import { MiniJourneyProgress } from "./MiniJourneyProgress";
-
-interface UserWithProgress {
-  id: string;
-  email: string;
-  full_name: string;
-  role: 'family' | 'professional' | 'community' | 'admin';
-  email_verified: boolean;
-  last_login_at: string;
-  created_at: string;
-  avatar_url?: string;
-  journey_progress?: {
-    current_step: number;
-    total_steps: number;
-    completion_percentage: number;
-    last_activity_at: string;
-  };
-  onboarding_progress?: any;
-  location?: string;
-}
+import { UserWithProgress } from "@/types/adminTypes";
 
 interface UserJourneyCardProps {
   user: UserWithProgress;
