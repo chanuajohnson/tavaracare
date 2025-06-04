@@ -1,19 +1,22 @@
 
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { Resend } from "npm:resend@2.0.0";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
 };
 
 interface NudgeEmailRequest {
-  userIds: string[];
-  message: string;
-  templateId?: string;
+  userId: string;
+  userEmail: string;
+  userName: string;
+  userRole: string;
+  currentStep: number;
+  stepType: string;
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -22,107 +25,96 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
-    );
+    const { userId, userEmail, userName, userRole, currentStep, stepType }: NudgeEmailRequest = await req.json();
 
-    const { userIds, message, templateId }: NudgeEmailRequest = await req.json();
+    // Get step-specific message
+    const getStepMessage = (role: string, step: number, type: string) => {
+      const messages = {
+        family: {
+          1: "Welcome to Tavara! Let's complete your family profile to connect you with the right caregivers.",
+          2: "Help us understand your loved one's story so we can find the perfect caregiver match.",
+          3: "Complete your care needs assessment to get personalized caregiver recommendations.",
+          4: "Set your caregiver preferences to ensure the best possible matches.",
+          5: "Let us know your preferred care schedule and budget to finalize your profile.",
+          6: "Almost there! Review your profile to start connecting with caregivers.",
+          7: "Your profile is complete! Start browsing available caregivers."
+        },
+        professional: {
+          1: "Welcome to Tavara! Complete your professional profile to start connecting with families.",
+          2: "Add your professional experience and specialties to attract the right families.",
+          3: "Upload your certifications to build trust with families and stand out.",
+          4: "Complete your background verification to unlock more opportunities.",
+          5: "Your profile is almost ready! Complete the final steps to start receiving job matches."
+        },
+        community: {
+          1: "Welcome to Tavara! Join our community of care supporters and volunteers.",
+          2: "Tell us about your interests so we can connect you with the right volunteer opportunities.",
+          3: "You're all set! Start exploring ways to support families in your community."
+        }
+      };
 
-    // Get user details
-    const { data: users, error: usersError } = await supabase
-      .from('profiles')
-      .select('id, full_name, role')
-      .in('id', userIds);
+      if (type === 'welcome') {
+        return messages[role as keyof typeof messages][1];
+      }
 
-    if (usersError) throw usersError;
+      return messages[role as keyof typeof messages][step] || "Continue your journey with Tavara!";
+    };
 
-    // Get user emails from auth.users
-    const { data: authUsers, error: authError } = await supabase.auth.admin.listUsers();
-    if (authError) throw authError;
+    const message = getStepMessage(userRole, currentStep, stepType);
+    const subject = stepType === 'welcome' ? 'Welcome to Tavara!' : `Next Step: Continue Your Tavara Journey`;
 
-    const emailPromises = users?.map(async (user) => {
-      const authUser = authUsers.users.find(au => au.id === user.id);
-      if (!authUser?.email) return null;
-
-      try {
-        const emailResponse = await resend.emails.send({
-          from: "Tavara Care <support@tavara.care>",
-          to: [authUser.email],
-          subject: `Your Care Journey Progress - Tavara`,
-          html: `
-            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-              <h2 style="color: #2563eb;">Hello ${user.full_name || 'there'}!</h2>
-              
-              <p style="font-size: 16px; line-height: 1.5; color: #374151;">
-                ${message}
-              </p>
-              
-              <div style="margin: 30px 0; padding: 20px; background-color: #f3f4f6; border-radius: 8px;">
-                <h3 style="color: #1f2937; margin-top: 0;">Continue Your Journey</h3>
-                <p style="color: #6b7280; margin-bottom: 20px;">
-                  Complete your ${user.role} profile to unlock all Tavara features.
-                </p>
-                <a href="${Deno.env.get("SITE_URL")}/dashboard/${user.role}" 
-                   style="background-color: #2563eb; color: white; padding: 12px 24px; 
-                          text-decoration: none; border-radius: 6px; display: inline-block;">
-                  Continue Setup
-                </a>
-              </div>
-              
-              <p style="font-size: 14px; color: #6b7280;">
-                Need help? Reply to this email or contact our support team.
-              </p>
-              
-              <hr style="margin: 30px 0; border: none; border-top: 1px solid #e5e7eb;">
-              
-              <p style="font-size: 12px; color: #9ca3af; text-align: center;">
-                Tavara Care - It takes a village to care<br>
-                <a href="${Deno.env.get("SITE_URL")}" style="color: #2563eb;">Visit our website</a>
+    const emailResponse = await resend.emails.send({
+      from: "Tavara Care <support@tavara.care>",
+      to: [userEmail],
+      subject: subject,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center;">
+            <h1 style="color: white; margin: 0; font-size: 28px;">Tavara Care</h1>
+            <p style="color: white; margin: 10px 0 0 0; opacity: 0.9;">Your Care Coordination Hub</p>
+          </div>
+          
+          <div style="padding: 40px 30px;">
+            <h2 style="color: #333; margin-bottom: 20px;">Hello ${userName}!</h2>
+            
+            <p style="color: #666; line-height: 1.6; margin-bottom: 25px;">
+              ${message}
+            </p>
+            
+            <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 25px 0;">
+              <p style="margin: 0; color: #666;">
+                <strong>Current Step:</strong> ${currentStep} | <strong>Role:</strong> ${userRole.charAt(0).toUpperCase() + userRole.slice(1)}
               </p>
             </div>
-          `,
-        });
-
-        // Update communication log
-        await supabase
-          .from('admin_communications')
-          .update({ delivery_status: 'sent' })
-          .eq('target_user_id', user.id)
-          .eq('delivery_status', 'pending');
-
-        console.log(`Email sent to ${authUser.email}:`, emailResponse);
-        return emailResponse;
-      } catch (error) {
-        console.error(`Failed to send email to ${authUser.email}:`, error);
-        
-        // Update communication log with failure
-        await supabase
-          .from('admin_communications')
-          .update({ delivery_status: 'failed' })
-          .eq('target_user_id', user.id)
-          .eq('delivery_status', 'pending');
+            
+            <div style="text-align: center; margin: 30px 0;">
+              <a href="https://tavara.care/dashboard/${userRole}" 
+                 style="background: #667eea; color: white; padding: 15px 30px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: bold;">
+                Continue Your Journey
+              </a>
+            </div>
+            
+            <p style="color: #999; font-size: 14px; margin-top: 30px;">
+              Need help? Reply to this email or contact our support team.
+            </p>
+          </div>
           
-        return null;
-      }
-    }) || [];
+          <div style="background: #f8f9fa; padding: 20px; text-align: center; color: #666; font-size: 12px;">
+            <p style="margin: 0;">© 2024 Tavara Care. All rights reserved.</p>
+          </div>
+        </div>
+      `,
+    });
 
-    const results = await Promise.all(emailPromises);
-    const successful = results.filter(r => r !== null).length;
+    console.log("Nudge email sent successfully:", emailResponse);
 
-    console.log(`Nudge emails: ${successful}/${userIds.length} sent successfully`);
-
-    return new Response(
-      JSON.stringify({ 
-        success: true, 
-        sent: successful, 
-        total: userIds.length 
-      }),
-      {
-        status: 200,
-        headers: { "Content-Type": "application/json", ...corsHeaders },
-      }
-    );
+    return new Response(JSON.stringify(emailResponse), {
+      status: 200,
+      headers: {
+        "Content-Type": "application/json",
+        ...corsHeaders,
+      },
+    });
   } catch (error: any) {
     console.error("Error in send-nudge-email function:", error);
     return new Response(

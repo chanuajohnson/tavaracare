@@ -5,31 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Users, Search, Filter, Send, BarChart3 } from "lucide-react";
+import { Users, Search, Filter, Send, BarChart3, Eye } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { UserJourneyCard } from "./UserJourneyCard";
 import { NudgeSystem } from "./NudgeSystem";
 import { BulkActionPanel } from "./BulkActionPanel";
+import { UserDetailModal } from "./UserDetailModal";
 
-interface AdminUserWithProgress {
-  id: string;
-  email: string;
-  full_name: string;
-  role: 'family' | 'professional' | 'community' | 'admin';
-  email_verified: boolean;
-  last_login_at: string;
-  created_at: string;
-  avatar_url?: string;
-  journey_progress?: {
-    current_step: number;
-    total_steps: number;
-    completion_percentage: number;
-    last_activity_at: string;
-  };
-  onboarding_progress?: any;
-}
-
-// Type for non-admin users only
 interface UserWithProgress {
   id: string;
   email: string;
@@ -46,6 +28,12 @@ interface UserWithProgress {
     last_activity_at: string;
   };
   onboarding_progress?: any;
+  location?: string;
+  phone_number?: string;
+  professional_type?: string;
+  years_of_experience?: string;
+  care_types?: string[];
+  specialized_care?: string[];
 }
 
 interface RoleStats {
@@ -63,6 +51,7 @@ export function AdminUserJourneyDashboard() {
   const [filterStage, setFilterStage] = useState<'all' | string>('all');
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
   const [showNudgeSystem, setShowNudgeSystem] = useState(false);
+  const [selectedUserForModal, setSelectedUserForModal] = useState<UserWithProgress | null>(null);
   const [roleStats, setRoleStats] = useState<Record<string, RoleStats>>({});
 
   useEffect(() => {
@@ -72,42 +61,61 @@ export function AdminUserJourneyDashboard() {
   const fetchUsersWithProgress = async () => {
     setLoading(true);
     try {
-      const { data: usersData, error: usersError } = await supabase
+      // First, run the sync function to ensure data is up to date
+      await supabase.rpc('sync_user_journey_progress');
+
+      // Fetch profiles with journey progress
+      const { data: profilesData, error: profilesError } = await supabase
         .from('profiles')
         .select(`
           id,
-          email:id,
           full_name,
           role,
           email_verified,
           last_login_at,
           created_at,
           avatar_url,
-          onboarding_progress
+          onboarding_progress,
+          location,
+          phone_number,
+          professional_type,
+          years_of_experience,
+          care_types,
+          specialized_care
         `)
+        .neq('role', 'admin')
         .order('created_at', { ascending: false });
 
-      if (usersError) throw usersError;
+      if (profilesError) throw profilesError;
 
-      // Fetch journey progress for each user
+      // Fetch journey progress
       const { data: progressData, error: progressError } = await supabase
         .from('user_journey_progress')
         .select('*');
 
       if (progressError) throw progressError;
 
-      // Combine user data with progress and filter out admin users
-      const usersWithProgress: UserWithProgress[] = (usersData || [])
-        .filter(user => user.role !== 'admin') // Exclude admin users
-        .map(user => {
-          const progress = progressData?.find(p => p.user_id === user.id);
-          return {
-            ...user,
-            email: user.id, // Temporary until we get email from auth
-            journey_progress: progress || undefined,
-            role: user.role as 'family' | 'professional' | 'community' // Type assertion since we filtered out admin
-          };
-        });
+      // Fetch emails from auth.users via edge function or use a view
+      const { data: authData, error: authError } = await supabase
+        .from('profiles')
+        .select('id')
+        .neq('role', 'admin');
+
+      // For now, we'll use user ID as email placeholder until we can get actual emails
+      const usersWithProgress: UserWithProgress[] = (profilesData || []).map(profile => {
+        const progress = progressData?.find(p => p.user_id === profile.id);
+        return {
+          ...profile,
+          email: `user-${profile.id.slice(0, 8)}@placeholder.com`, // Placeholder until we get real emails
+          journey_progress: progress || {
+            current_step: 1,
+            total_steps: profile.role === 'family' ? 7 : profile.role === 'professional' ? 5 : 3,
+            completion_percentage: 0,
+            last_activity_at: profile.created_at
+          },
+          role: profile.role as 'family' | 'professional' | 'community'
+        };
+      });
 
       setUsers(usersWithProgress);
       calculateRoleStats(usersWithProgress);
@@ -152,18 +160,13 @@ export function AdminUserJourneyDashboard() {
     const matchesRole = selectedRole === 'all' || user.role === selectedRole;
     const matchesSearch = !searchTerm || 
       user.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.email?.toLowerCase().includes(searchTerm.toLowerCase());
+      user.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.id.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStage = filterStage === 'all' || 
       (user.journey_progress?.current_step.toString() === filterStage);
     
     return matchesRole && matchesSearch && matchesStage;
   });
-
-  const groupedUsers = {
-    family: filteredUsers.filter(u => u.role === 'family'),
-    professional: filteredUsers.filter(u => u.role === 'professional'),
-    community: filteredUsers.filter(u => u.role === 'community')
-  };
 
   const handleBulkNudge = () => {
     setShowNudgeSystem(true);
@@ -171,20 +174,18 @@ export function AdminUserJourneyDashboard() {
 
   const resendVerificationEmail = async (userId: string) => {
     try {
-      // Call edge function to resend verification
       const { error } = await supabase.functions.invoke('resend-verification', {
         body: { userId }
       });
       
       if (error) throw error;
       
-      // Update the verification sent timestamp
       await supabase
         .from('profiles')
         .update({ email_verification_sent_at: new Date().toISOString() })
         .eq('id', userId);
         
-      fetchUsersWithProgress(); // Refresh data
+      fetchUsersWithProgress();
     } catch (error) {
       console.error('Error resending verification:', error);
     }
@@ -207,10 +208,10 @@ export function AdminUserJourneyDashboard() {
           <div className="flex items-center gap-2">
             <Search className="h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Search users..."
+              placeholder="Search users, emails, or IDs..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-48"
+              className="w-60"
             />
           </div>
           
@@ -258,69 +259,44 @@ export function AdminUserJourneyDashboard() {
         ))}
       </div>
 
-      {/* Main role cards */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {Object.entries(groupedUsers).map(([role, roleUsers]) => {
-          if (selectedRole !== 'all' && selectedRole !== role) return null;
-          
-          const stats = roleStats[role];
-          
-          return (
-            <Card key={role} className="h-fit">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 capitalize">
-                  <Users className="h-5 w-5" />
-                  {role} Users
-                  <Badge variant="outline">{roleUsers.length}</Badge>
-                </CardTitle>
-                <CardDescription>
-                  {stats && (
-                    <div className="grid grid-cols-3 gap-4 mt-2">
-                      <div className="text-center">
-                        <div className="text-sm font-medium text-green-600">{stats.verified}</div>
-                        <div className="text-xs text-muted-foreground">Verified</div>
-                      </div>
-                      <div className="text-center">
-                        <div className="text-sm font-medium text-blue-600">{stats.active}</div>
-                        <div className="text-xs text-muted-foreground">Active</div>
-                      </div>
-                      <div className="text-center">
-                        <div className="text-sm font-medium text-orange-600">{stats.stalled}</div>
-                        <div className="text-xs text-muted-foreground">Stalled</div>
-                      </div>
-                    </div>
-                  )}
-                </CardDescription>
-              </CardHeader>
-              
-              <CardContent className="space-y-4 max-h-96 overflow-y-auto">
-                {roleUsers.length > 0 ? (
-                  roleUsers.map(user => (
-                    <UserJourneyCard
-                      key={user.id}
-                      user={user}
-                      selected={selectedUsers.includes(user.id)}
-                      onSelect={(selected) => {
-                        if (selected) {
-                          setSelectedUsers(prev => [...prev, user.id]);
-                        } else {
-                          setSelectedUsers(prev => prev.filter(id => id !== user.id));
-                        }
-                      }}
-                      onResendVerification={() => resendVerificationEmail(user.id)}
-                      onRefresh={fetchUsersWithProgress}
-                    />
-                  ))
-                ) : (
-                  <div className="text-center text-muted-foreground py-8">
-                    No {role} users found
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          );
-        })}
+      {/* Users Grid - Always in grid format */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        {filteredUsers.map(user => (
+          <div key={user.id} className="relative">
+            <UserJourneyCard
+              user={user}
+              selected={selectedUsers.includes(user.id)}
+              onSelect={(selected) => {
+                if (selected) {
+                  setSelectedUsers(prev => [...prev, user.id]);
+                } else {
+                  setSelectedUsers(prev => prev.filter(id => id !== user.id));
+                }
+              }}
+              onResendVerification={() => resendVerificationEmail(user.id)}
+              onRefresh={fetchUsersWithProgress}
+            />
+            <Button
+              onClick={() => setSelectedUserForModal(user)}
+              size="sm"
+              variant="outline"
+              className="absolute top-2 right-2 h-8 w-8 p-0"
+            >
+              <Eye className="h-4 w-4" />
+            </Button>
+          </div>
+        ))}
       </div>
+
+      {filteredUsers.length === 0 && (
+        <div className="text-center py-12">
+          <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+          <h3 className="text-xl font-medium text-gray-600">No Users Found</h3>
+          <p className="text-gray-500 mt-2">
+            No users match your current filters. Try adjusting your search criteria.
+          </p>
+        </div>
+      )}
 
       {/* Bulk action panel */}
       {selectedUsers.length > 0 && (
@@ -342,6 +318,14 @@ export function AdminUserJourneyDashboard() {
           onRefresh={fetchUsersWithProgress}
         />
       )}
+
+      {/* User Detail Modal */}
+      <UserDetailModal
+        user={selectedUserForModal}
+        open={!!selectedUserForModal}
+        onOpenChange={(open) => !open && setSelectedUserForModal(null)}
+        onRefresh={fetchUsersWithProgress}
+      />
     </div>
   );
 }
