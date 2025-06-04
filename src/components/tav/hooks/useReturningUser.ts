@@ -19,11 +19,11 @@ export const useReturningUser = () => {
   useEffect(() => {
     // Check for various indicators of a returning user
     const checkReturningUser = () => {
-      const hasVisitedFamily = localStorage.getItem('tavara_visited_family');
-      const hasVisitedProfessional = localStorage.getItem('tavara_visited_professional');
-      const hasVisitedCommunity = localStorage.getItem('tavara_visited_community');
+      const hasVisitedFamily = localStorage.getItem('tavara_visited_family') === 'true';
+      const hasVisitedProfessional = localStorage.getItem('tavara_visited_professional') === 'true';
+      const hasVisitedCommunity = localStorage.getItem('tavara_visited_community') === 'true';
       const registeringAs = localStorage.getItem('registeringAs');
-      const hasAuthTokens = localStorage.getItem('supabase.auth.token') || 
+      const hasAuthTokens = localStorage.getItem('supabase.auth.token') !== null || 
                            Object.keys(localStorage).some(key => key.includes('sb-'));
       
       // Determine last role preference
@@ -38,7 +38,7 @@ export const useReturningUser = () => {
         lastRole = 'community';
       }
 
-      const hasVisitedBefore = !!(hasVisitedFamily || hasVisitedProfessional || hasVisitedCommunity);
+      const hasVisitedBefore = hasVisitedFamily || hasVisitedProfessional || hasVisitedCommunity;
       const isReturningUser = !user && (hasVisitedBefore || hasAuthTokens || !!registeringAs);
 
       setReturningUserState({
