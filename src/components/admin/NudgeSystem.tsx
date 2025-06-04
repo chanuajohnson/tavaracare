@@ -24,7 +24,7 @@ interface UserWithProgress {
   id: string;
   email: string;
   full_name: string;
-  role: 'family' | 'professional' | 'community';
+  role: 'family' | 'professional' | 'community' | 'admin';
   journey_progress?: {
     current_step: number;
     total_steps: number;
@@ -80,7 +80,18 @@ export function NudgeSystem({
         .order('stage', { ascending: true });
 
       if (error) throw error;
-      setTemplates(data || []);
+      
+      // Transform the data to match our interface
+      const transformedTemplates: NudgeTemplate[] = (data || []).map(template => ({
+        id: template.id,
+        name: template.name,
+        stage: template.stage,
+        role: template.role,
+        message_template: template.message_template,
+        message_type: template.message_type as 'email' | 'whatsapp' | 'both'
+      }));
+      
+      setTemplates(transformedTemplates);
     } catch (error) {
       console.error('Error fetching nudge templates:', error);
     }
@@ -119,11 +130,15 @@ export function NudgeSystem({
 
     setSending(true);
     try {
+      // Get current user for admin_id
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('No authenticated user');
+
       // Log the communication for each user
-      const communicationPromises = targetUsers.map(user => 
+      const communicationPromises = targetUsers.map(targetUser => 
         supabase.from('admin_communications').insert({
-          admin_id: (await supabase.auth.getUser()).data.user?.id,
-          target_user_id: user.id,
+          admin_id: user.id,
+          target_user_id: targetUser.id,
           message_type: selectedTemplate ? 'email' : 'custom',
           template_id: selectedTemplate || null,
           custom_message: customMessage,

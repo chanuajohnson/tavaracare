@@ -15,10 +15,11 @@ interface UserWithProgress {
   id: string;
   email: string;
   full_name: string;
-  role: 'family' | 'professional' | 'community';
+  role: 'family' | 'professional' | 'community' | 'admin';
   email_verified: boolean;
   last_login_at: string;
   created_at: string;
+  avatar_url?: string;
   journey_progress?: {
     current_step: number;
     total_steps: number;
@@ -62,6 +63,7 @@ export function AdminUserJourneyDashboard() {
           email_verified,
           last_login_at,
           created_at,
+          avatar_url,
           onboarding_progress
         `)
         .order('created_at', { ascending: false });
@@ -125,6 +127,9 @@ export function AdminUserJourneyDashboard() {
   };
 
   const filteredUsers = users.filter(user => {
+    // Exclude admin users from the dashboard
+    if (user.role === 'admin') return false;
+    
     const matchesRole = selectedRole === 'all' || user.role === selectedRole;
     const matchesSearch = !searchTerm || 
       user.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
