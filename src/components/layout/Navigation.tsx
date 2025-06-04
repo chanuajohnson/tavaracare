@@ -1,3 +1,4 @@
+
 import { Link, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/components/providers/AuthProvider';
@@ -109,7 +110,7 @@ export function Navigation() {
         <div className="flex items-center flex-col sm:flex-row">
           <Link to="/" className="flex items-center">
             <img 
-              src="/TAVARACARElogo.JPG
+              src="/TAVARACARElogo.JPG"
               alt="Tavara" 
               className="h-8 w-auto sm:h-10"
             />
@@ -129,7 +130,6 @@ export function Navigation() {
           </Button>
         )}
         
-        {/* Navigation links - shown on desktop or when menu is open on mobile */}
         <div className={`${isMobile ? (isMenuOpen ? "flex flex-col absolute top-16 left-0 right-0 bg-background border-b z-50 p-4 space-y-3" : "hidden") : "flex items-center gap-4"}`}>
           {(!isMobile || isMenuOpen) && (
             <>

@@ -20,7 +20,8 @@ const AboutPage = () => {
     setActiveCard(activeCard === cardId ? null : cardId);
   };
 
-  return <div className="min-h-screen bg-white">
+  return (
+    <div className="min-h-screen bg-white">
       <Container>
         <Breadcrumb />
         <div className="space-y-8 py-8">
@@ -32,7 +33,7 @@ const AboutPage = () => {
               className="flex justify-center mb-4"
             >
               <img 
-                src="/TAVARACARElogo.JPG
+                src="/TAVARACARElogo.JPG"
                 alt="About Tavara" 
                 className="h-16 w-auto md:h-20"
               />
@@ -332,7 +333,8 @@ const AboutPage = () => {
           </div>
         </div>
       </Container>
-    </div>;
+    </div>
+  );
 };
 
 export default AboutPage;

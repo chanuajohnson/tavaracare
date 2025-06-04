@@ -86,7 +86,7 @@ const Index = () => {
           </span>
           <div className="flex justify-center mb-6">
             <img 
-              src="/TAVARACARElogo.JPG
+              src="/TAVARACARElogo.JPG"
               alt="Tavara" 
               className="h-16 w-auto md:h-24"
             />
