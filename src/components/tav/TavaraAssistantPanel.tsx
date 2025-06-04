@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, MessageCircle, Sparkles } from 'lucide-react';
+import { X, MessageCircle, Sparkles, Check, XIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useTavaraState } from './hooks/useTavaraState';
@@ -34,6 +34,8 @@ export const TavaraAssistantPanel: React.FC = () => {
   const [hasInitialGreeted, setHasInitialGreeted] = useState(false);
   const [showGreeting, setShowGreeting] = useState(false);
   const [greetedPages, setGreetedPages] = useState<Set<string>>(new Set());
+  const [awaitingResponse, setAwaitingResponse] = useState(false);
+  const [isTransitioning, setIsTransitioning] = useState(false);
 
   // Get real progress data based on user role
   const professionalProgress = useProfessionalProgress();
@@ -77,14 +79,10 @@ export const TavaraAssistantPanel: React.FC = () => {
       // Show magic entrance after a brief delay
       setTimeout(() => {
         setShowGreeting(true);
+        setAwaitingResponse(true);
         setHasInitialGreeted(true);
         // Mark as greeted for this session
         sessionStorage.setItem(sessionKey, 'true');
-        
-        // Auto open panel after greeting animation
-        setTimeout(() => {
-          openPanel();
-        }, 2500); // Longer delay to let users read the message
       }, 1500); // Initial delay for page load
     }
   }, [hasInitialGreeted, state.isOpen, openPanel, location.pathname]);
@@ -108,11 +106,7 @@ export const TavaraAssistantPanel: React.FC = () => {
       // Show contextual greeting with a delay for page load
       setTimeout(() => {
         setShowGreeting(true);
-        
-        // Auto open panel after greeting animation
-        setTimeout(() => {
-          openPanel();
-        }, 2000);
+        setAwaitingResponse(true);
       }, 800); // Slight delay so page loads first
     }
   }, [location.pathname, isJourneyTouchpoint, state.isOpen, greetedPages, openPanel, state.currentRole]);
@@ -142,6 +136,27 @@ export const TavaraAssistantPanel: React.FC = () => {
     await assistantSupabase.markNudgeAsSeen(nudge.id);
     setNudges(prev => prev.filter(n => n.id !== nudge.id));
     markNudgesAsRead();
+  };
+
+  // Handle Yes/No responses for interactive greeting
+  const handleGreetingResponse = (response: 'yes' | 'no') => {
+    setAwaitingResponse(false);
+    setIsTransitioning(true);
+    
+    if (response === 'yes') {
+      // Transition to chat panel
+      setTimeout(() => {
+        setShowGreeting(false);
+        setIsTransitioning(false);
+        openPanel();
+      }, 300);
+    } else {
+      // Gracefully dismiss
+      setTimeout(() => {
+        setShowGreeting(false);
+        setIsTransitioning(false);
+      }, 300);
+    }
   };
 
   // Create real progress context based on user role
@@ -194,12 +209,18 @@ export const TavaraAssistantPanel: React.FC = () => {
         ? 'bottom-20 left-4' 
         : 'bottom-6 left-6'
       }`}>
-        {/* Enhanced contextual greeting bubble */}
+        {/* Enhanced contextual greeting bubble with interactive Yes/No options */}
         <AnimatePresence>
           {showGreeting && (
             <motion.div
               initial={{ opacity: 0, y: 30, scale: 0.7, x: -10 }}
-              animate={{ opacity: 1, y: 0, scale: 1, x: 0 }}
+              animate={{ 
+                opacity: 1, 
+                y: 0, 
+                scale: 1, 
+                x: 0,
+                width: isTransitioning ? (isMobile ? '90vw' : '40vw') : (isMobile ? '90vw' : '60vw')
+              }}
               exit={{ opacity: 0, y: -15, scale: 0.8 }}
               transition={{ 
                 type: "spring", 
@@ -209,49 +230,72 @@ export const TavaraAssistantPanel: React.FC = () => {
               }}
               className={`absolute bottom-16 left-0 bg-white rounded-xl shadow-xl border-2 border-primary/30 ${
                 isMobile 
-                  ? 'max-w-[280px] text-xs p-3' 
-                  : 'max-w-80 p-4'
+                  ? 'w-[90vw] max-w-[400px] text-sm p-4' 
+                  : 'w-[60vw] max-w-2xl p-6'
               }`}
-              onAnimationComplete={() => {
-                // Keep greeting visible longer for better visibility
-                setTimeout(() => setShowGreeting(false), 6000);
-              }}
             >
               {/* Enhanced sparkle effects */}
               <div className="absolute -top-1 -right-1">
-                <Sparkles className="h-3 w-3 text-primary animate-pulse" />
+                <Sparkles className="h-4 w-4 text-primary animate-pulse" />
               </div>
-              <div className="absolute top-1 right-5">
-                <Sparkles className="h-2 w-2 text-primary/60 animate-pulse" style={{ animationDelay: '0.5s' }} />
-              </div>
-              
-              <div className="flex items-center gap-2 mb-2">
-                <span className="text-sm">💙</span>
-                <p className="font-semibold text-primary text-sm leading-tight">
-                  TAV Assistant
-                </p>
-                {currentForm && (
-                  <span className="bg-primary/10 text-primary text-xs px-2 py-1 rounded-full">
-                    {currentForm.formTitle}
-                  </span>
-                )}
+              <div className="absolute top-2 right-8">
+                <Sparkles className="h-3 w-3 text-primary/60 animate-pulse" style={{ animationDelay: '0.5s' }} />
               </div>
               
-              <p className={`text-muted-foreground leading-relaxed ${isMobile ? 'text-xs' : 'text-sm'}`}>
+              <div className="flex items-center gap-3 mb-3">
+                <span className="text-lg">💙</span>
+                <div className="flex-1">
+                  <p className="font-semibold text-primary text-base leading-tight">
+                    TAV Assistant
+                  </p>
+                  {currentForm && (
+                    <span className="bg-primary/10 text-primary text-sm px-3 py-1 rounded-full inline-block mt-1">
+                      Helping with {currentForm.formTitle}
+                    </span>
+                  )}
+                </div>
+              </div>
+              
+              <p className={`text-muted-foreground leading-relaxed mb-4 ${isMobile ? 'text-sm' : 'text-base'}`}>
                 {getContextualGreeting()}
               </p>
               
               {/* Form-specific context (for form navigation) */}
               {currentForm && (
-                <div className="mt-2 p-2 bg-primary/5 rounded-lg">
-                  <p className={`text-primary font-medium ${isMobile ? 'text-xs' : 'text-xs'}`}>
+                <div className="mb-4 p-3 bg-primary/5 rounded-lg">
+                  <p className={`text-primary font-medium ${isMobile ? 'text-sm' : 'text-base'}`}>
                     ✨ I can help you fill this out conversationally or guide you step by step!
                   </p>
                 </div>
               )}
+
+              {/* Interactive Yes/No Buttons */}
+              {awaitingResponse && !isTransitioning && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="flex gap-3 mt-4"
+                >
+                  <Button
+                    onClick={() => handleGreetingResponse('yes')}
+                    className="flex-1 bg-primary hover:bg-primary/90 text-white font-medium py-3 px-4 rounded-lg transition-all duration-200 hover:scale-105"
+                  >
+                    <Check className="h-4 w-4 mr-2" />
+                    Yes, I'd love help!
+                  </Button>
+                  <Button
+                    onClick={() => handleGreetingResponse('no')}
+                    variant="outline"
+                    className="flex-1 border-2 border-gray-200 hover:border-gray-300 text-gray-600 hover:text-gray-700 font-medium py-3 px-4 rounded-lg transition-all duration-200 hover:scale-105"
+                  >
+                    <XIcon className="h-4 w-4 mr-2" />
+                    No thanks
+                  </Button>
+                </motion.div>
+              )}
               
               {/* Enhanced speech bubble tail */}
-              <div className="absolute bottom-[-8px] left-6 w-3 h-3 bg-white border-r-2 border-b-2 border-primary/30 transform rotate-45"></div>
+              <div className="absolute bottom-[-8px] left-8 w-4 h-4 bg-white border-r-2 border-b-2 border-primary/30 transform rotate-45"></div>
             </motion.div>
           )}
         </AnimatePresence>
