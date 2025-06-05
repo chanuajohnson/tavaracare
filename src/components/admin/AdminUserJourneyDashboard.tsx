@@ -24,16 +24,15 @@ export function AdminUserJourneyDashboard() {
     try {
       setLoading(true);
       
-      // First get profiles data with only existing columns
+      // Query only columns that exist in the profiles table
       const { data: profiles, error: profilesError } = await supabase
         .from('profiles')
         .select(`
           id,
           full_name,
           role,
-          email_verified,
-          last_login_at,
           created_at,
+          updated_at,
           avatar_url,
           location,
           phone_number,
@@ -71,8 +70,8 @@ export function AdminUserJourneyDashboard() {
         email: emailMap.get(profile.id) || 'No email available',
         full_name: profile.full_name || 'Unknown User',
         role: profile.role || 'family',
-        email_verified: profile.email_verified || false,
-        last_login_at: profile.last_login_at || profile.created_at,
+        email_verified: false, // Default since we don't have this in profiles
+        last_login_at: profile.updated_at || profile.created_at,
         created_at: profile.created_at,
         avatar_url: profile.avatar_url,
         location: profile.location,
