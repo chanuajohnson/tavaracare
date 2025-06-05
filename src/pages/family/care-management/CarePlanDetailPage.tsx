@@ -8,7 +8,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useCarePlanData } from "@/hooks/useCarePlanData";
 import { CareTeamMemberWithProfile } from "@/types/careTypes";
 import { ChefHat } from "lucide-react";
-import { supabase } from "@/lib/supabase";
 
 import { CareTeamTab } from "@/components/care-plan/CareTeamTab";
 import { PlanDetailsTab } from "@/components/care-plan/PlanDetailsTab";
@@ -29,90 +28,27 @@ const CarePlanDetailPage = () => {
   const [searchParams] = useSearchParams();
   const [confirmRemoveDialogOpen, setConfirmRemoveDialogOpen] = useState(false);
   const [memberToRemove, setMemberToRemove] = useState<CareTeamMemberWithProfile | null>(null);
-  const [authVerified, setAuthVerified] = useState(false);
 
   // Get the tab from URL parameters, default to 'details'
   const initialTab = searchParams.get('tab') || 'details';
   const [activeTab, setActiveTab] = useState(initialTab);
 
-  // Verify authentication and debug auth state
-  useEffect(() => {
-    const verifyAuth = async () => {
-      console.log('[CarePlanDetailPage] Auth verification started');
-      console.log('[CarePlanDetailPage] Frontend user state:', { 
-        hasUser: !!user, 
-        userId: user?.id,
-        environment: window.location.hostname
-      });
-
-      if (!user) {
-        console.log('[CarePlanDetailPage] No user, redirecting to auth');
-        navigate('/auth');
-        return;
-      }
-
-      try {
-        // Verify Supabase session
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-        console.log('[CarePlanDetailPage] Supabase session check:', { 
-          hasSession: !!session, 
-          sessionUserId: session?.user?.id,
-          sessionError: sessionError?.message 
-        });
-
-        if (!session || sessionError) {
-          console.error('[CarePlanDetailPage] Session verification failed:', sessionError);
-          navigate('/auth');
-          return;
-        }
-
-        // Test auth.uid() function directly
-        const { data: testData, error: testError } = await supabase
-          .from('profiles')
-          .select('id')
-          .eq('id', user.id)
-          .limit(1);
-
-        console.log('[CarePlanDetailPage] Auth.uid() test query:', { 
-          testData, 
-          testError: testError?.message 
-        });
-
-        if (testError && testError.message.includes('auth.uid()')) {
-          console.error('[CarePlanDetailPage] auth.uid() is null - authentication session issue');
-          // Try to refresh the session
-          const { error: refreshError } = await supabase.auth.refreshSession();
-          if (refreshError) {
-            console.error('[CarePlanDetailPage] Session refresh failed:', refreshError);
-            navigate('/auth');
-            return;
-          }
-        }
-
-        setAuthVerified(true);
-      } catch (error) {
-        console.error('[CarePlanDetailPage] Auth verification error:', error);
-        navigate('/auth');
-      }
-    };
-
-    if (!authLoading && user) {
-      verifyAuth();
-    }
-  }, [user, authLoading, navigate]);
-
-  // Redirect to auth if user is not authenticated
+  // Simplified auth verification
   useEffect(() => {
     if (!authLoading && !user) {
-      console.log('[CarePlanDetailPage] Redirecting to auth - no user');
+      console.log('[CarePlanDetailPage] No authenticated user, redirecting to auth');
       navigate('/auth');
-      return;
     }
   }, [user, authLoading, navigate]);
 
   // Don't render anything while auth is loading or user is null
-  if (authLoading || !user) {
-    console.log('[CarePlanDetailPage] Rendering loading state - auth loading or no user');
+  if (authLoading) {
+    console.log('[CarePlanDetailPage] Auth loading...');
+    return <CarePlanLoadingState />;
+  }
+
+  if (!user) {
+    console.log('[CarePlanDetailPage] No user authenticated');
     return <CarePlanLoadingState />;
   }
 
@@ -122,14 +58,9 @@ const CarePlanDetailPage = () => {
     return <CarePlanNotFound />;
   }
 
-  // Don't render until auth is verified
-  if (!authVerified) {
-    console.log('[CarePlanDetailPage] Rendering loading state - auth not verified');
-    return <CarePlanLoadingState />;
-  }
-
   const {
     loading,
+    error,
     carePlan,
     careTeamMembers,
     careShifts,
@@ -154,6 +85,11 @@ const CarePlanDetailPage = () => {
   if (loading) {
     console.log('[CarePlanDetailPage] Care plan data loading');
     return <CarePlanLoadingState />;
+  }
+
+  if (error) {
+    console.error('[CarePlanDetailPage] Error loading care plan:', error);
+    return <CarePlanNotFound />;
   }
 
   if (!carePlan) {

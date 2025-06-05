@@ -9,6 +9,7 @@ import { User, FileText, Settings, Users, Award, ChevronDown, ChevronUp } from "
 import { Button } from "@/components/ui/button";
 import { TrainingProgramSection } from "./TrainingProgramSection";
 import { TrainingModulesSection } from "./TrainingModulesSection";
+import { TrainingProgressTracker } from "./TrainingProgressTracker";
 
 export const ProfessionalProfileHub = () => {
   const { user } = useAuth();
@@ -165,7 +166,7 @@ export const ProfessionalProfileHub = () => {
                 </CardContent>
               </Card>
 
-              {/* Collapsible Training Section */}
+              {/* Collapsible Training Section with Training Progress */}
               <Card className="cursor-pointer" onClick={() => setIsTrainingExpanded(!isTrainingExpanded)}>
                 <CardHeader>
                   <div className="flex items-center justify-between">
@@ -192,6 +193,8 @@ export const ProfessionalProfileHub = () => {
                 {isTrainingExpanded && (
                   <CardContent>
                     <div className="space-y-8">
+                      {/* Training Progress is now inside the expandable section */}
+                      <TrainingProgressTracker />
                       <TrainingProgramSection />
                       <TrainingModulesSection />
                     </div>

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useSearchParams } from "react-router-dom";
@@ -381,9 +382,6 @@ const ProfessionalProfileHub = () => {
             onSelectCarePlan={setSelectedCarePlanId}
           />
 
-          {/* Training Progress */}
-          <TrainingProgressTracker />
-
           {/* Tabs for Different Views */}
           {selectedCarePlanId && (
             <CarePlanTabs 
@@ -405,7 +403,7 @@ const ProfessionalProfileHub = () => {
             onToggleTraining={() => setIsTrainingExpanded(!isTrainingExpanded)}
           />
 
-          {/* Training Content - Expandable Section */}
+          {/* Training Content - Expandable Section with Training Progress */}
           {isTrainingExpanded && (
             <motion.div
               initial={{ opacity: 0, height: 0 }}
@@ -426,6 +424,8 @@ const ProfessionalProfileHub = () => {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-8">
+                    {/* Training Progress Tracker - Now inside the expandable section */}
+                    <TrainingProgressTracker />
                     <TrainingProgramSection />
                     <TrainingModulesSection />
                   </div>
