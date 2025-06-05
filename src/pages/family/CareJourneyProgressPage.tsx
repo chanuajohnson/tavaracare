@@ -1,16 +1,15 @@
+
 import React from 'react';
 import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { CheckCircle2, Circle, Clock, ArrowRight, Users, Heart, Calendar, Star, FileText, Utensils, Pill, Video, Home, ChevronDown, ChevronRight } from "lucide-react";
+import { CheckCircle2, Circle, Clock, ArrowRight, Users, Heart, Calendar, Star, FileText, Utensils, Pill, Video, Home, List } from "lucide-react";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
 import { ScheduleVisitModal } from "@/components/family/ScheduleVisitModal";
 import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
-import { Separator } from "@/components/ui/separator";
 import { Breadcrumbs } from "@/components/ui/breadcrumbs";
 
 interface JourneyStep {
@@ -31,12 +30,6 @@ export default function CareJourneyProgressPage() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [showScheduleModal, setShowScheduleModal] = useState(false);
-  const [expandedCategories, setExpandedCategories] = useState({
-    foundation: true,
-    scheduling: true,
-    trial: true,
-    conversion: true
-  });
   
   const [journeyData, setJourneyData] = useState({
     visitStatus: 'not_started',
@@ -375,43 +368,6 @@ export default function CareJourneyProgressPage() {
     return "Complete";
   };
 
-  const toggleCategory = (category: string) => {
-    setExpandedCategories(prev => ({
-      ...prev,
-      [category]: !prev[category]
-    }));
-  };
-
-  const getCategorySteps = (category: string) => {
-    return steps.filter(step => step.category === category);
-  };
-
-  const getCategoryProgress = (category: string) => {
-    const categorySteps = getCategorySteps(category);
-    const completedSteps = categorySteps.filter(step => step.completed).length;
-    return Math.round((completedSteps / categorySteps.length) * 100);
-  };
-
-  const getCategoryTitle = (category: string) => {
-    switch (category) {
-      case 'foundation': return 'Foundation Setup';
-      case 'scheduling': return 'Scheduling & Coordination';
-      case 'trial': return 'Trial Experience';
-      case 'conversion': return 'Choose Your Path';
-      default: return category;
-    }
-  };
-
-  const getCategoryDescription = (category: string) => {
-    switch (category) {
-      case 'foundation': return 'Essential setup steps to build your care foundation';
-      case 'scheduling': return 'Meet your coordinator and schedule your visits';
-      case 'trial': return 'Experience a trial day with your matched caregiver';
-      case 'conversion': return 'Decide how to continue your care journey';
-      default: return '';
-    }
-  };
-
   const overallProgress = Math.round((steps.filter(step => step.completed).length / steps.length) * 100);
   const completedCount = steps.filter(step => step.completed).length;
   const totalCount = steps.length;
@@ -445,131 +401,106 @@ export default function CareJourneyProgressPage() {
             <Breadcrumbs items={breadcrumbItems} />
           </div>
 
-          {/* Header */}
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold text-gray-900 mb-2 flex items-center gap-2">
-              🌿 Tavara Care Journey Progress
-            </h1>
-            <p className="text-gray-600 mb-4">
-              Complete these steps to get matched and begin personalized care with confidence.
-            </p>
-            
-            {/* Overall Progress */}
-            <Card className="border-l-4 border-l-primary">
-              <CardContent className="py-4">
-                <div className="flex justify-between items-center mb-2">
-                  <span className="text-sm font-medium">Overall Progress</span>
-                  <span className="text-sm font-medium">{completedCount} of {totalCount} completed</span>
+          {/* Header with Progress */}
+          <Card className="border-l-4 border-l-primary mb-8">
+            <CardHeader className="pb-4">
+              <div className="flex items-center justify-between">
+                <div className="flex-1">
+                  <CardTitle className="flex items-center gap-2 text-2xl mb-2">
+                    <List className="h-6 w-6 text-primary" />
+                    🌿 Tavara Care Journey Progress
+                  </CardTitle>
+                  <p className="text-gray-600">Complete these steps to get matched and begin personalized care with confidence</p>
                 </div>
-                <Progress value={overallProgress} className="h-3" />
-                <p className="text-xs text-gray-500 mt-1">{overallProgress}% complete</p>
-              </CardContent>
-            </Card>
-          </div>
+                <div className="flex items-center gap-4 ml-6">
+                  <div className="text-right">
+                    <div className="text-3xl font-bold text-primary">{overallProgress}%</div>
+                    <div className="text-sm text-gray-500">{completedCount} of {totalCount} completed</div>
+                  </div>
+                  <div className="w-20 h-20 relative">
+                    <svg className="w-20 h-20 transform -rotate-90" viewBox="0 0 36 36">
+                      <path
+                        className="text-gray-200"
+                        stroke="currentColor"
+                        strokeWidth="3"
+                        fill="transparent"
+                        d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                      />
+                      <path
+                        className="text-primary"
+                        stroke="currentColor"
+                        strokeWidth="3"
+                        fill="transparent"
+                        strokeDasharray={`${overallProgress}, 100`}
+                        d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                      />
+                    </svg>
+                  </div>
+                </div>
+              </div>
+            </CardHeader>
+          </Card>
 
-          {/* Journey Categories */}
-          <div className="space-y-6">
-            {['foundation', 'scheduling', 'trial', 'conversion'].map((category) => {
-              const categorySteps = getCategorySteps(category);
-              const categoryProgress = getCategoryProgress(category);
-              const isExpanded = expandedCategories[category];
-              
-              return (
-                <Card key={category} className="overflow-hidden">
-                  <CardHeader 
-                    className="cursor-pointer hover:bg-gray-50 transition-colors"
-                    onClick={() => toggleCategory(category)}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        {isExpanded ? (
-                          <ChevronDown className="h-5 w-5 text-gray-500" />
-                        ) : (
-                          <ChevronRight className="h-5 w-5 text-gray-500" />
-                        )}
-                        <div>
-                          <CardTitle className="text-lg">{getCategoryTitle(category)}</CardTitle>
-                          <p className="text-sm text-gray-600">{getCategoryDescription(category)}</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <span className="text-sm font-medium">{categoryProgress}%</span>
-                        <div className="w-20 h-2 bg-gray-100 rounded-full overflow-hidden">
-                          <div 
-                            className="h-full bg-primary rounded-full transition-all duration-300" 
-                            style={{ width: `${categoryProgress}%` }}
-                          />
-                        </div>
-                      </div>
+          {/* Steps List */}
+          <Card>
+            <CardContent className="p-6">
+              <div className="space-y-1">
+                {steps.map((step, index) => (
+                  <div key={step.id} className="flex items-center gap-4 p-4 rounded-lg hover:bg-gray-50 transition-colors">
+                    <div className="flex-shrink-0">
+                      {step.completed ? (
+                        <CheckCircle2 className="h-6 w-6 text-green-500" />
+                      ) : (
+                        <Circle className="h-6 w-6 text-gray-300" />
+                      )}
                     </div>
-                  </CardHeader>
-                  
-                  {isExpanded && (
-                    <CardContent className="pt-0">
-                      <div className="space-y-4">
-                        {categorySteps.map((step, index) => (
-                          <div key={step.id}>
-                            <div className="flex items-start gap-4 p-4 rounded-lg hover:bg-gray-50 transition-colors">
-                              <div className="mt-1">
-                                {step.completed ? (
-                                  <CheckCircle2 className="h-5 w-5 text-green-500" />
-                                ) : (
-                                  <Circle className="h-5 w-5 text-gray-300" />
-                                )}
-                              </div>
-                              
-                              <div className="flex-1">
-                                <div className="flex items-center gap-2 mb-1">
-                                  {step.icon}
-                                  <h3 className={`font-medium ${step.completed ? 'text-gray-500 line-through' : 'text-gray-800'}`}>
-                                    {step.title}
-                                  </h3>
-                                  {step.optional && (
-                                    <Badge variant="secondary" className="text-xs">Optional</Badge>
-                                  )}
-                                </div>
-                                <p className="text-sm text-gray-600 mb-3">{step.description}</p>
-                              </div>
-                              
-                              <div className="flex items-center gap-2">
-                                {!step.completed && (
-                                  <div className="flex items-center text-xs text-gray-500 gap-1">
-                                    <Clock className="h-3 w-3" />
-                                    <span>Pending</span>
-                                  </div>
-                                )}
-                                
-                                <Button 
-                                  variant={step.completed ? "outline" : "ghost"} 
-                                  size="sm" 
-                                  className={`${
-                                    step.id === 4 && !steps[0]?.completed && !steps[1]?.completed && !steps[2]?.completed
-                                      ? 'text-gray-400 cursor-not-allowed' 
-                                      : step.completed 
-                                        ? 'text-blue-600 hover:text-blue-700' 
-                                        : 'text-primary hover:text-primary-600'
-                                  }`}
-                                  disabled={step.id === 4 && !steps[0]?.completed && !steps[1]?.completed && !steps[2]?.completed}
-                                  onClick={() => handleStepAction(step)}
-                                >
-                                  {getStepButtonText(step)}
-                                  <ArrowRight className="ml-1 h-3 w-3" />
-                                </Button>
-                              </div>
-                            </div>
-                            
-                            {index < categorySteps.length - 1 && (
-                              <Separator className="ml-6" />
-                            )}
-                          </div>
-                        ))}
+                    
+                    <div className="flex-shrink-0 text-primary">
+                      {step.icon}
+                    </div>
+                    
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <h3 className={`font-medium text-sm ${step.completed ? 'text-gray-500 line-through' : 'text-gray-800'}`}>
+                          {step.title}
+                        </h3>
+                        {step.optional && (
+                          <Badge variant="secondary" className="text-xs">Optional</Badge>
+                        )}
                       </div>
-                    </CardContent>
-                  )}
-                </Card>
-              );
-            })}
-          </div>
+                      <p className="text-xs text-gray-600">{step.description}</p>
+                    </div>
+                    
+                    <div className="flex items-center gap-3 flex-shrink-0">
+                      {!step.completed && (
+                        <div className="flex items-center text-xs text-gray-500 gap-1">
+                          <Clock className="h-3 w-3" />
+                          <span>Pending</span>
+                        </div>
+                      )}
+                      
+                      <Button 
+                        variant={step.completed ? "outline" : "ghost"} 
+                        size="sm" 
+                        className={`text-xs px-3 py-1 h-auto ${
+                          step.id === 4 && !steps[0]?.completed && !steps[1]?.completed && !steps[2]?.completed
+                            ? 'text-gray-400 cursor-not-allowed' 
+                            : step.completed 
+                              ? 'text-blue-600 hover:text-blue-700' 
+                              : 'text-primary hover:text-primary-600'
+                        }`}
+                        disabled={step.id === 4 && !steps[0]?.completed && !steps[1]?.completed && !steps[2]?.completed}
+                        onClick={() => handleStepAction(step)}
+                      >
+                        {getStepButtonText(step)}
+                        <ArrowRight className="ml-1 h-3 w-3" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
 
           {/* Path Branches Section */}
           {journeyData.careModel && (

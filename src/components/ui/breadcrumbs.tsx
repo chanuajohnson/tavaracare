@@ -10,11 +10,12 @@ interface BreadcrumbItem {
 
 interface BreadcrumbsProps {
   items: BreadcrumbItem[];
+  className?: string;
 }
 
-export const Breadcrumbs: React.FC<BreadcrumbsProps> = ({ items }) => {
+export const Breadcrumbs: React.FC<BreadcrumbsProps> = ({ items, className = "" }) => {
   return (
-    <nav className="flex items-center space-x-1 text-sm text-muted-foreground">
+    <nav className={`flex items-center space-x-1 text-sm text-muted-foreground ${className}`}>
       {items.map((item, index) => (
         <React.Fragment key={item.href}>
           {index === items.length - 1 ? (
