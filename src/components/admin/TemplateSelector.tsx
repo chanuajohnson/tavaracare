@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -65,7 +64,18 @@ export function TemplateSelector({
         .order('stage');
 
       if (error) throw error;
-      setTemplates(data || []);
+      
+      // Type the response properly to match our interface
+      const typedTemplates = (data || []).map(item => ({
+        id: item.id,
+        name: item.name,
+        role: item.role as 'family' | 'professional' | 'community',
+        stage: item.stage,
+        message_template: item.message_template,
+        message_type: item.message_type as 'whatsapp' | 'email' | 'both'
+      }));
+      
+      setTemplates(typedTemplates);
     } catch (error: any) {
       console.error('Error fetching templates:', error);
       toast.error('Failed to load templates');

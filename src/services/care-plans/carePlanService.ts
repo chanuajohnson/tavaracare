@@ -1,51 +1,46 @@
 
 import { supabase } from "@/lib/supabase";
-import { toast } from "sonner";
-import { CarePlan, CarePlanMetadata } from "@/types/carePlan";
-import { Json } from "@/utils/json";
 
-// Define DTO types for internal use
-interface CarePlanDto {
-  id?: string;
+export interface CarePlan {
+  id: string;
+  title: string;
+  description?: string;
   family_id: string;
-  title: string;
-  description?: string;
-  status?: 'active' | 'completed' | 'cancelled';
-  created_at?: string;
+  status: string;
+  metadata?: any;
+  created_at: string;
   updated_at?: string;
-  metadata?: Json;
 }
 
-interface CarePlanInput {
-  familyId: string;
-  title: string;
-  description?: string;
-  status?: 'active' | 'completed' | 'cancelled';
-  metadata?: CarePlanMetadata;
-}
+export const fetchCarePlanById = async (carePlanId: string): Promise<CarePlan | null> => {
+  try {
+    console.log(`Fetching care plan with ID: ${carePlanId}`);
+    
+    const { data, error } = await supabase
+      .from('care_plans')
+      .select('*')
+      .eq('id', carePlanId)
+      .maybeSingle();
 
-// Adapters for converting between domain and database models
-export const adaptCarePlanFromDb = (dbPlan: CarePlanDto): CarePlan => ({
-  id: dbPlan.id!,
-  familyId: dbPlan.family_id,
-  title: dbPlan.title,
-  description: dbPlan.description || "",
-  status: dbPlan.status || 'active',
-  createdAt: dbPlan.created_at || new Date().toISOString(),
-  updatedAt: dbPlan.updated_at || new Date().toISOString(),
-  metadata: dbPlan.metadata as unknown as CarePlanMetadata
-});
+    if (error) {
+      console.error('Error fetching care plan:', error);
+      throw error;
+    }
 
-export const adaptCarePlanToDb = (plan: Partial<CarePlan>): Partial<CarePlanDto> => ({
-  id: plan.id,
-  family_id: plan.familyId,
-  title: plan.title,
-  description: plan.description,
-  status: plan.status,
-  metadata: plan.metadata as unknown as Json
-});
+    if (!data) {
+      console.log('No care plan found with ID:', carePlanId);
+      return null;
+    }
 
-export const fetchCarePlans = async (familyId: string): Promise<CarePlan[]> => {
+    console.log('Successfully fetched care plan:', data);
+    return data;
+  } catch (error) {
+    console.error('Failed to fetch care plan:', error);
+    throw error;
+  }
+};
+
+export const fetchCarePlansForFamily = async (familyId: string): Promise<CarePlan[]> => {
   try {
     const { data, error } = await supabase
       .from('care_plans')
@@ -54,125 +49,33 @@ export const fetchCarePlans = async (familyId: string): Promise<CarePlan[]> => {
       .order('created_at', { ascending: false });
 
     if (error) {
+      console.error('Error fetching care plans for family:', error);
       throw error;
     }
 
-    return (data || []).map(plan => adaptCarePlanFromDb(plan as CarePlanDto));
+    return data || [];
   } catch (error) {
-    console.error("Error fetching care plans:", error);
-    toast.error("Failed to load care plans");
-    return [];
+    console.error('Failed to fetch care plans for family:', error);
+    throw error;
   }
 };
 
-export const fetchCarePlanById = async (planId: string): Promise<CarePlan | null> => {
+export const createCarePlan = async (carePlan: Omit<CarePlan, 'id' | 'created_at' | 'updated_at'>): Promise<CarePlan> => {
   try {
     const { data, error } = await supabase
       .from('care_plans')
-      .select('*')
-      .eq('id', planId)
-      .maybeSingle();
-
-    if (error) {
-      throw error;
-    }
-
-    return data ? adaptCarePlanFromDb(data as CarePlanDto) : null;
-  } catch (error) {
-    console.error("Error fetching care plan:", error);
-    toast.error("Failed to load care plan");
-    return null;
-  }
-};
-
-export const createCarePlan = async (plan: CarePlanInput): Promise<CarePlan | null> => {
-  try {
-    // Convert from domain model input to database model
-    const dbPlan: CarePlanDto = {
-      family_id: plan.familyId,
-      title: plan.title,
-      description: plan.description,
-      status: plan.status || 'active',
-      metadata: plan.metadata as unknown as Json
-    };
-
-    const { data, error } = await supabase
-      .from('care_plans')
-      .insert([dbPlan])
+      .insert(carePlan)
       .select()
       .single();
 
     if (error) {
+      console.error('Error creating care plan:', error);
       throw error;
     }
 
-    toast.success("Care plan created successfully");
-    return data ? adaptCarePlanFromDb(data as CarePlanDto) : null;
+    return data;
   } catch (error) {
-    console.error("Error creating care plan:", error);
-    toast.error("Failed to create care plan");
-    return null;
+    console.error('Failed to create care plan:', error);
+    throw error;
   }
 };
-
-export const updateCarePlan = async (
-  planId: string, 
-  updates: Partial<CarePlanInput>
-): Promise<CarePlan | null> => {
-  try {
-    // Convert from domain model input to database model
-    const dbUpdates: Partial<CarePlanDto> = {
-      title: updates.title,
-      description: updates.description,
-      status: updates.status,
-      family_id: updates.familyId,
-      metadata: updates.metadata as unknown as Json
-    };
-    
-    // Remove undefined properties
-    Object.keys(dbUpdates).forEach(key => 
-      dbUpdates[key as keyof Partial<CarePlanDto>] === undefined && delete dbUpdates[key as keyof Partial<CarePlanDto>]
-    );
-
-    const { data, error } = await supabase
-      .from('care_plans')
-      .update(dbUpdates)
-      .eq('id', planId)
-      .select()
-      .single();
-
-    if (error) {
-      throw error;
-    }
-
-    toast.success("Care plan updated successfully");
-    return data ? adaptCarePlanFromDb(data as CarePlanDto) : null;
-  } catch (error) {
-    console.error("Error updating care plan:", error);
-    toast.error("Failed to update care plan");
-    return null;
-  }
-};
-
-export const deleteCarePlan = async (planId: string): Promise<boolean> => {
-  try {
-    const { error } = await supabase
-      .from('care_plans')
-      .delete()
-      .eq('id', planId);
-
-    if (error) {
-      throw error;
-    }
-
-    toast.success("Care plan deleted successfully");
-    return true;
-  } catch (error) {
-    console.error("Error deleting care plan:", error);
-    toast.error("Failed to delete care plan");
-    return false;
-  }
-};
-
-// Re-export types for external use
-export type { CarePlanInput, CarePlanDto };

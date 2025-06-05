@@ -115,7 +115,7 @@ const FamilyDashboard = () => {
 
         <div className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Care Management */}
+            {/* Care Management - Always visible */}
             <Card className="bg-white shadow-sm">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -151,115 +151,121 @@ const FamilyDashboard = () => {
               </CardContent>
             </Card>
 
-            {/* Community Support */}
-            <Card className="bg-white shadow-sm">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Heart className="h-5 w-5" />
-                  Community Support
-                </CardTitle>
-                <CardDescription>
-                  Connect with other families and support networks
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2 mb-4 text-left">
-                  <p className="text-sm text-gray-600">Join Family Support Groups</p>
-                  <p className="text-sm text-gray-600">Share Resources</p>
-                  <p className="text-sm text-gray-600">Get Advice</p>
-                  <p className="text-sm text-gray-600">Build Connections</p>
-                </div>
-                <Link to="/features">
-                  <Button 
-                    variant="default"
-                    className="w-full bg-primary hover:bg-primary-600 text-white"
-                  >
-                    Find Support
-                    <ArrowRight className="ml-2 h-4 w-4" />
-                  </Button>
-                </Link>
-                <div className="pt-4">
-                  <UpvoteFeatureButton
-                    featureTitle="Community Support Features"
-                    buttonText="Upvote this Feature"
-                  />
-                </div>
-              </CardContent>
-            </Card>
+            {/* Community Support - Hide for logged in users */}
+            {!user && (
+              <Card className="bg-white shadow-sm">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Heart className="h-5 w-5" />
+                    Community Support
+                  </CardTitle>
+                  <CardDescription>
+                    Connect with other families and support networks
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2 mb-4 text-left">
+                    <p className="text-sm text-gray-600">Join Family Support Groups</p>
+                    <p className="text-sm text-gray-600">Share Resources</p>
+                    <p className="text-sm text-gray-600">Get Advice</p>
+                    <p className="text-sm text-gray-600">Build Connections</p>
+                  </div>
+                  <Link to="/features">
+                    <Button 
+                      variant="default"
+                      className="w-full bg-primary hover:bg-primary-600 text-white"
+                    >
+                      Find Support
+                      <ArrowRight className="ml-2 h-4 w-4" />
+                    </Button>
+                  </Link>
+                  <div className="pt-4">
+                    <UpvoteFeatureButton
+                      featureTitle="Community Support Features"
+                      buttonText="Upvote this Feature"
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Care Assessment */}
-            <Card className="bg-white shadow-sm">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <CheckCircle2 className="h-5 w-5" />
-                  Care Assessment
-                </CardTitle>
-                <CardDescription>
-                  Understand your care needs better
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2 mb-4 text-left">
-                  <p className="text-sm text-gray-600">Complete Care Assessment</p>
-                  <p className="text-sm text-gray-600">Get Personalized Recommendations</p>
-                  <p className="text-sm text-gray-600">Plan Care Strategy</p>
-                  <p className="text-sm text-gray-600">Track Care Goals</p>
-                </div>
-                <Link to="/family/care-needs-assessment">
-                  <Button 
-                    variant="default"
-                    className="w-full bg-primary hover:bg-primary-600 text-white"
-                  >
-                    Start Assessment
-                    <ArrowRight className="ml-2 h-4 w-4" />
-                  </Button>
-                </Link>
-                <div className="pt-4">
-                  <UpvoteFeatureButton
-                    featureTitle="Care Assessment Tools"
-                    buttonText="Upvote this Feature"
-                  />
-                </div>
-              </CardContent>
-            </Card>
+            {/* Care Assessment - Hide for logged in users */}
+            {!user && (
+              <Card className="bg-white shadow-sm">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <CheckCircle2 className="h-5 w-5" />
+                    Care Assessment
+                  </CardTitle>
+                  <CardDescription>
+                    Understand your care needs better
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2 mb-4 text-left">
+                    <p className="text-sm text-gray-600">Complete Care Assessment</p>
+                    <p className="text-sm text-gray-600">Get Personalized Recommendations</p>
+                    <p className="text-sm text-gray-600">Plan Care Strategy</p>
+                    <p className="text-sm text-gray-600">Track Care Goals</p>
+                  </div>
+                  <Link to="/family/care-needs-assessment">
+                    <Button 
+                      variant="default"
+                      className="w-full bg-primary hover:bg-primary-600 text-white"
+                    >
+                      Start Assessment
+                      <ArrowRight className="ml-2 h-4 w-4" />
+                    </Button>
+                  </Link>
+                  <div className="pt-4">
+                    <UpvoteFeatureButton
+                      featureTitle="Care Assessment Tools"
+                      buttonText="Upvote this Feature"
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
-            {/* Resource Library */}
-            <Card className="bg-white shadow-sm">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <MessageSquare className="h-5 w-5" />
-                  Resource Library
-                </CardTitle>
-                <CardDescription>
-                  Access helpful guides and information
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2 mb-4 text-left">
-                  <p className="text-sm text-gray-600">Care Guides</p>
-                  <p className="text-sm text-gray-600">Educational Materials</p>
-                  <p className="text-sm text-gray-600">Best Practices</p>
-                  <p className="text-sm text-gray-600">Expert Advice</p>
-                </div>
-                <Link to="/features">
-                  <Button 
-                    variant="default"
-                    className="w-full bg-primary hover:bg-primary-600 text-white"
-                  >
-                    Browse Resources
-                    <ArrowRight className="ml-2 h-4 w-4" />
-                  </Button>
-                </Link>
-                <div className="pt-4">
-                  <UpvoteFeatureButton
-                    featureTitle="Resource Library"
-                    buttonText="Upvote this Feature"
-                  />
-                </div>
-              </CardContent>
-            </Card>
+            {/* Resource Library - Hide for logged in users */}
+            {!user && (
+              <Card className="bg-white shadow-sm">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <MessageSquare className="h-5 w-5" />
+                    Resource Library
+                  </CardTitle>
+                  <CardDescription>
+                    Access helpful guides and information
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2 mb-4 text-left">
+                    <p className="text-sm text-gray-600">Care Guides</p>
+                    <p className="text-sm text-gray-600">Educational Materials</p>
+                    <p className="text-sm text-gray-600">Best Practices</p>
+                    <p className="text-sm text-gray-600">Expert Advice</p>
+                  </div>
+                  <Link to="/features">
+                    <Button 
+                      variant="default"
+                      className="w-full bg-primary hover:bg-primary-600 text-white"
+                    >
+                      Browse Resources
+                      <ArrowRight className="ml-2 h-4 w-4" />
+                    </Button>
+                  </Link>
+                  <div className="pt-4">
+                    <UpvoteFeatureButton
+                      featureTitle="Resource Library"
+                      buttonText="Upvote this Feature"
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </div>
         </div>
       </div>

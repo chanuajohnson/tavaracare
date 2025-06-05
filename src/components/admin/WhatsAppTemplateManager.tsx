@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -95,7 +94,20 @@ export function WhatsAppTemplateManager() {
         .order('stage', { ascending: true });
 
       if (error) throw error;
-      setTemplates(data || []);
+      
+      // Type the response properly to match our interface
+      const typedTemplates = (data || []).map(item => ({
+        id: item.id,
+        name: item.name,
+        role: item.role as 'family' | 'professional' | 'community',
+        stage: item.stage,
+        message_template: item.message_template,
+        message_type: item.message_type as 'whatsapp' | 'email' | 'both',
+        created_at: item.created_at,
+        updated_at: item.updated_at
+      }));
+      
+      setTemplates(typedTemplates);
     } catch (error: any) {
       console.error('Error fetching templates:', error);
       toast.error('Failed to load templates');
@@ -233,6 +245,7 @@ export function WhatsAppTemplateManager() {
 
   return (
     <div className="space-y-6">
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold text-gray-900">WhatsApp Template Manager</h2>
@@ -399,7 +412,7 @@ export function WhatsAppTemplateManager() {
                 <label className="text-sm font-medium">User Role</label>
                 <Select 
                   value={templateForm.role} 
-                  onValueChange={(value: any) => setTemplateForm(prev => ({...prev, role: value}))}
+                  onValueChange={(value: 'family' | 'professional' | 'community') => setTemplateForm(prev => ({...prev, role: value}))}
                 >
                   <SelectTrigger>
                     <SelectValue />
@@ -443,7 +456,7 @@ export function WhatsAppTemplateManager() {
                 <label className="text-sm font-medium">Message Type</label>
                 <Select 
                   value={templateForm.message_type} 
-                  onValueChange={(value: any) => setTemplateForm(prev => ({...prev, message_type: value}))}
+                  onValueChange={(value: 'whatsapp' | 'email' | 'both') => setTemplateForm(prev => ({...prev, message_type: value}))}
                 >
                   <SelectTrigger>
                     <SelectValue />
