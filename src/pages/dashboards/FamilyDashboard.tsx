@@ -1,10 +1,9 @@
-
 import { motion } from "framer-motion";
 import { useEffect } from "react";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Users, Calendar, Heart, UserPlus, MessageSquare, CheckCircle2 } from "lucide-react";
+import { ArrowRight, Users, Heart, UserPlus, MessageSquare, CheckCircle2 } from "lucide-react";
 import { UpvoteFeatureButton } from "@/components/features/UpvoteFeatureButton";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/components/providers/AuthProvider";
@@ -13,6 +12,7 @@ import { DashboardCaregiverMatches } from "@/components/family/DashboardCaregive
 import { CaregiverMatchingCard } from "@/components/family/CaregiverMatchingCard";
 import { FamilyShortcutMenuBar } from "@/components/family/FamilyShortcutMenuBar";
 import { TellTheirStoryCard } from "@/components/family/TellTheirStoryCard";
+import { FamilyProfileHeaderSection } from "@/components/family/FamilyProfileHeaderSection";
 
 const FamilyDashboard = () => {
   const { user } = useAuth();
@@ -62,6 +62,18 @@ const FamilyDashboard = () => {
 
         {/* Quick Access Menu Bar - Only show when user is logged in */}
         {user && <FamilyShortcutMenuBar />}
+
+        {/* Family Profile Header - Only show when user is logged in */}
+        {user && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1, duration: 0.5 }}
+            className="mt-8"
+          >
+            <FamilyProfileHeaderSection />
+          </motion.div>
+        )}
 
         {!user ? (
           <motion.div
@@ -115,42 +127,6 @@ const FamilyDashboard = () => {
 
         <div className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Care Management - Always visible */}
-            <Card className="bg-white shadow-sm">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Users className="h-5 w-5" />
-                  Care Management
-                </CardTitle>
-                <CardDescription>
-                  Organize and manage care for your loved ones
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2 mb-4 text-left">
-                  <p className="text-sm text-gray-600">Create Care Plans</p>
-                  <p className="text-sm text-gray-600">Schedule Care Activities</p>
-                  <p className="text-sm text-gray-600">Track Progress</p>
-                  <p className="text-sm text-gray-600">Coordinate with Caregivers</p>
-                </div>
-                <Link to="/family/care-management">
-                  <Button 
-                    variant="default"
-                    className="w-full bg-primary hover:bg-primary-600 text-white"
-                  >
-                    Manage Care
-                    <ArrowRight className="ml-2 h-4 w-4" />
-                  </Button>
-                </Link>
-                <div className="pt-4">
-                  <UpvoteFeatureButton
-                    featureTitle="Care Management Tools"
-                    buttonText="Upvote this Feature"
-                  />
-                </div>
-              </CardContent>
-            </Card>
-
             {/* Community Support - Hide for logged in users */}
             {!user && (
               <Card className="bg-white shadow-sm">
@@ -188,9 +164,7 @@ const FamilyDashboard = () => {
                 </CardContent>
               </Card>
             )}
-          </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Care Assessment - Hide for logged in users */}
             {!user && (
               <Card className="bg-white shadow-sm">
@@ -267,6 +241,58 @@ const FamilyDashboard = () => {
               </Card>
             )}
           </div>
+        </div>
+
+        {/* Care Management - Full Width at Bottom */}
+        <div className="mt-8">
+          <Card className="bg-white shadow-sm w-full">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Users className="h-5 w-5" />
+                Care Management
+              </CardTitle>
+              <CardDescription>
+                Organize and manage care for your loved ones
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+                <div className="text-center p-3 bg-gray-50 rounded-md">
+                  <p className="text-sm font-medium text-gray-900">Create Care Plans</p>
+                  <p className="text-xs text-gray-600 mt-1">Organize care activities</p>
+                </div>
+                <div className="text-center p-3 bg-gray-50 rounded-md">
+                  <p className="text-sm font-medium text-gray-900">Schedule Care Activities</p>
+                  <p className="text-xs text-gray-600 mt-1">Plan daily routines</p>
+                </div>
+                <div className="text-center p-3 bg-gray-50 rounded-md">
+                  <p className="text-sm font-medium text-gray-900">Track Progress</p>
+                  <p className="text-xs text-gray-600 mt-1">Monitor care goals</p>
+                </div>
+                <div className="text-center p-3 bg-gray-50 rounded-md">
+                  <p className="text-sm font-medium text-gray-900">Coordinate with Caregivers</p>
+                  <p className="text-xs text-gray-600 mt-1">Seamless communication</p>
+                </div>
+              </div>
+              <div className="flex flex-col sm:flex-row gap-4 items-center">
+                <Link to="/family/care-management" className="flex-1">
+                  <Button 
+                    variant="default"
+                    className="w-full bg-primary hover:bg-primary-600 text-white"
+                  >
+                    Manage Care
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
+                </Link>
+                <div className="flex-shrink-0">
+                  <UpvoteFeatureButton
+                    featureTitle="Care Management Tools"
+                    buttonText="Upvote this Feature"
+                  />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
     </div>
