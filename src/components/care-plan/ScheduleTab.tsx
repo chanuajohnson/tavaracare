@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -348,7 +349,7 @@ export const ScheduleTab: React.FC<ScheduleTabProps> = ({
                         variant={isRangeSelection ? "default" : "outline"} 
                         className="w-1/2"
                         onClick={() => setIsRangeSelection(true)}
-                        disabled={editingShift}
+                        disabled={!!editingShift}
                       >
                         <CalendarRange className="mr-2 h-4 w-4" />
                         Date Range
