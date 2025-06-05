@@ -49,6 +49,10 @@ const CareManagementPage = () => {
     navigate(`/family/care-management/${planId}?tab=${tab}`);
   };
 
+  const handleNavigateToMedicationManagement = (planId: string) => {
+    navigate(`/family/care-management/${planId}/medications`);
+  };
+
   const handleNavigateToMealManagement = (planId: string) => {
     navigate(`/family/care-management/${planId}/meals`);
   };
@@ -231,7 +235,7 @@ const CareManagementPage = () => {
                           variant="outline" 
                           size="sm" 
                           className="w-full justify-start text-left"
-                          onClick={() => handleNavigateToTab(plan.id, 'medications')}
+                          onClick={() => handleNavigateToMedicationManagement(plan.id)}
                         >
                           <PenSquare className="h-4 w-4 mr-2" />
                           {plan.title} Medications
@@ -267,7 +271,7 @@ const CareManagementPage = () => {
                           variant="outline" 
                           size="sm" 
                           className="w-full justify-start text-left"
-                          onClick={() => handleNavigateToTab(plan.id, 'meals')}
+                          onClick={() => handleNavigateToMealManagement(plan.id)}
                         >
                           <ChefHat className="h-4 w-4 mr-2" />
                           {plan.title} Meals

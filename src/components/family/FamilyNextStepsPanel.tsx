@@ -1,4 +1,3 @@
-
 import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,10 +9,12 @@ import { useNavigate } from "react-router-dom";
 import { SubscriptionFeatureLink } from "@/components/subscription/SubscriptionFeatureLink";
 import { supabase } from "@/lib/supabase";
 import { ScheduleVisitModal } from "./ScheduleVisitModal";
+import { useUserCarePlan } from "@/hooks/useUserCarePlan";
 
 export const FamilyNextStepsPanel = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { carePlanId, loading: carePlanLoading } = useUserCarePlan();
   const [showScheduleModal, setShowScheduleModal] = useState(false);
   const [steps, setSteps] = useState([
     { 
@@ -221,13 +222,21 @@ export const FamilyNextStepsPanel = () => {
       return;
     }
     if (step.id === 5) {
-      // Navigate to the specific medication management URL
-      navigate('/family/care-management/4848aec5-edb0-4e4a-b8e8-5684c609e6d6/medications');
+      // Navigate to medication management using dynamic care plan ID
+      if (carePlanId) {
+        navigate(`/family/care-management/${carePlanId}/medications`);
+      } else {
+        navigate('/family/care-management');
+      }
       return;
     }
     if (step.id === 6) {
-      // Navigate to the specific meal management URL
-      navigate('/family/care-management/4848aec5-edb0-4e4a-b8e8-5684c609e6d6/meals');
+      // Navigate to meal management using dynamic care plan ID
+      if (carePlanId) {
+        navigate(`/family/care-management/${carePlanId}/meals`);
+      } else {
+        navigate('/family/care-management');
+      }
       return;
     }
     if (step.id === 7) {
@@ -237,7 +246,7 @@ export const FamilyNextStepsPanel = () => {
     navigate(step.link);
   };
 
-  if (loading) {
+  if (loading || carePlanLoading) {
     return (
       <motion.div
         initial={{ opacity: 0, y: 20 }}
