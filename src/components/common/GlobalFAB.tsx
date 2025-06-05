@@ -7,7 +7,8 @@ export function GlobalFAB() {
   const location = useLocation();
   const pathname = location.pathname;
   
-  if (pathname === "/" || pathname === "/faq") {
+  // Only hide on the home page
+  if (pathname === "/") {
     return null;
   }
   

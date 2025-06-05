@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -6,14 +5,18 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import { format } from "date-fns";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
-import { CalendarRange, Calendar, ChevronDown, Plus, Users } from "lucide-react";
+import { CalendarRange, Calendar, ChevronDown, Plus, Users, AlertTriangle } from "lucide-react";
 import { DateRange } from "react-day-picker";
 import { ShiftCalendar } from "./ShiftCalendar";
 import { CareShift, CareShiftInput, CareTeamMemberWithProfile } from "@/types/careTypes";
 import { createCareShift, updateCareShift } from "@/services/care-plans";
 import { WorkLogForm } from './WorkLogForm';
+import { EmergencyShiftWhatsAppModal } from './EmergencyShiftWhatsAppModal';
+import { toast } from "sonner";
 
 interface ScheduleTabProps {
   carePlanId: string;
@@ -54,12 +57,19 @@ export const ScheduleTab: React.FC<ScheduleTabProps> = ({
     day: "",
     timeSlot: "",
     recurring: "no",
-    location: ""
+    location: "",
+    isEmergencyCoverage: false,
+    emergencyReason: ""
   });
   const [editingShift, setEditingShift] = useState<CareShift | null>(null);
   const [isRangeSelection, setIsRangeSelection] = useState(false);
   const [workLogFormOpen, setWorkLogFormOpen] = useState(false);
   const [selectedShift, setSelectedShift] = useState<CareShift | null>(null);
+  const [emergencyWhatsAppModalOpen, setEmergencyWhatsAppModalOpen] = useState(false);
+  const [emergencyShiftData, setEmergencyShiftData] = useState<{
+    shift: CareShift | null;
+    reason: string;
+  }>({ shift: null, reason: '' });
 
   const SHIFT_TITLE_OPTIONS: ShiftTypeOption[] = [
     { id: "weekday_standard", label: "Monday - Friday, 8 AM - 4 PM", description: "Standard daytime coverage during business hours", timeRange: { start: "08:00", end: "16:00" } },
@@ -73,6 +83,11 @@ export const ScheduleTab: React.FC<ScheduleTabProps> = ({
     { id: "weekday_evening_6pm_6am", label: "Weekday Evening Shift (6 PM - 6 AM)", description: "Evening care on weekdays after the primary shift ends, or continuous 24-hour coverage", timeRange: { start: "18:00", end: "06:00" } },
     { id: "weekday_evening_6pm_8am", label: "Weekday Evening Shift (6 PM - 8 AM)", description: "Evening care on weekdays after the primary shift ends, or continuous 24-hour coverage", timeRange: { start: "18:00", end: "08:00" } }
   ];
+
+  const showEmergencyWhatsAppModal = (shift: CareShift, reason: string) => {
+    setEmergencyShiftData({ shift, reason });
+    setEmergencyWhatsAppModalOpen(true);
+  };
 
   const handleCreateShift = async () => {
     try {
@@ -98,6 +113,8 @@ export const ScheduleTab: React.FC<ScheduleTabProps> = ({
         datesToCreateShifts.push(baseDayDate);
       }
       
+      let emergencyShiftCreated: CareShift | null = null;
+      
       for (const shiftDate of datesToCreateShifts) {
         const shiftTitle = selectedShiftType.label;
         
@@ -120,23 +137,40 @@ export const ScheduleTab: React.FC<ScheduleTabProps> = ({
           title: shiftTitle,
           description: selectedShiftType.description,
           location: "Patient's home",
-          status: "open",
+          status: newShift.isEmergencyCoverage ? "open" : "open",
           startTime: startTime.toISOString(),
           endTime: endTime.toISOString(),
         };
 
+        let createdShift;
         if (editingShift && !isRangeSelection) {
-          await updateCareShift(editingShift.id, shiftData);
+          createdShift = await updateCareShift(editingShift.id, shiftData);
         } else {
-          await createCareShift(shiftData);
+          createdShift = await createCareShift(shiftData);
+        }
+
+        // Store the first emergency shift for WhatsApp modal
+        if (newShift.isEmergencyCoverage && createdShift && !emergencyShiftCreated) {
+          emergencyShiftCreated = createdShift;
         }
       }
 
       setShiftDialogOpen(false);
       resetShiftForm();
       onShiftUpdated();
+
+      // Show emergency WhatsApp modal if this was an emergency shift
+      if (newShift.isEmergencyCoverage && emergencyShiftCreated && newShift.emergencyReason.trim()) {
+        toast.success('Emergency shift created - ready to notify team!');
+        setTimeout(() => {
+          showEmergencyWhatsAppModal(emergencyShiftCreated, newShift.emergencyReason);
+        }, 500);
+      } else if (!newShift.isEmergencyCoverage) {
+        toast.success(isRangeSelection ? 'Shifts created successfully!' : (editingShift ? 'Shift updated successfully!' : 'Shift created successfully!'));
+      }
     } catch (error) {
       console.error("Error creating/updating care shift:", error);
+      toast.error("Failed to create/update shift");
     }
   };
 
@@ -149,7 +183,9 @@ export const ScheduleTab: React.FC<ScheduleTabProps> = ({
       day: "",
       timeSlot: "",
       recurring: "no",
-      location: ""
+      location: "",
+      isEmergencyCoverage: false,
+      emergencyReason: ""
     });
     setEditingShift(null);
     setDateRange({ from: undefined, to: undefined });
@@ -172,7 +208,9 @@ export const ScheduleTab: React.FC<ScheduleTabProps> = ({
       day: format(shiftDate, "yyyy-MM-dd"),
       timeSlot: "",
       recurring: "no",
-      location: shift.location || ""
+      location: shift.location || "",
+      isEmergencyCoverage: false,
+      emergencyReason: ""
     });
     setEditingShift(shift);
     setIsRangeSelection(false);
@@ -224,7 +262,7 @@ export const ScheduleTab: React.FC<ScheduleTabProps> = ({
               </Button>
               <DialogContent className="sm:max-w-lg">
                 <DialogHeader>
-                  <DialogTitle>{editingShift ? 'Edit Shift' : 'Assign shift and team'}</DialogTitle>
+                  <DialogTitle>{editingShift ? 'Edit Shift' : 'Create New Shift'}</DialogTitle>
                   <DialogDescription>
                     {editingShift 
                       ? 'Update this care shift details and assignment' 
@@ -251,6 +289,45 @@ export const ScheduleTab: React.FC<ScheduleTabProps> = ({
                       </SelectContent>
                     </Select>
                   </div>
+
+                  {/* Emergency Coverage Option - Available for both create and edit */}
+                  <div className="space-y-3 p-4 border border-orange-200 rounded-lg bg-orange-50">
+                    <div className="flex items-center space-x-2">
+                      <Checkbox 
+                        id="emergency-coverage"
+                        checked={newShift.isEmergencyCoverage}
+                        onCheckedChange={(checked) => setNewShift({
+                          ...newShift, 
+                          isEmergencyCoverage: !!checked,
+                          emergencyReason: checked ? newShift.emergencyReason : ""
+                        })}
+                      />
+                      <div className="flex items-center space-x-2">
+                        <AlertTriangle className="h-4 w-4 text-orange-600" />
+                        <Label htmlFor="emergency-coverage" className="font-medium text-orange-800">
+                          Emergency Coverage / Open Shift
+                        </Label>
+                      </div>
+                    </div>
+                    {newShift.isEmergencyCoverage && (
+                      <div className="space-y-2">
+                        <Label htmlFor="emergency-reason" className="text-sm text-orange-700">
+                          Reason for emergency coverage (will be sent to team)
+                        </Label>
+                        <Textarea
+                          id="emergency-reason"
+                          placeholder="e.g., Assigned nurse called in sick, family emergency, etc."
+                          value={newShift.emergencyReason}
+                          onChange={(e) => setNewShift({...newShift, emergencyReason: e.target.value})}
+                          className="border-orange-300 focus:border-orange-500"
+                          rows={3}
+                        />
+                        <p className="text-xs text-orange-600">
+                          📱 This will open WhatsApp to notify all care team members
+                        </p>
+                      </div>
+                    )}
+                  </div>
                   
                   <div className="flex flex-col space-y-2">
                     <Label>Date Selection</Label>
@@ -260,6 +337,7 @@ export const ScheduleTab: React.FC<ScheduleTabProps> = ({
                         variant={isRangeSelection ? "default" : "outline"} 
                         className="w-1/2"
                         onClick={() => setIsRangeSelection(true)}
+                        disabled={!!editingShift}
                       >
                         <CalendarRange className="mr-2 h-4 w-4" />
                         Date Range
@@ -378,12 +456,21 @@ export const ScheduleTab: React.FC<ScheduleTabProps> = ({
                     disabled={
                       !newShift.selectedShiftType || 
                       (isRangeSelection && (!dateRange?.from || !dateRange.to)) ||
-                      (!isRangeSelection && !selectedDay)
+                      (!isRangeSelection && !selectedDay) ||
+                      (newShift.isEmergencyCoverage && !newShift.emergencyReason.trim())
                     }
+                    className={newShift.isEmergencyCoverage ? "bg-orange-600 hover:bg-orange-700" : ""}
                   >
-                    {isRangeSelection 
-                      ? 'Create Shifts' 
-                      : (editingShift ? 'Update Shift' : 'Create Shift')}
+                    {newShift.isEmergencyCoverage ? (
+                      <>
+                        <AlertTriangle className="mr-2 h-4 w-4" />
+                        Create & Notify Team
+                      </>
+                    ) : (
+                      isRangeSelection 
+                        ? 'Create Shifts' 
+                        : (editingShift ? 'Update Shift' : 'Create Shift')
+                    )}
                   </Button>
                 </DialogFooter>
               </DialogContent>
@@ -417,6 +504,17 @@ export const ScheduleTab: React.FC<ScheduleTabProps> = ({
                 )}
               </DialogContent>
             </Dialog>
+
+            {/* Emergency WhatsApp Modal - Only render when we have valid shift data */}
+            {emergencyShiftData.shift && (
+              <EmergencyShiftWhatsAppModal
+                open={emergencyWhatsAppModalOpen}
+                onOpenChange={setEmergencyWhatsAppModalOpen}
+                shift={emergencyShiftData.shift}
+                teamMembers={careTeamMembers}
+                emergencyReason={emergencyShiftData.reason}
+              />
+            )}
           </>
         ) : (
           <div className="text-center py-6">

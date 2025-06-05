@@ -19,10 +19,6 @@ const UserJourneyPage = () => {
   
   const breadcrumbItems = [
     {
-      label: "Dashboard",
-      path: "/dashboard",
-    },
-    {
       label: "Admin",
       path: "/dashboard/admin",
     },

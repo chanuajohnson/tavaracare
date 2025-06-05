@@ -27,7 +27,7 @@ const roles = [
     icon: UserCog,
     color: "bg-primary-200",
     path: "/dashboard/professional",
-    cta: "Get Hired as a Skilled Care Professional",
+    cta: "Get Hired",
     features: ["Showcase qualifications", "Find care opportunities", "Manage client relationships", "Track care delivery", "Access training resources", "Professional development"]
   }
 ];
@@ -250,7 +250,7 @@ const Index = () => {
           </div>
         </div>
 
-        <div className="mt-32 max-w-5xl mx-auto">
+      {/*   <div className="mt-32 max-w-5xl mx-auto">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -296,7 +296,7 @@ const Index = () => {
               </Card>
             </Link>
           </motion.div>
-        </div>
+        </div> */}
       </div>
       
       <Fab
