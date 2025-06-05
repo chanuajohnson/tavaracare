@@ -9,7 +9,6 @@ import { UpvoteFeatureButton } from "@/components/features/UpvoteFeatureButton";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { NextStepsPanel } from "@/components/professional/NextStepsPanel";
-import { TrainingProgressTracker } from "@/components/professional/TrainingProgressTracker";
 import { DashboardFamilyMatches } from "@/components/professional/DashboardFamilyMatches";
 import { CaregiverMatchingCard } from "@/components/professional/CaregiverMatchingCard";
 import { ProfessionalShortcutMenuBar } from "@/components/professional/ProfessionalShortcutMenuBar";
@@ -188,50 +187,46 @@ const ProfessionalDashboard = () => {
         <div className="mt-8">
           <DashboardFamilyMatches />
         </div>
-        
-        <div className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <TrainingProgressTracker />
-            
-            {/* Admin Assistant - Updated redirect */}
-            <Card className="bg-white shadow-sm">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <FileText className="h-5 w-5" />
-                  Admin Assistant
-                </CardTitle>
-                <CardDescription>
-                  Streamline your administrative tasks
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2 mb-4 text-left">
-                  <p className="text-sm text-gray-600">Get Job Letters</p>
-                  <p className="text-sm text-gray-600">NIS Registration Assistance</p>
-                  <p className="text-sm text-gray-600">Document Management</p>
-                  <p className="text-sm text-gray-600">Administrative Support</p>
-                </div>
-                <Link to="/professional/profile?tab=admin-assistant">
-                  <Button 
-                    variant="default"
-                    className="w-full bg-primary hover:bg-primary-600 text-white"
-                  >
-                    Access Tools
-                    <ArrowRight className="ml-2 h-4 w-4" />
-                  </Button>
-                </Link>
-                <div className="pt-4">
-                  <UpvoteFeatureButton
-                    featureTitle="Admin Assistant Tools"
-                    buttonText="Upvote this Feature"
-                  />
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+
+        {/* Admin Assistant - Full Width */}
+        <div className="mt-8">
+          <Card className="bg-white shadow-sm">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <FileText className="h-5 w-5" />
+                Admin Assistant
+              </CardTitle>
+              <CardDescription>
+                Streamline your administrative tasks
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2 mb-4 text-left">
+                <p className="text-sm text-gray-600">Get Job Letters</p>
+                <p className="text-sm text-gray-600">NIS Registration Assistance</p>
+                <p className="text-sm text-gray-600">Document Management</p>
+                <p className="text-sm text-gray-600">Administrative Support</p>
+              </div>
+              <Link to="/professional/profile?tab=admin-assistant">
+                <Button 
+                  variant="default"
+                  className="w-full bg-primary hover:bg-primary-600 text-white"
+                >
+                  Access Tools
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </Link>
+              <div className="pt-4">
+                <UpvoteFeatureButton
+                  featureTitle="Admin Assistant Tools"
+                  buttonText="Upvote this Feature"
+                />
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
-        {/* Professional Agency - Updated redirect */}
+        {/* Professional Agency */}
         <div className="mt-8">
           <Card className="bg-white shadow-sm">
             <CardHeader>
