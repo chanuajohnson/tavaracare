@@ -12,30 +12,38 @@ export const useUserCarePlan = () => {
   useEffect(() => {
     const loadCarePlan = async () => {
       if (!user?.id) {
+        console.log('[useUserCarePlan] No user ID, skipping load');
         setLoading(false);
         return;
       }
 
       try {
         setLoading(true);
-        console.log('Loading care plans for user:', user.id);
+        setError(null);
+        console.log('[useUserCarePlan] Loading care plans for user:', user.id);
+        
         const carePlans = await fetchCarePlans(user.id);
-        console.log('Fetched care plans:', carePlans);
+        console.log('[useUserCarePlan] Fetched care plans:', carePlans);
         
         if (carePlans && carePlans.length > 0) {
           // Get the first active care plan, or the first plan if none are active
           const activePlan = carePlans.find(plan => plan.status === 'active') || carePlans[0];
-          console.log('Selected care plan:', activePlan);
+          console.log('[useUserCarePlan] Selected care plan:', activePlan);
           setCarePlanId(activePlan.id);
           setError(null);
         } else {
-          console.log('No care plans found for user:', user.id);
+          console.log('[useUserCarePlan] No care plans found for user:', user.id);
           setCarePlanId(null);
           setError('No care plans found');
         }
-      } catch (err) {
-        console.error('Error loading care plan:', err);
-        setError('Failed to load care plan');
+      } catch (err: any) {
+        console.error('[useUserCarePlan] Error loading care plan:', err);
+        
+        if (err.message?.includes('Authentication') || err.message?.includes('auth.uid()')) {
+          setError('Authentication issue - please try logging out and back in');
+        } else {
+          setError('Failed to load care plan');
+        }
         setCarePlanId(null);
       } finally {
         setLoading(false);

@@ -1,80 +1,58 @@
-
 import { supabase } from "@/lib/supabase";
-import { CarePlan, CarePlanInput, CarePlanDto } from "@/types/carePlan";
+import { toast } from "sonner";
+import { CarePlan, CarePlanMetadata } from "@/types/carePlan";
 import { Json } from "@/utils/json";
 
-// Database interface (snake_case)
-interface DbCarePlan {
+export type CarePlanDto = {
   id: string;
-  title: string;
-  description?: string;
-  family_id: string;
-  status: string;
-  metadata?: Json;
   created_at: string;
-  updated_at?: string;
-}
-
-// Transform database format to frontend format
-const transformCarePlanFromDb = (dbPlan: DbCarePlan): CarePlan => {
-  return {
-    id: dbPlan.id,
-    title: dbPlan.title,
-    description: dbPlan.description || '',
-    familyId: dbPlan.family_id,
-    status: dbPlan.status as 'active' | 'completed' | 'cancelled',
-    metadata: dbPlan.metadata as any, // Cast Json to CarePlanMetadata
-    createdAt: dbPlan.created_at,
-    updatedAt: dbPlan.updated_at || dbPlan.created_at
-  };
+  updated_at: string;
+  title: string;
+  description: string | null;
+  family_id: string;
+  status: 'active' | 'inactive' | 'completed';
+  metadata: Json | null;
 };
 
-// Transform frontend format to database format
-const transformCarePlanToDb = (plan: Partial<CarePlan>): Partial<DbCarePlan> => {
-  const dbPlan: Partial<DbCarePlan> = {
-    title: plan.title,
-    description: plan.description,
-    status: plan.status,
-    metadata: plan.metadata as unknown as Json // Cast CarePlanMetadata to Json via unknown
-  };
-  
-  if (plan.familyId) {
-    dbPlan.family_id = plan.familyId;
-  }
-  
-  return dbPlan;
+// DTO for creating a new care plan
+export type CreateCarePlanDto = {
+  title: string;
+  description?: string | null;
+  family_id: string;
+  status?: 'active' | 'inactive' | 'completed';
+  metadata?: CarePlanMetadata;
 };
 
-export const fetchCarePlanById = async (carePlanId: string): Promise<CarePlan | null> => {
-  try {
-    console.log(`Fetching care plan with ID: ${carePlanId}`);
-    
-    const { data, error } = await supabase
-      .from('care_plans')
-      .select('*')
-      .eq('id', carePlanId)
-      .maybeSingle();
-
-    if (error) {
-      console.error('Error fetching care plan:', error);
-      throw error;
-    }
-
-    if (!data) {
-      console.log('No care plan found with ID:', carePlanId);
-      return null;
-    }
-
-    console.log('Successfully fetched care plan:', data);
-    return transformCarePlanFromDb(data);
-  } catch (error) {
-    console.error('Failed to fetch care plan:', error);
-    throw error;
-  }
+// DTO for updating an existing care plan
+export type UpdateCarePlanDto = {
+  title?: string;
+  description?: string | null;
+  status?: 'active' | 'inactive' | 'completed';
+  metadata?: CarePlanMetadata;
 };
+
+const adaptCarePlanFromDb = (dbCarePlan: CarePlanDto): CarePlan => ({
+  id: dbCarePlan.id,
+  createdAt: new Date(dbCarePlan.created_at),
+  updatedAt: new Date(dbCarePlan.updated_at),
+  title: dbCarePlan.title,
+  description: dbCarePlan.description,
+  familyId: dbCarePlan.family_id,
+  status: dbCarePlan.status,
+  metadata: dbCarePlan.metadata as CarePlanMetadata || {},
+});
 
 export const fetchCarePlans = async (familyId: string): Promise<CarePlan[]> => {
   try {
+    console.log('[fetchCarePlans] Fetching care plans for family:', familyId);
+    
+    // Verify authentication before querying
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      console.error('[fetchCarePlans] No session found');
+      throw new Error('Authentication required');
+    }
+
     const { data, error } = await supabase
       .from('care_plans')
       .select('*')
@@ -82,66 +60,147 @@ export const fetchCarePlans = async (familyId: string): Promise<CarePlan[]> => {
       .order('created_at', { ascending: false });
 
     if (error) {
-      console.error('Error fetching care plans for family:', error);
+      console.error('[fetchCarePlans] Database error:', error);
       throw error;
     }
 
-    return (data || []).map(transformCarePlanFromDb);
-  } catch (error) {
-    console.error('Failed to fetch care plans for family:', error);
-    throw error;
+    console.log('[fetchCarePlans] Successfully fetched plans:', data?.length || 0);
+    return (data || []).map(plan => adaptCarePlanFromDb(plan as CarePlanDto));
+  } catch (error: any) {
+    console.error('[fetchCarePlans] Error:', error);
+    
+    if (error.message?.includes('auth.uid()') || error.message?.includes('authentication')) {
+      toast.error("Authentication issue. Please try logging out and back in.");
+    } else {
+      toast.error("Failed to load care plans");
+    }
+    return [];
   }
 };
 
-export const fetchCarePlansForFamily = fetchCarePlans; // Alias for backward compatibility
-
-export const createCarePlan = async (carePlan: CarePlanInput): Promise<CarePlan> => {
+export const fetchCarePlanById = async (planId: string): Promise<CarePlan | null> => {
   try {
-    const dbCarePlan = {
-      title: carePlan.title,
-      description: carePlan.description,
-      family_id: carePlan.familyId,
-      status: carePlan.status,
-      metadata: carePlan.metadata as unknown as Json // Cast CarePlanMetadata to Json via unknown
-    };
+    console.log('[fetchCarePlanById] Fetching care plan:', planId);
+    console.log('[fetchCarePlanById] Environment:', window.location.hostname);
+    
+    // Verify authentication before querying
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    console.log('[fetchCarePlanById] Session check:', { 
+      hasSession: !!session, 
+      sessionUserId: session?.user?.id,
+      sessionError: sessionError?.message 
+    });
+    
+    if (!session || sessionError) {
+      console.error('[fetchCarePlanById] No valid session found');
+      throw new Error('Authentication required');
+    }
 
     const { data, error } = await supabase
       .from('care_plans')
-      .insert(dbCarePlan)
-      .select()
+      .select('*')
+      .eq('id', planId)
+      .maybeSingle();
+
+    if (error) {
+      console.error('[fetchCarePlanById] Database error:', error);
+      
+      // Check if this is an RLS policy violation
+      if (error.message?.includes('auth.uid()')) {
+        console.error('[fetchCarePlanById] RLS policy blocked - auth.uid() is null');
+        console.log('[fetchCarePlanById] This indicates a session/authentication mismatch');
+        throw new Error('Authentication session issue - please try logging out and back in');
+      }
+      
+      throw error;
+    }
+
+    console.log('[fetchCarePlanById] Query result:', { 
+      found: !!data, 
+      planId: data?.id,
+      familyId: data?.family_id 
+    });
+
+    return data ? adaptCarePlanFromDb(data as CarePlanDto) : null;
+  } catch (error: any) {
+    console.error('[fetchCarePlanById] Error:', error);
+    
+    if (error.message?.includes('Authentication') || error.message?.includes('auth.uid()')) {
+      toast.error("Authentication issue detected. Please try logging out and back in.");
+    } else if (error.message?.includes('session')) {
+      toast.error("Session expired. Please refresh and try again.");
+    } else {
+      toast.error("Failed to load care plan");
+    }
+    return null;
+  }
+};
+
+export const createCarePlan = async (carePlan: CreateCarePlanDto): Promise<CarePlan | null> => {
+  try {
+    const { data, error } = await supabase
+      .from('care_plans')
+      .insert([carePlan])
+      .select('*')
       .single();
 
     if (error) {
       console.error('Error creating care plan:', error);
-      throw error;
+      toast.error("Failed to create care plan");
+      return null;
     }
 
-    return transformCarePlanFromDb(data);
+    toast.success("Care plan created successfully!");
+    return adaptCarePlanFromDb(data as CarePlanDto);
   } catch (error) {
-    console.error('Failed to create care plan:', error);
-    throw error;
+    console.error('Error creating care plan:', error);
+    toast.error("Failed to create care plan");
+    return null;
   }
 };
 
-export const updateCarePlan = async (id: string, updates: Partial<CarePlan>): Promise<CarePlan> => {
+export const updateCarePlan = async (planId: string, updates: UpdateCarePlanDto): Promise<CarePlan | null> => {
   try {
-    const dbUpdates = transformCarePlanToDb(updates);
-
     const { data, error } = await supabase
       .from('care_plans')
-      .update(dbUpdates)
-      .eq('id', id)
-      .select()
+      .update(updates)
+      .eq('id', planId)
+      .select('*')
       .single();
 
     if (error) {
       console.error('Error updating care plan:', error);
-      throw error;
+      toast.error("Failed to update care plan");
+      return null;
     }
 
-    return transformCarePlanFromDb(data);
+    toast.success("Care plan updated successfully!");
+    return adaptCarePlanFromDb(data as CarePlanDto);
   } catch (error) {
-    console.error('Failed to update care plan:', error);
-    throw error;
+    console.error('Error updating care plan:', error);
+    toast.error("Failed to update care plan");
+    return null;
+  }
+};
+
+export const deleteCarePlan = async (planId: string): Promise<boolean> => {
+  try {
+    const { error } = await supabase
+      .from('care_plans')
+      .delete()
+      .eq('id', planId);
+
+    if (error) {
+      console.error('Error deleting care plan:', error);
+      toast.error("Failed to delete care plan");
+      return false;
+    }
+
+    toast.success("Care plan deleted successfully!");
+    return true;
+  } catch (error) {
+    console.error('Error deleting care plan:', error);
+    toast.error("Failed to delete care plan");
+    return false;
   }
 };

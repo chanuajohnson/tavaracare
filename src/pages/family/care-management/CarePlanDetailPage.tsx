@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useCarePlanData } from "@/hooks/useCarePlanData";
 import { CareTeamMemberWithProfile } from "@/types/careTypes";
 import { ChefHat } from "lucide-react";
+import { supabase } from "@/lib/supabase";
 
 import { CareTeamTab } from "@/components/care-plan/CareTeamTab";
 import { PlanDetailsTab } from "@/components/care-plan/PlanDetailsTab";
@@ -28,14 +29,82 @@ const CarePlanDetailPage = () => {
   const [searchParams] = useSearchParams();
   const [confirmRemoveDialogOpen, setConfirmRemoveDialogOpen] = useState(false);
   const [memberToRemove, setMemberToRemove] = useState<CareTeamMemberWithProfile | null>(null);
+  const [authVerified, setAuthVerified] = useState(false);
 
   // Get the tab from URL parameters, default to 'details'
   const initialTab = searchParams.get('tab') || 'details';
   const [activeTab, setActiveTab] = useState(initialTab);
 
+  // Verify authentication and debug auth state
+  useEffect(() => {
+    const verifyAuth = async () => {
+      console.log('[CarePlanDetailPage] Auth verification started');
+      console.log('[CarePlanDetailPage] Frontend user state:', { 
+        hasUser: !!user, 
+        userId: user?.id,
+        environment: window.location.hostname
+      });
+
+      if (!user) {
+        console.log('[CarePlanDetailPage] No user, redirecting to auth');
+        navigate('/auth');
+        return;
+      }
+
+      try {
+        // Verify Supabase session
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        console.log('[CarePlanDetailPage] Supabase session check:', { 
+          hasSession: !!session, 
+          sessionUserId: session?.user?.id,
+          sessionError: sessionError?.message 
+        });
+
+        if (!session || sessionError) {
+          console.error('[CarePlanDetailPage] Session verification failed:', sessionError);
+          navigate('/auth');
+          return;
+        }
+
+        // Test auth.uid() function directly
+        const { data: testData, error: testError } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('id', user.id)
+          .limit(1);
+
+        console.log('[CarePlanDetailPage] Auth.uid() test query:', { 
+          testData, 
+          testError: testError?.message 
+        });
+
+        if (testError && testError.message.includes('auth.uid()')) {
+          console.error('[CarePlanDetailPage] auth.uid() is null - authentication session issue');
+          // Try to refresh the session
+          const { error: refreshError } = await supabase.auth.refreshSession();
+          if (refreshError) {
+            console.error('[CarePlanDetailPage] Session refresh failed:', refreshError);
+            navigate('/auth');
+            return;
+          }
+        }
+
+        setAuthVerified(true);
+      } catch (error) {
+        console.error('[CarePlanDetailPage] Auth verification error:', error);
+        navigate('/auth');
+      }
+    };
+
+    if (!authLoading && user) {
+      verifyAuth();
+    }
+  }, [user, authLoading, navigate]);
+
   // Redirect to auth if user is not authenticated
   useEffect(() => {
     if (!authLoading && !user) {
+      console.log('[CarePlanDetailPage] Redirecting to auth - no user');
       navigate('/auth');
       return;
     }
@@ -43,12 +112,20 @@ const CarePlanDetailPage = () => {
 
   // Don't render anything while auth is loading or user is null
   if (authLoading || !user) {
+    console.log('[CarePlanDetailPage] Rendering loading state - auth loading or no user');
     return <CarePlanLoadingState />;
   }
 
   // Don't render if no care plan ID
   if (!id) {
+    console.log('[CarePlanDetailPage] No care plan ID provided');
     return <CarePlanNotFound />;
+  }
+
+  // Don't render until auth is verified
+  if (!authVerified) {
+    console.log('[CarePlanDetailPage] Rendering loading state - auth not verified');
+    return <CarePlanLoadingState />;
   }
 
   const {
@@ -63,7 +140,7 @@ const CarePlanDetailPage = () => {
     reloadCareShifts,
   } = useCarePlanData({
     carePlanId: id,
-    userId: user.id, // Now we're guaranteed user exists
+    userId: user.id,
   });
 
   // Update active tab when URL parameter changes
@@ -72,15 +149,19 @@ const CarePlanDetailPage = () => {
     if (tabFromUrl && tabFromUrl !== activeTab) {
       setActiveTab(tabFromUrl);
     }
-  }, [searchParams]);
+  }, [searchParams, activeTab]);
 
   if (loading) {
+    console.log('[CarePlanDetailPage] Care plan data loading');
     return <CarePlanLoadingState />;
   }
 
   if (!carePlan) {
+    console.log('[CarePlanDetailPage] No care plan found');
     return <CarePlanNotFound />;
   }
+
+  console.log('[CarePlanDetailPage] Rendering care plan:', carePlan.id);
 
   return (
     <div className="min-h-screen bg-background">
