@@ -1,20 +1,25 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { MiniJourneyProgress } from './MiniJourneyProgress';
+import { UserDetailModal } from './UserDetailModal';
 import { UserWithProgress } from '@/types/adminTypes';
-import { Users, User, Building, Shield } from 'lucide-react';
+import { Users, User, Building, Shield, Mail, Phone, MapPin } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 interface RoleBasedUserGridProps {
   users: UserWithProgress[];
   selectedUsers: string[];
   onUserSelect: (userId: string, checked: boolean) => void;
+  onRefresh?: () => void;
 }
 
-export function RoleBasedUserGrid({ users, selectedUsers, onUserSelect }: RoleBasedUserGridProps) {
+export function RoleBasedUserGrid({ users, selectedUsers, onUserSelect, onRefresh }: RoleBasedUserGridProps) {
+  const [selectedUser, setSelectedUser] = useState<UserWithProgress | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
   const getRoleIcon = (role: string) => {
     switch (role) {
       case 'family': return <Users className="h-5 w-5 text-blue-600" />;
@@ -35,6 +40,11 @@ export function RoleBasedUserGrid({ users, selectedUsers, onUserSelect }: RoleBa
     }
   };
 
+  const handleUserClick = (user: UserWithProgress) => {
+    setSelectedUser(user);
+    setIsModalOpen(true);
+  };
+
   const roleGroups = {
     family: users.filter(user => user.role === 'family'),
     professional: users.filter(user => user.role === 'professional'),
@@ -47,24 +57,53 @@ export function RoleBasedUserGrid({ users, selectedUsers, onUserSelect }: RoleBa
       key={user.id}
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
-      className="border rounded-lg p-3 bg-white hover:shadow-md transition-shadow"
+      className="border rounded-lg p-4 bg-white hover:shadow-md transition-shadow cursor-pointer"
+      onClick={() => handleUserClick(user)}
     >
-      <div className="flex items-start gap-3">
-        <Checkbox
-          checked={selectedUsers.includes(user.id)}
-          onCheckedChange={(checked) => onUserSelect(user.id, checked as boolean)}
-          className="mt-1"
-        />
+      <div className="space-y-3">
+        <div className="flex items-start justify-between">
+          <Checkbox
+            checked={selectedUsers.includes(user.id)}
+            onCheckedChange={(checked) => {
+              onUserSelect(user.id, checked as boolean);
+            }}
+            onClick={(e) => e.stopPropagation()}
+            className="shrink-0"
+          />
+          
+          <Badge variant="outline" className="text-xs">
+            {user.role}
+          </Badge>
+        </div>
         
-        <div className="flex-1 min-w-0 space-y-2">
-          <div>
-            <h4 className="text-sm font-medium text-gray-900 truncate">
-              {user.full_name || 'Unnamed User'}
-            </h4>
-            <p className="text-xs text-gray-500 truncate">{user.email}</p>
-            {user.location && (
-              <p className="text-xs text-gray-400 truncate">{user.location}</p>
+        <div className="space-y-2">
+          <h4 className="text-sm font-medium text-gray-900 truncate">
+            {user.full_name || 'Unnamed User'}
+          </h4>
+          
+          <div className="space-y-1">
+            <div className="flex items-center gap-2 text-xs text-gray-500">
+              <Mail className="h-3 w-3" />
+              <span className="truncate">{user.email}</span>
+            </div>
+            
+            {user.phone_number && (
+              <div className="flex items-center gap-2 text-xs text-gray-500">
+                <Phone className="h-3 w-3" />
+                <span className="truncate">{user.phone_number}</span>
+              </div>
             )}
+            
+            {user.location && (
+              <div className="flex items-center gap-2 text-xs text-gray-500">
+                <MapPin className="h-3 w-3" />
+                <span className="truncate">{user.location}</span>
+              </div>
+            )}
+            
+            <div className="text-xs text-gray-400">
+              ID: {user.id.slice(0, 8)}...
+            </div>
           </div>
           
           <MiniJourneyProgress 
@@ -93,7 +132,7 @@ export function RoleBasedUserGrid({ users, selectedUsers, onUserSelect }: RoleBa
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-3">
+          <div className="grid grid-cols-3 gap-4">
             {roleUsers.map(renderUserCard)}
           </div>
         </CardContent>
@@ -114,6 +153,13 @@ export function RoleBasedUserGrid({ users, selectedUsers, onUserSelect }: RoleBa
           <p>No users found matching your criteria.</p>
         </div>
       )}
+
+      <UserDetailModal
+        user={selectedUser}
+        open={isModalOpen}
+        onOpenChange={setIsModalOpen}
+        onRefresh={onRefresh || (() => {})}
+      />
     </div>
   );
 };
