@@ -1,42 +1,21 @@
+
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Link, useSearchParams } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { supabase } from "@/lib/supabase";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Separator } from "@/components/ui/separator";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
-import { ProfessionalScheduleView } from "@/components/professional/ProfessionalScheduleView";
-import { MedicationDashboard } from "@/components/professional/MedicationDashboard";
-import { CarePlanMealPlanner } from "@/components/meal-planning/CarePlanMealPlanner";
-import { 
-  User, 
-  MapPin, 
-  Phone, 
-  Mail, 
-  Star, 
-  Calendar, 
-  Users, 
-  FileText, 
-  Settings, 
-  Award,
-  ArrowRight,
-  Clock,
-  DollarSign,
-  CheckCircle,
-  AlertCircle,
-  Pill,
-  ChefHat,
-  Shield
-} from "lucide-react";
+import { TrainingProgramSection } from "@/components/professional/TrainingProgramSection";
+import { TrainingModulesSection } from "@/components/professional/TrainingModulesSection";
+import { TrainingProgressTracker } from "@/components/professional/TrainingProgressTracker";
+import { ProfileHeaderSection } from "@/components/professional/profile/ProfileHeaderSection";
+import { CarePlanSelector } from "@/components/professional/profile/CarePlanSelector";
+import { AdminAssistantCard } from "@/components/professional/profile/AdminAssistantCard";
+import { ActionCardsGrid } from "@/components/professional/profile/ActionCardsGrid";
+import { CarePlanTabs } from "@/components/professional/profile/CarePlanTabs";
+import { Award } from "lucide-react";
 import { toast } from "sonner";
-import { CertificateUpload } from "@/components/professional/CertificateUpload";
-import { HorizontalTabs, HorizontalTabsList, HorizontalTabsTrigger, HorizontalTabsContent } from "@/components/ui/horizontal-scroll-tabs";
 
 // Types for the data structures
 interface ProfessionalDetails {
@@ -108,6 +87,7 @@ const ProfessionalProfileHub = () => {
   const [loading, setLoading] = useState(true);
   const [selectedCarePlanId, setSelectedCarePlanId] = useState<string | null>(null);
   const [careTeamMembers, setCareTeamMembers] = useState<CareTeamMember[]>([]);
+  const [isTrainingExpanded, setIsTrainingExpanded] = useState(false);
   
   // Get initial tab from URL params, default to "schedule"
   const tabFromUrl = searchParams.get('tab');
@@ -155,6 +135,14 @@ const ProfessionalProfileHub = () => {
       fetchCareTeamMembers(selectedCarePlanId);
     }
   }, [selectedCarePlanId]);
+
+  // Update active tab when URL changes
+  useEffect(() => {
+    const urlTab = searchParams.get('tab');
+    if (urlTab && urlTab !== activeTab) {
+      setActiveTab(urlTab);
+    }
+  }, [searchParams]);
 
   const fetchProfessionalProfile = async () => {
     try {
@@ -380,326 +368,71 @@ const ProfessionalProfileHub = () => {
           transition={{ duration: 0.5 }}
           className="space-y-6"
         >
-          {/* Header Section */}
-          <div className="flex flex-col lg:flex-row gap-6">
-            {/* Profile Overview Card */}
-            <Card className="flex-1">
-              <CardHeader>
-                <div className="flex items-start gap-4">
-                  <Avatar className="h-20 w-20">
-                    <AvatarImage src={profile?.avatar_url || ''} />
-                    <AvatarFallback className="bg-primary text-white text-lg">
-                      {getInitials(profile?.full_name || 'Professional')}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1">
-                    <CardTitle className="text-2xl">{profile?.full_name || 'Professional'}</CardTitle>
-                    <CardDescription className="text-base mt-1">
-                      {getProfessionalTypeLabel(profile?.professional_type || 'other')}
-                    </CardDescription>
-                    <div className="flex flex-wrap gap-2 mt-3">
-                      <Badge variant="secondary" className="text-xs">
-                        {profile?.role === 'professional' ? 'Professional' : 'Caregiver'}
-                      </Badge>
-                      {profile?.years_of_experience && (
-                        <Badge variant="outline" className="text-xs">
-                          {profile.years_of_experience} Experience
-                        </Badge>
-                      )}
-                      {profile?.legally_authorized && (
-                        <Badge variant="outline" className="text-xs text-green-600">
-                          <CheckCircle className="h-3 w-3 mr-1" />
-                          Authorized
-                        </Badge>
-                      )}
-                    </div>
-                  </div>
-                  <Link to="/professional/profile/edit">
-                    <Button variant="outline" size="sm">
-                      <Settings className="h-4 w-4 mr-2" />
-                      Edit Profile
-                    </Button>
-                  </Link>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {profile?.phone_number && (
-                    <div className="flex items-center gap-2">
-                      <Phone className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm">{profile.phone_number}</span>
-                    </div>
-                  )}
-                  {user?.email && (
-                    <div className="flex items-center gap-2">
-                      <Mail className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm">{user.email}</span>
-                    </div>
-                  )}
-                  {profile?.location && (
-                    <div className="flex items-center gap-2">
-                      <MapPin className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm">{profile.location}</span>
-                    </div>
-                  )}
-                  {profile?.hourly_rate && (
-                    <div className="flex items-center gap-2">
-                      <DollarSign className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm">{profile.hourly_rate}/hour</span>
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Quick Stats Card */}
-            <Card className="lg:w-80">
-              <CardHeader>
-                <CardTitle className="text-lg">Quick Stats</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Users className="h-4 w-4 text-primary" />
-                      <span className="text-sm">Active Care Plans</span>
-                    </div>
-                    <Badge variant="secondary">
-                      {carePlanAssignments.filter(a => a.status === 'active').length}
-                    </Badge>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Clock className="h-4 w-4 text-primary" />
-                      <span className="text-sm">This Week</span>
-                    </div>
-                    <Badge variant="outline">0 hrs</Badge>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Star className="h-4 w-4 text-primary" />
-                      <span className="text-sm">Rating</span>
-                    </div>
-                    <Badge variant="outline">New</Badge>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+          {/* Profile Header Section */}
+          <ProfileHeaderSection 
+            profile={profile} 
+            user={user} 
+            carePlanAssignments={carePlanAssignments} 
+          />
 
           {/* Care Plan Selection */}
-          {carePlanAssignments.length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Select Care Plan</CardTitle>
-                <CardDescription>Choose a care plan to manage its schedule, medications, and meal planning</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Select value={selectedCarePlanId || ''} onValueChange={setSelectedCarePlanId}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a care plan..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {carePlanAssignments.map((assignment) => (
-                      <SelectItem key={assignment.id} value={assignment.carePlanId}>
-                        <div className="flex items-center gap-2">
-                          <span>{assignment.carePlan?.title || 'Unnamed Care Plan'}</span>
-                          <Badge variant="outline" className="text-xs">
-                            {assignment.carePlan?.familyProfile?.fullName || 'Unknown Family'}
-                          </Badge>
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </CardContent>
-            </Card>
-          )}
+          <CarePlanSelector 
+            carePlanAssignments={carePlanAssignments}
+            selectedCarePlanId={selectedCarePlanId}
+            onSelectCarePlan={setSelectedCarePlanId}
+          />
 
           {/* Tabs for Different Views */}
           {selectedCarePlanId && (
-            <HorizontalTabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-              <HorizontalTabsList className="grid w-full grid-cols-5 lg:grid-cols-5">
-                <HorizontalTabsTrigger value="schedule" className="flex items-center gap-2">
-                  <Calendar className="h-4 w-4" />
-                  <span className="hidden sm:inline">Schedule</span>
-                </HorizontalTabsTrigger>
-                <HorizontalTabsTrigger value="medications" className="flex items-center gap-2">
-                  <Pill className="h-4 w-4" />
-                  <span className="hidden sm:inline">Medications</span>
-                </HorizontalTabsTrigger>
-                <HorizontalTabsTrigger value="meals" className="flex items-center gap-2">
-                  <ChefHat className="h-4 w-4" />
-                  <span className="hidden sm:inline">Meal Planning</span>
-                </HorizontalTabsTrigger>
-                <HorizontalTabsTrigger value="admin-assist" className="flex items-center gap-2">
-                  <Shield className="h-4 w-4" />
-                  <span className="hidden sm:inline">Admin Assist</span>
-                </HorizontalTabsTrigger>
-                <HorizontalTabsTrigger value="documents" className="flex items-center gap-2">
-                  <FileText className="h-4 w-4" />
-                  <span className="hidden sm:inline">Documents</span>
-                </HorizontalTabsTrigger>
-              </HorizontalTabsList>
-
-              <HorizontalTabsContent value="schedule" className="space-y-6">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Calendar className="h-5 w-5 text-primary" />
-                      Upcoming Schedule
-                      {selectedCarePlan && (
-                        <Badge variant="outline" className="ml-2">
-                          {selectedCarePlan.carePlan?.title}
-                        </Badge>
-                      )}
-                    </CardTitle>
-                    <CardDescription>
-                      Your upcoming shifts and care plan schedule
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <ProfessionalScheduleView 
-                      carePlanId={selectedCarePlanId}
-                      loading={loading}
-                    />
-                  </CardContent>
-                </Card>
-              </HorizontalTabsContent>
-
-              <HorizontalTabsContent value="medications" className="space-y-6">
-                <MedicationDashboard />
-              </HorizontalTabsContent>
-
-              <HorizontalTabsContent value="meals" className="space-y-6">
-                <CarePlanMealPlanner 
-                  carePlanId={selectedCarePlanId}
-                  carePlanTitle={selectedCarePlan?.carePlan?.title || 'Care Plan'}
-                />
-              </HorizontalTabsContent>
-
-              <HorizontalTabsContent value="admin-assist" className="space-y-6">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Shield className="h-5 w-5 text-primary" />
-                      Administrative Assistance
-                    </CardTitle>
-                    <CardDescription>
-                      Tools and resources to help with administrative tasks
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                      <Card>
-                        <CardContent className="pt-6">
-                          <div className="flex items-center gap-3">
-                            <div className="bg-primary/10 p-3 rounded-full">
-                              <FileText className="h-6 w-6 text-primary" />
-                            </div>
-                            <div>
-                              <h3 className="font-medium">Care Plan Documentation</h3>
-                              <p className="text-sm text-muted-foreground">Generate care reports</p>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                      
-                      <Card>
-                        <CardContent className="pt-6">
-                          <div className="flex items-center gap-3">
-                            <div className="bg-primary/10 p-3 rounded-full">
-                              <CheckCircle className="h-6 w-6 text-primary" />
-                            </div>
-                            <div>
-                              <h3 className="font-medium">Compliance Tracking</h3>
-                              <p className="text-sm text-muted-foreground">Monitor compliance status</p>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-
-                      <Card>
-                        <CardContent className="pt-6">
-                          <div className="flex items-center gap-3">
-                            <div className="bg-primary/10 p-3 rounded-full">
-                              <Settings className="h-6 w-6 text-primary" />
-                            </div>
-                            <div>
-                              <h3 className="font-medium">Task Management</h3>
-                              <p className="text-sm text-muted-foreground">Organize admin tasks</p>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    </div>
-                  </CardContent>
-                </Card>
-              </HorizontalTabsContent>
-
-              <HorizontalTabsContent value="documents" className="space-y-6">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <FileText className="h-5 w-5 text-primary" />
-                      Document Management
-                    </CardTitle>
-                    <CardDescription>
-                      Upload and manage your professional documents
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <CertificateUpload onUploadSuccess={handleCertificateUploadSuccess} />
-                  </CardContent>
-                </Card>
-              </HorizontalTabsContent>
-            </HorizontalTabs>
+            <CarePlanTabs 
+              activeTab={activeTab}
+              onTabChange={setActiveTab}
+              selectedCarePlanId={selectedCarePlanId}
+              selectedCarePlan={selectedCarePlan}
+              loading={loading}
+              onCertificateUploadSuccess={handleCertificateUploadSuccess}
+            />
           )}
 
+          {/* Admin Assistant Card - Full Width */}
+          <AdminAssistantCard />
+
           {/* Action Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Card>
-              <CardContent className="pt-6">
-                <div className="flex items-center gap-3">
-                  <div className="bg-primary/10 p-3 rounded-full">
-                    <FileText className="h-6 w-6 text-primary" />
-                  </div>
-                  <div>
-                    <h3 className="font-medium">Work Logs</h3>
-                    <p className="text-sm text-muted-foreground">Log your hours</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+          <ActionCardsGrid 
+            isTrainingExpanded={isTrainingExpanded}
+            onToggleTraining={() => setIsTrainingExpanded(!isTrainingExpanded)}
+          />
 
-            <Card>
-              <CardContent className="pt-6">
-                <div className="flex items-center gap-3">
-                  <div className="bg-primary/10 p-3 rounded-full">
-                    <Award className="h-6 w-6 text-primary" />
+          {/* Training Content - Expandable Section with Training Progress */}
+          {isTrainingExpanded && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.3 }}
+              className="overflow-hidden"
+            >
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Award className="h-5 w-5 text-primary-600" />
+                    Comprehensive Training Program
+                  </CardTitle>
+                  <CardDescription>
+                    A three-step approach blending self-paced learning, hands-on experience, and career development
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-8">
+                    {/* Training Progress Tracker - Now inside the expandable section */}
+                    <TrainingProgressTracker />
+                    <TrainingProgramSection />
+                    <TrainingModulesSection />
                   </div>
-                  <div>
-                    <h3 className="font-medium">Training</h3>
-                    <p className="text-sm text-muted-foreground">Continue learning</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="pt-6">
-                <div className="flex items-center gap-3">
-                  <div className="bg-primary/10 p-3 rounded-full">
-                    <Users className="h-6 w-6 text-primary" />
-                  </div>
-                  <div>
-                    <h3 className="font-medium">Community</h3>
-                    <p className="text-sm text-muted-foreground">Connect with peers</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          )}
         </motion.div>
       </div>
     </div>

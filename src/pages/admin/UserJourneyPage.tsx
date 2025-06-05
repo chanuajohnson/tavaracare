@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { supabase } from "@/lib/supabase";
@@ -14,13 +13,11 @@ const UserJourneyPage = () => {
   const [userId, setUserId] = useState<string>("");
   const [journeyData, setJourneyData] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [userRole, setUserRole] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
   const { user } = useAuth();
   
   const breadcrumbItems = [
-    {
-      label: "Dashboard",
-      path: "/dashboard",
-    },
     {
       label: "Admin",
       path: "/dashboard/admin",
@@ -30,6 +27,34 @@ const UserJourneyPage = () => {
       path: "/admin/user-journey",
     },
   ];
+
+  // Check if current user is an admin
+  useEffect(() => {
+    const checkAdminRole = async () => {
+      if (user?.id) {
+        try {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('role')
+            .eq('id', user.id)
+            .maybeSingle();
+          
+          setUserRole(profile?.role || null);
+          
+          // Auto-fill with current user ID if admin for testing
+          if (profile?.role === 'admin') {
+            setUserId(user.id);
+          }
+        } catch (error) {
+          console.error('Error checking user role:', error);
+          setUserRole(null);
+        }
+      }
+      setLoading(false);
+    };
+
+    checkAdminRole();
+  }, [user?.id]);
 
   const fetchUserJourneyData = async () => {
     if (!userId.trim()) {
@@ -101,12 +126,25 @@ const UserJourneyPage = () => {
     }
   };
 
-  // Automatically fill in the restricted user ID if current user is admin
-  useEffect(() => {
-    if (user?.id === '605540d7-ae87-4a7c-9bd0-5699937f0670') {
-      setUserId('605540d7-ae87-4a7c-9bd0-5699937f0670');
-    }
-  }, [user]);
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  // Only show admin content if user is actually an admin
+  if (userRole !== 'admin') {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-gray-900 mb-4">Access Denied</h1>
+          <p className="text-gray-600">You don't have permission to access user journey analytics.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -153,17 +191,15 @@ const UserJourneyPage = () => {
               </Button>
               
               {/* Debug button for adding a test record */}
-              {user?.id === '605540d7-ae87-4a7c-9bd0-5699937f0670' && (
-                <Button 
-                  onClick={addTestRecord} 
-                  disabled={isLoading}
-                  variant="outline"
-                  className="flex items-center gap-2"
-                >
-                  <Plus className="h-4 w-4" />
-                  Add Test Record
-                </Button>
-              )}
+              <Button 
+                onClick={addTestRecord} 
+                disabled={isLoading}
+                variant="outline"
+                className="flex items-center gap-2"
+              >
+                <Plus className="h-4 w-4" />
+                Add Test Record
+              </Button>
             </div>
           </CardContent>
         </Card>

@@ -24,7 +24,7 @@ import { MealPlanner } from "@/components/meal-planning/MealPlanner";
 const CarePlanDetailPage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, isLoading: authLoading } = useAuth();
   const [searchParams] = useSearchParams();
   const [confirmRemoveDialogOpen, setConfirmRemoveDialogOpen] = useState(false);
   const [memberToRemove, setMemberToRemove] = useState<CareTeamMemberWithProfile | null>(null);
@@ -33,8 +33,34 @@ const CarePlanDetailPage = () => {
   const initialTab = searchParams.get('tab') || 'details';
   const [activeTab, setActiveTab] = useState(initialTab);
 
+  // Simplified auth verification
+  useEffect(() => {
+    if (!authLoading && !user) {
+      console.log('[CarePlanDetailPage] No authenticated user, redirecting to auth');
+      navigate('/auth');
+    }
+  }, [user, authLoading, navigate]);
+
+  // Don't render anything while auth is loading or user is null
+  if (authLoading) {
+    console.log('[CarePlanDetailPage] Auth loading...');
+    return <CarePlanLoadingState />;
+  }
+
+  if (!user) {
+    console.log('[CarePlanDetailPage] No user authenticated');
+    return <CarePlanLoadingState />;
+  }
+
+  // Don't render if no care plan ID
+  if (!id) {
+    console.log('[CarePlanDetailPage] No care plan ID provided');
+    return <CarePlanNotFound />;
+  }
+
   const {
     loading,
+    error,
     carePlan,
     careTeamMembers,
     careShifts,
@@ -44,8 +70,8 @@ const CarePlanDetailPage = () => {
     reloadCareTeamMembers,
     reloadCareShifts,
   } = useCarePlanData({
-    carePlanId: id!,
-    userId: user!.id,
+    carePlanId: id,
+    userId: user.id,
   });
 
   // Update active tab when URL parameter changes
@@ -54,15 +80,24 @@ const CarePlanDetailPage = () => {
     if (tabFromUrl && tabFromUrl !== activeTab) {
       setActiveTab(tabFromUrl);
     }
-  }, [searchParams]);
+  }, [searchParams, activeTab]);
 
   if (loading) {
+    console.log('[CarePlanDetailPage] Care plan data loading');
     return <CarePlanLoadingState />;
   }
 
-  if (!carePlan) {
+  if (error) {
+    console.error('[CarePlanDetailPage] Error loading care plan:', error);
     return <CarePlanNotFound />;
   }
+
+  if (!carePlan) {
+    console.log('[CarePlanDetailPage] No care plan found');
+    return <CarePlanNotFound />;
+  }
+
+  console.log('[CarePlanDetailPage] Rendering care plan:', carePlan.id);
 
   return (
     <div className="min-h-screen bg-background">
@@ -91,8 +126,8 @@ const CarePlanDetailPage = () => {
           
           <TabsContent value="team">
             <CareTeamTab 
-              carePlanId={id!}
-              familyId={user!.id}
+              carePlanId={id}
+              familyId={user.id}
               careTeamMembers={careTeamMembers}
               professionals={professionals}
               onMemberAdded={reloadCareTeamMembers}
@@ -104,17 +139,17 @@ const CarePlanDetailPage = () => {
           </TabsContent>
 
           <TabsContent value="medications">
-            <MedicationsTab carePlanId={id!} />
+            <MedicationsTab carePlanId={id} />
           </TabsContent>
 
           <TabsContent value="meals">
-            <MealPlanner carePlanId={id!} />
+            <MealPlanner carePlanId={id} />
           </TabsContent>
           
           <TabsContent value="schedule">
             <EnhancedScheduleTab
-              carePlanId={id!}
-              familyId={user!.id}
+              carePlanId={id}
+              familyId={user.id}
               careShifts={careShifts}
               careTeamMembers={careTeamMembers}
               onShiftUpdated={reloadCareShifts}
@@ -123,11 +158,11 @@ const CarePlanDetailPage = () => {
           </TabsContent>
 
           <TabsContent value="reports">
-            <MedicationReportsTab carePlanId={id!} />
+            <MedicationReportsTab carePlanId={id} />
           </TabsContent>
           
           <TabsContent value="payroll">
-            <PayrollTab carePlanId={id!} />
+            <PayrollTab carePlanId={id} />
           </TabsContent>
         </Tabs>
       </Container>

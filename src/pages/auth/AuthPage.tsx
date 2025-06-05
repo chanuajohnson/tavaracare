@@ -25,13 +25,19 @@ export default function AuthPage() {
       return;
     }
 
-    const urlParams = new URLSearchParams(window.location.search);
-    const action = urlParams.get('action');
-    
-    if (action === 'verification-pending') {
-      setActiveTab("login");
-      toast.info("Please check your email and click the verification link to continue.");
-    }
+   const urlParams = new URLSearchParams(window.location.search);
+const action = urlParams.get('action');
+const tab = urlParams.get('tab');
+
+if (action === 'verification-pending') {
+  setActiveTab("login");
+  toast.info("Please check your email and click the verification link to continue.");
+} else if (tab === 'signup') {
+  setActiveTab("signup");
+} else if (tab === 'login') {
+  setActiveTab("login");
+}
+
   }, [user, navigate]);
 
   const handleLogin = async (email: string, password: string) => {

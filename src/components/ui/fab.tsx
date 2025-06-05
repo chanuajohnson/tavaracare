@@ -1,7 +1,6 @@
-
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { HelpCircle, X, MessageSquare, FileQuestion, Phone, Loader2 } from 'lucide-react';
+import { HelpCircle, X, FileQuestion, Phone, Loader2, MessageSquare } from 'lucide-react';
 import { cn } from "@/lib/utils";
 import {
   DropdownMenu,
@@ -13,9 +12,10 @@ import { Link, useNavigate } from "react-router-dom";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
-import { useChat } from "@/components/chatbot/ChatProvider";
-import { ChatbotWidget } from "@/components/chatbot/ChatbotWidget";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { FeedbackForm } from "@/components/ui/feedback-form";
+import { validateChatInput } from "@/services/chat/utils/inputValidation";
+import { useAuth } from "@/components/providers/AuthProvider";
 
 interface FabProps {
   icon?: React.ReactNode;
@@ -36,34 +36,22 @@ export const Fab = ({
 }: FabProps) => {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
+  const { user } = useAuth();
   const [isContactFormOpen, setIsContactFormOpen] = useState(false);
+  const [isFeedbackFormOpen, setIsFeedbackFormOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isChatOpen, setIsChatOpen] = useState(false);
   const [contactFormData, setContactFormData] = useState({
+    name: "",
+    email: "",
+    message: "",
+  });
+  const [formErrors, setFormErrors] = useState({
     name: "",
     email: "",
     message: "",
   });
   const [screenshotFile, setScreenshotFile] = useState<File | null>(null);
   const [prefillData, setPrefillData] = useState<any>(null);
-  
-  // Try to access the chat context, with a fallback for when context isn't available
-  let chatContextAvailable = true;
-  let openChat: () => void;
-  let closeChat: () => void;
-  
-  try {
-    // Attempt to use the ChatProvider context
-    const chatContext = useChat();
-    openChat = chatContext.openChat;
-    closeChat = chatContext.closeChat;
-  } catch (error) {
-    // Fallback if no ChatProvider is available
-    console.error("Chat context not available in Fab:", error);
-    chatContextAvailable = false;
-    openChat = () => console.error("Chat context not available");
-    closeChat = () => console.error("Chat context not available");
-  }
 
   const positionClasses = {
     "bottom-right": "bottom-6 right-6",
@@ -77,11 +65,6 @@ export const Fab = ({
     const handleOpenContactForm = (event: CustomEvent) => {
       setIsContactFormOpen(true);
       
-      // Close chat if it's open
-      if (isChatOpen) {
-        setIsChatOpen(false);
-      }
-      
       // If we received prefill data from the chat
       if (event.detail?.prefillData) {
         setPrefillData(event.detail.prefillData);
@@ -90,7 +73,7 @@ export const Fab = ({
         if (event.detail.fromChat) {
           setContactFormData(prev => ({
             ...prev,
-            message: `[Request from chat] I'd like to speak with a representative about Tavara.care services.${
+            message: `[Request from TAV] I'd like to speak with a representative about Tavara.care services.${
               event.detail.prefillData.role ? ` I'm interested as a ${event.detail.prefillData.role}.` : ''
             }`
           }));
@@ -103,7 +86,35 @@ export const Fab = ({
     return () => {
       window.removeEventListener('tavara:open-contact-form', handleOpenContactForm as EventListener);
     };
-  }, [isChatOpen]);
+  }, []);
+
+  const validateForm = () => {
+    const errors = {
+      name: "",
+      email: "",
+      message: "",
+    };
+
+    // Validate name
+    const nameValidation = validateChatInput(contactFormData.name, "name");
+    if (!nameValidation.isValid) {
+      errors.name = nameValidation.errorMessage || "Name is required";
+    }
+
+    // Validate email
+    const emailValidation = validateChatInput(contactFormData.email, "email");
+    if (!emailValidation.isValid) {
+      errors.email = emailValidation.errorMessage || "Valid email is required";
+    }
+
+    // Validate message
+    if (!contactFormData.message.trim()) {
+      errors.message = "Message is required";
+    }
+
+    setFormErrors(errors);
+    return !errors.name && !errors.email && !errors.message;
+  };
 
   const handleOpenWhatsApp = () => {
     const phoneNumber = "+18687865357";
@@ -115,78 +126,67 @@ export const Fab = ({
     navigate("/faq");
   };
 
-  const toggleChat = () => {
-    // Use the ChatProvider context methods if available
-    if (chatContextAvailable) {
-      if (isChatOpen) {
-        closeChat();
-      } else {
-        openChat();
-      }
-    }
-    
-    // Also update the local state to control the chat widget visibility in this component
-    setIsChatOpen(prev => !prev);
-    
-    // Close contact form if open
-    if (isContactFormOpen) {
-      setIsContactFormOpen(false);
-    }
-  };
-
   const handleContactFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!validateForm()) {
+      toast.error("Please fix the errors in the form");
+      return;
+    }
     
     try {
       setIsSubmitting(true);
       
-      // Validate form
-      if (!contactFormData.name || !contactFormData.email || !contactFormData.message) {
-        toast.error("Please fill out all required fields");
-        setIsSubmitting(false);
-        return;
-      }
-      
-      // Prepare the data to send
-      const formData = { 
-        ...contactFormData,
-        // Add any chat session data if it exists
-        ...(prefillData ? { chatData: prefillData } : {})
-      };
-      
-      // Handle screenshot if provided
+      // Convert screenshot to base64 if provided
+      let screenshotBase64 = null;
       if (screenshotFile) {
-        // Convert screenshot to base64
         const reader = new FileReader();
-        const base64Screenshot = await new Promise<string>((resolve) => {
+        screenshotBase64 = await new Promise<string>((resolve) => {
           reader.onloadend = () => {
             resolve(reader.result as string);
           };
           reader.readAsDataURL(screenshotFile);
         });
-        
-        // Add screenshot to form data
-        formData["screenshot"] = base64Screenshot;
       }
       
-      // Send form data to Edge Function
-      const { data, error } = await supabase.functions.invoke("send-contact-email", {
-        body: formData,
-      });
-      
+      // Store contact request directly in database
+      const { error } = await supabase
+        .from('user_feedback')
+        .insert({
+          user_id: user?.id || null,
+          feedback_type: 'general',
+          category: 'contact_support',
+          subject: 'Contact Support Request',
+          message: contactFormData.message,
+          contact_info: {
+            name: contactFormData.name,
+            email: contactFormData.email
+          },
+          metadata: {
+            source: 'contact_form',
+            screenshot: screenshotBase64 || null,
+            chatData: prefillData || null,
+            timestamp: new Date().toISOString(),
+            userAgent: navigator.userAgent || 'Unknown'
+          },
+          status: 'new',
+          priority: 'medium'
+        });
+
       if (error) {
-        throw new Error(error.message || "Failed to send support request");
+        throw new Error(error.message || "Failed to store contact request");
       }
       
-      console.log("Contact form submitted successfully:", data);
+      console.log("Contact form submitted successfully");
       toast.success("Your support request has been submitted. We'll get back to you soon!");
       
       // Reset form
       setContactFormData({ name: "", email: "", message: "" });
+      setFormErrors({ name: "", email: "", message: "" });
       setScreenshotFile(null);
       setPrefillData(null);
       setIsContactFormOpen(false);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error submitting contact form:", error);
       toast.error(error.message || "Failed to send support request. Please try again later.");
     } finally {
@@ -199,6 +199,11 @@ export const Fab = ({
   ) => {
     const { name, value } = e.target;
     setContactFormData((prev) => ({ ...prev, [name]: value }));
+    
+    // Clear error when user starts typing
+    if (formErrors[name as keyof typeof formErrors]) {
+      setFormErrors(prev => ({ ...prev, [name]: "" }));
+    }
   };
   
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -270,19 +275,20 @@ export const Fab = ({
                 className="flex items-center gap-2 cursor-pointer p-3 text-base"
                 onClick={() => setIsContactFormOpen(true)}
               >
-                <MessageSquare className="h-5 w-5" />
-                <span>Contact Form</span>
+                <FileQuestion className="h-5 w-5" />
+                <span>Contact Support</span>
               </DropdownMenuItem>
               <DropdownMenuItem
                 className="flex items-center gap-2 cursor-pointer p-3 text-base"
-                onClick={toggleChat}
+                onClick={() => setIsFeedbackFormOpen(true)}
               >
                 <MessageSquare className="h-5 w-5" />
-                <span>Chat with Assistant</span>
+                <span>Give Feedback</span>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
 
+          {/* Contact Form Modal */}
           {isContactFormOpen && (
             <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
               <div className="bg-white rounded-lg p-6 w-full max-w-md">
@@ -301,7 +307,7 @@ export const Fab = ({
                   <div className="space-y-4">
                     <div>
                       <label htmlFor="name" className="block text-sm font-medium mb-1">
-                        Name
+                        Name *
                       </label>
                       <input
                         id="name"
@@ -310,13 +316,18 @@ export const Fab = ({
                         required
                         value={contactFormData.name}
                         onChange={handleInputChange}
-                        className="w-full p-2 border rounded"
+                        className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary ${
+                          formErrors.name ? 'border-red-500' : 'border-gray-300'
+                        }`}
                         disabled={isSubmitting}
                       />
+                      {formErrors.name && (
+                        <p className="text-sm text-red-600 mt-1">{formErrors.name}</p>
+                      )}
                     </div>
                     <div>
                       <label htmlFor="email" className="block text-sm font-medium mb-1">
-                        Email
+                        Email *
                       </label>
                       <input
                         id="email"
@@ -325,13 +336,18 @@ export const Fab = ({
                         required
                         value={contactFormData.email}
                         onChange={handleInputChange}
-                        className="w-full p-2 border rounded"
+                        className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary ${
+                          formErrors.email ? 'border-red-500' : 'border-gray-300'
+                        }`}
                         disabled={isSubmitting}
                       />
+                      {formErrors.email && (
+                        <p className="text-sm text-red-600 mt-1">{formErrors.email}</p>
+                      )}
                     </div>
                     <div>
                       <label htmlFor="message" className="block text-sm font-medium mb-1">
-                        Issue Description
+                        Message *
                       </label>
                       <Textarea
                         id="message"
@@ -339,10 +355,14 @@ export const Fab = ({
                         required
                         value={contactFormData.message}
                         onChange={handleInputChange}
-                        className="w-full p-2 border rounded"
-                        rows={4}
+                        className={`w-full min-h-[100px] ${
+                          formErrors.message ? 'border-red-500' : ''
+                        }`}
                         disabled={isSubmitting}
                       />
+                      {formErrors.message && (
+                        <p className="text-sm text-red-600 mt-1">{formErrors.message}</p>
+                      )}
                     </div>
                     <div>
                       <label htmlFor="screenshot" className="block text-sm font-medium mb-1">
@@ -350,42 +370,41 @@ export const Fab = ({
                       </label>
                       <input
                         id="screenshot"
-                        name="screenshot"
                         type="file"
                         accept="image/*"
-                        className="w-full p-2 border rounded"
                         onChange={handleFileChange}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
                         disabled={isSubmitting}
                       />
                       {screenshotFile && (
-                        <p className="text-xs text-green-600 mt-1">
-                          Screenshot selected: {screenshotFile.name}
+                        <p className="text-sm text-green-600 mt-1">
+                          Screenshot attached: {screenshotFile.name}
                         </p>
                       )}
                     </div>
-                    {prefillData && (
-                      <div className="bg-blue-50 p-2 rounded text-xs">
-                        <p>Including chat session data with your request</p>
-                      </div>
-                    )}
                   </div>
-                  <div className="mt-6 flex justify-end space-x-2">
+                  <div className="mt-6 flex gap-3">
                     <Button
                       type="button"
                       variant="outline"
                       onClick={() => setIsContactFormOpen(false)}
                       disabled={isSubmitting}
+                      className="flex-1"
                     >
                       Cancel
                     </Button>
-                    <Button type="submit" disabled={isSubmitting}>
+                    <Button
+                      type="submit"
+                      disabled={isSubmitting}
+                      className="flex-1"
+                    >
                       {isSubmitting ? (
                         <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                           Sending...
                         </>
                       ) : (
-                        "Submit"
+                        "Send Message"
                       )}
                     </Button>
                   </div>
@@ -393,25 +412,13 @@ export const Fab = ({
               </div>
             </div>
           )}
-          
-          {/* Chat widget - improved positioning and responsiveness for mobile */}
-          {isChatOpen && (
-            <div className={`fixed z-50 ${isMobile ? "inset-x-4 bottom-24" : "right-6 bottom-24"}`}>
-              <div className="relative">
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  className="absolute -right-2 -top-2 h-6 w-6 rounded-full bg-background border shadow-sm z-10"
-                  onClick={toggleChat}
-                >
-                  <X size={14} />
-                </Button>
-                <ChatbotWidget 
-                  width={isMobile ? "100%" : "350px"}
-                  onClose={toggleChat}
-                />
-              </div>
-            </div>
+
+          {/* Feedback Form Modal */}
+          {isFeedbackFormOpen && (
+            <FeedbackForm 
+              onClose={() => setIsFeedbackFormOpen(false)}
+              prefillData={prefillData}
+            />
           )}
         </>
       )}

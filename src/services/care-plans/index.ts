@@ -6,10 +6,7 @@ export * from './team';
 export * from './workLogService';
 
 // Re-export types from carePlan.ts
-export type { CarePlan, CarePlanMetadata } from '@/types/carePlan';
-
-// Re-export types from carePlanService
-export type { CarePlanDto, CarePlanInput } from './carePlanService';
+export type { CarePlan, CarePlanMetadata, CarePlanDto, CarePlanInput } from '@/types/carePlan';
 
 // Re-export all other needed types
 export type { 

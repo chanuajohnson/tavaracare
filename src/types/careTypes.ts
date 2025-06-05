@@ -65,6 +65,7 @@ export interface ProfessionalDetails {
   full_name?: string | null;
   professional_type?: string | null;
   avatar_url?: string | null;
+  phone_number?: string | null;
 }
 
 // Care Team Member with associated profile information

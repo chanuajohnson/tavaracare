@@ -3,7 +3,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AuthProvider } from "@/components/providers/AuthProvider";
-import { ChatProvider } from "@/components/chatbot/ChatProvider";
+// Removed ChatProvider import - old chatbot system cleaned
 import { BrowserRouter } from "react-router-dom";
 
 const queryClient = new QueryClient({
@@ -21,14 +21,12 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <ChatProvider>
-          <Sonner />
-          <BrowserRouter>
-            <AuthProvider>
-              {children}
-            </AuthProvider>
-          </BrowserRouter>
-        </ChatProvider>
+        <Sonner />
+        <BrowserRouter>
+          <AuthProvider>
+            {children}
+          </AuthProvider>
+        </BrowserRouter>
       </TooltipProvider>
     </QueryClientProvider>
   );

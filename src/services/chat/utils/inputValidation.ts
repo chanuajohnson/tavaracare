@@ -27,28 +27,59 @@ export const validateChatInput = (input: string, fieldType: string): { isValid: 
     }
     
     case "phone": {
-      // Enhanced phone validation - more strict requirements
+      // Enhanced phone validation - more comprehensive for admin use
       // Remove all spaces, dashes, parentheses, and dots for validation
       const cleanedNumber = trimmedInput.replace(/[\s\-\(\)\.]/g, '');
       
       // Check if it starts with '+' (international format)
       if (cleanedNumber.startsWith('+')) {
         // International format: should have at least 8 digits after the '+'
-        // This handles country codes of 1-3 digits plus at least 7 digits for the actual number
+        // Support country codes of 1-4 digits plus at least 7 digits for the actual number
         if (!/^\+\d{8,15}$/.test(cleanedNumber)) {
           return { 
             isValid: false, 
-            errorMessage: "Please use international format with country code (+1XXXXXXXXXX)" 
+            errorMessage: "International format should be +[country code][number] (8-15 digits total)" 
+          };
+        }
+        
+        // Check for specific known patterns
+        if (cleanedNumber.startsWith('+1') && cleanedNumber.length !== 12) {
+          return { 
+            isValid: false, 
+            errorMessage: "US/Canada numbers should be +1 followed by 10 digits" 
+          };
+        }
+        
+        // FIXED: Trinidad & Tobago validation - should be 12 digits total (+1868 + 7 digits)
+        if (cleanedNumber.startsWith('+1868') && cleanedNumber.length !== 12) {
+          return { 
+            isValid: false, 
+            errorMessage: "Trinidad & Tobago numbers should be +1868 followed by 7 digits" 
           };
         }
       } else {
-        // Local format: should have at least 7 digits (minimal for most countries)
-        // and shouldn't exceed 15 digits (ITU-T recommendation)
+        // Local format: should have at least 7 digits for most countries
+        // Trinidad & Tobago local format is 7 digits, US is 10 digits
         if (!/^\d{7,15}$/.test(cleanedNumber)) {
           return { 
             isValid: false, 
-            errorMessage: "Please enter a valid phone number with country code (e.g., +1XXXXXXXXXX)" 
+            errorMessage: "Local format should be 7-15 digits (will auto-format to international)" 
           };
+        }
+        
+        // If it's a 10-digit number, assume US/Canada
+        if (cleanedNumber.length === 10) {
+          return { isValid: true };
+        }
+        
+        // If it's a 7-digit number, could be Trinidad & Tobago local
+        if (cleanedNumber.length === 7) {
+          return { isValid: true };
+        }
+        
+        // If it's 11 digits starting with 1, it's US/Canada without +
+        if (cleanedNumber.length === 11 && cleanedNumber.startsWith('1')) {
+          return { isValid: true };
         }
       }
       
