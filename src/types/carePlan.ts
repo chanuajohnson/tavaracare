@@ -33,6 +33,22 @@ export interface CarePlanMetadata {
 }
 
 /**
+ * Input type for creating care plans (frontend format)
+ */
+export interface CarePlanInput {
+  title: string;
+  description: string;
+  familyId: string;
+  status: 'active' | 'completed' | 'cancelled';
+  metadata?: CarePlanMetadata;
+}
+
+/**
+ * DTO type for care plans (same as CarePlan for now)
+ */
+export interface CarePlanDto extends CarePlan {}
+
+/**
  * Database model for care plan inserts (snake_case)
  */
 export interface DbCarePlanInsert {

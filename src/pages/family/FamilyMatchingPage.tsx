@@ -1,662 +1,290 @@
-import { useState, useEffect, useCallback } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { motion } from "framer-motion";
+import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { toast } from "sonner";
-import { Clock, Filter, MapPin, Star, Lock, Calendar, MapPinned, UserCheck, DollarSign } from "lucide-react";
-import { useAuth } from "@/components/providers/AuthProvider";
-import { supabase } from "@/lib/supabase";
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Slider } from "@/components/ui/slider";
-import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
-import { useTracking } from "@/hooks/useTracking";
+import { Separator } from "@/components/ui/separator";
+import { Star, MapPin, Clock, Heart, Users, Shield, CheckCircle2, Sparkles } from "lucide-react";
+import { SubscriptionFeatureLink } from "@/components/subscription/SubscriptionFeatureLink";
 import { MatchingTracker } from "@/components/tracking/MatchingTracker";
 
-interface Family {
-  id: string;
-  full_name: string;
-  avatar_url: string | null;
-  location: string | null;
-  care_types: string[] | null;
-  special_needs: string[] | null;
-  care_schedule: string | null;
-  match_score: number;
-  is_premium: boolean;
-  distance: number;
-  budget_preferences?: string | null;
-}
-
-const MOCK_FAMILIES: Family[] = [
-  {
-    id: "1",
-    full_name: "Garcia Family",
-    avatar_url: null,
-    location: "Port of Spain",
-    care_types: ["Elderly Care", "Companionship"],
-    special_needs: ["Alzheimer's", "Mobility Assistance"],
-    care_schedule: "Weekdays, Evenings",
-    match_score: 95,
-    is_premium: false,
-    distance: 3.2,
-    budget_preferences: "$15-25/hr"
-  },
-  {
-    id: "2",
-    full_name: "Wilson Family",
-    avatar_url: null,
-    location: "San Fernando",
-    care_types: ["Special Needs", "Medical Support"],
-    special_needs: ["Autism Care", "Medication Management"],
-    care_schedule: "Full-time, Weekends",
-    match_score: 89,
-    is_premium: true,
-    distance: 15.7,
-    budget_preferences: "$25-35/hr"
-  },
-  {
-    id: "3",
-    full_name: "Thomas Family",
-    avatar_url: null,
-    location: "Arima",
-    care_types: ["Child Care", "Housekeeping"],
-    special_needs: ["Early Childhood Development", "Meal Preparation"],
-    care_schedule: "Part-time, Mornings",
-    match_score: 82,
-    is_premium: false,
-    distance: 8.5,
-    budget_preferences: "$20-30/hr"
-  },
-  {
-    id: "4",
-    full_name: "Ramirez Family",
-    avatar_url: null,
-    location: "Chaguanas",
-    care_types: ["Elderly Care", "Overnight Care"],
-    special_needs: ["Dementia Care", "Stroke Recovery"],
-    care_schedule: "Overnight, Weekends",
-    match_score: 78,
-    is_premium: true,
-    distance: 12.3,
-    budget_preferences: "$30-40/hr"
-  }
-];
-
-export default function FamilyMatchingPage() {
-  const { user, isProfileComplete } = useAuth();
-  const navigate = useNavigate();
-  const location = useLocation();
-  const [families, setFamilies] = useState<Family[]>([]);
-  const [filteredFamilies, setFilteredFamilies] = useState<Family[]>([]);
+const FamilyMatchingPage = () => {
   const [isLoading, setIsLoading] = useState(true);
-  const [dataLoaded, setDataLoaded] = useState(false);
-  const { trackEngagement } = useTracking();
-  
-  const [careTypes, setCareTypes] = useState<string[]>([]);
-  const [specialNeeds, setSpecialNeeds] = useState<string[]>([]);
-  const [scheduleType, setScheduleType] = useState<string>("all");
-  const [maxDistance, setMaxDistance] = useState<number>(30);
-  const [budgetRange, setBudgetRange] = useState<[number, number]>([15, 50]);
+  const [showMagicalMessage, setShowMagicalMessage] = useState(true);
 
-  const referringPath = location.state?.referringPagePath || 
-    (user?.role === 'professional' ? '/dashboard/professional' : '/dashboard/family');
-  
-  const referringLabel = location.state?.referringPageLabel || 
-    (referringPath.includes('professional') ? 'Professional Dashboard' : 'Family Dashboard');
-  
-  console.log("FamilyMatchingPage - Navigation context:", {
-    referringPath,
-    referringLabel,
-    locationState: location.state,
-    userRole: user?.role
-  });
-
-  const careTypeOptions = [
-    "Elderly Care", 
-    "Child Care", 
-    "Special Needs", 
-    "Medical Support", 
-    "Overnight Care", 
-    "Companionship",
-    "Housekeeping"
-  ];
-  
-  const specialNeedsOptions = [
-    "Alzheimer's",
-    "Mobility Assistance",
-    "Medication Management",
-    "Autism Care", 
-    "Dementia Care",
-    "Stroke Recovery",
-    "Meal Preparation",
-    "Early Childhood Development",
-    "Diabetes Management",
-    "Parkinson's Care",
-    "Physical Therapy Assistance",
-    "Post-Surgery Care",
-    "Hospice Support",
-    "Respiratory Care"
-  ];
-  
-  const scheduleOptions = [
-    { value: "all", label: "Any Schedule" },
-    { value: "full-time", label: "Full-time" },
-    { value: "part-time", label: "Part-time" },
-    { value: "weekdays", label: "Weekdays" },
-    { value: "weekends", label: "Weekends" },
-    { value: "evenings", label: "Evenings" },
-    { value: "mornings", label: "Mornings" },
-    { value: "overnight", label: "Overnight" }
-  ];
-  
-  const loadFamilies = useCallback(async () => {
-    if (!user || dataLoaded) return;
-    
-    try {
-      setIsLoading(true);
-      
-      // Immediately set mock families to prevent empty UI
-      setFamilies(MOCK_FAMILIES);
-      setFilteredFamilies(MOCK_FAMILIES);
-      
-      const { data: familyUsers, error: familyError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('role', 'family');
-      
-      if (familyError) {
-        console.error("Error fetching family users:", familyError);
-        toast.error("Failed to load family matches");
-        setDataLoaded(true); // Mark as loaded even if there was an error to prevent retries
-        return; // Keep showing mock data
-      }
-      
-      if (!familyUsers || familyUsers.length === 0) {
-        console.log("No family users found, using mock data only");
-        
-        await trackEngagement('family_matching_page_view', { 
-          data_source: 'mock_data',
-          family_count: MOCK_FAMILIES.length
-        });
-        
-        setDataLoaded(true);
-        return; // Keep showing mock data
-      }
-      
-      const realFamilies: Family[] = familyUsers.map(family => {
-        const matchScore = Math.floor(Math.random() * (99 - 65) + 65);
-        const distance = parseFloat((Math.random() * 19 + 1).toFixed(1));
-        
-        return {
-          id: family.id,
-          full_name: family.full_name || `${family.care_recipient_name || ''} Family`,
-          avatar_url: family.avatar_url,
-          location: family.location || 'Port of Spain',
-          care_types: family.care_types || ['Elderly Care'],
-          special_needs: family.special_needs || [],
-          care_schedule: family.care_schedule || 'Weekdays',
-          match_score: matchScore,
-          is_premium: false,
-          distance: distance,
-          budget_preferences: family.budget_preferences || '$15-30/hr'
-        };
-      });
-      
-      console.log("Loaded real family users:", realFamilies.length);
-      
-      // Combine real families with mock ones if needed
-      const allFamilies = [...realFamilies, ...MOCK_FAMILIES];
-      
-      await trackEngagement('family_matching_page_view', {
-        data_source: realFamilies.length > 0 ? 'mixed_data' : 'mock_data',
-        real_family_count: realFamilies.length,
-        mock_family_count: MOCK_FAMILIES.length
-      });
-      
-      setFamilies(allFamilies);
-      setFilteredFamilies(allFamilies);
-      setDataLoaded(true);
-    } catch (error) {
-      console.error("Error loading families:", error);
-      toast.error("Failed to load family matches");
-      setDataLoaded(true); // Mark as loaded even if there was an error
-    } finally {
+  useEffect(() => {
+    // Show the magical loading for 3 seconds, then show the caregiver
+    const timer = setTimeout(() => {
       setIsLoading(false);
-    }
-  }, [user, trackEngagement, dataLoaded]);
-  
-  useEffect(() => {
-    if (user && isProfileComplete && !dataLoaded) {
-      loadFamilies();
-    } else if (user && !isProfileComplete) {
-      navigate("/registration/professional", { 
-        state: { returnPath: "/family-matching", action: "findFamilies" }
-      });
-    } else if (!user) {
-      navigate("/auth", { 
-        state: { returnPath: "/family-matching", action: "findFamilies" }
-      });
-    }
-  }, [user, isProfileComplete, navigate, loadFamilies, dataLoaded]);
-  
-  useEffect(() => {
-    if (families.length === 0) return;
+    }, 3000);
 
-    const applyFilters = () => {
-      let result = [...families];
+    // Hide the magical message after 2 seconds but keep loading
+    const messageTimer = setTimeout(() => {
+      setShowMagicalMessage(false);
+    }, 2000);
 
-      if (careTypes.length > 0) {
-        result = result.filter(family => 
-          family.care_types?.some(type => careTypes.includes(type))
-        );
-      }
-
-      if (specialNeeds.length > 0) {
-        result = result.filter(family =>
-          family.special_needs?.some(need => specialNeeds.includes(need))
-        );
-      }
-
-      if (scheduleType !== "all") {
-        result = result.filter(family =>
-          family.care_schedule?.toLowerCase().includes(scheduleType.toLowerCase())
-        );
-      }
-
-      result = result.filter(family => family.distance <= maxDistance);
-      
-      // Apply budget filter
-      result = result.filter(family => {
-        // Extract numeric values from budget_preferences
-        if (!family.budget_preferences) return true; // Include if no budget specified
-        
-        const match = family.budget_preferences.match(/\$(\d+)(?:-(\d+))?/);
-        if (!match) return true;
-        
-        const minBudget = parseInt(match[1]);
-        const maxBudget = match[2] ? parseInt(match[2]) : minBudget;
-        
-        // Check if there's overlap between the family's budget range and filter range
-        return (minBudget <= budgetRange[1] && maxBudget >= budgetRange[0]);
-      });
-
-      result.sort((a, b) => b.match_score - a.match_score);
-
-      setFilteredFamilies(result);
+    return () => {
+      clearTimeout(timer);
+      clearTimeout(messageTimer);
     };
-
-    applyFilters();
-  }, [families, careTypes, specialNeeds, scheduleType, maxDistance, budgetRange]);
-  
-  const handleUnlockProfile = async (familyId: string, isPremium: boolean) => {
-    await trackEngagement('unlock_family_profile_click', { 
-      family_id: familyId, 
-      is_premium: isPremium 
-    });
-    
-    navigate("/subscription-features", { 
-      state: { 
-        returnPath: "/family-matching",
-        referringPagePath: referringPath,
-        referringPageLabel: referringLabel,
-        featureType: "Premium Family Profiles",
-        familyId: familyId
-      } 
-    });
-  };
-
-  const handleCareTypeChange = (type: string) => {
-    trackEngagement('filter_change', { 
-      filter_type: 'care_type', 
-      filter_value: type,
-      previous_state: careTypes.includes(type) ? 'selected' : 'unselected',
-      new_state: careTypes.includes(type) ? 'unselected' : 'selected'
-    });
-    
-    setCareTypes(prev => 
-      prev.includes(type) 
-        ? prev.filter(t => t !== type) 
-        : [...prev, type]
-    );
-  };
-  
-  const handleSpecialNeedsChange = (need: string) => {
-    trackEngagement('filter_change', { 
-      filter_type: 'special_needs', 
-      filter_value: need,
-      previous_state: specialNeeds.includes(need) ? 'selected' : 'unselected',
-      new_state: specialNeeds.includes(need) ? 'unselected' : 'selected'
-    });
-    
-    setSpecialNeeds(prev => 
-      prev.includes(need) 
-        ? prev.filter(n => n !== need) 
-        : [...prev, need]
-    );
-  };
-
-  const handleScheduleChange = (value: string) => {
-    trackEngagement('filter_change', { 
-      filter_type: 'schedule', 
-      previous_value: scheduleType,
-      new_value: value
-    });
-    
-    setScheduleType(value);
-  };
-  
-  const handleDistanceChange = (value: number[]) => {
-    trackEngagement('filter_change', { 
-      filter_type: 'distance', 
-      previous_value: maxDistance,
-      new_value: value[0]
-    });
-    
-    setMaxDistance(value[0]);
-  };
-  
-  const handleBudgetChange = (value: [number, number]) => {
-    trackEngagement('filter_change', { 
-      filter_type: 'budget_range', 
-      previous_value: `${budgetRange[0]}-${budgetRange[1]}`,
-      new_value: `${value[0]}-${value[1]}`
-    });
-    
-    setBudgetRange(value);
-  };
+  }, []);
 
   const breadcrumbItems = [
-    {
-      label: referringLabel,
-      path: referringPath,
-    },
-    {
-      label: "Family Matching",
-      path: "/family-matching",
-    },
+    { label: "Family Dashboard", path: "/dashboard/family" },
+    { label: "Caregiver Matching", path: "/family/matching" },
   ];
 
-  return (
-    <div className="container px-4 py-8">
-      <MatchingTracker 
-        matchingType="family" 
-        additionalData={{
-          referrer: referringPath,
-          filter_count: careTypes.length + specialNeeds.length + (scheduleType !== 'all' ? 1 : 0) + 1
-        }}
-      />
-      
-      <DashboardHeader breadcrumbItems={breadcrumbItems} />
-      
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-primary-900 mb-2">Family Matches</h1>
-        <p className="text-gray-600">
-          We've found {filteredFamilies.length} families that match your skills and experience
-        </p>
-      </div>
-      
-      <Card className="mb-6">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Filter className="h-5 w-5 text-primary" />
-            <span>Filter & Sort</span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <h3 className="font-medium text-sm">Care Types</h3>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
-              {careTypeOptions.map((type) => (
-                <div key={type} className="flex items-center space-x-2">
-                  <Checkbox 
-                    id={`care-type-${type}`}
-                    checked={careTypes.includes(type)}
-                    onCheckedChange={() => handleCareTypeChange(type)}
-                  />
-                  <Label htmlFor={`care-type-${type}`} className="text-sm">{type}</Label>
-                </div>
-              ))}
-            </div>
+  const teaserCaregiver = {
+    id: "teaser-1",
+    name: "Sarah M.",
+    title: "Senior Care Specialist",
+    rating: 4.9,
+    location: "Port of Spain",
+    experience: "8+ years",
+    hourlyRate: "$25-35",
+    skills: ["Dementia Care", "Medication Management", "Mobility Support", "Meal Preparation"],
+    bio: "Passionate about providing compassionate care with specialized training in dementia and Alzheimer's support.",
+    availability: "Monday - Friday, 8am - 6pm",
+    languages: ["English", "Spanish"],
+    certifications: ["CNA", "CPR Certified", "First Aid"],
+    matchPercentage: 95
+  };
 
-            <h3 className="font-medium text-sm">Special Needs</h3>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
-              {specialNeedsOptions.map((need) => (
-                <div key={need} className="flex items-center space-x-2">
-                  <Checkbox 
-                    id={`special-need-${need}`}
-                    checked={specialNeeds.includes(need)}
-                    onCheckedChange={() => handleSpecialNeedsChange(need)}
-                  />
-                  <Label htmlFor={`special-need-${need}`} className="text-sm">{need}</Label>
-                </div>
-              ))}
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="schedule" className="text-sm">Care Schedule</Label>
-                <Select
-                  value={scheduleType}
-                  onValueChange={handleScheduleChange}
-                >
-                  <SelectTrigger id="schedule">
-                    <SelectValue placeholder="Select schedule" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {scheduleOptions.map(option => (
-                      <SelectItem key={option.value} value={option.value}>
-                        {option.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label className="text-sm flex justify-between">
-                  <span>Maximum Distance: {maxDistance} km</span>
-                </Label>
-                <Slider 
-                  value={[maxDistance]} 
-                  min={1} 
-                  max={50} 
-                  step={1}
-                  onValueChange={(value) => handleDistanceChange(value)}
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label className="text-sm flex justify-between">
-                  <span>Budget Range: ${budgetRange[0]}-${budgetRange[1]}/hr</span>
-                </Label>
-                <Slider 
-                  value={budgetRange} 
-                  min={15} 
-                  max={50} 
-                  step={5}
-                  onValueChange={(value) => handleBudgetChange(value as [number, number])}
-                />
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-      
-      {isLoading ? (
-        <div className="flex justify-center items-center py-12">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-        </div>
-      ) : filteredFamilies.length === 0 ? (
-        <div className="text-center py-12">
-          <p className="text-gray-500">No families match your current filters</p>
-          <Button 
-            variant="outline" 
-            className="mt-4"
-            onClick={() => {
-              setCareTypes([]);
-              setSpecialNeeds([]);
-              setScheduleType("all");
-              setMaxDistance(30);
-              setBudgetRange([15, 50]);
-            }}
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <div className="container px-4 py-8">
+          <DashboardHeader breadcrumbItems={breadcrumbItems} />
+          
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            className="space-y-6 mt-8"
           >
-            Reset Filters
-          </Button>
-        </div>
-      ) : (
-        <div className="space-y-6">
-          <Card className="bg-gradient-to-r from-amber-50 to-amber-100 border-amber-200">
-            <CardContent className="flex items-center justify-between py-4">
-              <div className="flex items-center gap-2">
-                <Lock className="h-5 w-5 text-amber-600" />
-                <p className="font-medium text-amber-800">
-                  Unlock Premium Matching: Get priority placement with families and access to exclusive job opportunities.
-                </p>
+            <div className="text-center space-y-6">
+              <h1 className="text-3xl font-bold">Finding Your Perfect Match</h1>
+              
+              <div className="flex flex-col items-center space-y-6">
+                {/* Magical loading circle with sparkles */}
+                <div className="relative">
+                  <div className="animate-spin rounded-full h-16 w-16 border-4 border-blue-200 border-t-blue-600"></div>
+                  <Sparkles className="absolute -top-2 -right-2 h-6 w-6 text-blue-500 animate-pulse" />
+                  <Sparkles className="absolute -bottom-2 -left-2 h-4 w-4 text-purple-500 animate-pulse delay-150" />
+                  <Sparkles className="absolute top-1/2 -left-4 h-3 w-3 text-pink-500 animate-pulse delay-300" />
+                </div>
+                
+                {showMagicalMessage && (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.9 }}
+                    className="text-center space-y-2"
+                  >
+                    <p className="text-xl font-semibold text-blue-600">
+                      Hold on, we are finding your perfect match! ✨
+                    </p>
+                    <p className="text-muted-foreground">
+                      Analyzing your care needs and preferences...
+                    </p>
+                  </motion.div>
+                )}
+                
+                {!showMagicalMessage && (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="text-center space-y-2"
+                  >
+                    <p className="text-lg text-muted-foreground">
+                      Reviewing caregiver profiles and availability...
+                    </p>
+                  </motion.div>
+                )}
               </div>
-              <Button 
-                variant="default" 
-                className="bg-amber-600 hover:bg-amber-700"
-                onClick={() => {
-                  trackEngagement('premium_family_matching_cta_click');
-                  navigate("/subscription-features", { 
-                    state: { 
-                      returnPath: "/family-matching",
-                      referringPagePath: referringPath,
-                      referringPageLabel: referringLabel,
-                      featureType: "Premium Matching" 
-                    } 
-                  });
-                }}
+            </div>
+          </motion.div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-background">
+      <MatchingTracker matchingType="family" />
+      
+      <div className="container px-4 py-8">
+        <DashboardHeader breadcrumbItems={breadcrumbItems} />
+        
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="space-y-6 mt-8"
+        >
+          <div className="text-center space-y-4">
+            <h1 className="text-3xl font-bold">Your Caregiver Matches</h1>
+            <p className="text-muted-foreground max-w-2xl mx-auto">
+              We've found carefully screened caregivers based on your specific care needs and preferences.
+            </p>
+          </div>
+
+          {/* Premium Feature Notice */}
+          <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
+            <CardContent className="p-6">
+              <div className="flex items-center space-x-3 mb-3">
+                <Shield className="h-6 w-6 text-blue-600" />
+                <h3 className="text-lg font-semibold text-blue-900">Premium Matching Service</h3>
+              </div>
+              <p className="text-blue-800 mb-4">
+                You're viewing a sample match. Unlock our full caregiver network with verified professionals, 
+                background checks, and personalized matching based on your exact requirements.
+              </p>
+              <SubscriptionFeatureLink
+                featureType="Full Caregiver Access"
+                returnPath="/family/matching"
+                referringPagePath="/family/matching"
+                referringPageLabel="Caregiver Matching"
               >
-                Upgrade Now
-              </Button>
+                <Button className="bg-blue-600 hover:bg-blue-700 text-white">
+                  Unlock All Matches
+                </Button>
+              </SubscriptionFeatureLink>
             </CardContent>
           </Card>
-          
-          {filteredFamilies.map((family) => (
-            <Card 
-              key={family.id} 
-              className={`relative overflow-hidden ${family.is_premium ? 'border-amber-300 shadow-amber-100' : ''}`}
-            >
-              {family.is_premium && (
-                <div className="absolute top-0 right-0">
-                  <Badge className="bg-amber-500 text-white uppercase font-bold rounded-tl-none rounded-tr-sm rounded-br-none rounded-bl-sm px-2">
-                    Premium
+
+          {/* Sample Caregiver Match */}
+          <Card className="overflow-hidden">
+            <CardHeader className="bg-gradient-to-r from-green-50 to-emerald-50">
+              <div className="flex items-center justify-between">
+                <div className="space-y-1">
+                  <CardTitle className="text-xl">{teaserCaregiver.name}</CardTitle>
+                  <CardDescription className="text-base">{teaserCaregiver.title}</CardDescription>
+                </div>
+                <div className="text-right space-y-1">
+                  <Badge variant="secondary" className="bg-green-100 text-green-800">
+                    {teaserCaregiver.matchPercentage}% Match
                   </Badge>
-                </div>
-              )}
-              
-              <CardContent className="p-6">
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                  <div className="flex flex-col items-center md:items-start gap-4">
-                    <div className="flex flex-col items-center">
-                      <Avatar className="h-20 w-20 border-2 border-primary/20">
-                        <AvatarImage src={family.avatar_url || undefined} />
-                        <AvatarFallback className="bg-primary-100 text-primary-800 text-xl">
-                          {family.full_name.split(' ')[0][0] || 'F'}
-                        </AvatarFallback>
-                      </Avatar>
-                      
-                      <div className="mt-3 text-center">
-                        <h3 className="text-lg font-semibold">{family.full_name}</h3>
-                        <div className="flex items-center justify-center gap-1 text-sm text-gray-500 mt-1">
-                          <MapPin className="h-3.5 w-3.5" />
-                          <span>{family.location}</span>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div className="bg-primary-50 w-full rounded-lg p-2 text-center">
-                      <span className="text-sm text-gray-600">Match Score</span>
-                      <div className="text-2xl font-bold text-primary-700">{family.match_score}%</div>
-                    </div>
-                  </div>
-                  
-                  <div className="col-span-2 space-y-3">
-                    <div className="flex flex-wrap items-center gap-2 text-sm">
-                      <div className="flex items-center gap-1">
-                        <Calendar className="h-4 w-4 text-primary-600" />
-                        <div>
-                          <div className="text-sm text-gray-500">Care Schedule</div>
-                          <div className="font-medium">{family.care_schedule}</div>
-                        </div>
-                      </div>
-                      
-                      <span className="text-gray-300 mx-2">|</span>
-                      
-                      <div className="flex items-center gap-1">
-                        <MapPinned className="h-4 w-4 text-primary-600" />
-                        <div>
-                          <div className="text-sm text-gray-500">Distance</div>
-                          <div className="font-medium">{family.distance.toFixed(1)} km</div>
-                        </div>
-                      </div>
-                      
-                      <span className="text-gray-300 mx-2">|</span>
-                      
-                      <div className="flex items-center gap-1">
-                        <DollarSign className="h-4 w-4 text-primary-600" />
-                        <div>
-                          <div className="text-sm text-gray-500">Budget</div>
-                          <div className="font-medium">{family.budget_preferences || 'Not specified'}</div>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div>
-                      <div className="text-sm text-gray-500 mb-1">Care Types Needed</div>
-                      <div className="flex flex-wrap gap-1">
-                        {family.care_types?.map((type, i) => (
-                          <Badge key={i} variant="outline" className="bg-gray-50">
-                            {type}
-                          </Badge>
-                        ))}
-                      </div>
-                    </div>
-                    
-                    {family.special_needs && family.special_needs.length > 0 && (
-                      <div>
-                        <div className="text-sm text-gray-500 mb-1">Special Care Needs</div>
-                        <div className="flex flex-wrap gap-1">
-                          {family.special_needs?.map((need, i) => (
-                            <Badge key={i} variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
-                              {need}
-                            </Badge>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                  
-                  <div className="flex flex-col justify-between space-y-4">
-                    <div>
-                      <div className="flex">
-                        {[1, 2, 3, 4, 5].map((star) => (
-                          <Star key={star} className="h-4 w-4 text-amber-500" />
-                        ))}
-                      </div>
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Button 
-                        className="w-full"
-                        onClick={() => handleUnlockProfile(family.id, family.is_premium)}
-                      >
-                        Unlock Profile
-                      </Button>
-                    </div>
+                  <div className="flex items-center space-x-1">
+                    <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                    <span className="font-medium">{teaserCaregiver.rating}</span>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      )}
+              </div>
+            </CardHeader>
+            
+            <CardContent className="p-6 space-y-6">
+              {/* Basic Info */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="flex items-center space-x-2">
+                  <MapPin className="h-4 w-4 text-muted-foreground" />
+                  <span>{teaserCaregiver.location}</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Clock className="h-4 w-4 text-muted-foreground" />
+                  <span>{teaserCaregiver.experience}</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <span className="font-medium">{teaserCaregiver.hourlyRate}/hour</span>
+                </div>
+              </div>
+
+              <Separator />
+
+              {/* Bio */}
+              <div>
+                <h4 className="font-medium mb-2">About</h4>
+                <p className="text-muted-foreground">{teaserCaregiver.bio}</p>
+              </div>
+
+              {/* Skills */}
+              <div>
+                <h4 className="font-medium mb-3">Specialties</h4>
+                <div className="flex flex-wrap gap-2">
+                  {teaserCaregiver.skills.map((skill) => (
+                    <Badge key={skill} variant="outline" className="border-blue-200 text-blue-700">
+                      {skill}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+
+              {/* Certifications */}
+              <div>
+                <h4 className="font-medium mb-3">Certifications & Languages</h4>
+                <div className="space-y-2">
+                  <div className="flex flex-wrap gap-2">
+                    {teaserCaregiver.certifications.map((cert) => (
+                      <Badge key={cert} className="bg-green-100 text-green-800 border-green-200">
+                        <CheckCircle2 className="h-3 w-3 mr-1" />
+                        {cert}
+                      </Badge>
+                    ))}
+                  </div>
+                  <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+                    <span>Languages:</span>
+                    <span>{teaserCaregiver.languages.join(", ")}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Availability */}
+              <div>
+                <h4 className="font-medium mb-2">Availability</h4>
+                <p className="text-muted-foreground">{teaserCaregiver.availability}</p>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex space-x-3 pt-4">
+                <SubscriptionFeatureLink
+                  featureType="Contact Caregiver"
+                  returnPath="/family/matching"
+                  referringPagePath="/family/matching"
+                  referringPageLabel="Caregiver Matching"
+                  className="flex-1"
+                >
+                  <Button className="w-full">
+                    <Heart className="h-4 w-4 mr-2" />
+                    Contact Caregiver
+                  </Button>
+                </SubscriptionFeatureLink>
+                
+                <SubscriptionFeatureLink
+                  featureType="View Full Profile"
+                  returnPath="/family/matching"
+                  referringPagePath="/family/matching"
+                  referringPageLabel="Caregiver Matching"
+                  className="flex-1"
+                >
+                  <Button variant="outline" className="w-full">
+                    <Users className="h-4 w-4 mr-2" />
+                    View Full Profile
+                  </Button>
+                </SubscriptionFeatureLink>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Why Only One Match Notice */}
+          <Card className="bg-amber-50 border-amber-200">
+            <CardContent className="p-4">
+              <div className="flex items-start space-x-3">
+                <Sparkles className="h-5 w-5 text-amber-600 mt-0.5" />
+                <div>
+                  <h4 className="font-medium text-amber-900 mb-1">Why am I seeing only one match?</h4>
+                  <p className="text-sm text-amber-800">
+                    This is a preview of our matching capabilities. Premium members get access to our full network 
+                    of verified caregivers, advanced filtering options, and unlimited matches based on your specific needs.
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+      </div>
     </div>
   );
-}
+};
 
+export default FamilyMatchingPage;

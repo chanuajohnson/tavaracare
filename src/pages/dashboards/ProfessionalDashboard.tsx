@@ -1,17 +1,14 @@
+
 import { motion } from "framer-motion";
+import { useEffect, useState } from "react";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, FileText, UserCog, BookOpen, Building, Users, Briefcase, CheckCircle2, List } from "lucide-react";
+import { ArrowRight, FileText, UserCog, Building, Users, ChevronDown, ChevronUp } from "lucide-react";
 import { UpvoteFeatureButton } from "@/components/features/UpvoteFeatureButton";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { NextStepsPanel } from "@/components/professional/NextStepsPanel";
-import { TrainingProgressTracker } from "@/components/professional/TrainingProgressTracker";
-import { JobListings } from "@/components/professional/JobListings";
-import { MessageBoard } from "@/components/professional/MessageBoard";
-import { TrainingProgramSection } from "@/components/professional/TrainingProgramSection";
-import { TrainingModulesSection } from "@/components/professional/TrainingModulesSection";
 import { DashboardFamilyMatches } from "@/components/professional/DashboardFamilyMatches";
 import { CaregiverMatchingCard } from "@/components/professional/CaregiverMatchingCard";
 import { ProfessionalShortcutMenuBar } from "@/components/professional/ProfessionalShortcutMenuBar";
@@ -19,6 +16,26 @@ import { CaregiverHealthCard } from "@/components/professional/CaregiverHealthCa
 
 const ProfessionalDashboard = () => {
   const { user } = useAuth();
+  const [isHealthCardExpanded, setIsHealthCardExpanded] = useState(false);
+  
+  // Ensure dashboard always loads at the top with enhanced scroll behavior
+  useEffect(() => {
+    // Use a small delay to ensure DOM is fully rendered
+    const scrollToTop = () => {
+      window.scrollTo({ 
+        top: 0, 
+        left: 0, 
+        behavior: 'instant' 
+      });
+    };
+    
+    // Immediate scroll
+    scrollToTop();
+    
+    // Additional delayed scroll to ensure it takes effect
+    setTimeout(scrollToTop, 50);
+    setTimeout(scrollToTop, 150);
+  }, []);
   
   const breadcrumbItems = [
     {
@@ -83,10 +100,45 @@ const ProfessionalDashboard = () => {
           </motion.div>
         ) : null}
 
-        {/* Caregiver Health Card - Show for all users */}
-        <div className="mt-8">
-          <CaregiverHealthCard />
-        </div>
+        {/* Collapsible Caregiver Health Card - Only for logged-in users */}
+        {user && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.2 }}
+            className="mt-8"
+          >
+            <Card className="border-l-4 border-l-primary-300">
+              <CardHeader className="pb-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <CardTitle className="text-xl text-primary-800">Caregiver Health Support</CardTitle>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setIsHealthCardExpanded(!isHealthCardExpanded)}
+                    className="p-1 h-8 w-8"
+                  >
+                    {isHealthCardExpanded ? (
+                      <ChevronUp className="h-4 w-4" />
+                    ) : (
+                      <ChevronDown className="h-4 w-4" />
+                    )}
+                  </Button>
+                </div>
+                <CardDescription className="text-primary-600">
+                  Support your well-being while caring for others
+                </CardDescription>
+              </CardHeader>
+              {isHealthCardExpanded && (
+                <CardContent>
+                  <CaregiverHealthCard />
+                </CardContent>
+              )}
+            </Card>
+          </motion.div>
+        )}
 
         {/* Next Steps and Profile Management - side by side */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
@@ -135,85 +187,38 @@ const ProfessionalDashboard = () => {
         <div className="mt-8">
           <DashboardFamilyMatches />
         </div>
-        
-        <div className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <TrainingProgressTracker />
-            <JobListings />
-          </div>
-              
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <MessageBoard />
-            
-            {/* Admin Assistant */}
-            <Card className="bg-white shadow-sm">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <FileText className="h-5 w-5" />
-                  Admin Assistant
-                </CardTitle>
-                <CardDescription>
-                  Streamline your administrative tasks
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2 mb-4 text-left">
-                  <p className="text-sm text-gray-600">Get Job Letters</p>
-                  <p className="text-sm text-gray-600">NIS Registration Assistance</p>
-                  <p className="text-sm text-gray-600">Document Management</p>
-                  <p className="text-sm text-gray-600">Administrative Support</p>
-                </div>
-                <Link to="/professional/features-overview">
-                  <Button 
-                    variant="default"
-                    className="w-full bg-primary hover:bg-primary-600 text-white"
-                  >
-                    Access Tools
-                    <ArrowRight className="ml-2 h-4 w-4" />
-                  </Button>
-                </Link>
-                <div className="pt-4">
-                  <UpvoteFeatureButton
-                    featureTitle="Admin Assistant Tools"
-                    buttonText="Upvote this Feature"
-                  />
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
 
-        {/* Training Resources - single column, full width */}
+        {/* Admin Assistant - Full Width */}
         <div className="mt-8">
           <Card className="bg-white shadow-sm">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <BookOpen className="h-5 w-5" />
-                Training Resources
+                <FileText className="h-5 w-5" />
+                Admin Assistant
               </CardTitle>
               <CardDescription>
-                Access our comprehensive library of caregiving resources
+                Streamline your administrative tasks
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent>
               <div className="space-y-2 mb-4 text-left">
-                <p className="text-sm text-gray-600">Certification Courses</p>
-                <p className="text-sm text-gray-600">Skill Development</p>
-                <p className="text-sm text-gray-600">Best Practices Guides</p>
-                <p className="text-sm text-gray-600">Specialized Care Training</p>
+                <p className="text-sm text-gray-600">Get Job Letters</p>
+                <p className="text-sm text-gray-600">NIS Registration Assistance</p>
+                <p className="text-sm text-gray-600">Document Management</p>
+                <p className="text-sm text-gray-600">Administrative Support</p>
               </div>
-              <Link to="/professional/training-resources">
+              <Link to="/professional/profile?tab=admin-assistant">
                 <Button 
                   variant="default"
                   className="w-full bg-primary hover:bg-primary-600 text-white"
                 >
-                  Learn More
+                  Access Tools
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </Link>
               <div className="pt-4">
                 <UpvoteFeatureButton
-                  featureTitle="Training Resources"
+                  featureTitle="Admin Assistant Tools"
                   buttonText="Upvote this Feature"
                 />
               </div>
@@ -221,13 +226,7 @@ const ProfessionalDashboard = () => {
           </Card>
         </div>
 
-        {/* Training Program Section */}
-        <TrainingProgramSection />
-
-        {/* Training Modules Section */}
-        <TrainingModulesSection />
-
-        {/* Professional Agency - single column, full width */}
+        {/* Professional Agency */}
         <div className="mt-8">
           <Card className="bg-white shadow-sm">
             <CardHeader>
@@ -260,7 +259,7 @@ const ProfessionalDashboard = () => {
                 </div>
               </div>
               
-              <Link to="/professional/features-overview">
+              <Link to="/features">
                 <Button 
                   variant="default"
                   className="w-full bg-primary hover:bg-primary-600 text-white"

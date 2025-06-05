@@ -4,49 +4,64 @@ import { toast } from "sonner";
 import { CarePlan, CarePlanMetadata } from "@/types/carePlan";
 import { Json } from "@/utils/json";
 
-// Define DTO types for internal use
-interface CarePlanDto {
-  id?: string;
+export type CarePlanDto = {
+  id: string;
+  created_at: string;
+  updated_at: string;
+  title: string;
+  description: string | null;
   family_id: string;
+  status: 'active' | 'inactive' | 'completed';
+  metadata: Json | null;
+};
+
+// DTO for creating a new care plan
+export type CreateCarePlanDto = {
   title: string;
-  description?: string;
-  status?: 'active' | 'completed' | 'cancelled';
-  created_at?: string;
-  updated_at?: string;
+  description?: string | null;
+  family_id: string;
+  status?: 'active' | 'inactive' | 'completed';
   metadata?: Json;
-}
+};
 
-interface CarePlanInput {
-  familyId: string;
-  title: string;
-  description?: string;
-  status?: 'active' | 'completed' | 'cancelled';
-  metadata?: CarePlanMetadata;
-}
+// DTO for updating an existing care plan
+export type UpdateCarePlanDto = {
+  title?: string;
+  description?: string | null;
+  status?: 'active' | 'inactive' | 'completed';
+  metadata?: Json;
+};
 
-// Adapters for converting between domain and database models
-export const adaptCarePlanFromDb = (dbPlan: CarePlanDto): CarePlan => ({
-  id: dbPlan.id!,
-  familyId: dbPlan.family_id,
-  title: dbPlan.title,
-  description: dbPlan.description || "",
-  status: dbPlan.status || 'active',
-  createdAt: dbPlan.created_at || new Date().toISOString(),
-  updatedAt: dbPlan.updated_at || new Date().toISOString(),
-  metadata: dbPlan.metadata as unknown as CarePlanMetadata
+const adaptCarePlanFromDb = (dbCarePlan: CarePlanDto): CarePlan => ({
+  id: dbCarePlan.id,
+  createdAt: dbCarePlan.created_at,
+  updatedAt: dbCarePlan.updated_at,
+  title: dbCarePlan.title,
+  description: dbCarePlan.description,
+  familyId: dbCarePlan.family_id,
+  status: dbCarePlan.status === 'inactive' ? 'cancelled' : dbCarePlan.status,
+  metadata: dbCarePlan.metadata ? (dbCarePlan.metadata as unknown as CarePlanMetadata) : undefined,
 });
 
-export const adaptCarePlanToDb = (plan: Partial<CarePlan>): Partial<CarePlanDto> => ({
-  id: plan.id,
-  family_id: plan.familyId,
-  title: plan.title,
-  description: plan.description,
-  status: plan.status,
-  metadata: plan.metadata as unknown as Json
+const adaptCarePlanToDb = (carePlan: Partial<CarePlan>): Partial<CreateCarePlanDto> => ({
+  title: carePlan.title,
+  description: carePlan.description,
+  family_id: carePlan.familyId,
+  status: carePlan.status === 'cancelled' ? 'inactive' : carePlan.status,
+  metadata: carePlan.metadata ? (carePlan.metadata as unknown as Json) : undefined,
 });
 
 export const fetchCarePlans = async (familyId: string): Promise<CarePlan[]> => {
   try {
+    console.log('[fetchCarePlans] Fetching care plans for family:', familyId);
+    
+    // Verify authentication before querying
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      console.error('[fetchCarePlans] No session found');
+      throw new Error('Authentication required');
+    }
+
     const { data, error } = await supabase
       .from('care_plans')
       .select('*')
@@ -54,19 +69,42 @@ export const fetchCarePlans = async (familyId: string): Promise<CarePlan[]> => {
       .order('created_at', { ascending: false });
 
     if (error) {
+      console.error('[fetchCarePlans] Database error:', error);
       throw error;
     }
 
+    console.log('[fetchCarePlans] Successfully fetched plans:', data?.length || 0);
     return (data || []).map(plan => adaptCarePlanFromDb(plan as CarePlanDto));
-  } catch (error) {
-    console.error("Error fetching care plans:", error);
-    toast.error("Failed to load care plans");
+  } catch (error: any) {
+    console.error('[fetchCarePlans] Error:', error);
+    
+    if (error.message?.includes('auth.uid()') || error.message?.includes('authentication')) {
+      toast.error("Authentication issue. Please try logging out and back in.");
+    } else {
+      toast.error("Failed to load care plans");
+    }
     return [];
   }
 };
 
 export const fetchCarePlanById = async (planId: string): Promise<CarePlan | null> => {
   try {
+    console.log('[fetchCarePlanById] Fetching care plan:', planId);
+    console.log('[fetchCarePlanById] Environment:', window.location.hostname);
+    
+    // Verify authentication before querying
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    console.log('[fetchCarePlanById] Session check:', { 
+      hasSession: !!session, 
+      sessionUserId: session?.user?.id,
+      sessionError: sessionError?.message 
+    });
+    
+    if (!session || sessionError) {
+      console.error('[fetchCarePlanById] No valid session found');
+      throw new Error('Authentication required');
+    }
+
     const { data, error } = await supabase
       .from('care_plans')
       .select('*')
@@ -74,81 +112,81 @@ export const fetchCarePlanById = async (planId: string): Promise<CarePlan | null
       .maybeSingle();
 
     if (error) {
+      console.error('[fetchCarePlanById] Database error:', error);
+      
+      // Check if this is an RLS policy violation
+      if (error.message?.includes('auth.uid()')) {
+        console.error('[fetchCarePlanById] RLS policy blocked - auth.uid() is null');
+        console.log('[fetchCarePlanById] This indicates a session/authentication mismatch');
+        throw new Error('Authentication session issue - please try logging out and back in');
+      }
+      
       throw error;
     }
 
+    console.log('[fetchCarePlanById] Query result:', { 
+      found: !!data, 
+      planId: data?.id,
+      familyId: data?.family_id 
+    });
+
     return data ? adaptCarePlanFromDb(data as CarePlanDto) : null;
-  } catch (error) {
-    console.error("Error fetching care plan:", error);
-    toast.error("Failed to load care plan");
+  } catch (error: any) {
+    console.error('[fetchCarePlanById] Error:', error);
+    
+    if (error.message?.includes('Authentication') || error.message?.includes('auth.uid()')) {
+      toast.error("Authentication issue detected. Please try logging out and back in.");
+    } else if (error.message?.includes('session')) {
+      toast.error("Session expired. Please refresh and try again.");
+    } else {
+      toast.error("Failed to load care plan");
+    }
     return null;
   }
 };
 
-export const createCarePlan = async (plan: CarePlanInput): Promise<CarePlan | null> => {
+export const createCarePlan = async (carePlan: CreateCarePlanDto): Promise<CarePlan | null> => {
   try {
-    // Convert from domain model input to database model
-    const dbPlan: CarePlanDto = {
-      family_id: plan.familyId,
-      title: plan.title,
-      description: plan.description,
-      status: plan.status || 'active',
-      metadata: plan.metadata as unknown as Json
-    };
-
     const { data, error } = await supabase
       .from('care_plans')
-      .insert([dbPlan])
-      .select()
+      .insert([carePlan])
+      .select('*')
       .single();
 
     if (error) {
-      throw error;
+      console.error('Error creating care plan:', error);
+      toast.error("Failed to create care plan");
+      return null;
     }
 
-    toast.success("Care plan created successfully");
-    return data ? adaptCarePlanFromDb(data as CarePlanDto) : null;
+    toast.success("Care plan created successfully!");
+    return adaptCarePlanFromDb(data as CarePlanDto);
   } catch (error) {
-    console.error("Error creating care plan:", error);
+    console.error('Error creating care plan:', error);
     toast.error("Failed to create care plan");
     return null;
   }
 };
 
-export const updateCarePlan = async (
-  planId: string, 
-  updates: Partial<CarePlanInput>
-): Promise<CarePlan | null> => {
+export const updateCarePlan = async (planId: string, updates: UpdateCarePlanDto): Promise<CarePlan | null> => {
   try {
-    // Convert from domain model input to database model
-    const dbUpdates: Partial<CarePlanDto> = {
-      title: updates.title,
-      description: updates.description,
-      status: updates.status,
-      family_id: updates.familyId,
-      metadata: updates.metadata as unknown as Json
-    };
-    
-    // Remove undefined properties
-    Object.keys(dbUpdates).forEach(key => 
-      dbUpdates[key as keyof Partial<CarePlanDto>] === undefined && delete dbUpdates[key as keyof Partial<CarePlanDto>]
-    );
-
     const { data, error } = await supabase
       .from('care_plans')
-      .update(dbUpdates)
+      .update(updates)
       .eq('id', planId)
-      .select()
+      .select('*')
       .single();
 
     if (error) {
-      throw error;
+      console.error('Error updating care plan:', error);
+      toast.error("Failed to update care plan");
+      return null;
     }
 
-    toast.success("Care plan updated successfully");
-    return data ? adaptCarePlanFromDb(data as CarePlanDto) : null;
+    toast.success("Care plan updated successfully!");
+    return adaptCarePlanFromDb(data as CarePlanDto);
   } catch (error) {
-    console.error("Error updating care plan:", error);
+    console.error('Error updating care plan:', error);
     toast.error("Failed to update care plan");
     return null;
   }
@@ -162,17 +200,16 @@ export const deleteCarePlan = async (planId: string): Promise<boolean> => {
       .eq('id', planId);
 
     if (error) {
-      throw error;
+      console.error('Error deleting care plan:', error);
+      toast.error("Failed to delete care plan");
+      return false;
     }
 
-    toast.success("Care plan deleted successfully");
+    toast.success("Care plan deleted successfully!");
     return true;
   } catch (error) {
-    console.error("Error deleting care plan:", error);
+    console.error('Error deleting care plan:', error);
     toast.error("Failed to delete care plan");
     return false;
   }
 };
-
-// Re-export types for external use
-export type { CarePlanInput, CarePlanDto };

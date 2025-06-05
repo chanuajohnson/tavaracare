@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -136,7 +137,6 @@ export const DashboardFamilyMatches = () => {
       setIsLoading(true);
 
       // First use mock families immediately to prevent UI waiting
-      // This ensures we always have some families to display
       setFamilies(MOCK_FAMILIES);
       setFilteredFamilies(MOCK_FAMILIES);
 
@@ -149,15 +149,16 @@ export const DashboardFamilyMatches = () => {
         console.error("Error fetching family users:", familyError);
         toast.error("Failed to load family matches");
         setDataLoaded(true);
-        return; // Early return to keep mock data displayed
+        return;
       }
 
       if (!familyUsers || familyUsers.length === 0) {
         console.log("No family users found, using mock data");
-        // We're already using mock data, so just track and return
         await trackEngagement('dashboard_family_matches_view', { 
           data_source: 'mock_data',
-          family_count: MOCK_FAMILIES.length
+          family_count: MOCK_FAMILIES.length,
+          view_context: 'dashboard_widget',
+          component: 'DashboardFamilyMatches'
         });
         setDataLoaded(true);
         return;
@@ -190,7 +191,9 @@ export const DashboardFamilyMatches = () => {
       await trackEngagement('dashboard_family_matches_view', {
         data_source: realFamilies.length > 0 ? 'mixed_data' : 'mock_data',
         real_family_count: realFamilies.length,
-        mock_family_count: limitedMockFamilies.length
+        mock_family_count: limitedMockFamilies.length,
+        view_context: 'dashboard_widget',
+        component: 'DashboardFamilyMatches'
       });
       
       setFamilies(allFamilies);
@@ -200,16 +203,13 @@ export const DashboardFamilyMatches = () => {
       console.error("Error loading families:", error);
       toast.error("Error loading family matches");
       setDataLoaded(true);
-      // Keep showing mock data on error
     } finally {
       setIsLoading(false);
     }
   }, [user, trackEngagement, dataLoaded]);
   
   useEffect(() => {
-    // Start with empty state but quickly load
     if (user && !dataLoaded) {
-      // Set a small timeout to ensure UI doesn't flash loading state too quickly
       const timer = setTimeout(() => {
         loadFamilies();
       }, 100);
@@ -235,8 +235,7 @@ export const DashboardFamilyMatches = () => {
 
       // Apply budget filter
       result = result.filter(family => {
-        // Extract numeric values from budget_preferences
-        if (!family.budget_preferences) return true; // Include if no budget specified
+        if (!family.budget_preferences) return true;
         
         const match = family.budget_preferences.match(/\$(\d+)(?:-(\d+))?/);
         if (!match) return true;
@@ -244,7 +243,6 @@ export const DashboardFamilyMatches = () => {
         const minBudget = parseInt(match[1]);
         const maxBudget = match[2] ? parseInt(match[2]) : minBudget;
         
-        // Check if there's overlap between the family's budget range and filter range
         return (minBudget <= budgetRange[1] && maxBudget >= budgetRange[0]);
       });
 
@@ -264,11 +262,12 @@ export const DashboardFamilyMatches = () => {
 
   const handleUnlockProfile = (familyId: string) => {
     trackEngagement('unlock_family_profile_click', {
-      family_id: familyId
+      family_id: familyId,
+      source: 'dashboard_widget'
     });
-    navigate("/subscription-features", {
+    navigate("/subscription", {
       state: {
-        returnPath: "/family-matching",
+        returnPath: "/family/matching",
         referringPagePath: "/dashboard/professional",
         referringPageLabel: "Professional Dashboard",
         featureType: "Premium Family Profiles",
@@ -295,8 +294,10 @@ export const DashboardFamilyMatches = () => {
             {showFilters ? "Hide Filters" : "Show Filters"}
           </Button>
           <Button variant="default" className="flex items-center gap-1" onClick={() => {
-          trackEngagement('view_all_family_matches_click');
-          navigate("/family-matching", {
+          trackEngagement('view_all_family_matches_click', {
+            source: 'dashboard_widget'
+          });
+          navigate("/family/matching", {
             state: {
               referringPagePath: "/dashboard/professional",
               referringPageLabel: "Professional Dashboard"
@@ -452,8 +453,10 @@ export const DashboardFamilyMatches = () => {
               </div>)}
             
             <Button variant="outline" className="w-full mt-2" onClick={() => {
-          trackEngagement('view_all_family_matches_click');
-          navigate("/family-matching", {
+          trackEngagement('view_all_family_matches_click', {
+            source: 'dashboard_widget'
+          });
+          navigate("/family/matching", {
             state: {
               referringPagePath: "/dashboard/professional",
               referringPageLabel: "Professional Dashboard"

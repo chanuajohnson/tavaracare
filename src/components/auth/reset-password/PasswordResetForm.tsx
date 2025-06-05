@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
@@ -9,9 +10,10 @@ import {
   getResetAttempts, 
   incrementResetAttempts, 
   clearResetAttempts,
-  isPasswordStrong 
+  isPasswordStrong,
+  logResetAttempt
 } from '@/utils/passwordResetUtils';
-import { Loader2, ArrowLeft } from 'lucide-react';
+import { Loader2, ArrowLeft, Eye, EyeOff } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 
 interface PasswordResetFormProps {
@@ -23,6 +25,8 @@ export const PasswordResetForm = ({ emailAddress }: PasswordResetFormProps) => {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -56,7 +60,7 @@ export const PasswordResetForm = ({ emailAddress }: PasswordResetFormProps) => {
     setIsLoading(true);
 
     try {
-      console.log("🔒 Updating password");
+      console.log("🔒 Updating password for user");
       const { error } = await supabase.auth.updateUser({ password });
       
       if (error) {
@@ -66,16 +70,20 @@ export const PasswordResetForm = ({ emailAddress }: PasswordResetFormProps) => {
 
       console.log("✅ Password updated successfully, signing out");
       
-      // Sign out after reset for safety, using global scope to clear on all devices
+      // Log successful reset
+      logResetAttempt(true);
+      
+      // Sign out after reset for security, using global scope to clear on all devices
       await supabase.auth.signOut({ scope: "global" });
       
       // Clean up all reset-related storage
       clearResetAttempts();
       sessionStorage.removeItem('skipPostLoginRedirect');
+      localStorage.removeItem('recentResetAttempts');
       
       navigate("/auth", { 
         replace: true,
-        state: { resetSuccess: true }
+        state: { resetSuccess: true, email: emailAddress }
       });
       
       toast.success("Password has been reset successfully", {
@@ -84,8 +92,9 @@ export const PasswordResetForm = ({ emailAddress }: PasswordResetFormProps) => {
     } catch (error: any) {
       console.error('❌ Password update error:', error);
       
-      // Increment attempts counter
+      // Increment attempts counter and log the failure
       const newAttempts = incrementResetAttempts();
+      logResetAttempt(false, error.message);
       
       // Show appropriate error message based on attempts
       if (newAttempts >= MAX_RESET_ATTEMPTS) {
@@ -94,8 +103,15 @@ export const PasswordResetForm = ({ emailAddress }: PasswordResetFormProps) => {
         });
         navigate('/auth/reset-password');
       } else {
+        let errorMessage = "Please try again";
+        if (error.message.includes('same password')) {
+          errorMessage = "Please choose a different password";
+        } else if (error.message.includes('weak password')) {
+          errorMessage = "Please choose a stronger password";
+        }
+        
         toast.error("Failed to update password", {
-          description: error.message || "Please try again"
+          description: errorMessage
         });
       }
     } finally {
@@ -104,7 +120,7 @@ export const PasswordResetForm = ({ emailAddress }: PasswordResetFormProps) => {
   };
 
   return (
-    <Card className="shadow-lg">
+    <Card className="shadow-lg w-full">
       <CardHeader>
         <div className="flex items-center mb-2">
           <Button 
@@ -112,6 +128,7 @@ export const PasswordResetForm = ({ emailAddress }: PasswordResetFormProps) => {
             size="icon"
             onClick={() => navigate("/auth/reset-password")}
             className="mr-2 h-8 w-8"
+            disabled={isLoading}
           >
             <ArrowLeft className="h-4 w-4" />
           </Button>
@@ -125,34 +142,76 @@ export const PasswordResetForm = ({ emailAddress }: PasswordResetFormProps) => {
         <CardContent className="space-y-4">
           <div className="space-y-2">
             <label htmlFor="password" className="text-sm font-medium">New Password</label>
-            <Input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Enter your new password"
-              disabled={isLoading}
-              minLength={6}
-              required
-              className="focus:ring-2 focus:ring-blue-500"
-              autoComplete="new-password"
-            />
+            <div className="relative">
+              <Input
+                id="password"
+                type={showPassword ? "text" : "password"}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Enter your new password"
+                disabled={isLoading}
+                minLength={6}
+                required
+                className="focus:ring-2 focus:ring-blue-500 pr-10"
+                autoComplete="new-password"
+              />
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                onClick={() => setShowPassword(!showPassword)}
+                disabled={isLoading}
+              >
+                {showPassword ? (
+                  <EyeOff className="h-4 w-4 text-gray-400" />
+                ) : (
+                  <Eye className="h-4 w-4 text-gray-400" />
+                )}
+              </Button>
+            </div>
+            {password && (
+              <p className={`text-xs ${isPasswordStrong(password) ? 'text-green-600' : 'text-yellow-600'}`}>
+                {isPasswordStrong(password) ? '✓ Password strength: Good' : '⚠ Use at least 8 characters for better security'}
+              </p>
+            )}
           </div>
           
           <div className="space-y-2">
             <label htmlFor="confirm-password" className="text-sm font-medium">Confirm Password</label>
-            <Input
-              id="confirm-password"
-              type="password"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              placeholder="Confirm your new password"
-              disabled={isLoading}
-              minLength={6}
-              required
-              className="focus:ring-2 focus:ring-blue-500"
-              autoComplete="new-password"
-            />
+            <div className="relative">
+              <Input
+                id="confirm-password"
+                type={showConfirmPassword ? "text" : "password"}
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="Confirm your new password"
+                disabled={isLoading}
+                minLength={6}
+                required
+                className="focus:ring-2 focus:ring-blue-500 pr-10"
+                autoComplete="new-password"
+              />
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                disabled={isLoading}
+              >
+                {showConfirmPassword ? (
+                  <EyeOff className="h-4 w-4 text-gray-400" />
+                ) : (
+                  <Eye className="h-4 w-4 text-gray-400" />
+                )}
+              </Button>
+            </div>
+            {confirmPassword && (
+              <p className={`text-xs ${password === confirmPassword ? 'text-green-600' : 'text-red-600'}`}>
+                {password === confirmPassword ? '✓ Passwords match' : '✗ Passwords do not match'}
+              </p>
+            )}
           </div>
         </CardContent>
         
@@ -160,7 +219,7 @@ export const PasswordResetForm = ({ emailAddress }: PasswordResetFormProps) => {
           <Button 
             type="submit" 
             className="w-full" 
-            disabled={isLoading}
+            disabled={isLoading || !password || !confirmPassword || password !== confirmPassword}
           >
             {isLoading ? (
               <>

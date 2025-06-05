@@ -2837,6 +2837,10 @@ export type Database = {
           notes: string
         }[]
       }
+      get_current_user_role: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
       get_feature_vote_count: {
         Args: { feature_id: string }
         Returns: number
