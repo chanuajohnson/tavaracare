@@ -166,7 +166,7 @@ export const ProfessionalProfileHub = () => {
               </Card>
 
               {/* Collapsible Training Section */}
-              <Card>
+              <Card className="cursor-pointer" onClick={() => setIsTrainingExpanded(!isTrainingExpanded)}>
                 <CardHeader>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
@@ -176,7 +176,6 @@ export const ProfessionalProfileHub = () => {
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => setIsTrainingExpanded(!isTrainingExpanded)}
                       className="p-1 h-8 w-8"
                     >
                       {isTrainingExpanded ? (

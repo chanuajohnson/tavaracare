@@ -1,3 +1,4 @@
+
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import { CarePlan, CarePlanMetadata } from "@/types/carePlan";
@@ -20,7 +21,7 @@ export type CreateCarePlanDto = {
   description?: string | null;
   family_id: string;
   status?: 'active' | 'inactive' | 'completed';
-  metadata?: CarePlanMetadata;
+  metadata?: Json;
 };
 
 // DTO for updating an existing care plan
@@ -28,18 +29,26 @@ export type UpdateCarePlanDto = {
   title?: string;
   description?: string | null;
   status?: 'active' | 'inactive' | 'completed';
-  metadata?: CarePlanMetadata;
+  metadata?: Json;
 };
 
 const adaptCarePlanFromDb = (dbCarePlan: CarePlanDto): CarePlan => ({
   id: dbCarePlan.id,
-  createdAt: new Date(dbCarePlan.created_at),
-  updatedAt: new Date(dbCarePlan.updated_at),
+  createdAt: dbCarePlan.created_at,
+  updatedAt: dbCarePlan.updated_at,
   title: dbCarePlan.title,
   description: dbCarePlan.description,
   familyId: dbCarePlan.family_id,
-  status: dbCarePlan.status,
-  metadata: dbCarePlan.metadata as CarePlanMetadata || {},
+  status: dbCarePlan.status === 'inactive' ? 'cancelled' : dbCarePlan.status,
+  metadata: dbCarePlan.metadata ? (dbCarePlan.metadata as unknown as CarePlanMetadata) : undefined,
+});
+
+const adaptCarePlanToDb = (carePlan: Partial<CarePlan>): Partial<CreateCarePlanDto> => ({
+  title: carePlan.title,
+  description: carePlan.description,
+  family_id: carePlan.familyId,
+  status: carePlan.status === 'cancelled' ? 'inactive' : carePlan.status,
+  metadata: carePlan.metadata ? (carePlan.metadata as unknown as Json) : undefined,
 });
 
 export const fetchCarePlans = async (familyId: string): Promise<CarePlan[]> => {

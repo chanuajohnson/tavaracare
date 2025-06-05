@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "@/components/providers/AuthProvider";
@@ -10,7 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ArrowLeft } from "lucide-react";
-import { createCarePlan, fetchCarePlanById, updateCarePlan, type CarePlanInput } from "@/services/care-plans";
+import { createCarePlan, fetchCarePlanById, updateCarePlan, type CreateCarePlanDto, type UpdateCarePlanDto } from "@/services/care-plans";
 import { toast } from "sonner";
 import { CarePlanMetadata } from '@/types/carePlan';
 
@@ -107,26 +108,33 @@ const CreateCarePlanPage = () => {
     try {
       setIsSubmitting(true);
       
-      const planDetails: CarePlanInput = {
-        title,
-        description,
-        familyId: user.id, // Use camelCase to match frontend types
-        status: 'active',
-        metadata: {
-          planType,
-          weekdayCoverage: weekdayOption,
-          weekendCoverage: weekendOption,
-          additionalShifts: shifts
-        }
+      const metadata: CarePlanMetadata = {
+        planType,
+        weekdayCoverage: weekdayOption,
+        weekendCoverage: weekendOption,
+        additionalShifts: shifts
       };
       
       let result;
       if (isEditMode && id) {
-        result = await updateCarePlan(id, planDetails);
+        const updates: UpdateCarePlanDto = {
+          title,
+          description,
+          status: 'active',
+          metadata: metadata as any
+        };
+        result = await updateCarePlan(id, updates);
         if (result) {
           toast.success("Care plan updated successfully!");
         }
       } else {
+        const planDetails: CreateCarePlanDto = {
+          title,
+          description,
+          family_id: user.id,
+          status: 'active',
+          metadata: metadata as any
+        };
         result = await createCarePlan(planDetails);
         if (result) {
           toast.success("Care plan created successfully!");
