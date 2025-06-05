@@ -162,13 +162,18 @@ export const ScheduleTab: React.FC<ScheduleTabProps> = ({
         let createdShift;
         if (editingShift && !isRangeSelection) {
           createdShift = await updateCareShift(editingShift.id, shiftData);
+          
+          // If editing a shift and emergency coverage is selected, send broadcast
+          if (newShift.isEmergencyCoverage && createdShift && newShift.emergencyReason.trim()) {
+            await sendEmergencyWhatsAppBroadcast(createdShift, newShift.emergencyReason);
+          }
         } else {
           createdShift = await createCareShift(shiftData);
-        }
-
-        // If this is emergency coverage and we created the shift successfully, send WhatsApp broadcast
-        if (newShift.isEmergencyCoverage && createdShift && newShift.emergencyReason.trim()) {
-          await sendEmergencyWhatsAppBroadcast(createdShift, newShift.emergencyReason);
+          
+          // If creating a new shift with emergency coverage, send broadcast
+          if (newShift.isEmergencyCoverage && createdShift && newShift.emergencyReason.trim()) {
+            await sendEmergencyWhatsAppBroadcast(createdShift, newShift.emergencyReason);
+          }
         }
       }
 
@@ -268,7 +273,7 @@ export const ScheduleTab: React.FC<ScheduleTabProps> = ({
               </Button>
               <DialogContent className="sm:max-w-lg">
                 <DialogHeader>
-                  <DialogTitle>{editingShift ? 'Edit Shift' : 'Assign shift and team'}</DialogTitle>
+                  <DialogTitle>{editingShift ? 'Edit Shift' : 'Create New Shift'}</DialogTitle>
                   <DialogDescription>
                     {editingShift 
                       ? 'Update this care shift details and assignment' 
@@ -296,46 +301,44 @@ export const ScheduleTab: React.FC<ScheduleTabProps> = ({
                     </Select>
                   </div>
 
-                  {/* Emergency Coverage Option */}
-                  {!editingShift && (
-                    <div className="space-y-3 p-4 border border-orange-200 rounded-lg bg-orange-50">
+                  {/* Emergency Coverage Option - Available for both create and edit */}
+                  <div className="space-y-3 p-4 border border-orange-200 rounded-lg bg-orange-50">
+                    <div className="flex items-center space-x-2">
+                      <Checkbox 
+                        id="emergency-coverage"
+                        checked={newShift.isEmergencyCoverage}
+                        onCheckedChange={(checked) => setNewShift({
+                          ...newShift, 
+                          isEmergencyCoverage: !!checked,
+                          emergencyReason: checked ? newShift.emergencyReason : ""
+                        })}
+                      />
                       <div className="flex items-center space-x-2">
-                        <Checkbox 
-                          id="emergency-coverage"
-                          checked={newShift.isEmergencyCoverage}
-                          onCheckedChange={(checked) => setNewShift({
-                            ...newShift, 
-                            isEmergencyCoverage: !!checked,
-                            emergencyReason: checked ? newShift.emergencyReason : ""
-                          })}
-                        />
-                        <div className="flex items-center space-x-2">
-                          <AlertTriangle className="h-4 w-4 text-orange-600" />
-                          <Label htmlFor="emergency-coverage" className="font-medium text-orange-800">
-                            Emergency Coverage / Open Shift
-                          </Label>
-                        </div>
+                        <AlertTriangle className="h-4 w-4 text-orange-600" />
+                        <Label htmlFor="emergency-coverage" className="font-medium text-orange-800">
+                          Emergency Coverage / Open Shift
+                        </Label>
                       </div>
-                      {newShift.isEmergencyCoverage && (
-                        <div className="space-y-2">
-                          <Label htmlFor="emergency-reason" className="text-sm text-orange-700">
-                            Reason for emergency coverage (will be sent to team)
-                          </Label>
-                          <Textarea
-                            id="emergency-reason"
-                            placeholder="e.g., Assigned nurse called in sick, family emergency, etc."
-                            value={newShift.emergencyReason}
-                            onChange={(e) => setNewShift({...newShift, emergencyReason: e.target.value})}
-                            className="border-orange-300 focus:border-orange-500"
-                            rows={3}
-                          />
-                          <p className="text-xs text-orange-600">
-                            📱 This will send an urgent WhatsApp message to all care team members
-                          </p>
-                        </div>
-                      )}
                     </div>
-                  )}
+                    {newShift.isEmergencyCoverage && (
+                      <div className="space-y-2">
+                        <Label htmlFor="emergency-reason" className="text-sm text-orange-700">
+                          Reason for emergency coverage (will be sent to team)
+                        </Label>
+                        <Textarea
+                          id="emergency-reason"
+                          placeholder="e.g., Assigned nurse called in sick, family emergency, etc."
+                          value={newShift.emergencyReason}
+                          onChange={(e) => setNewShift({...newShift, emergencyReason: e.target.value})}
+                          className="border-orange-300 focus:border-orange-500"
+                          rows={3}
+                        />
+                        <p className="text-xs text-orange-600">
+                          📱 This will send an urgent WhatsApp message to all care team members
+                        </p>
+                      </div>
+                    )}
+                  </div>
                   
                   <div className="flex flex-col space-y-2">
                     <Label>Date Selection</Label>
@@ -345,6 +348,7 @@ export const ScheduleTab: React.FC<ScheduleTabProps> = ({
                         variant={isRangeSelection ? "default" : "outline"} 
                         className="w-1/2"
                         onClick={() => setIsRangeSelection(true)}
+                        disabled={editingShift}
                       >
                         <CalendarRange className="mr-2 h-4 w-4" />
                         Date Range
