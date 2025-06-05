@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,7 +15,7 @@ import { ShiftCalendar } from "./ShiftCalendar";
 import { CareShift, CareShiftInput, CareTeamMemberWithProfile } from "@/types/careTypes";
 import { createCareShift, updateCareShift } from "@/services/care-plans";
 import { WorkLogForm } from './WorkLogForm';
-import { supabase } from "@/lib/supabase";
+import { EmergencyShiftWhatsAppModal } from './EmergencyShiftWhatsAppModal';
 import { toast } from "sonner";
 
 interface ScheduleTabProps {
@@ -66,6 +65,11 @@ export const ScheduleTab: React.FC<ScheduleTabProps> = ({
   const [isRangeSelection, setIsRangeSelection] = useState(false);
   const [workLogFormOpen, setWorkLogFormOpen] = useState(false);
   const [selectedShift, setSelectedShift] = useState<CareShift | null>(null);
+  const [emergencyWhatsAppModalOpen, setEmergencyWhatsAppModalOpen] = useState(false);
+  const [emergencyShiftData, setEmergencyShiftData] = useState<{
+    shift: CareShift | null;
+    reason: string;
+  }>({ shift: null, reason: '' });
 
   const SHIFT_TITLE_OPTIONS: ShiftTypeOption[] = [
     { id: "weekday_standard", label: "Monday - Friday, 8 AM - 4 PM", description: "Standard daytime coverage during business hours", timeRange: { start: "08:00", end: "16:00" } },
@@ -80,33 +84,9 @@ export const ScheduleTab: React.FC<ScheduleTabProps> = ({
     { id: "weekday_evening_6pm_8am", label: "Weekday Evening Shift (6 PM - 8 AM)", description: "Evening care on weekdays after the primary shift ends, or continuous 24-hour coverage", timeRange: { start: "18:00", end: "08:00" } }
   ];
 
-  const sendEmergencyWhatsAppBroadcast = async (shift: CareShift, reason: string) => {
-    try {
-      const { error } = await supabase.functions.invoke('send-nudge-whatsapp', {
-        body: {
-          care_plan_id: carePlanId,
-          message_type: 'emergency_shift_coverage',
-          shift_details: {
-            id: shift.id,
-            title: shift.title,
-            start_time: shift.startTime,
-            end_time: shift.endTime,
-            location: shift.location,
-            reason: reason
-          }
-        }
-      });
-
-      if (error) {
-        console.error('Error sending emergency broadcast:', error);
-        toast.error('Failed to send emergency broadcast to team');
-      } else {
-        toast.success('Emergency shift broadcast sent to care team!');
-      }
-    } catch (error) {
-      console.error('Error sending emergency broadcast:', error);
-      toast.error('Failed to send emergency broadcast');
-    }
+  const showEmergencyWhatsAppModal = (shift: CareShift, reason: string) => {
+    setEmergencyShiftData({ shift, reason });
+    setEmergencyWhatsAppModalOpen(true);
   };
 
   const handleCreateShift = async () => {
@@ -132,6 +112,8 @@ export const ScheduleTab: React.FC<ScheduleTabProps> = ({
       } else {
         datesToCreateShifts.push(baseDayDate);
       }
+      
+      let emergencyShiftCreated: CareShift | null = null;
       
       for (const shiftDate of datesToCreateShifts) {
         const shiftTitle = selectedShiftType.label;
@@ -163,26 +145,32 @@ export const ScheduleTab: React.FC<ScheduleTabProps> = ({
         let createdShift;
         if (editingShift && !isRangeSelection) {
           createdShift = await updateCareShift(editingShift.id, shiftData);
-          
-          // If editing a shift and emergency coverage is selected, send broadcast
-          if (newShift.isEmergencyCoverage && createdShift && newShift.emergencyReason.trim()) {
-            await sendEmergencyWhatsAppBroadcast(createdShift, newShift.emergencyReason);
-          }
         } else {
           createdShift = await createCareShift(shiftData);
-          
-          // If creating a new shift with emergency coverage, send broadcast
-          if (newShift.isEmergencyCoverage && createdShift && newShift.emergencyReason.trim()) {
-            await sendEmergencyWhatsAppBroadcast(createdShift, newShift.emergencyReason);
-          }
+        }
+
+        // Store the first emergency shift for WhatsApp modal
+        if (newShift.isEmergencyCoverage && createdShift && !emergencyShiftCreated) {
+          emergencyShiftCreated = createdShift;
         }
       }
 
       setShiftDialogOpen(false);
       resetShiftForm();
       onShiftUpdated();
+
+      // Show emergency WhatsApp modal if this was an emergency shift
+      if (newShift.isEmergencyCoverage && emergencyShiftCreated && newShift.emergencyReason.trim()) {
+        toast.success('Emergency shift created - ready to notify team!');
+        setTimeout(() => {
+          showEmergencyWhatsAppModal(emergencyShiftCreated, newShift.emergencyReason);
+        }, 500);
+      } else if (!newShift.isEmergencyCoverage) {
+        toast.success(isRangeSelection ? 'Shifts created successfully!' : (editingShift ? 'Shift updated successfully!' : 'Shift created successfully!'));
+      }
     } catch (error) {
       console.error("Error creating/updating care shift:", error);
+      toast.error("Failed to create/update shift");
     }
   };
 
@@ -335,7 +323,7 @@ export const ScheduleTab: React.FC<ScheduleTabProps> = ({
                           rows={3}
                         />
                         <p className="text-xs text-orange-600">
-                          📱 This will send an urgent WhatsApp message to all care team members
+                          📱 This will open WhatsApp to notify all care team members
                         </p>
                       </div>
                     )}
@@ -476,7 +464,7 @@ export const ScheduleTab: React.FC<ScheduleTabProps> = ({
                     {newShift.isEmergencyCoverage ? (
                       <>
                         <AlertTriangle className="mr-2 h-4 w-4" />
-                        Send Emergency Broadcast
+                        Create & Notify Team
                       </>
                     ) : (
                       isRangeSelection 
@@ -516,6 +504,15 @@ export const ScheduleTab: React.FC<ScheduleTabProps> = ({
                 )}
               </DialogContent>
             </Dialog>
+
+            {/* Emergency WhatsApp Modal */}
+            <EmergencyShiftWhatsAppModal
+              open={emergencyWhatsAppModalOpen}
+              onOpenChange={setEmergencyWhatsAppModalOpen}
+              shift={emergencyShiftData.shift!}
+              teamMembers={careTeamMembers}
+              emergencyReason={emergencyShiftData.reason}
+            />
           </>
         ) : (
           <div className="text-center py-6">
