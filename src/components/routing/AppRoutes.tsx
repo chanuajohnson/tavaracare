@@ -11,7 +11,6 @@ import CommunityDashboard from "@/pages/dashboards/CommunityDashboard";
 import AdminDashboard from "@/pages/admin/AdminDashboard";
 import UserJourneyPage from "@/pages/admin/UserJourneyPage";
 import FeedbackManagementPage from "@/pages/admin/FeedbackManagementPage";
-import EnhancedAnalyticsPage from "@/pages/admin/EnhancedAnalyticsPage";
 import FeaturesPage from "@/pages/features/FeaturesPage";
 import AboutPage from "@/pages/about/AboutPage";
 import FAQPage from "@/pages/support/FAQPage";
@@ -57,7 +56,9 @@ import SubscriptionFeaturesPage from "@/pages/subscription/SubscriptionFeaturesP
 // Legacy Pages
 import LegacyStoriesPage from "@/pages/legacy/LegacyStoriesPage";
 
-const AppRoutes = () => {
+export const AppRoutes = () => {
+  const { user } = useAuth();
+
   return (
     <Routes>
       {/* Public Routes */}
@@ -116,7 +117,6 @@ const AppRoutes = () => {
       {/* Admin Routes */}
       <Route path="/admin/user-journey" element={<UserJourneyPage />} />
       <Route path="/admin/feedback" element={<FeedbackManagementPage />} />
-      <Route path="/admin/enhanced-analytics" element={<EnhancedAnalyticsPage />} />
       
       {/* Legacy Routes */}
       <Route path="/legacy/stories" element={<LegacyStoriesPage />} />
@@ -129,5 +129,3 @@ const AppRoutes = () => {
     </Routes>
   );
 };
-
-export default AppRoutes;

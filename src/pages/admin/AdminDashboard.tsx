@@ -129,12 +129,6 @@ const AdminDashboard = () => {
               User Journey Analytics
             </Button>
           </Link>
-          <Link to="/admin/enhanced-analytics">
-            <Button className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700">
-              <TrendingUp className="h-4 w-4" />
-              Enhanced Analytics
-            </Button>
-          </Link>
           <Link to="/admin/feedback">
             <Button className="flex items-center gap-2 bg-green-600 hover:bg-green-700">
               <HeadphonesIcon className="h-4 w-4" />

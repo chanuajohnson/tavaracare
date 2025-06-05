@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import { Navigation } from "@/components/layout/Navigation";
 import { AppProviders } from "@/components/providers/AppProviders";
 import { SupabaseInitializer } from "@/components/supabase/SupabaseInitializer";
-import AppRoutes from "@/components/routing/AppRoutes";
+import { AppRoutes } from "@/components/routing/AppRoutes";
 import { RedirectHandler } from "@/components/routing/RedirectHandler";
 import { GlobalFAB } from "@/components/common/GlobalFAB";
 import { TavaraAssistantPanel } from "@/components/tav/TavaraAssistantPanel";

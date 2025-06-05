@@ -1,28 +1,33 @@
-import React from 'react';
-import { AuthProvider } from './AuthProvider';
-import { QueryProvider } from './QueryProvider';
-import { Toaster } from 'sonner';
-import { useEnhancedJourneyTracking } from '@/hooks/analytics/useEnhancedJourneyTracking';
 
-interface AppProvidersProps {
-  children: React.ReactNode;
-}
+import { Toaster as Sonner } from "@/components/ui/sonner";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { AuthProvider } from "@/components/providers/AuthProvider";
+// Removed ChatProvider import - old chatbot system cleaned
+import { BrowserRouter } from "react-router-dom";
 
-export const AppProviders: React.FC<AppProvidersProps> = ({ children }) => {
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 2,
+      staleTime: 1000 * 60 * 5, // 5 minutes
+      gcTime: 1000 * 60 * 30, // 30 minutes
+      refetchOnWindowFocus: false,
+    },
+  },
+});
+
+export function AppProviders({ children }: { children: React.ReactNode }) {
   return (
-    <AuthProvider>
-      <QueryProvider>
-        <Toaster />
-        {/* Add global enhanced journey tracking */}
-        <GlobalEnhancedTracking />
-        {children}
-      </QueryProvider>
-    </AuthProvider>
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Sonner />
+        <BrowserRouter>
+          <AuthProvider>
+            {children}
+          </AuthProvider>
+        </BrowserRouter>
+      </TooltipProvider>
+    </QueryClientProvider>
   );
-};
-
-// Global component to initialize enhanced tracking
-const GlobalEnhancedTracking: React.FC = () => {
-  useEnhancedJourneyTracking();
-  return null;
-};
+}
