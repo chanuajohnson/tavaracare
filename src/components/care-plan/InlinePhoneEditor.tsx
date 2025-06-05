@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -68,11 +69,11 @@ export function InlinePhoneEditor({
 
     setIsLoading(true);
     try {
+      // Update only the phone_number column to avoid triggering the journey progress update
       const { error } = await supabase
         .from('profiles')
         .update({ 
-          phone_number: phoneNumber,
-          updated_at: new Date().toISOString()
+          phone_number: phoneNumber
         })
         .eq('id', userId);
 
