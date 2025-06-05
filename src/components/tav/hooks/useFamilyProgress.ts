@@ -163,32 +163,27 @@ export const useFamilyProgress = (): FamilyProgressData => {
     try {
       setLoading(true);
       
-      // Check if care assessment is completed
       const { data: careAssessment } = await supabase
         .from('care_needs_family')
         .select('id')
         .eq('profile_id', user.id)
         .maybeSingle();
 
-      // Check if care recipient profile exists
       const { data: careRecipient } = await supabase
         .from('care_recipient_profiles')
         .select('id, full_name')
         .eq('user_id', user.id)
         .maybeSingle();
 
-      // Check user profile completion and visit status
       const { data: profile } = await supabase
         .from('profiles')
         .select('full_name, phone_number, visit_scheduling_status, visit_scheduled_date')
         .eq('id', user.id)
         .maybeSingle();
 
-      // Set visit status and date for button text updates
       setVisitStatus(profile?.visit_scheduling_status || 'not_started');
       setVisitDate(profile?.visit_scheduled_date || null);
 
-      // Check for care plans
       const { data: carePlansData } = await supabase
         .from('care_plans')
         .select('id, title')
@@ -196,13 +191,11 @@ export const useFamilyProgress = (): FamilyProgressData => {
 
       setCarePlans(carePlansData || []);
 
-      // Check for medications
       const { data: medications } = await supabase
         .from('medications')
         .select('id')
         .in('care_plan_id', (carePlansData || []).map(cp => cp.id));
 
-      // Check for meal plans
       const { data: mealPlans } = await supabase
         .from('meal_plans')
         .select('id')
@@ -214,7 +207,6 @@ export const useFamilyProgress = (): FamilyProgressData => {
         buttonText: getButtonText(step)
       }));
       
-      // Mark steps as completed based on data
       if (user && profile?.full_name) {
         updatedSteps[0].completed = true;
       }
@@ -239,11 +231,9 @@ export const useFamilyProgress = (): FamilyProgressData => {
         updatedSteps[5].completed = true;
       }
 
-      // Mark visit scheduling as completed if scheduled or completed (but not cancelled)
       if (profile?.visit_scheduling_status === 'scheduled' || profile?.visit_scheduling_status === 'completed') {
         updatedSteps[6].completed = true;
       } else {
-        // Mark as incomplete if cancelled or not scheduled
         updatedSteps[6].completed = false;
       }
       

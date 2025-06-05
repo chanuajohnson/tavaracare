@@ -163,11 +163,11 @@ export const FamilyNextStepsPanel = () => {
         updatedSteps[5].completed = true;
       }
       
-      // Mark seventh step (visit scheduling) as completed if scheduled or completed (but not cancelled)
+      // Mark seventh step (visit scheduling) as completed if scheduled or completed (NOT if cancelled or ready_to_schedule)
       if (profile?.visit_scheduling_status === 'scheduled' || profile?.visit_scheduling_status === 'completed') {
         updatedSteps[6].completed = true;
       } else {
-        // Mark as incomplete if cancelled, not started, or ready to schedule
+        // Mark as incomplete if cancelled, ready_to_schedule, or not started
         updatedSteps[6].completed = false;
       }
       
