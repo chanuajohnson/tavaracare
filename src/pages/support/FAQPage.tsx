@@ -2,14 +2,9 @@
 import { motion } from "framer-motion";
 import { Container } from "@/components/ui/container";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Breadcrumb } from "@/components/ui/breadcrumbs/Breadcrumb";
+import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 
 const FAQPage = () => {
-  const breadcrumbItems = [
-    { href: "/", label: "Home" },
-    { label: "FAQ" }
-  ];
-
   const faqs = [
     {
       question: "What is Tavara.care?",
@@ -65,7 +60,17 @@ const FAQPage = () => {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-12">
       <Container>
         <div className="mb-8">
-          <Breadcrumb items={breadcrumbItems} />
+          <Breadcrumb>
+            <BreadcrumbList>
+              <BreadcrumbItem>
+                <BreadcrumbLink href="/">Home</BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>
+                <BreadcrumbPage>FAQ</BreadcrumbPage>
+              </BreadcrumbItem>
+            </BreadcrumbList>
+          </Breadcrumb>
         </div>
         
         <motion.div
