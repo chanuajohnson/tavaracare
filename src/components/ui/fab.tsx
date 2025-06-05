@@ -136,38 +136,45 @@ export const Fab = ({
     try {
       setIsSubmitting(true);
       
-      // Prepare the data to send
-      const formData = { 
-        ...contactFormData,
-        // Add any chat session data if it exists
-        ...(prefillData ? { chatData: prefillData } : {})
-      };
-      
-      // Handle screenshot if provided
+      // Convert screenshot to base64 if provided
+      let screenshotBase64 = null;
       if (screenshotFile) {
-        // Convert screenshot to base64
         const reader = new FileReader();
-        const base64Screenshot = await new Promise<string>((resolve) => {
+        screenshotBase64 = await new Promise<string>((resolve) => {
           reader.onloadend = () => {
             resolve(reader.result as string);
           };
           reader.readAsDataURL(screenshotFile);
         });
-        
-        // Add screenshot to form data
-        formData["screenshot"] = base64Screenshot;
       }
       
-      // Send form data to Edge Function
-      const { data, error } = await supabase.functions.invoke("send-contact-email", {
-        body: formData,
-      });
-      
+      // Store contact request directly in database
+      const { error } = await supabase
+        .from('user_feedback')
+        .insert({
+          feedback_type: 'general',
+          subject: 'Contact Support Request',
+          message: contactFormData.message,
+          contact_info: {
+            name: contactFormData.name,
+            email: contactFormData.email
+          },
+          metadata: {
+            source: 'contact_form',
+            screenshot: screenshotBase64 || null,
+            chatData: prefillData || null,
+            timestamp: new Date().toISOString(),
+            userAgent: navigator.userAgent || 'Unknown'
+          },
+          status: 'new',
+          priority: 'medium'
+        });
+
       if (error) {
-        throw new Error(error.message || "Failed to send support request");
+        throw new Error(error.message || "Failed to store contact request");
       }
       
-      console.log("Contact form submitted successfully:", data);
+      console.log("Contact form submitted successfully");
       toast.success("Your support request has been submitted. We'll get back to you soon!");
       
       // Reset form
@@ -176,7 +183,7 @@ export const Fab = ({
       setScreenshotFile(null);
       setPrefillData(null);
       setIsContactFormOpen(false);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error submitting contact form:", error);
       toast.error(error.message || "Failed to send support request. Please try again later.");
     } finally {

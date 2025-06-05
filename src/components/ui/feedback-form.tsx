@@ -124,14 +124,6 @@ export const FeedbackForm: React.FC<FeedbackFormProps> = ({ onClose, prefillData
     setIsSubmitting(true);
     
     try {
-      // Prepare metadata
-      const metadata = {
-        page: window.location.pathname,
-        userAgent: navigator.userAgent,
-        timestamp: new Date().toISOString(),
-        ...(prefillData || {})
-      };
-
       // Handle screenshot if provided
       let screenshotBase64 = null;
       if (formData.screenshot) {
@@ -142,20 +134,30 @@ export const FeedbackForm: React.FC<FeedbackFormProps> = ({ onClose, prefillData
         });
       }
 
-      // Call edge function to handle feedback submission
-      const { data, error } = await supabase.functions.invoke('send-feedback', {
-        body: {
+      // Prepare metadata
+      const metadata = {
+        page: window.location.pathname,
+        userAgent: navigator.userAgent,
+        timestamp: new Date().toISOString(),
+        screenshot: screenshotBase64,
+        ...(prefillData || {})
+      };
+
+      // Store feedback directly in database
+      const { error } = await supabase
+        .from('user_feedback')
+        .insert({
+          user_id: formData.anonymous ? null : user?.id,
           feedback_type: formData.feedback_type,
-          category: formData.category,
+          category: formData.category || null,
           subject: formData.subject,
           message: formData.message,
           rating: formData.rating || null,
           contact_info: formData.anonymous ? {} : formData.contact_info,
           metadata,
-          screenshot: screenshotBase64,
-          user_id: formData.anonymous ? null : user?.id
-        }
-      });
+          status: 'new',
+          priority: 'medium'
+        });
 
       if (error) throw error;
 
