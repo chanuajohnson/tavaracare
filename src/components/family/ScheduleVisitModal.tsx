@@ -56,13 +56,61 @@ export const ScheduleVisitModal: React.FC<ScheduleVisitModalProps> = ({
     }
   };
 
+  const handleCancelVisit = async () => {
+    if (!user) return;
+    
+    setIsUpdating(true);
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ 
+          visit_scheduling_status: 'cancelled',
+          visit_scheduled_date: null,
+          visit_notes: JSON.stringify({
+            cancelled_at: new Date().toISOString(),
+            previous_status: visitStatus
+          })
+        })
+        .eq('id', user.id);
+
+      if (error) throw error;
+
+      await supabase
+        .from('cta_engagement_tracking')
+        .insert({
+          user_id: user.id,
+          action_type: 'visit_cancelled',
+          feature_name: 'schedule_visit',
+          additional_data: { 
+            previous_status: visitStatus,
+            cancelled_at: new Date().toISOString()
+          }
+        });
+
+      setVisitStatus('cancelled');
+      setVisitDate(null);
+      toast.success("Visit cancelled successfully");
+      
+    } catch (error) {
+      console.error('Error cancelling visit:', error);
+      toast.error("Failed to cancel visit. Please try again.");
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const handleRescheduleVisit = () => {
+    setVisitStatus('not_started');
+    setStep('visit_selection');
+    setSelectedVisitType(null);
+    setSelectedCareModel(null);
+  };
+
   const handleVisitTypeSelection = (type: VisitType) => {
     setSelectedVisitType(type);
     if (type === 'video') {
-      // Video calls go directly to scheduling
       setShowGoogleCalendar(true);
     } else if (type === 'in_person' || type === 'trial_day') {
-      // Paid options need care model selection
       setStep('care_model');
     }
   };
@@ -77,7 +125,6 @@ export const ScheduleVisitModal: React.FC<ScheduleVisitModalProps> = ({
     
     setIsUpdating(true);
     try {
-      // Record the payment transaction with trial tracking metadata
       const { error: paymentError } = await supabase
         .from('payment_transactions')
         .insert({
@@ -97,7 +144,6 @@ export const ScheduleVisitModal: React.FC<ScheduleVisitModalProps> = ({
 
       if (paymentError) throw paymentError;
 
-      // Update visit status with care model preference stored
       const { error: profileError } = await supabase
         .from('profiles')
         .update({ 
@@ -114,7 +160,6 @@ export const ScheduleVisitModal: React.FC<ScheduleVisitModalProps> = ({
 
       if (profileError) throw profileError;
 
-      // Track engagement with trial conversion flag
       await supabase
         .from('cta_engagement_tracking')
         .insert({
@@ -194,7 +239,21 @@ export const ScheduleVisitModal: React.FC<ScheduleVisitModalProps> = ({
           message: visitDate 
             ? `Scheduled for ${new Date(visitDate).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })} at 11:00 AM`
             : "Your visit has been scheduled! We'll send confirmation details soon.",
-          showButtons: true
+          showButtons: true,
+          actions: [
+            {
+              text: "Cancel Visit",
+              action: handleCancelVisit,
+              variant: "destructive" as const,
+              disabled: isUpdating
+            },
+            {
+              text: "Reschedule Visit",
+              action: handleRescheduleVisit,
+              variant: "outline" as const,
+              disabled: isUpdating
+            }
+          ]
         };
       case 'completed':
         return {
@@ -269,6 +328,43 @@ export const ScheduleVisitModal: React.FC<ScheduleVisitModalProps> = ({
                 </div>
               </div>
               
+              {statusDisplay.actions && (
+                <div className="flex gap-2">
+                  {statusDisplay.actions.map((action, index) => (
+                    <AlertDialog key={index}>
+                      <AlertDialogTrigger asChild>
+                        <Button 
+                          variant={action.variant}
+                          disabled={action.disabled}
+                          className="flex-1"
+                        >
+                          {action.text}
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>
+                            {action.variant === 'destructive' ? 'Cancel Visit' : 'Reschedule Visit'}
+                          </AlertDialogTitle>
+                          <AlertDialogDescription>
+                            {action.variant === 'destructive' 
+                              ? 'Are you sure you want to cancel your scheduled visit? This action cannot be undone.'
+                              : 'Are you sure you want to reschedule your visit? This will reset your current selection.'
+                            }
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction onClick={action.action}>
+                            Confirm
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  ))}
+                </div>
+              )}
+
               {statusDisplay.buttonText && (
                 <Button 
                   variant={statusDisplay.buttonVariant}

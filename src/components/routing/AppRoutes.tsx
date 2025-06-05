@@ -41,6 +41,7 @@ import MedicationManagementPage from "@/pages/family/MedicationManagementPage";
 import CareManagementPage from "@/pages/family/care-management/CareManagementPage";
 import CarePlanDetailPage from "@/pages/family/care-management/CarePlanDetailPage";
 import CreateCarePlanPage from "@/pages/family/care-management/CreateCarePlanPage";
+import CareJourneyProgressPage from "@/pages/family/CareJourneyProgressPage";
 
 // Community Pages
 import CommunityFeaturesOverview from "@/pages/community/CommunityFeaturesOverview";
@@ -102,6 +103,7 @@ export const AppRoutes = () => {
       <Route path="/family/care-management/:id/medications" element={<MedicationManagementPage />} />
       <Route path="/family/care-management/:id/meals" element={<MealManagementPage />} />
       <Route path="/family/care-management/create" element={<CreateCarePlanPage />} />
+      <Route path="/family/care-journey-progress" element={<CareJourneyProgressPage />} />
       
       {/* Community Routes */}
       <Route path="/community" element={<CommunityFeaturesOverview />} />

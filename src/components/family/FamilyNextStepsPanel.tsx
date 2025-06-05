@@ -6,7 +6,6 @@ import { Link } from "react-router-dom";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { SubscriptionFeatureLink } from "@/components/subscription/SubscriptionFeatureLink";
 import { supabase } from "@/lib/supabase";
 import { ScheduleVisitModal } from "./ScheduleVisitModal";
 import { useUserCarePlan } from "@/hooks/useUserCarePlan";
@@ -374,18 +373,16 @@ export const FamilyNextStepsPanel = () => {
             </ul>
             
             <div className="mt-4">
-              <SubscriptionFeatureLink
-                featureType="All Tasks View" 
-                returnPath="/dashboard/family"
-                referringPagePath="/dashboard/family"
-                referringPageLabel="Family Dashboard"
+              <Button
+                variant="outline"
                 className="w-full"
+                onClick={() => navigate('/family/care-journey-progress')}
               >
                 <span className="flex justify-between items-center w-full">
                   <span>View all tasks</span>
                   <ArrowRight className="h-4 w-4" />
                 </span>
-              </SubscriptionFeatureLink>
+              </Button>
             </div>
           </CardContent>
         </Card>
