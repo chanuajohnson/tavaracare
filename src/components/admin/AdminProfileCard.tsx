@@ -35,6 +35,7 @@ export const AdminProfileCard: React.FC = () => {
   useEffect(() => {
     if (user?.id) {
       fetchProfile();
+      updateLastLogin();
     }
   }, [user?.id]);
 
@@ -54,6 +55,17 @@ export const AdminProfileCard: React.FC = () => {
       toast.error('Failed to load profile');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const updateLastLogin = async () => {
+    try {
+      await supabase
+        .from('profiles')
+        .update({ last_login_at: new Date().toISOString() })
+        .eq('id', user?.id);
+    } catch (error) {
+      console.error('Error updating last login:', error);
     }
   };
 
