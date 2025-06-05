@@ -39,7 +39,7 @@ export function ProfessionalShortcutMenuBar() {
     try {
       setCheckingProfile(true);
       
-      // Use exact same logic as NextStepsPanel and useProfessionalProgress for consistency
+      // Use exact same logic as NextStepsPanel for consistency
       const { data: profile } = await supabase
         .from('profiles')
         .select('professional_type, years_of_experience')

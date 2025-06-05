@@ -28,15 +28,15 @@ export const useProfessionalProgress = (): ProfessionalProgressData => {
   const [steps, setSteps] = useState<ProfessionalStep[]>([
     { 
       id: 1, 
-      title: "Create your account", 
-      description: "Set up your Tavara account", 
-      completed: true, // Always completed if user exists
-      link: "/auth" 
+      title: "Account created", 
+      description: "Email confirmed and account activated", 
+      completed: true, // Always completed if user exists and is authenticated
+      link: "/dashboard" 
     },
     { 
       id: 2, 
       title: "Complete your professional profile", 
-      description: "Add your experience and certifications", 
+      description: "Add your experience and certifications to get started", 
       completed: false, 
       link: "/registration/professional" 
     },
@@ -71,12 +71,16 @@ export const useProfessionalProgress = (): ProfessionalProgressData => {
   ]);
 
   const handleStepAction = (step: ProfessionalStep) => {
+    if (step.id === 1) return; // No action needed for account creation step
     navigate(step.link);
   };
 
   const getButtonText = (step: ProfessionalStep) => {
+    if (step.id === 1) {
+      return "Account Created"; // Always shows as completed for authenticated users
+    }
+    
     if (step.completed) {
-      if (step.id === 1) return "Account Created";
       if (step.id === 2) return "Edit Profile";
       if (step.id === 3) return "View Documents";
       if (step.id === 4) return "Edit Availability";
@@ -85,7 +89,6 @@ export const useProfessionalProgress = (): ProfessionalProgressData => {
       return "Edit";
     }
     
-    if (step.id === 1) return "Complete";
     if (step.id === 2) return "Complete Profile";
     if (step.id === 3) return "Upload Docs";
     if (step.id === 4) return "Set Availability";
@@ -101,7 +104,7 @@ export const useProfessionalProgress = (): ProfessionalProgressData => {
     try {
       setLoading(true);
       
-      // Check user profile completion - exact same logic as NextStepsPanel
+      // Check user profile completion - same logic as NextStepsPanel
       const { data: profile } = await supabase
         .from('profiles')
         .select('professional_type, years_of_experience, certifications, availability')
@@ -120,7 +123,7 @@ export const useProfessionalProgress = (): ProfessionalProgressData => {
         buttonText: getButtonText(step)
       }));
       
-      // Step 1: Account creation - always completed if user exists
+      // Step 1: Account creation - always completed if user exists and is authenticated
       updatedSteps[0].completed = true;
       
       // Step 2: Complete professional profile - check if professional details are filled

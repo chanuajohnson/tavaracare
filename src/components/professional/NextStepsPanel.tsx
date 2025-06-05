@@ -16,15 +16,15 @@ export const NextStepsPanel = () => {
   const [steps, setSteps] = useState([
     { 
       id: 1, 
-      title: "Create your account", 
-      description: "Set up your Tavara account", 
-      completed: true, // Always completed if user exists
-      link: "/auth" 
+      title: "Account created", 
+      description: "Email confirmed and account activated", 
+      completed: true, // Always completed if user is authenticated
+      link: "/dashboard" 
     },
     { 
       id: 2, 
       title: "Complete your professional profile", 
-      description: "Add your experience and certifications", 
+      description: "Add your experience and certifications to get started", 
       completed: false, 
       link: "/registration/professional" 
     },
@@ -85,7 +85,7 @@ export const NextStepsPanel = () => {
 
       const updatedSteps = [...steps];
       
-      // Step 1: Account creation - always completed if user exists
+      // Step 1: Account creation - always completed if user exists and is authenticated
       updatedSteps[0].completed = true;
       
       // Step 2: Complete professional profile - check if professional details are filled
@@ -117,8 +117,11 @@ export const NextStepsPanel = () => {
   const progress = Math.round((completedSteps / steps.length) * 100);
 
   const getButtonText = (step: any) => {
+    if (step.id === 1) {
+      return "Account Created"; // Always shows as completed for authenticated users
+    }
+    
     if (step.completed) {
-      if (step.id === 1) return "Account Created";
       if (step.id === 2) return "Edit Profile";
       if (step.id === 3) return "View Documents";
       if (step.id === 4) return "Edit Availability";
@@ -127,7 +130,6 @@ export const NextStepsPanel = () => {
       return "Edit";
     }
     
-    if (step.id === 1) return "Complete";
     if (step.id === 2) return "Complete Profile";
     if (step.id === 3) return "Upload Docs";
     if (step.id === 4) return "Set Availability";
@@ -138,12 +140,24 @@ export const NextStepsPanel = () => {
   };
 
   const getButtonIcon = (step: any) => {
+    if (step.id === 1) return null; // No icon for completed account step
     return <ArrowRight className="ml-1 h-3 w-3" />;
   };
 
   const handleStepClick = (step: any) => {
+    if (step.id === 1) return; // No action needed for account creation step
     navigate(step.link);
   };
+
+  const isStepDisabled = (step: any) => {
+    return step.id === 1; // Only the account creation step is disabled
+  };
+
+  const getNextStep = () => {
+    return steps.find(step => !step.completed);
+  };
+
+  const nextStep = getNextStep();
 
   if (loading) {
     return (
@@ -185,7 +199,9 @@ export const NextStepsPanel = () => {
             Your Professional Journey Progress
           </CardTitle>
           <div className="flex justify-between items-center">
-            <p className="text-sm text-gray-500">Complete these steps to start connecting with families</p>
+            <p className="text-sm text-gray-500">
+              {nextStep ? `Next up: ${nextStep.title}` : "All steps completed! Start connecting with families"}
+            </p>
             <div className="flex items-center space-x-1">
               <p className="text-sm font-medium">{progress}%</p>
               <div className="w-24 h-2 bg-gray-100 rounded-full overflow-hidden">
@@ -213,7 +229,7 @@ export const NextStepsPanel = () => {
                     <p className={`font-medium ${step.completed ? 'text-gray-500 line-through' : 'text-gray-800'}`}>
                       {step.title}
                     </p>
-                    {!step.completed && (
+                    {!step.completed && step.id !== 1 && (
                       <div className="flex items-center text-xs text-gray-500 gap-1">
                         <Clock className="h-3 w-3" />
                         <span>Pending</span>
@@ -223,18 +239,22 @@ export const NextStepsPanel = () => {
                   <p className="text-sm text-gray-500">{step.description}</p>
                 </div>
                 <Button 
-                  variant={step.completed ? "outline" : "ghost"} 
+                  variant={step.completed ? "outline" : (step.id === 2 && !step.completed ? "default" : "ghost")} 
                   size="sm" 
                   className={`p-0 h-6 ${
-                    step.completed 
-                      ? 'text-blue-600 hover:text-blue-700' 
-                      : 'text-primary hover:text-primary-600'
+                    isStepDisabled(step)
+                      ? 'text-gray-400 cursor-not-allowed' 
+                      : step.completed 
+                        ? 'text-blue-600 hover:text-blue-700' 
+                        : step.id === 2 
+                          ? 'text-white bg-primary hover:bg-primary-600' 
+                          : 'text-primary hover:text-primary-600'
                   }`}
                   onClick={() => handleStepClick(step)}
-                  disabled={step.id === 1 && step.completed}
+                  disabled={isStepDisabled(step)}
                 >
                   {getButtonText(step)}
-                  {step.id !== 1 && getButtonIcon(step)}
+                  {getButtonIcon(step)}
                 </Button>
               </li>
             ))}
