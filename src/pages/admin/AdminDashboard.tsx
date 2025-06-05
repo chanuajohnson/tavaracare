@@ -4,10 +4,12 @@ import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { DashboardCardGrid } from "@/components/dashboard/DashboardCardGrid";
 import { FeatureInterestTracker } from "@/components/admin/FeatureInterestTracker";
 import { AdminUserManagement } from "@/components/admin/AdminUserManagement";
+import { WhatsAppTemplateManager } from "@/components/admin/WhatsAppTemplateManager";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { BarChart } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { BarChart, MessageSquare, Users, TrendingUp } from "lucide-react";
 import { UserJourneyTracker } from "@/components/tracking/UserJourneyTracker";
 import { useJourneyTracking } from "@/hooks/useJourneyTracking";
 import { useState, useEffect } from "react";
@@ -100,7 +102,7 @@ const AdminDashboard = () => {
           className="mb-8"
         >
           <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
-          <p className="text-gray-600 mt-2">Manage system settings and user accounts.</p>
+          <p className="text-gray-600 mt-2">Manage system settings, user accounts, and communication templates.</p>
         </motion.div>
 
         <motion.div
@@ -118,13 +120,42 @@ const AdminDashboard = () => {
         </motion.div>
 
         <div className="space-y-8">
-          <AdminUserManagement />
-          
-          <div className="mt-8">
-            <FeatureInterestTracker />
-          </div>
-
-          <DashboardCardGrid />
+          <Tabs defaultValue="users" className="w-full">
+            <TabsList className="grid w-full grid-cols-4">
+              <TabsTrigger value="users" className="flex items-center gap-2">
+                <Users className="h-4 w-4" />
+                User Management
+              </TabsTrigger>
+              <TabsTrigger value="templates" className="flex items-center gap-2">
+                <MessageSquare className="h-4 w-4" />
+                WhatsApp Templates
+              </TabsTrigger>
+              <TabsTrigger value="analytics" className="flex items-center gap-2">
+                <TrendingUp className="h-4 w-4" />
+                Feature Analytics
+              </TabsTrigger>
+              <TabsTrigger value="overview" className="flex items-center gap-2">
+                <BarChart className="h-4 w-4" />
+                System Overview
+              </TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="users" className="mt-6">
+              <AdminUserManagement />
+            </TabsContent>
+            
+            <TabsContent value="templates" className="mt-6">
+              <WhatsAppTemplateManager />
+            </TabsContent>
+            
+            <TabsContent value="analytics" className="mt-6">
+              <FeatureInterestTracker />
+            </TabsContent>
+            
+            <TabsContent value="overview" className="mt-6">
+              <DashboardCardGrid />
+            </TabsContent>
+          </Tabs>
         </div>
       </div>
     </div>

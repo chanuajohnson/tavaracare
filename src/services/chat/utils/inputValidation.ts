@@ -50,7 +50,8 @@ export const validateChatInput = (input: string, fieldType: string): { isValid: 
           };
         }
         
-        if (cleanedNumber.startsWith('+1868') && cleanedNumber.length !== 15) {
+        // FIXED: Trinidad & Tobago validation - should be 12 digits total (+1868 + 7 digits)
+        if (cleanedNumber.startsWith('+1868') && cleanedNumber.length !== 12) {
           return { 
             isValid: false, 
             errorMessage: "Trinidad & Tobago numbers should be +1868 followed by 7 digits" 

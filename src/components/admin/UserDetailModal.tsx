@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { useUserJourneyProgress } from "@/hooks/useUserJourneyProgress";
 import { UserWithProgress } from "@/types/adminTypes";
 import { PhoneNumberEditor } from "./PhoneNumberEditor";
+import { TemplateSelector } from "./TemplateSelector";
 
 interface UserDetailModalProps {
   user: UserWithProgress | null;
@@ -22,6 +23,7 @@ interface UserDetailModalProps {
 export function UserDetailModal({ user, open, onOpenChange, onRefresh }: UserDetailModalProps) {
   const [sending, setSending] = React.useState(false);
   const [userPhoneNumber, setUserPhoneNumber] = React.useState<string | null>(null);
+  const [showTemplateSelector, setShowTemplateSelector] = React.useState(false);
   
   const { steps, completionPercentage, nextStep, loading } = useUserJourneyProgress(
     user?.id || '', 
@@ -34,33 +36,6 @@ export function UserDetailModal({ user, open, onOpenChange, onRefresh }: UserDet
   }, [user?.phone_number]);
 
   if (!user) return null;
-
-  const generateWhatsAppUrl = (messageType: string) => {
-    if (!userPhoneNumber) return null;
-    
-    // Clean phone number for WhatsApp (remove + and any spaces)
-    const cleanPhone = userPhoneNumber.replace(/[\s+]/g, '');
-    
-    let message = '';
-    const userName = user.full_name || 'there';
-    
-    switch (messageType) {
-      case 'welcome':
-        message = `Hi ${userName}! 👋 Welcome to Tavara Care. We're excited to support you on your caregiving journey. How can we help you today?`;
-        break;
-      case 'current_step':
-        const currentStepText = nextStep ? `completing ${nextStep.title}` : 'continuing your journey';
-        message = `Hi ${userName}! 💙 Just checking in on your progress with Tavara Care. Your next step is ${currentStepText}. Need any assistance? We're here to help!`;
-        break;
-      case 'financial_proposal':
-        message = `Hi ${userName}! 💼 We have your personalized care plan and financial proposal ready. This includes all payment options and subscription details tailored to your needs. When would be a good time to discuss?`;
-        break;
-      default:
-        message = `Hi ${userName}! Thank you for choosing Tavara Care. How can we assist you today?`;
-    }
-    
-    return `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
-  };
 
   const sendNudgeEmail = async (stepType: string) => {
     setSending(true);
@@ -90,26 +65,33 @@ export function UserDetailModal({ user, open, onOpenChange, onRefresh }: UserDet
     }
   };
 
-  const openWhatsAppChat = (messageType: string) => {
-    const whatsappUrl = generateWhatsAppUrl(messageType);
-    if (whatsappUrl) {
-      window.open(whatsappUrl, '_blank');
-      
-      // Log the WhatsApp interaction
-      supabase.from('cta_engagement_tracking').insert({
-        user_id: user.id,
-        action_type: 'admin_whatsapp_chat_opened',
-        session_id: `admin-${Date.now()}`,
-        additional_data: {
-          message_type: messageType,
-          phone_number: userPhoneNumber,
-          admin_user_id: null, // Will be filled by RLS
-          timestamp: new Date().toISOString()
-        }
-      }).then(() => {
-        toast.success(`WhatsApp chat opened for ${user.full_name || user.email}`);
-      });
+  const handleWhatsAppMessage = (message: string) => {
+    if (!userPhoneNumber) {
+      toast.error('No phone number available');
+      return;
     }
+
+    // Clean phone number for WhatsApp (remove + and any spaces)
+    const cleanPhone = userPhoneNumber.replace(/[\s+]/g, '');
+    
+    // Create WhatsApp URL and open it
+    const whatsappUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
+    window.open(whatsappUrl, '_blank');
+    
+    // Log the WhatsApp interaction
+    supabase.from('cta_engagement_tracking').insert({
+      user_id: user.id,
+      action_type: 'admin_whatsapp_template_sent',
+      session_id: `admin-${Date.now()}`,
+      additional_data: {
+        message_preview: message.substring(0, 100),
+        phone_number: userPhoneNumber,
+        admin_user_id: null, // Will be filled by RLS
+        timestamp: new Date().toISOString()
+      }
+    }).then(() => {
+      toast.success(`WhatsApp message sent to ${user.full_name || user.email}`);
+    });
   };
 
   const advanceUserStep = async () => {
@@ -148,231 +130,264 @@ export function UserDetailModal({ user, open, onOpenChange, onRefresh }: UserDet
   // Check if user is at schedule visit stage or beyond for financial proposals
   const isAtScheduleVisitStage = completionPercentage >= 70; // Adjust threshold as needed
 
+  // Role-specific information
+  let roleSpecificInfo = null;
+  if (user.role === 'family') {
+    roleSpecificInfo = (
+      <Card>
+        <CardHeader>
+          <CardTitle>Family-Specific Information</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p>Details specific to family users go here.</p>
+        </CardContent>
+      </Card>
+    );
+  } else if (user.role === 'professional') {
+    roleSpecificInfo = (
+      <Card>
+        <CardHeader>
+          <CardTitle>Professional-Specific Information</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p>Details specific to professional users go here.</p>
+        </CardContent>
+      </Card>
+    );
+  } else if (user.role === 'community') {
+    roleSpecificInfo = (
+      <Card>
+        <CardHeader>
+          <CardTitle>Community-Specific Information</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p>Details specific to community users go here.</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <User className="h-5 w-5" />
-            {user.full_name || 'Unnamed User'}
-            <Badge variant={user.email_verified ? "default" : "secondary"}>
-              {user.email_verified ? "Verified" : "Unverified"}
-            </Badge>
-          </DialogTitle>
-        </DialogHeader>
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <User className="h-5 w-5" />
+              {user.full_name || 'Unnamed User'}
+              <Badge variant={user.email_verified ? "default" : "secondary"}>
+                {user.email_verified ? "Verified" : "Unverified"}
+              </Badge>
+            </DialogTitle>
+          </DialogHeader>
 
-        <div className="space-y-6">
-          {/* User Overview */}
-          <Card>
-            <CardHeader>
-              <CardTitle>{user.full_name || 'User Details'}</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <Mail className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm">{user.email}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <User className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm capitalize">{user.role}</span>
-                  </div>
-                  {user.location && (
-                    <div className="flex items-center gap-2">
-                      <MapPin className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm">{user.location}</span>
-                    </div>
-                  )}
-                  {/* Enhanced Phone Number Editor */}
-                  <PhoneNumberEditor
-                    userId={user.id}
-                    currentPhoneNumber={userPhoneNumber}
-                    userName={user.full_name || user.email}
-                    onPhoneNumberUpdate={handlePhoneNumberUpdate}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <Calendar className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm">Joined {new Date(user.created_at).toLocaleDateString()}</span>
-                  </div>
-                  {user.last_login_at && (
-                    <div className="flex items-center gap-2">
-                      <Clock className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm">Last login {new Date(user.last_login_at).toLocaleDateString()}</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Journey Progress */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center justify-between">
-                {user.role.charAt(0).toUpperCase() + user.role.slice(1)} Journey Progress
-                <Badge variant="outline">
-                  {completionPercentage}% Complete
-                </Badge>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <Progress value={completionPercentage} className="w-full" />
-              
-              {loading ? (
-                <div className="text-center py-4">
-                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto"></div>
-                  <p className="text-sm text-gray-500 mt-2">Loading journey progress...</p>
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  {steps.map((step) => {
-                    const isCurrent = nextStep?.id === step.id;
-                    
-                    return (
-                      <div key={step.id} className={`flex items-center gap-2 p-2 rounded ${
-                        isCurrent ? 'bg-blue-50 border border-blue-200' : 
-                        step.completed ? 'bg-green-50' : 'bg-gray-50'
-                      }`}>
-                        {step.completed ? (
-                          <CheckCircle2 className="h-4 w-4 text-green-500" />
-                        ) : isCurrent ? (
-                          <Clock className="h-4 w-4 text-blue-500" />
-                        ) : (
-                          <Circle className="h-4 w-4 text-gray-300" />
-                        )}
-                        <span className={`text-sm flex-1 ${isCurrent ? 'font-medium text-blue-700' : ''}`}>
-                          {step.id}. {step.title}
-                        </span>
-                        <span className="text-xs text-muted-foreground">
-                          {step.description}
-                        </span>
-                        {isCurrent && (
-                          <Badge variant="secondary" className="ml-auto">
-                            Current
-                          </Badge>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Role-specific Information - keep existing code */}
-          // ... keep existing code (role-specific information sections)
-
-          <Separator />
-
-          {/* Enhanced Admin Actions with WhatsApp Click-to-Chat */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Admin Actions</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {/* Primary Communication Actions */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  <Button 
-                    onClick={() => sendNudgeEmail('current_step')}
-                    disabled={sending}
-                    className="flex items-center gap-2"
-                  >
-                    <Mail className="h-4 w-4" />
-                    Email Current Step
-                  </Button>
-                  
-                  <Button 
-                    onClick={() => openWhatsAppChat('current_step')}
-                    disabled={!userPhoneNumber}
-                    variant="outline"
-                    className="flex items-center gap-2 bg-green-50 border-green-200 text-green-700 hover:bg-green-100"
-                  >
-                    <Send className="h-4 w-4" />
-                    WhatsApp Current Step
-                  </Button>
-                  
-                  <Button 
-                    onClick={advanceUserStep}
-                    disabled={completionPercentage >= 100}
-                    variant="outline"
-                    className="flex items-center gap-2"
-                  >
-                    <ArrowRight className="h-4 w-4" />
-                    Advance Step
-                  </Button>
-                </div>
-                
-                {/* Welcome Messages */}
+          <div className="space-y-6">
+            {/* User Overview */}
+            <Card>
+              <CardHeader>
+                <CardTitle>{user.full_name || 'User Details'}</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <Button 
-                    onClick={() => sendNudgeEmail('welcome')}
-                    disabled={sending}
-                    variant="outline"
-                    className="flex items-center gap-2"
-                  >
-                    <Mail className="h-4 w-4" />
-                    Send Welcome Email
-                  </Button>
-                  
-                  <Button 
-                    onClick={() => openWhatsAppChat('welcome')}
-                    disabled={!userPhoneNumber}
-                    variant="outline"
-                    className="flex items-center gap-2 bg-green-50 border-green-200 text-green-700 hover:bg-green-100"
-                  >
-                    <Send className="h-4 w-4" />
-                    Send Welcome WhatsApp
-                  </Button>
-                </div>
-
-                {/* Financial Proposal Actions - Show only if at schedule visit stage */}
-                {isAtScheduleVisitStage && (
-                  <div className="border-t pt-4">
-                    <h4 className="text-sm font-medium text-gray-700 mb-2">Financial Proposals & Payment Options</h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <Button 
-                        onClick={() => sendNudgeEmail('financial_proposal')}
-                        disabled={sending}
-                        variant="outline"
-                        className="flex items-center gap-2 bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100"
-                      >
-                        <Mail className="h-4 w-4" />
-                        Email Financial Proposal
-                      </Button>
-                      
-                      <Button 
-                        onClick={() => openWhatsAppChat('financial_proposal')}
-                        disabled={!userPhoneNumber}
-                        variant="outline"
-                        className="flex items-center gap-2 bg-green-50 border-green-200 text-green-700 hover:bg-green-100"
-                      >
-                        <Send className="h-4 w-4" />
-                        WhatsApp Financial Proposal
-                      </Button>
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <Mail className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-sm">{user.email}</span>
                     </div>
-                    <p className="text-xs text-muted-foreground mt-2">
-                      Available because user is at "Schedule Visit" stage or beyond
-                    </p>
+                    <div className="flex items-center gap-2">
+                      <User className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-sm capitalize">{user.role}</span>
+                    </div>
+                    {user.location && (
+                      <div className="flex items-center gap-2">
+                        <MapPin className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-sm">{user.location}</span>
+                      </div>
+                    )}
+                    {/* Enhanced Phone Number Editor */}
+                    <PhoneNumberEditor
+                      userId={user.id}
+                      currentPhoneNumber={userPhoneNumber}
+                      userName={user.full_name || user.email}
+                      onPhoneNumberUpdate={handlePhoneNumberUpdate}
+                    />
                   </div>
-                )}
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <Calendar className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-sm">Joined {new Date(user.created_at).toLocaleDateString()}</span>
+                    </div>
+                    {user.last_login_at && (
+                      <div className="flex items-center gap-2">
+                        <Clock className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-sm">Last login {new Date(user.last_login_at).toLocaleDateString()}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
 
-                {/* Phone Number Status */}
-                {!userPhoneNumber && (
-                  <div className="bg-amber-50 border border-amber-200 rounded-md p-3">
-                    <p className="text-sm text-amber-700">
-                      📞 No phone number on file - WhatsApp options are disabled. Add a phone number above to enable WhatsApp communication.
-                    </p>
+            {/* Journey Progress */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center justify-between">
+                  {user.role.charAt(0).toUpperCase() + user.role.slice(1)} Journey Progress
+                  <Badge variant="outline">
+                    {completionPercentage}% Complete
+                  </Badge>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <Progress value={completionPercentage} className="w-full" />
+                
+                {loading ? (
+                  <div className="text-center py-4">
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto"></div>
+                    <p className="text-sm text-gray-500 mt-2">Loading journey progress...</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {steps.map((step) => {
+                      const isCurrent = nextStep?.id === step.id;
+                      
+                      return (
+                        <div key={step.id} className={`flex items-center gap-2 p-2 rounded ${
+                          isCurrent ? 'bg-blue-50 border border-blue-200' : 
+                          step.completed ? 'bg-green-50' : 'bg-gray-50'
+                        }`}>
+                          {step.completed ? (
+                            <CheckCircle2 className="h-4 w-4 text-green-500" />
+                          ) : isCurrent ? (
+                            <Clock className="h-4 w-4 text-blue-500" />
+                          ) : (
+                            <Circle className="h-4 w-4 text-gray-300" />
+                          )}
+                          <span className={`text-sm flex-1 ${isCurrent ? 'font-medium text-blue-700' : ''}`}>
+                            {step.id}. {step.title}
+                          </span>
+                          <span className="text-xs text-muted-foreground">
+                            {step.description}
+                          </span>
+                          {isCurrent && (
+                            <Badge variant="secondary" className="ml-auto">
+                              Current
+                            </Badge>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </DialogContent>
-    </Dialog>
+              </CardContent>
+            </Card>
+
+            {roleSpecificInfo}
+
+            <Separator />
+
+            {/* Enhanced Admin Actions with Template System */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Admin Actions</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {/* Primary Communication Actions */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <Button 
+                      onClick={() => sendNudgeEmail('current_step')}
+                      disabled={sending}
+                      className="flex items-center gap-2"
+                    >
+                      <Mail className="h-4 w-4" />
+                      Email Current Step
+                    </Button>
+                    
+                    <Button 
+                      onClick={() => setShowTemplateSelector(true)}
+                      disabled={!userPhoneNumber}
+                      variant="outline"
+                      className="flex items-center gap-2 bg-green-50 border-green-200 text-green-700 hover:bg-green-100"
+                    >
+                      <Send className="h-4 w-4" />
+                      WhatsApp with Template
+                    </Button>
+                    
+                    <Button 
+                      onClick={advanceUserStep}
+                      disabled={completionPercentage >= 100}
+                      variant="outline"
+                      className="flex items-center gap-2"
+                    >
+                      <ArrowRight className="h-4 w-4" />
+                      Advance Step
+                    </Button>
+                  </div>
+                  
+                  {/* Welcome Messages */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <Button 
+                      onClick={() => sendNudgeEmail('welcome')}
+                      disabled={sending}
+                      variant="outline"
+                      className="flex items-center gap-2"
+                    >
+                      <Mail className="h-4 w-4" />
+                      Send Welcome Email
+                    </Button>
+                  </div>
+
+                  {/* Financial Proposal Actions - Show only if at schedule visit stage */}
+                  {isAtScheduleVisitStage && (
+                    <div className="border-t pt-4">
+                      <h4 className="text-sm font-medium text-gray-700 mb-2">Financial Proposals & Payment Options</h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <Button 
+                          onClick={() => sendNudgeEmail('financial_proposal')}
+                          disabled={sending}
+                          variant="outline"
+                          className="flex items-center gap-2 bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100"
+                        >
+                          <Mail className="h-4 w-4" />
+                          Email Financial Proposal
+                        </Button>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-2">
+                        Available because user is at "Schedule Visit" stage or beyond
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Phone Number Status */}
+                  {!userPhoneNumber && (
+                    <div className="bg-amber-50 border border-amber-200 rounded-md p-3">
+                      <p className="text-sm text-amber-700">
+                        📞 No phone number on file - WhatsApp options are disabled. Add a phone number above to enable WhatsApp communication.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Template Selector Dialog */}
+      <TemplateSelector
+        open={showTemplateSelector}
+        onOpenChange={setShowTemplateSelector}
+        userRole={user.role as 'family' | 'professional' | 'community'}
+        userName={user.full_name || 'User'}
+        userPhone={userPhoneNumber || ''}
+        userProgress={{
+          completion_percentage: completionPercentage,
+          current_step: nextStep?.id,
+          next_step: nextStep
+        }}
+        onSendMessage={handleWhatsAppMessage}
+      />
+    </>
   );
 }
