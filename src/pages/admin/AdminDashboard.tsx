@@ -118,10 +118,12 @@ const AdminDashboard = () => {
               User Journey Analytics
             </Button>
           </Link>
-          <Button className="flex items-center gap-2 bg-green-600 hover:bg-green-700">
-            <HeadphonesIcon className="h-4 w-4" />
-            TAVARA Feedback
-          </Button>
+          <Link to="/admin/feedback">
+            <Button className="flex items-center gap-2 bg-green-600 hover:bg-green-700">
+              <HeadphonesIcon className="h-4 w-4" />
+              TAVARA Feedback
+            </Button>
+          </Link>
         </motion.div>
 
         <div className="space-y-8">
