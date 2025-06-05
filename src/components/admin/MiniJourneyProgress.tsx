@@ -3,7 +3,7 @@ import React from 'react';
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { CheckCircle2, Clock, Circle } from "lucide-react";
-import { useAdminUserProgress } from "@/hooks/useAdminUserProgress";
+import { useUserSpecificProgress } from "@/hooks/useUserSpecificProgress";
 import type { UserRole } from "@/types/userRoles";
 
 interface MiniJourneyProgressProps {
@@ -12,7 +12,8 @@ interface MiniJourneyProgressProps {
 }
 
 export const MiniJourneyProgress: React.FC<MiniJourneyProgressProps> = ({ userId, userRole }) => {
-  const { loading, completionPercentage, nextStep, steps } = useAdminUserProgress(userId, userRole);
+  // Use the new user-specific hook that mirrors TAV's logic
+  const { loading, completionPercentage, nextStep, steps } = useUserSpecificProgress(userId, userRole);
 
   if (loading) {
     return (

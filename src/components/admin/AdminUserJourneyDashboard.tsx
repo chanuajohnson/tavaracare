@@ -266,7 +266,6 @@ export function AdminUserJourneyDashboard() {
             users={filteredUsers}
             selectedUsers={selectedUsers}
             onUserSelect={handleUserSelect}
-            onRefresh={fetchUsers}
           />
         </CardContent>
       </Card>

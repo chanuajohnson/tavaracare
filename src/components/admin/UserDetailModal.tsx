@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -8,7 +9,7 @@ import { Separator } from "@/components/ui/separator";
 import { User, Mail, MapPin, Calendar, CheckCircle2, Clock, Send, ArrowRight, Circle } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
-import { useAdminUserProgress } from "@/hooks/useAdminUserProgress";
+import { useUserJourneyProgress } from "@/hooks/useUserJourneyProgress";
 import { UserWithProgress } from "@/types/adminTypes";
 
 interface UserDetailModalProps {
@@ -20,7 +21,7 @@ interface UserDetailModalProps {
 
 export function UserDetailModal({ user, open, onOpenChange, onRefresh }: UserDetailModalProps) {
   const [sending, setSending] = React.useState(false);
-  const { steps, completionPercentage, nextStep, loading } = useAdminUserProgress(
+  const { steps, completionPercentage, nextStep, loading } = useUserJourneyProgress(
     user?.id || '', 
     user?.role || 'family'
   );
