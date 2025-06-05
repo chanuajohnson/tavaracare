@@ -95,37 +95,52 @@ export const FamilyNextStepsPanel = () => {
           <CardContent>
             <div className="space-y-4">
               {dashboardSteps.map((step) => (
-                <div key={step.id} className="flex items-start gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors">
+                <div key={step.id} className={`flex items-start gap-3 p-3 rounded-lg transition-colors ${
+                  step.accessible ? 'hover:bg-gray-50' : 'bg-gray-50'
+                }`}>
                   <div className="mt-0.5">
                     {step.completed ? (
                       <CheckCircle2 className="h-5 w-5 text-green-500" />
                     ) : (
-                      <Circle className="h-5 w-5 text-gray-300" />
+                      <Circle className={`h-5 w-5 ${step.accessible ? 'text-gray-300' : 'text-gray-200'}`} />
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex-1">
-                        <p className={`font-medium text-sm ${step.completed ? 'text-gray-500 line-through' : 'text-gray-800'}`}>
+                        <p className={`font-medium text-sm ${
+                          step.completed 
+                            ? 'text-gray-500 line-through' 
+                            : step.accessible 
+                              ? 'text-gray-800' 
+                              : 'text-gray-400'
+                        }`}>
                           {step.title}
                         </p>
-                        <p className="text-xs text-gray-500 mt-1">{step.description}</p>
+                        <p className={`text-xs mt-1 ${
+                          step.accessible ? 'text-gray-500' : 'text-gray-400'
+                        }`}>
+                          {step.description}
+                        </p>
                       </div>
                       <div className="flex items-center gap-2 flex-shrink-0">
                         {!step.completed && (
                           <div className="flex items-center text-xs text-gray-500 gap-1">
                             <Clock className="h-3 w-3" />
-                            <span>Pending</span>
+                            <span>{step.accessible ? 'Pending' : 'Locked'}</span>
                           </div>
                         )}
                         <Button 
                           variant="ghost" 
                           size="sm" 
                           className={`text-xs px-2 py-1 h-auto ${
-                            step.completed 
-                              ? 'text-blue-600 hover:text-blue-700' 
-                              : 'text-primary hover:text-primary-600'
+                            !step.accessible
+                              ? 'text-gray-400 cursor-not-allowed opacity-50'
+                              : step.completed 
+                                ? 'text-blue-600 hover:text-blue-700' 
+                                : 'text-primary hover:text-primary-600'
                           }`}
+                          disabled={!step.accessible}
                           onClick={() => step.action && step.action()}
                         >
                           {step.buttonText}

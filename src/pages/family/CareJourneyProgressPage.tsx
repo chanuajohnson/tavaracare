@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -23,6 +22,7 @@ interface JourneyStep {
   action?: () => void;
   category: 'foundation' | 'scheduling' | 'trial' | 'conversion';
   statusField?: string;
+  accessible?: boolean;
 }
 
 export default function CareJourneyProgressPage() {
@@ -49,7 +49,8 @@ export default function CareJourneyProgressPage() {
       completed: false,
       category: 'foundation',
       link: "/registration/family",
-      statusField: "profile_completed_at"
+      statusField: "profile_completed_at",
+      accessible: true
     },
     {
       id: 2,
@@ -59,7 +60,8 @@ export default function CareJourneyProgressPage() {
       completed: false,
       category: 'foundation',
       link: "/family/care-assessment",
-      statusField: "assessment_completed_at"
+      statusField: "assessment_completed_at",
+      accessible: true
     },
     {
       id: 3,
@@ -70,7 +72,8 @@ export default function CareJourneyProgressPage() {
       optional: true,
       category: 'foundation',
       link: "/family/story",
-      statusField: "legacy_story_submitted_at"
+      statusField: "legacy_story_submitted_at",
+      accessible: true
     },
     {
       id: 4,
@@ -80,7 +83,8 @@ export default function CareJourneyProgressPage() {
       completed: false,
       category: 'foundation',
       link: "/caregiver/matching",
-      statusField: "match_viewed_at"
+      statusField: "match_viewed_at",
+      accessible: false
     },
     {
       id: 5,
@@ -89,7 +93,8 @@ export default function CareJourneyProgressPage() {
       icon: <Pill className="h-5 w-5" />,
       completed: false,
       category: 'foundation',
-      statusField: "medications_added_at"
+      statusField: "medications_added_at",
+      accessible: true
     },
     {
       id: 6,
@@ -98,7 +103,8 @@ export default function CareJourneyProgressPage() {
       icon: <Utensils className="h-5 w-5" />,
       completed: false,
       category: 'foundation',
-      statusField: "meals_added_at"
+      statusField: "meals_added_at",
+      accessible: true
     },
     {
       id: 7,
@@ -107,7 +113,8 @@ export default function CareJourneyProgressPage() {
       icon: <Calendar className="h-5 w-5" />,
       completed: false,
       category: 'scheduling',
-      statusField: "visit_scheduling_status"
+      statusField: "visit_scheduling_status",
+      accessible: true
     },
     {
       id: 8,
@@ -116,46 +123,51 @@ export default function CareJourneyProgressPage() {
       icon: <CheckCircle2 className="h-5 w-5" />,
       completed: false,
       category: 'scheduling',
-      statusField: "visit_confirmed_at"
+      statusField: "visit_confirmed_at",
+      accessible: false
     },
     {
       id: 9,
-      title: "Schedule Trial Day",
-      description: "Choose a trial date with your matched caregiver.",
+      title: "Schedule Trial Day (Optional)",
+      description: "Choose a trial date with your matched caregiver. This is an optional step before choosing your care model.",
       icon: <Clock className="h-5 w-5" />,
       completed: false,
       optional: true,
       category: 'trial',
-      statusField: "trial_scheduled_at"
+      statusField: "trial_scheduled_at",
+      accessible: false
     },
     {
       id: 10,
-      title: "Pay for Trial Day",
+      title: "Pay for Trial Day (Optional)",
       description: "Pay a one-time fee of $320 TTD for an 8-hour caregiver experience.",
       icon: <Star className="h-5 w-5" />,
       completed: false,
       optional: true,
       category: 'trial',
-      statusField: "trial_day_paid"
+      statusField: "trial_day_paid",
+      accessible: false
     },
     {
       id: 11,
-      title: "Begin Your Trial",
+      title: "Begin Your Trial (Optional)",
       description: "Your caregiver begins the scheduled trial session.",
       icon: <Heart className="h-5 w-5" />,
       completed: false,
       optional: true,
       category: 'trial',
-      statusField: "trial_started_at"
+      statusField: "trial_started_at",
+      accessible: false
     },
     {
       id: 12,
       title: "Rate & Choose Your Path",
-      description: "After the trial, decide between: Hire your caregiver ($40/hr) or Subscribe to Tavara ($45/hr) for full support tools.",
+      description: "Decide between: Hire your caregiver ($40/hr) or Subscribe to Tavara ($45/hr) for full support tools. Can skip trial and go directly here after visit confirmation.",
       icon: <ArrowRight className="h-5 w-5" />,
       completed: false,
       category: 'conversion',
-      statusField: "trial_completed_at"
+      statusField: "trial_completed_at",
+      accessible: false
     }
   ]);
 
@@ -294,7 +306,40 @@ export default function CareJourneyProgressPage() {
     }
   };
 
+  const updateStepAccessibility = (updatedSteps: JourneyStep[]) => {
+    return updatedSteps.map(step => {
+      let accessible = true;
+      
+      switch (step.id) {
+        case 4: // Caregiver matches - need steps 1-3 completed
+          accessible = updatedSteps[0]?.completed && updatedSteps[1]?.completed && updatedSteps[2]?.completed;
+          break;
+        case 8: // Confirm visit - need step 7 completed
+          accessible = updatedSteps[6]?.completed; // Step 7 (index 6)
+          break;
+        case 9: // Schedule trial - need step 7 completed
+          accessible = updatedSteps[6]?.completed; // Step 7 (index 6)
+          break;
+        case 10: // Pay for trial - need steps 8 and 9 completed
+          accessible = updatedSteps[7]?.completed && updatedSteps[8]?.completed; // Steps 8,9
+          break;
+        case 11: // Begin trial - need step 10 completed
+          accessible = updatedSteps[9]?.completed; // Step 10 (index 9)
+          break;
+        case 12: // Choose path - need step 8 completed (can skip trial)
+          accessible = updatedSteps[7]?.completed; // Step 8 (index 7)
+          break;
+        default:
+          accessible = true;
+      }
+      
+      return { ...step, accessible };
+    });
+  };
+
   const handleStepAction = (step: JourneyStep) => {
+    if (!step.accessible) return;
+    
     if (step.id === 4) {
       // Check if first three steps are completed
       const canAccessMatching = steps[0]?.completed && steps[1]?.completed && steps[2]?.completed;
@@ -332,6 +377,16 @@ export default function CareJourneyProgressPage() {
   };
 
   const getStepButtonText = (step: JourneyStep) => {
+    if (!step.accessible) {
+      if (step.id === 4) return "Complete Above Steps";
+      if (step.id === 8) return "Schedule Visit First";
+      if (step.id === 9) return "Schedule Visit First";
+      if (step.id === 10) return "Complete Previous Steps";
+      if (step.id === 11) return "Complete Previous Steps";
+      if (step.id === 12) return "Confirm Visit First";
+      return "Not Available";
+    }
+    
     if (step.id === 4) {
       const canAccessMatching = steps[0]?.completed && steps[1]?.completed && steps[2]?.completed;
       if (!canAccessMatching) return "Complete Above Steps";
@@ -446,36 +501,46 @@ export default function CareJourneyProgressPage() {
             <CardContent className="p-6">
               <div className="space-y-1">
                 {steps.map((step, index) => (
-                  <div key={step.id} className="flex items-center gap-4 p-4 rounded-lg hover:bg-gray-50 transition-colors">
+                  <div key={step.id} className={`flex items-center gap-4 p-4 rounded-lg transition-colors ${
+                    step.accessible ? 'hover:bg-gray-50' : 'bg-gray-50'
+                  }`}>
                     <div className="flex-shrink-0">
                       {step.completed ? (
                         <CheckCircle2 className="h-6 w-6 text-green-500" />
                       ) : (
-                        <Circle className="h-6 w-6 text-gray-300" />
+                        <Circle className={`h-6 w-6 ${step.accessible ? 'text-gray-300' : 'text-gray-200'}`} />
                       )}
                     </div>
                     
-                    <div className="flex-shrink-0 text-primary">
+                    <div className={`flex-shrink-0 ${step.accessible ? 'text-primary' : 'text-gray-300'}`}>
                       {step.icon}
                     </div>
                     
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
-                        <h3 className={`font-medium text-sm ${step.completed ? 'text-gray-500 line-through' : 'text-gray-800'}`}>
+                        <h3 className={`font-medium text-sm ${
+                          step.completed 
+                            ? 'text-gray-500 line-through' 
+                            : step.accessible 
+                              ? 'text-gray-800' 
+                              : 'text-gray-400'
+                        }`}>
                           {step.title}
                         </h3>
                         {step.optional && (
                           <Badge variant="secondary" className="text-xs">Optional</Badge>
                         )}
                       </div>
-                      <p className="text-xs text-gray-600">{step.description}</p>
+                      <p className={`text-xs ${step.accessible ? 'text-gray-600' : 'text-gray-400'}`}>
+                        {step.description}
+                      </p>
                     </div>
                     
                     <div className="flex items-center gap-3 flex-shrink-0">
                       {!step.completed && (
                         <div className="flex items-center text-xs text-gray-500 gap-1">
                           <Clock className="h-3 w-3" />
-                          <span>Pending</span>
+                          <span>{step.accessible ? 'Pending' : 'Locked'}</span>
                         </div>
                       )}
                       
@@ -483,13 +548,13 @@ export default function CareJourneyProgressPage() {
                         variant={step.completed ? "outline" : "ghost"} 
                         size="sm" 
                         className={`text-xs px-3 py-1 h-auto ${
-                          step.id === 4 && !steps[0]?.completed && !steps[1]?.completed && !steps[2]?.completed
-                            ? 'text-gray-400 cursor-not-allowed' 
+                          !step.accessible
+                            ? 'text-gray-400 cursor-not-allowed opacity-50' 
                             : step.completed 
                               ? 'text-blue-600 hover:text-blue-700' 
                               : 'text-primary hover:text-primary-600'
                         }`}
-                        disabled={step.id === 4 && !steps[0]?.completed && !steps[1]?.completed && !steps[2]?.completed}
+                        disabled={!step.accessible}
                         onClick={() => handleStepAction(step)}
                       >
                         {getStepButtonText(step)}

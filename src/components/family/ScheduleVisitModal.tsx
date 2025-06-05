@@ -438,18 +438,23 @@ export const ScheduleVisitModal: React.FC<ScheduleVisitModalProps> = ({
                     <CardHeader>
                       <CardTitle className="flex items-center gap-2 text-blue-800">
                         <VideoIcon className="h-5 w-5" />
-                        Free Video Introduction (15 min)
+                        Free Video Introduction (1hr - 2hr)
                       </CardTitle>
                       <CardDescription className="text-blue-700">
-                        Quick video call to meet your coordinator and discuss your needs
+                        Video call to discuss care needs, meet as a potential care team, discuss your needs etc.
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
-                      <div className="flex justify-between items-center">
-                        <span className="text-2xl font-bold text-blue-600">FREE</span>
-                        <Button variant="outline" className="border-blue-500 text-blue-600">
-                          Schedule Video Call
-                        </Button>
+                      <div className="space-y-2">
+                        <div className="flex justify-between items-center">
+                          <span className="text-2xl font-bold text-blue-600">FREE</span>
+                          <Button variant="outline" className="border-blue-500 text-blue-600">
+                            Schedule Video Call
+                          </Button>
+                        </div>
+                        <div className="text-sm text-blue-600">
+                          (1st free, add more with same match or another as you see fit accessible via monthly subscription)
+                        </div>
                       </div>
                     </CardContent>
                   </Card>
@@ -460,10 +465,10 @@ export const ScheduleVisitModal: React.FC<ScheduleVisitModalProps> = ({
                     <CardHeader>
                       <CardTitle className="flex items-center gap-2 text-green-800">
                         <Home className="h-5 w-5" />
-                        In-Person Visit (2 hours)
+                        In-Person Visit (1hr - 2hr)
                       </CardTitle>
                       <CardDescription className="text-green-700">
-                        Meet your coordinator in person to discuss care needs and meet potential caregivers
+                        Meet your coordinator and matched caregiver in person: discuss care needs, meet as a potential care team, discuss your needs etc.
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
@@ -488,7 +493,7 @@ export const ScheduleVisitModal: React.FC<ScheduleVisitModalProps> = ({
                         Trial Day (8 hours)
                       </CardTitle>
                       <CardDescription className="text-purple-700">
-                        Full day trial with your matched caregiver. Perfect way to test compatibility before committing
+                        Full day trial with your matched caregiver. Perfect way to test compatibility before committing. This is an intermediate step precursor to choosing your care model.
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
@@ -499,7 +504,7 @@ export const ScheduleVisitModal: React.FC<ScheduleVisitModalProps> = ({
                             Book Trial Day
                           </Button>
                         </div>
-                        <div className="text-sm text-purple-600 font-medium">
+                        <div className="text-sm text-purple-600 font-medium bg-purple-50 p-3 rounded">
                           💡 Trial fee can be applied as credit toward your subscription!
                         </div>
                       </div>

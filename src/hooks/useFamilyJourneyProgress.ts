@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { supabase } from '@/lib/supabase';
@@ -14,6 +13,7 @@ interface JourneyStep {
   link?: string;
   action?: () => void;
   buttonText?: string;
+  accessible?: boolean;
 }
 
 interface JourneyProgressData {
@@ -49,7 +49,8 @@ export const useFamilyJourneyProgress = (): JourneyProgressData => {
       description: "Add your contact information and preferences.", 
       completed: false, 
       category: 'foundation',
-      link: "/registration/family" 
+      link: "/registration/family",
+      accessible: true
     },
     { 
       id: 2, 
@@ -57,7 +58,8 @@ export const useFamilyJourneyProgress = (): JourneyProgressData => {
       description: "Help us understand your care needs better.", 
       completed: false, 
       category: 'foundation',
-      link: "/family/care-assessment" 
+      link: "/family/care-assessment",
+      accessible: true
     },
     { 
       id: 3, 
@@ -66,7 +68,8 @@ export const useFamilyJourneyProgress = (): JourneyProgressData => {
       completed: false, 
       optional: true,
       category: 'foundation',
-      link: "/family/story" 
+      link: "/family/story",
+      accessible: true
     },
     { 
       id: 4, 
@@ -74,7 +77,8 @@ export const useFamilyJourneyProgress = (): JourneyProgressData => {
       description: "Now that your loved one's profile is complete, unlock personalized caregiver recommendations.", 
       completed: false, 
       category: 'foundation',
-      link: "/caregiver/matching" 
+      link: "/caregiver/matching",
+      accessible: false
     },
     { 
       id: 5, 
@@ -82,7 +86,8 @@ export const useFamilyJourneyProgress = (): JourneyProgressData => {
       description: "Add medications and set up schedules for your care plan.", 
       completed: false, 
       category: 'foundation',
-      link: "/family/care-management" 
+      link: "/family/care-management",
+      accessible: true
     },
     { 
       id: 6, 
@@ -90,7 +95,8 @@ export const useFamilyJourneyProgress = (): JourneyProgressData => {
       description: "Plan meals and create grocery lists for your care plan.", 
       completed: false, 
       category: 'foundation',
-      link: "/family/care-management" 
+      link: "/family/care-management",
+      accessible: true
     },
     // Scheduling Steps (7-8)
     { 
@@ -99,51 +105,90 @@ export const useFamilyJourneyProgress = (): JourneyProgressData => {
       description: "Choose to meet your match and a care coordinator virtually (Free) or in person ($300 TTD).", 
       completed: false, 
       category: 'scheduling',
-      link: "/family/schedule-visit" 
+      link: "/family/schedule-visit",
+      accessible: true
     },
     { 
       id: 8, 
       title: "Confirm Visit", 
       description: "Confirm the video link or complete payment for in-person visit.", 
       completed: false, 
-      category: 'scheduling'
+      category: 'scheduling',
+      accessible: false
     },
-    // Trial Steps (9-11)
+    // Trial Steps (9-11) - Optional path
     { 
       id: 9, 
-      title: "Schedule Trial Day", 
-      description: "Choose a trial date with your matched caregiver.", 
+      title: "Schedule Trial Day (Optional)", 
+      description: "Choose a trial date with your matched caregiver. This is an optional step before choosing your care model.", 
       completed: false, 
       optional: true,
-      category: 'trial'
+      category: 'trial',
+      accessible: false
     },
     { 
       id: 10, 
-      title: "Pay for Trial Day", 
+      title: "Pay for Trial Day (Optional)", 
       description: "Pay a one-time fee of $320 TTD for an 8-hour caregiver experience.", 
       completed: false, 
       optional: true,
-      category: 'trial'
+      category: 'trial',
+      accessible: false
     },
     { 
       id: 11, 
-      title: "Begin Your Trial", 
+      title: "Begin Your Trial (Optional)", 
       description: "Your caregiver begins the scheduled trial session.", 
       completed: false, 
       optional: true,
-      category: 'trial'
+      category: 'trial',
+      accessible: false
     },
     // Conversion Step (12)
     { 
       id: 12, 
       title: "Rate & Choose Your Path", 
-      description: "After the trial, decide between: Hire your caregiver ($40/hr) or Subscribe to Tavara ($45/hr) for full support tools.", 
+      description: "Decide between: Hire your caregiver ($40/hr) or Subscribe to Tavara ($45/hr) for full support tools. Can skip trial and go directly here after visit confirmation.", 
       completed: false, 
-      category: 'conversion'
+      category: 'conversion',
+      accessible: false
     }
   ]);
 
+  const updateStepAccessibility = (updatedSteps: JourneyStep[]) => {
+    return updatedSteps.map(step => {
+      let accessible = true;
+      
+      switch (step.id) {
+        case 4: // Caregiver matches - need steps 1-3 completed
+          accessible = updatedSteps[0]?.completed && updatedSteps[1]?.completed && updatedSteps[2]?.completed;
+          break;
+        case 8: // Confirm visit - need step 7 completed
+          accessible = updatedSteps[6]?.completed; // Step 7 (index 6)
+          break;
+        case 9: // Schedule trial - need step 7 completed
+          accessible = updatedSteps[6]?.completed; // Step 7 (index 6)
+          break;
+        case 10: // Pay for trial - need steps 8 and 9 completed
+          accessible = updatedSteps[7]?.completed && updatedSteps[8]?.completed; // Steps 8,9
+          break;
+        case 11: // Begin trial - need step 10 completed
+          accessible = updatedSteps[9]?.completed; // Step 10 (index 9)
+          break;
+        case 12: // Choose path - need step 8 completed (can skip trial)
+          accessible = updatedSteps[7]?.completed; // Step 8 (index 7)
+          break;
+        default:
+          accessible = true;
+      }
+      
+      return { ...step, accessible };
+    });
+  };
+
   const handleStepAction = (step: JourneyStep) => {
+    if (!step.accessible) return;
+    
     if (step.id === 4) {
       const canAccessMatching = steps[0]?.completed && steps[1]?.completed && steps[2]?.completed;
       if (!canAccessMatching) return;
@@ -178,9 +223,17 @@ export const useFamilyJourneyProgress = (): JourneyProgressData => {
   };
 
   const getButtonText = (step: JourneyStep) => {
+    if (!step.accessible) {
+      if (step.id === 4) return "Complete Above Steps";
+      if (step.id === 8) return "Schedule Visit First";
+      if (step.id === 9) return "Schedule Visit First";
+      if (step.id === 10) return "Complete Previous Steps";
+      if (step.id === 11) return "Complete Previous Steps";
+      if (step.id === 12) return "Confirm Visit First";
+      return "Not Available";
+    }
+    
     if (step.id === 4) {
-      const canAccessMatching = steps[0]?.completed && steps[1]?.completed && steps[2]?.completed;
-      if (!canAccessMatching) return "Complete Above Steps";
       return step.completed ? "View Matches" : "View Matches";
     }
     
@@ -369,7 +422,9 @@ export const useFamilyJourneyProgress = (): JourneyProgressData => {
         };
       });
       
-      setSteps(updatedSteps);
+      // Update accessibility based on completion
+      const stepsWithAccessibility = updateStepAccessibility(updatedSteps);
+      setSteps(stepsWithAccessibility);
       
       // Determine current journey stage
       const completedSteps = updatedSteps.filter(s => s.completed);
@@ -390,7 +445,7 @@ export const useFamilyJourneyProgress = (): JourneyProgressData => {
 
   const completedSteps = steps.filter(step => step.completed).length;
   const completionPercentage = Math.round((completedSteps / steps.length) * 100);
-  const nextStep = steps.find(step => !step.completed);
+  const nextStep = steps.find(step => !step.completed && step.accessible);
 
   return {
     steps,
