@@ -71,7 +71,7 @@ Thank you for your quick response!
               ...member,
               professionalDetails: {
                 ...member.professionalDetails,
-                phone_number: newPhoneNumber
+                phoneNumber: newPhoneNumber
               }
             }
           : member
@@ -93,7 +93,7 @@ Thank you for your quick response!
 
   const sendToAllMembers = () => {
     const membersWithValidPhones = teamMembersState.filter(member => 
-      member.professionalDetails?.phone_number
+      member.professionalDetails?.phoneNumber
     );
 
     if (membersWithValidPhones.length === 0) {
@@ -104,7 +104,7 @@ Thank you for your quick response!
     // Open WhatsApp for each member with a slight delay to prevent browser blocking
     membersWithValidPhones.forEach((member, index) => {
       const memberName = member.professionalDetails?.full_name || 'Team Member';
-      const phoneNumber = member.professionalDetails?.phone_number;
+      const phoneNumber = member.professionalDetails?.phoneNumber;
       
       setTimeout(() => {
         sendWhatsAppToMember(memberName, phoneNumber);
@@ -194,7 +194,7 @@ Thank you for your quick response!
                             <div className="mt-1">
                               <InlinePhoneEditor
                                 userId={member.caregiverId}
-                                currentPhoneNumber={member.professionalDetails?.phone_number}
+                                currentPhoneNumber={member.professionalDetails?.phoneNumber}
                                 userName={member.professionalDetails?.full_name || 'Team Member'}
                                 onPhoneNumberUpdate={(newPhone) => handlePhoneNumberUpdate(member.id, newPhone)}
                               />
@@ -204,12 +204,12 @@ Thank you for your quick response!
                         <Button
                           onClick={() => sendWhatsAppToMember(
                             member.professionalDetails?.full_name || 'Team Member',
-                            member.professionalDetails?.phone_number
+                            member.professionalDetails?.phoneNumber
                           )}
                           variant="outline"
                           size="sm"
                           className="border-green-300 text-green-700 hover:bg-green-50"
-                          disabled={!member.professionalDetails?.phone_number}
+                          disabled={!member.professionalDetails?.phoneNumber}
                         >
                           <MessageSquare className="h-4 w-4 mr-2" />
                           Send WhatsApp
