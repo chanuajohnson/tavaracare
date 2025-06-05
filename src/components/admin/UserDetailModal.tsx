@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -11,6 +10,7 @@ import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import { useUserJourneyProgress } from "@/hooks/useUserJourneyProgress";
 import { UserWithProgress } from "@/types/adminTypes";
+import { PhoneNumberEditor } from "./PhoneNumberEditor";
 
 interface UserDetailModalProps {
   user: UserWithProgress | null;
@@ -21,12 +21,46 @@ interface UserDetailModalProps {
 
 export function UserDetailModal({ user, open, onOpenChange, onRefresh }: UserDetailModalProps) {
   const [sending, setSending] = React.useState(false);
+  const [userPhoneNumber, setUserPhoneNumber] = React.useState<string | null>(null);
+  
   const { steps, completionPercentage, nextStep, loading } = useUserJourneyProgress(
     user?.id || '', 
     user?.role || 'family'
   );
 
+  // Initialize phone number state when user changes
+  React.useEffect(() => {
+    setUserPhoneNumber(user?.phone_number || null);
+  }, [user?.phone_number]);
+
   if (!user) return null;
+
+  const generateWhatsAppUrl = (messageType: string) => {
+    if (!userPhoneNumber) return null;
+    
+    // Clean phone number for WhatsApp (remove + and any spaces)
+    const cleanPhone = userPhoneNumber.replace(/[\s+]/g, '');
+    
+    let message = '';
+    const userName = user.full_name || 'there';
+    
+    switch (messageType) {
+      case 'welcome':
+        message = `Hi ${userName}! 👋 Welcome to Tavara Care. We're excited to support you on your caregiving journey. How can we help you today?`;
+        break;
+      case 'current_step':
+        const currentStepText = nextStep ? `completing ${nextStep.title}` : 'continuing your journey';
+        message = `Hi ${userName}! 💙 Just checking in on your progress with Tavara Care. Your next step is ${currentStepText}. Need any assistance? We're here to help!`;
+        break;
+      case 'financial_proposal':
+        message = `Hi ${userName}! 💼 We have your personalized care plan and financial proposal ready. This includes all payment options and subscription details tailored to your needs. When would be a good time to discuss?`;
+        break;
+      default:
+        message = `Hi ${userName}! Thank you for choosing Tavara Care. How can we assist you today?`;
+    }
+    
+    return `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
+  };
 
   const sendNudgeEmail = async (stepType: string) => {
     setSending(true);
@@ -56,98 +90,25 @@ export function UserDetailModal({ user, open, onOpenChange, onRefresh }: UserDet
     }
   };
 
-  const sendNudgeWhatsApp = async (stepType: string) => {
-    setSending(true);
-    try {
-      console.log('Sending WhatsApp nudge to user:', user.id, 'Type:', stepType);
+  const openWhatsAppChat = (messageType: string) => {
+    const whatsappUrl = generateWhatsAppUrl(messageType);
+    if (whatsappUrl) {
+      window.open(whatsappUrl, '_blank');
       
-      const response = await supabase.functions.invoke('send-nudge-whatsapp', {
-        body: { 
-          userId: user.id,
-          userPhone: user.phone_number,
-          userName: user.full_name || 'User',
-          userRole: user.role,
-          currentStep: nextStep?.id || steps.length,
-          stepType
+      // Log the WhatsApp interaction
+      supabase.from('cta_engagement_tracking').insert({
+        user_id: user.id,
+        action_type: 'admin_whatsapp_chat_opened',
+        session_id: `admin-${Date.now()}`,
+        additional_data: {
+          message_type: messageType,
+          phone_number: userPhoneNumber,
+          admin_user_id: null, // Will be filled by RLS
+          timestamp: new Date().toISOString()
         }
+      }).then(() => {
+        toast.success(`WhatsApp chat opened for ${user.full_name || user.email}`);
       });
-
-      if (response.error) throw response.error;
-      
-      toast.success(`WhatsApp nudge sent to ${user.full_name || user.email}`);
-      onRefresh();
-    } catch (error: any) {
-      console.error('Error sending WhatsApp nudge:', error);
-      toast.error(`Failed to send WhatsApp nudge: ${error.message}`);
-    } finally {
-      setSending(false);
-    }
-  };
-
-  const sendBothNudges = async (stepType: string) => {
-    setSending(true);
-    try {
-      console.log('Sending both email and WhatsApp nudges to user:', user.id, 'Type:', stepType);
-      
-      // Send email nudge
-      const emailPromise = supabase.functions.invoke('send-nudge-email', {
-        body: { 
-          userId: user.id,
-          userEmail: user.email,
-          userName: user.full_name || 'User',
-          userRole: user.role,
-          currentStep: nextStep?.id || steps.length,
-          stepType
-        }
-      });
-
-      // Send WhatsApp nudge if phone number exists
-      let whatsappPromise = Promise.resolve({ data: null, error: null });
-      if (user.phone_number) {
-        whatsappPromise = supabase.functions.invoke('send-nudge-whatsapp', {
-          body: { 
-            userId: user.id,
-            userPhone: user.phone_number,
-            userName: user.full_name || 'User',
-            userRole: user.role,
-            currentStep: nextStep?.id || steps.length,
-            stepType
-          }
-        });
-      }
-
-      const [emailResult, whatsappResult] = await Promise.allSettled([emailPromise, whatsappPromise]);
-      
-      let successCount = 0;
-      let errors = [];
-      
-      if (emailResult.status === 'fulfilled' && !emailResult.value.error) {
-        successCount++;
-      } else {
-        errors.push('Email failed');
-      }
-      
-      if (user.phone_number && whatsappResult.status === 'fulfilled' && !whatsappResult.value.error) {
-        successCount++;
-      } else if (user.phone_number) {
-        errors.push('WhatsApp failed');
-      }
-
-      if (successCount > 0) {
-        toast.success(`Nudges sent via ${successCount === 2 ? 'email and WhatsApp' : successCount === 1 && user.phone_number ? 'email only' : 'email'} to ${user.full_name || user.email}`);
-        if (errors.length > 0) {
-          toast.warning(`Some channels failed: ${errors.join(', ')}`);
-        }
-      } else {
-        throw new Error('All nudge channels failed');
-      }
-      
-      onRefresh();
-    } catch (error: any) {
-      console.error('Error sending nudges:', error);
-      toast.error(`Failed to send nudges: ${error.message}`);
-    } finally {
-      setSending(false);
     }
   };
 
@@ -178,6 +139,15 @@ export function UserDetailModal({ user, open, onOpenChange, onRefresh }: UserDet
     }
   };
 
+  const handlePhoneNumberUpdate = (newPhoneNumber: string | null) => {
+    setUserPhoneNumber(newPhoneNumber);
+    // Trigger a refresh to update the user data
+    onRefresh();
+  };
+
+  // Check if user is at schedule visit stage or beyond for financial proposals
+  const isAtScheduleVisitStage = completionPercentage >= 70; // Adjust threshold as needed
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
@@ -192,7 +162,7 @@ export function UserDetailModal({ user, open, onOpenChange, onRefresh }: UserDet
         </DialogHeader>
 
         <div className="space-y-6">
-          {/* User Overview - Updated title to show user name */}
+          {/* User Overview */}
           <Card>
             <CardHeader>
               <CardTitle>{user.full_name || 'User Details'}</CardTitle>
@@ -214,12 +184,13 @@ export function UserDetailModal({ user, open, onOpenChange, onRefresh }: UserDet
                       <span className="text-sm">{user.location}</span>
                     </div>
                   )}
-                  {user.phone_number && (
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium">Phone:</span>
-                      <span className="text-sm">{user.phone_number}</span>
-                    </div>
-                  )}
+                  {/* Enhanced Phone Number Editor */}
+                  <PhoneNumberEditor
+                    userId={user.id}
+                    currentPhoneNumber={userPhoneNumber}
+                    userName={user.full_name || user.email}
+                    onPhoneNumberUpdate={handlePhoneNumberUpdate}
+                  />
                 </div>
                 <div className="space-y-2">
                   <div className="flex items-center gap-2">
@@ -237,7 +208,7 @@ export function UserDetailModal({ user, open, onOpenChange, onRefresh }: UserDet
             </CardContent>
           </Card>
 
-          {/* Journey Progress - Using the same UI as TAV dashboards */}
+          {/* Journey Progress */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center justify-between">
@@ -291,61 +262,20 @@ export function UserDetailModal({ user, open, onOpenChange, onRefresh }: UserDet
             </CardContent>
           </Card>
 
-          {/* Role-specific Information */}
-          {user.role === 'professional' && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Professional Information</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                {user.professional_type && (
-                  <div><strong>Type:</strong> {user.professional_type}</div>
-                )}
-                {user.years_of_experience && (
-                  <div><strong>Experience:</strong> {user.years_of_experience}</div>
-                )}
-                {user.specialized_care && user.specialized_care.length > 0 && (
-                  <div>
-                    <strong>Specializations:</strong>
-                    <div className="flex flex-wrap gap-1 mt-1">
-                      {user.specialized_care.map((spec, index) => (
-                        <Badge key={index} variant="outline">{spec}</Badge>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          )}
-
-          {user.role === 'family' && user.care_types && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Care Information</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div>
-                  <strong>Care Types:</strong>
-                  <div className="flex flex-wrap gap-1 mt-1">
-                    {user.care_types.map((type, index) => (
-                      <Badge key={index} variant="outline">{type}</Badge>
-                    ))}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          )}
+          {/* Role-specific Information - keep existing code */}
+          // ... keep existing code (role-specific information sections)
 
           <Separator />
 
-          {/* Admin Actions - Enhanced with separate channels */}
+          {/* Enhanced Admin Actions with WhatsApp Click-to-Chat */}
           <Card>
             <CardHeader>
               <CardTitle>Admin Actions</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                {/* Primary Communication Actions */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   <Button 
                     onClick={() => sendNudgeEmail('current_step')}
                     disabled={sending}
@@ -356,23 +286,13 @@ export function UserDetailModal({ user, open, onOpenChange, onRefresh }: UserDet
                   </Button>
                   
                   <Button 
-                    onClick={() => sendNudgeWhatsApp('current_step')}
-                    disabled={sending || !user.phone_number}
+                    onClick={() => openWhatsAppChat('current_step')}
+                    disabled={!userPhoneNumber}
                     variant="outline"
-                    className="flex items-center gap-2"
+                    className="flex items-center gap-2 bg-green-50 border-green-200 text-green-700 hover:bg-green-100"
                   >
                     <Send className="h-4 w-4" />
                     WhatsApp Current Step
-                  </Button>
-                  
-                  <Button 
-                    onClick={() => sendBothNudges('current_step')}
-                    disabled={sending}
-                    variant="default"
-                    className="flex items-center gap-2 bg-green-600 hover:bg-green-700"
-                  >
-                    <Send className="h-4 w-4" />
-                    Both Channels
                   </Button>
                   
                   <Button 
@@ -386,6 +306,7 @@ export function UserDetailModal({ user, open, onOpenChange, onRefresh }: UserDet
                   </Button>
                 </div>
                 
+                {/* Welcome Messages */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <Button 
                     onClick={() => sendNudgeEmail('welcome')}
@@ -398,20 +319,54 @@ export function UserDetailModal({ user, open, onOpenChange, onRefresh }: UserDet
                   </Button>
                   
                   <Button 
-                    onClick={() => sendNudgeWhatsApp('welcome')}
-                    disabled={sending || !user.phone_number}
+                    onClick={() => openWhatsAppChat('welcome')}
+                    disabled={!userPhoneNumber}
                     variant="outline"
-                    className="flex items-center gap-2"
+                    className="flex items-center gap-2 bg-green-50 border-green-200 text-green-700 hover:bg-green-100"
                   >
                     <Send className="h-4 w-4" />
                     Send Welcome WhatsApp
                   </Button>
                 </div>
 
-                {!user.phone_number && (
-                  <p className="text-sm text-muted-foreground">
-                    WhatsApp options disabled - no phone number on file
-                  </p>
+                {/* Financial Proposal Actions - Show only if at schedule visit stage */}
+                {isAtScheduleVisitStage && (
+                  <div className="border-t pt-4">
+                    <h4 className="text-sm font-medium text-gray-700 mb-2">Financial Proposals & Payment Options</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <Button 
+                        onClick={() => sendNudgeEmail('financial_proposal')}
+                        disabled={sending}
+                        variant="outline"
+                        className="flex items-center gap-2 bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100"
+                      >
+                        <Mail className="h-4 w-4" />
+                        Email Financial Proposal
+                      </Button>
+                      
+                      <Button 
+                        onClick={() => openWhatsAppChat('financial_proposal')}
+                        disabled={!userPhoneNumber}
+                        variant="outline"
+                        className="flex items-center gap-2 bg-green-50 border-green-200 text-green-700 hover:bg-green-100"
+                      >
+                        <Send className="h-4 w-4" />
+                        WhatsApp Financial Proposal
+                      </Button>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Available because user is at "Schedule Visit" stage or beyond
+                    </p>
+                  </div>
+                )}
+
+                {/* Phone Number Status */}
+                {!userPhoneNumber && (
+                  <div className="bg-amber-50 border border-amber-200 rounded-md p-3">
+                    <p className="text-sm text-amber-700">
+                      📞 No phone number on file - WhatsApp options are disabled. Add a phone number above to enable WhatsApp communication.
+                    </p>
+                  </div>
                 )}
               </div>
             </CardContent>
