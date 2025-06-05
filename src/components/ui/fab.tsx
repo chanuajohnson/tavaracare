@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { HelpCircle, X, FileQuestion, Phone, Loader2, MessageSquare } from 'lucide-react';
@@ -16,6 +15,7 @@ import { supabase } from "@/lib/supabase";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { FeedbackForm } from "@/components/ui/feedback-form";
 import { validateChatInput } from "@/services/chat/utils/inputValidation";
+import { useAuth } from "@/components/providers/AuthProvider";
 
 interface FabProps {
   icon?: React.ReactNode;
@@ -36,6 +36,7 @@ export const Fab = ({
 }: FabProps) => {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
+  const { user } = useAuth();
   const [isContactFormOpen, setIsContactFormOpen] = useState(false);
   const [isFeedbackFormOpen, setIsFeedbackFormOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -152,7 +153,9 @@ export const Fab = ({
       const { error } = await supabase
         .from('user_feedback')
         .insert({
+          user_id: user?.id || null,
           feedback_type: 'general',
+          category: 'contact_support',
           subject: 'Contact Support Request',
           message: contactFormData.message,
           contact_info: {
