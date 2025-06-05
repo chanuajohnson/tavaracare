@@ -70,6 +70,42 @@ export type Database = {
           },
         ]
       }
+      analytics_aggregations: {
+        Row: {
+          aggregation_period: string
+          breakdown: Json | null
+          created_at: string | null
+          id: string
+          metric_name: string
+          metric_type: string
+          period_end: string
+          period_start: string
+          value: number | null
+        }
+        Insert: {
+          aggregation_period: string
+          breakdown?: Json | null
+          created_at?: string | null
+          id?: string
+          metric_name: string
+          metric_type: string
+          period_end: string
+          period_start: string
+          value?: number | null
+        }
+        Update: {
+          aggregation_period?: string
+          breakdown?: Json | null
+          created_at?: string | null
+          id?: string
+          metric_name?: string
+          metric_type?: string
+          period_end?: string
+          period_start?: string
+          value?: number | null
+        }
+        Relationships: []
+      }
       assistant_nudges: {
         Row: {
           context: Json | null
@@ -788,6 +824,68 @@ export type Database = {
         }
         Relationships: []
       }
+      customer_health_scores: {
+        Row: {
+          churn_risk_level: string | null
+          created_at: string | null
+          engagement_score: number
+          id: string
+          key_insights: string[] | null
+          last_calculated_at: string
+          next_review_at: string | null
+          overall_score: number
+          recommended_actions: string[] | null
+          satisfaction_score: number
+          support_score: number
+          trend_direction: string | null
+          updated_at: string | null
+          usage_score: number
+          user_id: string | null
+        }
+        Insert: {
+          churn_risk_level?: string | null
+          created_at?: string | null
+          engagement_score: number
+          id?: string
+          key_insights?: string[] | null
+          last_calculated_at?: string
+          next_review_at?: string | null
+          overall_score: number
+          recommended_actions?: string[] | null
+          satisfaction_score: number
+          support_score: number
+          trend_direction?: string | null
+          updated_at?: string | null
+          usage_score: number
+          user_id?: string | null
+        }
+        Update: {
+          churn_risk_level?: string | null
+          created_at?: string | null
+          engagement_score?: number
+          id?: string
+          key_insights?: string[] | null
+          last_calculated_at?: string
+          next_review_at?: string | null
+          overall_score?: number
+          recommended_actions?: string[] | null
+          satisfaction_score?: number
+          support_score?: number
+          trend_direction?: string | null
+          updated_at?: string | null
+          usage_score?: number
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_health_scores_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       feature_interest_tracking: {
         Row: {
           action_type: string | null
@@ -925,6 +1023,103 @@ export type Database = {
           title?: string
         }
         Relationships: []
+      }
+      feedback_sentiment_history: {
+        Row: {
+          analysis_model: string | null
+          analyzed_at: string
+          confidence_score: number | null
+          created_at: string | null
+          emotions: Json | null
+          feedback_id: string | null
+          id: string
+          keywords: string[] | null
+          sentiment_label: string
+          sentiment_score: number
+        }
+        Insert: {
+          analysis_model?: string | null
+          analyzed_at?: string
+          confidence_score?: number | null
+          created_at?: string | null
+          emotions?: Json | null
+          feedback_id?: string | null
+          id?: string
+          keywords?: string[] | null
+          sentiment_label: string
+          sentiment_score: number
+        }
+        Update: {
+          analysis_model?: string | null
+          analyzed_at?: string
+          confidence_score?: number | null
+          created_at?: string | null
+          emotions?: Json | null
+          feedback_id?: string | null
+          id?: string
+          keywords?: string[] | null
+          sentiment_label?: string
+          sentiment_score?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feedback_sentiment_history_feedback_id_fkey"
+            columns: ["feedback_id"]
+            isOneToOne: false
+            referencedRelation: "user_feedback"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      goal_completions: {
+        Row: {
+          additional_data: Json | null
+          completed_at: string
+          conversion_path: string[] | null
+          created_at: string | null
+          goal_name: string
+          goal_type: string
+          id: string
+          session_id: string
+          time_to_complete_seconds: number | null
+          user_id: string | null
+          value: number | null
+        }
+        Insert: {
+          additional_data?: Json | null
+          completed_at?: string
+          conversion_path?: string[] | null
+          created_at?: string | null
+          goal_name: string
+          goal_type: string
+          id?: string
+          session_id: string
+          time_to_complete_seconds?: number | null
+          user_id?: string | null
+          value?: number | null
+        }
+        Update: {
+          additional_data?: Json | null
+          completed_at?: string
+          conversion_path?: string[] | null
+          created_at?: string | null
+          goal_name?: string
+          goal_type?: string
+          id?: string
+          session_id?: string
+          time_to_complete_seconds?: number | null
+          user_id?: string | null
+          value?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "goal_completions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       grocery_items: {
         Row: {
@@ -2105,6 +2300,71 @@ export type Database = {
         }
         Relationships: []
       }
+      session_analytics: {
+        Row: {
+          bounce_rate: number | null
+          browser: string | null
+          created_at: string | null
+          device_type: string | null
+          duration_seconds: number | null
+          ended_at: string | null
+          exit_page: string | null
+          goal_completions: number | null
+          id: string
+          interactions_count: number | null
+          page_views: number | null
+          referrer: string | null
+          session_data: Json | null
+          session_id: string
+          started_at: string
+          user_id: string | null
+        }
+        Insert: {
+          bounce_rate?: number | null
+          browser?: string | null
+          created_at?: string | null
+          device_type?: string | null
+          duration_seconds?: number | null
+          ended_at?: string | null
+          exit_page?: string | null
+          goal_completions?: number | null
+          id?: string
+          interactions_count?: number | null
+          page_views?: number | null
+          referrer?: string | null
+          session_data?: Json | null
+          session_id: string
+          started_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          bounce_rate?: number | null
+          browser?: string | null
+          created_at?: string | null
+          device_type?: string | null
+          duration_seconds?: number | null
+          ended_at?: string | null
+          exit_page?: string | null
+          goal_completions?: number | null
+          id?: string
+          interactions_count?: number | null
+          page_views?: number | null
+          referrer?: string | null
+          session_data?: Json | null
+          session_id?: string
+          started_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "session_analytics_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       shift_coverage_claims: {
         Row: {
           claimed_at: string
@@ -2381,6 +2641,47 @@ export type Database = {
         }
         Relationships: []
       }
+      user_cohorts: {
+        Row: {
+          assigned_at: string
+          cohort_data: Json | null
+          cohort_name: string
+          cohort_type: string
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          user_id: string | null
+        }
+        Insert: {
+          assigned_at?: string
+          cohort_data?: Json | null
+          cohort_name: string
+          cohort_type: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          user_id?: string | null
+        }
+        Update: {
+          assigned_at?: string
+          cohort_data?: Json | null
+          cohort_name?: string
+          cohort_type?: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_cohorts_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_events: {
         Row: {
           additional_data: Json | null
@@ -2401,6 +2702,72 @@ export type Database = {
           event_timestamp?: string | null
           event_type?: string | null
           id?: never
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      user_feedback: {
+        Row: {
+          category: string | null
+          contact_info: Json | null
+          created_at: string
+          feedback_type: string
+          id: string
+          keywords: string[] | null
+          message: string
+          metadata: Json | null
+          priority: string
+          rating: number | null
+          response_time_hours: number | null
+          satisfaction_prediction: number | null
+          sentiment_label: string | null
+          sentiment_score: number | null
+          status: string
+          subject: string
+          updated_at: string
+          urgency_score: number | null
+          user_id: string | null
+        }
+        Insert: {
+          category?: string | null
+          contact_info?: Json | null
+          created_at?: string
+          feedback_type: string
+          id?: string
+          keywords?: string[] | null
+          message: string
+          metadata?: Json | null
+          priority?: string
+          rating?: number | null
+          response_time_hours?: number | null
+          satisfaction_prediction?: number | null
+          sentiment_label?: string | null
+          sentiment_score?: number | null
+          status?: string
+          subject: string
+          updated_at?: string
+          urgency_score?: number | null
+          user_id?: string | null
+        }
+        Update: {
+          category?: string | null
+          contact_info?: Json | null
+          created_at?: string
+          feedback_type?: string
+          id?: string
+          keywords?: string[] | null
+          message?: string
+          metadata?: Json | null
+          priority?: string
+          rating?: number | null
+          response_time_hours?: number | null
+          satisfaction_prediction?: number | null
+          sentiment_label?: string | null
+          sentiment_score?: number | null
+          status?: string
+          subject?: string
+          updated_at?: string
+          urgency_score?: number | null
           user_id?: string | null
         }
         Relationships: []
@@ -2428,6 +2795,56 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: []
+      }
+      user_journey_funnels: {
+        Row: {
+          additional_data: Json | null
+          completed_at: string | null
+          conversion_time_seconds: number | null
+          created_at: string | null
+          entered_at: string
+          funnel_name: string
+          id: string
+          session_id: string
+          stage_name: string
+          stage_order: number
+          user_id: string | null
+        }
+        Insert: {
+          additional_data?: Json | null
+          completed_at?: string | null
+          conversion_time_seconds?: number | null
+          created_at?: string | null
+          entered_at?: string
+          funnel_name: string
+          id?: string
+          session_id: string
+          stage_name: string
+          stage_order: number
+          user_id?: string | null
+        }
+        Update: {
+          additional_data?: Json | null
+          completed_at?: string | null
+          conversion_time_seconds?: number | null
+          created_at?: string | null
+          entered_at?: string
+          funnel_name?: string
+          id?: string
+          session_id?: string
+          stage_name?: string
+          stage_order?: number
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_journey_funnels_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_journey_progress: {
         Row: {
@@ -2819,6 +3236,10 @@ export type Database = {
     }
     Functions: {
       admin_delete_user: {
+        Args: { target_user_id: string }
+        Returns: undefined
+      }
+      calculate_customer_health_score: {
         Args: { target_user_id: string }
         Returns: undefined
       }

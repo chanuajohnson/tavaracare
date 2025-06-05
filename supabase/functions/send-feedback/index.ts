@@ -9,16 +9,20 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-interface ContactFormData {
-  name: string;
-  email: string;
+interface FeedbackData {
+  feedback_type: string;
+  category?: string;
+  subject: string;
   message: string;
-  screenshot?: string;
-  chatData?: {
-    role?: string;
-    sessionId?: string;
-    transcript?: any[];
+  rating?: number;
+  contact_info: {
+    name?: string;
+    email?: string;
+    phone?: string;
   };
+  metadata: any;
+  screenshot?: string;
+  user_id?: string;
 }
 
 // Initialize Supabase client
@@ -26,10 +30,21 @@ const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-// Email validation function
+// Validation functions
 const validateEmail = (email: string): boolean => {
   const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   return emailPattern.test(email.trim());
+};
+
+const validatePhone = (phone: string): boolean => {
+  if (!phone) return true; // Phone is optional
+  const cleanedNumber = phone.replace(/[\s\-\(\)\.]/g, '');
+  
+  if (cleanedNumber.startsWith('+')) {
+    return /^\+\d{8,15}$/.test(cleanedNumber);
+  } else {
+    return /^\d{7,15}$/.test(cleanedNumber);
+  }
 };
 
 serve(async (req) => {
@@ -49,23 +64,21 @@ serve(async (req) => {
   }
 
   try {
-    const contactData: ContactFormData = await req.json();
-    const { name, email, message, screenshot, chatData } = contactData;
-
-    console.log("Received contact form submission:", { 
-      name, 
-      email: email?.substring(0, 5) + "...", 
-      hasMessage: !!message,
-      hasScreenshot: !!screenshot,
-      hasChatData: !!chatData 
+    const feedbackData: FeedbackData = await req.json();
+    
+    console.log("Received feedback submission:", {
+      type: feedbackData.feedback_type,
+      subject: feedbackData.subject,
+      hasUser: !!feedbackData.user_id,
+      hasContactInfo: !!(feedbackData.contact_info?.email || feedbackData.contact_info?.name)
     });
 
     // Validate required fields
-    if (!name || !email || !message) {
+    if (!feedbackData.feedback_type || !feedbackData.subject || !feedbackData.message) {
       return new Response(
         JSON.stringify({ 
           success: false, 
-          error: "Missing required fields: name, email, and message are required" 
+          error: "Missing required fields: feedback_type, subject, and message are required" 
         }),
         {
           status: 400,
@@ -74,8 +87,8 @@ serve(async (req) => {
       );
     }
 
-    // Validate email format
-    if (!validateEmail(email)) {
+    // Validate contact information if provided
+    if (feedbackData.contact_info?.email && !validateEmail(feedbackData.contact_info.email)) {
       return new Response(
         JSON.stringify({ 
           success: false, 
@@ -88,12 +101,11 @@ serve(async (req) => {
       );
     }
 
-    // Validate name length
-    if (name.trim().length < 2) {
+    if (feedbackData.contact_info?.phone && !validatePhone(feedbackData.contact_info.phone)) {
       return new Response(
         JSON.stringify({ 
           success: false, 
-          error: "Name must be at least 2 characters long" 
+          error: "Invalid phone number format" 
         }),
         {
           status: 400,
@@ -102,23 +114,20 @@ serve(async (req) => {
       );
     }
 
-    // Store contact request in database
-    const { data: storedContact, error: dbError } = await supabase
+    // Store feedback in database
+    const { data: storedFeedback, error: dbError } = await supabase
       .from('user_feedback')
       .insert({
-        feedback_type: 'general',
-        subject: 'Contact Support Request',
-        message: message,
-        contact_info: {
-          name: name,
-          email: email
-        },
+        user_id: feedbackData.user_id || null,
+        feedback_type: feedbackData.feedback_type,
+        category: feedbackData.category || null,
+        subject: feedbackData.subject,
+        message: feedbackData.message,
+        rating: feedbackData.rating || null,
+        contact_info: feedbackData.contact_info || {},
         metadata: {
-          source: 'contact_form',
-          screenshot: screenshot || null,
-          chatData: chatData || null,
-          timestamp: new Date().toISOString(),
-          userAgent: req.headers.get('user-agent') || 'Unknown'
+          ...feedbackData.metadata,
+          screenshot: feedbackData.screenshot || null
         },
         status: 'new',
         priority: 'medium'
@@ -131,7 +140,7 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({ 
           success: false, 
-          error: "Failed to store contact request. Please try again later." 
+          error: "Failed to store feedback. Please try again later." 
         }),
         {
           status: 500,
@@ -140,13 +149,13 @@ serve(async (req) => {
       );
     }
 
-    console.log("Contact request stored successfully:", storedContact.id);
+    console.log("Feedback stored successfully:", storedFeedback.id);
 
     return new Response(
       JSON.stringify({ 
         success: true, 
-        message: "Support request submitted successfully. We'll review it and get back to you soon!",
-        contact_id: storedContact.id 
+        message: "Feedback submitted successfully! Thank you for helping us improve.",
+        feedback_id: storedFeedback.id 
       }),
       {
         status: 200,
@@ -157,7 +166,7 @@ serve(async (req) => {
       }
     );
   } catch (error) {
-    console.error("Error in send-contact-email function:", error);
+    console.error("Error in send-feedback function:", error);
     return new Response(
       JSON.stringify({ 
         success: false, 

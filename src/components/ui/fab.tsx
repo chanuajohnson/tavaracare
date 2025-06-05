@@ -1,7 +1,6 @@
-
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { HelpCircle, X, FileQuestion, Phone, Loader2 } from 'lucide-react';
+import { HelpCircle, X, FileQuestion, Phone, Loader2, MessageSquare } from 'lucide-react';
 import { cn } from "@/lib/utils";
 import {
   DropdownMenu,
@@ -14,6 +13,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { FeedbackForm } from "@/components/ui/feedback-form";
+import { validateChatInput } from "@/services/chat/utils/inputValidation";
+import { useAuth } from "@/components/providers/AuthProvider";
 
 interface FabProps {
   icon?: React.ReactNode;
@@ -34,9 +36,16 @@ export const Fab = ({
 }: FabProps) => {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
+  const { user } = useAuth();
   const [isContactFormOpen, setIsContactFormOpen] = useState(false);
+  const [isFeedbackFormOpen, setIsFeedbackFormOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [contactFormData, setContactFormData] = useState({
+    name: "",
+    email: "",
+    message: "",
+  });
+  const [formErrors, setFormErrors] = useState({
     name: "",
     email: "",
     message: "",
@@ -79,6 +88,34 @@ export const Fab = ({
     };
   }, []);
 
+  const validateForm = () => {
+    const errors = {
+      name: "",
+      email: "",
+      message: "",
+    };
+
+    // Validate name
+    const nameValidation = validateChatInput(contactFormData.name, "name");
+    if (!nameValidation.isValid) {
+      errors.name = nameValidation.errorMessage || "Name is required";
+    }
+
+    // Validate email
+    const emailValidation = validateChatInput(contactFormData.email, "email");
+    if (!emailValidation.isValid) {
+      errors.email = emailValidation.errorMessage || "Valid email is required";
+    }
+
+    // Validate message
+    if (!contactFormData.message.trim()) {
+      errors.message = "Message is required";
+    }
+
+    setFormErrors(errors);
+    return !errors.name && !errors.email && !errors.message;
+  };
+
   const handleOpenWhatsApp = () => {
     const phoneNumber = "+18687865357";
     const message = encodeURIComponent("Hello, I need support with Tavara.care platform.");
@@ -92,56 +129,64 @@ export const Fab = ({
   const handleContactFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    if (!validateForm()) {
+      toast.error("Please fix the errors in the form");
+      return;
+    }
+    
     try {
       setIsSubmitting(true);
       
-      // Validate form
-      if (!contactFormData.name || !contactFormData.email || !contactFormData.message) {
-        toast.error("Please fill out all required fields");
-        setIsSubmitting(false);
-        return;
-      }
-      
-      // Prepare the data to send
-      const formData = { 
-        ...contactFormData,
-        // Add any chat session data if it exists
-        ...(prefillData ? { chatData: prefillData } : {})
-      };
-      
-      // Handle screenshot if provided
+      // Convert screenshot to base64 if provided
+      let screenshotBase64 = null;
       if (screenshotFile) {
-        // Convert screenshot to base64
         const reader = new FileReader();
-        const base64Screenshot = await new Promise<string>((resolve) => {
+        screenshotBase64 = await new Promise<string>((resolve) => {
           reader.onloadend = () => {
             resolve(reader.result as string);
           };
           reader.readAsDataURL(screenshotFile);
         });
-        
-        // Add screenshot to form data
-        formData["screenshot"] = base64Screenshot;
       }
       
-      // Send form data to Edge Function
-      const { data, error } = await supabase.functions.invoke("send-contact-email", {
-        body: formData,
-      });
-      
+      // Store contact request directly in database
+      const { error } = await supabase
+        .from('user_feedback')
+        .insert({
+          user_id: user?.id || null,
+          feedback_type: 'general',
+          category: 'contact_support',
+          subject: 'Contact Support Request',
+          message: contactFormData.message,
+          contact_info: {
+            name: contactFormData.name,
+            email: contactFormData.email
+          },
+          metadata: {
+            source: 'contact_form',
+            screenshot: screenshotBase64 || null,
+            chatData: prefillData || null,
+            timestamp: new Date().toISOString(),
+            userAgent: navigator.userAgent || 'Unknown'
+          },
+          status: 'new',
+          priority: 'medium'
+        });
+
       if (error) {
-        throw new Error(error.message || "Failed to send support request");
+        throw new Error(error.message || "Failed to store contact request");
       }
       
-      console.log("Contact form submitted successfully:", data);
+      console.log("Contact form submitted successfully");
       toast.success("Your support request has been submitted. We'll get back to you soon!");
       
       // Reset form
       setContactFormData({ name: "", email: "", message: "" });
+      setFormErrors({ name: "", email: "", message: "" });
       setScreenshotFile(null);
       setPrefillData(null);
       setIsContactFormOpen(false);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error submitting contact form:", error);
       toast.error(error.message || "Failed to send support request. Please try again later.");
     } finally {
@@ -154,6 +199,11 @@ export const Fab = ({
   ) => {
     const { name, value } = e.target;
     setContactFormData((prev) => ({ ...prev, [name]: value }));
+    
+    // Clear error when user starts typing
+    if (formErrors[name as keyof typeof formErrors]) {
+      setFormErrors(prev => ({ ...prev, [name]: "" }));
+    }
   };
   
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -226,11 +276,19 @@ export const Fab = ({
                 onClick={() => setIsContactFormOpen(true)}
               >
                 <FileQuestion className="h-5 w-5" />
-                <span>Contact Form</span>
+                <span>Contact Support</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                className="flex items-center gap-2 cursor-pointer p-3 text-base"
+                onClick={() => setIsFeedbackFormOpen(true)}
+              >
+                <MessageSquare className="h-5 w-5" />
+                <span>Give Feedback</span>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
 
+          {/* Contact Form Modal */}
           {isContactFormOpen && (
             <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
               <div className="bg-white rounded-lg p-6 w-full max-w-md">
@@ -249,7 +307,7 @@ export const Fab = ({
                   <div className="space-y-4">
                     <div>
                       <label htmlFor="name" className="block text-sm font-medium mb-1">
-                        Name
+                        Name *
                       </label>
                       <input
                         id="name"
@@ -258,13 +316,18 @@ export const Fab = ({
                         required
                         value={contactFormData.name}
                         onChange={handleInputChange}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+                        className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary ${
+                          formErrors.name ? 'border-red-500' : 'border-gray-300'
+                        }`}
                         disabled={isSubmitting}
                       />
+                      {formErrors.name && (
+                        <p className="text-sm text-red-600 mt-1">{formErrors.name}</p>
+                      )}
                     </div>
                     <div>
                       <label htmlFor="email" className="block text-sm font-medium mb-1">
-                        Email
+                        Email *
                       </label>
                       <input
                         id="email"
@@ -273,13 +336,18 @@ export const Fab = ({
                         required
                         value={contactFormData.email}
                         onChange={handleInputChange}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+                        className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary ${
+                          formErrors.email ? 'border-red-500' : 'border-gray-300'
+                        }`}
                         disabled={isSubmitting}
                       />
+                      {formErrors.email && (
+                        <p className="text-sm text-red-600 mt-1">{formErrors.email}</p>
+                      )}
                     </div>
                     <div>
                       <label htmlFor="message" className="block text-sm font-medium mb-1">
-                        Message
+                        Message *
                       </label>
                       <Textarea
                         id="message"
@@ -287,9 +355,14 @@ export const Fab = ({
                         required
                         value={contactFormData.message}
                         onChange={handleInputChange}
-                        className="w-full min-h-[100px]"
+                        className={`w-full min-h-[100px] ${
+                          formErrors.message ? 'border-red-500' : ''
+                        }`}
                         disabled={isSubmitting}
                       />
+                      {formErrors.message && (
+                        <p className="text-sm text-red-600 mt-1">{formErrors.message}</p>
+                      )}
                     </div>
                     <div>
                       <label htmlFor="screenshot" className="block text-sm font-medium mb-1">
@@ -338,6 +411,14 @@ export const Fab = ({
                 </form>
               </div>
             </div>
+          )}
+
+          {/* Feedback Form Modal */}
+          {isFeedbackFormOpen && (
+            <FeedbackForm 
+              onClose={() => setIsFeedbackFormOpen(false)}
+              prefillData={prefillData}
+            />
           )}
         </>
       )}

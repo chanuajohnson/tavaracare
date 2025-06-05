@@ -10,6 +10,7 @@ import ProfessionalDashboard from "@/pages/dashboards/ProfessionalDashboard";
 import CommunityDashboard from "@/pages/dashboards/CommunityDashboard";
 import AdminDashboard from "@/pages/admin/AdminDashboard";
 import UserJourneyPage from "@/pages/admin/UserJourneyPage";
+import FeedbackManagementPage from "@/pages/admin/FeedbackManagementPage";
 import FeaturesPage from "@/pages/features/FeaturesPage";
 import AboutPage from "@/pages/about/AboutPage";
 import FAQPage from "@/pages/support/FAQPage";
@@ -115,6 +116,7 @@ export const AppRoutes = () => {
       
       {/* Admin Routes */}
       <Route path="/admin/user-journey" element={<UserJourneyPage />} />
+      <Route path="/admin/feedback" element={<FeedbackManagementPage />} />
       
       {/* Legacy Routes */}
       <Route path="/legacy/stories" element={<LegacyStoriesPage />} />
