@@ -18,14 +18,18 @@ export const useUserCarePlan = () => {
 
       try {
         setLoading(true);
+        console.log('Loading care plans for user:', user.id);
         const carePlans = await fetchCarePlans(user.id);
+        console.log('Fetched care plans:', carePlans);
         
         if (carePlans && carePlans.length > 0) {
           // Get the first active care plan, or the first plan if none are active
           const activePlan = carePlans.find(plan => plan.status === 'active') || carePlans[0];
+          console.log('Selected care plan:', activePlan);
           setCarePlanId(activePlan.id);
           setError(null);
         } else {
+          console.log('No care plans found for user:', user.id);
           setCarePlanId(null);
           setError('No care plans found');
         }
