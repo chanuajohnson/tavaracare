@@ -77,7 +77,7 @@ export const useFamilyProgress = (): FamilyProgressData => {
     { 
       id: 7, 
       title: "Schedule your Visit", 
-      description: "Meet your care coordinator", 
+      description: "Choose video call (free), in-person visit, or trial day", 
       completed: false, 
       link: "/family/schedule-visit" 
     }
@@ -135,13 +135,11 @@ export const useFamilyProgress = (): FamilyProgressData => {
         case 'scheduled':
           return visitDate 
             ? `Scheduled for ${new Date(visitDate).toLocaleDateString()}`
-            : "Change Date";
+            : "Modify Visit";
         case 'completed':
           return "Schedule Another";
         case 'cancelled':
-          return "Ready to Try Scheduling Again";
-        case 'ready_to_schedule':
-          return "Ready to Try Scheduling Again";
+          return "Schedule Visit";
         default:
           return "Schedule Visit";
       }

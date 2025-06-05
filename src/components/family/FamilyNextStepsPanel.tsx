@@ -65,7 +65,7 @@ export const FamilyNextStepsPanel = () => {
     { 
       id: 7, 
       title: "Schedule your Visit", 
-      description: "Ready to meet your care coordinator? Schedule your visit with our integrated calendar.", 
+      description: "Choose from free video call, in-person visit ($300), or trial day ($320) with your care coordinator.", 
       completed: false, 
       link: "/family/schedule-visit" 
     }
@@ -206,15 +206,13 @@ export const FamilyNextStepsPanel = () => {
         case 'scheduled':
           return visitDate 
             ? `Scheduled for ${new Date(visitDate).toLocaleDateString()}`
-            : "Change Date";
+            : "Modify Visit";
         case 'completed':
           return "Schedule Another";
         case 'cancelled':
-          return "Ready to Try Scheduling Again";
-        case 'ready_to_schedule':
-          return "Ready to Try Scheduling Again";
+          return "Schedule Visit";
         default:
-          return "Schedule your Visit";
+          return "Schedule Visit";
       }
     }
     
