@@ -138,6 +138,8 @@ export const useFamilyProgress = (): FamilyProgressData => {
             : "Change Date";
         case 'completed':
           return "Schedule Another";
+        case 'cancelled':
+          return "Ready to Try Scheduling Again";
         case 'ready_to_schedule':
           return "Ready to Try Scheduling Again";
         default:
@@ -237,9 +239,12 @@ export const useFamilyProgress = (): FamilyProgressData => {
         updatedSteps[5].completed = true;
       }
 
-      // Mark visit scheduling as completed if scheduled or completed
+      // Mark visit scheduling as completed if scheduled or completed (but not cancelled)
       if (profile?.visit_scheduling_status === 'scheduled' || profile?.visit_scheduling_status === 'completed') {
         updatedSteps[6].completed = true;
+      } else {
+        // Mark as incomplete if cancelled or not scheduled
+        updatedSteps[6].completed = false;
       }
       
       setSteps(updatedSteps);

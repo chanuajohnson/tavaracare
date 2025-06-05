@@ -1,9 +1,10 @@
 
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { VideoIcon, CalendarDays, Clock, Shield, CheckCircle2, Users, Home, Calendar } from "lucide-react";
+import { VideoIcon, CalendarDays, Clock, Shield, CheckCircle2, Users, Home, Calendar, X } from "lucide-react";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
@@ -121,6 +122,46 @@ export const ScheduleVisitModal: React.FC<ScheduleVisitModalProps> = ({
     }
   };
 
+  const handleCancelVisit = async () => {
+    if (!user) return;
+    
+    setIsUpdating(true);
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ 
+          visit_scheduling_status: 'cancelled',
+          visit_scheduled_date: null,
+          visit_notes: `Visit cancelled by user - ${new Date().toISOString()}`
+        })
+        .eq('id', user.id);
+
+      if (error) throw error;
+
+      await supabase
+        .from('cta_engagement_tracking')
+        .insert({
+          user_id: user.id,
+          action_type: 'visit_cancelled',
+          feature_name: 'schedule_visit',
+          additional_data: { 
+            previous_date: visitDate,
+            timestamp: new Date().toISOString() 
+          }
+        });
+
+      setVisitStatus('cancelled');
+      setVisitDate(null);
+      toast.success("Your visit has been cancelled. You can reschedule anytime.");
+      
+    } catch (error) {
+      console.error('Error cancelling visit:', error);
+      toast.error("Something went wrong. Please try again.");
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
   const handleScheduleConfirmed = () => {
     setVisitStatus('scheduled');
     fetchVisitStatus(); // Refresh data
@@ -164,9 +205,7 @@ export const ScheduleVisitModal: React.FC<ScheduleVisitModalProps> = ({
           message: visitDate 
             ? `Scheduled for ${new Date(visitDate).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })} at 11:00 AM`
             : "Your visit has been scheduled! We'll send confirmation details soon.",
-          buttonText: "Change Date",
-          buttonAction: handleChangeDate,
-          buttonVariant: "outline" as const
+          showButtons: true
         };
       case 'completed':
         return {
@@ -174,6 +213,14 @@ export const ScheduleVisitModal: React.FC<ScheduleVisitModalProps> = ({
           message: "Thank you for meeting with our team! We hope it was helpful.",
           buttonText: "Schedule Another Visit",
           buttonAction: handleReadyToSchedule,
+          buttonVariant: "default" as const
+        };
+      case 'cancelled':
+        return {
+          title: "❌ Visit Cancelled",
+          message: "Your visit has been cancelled. You can reschedule anytime using the button below.",
+          buttonText: "Ready to Try Scheduling Again",
+          buttonAction: handleTryAgain,
           buttonVariant: "default" as const
         };
       case 'ready_to_schedule':
@@ -203,20 +250,83 @@ export const ScheduleVisitModal: React.FC<ScheduleVisitModalProps> = ({
 
           <div className="space-y-6">
             {statusDisplay ? (
-              <Card className="bg-green-50 border-green-200">
-                <CardContent className="flex items-center gap-3 py-6">
-                  <CheckCircle2 className="h-8 w-8 text-green-600 flex-shrink-0" />
-                  <div className="flex-1">
-                    <h3 className="text-lg font-semibold text-green-800">{statusDisplay.title}</h3>
-                    <p className="text-green-700">{statusDisplay.message}</p>
+              <Card className={`${
+                visitStatus === 'scheduled' ? 'bg-green-50 border-green-200' :
+                visitStatus === 'cancelled' ? 'bg-red-50 border-red-200' :
+                visitStatus === 'completed' ? 'bg-blue-50 border-blue-200' :
+                'bg-yellow-50 border-yellow-200'
+              }`}>
+                <CardContent className="py-6">
+                  <div className="flex items-center gap-3 mb-4">
+                    <CheckCircle2 className={`h-8 w-8 flex-shrink-0 ${
+                      visitStatus === 'scheduled' ? 'text-green-600' :
+                      visitStatus === 'cancelled' ? 'text-red-600' :
+                      visitStatus === 'completed' ? 'text-blue-600' :
+                      'text-yellow-600'
+                    }`} />
+                    <div className="flex-1">
+                      <h3 className={`text-lg font-semibold ${
+                        visitStatus === 'scheduled' ? 'text-green-800' :
+                        visitStatus === 'cancelled' ? 'text-red-800' :
+                        visitStatus === 'completed' ? 'text-blue-800' :
+                        'text-yellow-800'
+                      }`}>{statusDisplay.title}</h3>
+                      <p className={`${
+                        visitStatus === 'scheduled' ? 'text-green-700' :
+                        visitStatus === 'cancelled' ? 'text-red-700' :
+                        visitStatus === 'completed' ? 'text-blue-700' :
+                        'text-yellow-700'
+                      }`}>{statusDisplay.message}</p>
+                    </div>
                   </div>
-                  <Button 
-                    variant={statusDisplay.buttonVariant}
-                    onClick={statusDisplay.buttonAction}
-                    disabled={isUpdating}
-                  >
-                    {statusDisplay.buttonText}
-                  </Button>
+                  
+                  {statusDisplay.showButtons ? (
+                    <div className="flex gap-3">
+                      <Button 
+                        variant="outline"
+                        onClick={handleChangeDate}
+                        disabled={isUpdating}
+                        className="flex-1"
+                      >
+                        Change Date
+                      </Button>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button 
+                            variant="destructive"
+                            disabled={isUpdating}
+                            className="flex-1"
+                          >
+                            <X className="h-4 w-4 mr-2" />
+                            Cancel Visit
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Cancel Your Visit?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Are you sure you want to cancel your scheduled visit? You can always reschedule later if needed.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Keep Visit</AlertDialogCancel>
+                            <AlertDialogAction onClick={handleCancelVisit} className="bg-red-600 hover:bg-red-700">
+                              Yes, Cancel Visit
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </div>
+                  ) : statusDisplay.buttonText ? (
+                    <Button 
+                      variant={statusDisplay.buttonVariant}
+                      onClick={statusDisplay.buttonAction}
+                      disabled={isUpdating}
+                      className="w-full"
+                    >
+                      {statusDisplay.buttonText}
+                    </Button>
+                  ) : null}
                 </CardContent>
               </Card>
             ) : (
