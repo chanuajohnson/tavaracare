@@ -6,11 +6,11 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Users, Send, Mail, X, BarChart3 } from "lucide-react";
 
-interface UserWithProgress {
+interface AdminUserWithProgress {
   id: string;
   email: string;
   full_name: string;
-  role: 'family' | 'professional' | 'community';
+  role: 'family' | 'professional' | 'community' | 'admin';
   journey_progress?: {
     current_step: number;
     total_steps: number;
@@ -20,7 +20,7 @@ interface UserWithProgress {
 
 interface BulkActionPanelProps {
   selectedUsers: string[];
-  users: UserWithProgress[];
+  users: AdminUserWithProgress[];
   onClearSelection: () => void;
   onRefresh: () => void;
 }
