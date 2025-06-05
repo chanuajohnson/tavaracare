@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { HelpCircle, X, FileQuestion, Phone, Loader2 } from 'lucide-react';
+import { HelpCircle, X, FileQuestion, Phone, Loader2, MessageSquare } from 'lucide-react';
 import { cn } from "@/lib/utils";
 import {
   DropdownMenu,
@@ -14,6 +14,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { FeedbackForm } from "@/components/ui/feedback-form";
 
 interface FabProps {
   icon?: React.ReactNode;
@@ -35,6 +36,7 @@ export const Fab = ({
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   const [isContactFormOpen, setIsContactFormOpen] = useState(false);
+  const [isFeedbackFormOpen, setIsFeedbackFormOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [contactFormData, setContactFormData] = useState({
     name: "",
@@ -226,11 +228,19 @@ export const Fab = ({
                 onClick={() => setIsContactFormOpen(true)}
               >
                 <FileQuestion className="h-5 w-5" />
-                <span>Contact Form</span>
+                <span>Contact Support</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                className="flex items-center gap-2 cursor-pointer p-3 text-base"
+                onClick={() => setIsFeedbackFormOpen(true)}
+              >
+                <MessageSquare className="h-5 w-5" />
+                <span>Give Feedback</span>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
 
+          {/* Contact Form Modal */}
           {isContactFormOpen && (
             <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
               <div className="bg-white rounded-lg p-6 w-full max-w-md">
@@ -338,6 +348,14 @@ export const Fab = ({
                 </form>
               </div>
             </div>
+          )}
+
+          {/* Feedback Form Modal */}
+          {isFeedbackFormOpen && (
+            <FeedbackForm 
+              onClose={() => setIsFeedbackFormOpen(false)}
+              prefillData={prefillData}
+            />
           )}
         </>
       )}

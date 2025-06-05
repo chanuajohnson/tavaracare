@@ -2405,6 +2405,54 @@ export type Database = {
         }
         Relationships: []
       }
+      user_feedback: {
+        Row: {
+          category: string | null
+          contact_info: Json | null
+          created_at: string
+          feedback_type: string
+          id: string
+          message: string
+          metadata: Json | null
+          priority: string
+          rating: number | null
+          status: string
+          subject: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          category?: string | null
+          contact_info?: Json | null
+          created_at?: string
+          feedback_type: string
+          id?: string
+          message: string
+          metadata?: Json | null
+          priority?: string
+          rating?: number | null
+          status?: string
+          subject: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          category?: string | null
+          contact_info?: Json | null
+          created_at?: string
+          feedback_type?: string
+          id?: string
+          message?: string
+          metadata?: Json | null
+          priority?: string
+          rating?: number | null
+          status?: string
+          subject?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       user_journey: {
         Row: {
           event_data: Json | null
