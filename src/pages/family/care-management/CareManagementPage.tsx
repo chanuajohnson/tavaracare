@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/components/providers/AuthProvider";
@@ -5,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Container } from "@/components/ui/container";
 import { PageViewTracker } from "@/components/tracking/PageViewTracker";
-import { FileText, Plus, Users, Calendar, ArrowLeft, Clock, Pill, PenSquare, ActivitySquare, ChefHat } from "lucide-react";
+import { FileText, Plus, Users, Calendar, ArrowLeft, Clock, Pill, PenSquare, ActivitySquare, ChefHat, Eye } from "lucide-react";
 import { fetchCarePlans, CarePlan } from "@/services/care-plans";
 import { toast } from "sonner";
 
@@ -180,11 +181,11 @@ const CareManagementPage = () => {
                     <FileText className="h-5 w-5 text-primary" />
                     Care Plans
                   </CardTitle>
-                  <CardDescription>View and edit care plan details</CardDescription>
+                  <CardDescription>View and edit care plan details, schedule, team, and payroll</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <p className="text-sm text-muted-foreground mb-4">
-                    Access detailed care plan information and make updates.
+                    Access comprehensive care plan management including scheduling, team coordination, and payroll tracking.
                   </p>
                   {carePlans.length > 0 ? (
                     <div className="space-y-2">
@@ -194,18 +195,15 @@ const CareManagementPage = () => {
                           variant="outline" 
                           size="sm" 
                           className="w-full justify-start text-left"
-                          onClick={() => handleNavigateToTab(plan.id, 'details')}
+                          onClick={() => handleViewPlan(plan.id)}
                         >
-                          {plan.title}
+                          <Eye className="h-4 w-4 mr-2" />
+                          View Full Plan: {plan.title}
                         </Button>
                       ))}
-                      <Button variant="secondary" className="w-full mt-2" onClick={handleCreatePlan}>
-                        <Plus className="mr-2 h-4 w-4" />
-                        Create New Plan
-                      </Button>
                     </div>
                   ) : (
-                    <Button variant="secondary" className="w-full" onClick={handleCreatePlan}>
+                    <Button onClick={handleCreatePlan} className="w-full">
                       <Plus className="mr-2 h-4 w-4" />
                       Create First Plan
                     </Button>
@@ -216,88 +214,14 @@ const CareManagementPage = () => {
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    <Users className="h-5 w-5 text-primary" />
-                    Care Team
-                  </CardTitle>
-                  <CardDescription>Manage team members</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    Add and manage caregivers and other members of your care team.
-                  </p>
-                  {carePlans.length > 0 ? (
-                    <div className="space-y-2">
-                      {carePlans.map((plan) => (
-                        <Button 
-                          key={plan.id}
-                          variant="outline" 
-                          size="sm" 
-                          className="w-full justify-start text-left"
-                          onClick={() => handleNavigateToTab(plan.id, 'team')}
-                        >
-                          {plan.title}
-                        </Button>
-                      ))}
-                    </div>
-                  ) : (
-                    <Button variant="secondary" className="w-full" disabled>
-                      No Care Plans
-                    </Button>
-                  )}
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Calendar className="h-5 w-5 text-primary" />
-                    Schedule
-                  </CardTitle>
-                  <CardDescription>Manage care shifts and calendar</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    Schedule appointments, tasks, and manage care shifts.
-                  </p>
-                  {carePlans.length > 0 ? (
-                    <div className="space-y-2">
-                      {carePlans.map((plan) => (
-                        <Button 
-                          key={plan.id}
-                          variant="outline" 
-                          size="sm" 
-                          className="w-full justify-start text-left"
-                          onClick={() => handleNavigateToTab(plan.id, 'schedule')}
-                        >
-                          {plan.title}
-                        </Button>
-                      ))}
-                    </div>
-                  ) : (
-                    <Button variant="secondary" className="w-full" disabled>
-                      No Care Plans
-                    </Button>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
-          </div>
-
-          {/* Medication Management Tools */}
-          <div>
-            <h2 className="text-2xl font-semibold mb-4">Medication Management</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
                     <Pill className="h-5 w-5 text-primary" />
-                    Medications
+                    Medication Management
                   </CardTitle>
-                  <CardDescription>View and manage medications</CardDescription>
+                  <CardDescription>Track medications and administration schedules</CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  <p className="text-sm text-muted-foreground">
-                    Add and track medications for each care plan.
+                <CardContent>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Manage medication schedules, track administration, and monitor for conflicts.
                   </p>
                   {carePlans.length > 0 ? (
                     <div className="space-y-2">
@@ -307,139 +231,33 @@ const CareManagementPage = () => {
                           variant="outline" 
                           size="sm" 
                           className="w-full justify-start text-left"
-                          onClick={() => navigate(`/family/care-management/${plan.id}/medications`)}
+                          onClick={() => handleNavigateToTab(plan.id, 'medications')}
                         >
-                          {plan.title}
+                          <PenSquare className="h-4 w-4 mr-2" />
+                          {plan.title} Medications
                         </Button>
                       ))}
                     </div>
                   ) : (
-                    <Button variant="secondary" className="w-full" disabled>
-                      No Care Plans
+                    <Button onClick={handleCreatePlan} className="w-full">
+                      <Plus className="mr-2 h-4 w-4" />
+                      Create Plan First
                     </Button>
                   )}
                 </CardContent>
               </Card>
 
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Clock className="h-5 w-5 text-primary" />
-                    Schedule
-                  </CardTitle>
-                  <CardDescription>Manage medication schedules</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <p className="text-sm text-muted-foreground">
-                    Set up and manage medication timing schedules.
-                  </p>
-                  {carePlans.length > 0 ? (
-                    <div className="space-y-2">
-                      {carePlans.map((plan) => (
-                        <Button 
-                          key={plan.id}
-                          variant="outline" 
-                          size="sm" 
-                          className="w-full justify-start text-left"
-                          onClick={() => navigate(`/family/care-management/${plan.id}/medications`)}
-                        >
-                          {plan.title}
-                        </Button>
-                      ))}
-                    </div>
-                  ) : (
-                    <Button variant="secondary" className="w-full" disabled>
-                      No Care Plans
-                    </Button>
-                  )}
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Calendar className="h-5 w-5 text-primary" />
-                    Planning
-                  </CardTitle>
-                  <CardDescription>Plan medication routines</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <p className="text-sm text-muted-foreground">
-                    Plan and organize medication routines and refills.
-                  </p>
-                  {carePlans.length > 0 ? (
-                    <div className="space-y-2">
-                      {carePlans.map((plan) => (
-                        <Button 
-                          key={plan.id}
-                          variant="outline" 
-                          size="sm" 
-                          className="w-full justify-start text-left"
-                          onClick={() => navigate(`/family/care-management/${plan.id}/medications`)}
-                        >
-                          {plan.title}
-                        </Button>
-                      ))}
-                    </div>
-                  ) : (
-                    <Button variant="secondary" className="w-full" disabled>
-                      No Care Plans
-                    </Button>
-                  )}
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <PenSquare className="h-5 w-5 text-primary" />
-                    Administration
-                  </CardTitle>
-                  <CardDescription>Track medication administration</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <p className="text-sm text-muted-foreground">
-                    Record and track when medications are given.
-                  </p>
-                  {carePlans.length > 0 ? (
-                    <div className="space-y-2">
-                      {carePlans.map((plan) => (
-                        <Button 
-                          key={plan.id}
-                          variant="outline" 
-                          size="sm" 
-                          className="w-full justify-start text-left"
-                          onClick={() => navigate(`/family/care-management/${plan.id}/medications`)}
-                        >
-                          {plan.title}
-                        </Button>
-                      ))}
-                    </div>
-                  ) : (
-                    <Button variant="secondary" className="w-full" disabled>
-                      No Care Plans
-                    </Button>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
-          </div>
-
-          {/* Meal Management Tools */}
-          <div>
-            <h2 className="text-2xl font-semibold mb-4">Meal Management</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <ChefHat className="h-5 w-5 text-primary" />
-                    Meal Planning
+                    Meal Management
                   </CardTitle>
-                  <CardDescription>Plan and schedule meals</CardDescription>
+                  <CardDescription>Plan meals and manage grocery lists</CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  <p className="text-sm text-muted-foreground">
-                    Create meal plans and schedule recipes for each care plan.
+                <CardContent>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Create meal plans, manage recipes, and generate grocery lists for your care plan.
                   </p>
                   {carePlans.length > 0 ? (
                     <div className="space-y-2">
@@ -449,117 +267,17 @@ const CareManagementPage = () => {
                           variant="outline" 
                           size="sm" 
                           className="w-full justify-start text-left"
-                          onClick={() => handleNavigateToMealManagement(plan.id)}
+                          onClick={() => handleNavigateToTab(plan.id, 'meals')}
                         >
-                          {plan.title}
+                          <ChefHat className="h-4 w-4 mr-2" />
+                          {plan.title} Meals
                         </Button>
                       ))}
                     </div>
                   ) : (
-                    <Button variant="secondary" className="w-full" disabled>
-                      No Care Plans
-                    </Button>
-                  )}
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <ActivitySquare className="h-5 w-5 text-primary" />
-                    Recipe Library
-                  </CardTitle>
-                  <CardDescription>Browse and manage recipes</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <p className="text-sm text-muted-foreground">
-                    Access and organize recipes for meal planning.
-                  </p>
-                  {carePlans.length > 0 ? (
-                    <div className="space-y-2">
-                      {carePlans.map((plan) => (
-                        <Button 
-                          key={plan.id}
-                          variant="outline" 
-                          size="sm" 
-                          className="w-full justify-start text-left"
-                          onClick={() => handleNavigateToMealManagement(plan.id)}
-                        >
-                          {plan.title}
-                        </Button>
-                      ))}
-                    </div>
-                  ) : (
-                    <Button variant="secondary" className="w-full" disabled>
-                      No Care Plans
-                    </Button>
-                  )}
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Clock className="h-5 w-5 text-primary" />
-                    Grocery Lists
-                  </CardTitle>
-                  <CardDescription>Manage shopping lists</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <p className="text-sm text-muted-foreground">
-                    Create and manage grocery lists for meal plans.
-                  </p>
-                  {carePlans.length > 0 ? (
-                    <div className="space-y-2">
-                      {carePlans.map((plan) => (
-                        <Button 
-                          key={plan.id}
-                          variant="outline" 
-                          size="sm" 
-                          className="w-full justify-start text-left"
-                          onClick={() => handleNavigateToMealManagement(plan.id)}
-                        >
-                          {plan.title}
-                        </Button>
-                      ))}
-                    </div>
-                  ) : (
-                    <Button variant="secondary" className="w-full" disabled>
-                      No Care Plans
-                    </Button>
-                  )}
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Calendar className="h-5 w-5 text-primary" />
-                    Nutrition Tracking
-                  </CardTitle>
-                  <CardDescription>Track nutritional goals</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <p className="text-sm text-muted-foreground">
-                    Monitor nutrition and dietary requirements.
-                  </p>
-                  {carePlans.length > 0 ? (
-                    <div className="space-y-2">
-                      {carePlans.map((plan) => (
-                        <Button 
-                          key={plan.id}
-                          variant="outline" 
-                          size="sm" 
-                          className="w-full justify-start text-left"
-                          onClick={() => handleNavigateToMealManagement(plan.id)}
-                        >
-                          {plan.title}
-                        </Button>
-                      ))}
-                    </div>
-                  ) : (
-                    <Button variant="secondary" className="w-full" disabled>
-                      No Care Plans
+                    <Button onClick={handleCreatePlan} className="w-full">
+                      <Plus className="mr-2 h-4 w-4" />
+                      Create Plan First
                     </Button>
                   )}
                 </CardContent>

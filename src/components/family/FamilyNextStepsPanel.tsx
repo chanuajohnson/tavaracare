@@ -1,3 +1,4 @@
+
 import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -220,25 +221,13 @@ export const FamilyNextStepsPanel = () => {
       return;
     }
     if (step.id === 5) {
-      // Navigate to medication management tab in care plan - FIXED URL WITH /plan/ SEGMENT
-      if (carePlans.length > 0) {
-        console.log('Navigating to medications tab for care plan:', carePlans[0].id);
-        navigate(`/family/care-management/plan/${carePlans[0].id}?tab=medications`);
-      } else {
-        console.log('No care plans found, navigating to create care plan');
-        navigate('/family/care-management/create');
-      }
+      // Navigate to the specific medication management URL
+      navigate('/family/care-management/4848aec5-edb0-4e4a-b8e8-5684c609e6d6/medications');
       return;
     }
     if (step.id === 6) {
-      // Navigate to meal planning tab in care plan - FIXED URL WITH /plan/ SEGMENT
-      if (carePlans.length > 0) {
-        console.log('Navigating to meals tab for care plan:', carePlans[0].id);
-        navigate(`/family/care-management/plan/${carePlans[0].id}?tab=meals`);
-      } else {
-        console.log('No care plans found, navigating to create care plan');
-        navigate('/family/care-management/create');
-      }
+      // Navigate to the specific meal management URL
+      navigate('/family/care-management/4848aec5-edb0-4e4a-b8e8-5684c609e6d6/meals');
       return;
     }
     if (step.id === 7) {

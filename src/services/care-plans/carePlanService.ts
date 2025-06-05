@@ -1,6 +1,7 @@
 
 import { supabase } from "@/lib/supabase";
 import { CarePlan, CarePlanInput, CarePlanDto } from "@/types/carePlan";
+import { Json } from "@/utils/json";
 
 // Database interface (snake_case)
 interface DbCarePlan {
@@ -9,7 +10,7 @@ interface DbCarePlan {
   description?: string;
   family_id: string;
   status: string;
-  metadata?: any;
+  metadata?: Json;
   created_at: string;
   updated_at?: string;
 }
@@ -22,7 +23,7 @@ const transformCarePlanFromDb = (dbPlan: DbCarePlan): CarePlan => {
     description: dbPlan.description || '',
     familyId: dbPlan.family_id,
     status: dbPlan.status as 'active' | 'completed' | 'cancelled',
-    metadata: dbPlan.metadata,
+    metadata: dbPlan.metadata as any, // Cast Json to CarePlanMetadata
     createdAt: dbPlan.created_at,
     updatedAt: dbPlan.updated_at || dbPlan.created_at
   };
@@ -34,7 +35,7 @@ const transformCarePlanToDb = (plan: Partial<CarePlan>): Partial<DbCarePlan> => 
     title: plan.title,
     description: plan.description,
     status: plan.status,
-    metadata: plan.metadata
+    metadata: plan.metadata as Json // Cast CarePlanMetadata to Json
   };
   
   if (plan.familyId) {
@@ -101,7 +102,7 @@ export const createCarePlan = async (carePlan: CarePlanInput): Promise<CarePlan>
       description: carePlan.description,
       family_id: carePlan.familyId,
       status: carePlan.status,
-      metadata: carePlan.metadata
+      metadata: carePlan.metadata as Json // Cast CarePlanMetadata to Json
     };
 
     const { data, error } = await supabase
