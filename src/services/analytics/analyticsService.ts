@@ -89,17 +89,11 @@ export const analyticsService = {
       .from('user_journey_funnels')
       .update({ 
         completed_at: new Date().toISOString(),
-        // Calculate conversion time using a separate query instead of raw SQL
+        // Conversion time will be calculated on the frontend when needed
       })
       .eq('id', funnelId);
     
     if (error) throw error;
-    
-    // Update conversion time separately
-    const { error: updateError } = await supabase
-      .rpc('calculate_conversion_time', { funnel_id: funnelId });
-    
-    if (updateError) console.warn('Could not calculate conversion time:', updateError);
   },
 
   async getFunnelAnalytics(funnelName?: string, dateRange?: { start: string; end: string }) {
