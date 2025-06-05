@@ -69,7 +69,7 @@ export function InlinePhoneEditor({
 
     setIsLoading(true);
     try {
-      // Update only the phone_number column to avoid triggering the journey progress update
+      // Update only the phone_number column
       const { error } = await supabase
         .from('profiles')
         .update({ 
@@ -77,7 +77,10 @@ export function InlinePhoneEditor({
         })
         .eq('id', userId);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase error:', error);
+        throw error;
+      }
 
       onPhoneNumberUpdate(phoneNumber);
       setIsEditing(false);
