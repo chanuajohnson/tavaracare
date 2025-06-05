@@ -1,4 +1,3 @@
-
 import { Routes, Route } from "react-router-dom";
 import { useAuth } from "@/components/providers/AuthProvider";
 import Index from "@/pages/Index";
@@ -56,9 +55,7 @@ import SubscriptionFeaturesPage from "@/pages/subscription/SubscriptionFeaturesP
 // Legacy Pages
 import LegacyStoriesPage from "@/pages/legacy/LegacyStoriesPage";
 
-export const AppRoutes = () => {
-  const { user } = useAuth();
-
+const AppRoutes = () => {
   return (
     <Routes>
       {/* Public Routes */}
@@ -115,8 +112,10 @@ export const AppRoutes = () => {
       <Route path="/subscription/features" element={<SubscriptionFeaturesPage />} />
       
       {/* Admin Routes */}
+      <Route path="/dashboard/admin" element={<AdminDashboard />} />
       <Route path="/admin/user-journey" element={<UserJourneyPage />} />
       <Route path="/admin/feedback" element={<FeedbackManagementPage />} />
+      <Route path="/admin/enhanced-analytics" element={<EnhancedAnalyticsPage />} />
       
       {/* Legacy Routes */}
       <Route path="/legacy/stories" element={<LegacyStoriesPage />} />
@@ -129,3 +128,5 @@ export const AppRoutes = () => {
     </Routes>
   );
 };
+
+export default AppRoutes;

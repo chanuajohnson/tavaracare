@@ -1,4 +1,3 @@
-
 import { motion } from "framer-motion";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { DashboardCardGrid } from "@/components/dashboard/DashboardCardGrid";
@@ -16,6 +15,7 @@ import { UserJourneyTracker } from "@/components/tracking/UserJourneyTracker";
 import { useJourneyTracking } from "@/hooks/useJourneyTracking";
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
+import { EnhancedAnalyticsPage } from "./EnhancedAnalyticsPage";
 
 const AdminDashboard = () => {
   const { user } = useAuth();
@@ -127,6 +127,12 @@ const AdminDashboard = () => {
             <Button className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700">
               <BarChart className="h-4 w-4" />
               User Journey Analytics
+            </Button>
+          </Link>
+          <Link to="/admin/enhanced-analytics">
+            <Button className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700">
+              <TrendingUp className="h-4 w-4" />
+              Enhanced Analytics
             </Button>
           </Link>
           <Link to="/admin/feedback">
