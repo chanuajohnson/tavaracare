@@ -15,6 +15,7 @@ import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { FeedbackForm } from "@/components/ui/feedback-form";
+import { validateChatInput } from "@/services/chat/utils/inputValidation";
 
 interface FabProps {
   icon?: React.ReactNode;
@@ -39,6 +40,11 @@ export const Fab = ({
   const [isFeedbackFormOpen, setIsFeedbackFormOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [contactFormData, setContactFormData] = useState({
+    name: "",
+    email: "",
+    message: "",
+  });
+  const [formErrors, setFormErrors] = useState({
     name: "",
     email: "",
     message: "",
@@ -81,6 +87,34 @@ export const Fab = ({
     };
   }, []);
 
+  const validateForm = () => {
+    const errors = {
+      name: "",
+      email: "",
+      message: "",
+    };
+
+    // Validate name
+    const nameValidation = validateChatInput(contactFormData.name, "name");
+    if (!nameValidation.isValid) {
+      errors.name = nameValidation.errorMessage || "Name is required";
+    }
+
+    // Validate email
+    const emailValidation = validateChatInput(contactFormData.email, "email");
+    if (!emailValidation.isValid) {
+      errors.email = emailValidation.errorMessage || "Valid email is required";
+    }
+
+    // Validate message
+    if (!contactFormData.message.trim()) {
+      errors.message = "Message is required";
+    }
+
+    setFormErrors(errors);
+    return !errors.name && !errors.email && !errors.message;
+  };
+
   const handleOpenWhatsApp = () => {
     const phoneNumber = "+18687865357";
     const message = encodeURIComponent("Hello, I need support with Tavara.care platform.");
@@ -94,15 +128,13 @@ export const Fab = ({
   const handleContactFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    if (!validateForm()) {
+      toast.error("Please fix the errors in the form");
+      return;
+    }
+    
     try {
       setIsSubmitting(true);
-      
-      // Validate form
-      if (!contactFormData.name || !contactFormData.email || !contactFormData.message) {
-        toast.error("Please fill out all required fields");
-        setIsSubmitting(false);
-        return;
-      }
       
       // Prepare the data to send
       const formData = { 
@@ -140,6 +172,7 @@ export const Fab = ({
       
       // Reset form
       setContactFormData({ name: "", email: "", message: "" });
+      setFormErrors({ name: "", email: "", message: "" });
       setScreenshotFile(null);
       setPrefillData(null);
       setIsContactFormOpen(false);
@@ -156,6 +189,11 @@ export const Fab = ({
   ) => {
     const { name, value } = e.target;
     setContactFormData((prev) => ({ ...prev, [name]: value }));
+    
+    // Clear error when user starts typing
+    if (formErrors[name as keyof typeof formErrors]) {
+      setFormErrors(prev => ({ ...prev, [name]: "" }));
+    }
   };
   
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -259,7 +297,7 @@ export const Fab = ({
                   <div className="space-y-4">
                     <div>
                       <label htmlFor="name" className="block text-sm font-medium mb-1">
-                        Name
+                        Name *
                       </label>
                       <input
                         id="name"
@@ -268,13 +306,18 @@ export const Fab = ({
                         required
                         value={contactFormData.name}
                         onChange={handleInputChange}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+                        className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary ${
+                          formErrors.name ? 'border-red-500' : 'border-gray-300'
+                        }`}
                         disabled={isSubmitting}
                       />
+                      {formErrors.name && (
+                        <p className="text-sm text-red-600 mt-1">{formErrors.name}</p>
+                      )}
                     </div>
                     <div>
                       <label htmlFor="email" className="block text-sm font-medium mb-1">
-                        Email
+                        Email *
                       </label>
                       <input
                         id="email"
@@ -283,13 +326,18 @@ export const Fab = ({
                         required
                         value={contactFormData.email}
                         onChange={handleInputChange}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+                        className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary ${
+                          formErrors.email ? 'border-red-500' : 'border-gray-300'
+                        }`}
                         disabled={isSubmitting}
                       />
+                      {formErrors.email && (
+                        <p className="text-sm text-red-600 mt-1">{formErrors.email}</p>
+                      )}
                     </div>
                     <div>
                       <label htmlFor="message" className="block text-sm font-medium mb-1">
-                        Message
+                        Message *
                       </label>
                       <Textarea
                         id="message"
@@ -297,9 +345,14 @@ export const Fab = ({
                         required
                         value={contactFormData.message}
                         onChange={handleInputChange}
-                        className="w-full min-h-[100px]"
+                        className={`w-full min-h-[100px] ${
+                          formErrors.message ? 'border-red-500' : ''
+                        }`}
                         disabled={isSubmitting}
                       />
+                      {formErrors.message && (
+                        <p className="text-sm text-red-600 mt-1">{formErrors.message}</p>
+                      )}
                     </div>
                     <div>
                       <label htmlFor="screenshot" className="block text-sm font-medium mb-1">

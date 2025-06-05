@@ -10,6 +10,7 @@ import { Star, Upload, X, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/components/providers/AuthProvider';
+import { validateChatInput } from '@/services/chat/utils/inputValidation';
 
 interface FeedbackFormProps {
   onClose: () => void;
@@ -64,12 +65,59 @@ export const FeedbackForm: React.FC<FeedbackFormProps> = ({ onClose, prefillData
     anonymous: false,
     screenshot: null as File | null
   });
+  const [formErrors, setFormErrors] = useState({
+    feedback_type: '',
+    subject: '',
+    message: '',
+    contact_email: '',
+    contact_phone: ''
+  });
+
+  const validateForm = () => {
+    const errors = {
+      feedback_type: '',
+      subject: '',
+      message: '',
+      contact_email: '',
+      contact_phone: ''
+    };
+
+    if (!formData.feedback_type) {
+      errors.feedback_type = 'Please select a feedback type';
+    }
+
+    if (!formData.subject.trim()) {
+      errors.subject = 'Subject is required';
+    }
+
+    if (!formData.message.trim()) {
+      errors.message = 'Message is required';
+    }
+
+    // Validate contact info if not anonymous
+    if (!formData.anonymous && formData.contact_info.email) {
+      const emailValidation = validateChatInput(formData.contact_info.email, 'email');
+      if (!emailValidation.isValid) {
+        errors.contact_email = emailValidation.errorMessage || 'Invalid email format';
+      }
+    }
+
+    if (!formData.anonymous && formData.contact_info.phone) {
+      const phoneValidation = validateChatInput(formData.contact_info.phone, 'phone');
+      if (!phoneValidation.isValid) {
+        errors.contact_phone = phoneValidation.errorMessage || 'Invalid phone format';
+      }
+    }
+
+    setFormErrors(errors);
+    return !Object.values(errors).some(error => error !== '');
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.feedback_type || !formData.subject || !formData.message) {
-      toast.error('Please fill in all required fields');
+    if (!validateForm()) {
+      toast.error('Please fix the errors in the form');
       return;
     }
 
@@ -143,6 +191,15 @@ export const FeedbackForm: React.FC<FeedbackFormProps> = ({ onClose, prefillData
     }
   };
 
+  const handleInputChange = (field: string, value: any) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+    
+    // Clear error when user starts typing
+    if (formErrors[field as keyof typeof formErrors]) {
+      setFormErrors(prev => ({ ...prev, [field]: '' }));
+    }
+  };
+
   const selectedType = FEEDBACK_TYPES[formData.feedback_type as keyof typeof FEEDBACK_TYPES];
 
   return (
@@ -160,10 +217,11 @@ export const FeedbackForm: React.FC<FeedbackFormProps> = ({ onClose, prefillData
             <Label htmlFor="feedback_type" className="text-sm font-medium">
               Feedback Type *
             </Label>
-            <Select value={formData.feedback_type} onValueChange={(value) => 
-              setFormData(prev => ({ ...prev, feedback_type: value, rating: 0 }))
-            }>
-              <SelectTrigger className="mt-1">
+            <Select 
+              value={formData.feedback_type} 
+              onValueChange={(value) => handleInputChange('feedback_type', value)}
+            >
+              <SelectTrigger className={`mt-1 ${formErrors.feedback_type ? 'border-red-500' : ''}`}>
                 <SelectValue placeholder="Select feedback type" />
               </SelectTrigger>
               <SelectContent>
@@ -177,6 +235,9 @@ export const FeedbackForm: React.FC<FeedbackFormProps> = ({ onClose, prefillData
                 ))}
               </SelectContent>
             </Select>
+            {formErrors.feedback_type && (
+              <p className="text-sm text-red-600 mt-1">{formErrors.feedback_type}</p>
+            )}
           </div>
 
           {formData.feedback_type && (
@@ -187,7 +248,7 @@ export const FeedbackForm: React.FC<FeedbackFormProps> = ({ onClose, prefillData
               <Input
                 id="category"
                 value={formData.category}
-                onChange={(e) => setFormData(prev => ({ ...prev, category: e.target.value }))}
+                onChange={(e) => handleInputChange('category', e.target.value)}
                 placeholder="e.g., Dashboard, Matching, Payments"
                 className="mt-1"
               />
@@ -202,10 +263,13 @@ export const FeedbackForm: React.FC<FeedbackFormProps> = ({ onClose, prefillData
               id="subject"
               required
               value={formData.subject}
-              onChange={(e) => setFormData(prev => ({ ...prev, subject: e.target.value }))}
+              onChange={(e) => handleInputChange('subject', e.target.value)}
               placeholder="Brief summary of your feedback"
-              className="mt-1"
+              className={`mt-1 ${formErrors.subject ? 'border-red-500' : ''}`}
             />
+            {formErrors.subject && (
+              <p className="text-sm text-red-600 mt-1">{formErrors.subject}</p>
+            )}
           </div>
 
           {selectedType?.hasRating && (
@@ -240,10 +304,13 @@ export const FeedbackForm: React.FC<FeedbackFormProps> = ({ onClose, prefillData
               id="message"
               required
               value={formData.message}
-              onChange={(e) => setFormData(prev => ({ ...prev, message: e.target.value }))}
+              onChange={(e) => handleInputChange('message', e.target.value)}
               placeholder={selectedType ? getPlaceholderText(formData.feedback_type) : "Share your feedback with us..."}
-              className="mt-1 min-h-[120px]"
+              className={`mt-1 min-h-[120px] ${formErrors.message ? 'border-red-500' : ''}`}
             />
+            {formErrors.message && (
+              <p className="text-sm text-red-600 mt-1">{formErrors.message}</p>
+            )}
           </div>
 
           <div>
@@ -271,7 +338,7 @@ export const FeedbackForm: React.FC<FeedbackFormProps> = ({ onClose, prefillData
               id="anonymous"
               checked={formData.anonymous}
               onCheckedChange={(checked) => 
-                setFormData(prev => ({ ...prev, anonymous: checked as boolean }))
+                handleInputChange('anonymous', checked as boolean)
               }
             />
             <Label htmlFor="anonymous" className="text-sm">
@@ -302,13 +369,21 @@ export const FeedbackForm: React.FC<FeedbackFormProps> = ({ onClose, prefillData
                     id="contact_email"
                     type="email"
                     value={formData.contact_info.email}
-                    onChange={(e) => setFormData(prev => ({
-                      ...prev,
-                      contact_info: { ...prev.contact_info, email: e.target.value }
-                    }))}
+                    onChange={(e) => {
+                      setFormData(prev => ({
+                        ...prev,
+                        contact_info: { ...prev.contact_info, email: e.target.value }
+                      }));
+                      if (formErrors.contact_email) {
+                        setFormErrors(prev => ({ ...prev, contact_email: '' }));
+                      }
+                    }}
                     placeholder="your@email.com"
-                    className="mt-1"
+                    className={`mt-1 ${formErrors.contact_email ? 'border-red-500' : ''}`}
                   />
+                  {formErrors.contact_email && (
+                    <p className="text-sm text-red-600 mt-1">{formErrors.contact_email}</p>
+                  )}
                 </div>
               </div>
               <div>
@@ -316,13 +391,21 @@ export const FeedbackForm: React.FC<FeedbackFormProps> = ({ onClose, prefillData
                 <Input
                   id="contact_phone"
                   value={formData.contact_info.phone}
-                  onChange={(e) => setFormData(prev => ({
-                    ...prev,
-                    contact_info: { ...prev.contact_info, phone: e.target.value }
-                  }))}
+                  onChange={(e) => {
+                    setFormData(prev => ({
+                      ...prev,
+                      contact_info: { ...prev.contact_info, phone: e.target.value }
+                    }));
+                    if (formErrors.contact_phone) {
+                      setFormErrors(prev => ({ ...prev, contact_phone: '' }));
+                    }
+                  }}
                   placeholder="Your phone number"
-                  className="mt-1"
+                  className={`mt-1 ${formErrors.contact_phone ? 'border-red-500' : ''}`}
                 />
+                {formErrors.contact_phone && (
+                  <p className="text-sm text-red-600 mt-1">{formErrors.contact_phone}</p>
+                )}
               </div>
             </div>
           )}

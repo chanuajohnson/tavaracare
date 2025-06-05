@@ -5,11 +5,12 @@ import { DashboardCardGrid } from "@/components/dashboard/DashboardCardGrid";
 import { FeatureInterestTracker } from "@/components/admin/FeatureInterestTracker";
 import { AdminUserManagement } from "@/components/admin/AdminUserManagement";
 import { WhatsAppTemplateManager } from "@/components/admin/WhatsAppTemplateManager";
+import { FeedbackManagement } from "@/components/admin/FeedbackManagement";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { BarChart, MessageSquare, Users, TrendingUp } from "lucide-react";
+import { BarChart, MessageSquare, Users, TrendingUp, HeadphonesIcon } from "lucide-react";
 import { UserJourneyTracker } from "@/components/tracking/UserJourneyTracker";
 import { useJourneyTracking } from "@/hooks/useJourneyTracking";
 import { useState, useEffect } from "react";
@@ -109,7 +110,7 @@ const AdminDashboard = () => {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.2 }}
-          className="mb-6"
+          className="mb-6 flex gap-3"
         >
           <Link to="/admin/user-journey">
             <Button className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700">
@@ -117,14 +118,22 @@ const AdminDashboard = () => {
               User Journey Analytics
             </Button>
           </Link>
+          <Button className="flex items-center gap-2 bg-green-600 hover:bg-green-700">
+            <HeadphonesIcon className="h-4 w-4" />
+            TAVARA Feedback
+          </Button>
         </motion.div>
 
         <div className="space-y-8">
           <Tabs defaultValue="users" className="w-full">
-            <TabsList className="grid w-full grid-cols-4">
+            <TabsList className="grid w-full grid-cols-5">
               <TabsTrigger value="users" className="flex items-center gap-2">
                 <Users className="h-4 w-4" />
                 User Management
+              </TabsTrigger>
+              <TabsTrigger value="feedback" className="flex items-center gap-2">
+                <HeadphonesIcon className="h-4 w-4" />
+                Feedback Management
               </TabsTrigger>
               <TabsTrigger value="templates" className="flex items-center gap-2">
                 <MessageSquare className="h-4 w-4" />
@@ -142,6 +151,10 @@ const AdminDashboard = () => {
             
             <TabsContent value="users" className="mt-6">
               <AdminUserManagement />
+            </TabsContent>
+            
+            <TabsContent value="feedback" className="mt-6">
+              <FeedbackManagement />
             </TabsContent>
             
             <TabsContent value="templates" className="mt-6">

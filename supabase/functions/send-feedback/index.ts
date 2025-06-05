@@ -6,7 +6,8 @@ import { Resend } from "npm:resend@1.0.0";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
+    "authorization, x-client-info, apikey, content-type, x-app-version",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
 interface FeedbackData {
@@ -15,7 +16,11 @@ interface FeedbackData {
   subject: string;
   message: string;
   rating?: number;
-  contact_info: any;
+  contact_info: {
+    name?: string;
+    email?: string;
+    phone?: string;
+  };
   metadata: any;
   screenshot?: string;
   user_id?: string;
@@ -27,6 +32,23 @@ const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+// Validation functions
+const validateEmail = (email: string): boolean => {
+  const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailPattern.test(email.trim());
+};
+
+const validatePhone = (phone: string): boolean => {
+  if (!phone) return true; // Phone is optional
+  const cleanedNumber = phone.replace(/[\s\-\(\)\.]/g, '');
+  
+  if (cleanedNumber.startsWith('+')) {
+    return /^\+\d{8,15}$/.test(cleanedNumber);
+  } else {
+    return /^\d{7,15}$/.test(cleanedNumber);
+  }
+};
 
 const getEmailRecipientsByType = (feedbackType: string): string[] => {
   const emailMap: Record<string, string[]> = {
@@ -111,18 +133,80 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  if (req.method !== "POST") {
+    return new Response(
+      JSON.stringify({ success: false, error: "Method not allowed" }),
+      {
+        status: 405,
+        headers: { "Content-Type": "application/json", ...corsHeaders },
+      }
+    );
+  }
+
   try {
+    // Check if required services are configured
+    if (!Deno.env.get("RESEND_API_KEY")) {
+      console.error("RESEND_API_KEY is not configured");
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: "Email service is not configured" 
+        }),
+        {
+          status: 500,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        }
+      );
+    }
+
     const feedbackData: FeedbackData = await req.json();
     
     console.log("Received feedback submission:", {
       type: feedbackData.feedback_type,
       subject: feedbackData.subject,
-      hasUser: !!feedbackData.user_id
+      hasUser: !!feedbackData.user_id,
+      hasContactInfo: !!(feedbackData.contact_info?.email || feedbackData.contact_info?.name)
     });
 
     // Validate required fields
     if (!feedbackData.feedback_type || !feedbackData.subject || !feedbackData.message) {
-      throw new Error("Missing required fields: feedback_type, subject, or message");
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: "Missing required fields: feedback_type, subject, and message are required" 
+        }),
+        {
+          status: 400,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        }
+      );
+    }
+
+    // Validate contact information if provided
+    if (feedbackData.contact_info?.email && !validateEmail(feedbackData.contact_info.email)) {
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: "Invalid email format" 
+        }),
+        {
+          status: 400,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        }
+      );
+    }
+
+    if (feedbackData.contact_info?.phone && !validatePhone(feedbackData.contact_info.phone)) {
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: "Invalid phone number format" 
+        }),
+        {
+          status: 400,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        }
+      );
     }
 
     // Store feedback in database
@@ -145,43 +229,62 @@ serve(async (req) => {
 
     if (dbError) {
       console.error("Database error:", dbError);
-      throw new Error(`Failed to store feedback: ${dbError.message}`);
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: "Failed to store feedback. Please try again later." 
+        }),
+        {
+          status: 500,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        }
+      );
     }
 
     console.log("Feedback stored successfully:", storedFeedback.id);
 
     // Send email notification
-    const recipients = getEmailRecipientsByType(feedbackData.feedback_type);
-    const emailSubject = getEmailSubjectByType(feedbackData.feedback_type, feedbackData.subject);
-    const emailBody = getEmailTemplateByType(feedbackData.feedback_type, feedbackData);
-    
-    const emailResponse = await resend.emails.send({
-      from: "Tavara Feedback <support@tavara.care>",
-      to: recipients,
-      subject: emailSubject,
-      html: emailBody + (feedbackData.screenshot ? 
-        `<h3>Screenshot:</h3><img src="${feedbackData.screenshot}" alt="User provided screenshot" style="max-width: 100%; border: 1px solid #ddd; border-radius: 4px;" />` : 
-        ''
-      ),
-    });
+    try {
+      const recipients = getEmailRecipientsByType(feedbackData.feedback_type);
+      const emailSubject = getEmailSubjectByType(feedbackData.feedback_type, feedbackData.subject);
+      const emailBody = getEmailTemplateByType(feedbackData.feedback_type, feedbackData);
+      
+      const emailResponse = await resend.emails.send({
+        from: "Tavara Feedback <support@tavara.care>",
+        to: recipients,
+        subject: emailSubject,
+        html: emailBody + (feedbackData.screenshot ? 
+          `<h3>Screenshot:</h3><img src="${feedbackData.screenshot}" alt="User provided screenshot" style="max-width: 100%; border: 1px solid #ddd; border-radius: 4px;" />` : 
+          ''
+        ),
+      });
 
-    console.log("Email sent successfully:", emailResponse);
+      console.log("Email sent successfully:", emailResponse.id);
+    } catch (emailError) {
+      console.error("Failed to send email notification:", emailError);
+      // Don't fail the request if email fails
+    }
 
     // Send confirmation email to user if contact info provided
     if (feedbackData.contact_info?.email && !feedbackData.user_id) {
-      await resend.emails.send({
-        from: "Tavara Support <support@tavara.care>",
-        to: feedbackData.contact_info.email,
-        subject: "Thank you for your feedback!",
-        html: `
-          <h1>Thank you for your feedback!</h1>
-          <p>Hi ${feedbackData.contact_info.name || 'there'},</p>
-          <p>We've received your ${feedbackData.feedback_type.replace('_', ' ')} feedback and truly appreciate you taking the time to share your thoughts with us.</p>
-          <p><strong>Your feedback:</strong> ${feedbackData.subject}</p>
-          <p>Our team will review your submission and get back to you if needed.</p>
-          <p>Best regards,<br>The Tavara Care Team</p>
-        `,
-      });
+      try {
+        await resend.emails.send({
+          from: "Tavara Support <support@tavara.care>",
+          to: feedbackData.contact_info.email,
+          subject: "Thank you for your feedback!",
+          html: `
+            <h1>Thank you for your feedback!</h1>
+            <p>Hi ${feedbackData.contact_info.name || 'there'},</p>
+            <p>We've received your ${feedbackData.feedback_type.replace('_', ' ')} feedback and truly appreciate you taking the time to share your thoughts with us.</p>
+            <p><strong>Your feedback:</strong> ${feedbackData.subject}</p>
+            <p>Our team will review your submission and get back to you if needed.</p>
+            <p>Best regards,<br>The Tavara Care Team</p>
+          `,
+        });
+      } catch (emailError) {
+        console.error("Failed to send user confirmation email:", emailError);
+        // Don't fail if confirmation email fails
+      }
     }
 
     return new Response(
@@ -203,7 +306,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         success: false, 
-        error: error.message || "Failed to submit feedback" 
+        error: "An unexpected error occurred. Please try again later." 
       }),
       {
         status: 500,

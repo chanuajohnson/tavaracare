@@ -7,7 +7,8 @@ const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
+    "authorization, x-client-info, apikey, content-type, x-app-version",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
 interface ChatMessage {
@@ -20,13 +21,19 @@ interface ContactFormData {
   name: string;
   email: string;
   message: string;
-  screenshot?: string; // Base64 encoded screenshot (optional)
+  screenshot?: string;
   chatData?: {
     role?: string;
     sessionId?: string;
-    transcript?: ChatMessage[]; // Added transcript property
+    transcript?: ChatMessage[];
   };
 }
+
+// Email validation function
+const validateEmail = (email: string): boolean => {
+  const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailPattern.test(email.trim());
+};
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -34,21 +41,83 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  if (req.method !== "POST") {
+    return new Response(
+      JSON.stringify({ success: false, error: "Method not allowed" }),
+      {
+        status: 405,
+        headers: { "Content-Type": "application/json", ...corsHeaders },
+      }
+    );
+  }
+
   try {
+    // Check if RESEND_API_KEY is configured
+    if (!Deno.env.get("RESEND_API_KEY")) {
+      console.error("RESEND_API_KEY is not configured");
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: "Email service is not configured" 
+        }),
+        {
+          status: 500,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        }
+      );
+    }
+
     const contactData: ContactFormData = await req.json();
     const { name, email, message, screenshot, chatData } = contactData;
 
-    console.log("Received contact form submission from:", name, email);
+    console.log("Received contact form submission:", { 
+      name, 
+      email: email?.substring(0, 5) + "...", 
+      hasMessage: !!message,
+      hasScreenshot: !!screenshot,
+      hasChatData: !!chatData 
+    });
 
     // Validate required fields
     if (!name || !email || !message) {
-      throw new Error("Missing required fields");
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: "Missing required fields: name, email, and message are required" 
+        }),
+        {
+          status: 400,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        }
+      );
     }
 
     // Validate email format
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      throw new Error("Invalid email format");
+    if (!validateEmail(email)) {
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: "Invalid email format" 
+        }),
+        {
+          status: 400,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        }
+      );
+    }
+
+    // Validate name length
+    if (name.trim().length < 2) {
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: "Name must be at least 2 characters long" 
+        }),
+        {
+          status: 400,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        }
+      );
     }
 
     // Format chat transcript if available
@@ -76,10 +145,7 @@ serve(async (req) => {
         `;
       });
       
-      transcriptHtml += `
-          </div>
-        </div>
-      `;
+      transcriptHtml += `</div></div>`;
     }
 
     // Prepare chat data info if available
@@ -93,7 +159,7 @@ serve(async (req) => {
       ${transcriptHtml}
     ` : '';
 
-    // Send email to support team with enhanced error handling
+    // Send email to support team
     try {
       const supportEmailResponse = await resend.emails.send({
         from: "Tavara Support <support@tavara.care>",
@@ -121,13 +187,22 @@ serve(async (req) => {
         `,
       });
 
-      console.log("Support email sent successfully:", supportEmailResponse);
+      console.log("Support email sent successfully:", supportEmailResponse.id);
     } catch (emailError) {
       console.error("Failed to send support email:", emailError);
-      throw new Error("Failed to send support notification email");
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: "Failed to send support notification email" 
+        }),
+        {
+          status: 500,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        }
+      );
     }
 
-    // Send confirmation email to user with enhanced error handling
+    // Send confirmation email to user
     try {
       const userEmailResponse = await resend.emails.send({
         from: "Tavara Support <support@tavara.care>",
@@ -148,10 +223,10 @@ serve(async (req) => {
         `,
       });
 
-      console.log("User confirmation email sent successfully:", userEmailResponse);
+      console.log("User confirmation email sent successfully:", userEmailResponse.id);
     } catch (emailError) {
       console.error("Failed to send user confirmation email:", emailError);
-      // Don't throw here as the main request was processed successfully
+      // Don't fail the request if confirmation email fails
     }
 
     return new Response(
@@ -172,7 +247,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         success: false, 
-        error: error.message || "Failed to send support request" 
+        error: "An unexpected error occurred. Please try again later." 
       }),
       {
         status: 500,
