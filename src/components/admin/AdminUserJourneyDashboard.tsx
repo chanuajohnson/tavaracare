@@ -1,15 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from '@/lib/supabase';
 import { BulkActionPanel } from './BulkActionPanel';
-import { MiniJourneyProgress } from './MiniJourneyProgress';
+import { RoleBasedUserGrid } from './RoleBasedUserGrid';
 import { UserWithProgress, RoleStats } from '@/types/adminTypes';
-import { Search, Filter, Users, TrendingUp, UserCheck, Clock } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { Search, Users, TrendingUp, UserCheck, Clock } from 'lucide-react';
 
 export function AdminUserJourneyDashboard() {
   const [users, setUsers] = useState<UserWithProgress[]>([]);
@@ -156,16 +153,6 @@ export function AdminUserJourneyDashboard() {
     }
   };
 
-  const getRoleBadgeColor = (role: string) => {
-    switch (role) {
-      case 'family': return 'bg-blue-100 text-blue-800';
-      case 'professional': return 'bg-green-100 text-green-800';
-      case 'community': return 'bg-amber-100 text-amber-800';
-      case 'admin': return 'bg-purple-100 text-purple-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
-  };
-
   if (loading) {
     return (
       <div className="space-y-6">
@@ -229,7 +216,7 @@ export function AdminUserJourneyDashboard() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex flex-col sm:flex-row gap-4 mb-4">
+          <div className="flex flex-col sm:flex-row gap-4 mb-6">
             <div className="flex-1">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
@@ -253,61 +240,25 @@ export function AdminUserJourneyDashboard() {
                 <option value="community">Community</option>
                 <option value="admin">Admin</option>
               </select>
-            </div>
-          </div>
-
-          {/* Users List */}
-          <div className="space-y-3">
-            <div className="flex items-center gap-2 pb-2 border-b">
-              <Checkbox
-                checked={selectedUsers.length === filteredUsers.length && filteredUsers.length > 0}
-                onCheckedChange={handleSelectAll}
-              />
-              <span className="text-sm font-medium">
-                Select All ({filteredUsers.length} users)
-              </span>
-            </div>
-
-            {filteredUsers.map((user) => (
-              <motion.div
-                key={user.id}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="flex items-center gap-4 p-4 border rounded-lg hover:bg-gray-50"
+              <Button
+                variant="outline"
+                onClick={handleSelectAll}
+                disabled={filteredUsers.length === 0}
               >
-                <Checkbox
-                  checked={selectedUsers.includes(user.id)}
-                  onCheckedChange={(checked) => handleUserSelect(user.id, checked as boolean)}
-                />
-                
-                <div className="flex-1 min-w-0 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="text-sm font-medium text-gray-900 truncate">
-                        {user.full_name}
-                      </h3>
-                      <p className="text-xs text-gray-500 truncate">{user.email}</p>
-                    </div>
-                    <Badge className={`${getRoleBadgeColor(user.role)} text-xs`}>
-                      {user.role}
-                    </Badge>
-                  </div>
-                  
-                  {/* Use the updated MiniJourneyProgress component */}
-                  <MiniJourneyProgress 
-                    userId={user.id} 
-                    userRole={user.role as any}
-                  />
-                </div>
-              </motion.div>
-            ))}
-
-            {filteredUsers.length === 0 && (
-              <div className="text-center py-8 text-gray-500">
-                No users found matching your criteria.
-              </div>
-            )}
+                {selectedUsers.length === filteredUsers.length && filteredUsers.length > 0 
+                  ? 'Deselect All' 
+                  : 'Select All'
+                }
+              </Button>
+            </div>
           </div>
+
+          {/* Role-Based User Grid */}
+          <RoleBasedUserGrid
+            users={filteredUsers}
+            selectedUsers={selectedUsers}
+            onUserSelect={handleUserSelect}
+          />
         </CardContent>
       </Card>
     </div>

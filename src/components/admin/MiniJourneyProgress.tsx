@@ -3,8 +3,7 @@ import React from 'react';
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { CheckCircle2, Clock, Circle } from "lucide-react";
-import { useFamilyProgress } from "@/components/tav/hooks/useFamilyProgress";
-import { useProfessionalProgress } from "@/components/tav/hooks/useProfessionalProgress";
+import { useUserSpecificProgress } from "@/hooks/useUserSpecificProgress";
 import type { UserRole } from "@/types/userRoles";
 
 interface MiniJourneyProgressProps {
@@ -13,16 +12,8 @@ interface MiniJourneyProgressProps {
 }
 
 export const MiniJourneyProgress: React.FC<MiniJourneyProgressProps> = ({ userId, userRole }) => {
-  // Use the same hooks that TAV uses for accurate progress calculation
-  const familyProgress = useFamilyProgress();
-  const professionalProgress = useProfessionalProgress();
-  
-  // Select the appropriate progress data based on role
-  const progressData = userRole === 'family' ? familyProgress : 
-                      userRole === 'professional' ? professionalProgress :
-                      { loading: false, completionPercentage: 0, nextStep: null, steps: [] };
-
-  const { loading, completionPercentage, nextStep, steps } = progressData;
+  // Use the new user-specific hook that mirrors TAV's logic
+  const { loading, completionPercentage, nextStep, steps } = useUserSpecificProgress(userId, userRole);
 
   if (loading) {
     return (
