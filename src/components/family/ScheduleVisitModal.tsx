@@ -1,14 +1,14 @@
-
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { VideoIcon, CalendarDays, Clock, Shield, CheckCircle2, Users, Home, Calendar, X } from "lucide-react";
+import { VideoIcon, CalendarDays, Clock, Shield, CheckCircle2, Users, Home, Calendar, X, Zap, ArrowRight } from "lucide-react";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import { GoogleCalendarSchedulingModal } from "./GoogleCalendarSchedulingModal";
+import { TrialDayBooking } from "@/components/subscription/TrialDayBooking";
 
 interface ScheduleVisitModalProps {
   open: boolean;
@@ -22,6 +22,7 @@ export const ScheduleVisitModal: React.FC<ScheduleVisitModalProps> = ({
   const { user } = useAuth();
   const [visitStatus, setVisitStatus] = useState<string>('not_started');
   const [showGoogleCalendar, setShowGoogleCalendar] = useState(false);
+  const [showTrialBooking, setShowTrialBooking] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
   const [visitDate, setVisitDate] = useState<string | null>(null);
 
@@ -204,6 +205,38 @@ export const ScheduleVisitModal: React.FC<ScheduleVisitModalProps> = ({
     }
   };
 
+  const handleTrialDayClick = () => {
+    setShowTrialBooking(true);
+  };
+
+  const handleTrialConfirmed = async (trialDetails: {
+    date: string;
+    type: 'video' | 'in-person';
+    paymentId: string;
+  }) => {
+    // Update user's visit status to reflect trial booking
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ 
+          visit_scheduling_status: 'trial_booked',
+          visit_scheduled_date: trialDetails.date,
+          visit_notes: `Trial booked: ${trialDetails.type} on ${new Date(trialDetails.date).toLocaleDateString()} - Payment ID: ${trialDetails.paymentId}`
+        })
+        .eq('id', user?.id);
+
+      if (error) throw error;
+
+      setVisitStatus('trial_booked');
+      setVisitDate(trialDetails.date);
+      
+      toast.success(`Trial day booked successfully! ${trialDetails.type === 'video' ? 'Video call' : 'In-person visit'} scheduled.`);
+    } catch (error) {
+      console.error('Error updating trial status:', error);
+      toast.error("Something went wrong. Please try again.");
+    }
+  };
+
   const getStatusDisplay = () => {
     switch (visitStatus) {
       case 'scheduled':
@@ -238,6 +271,14 @@ export const ScheduleVisitModal: React.FC<ScheduleVisitModalProps> = ({
           buttonAction: handleTryAgain,
           buttonVariant: "default" as const
         };
+      case 'trial_booked':
+        return {
+          title: "📅 Trial Day Booked",
+          message: "Your trial day has been booked. You can start your care journey now.",
+          buttonText: "Start Your Care Journey",
+          buttonAction: handleScheduleConfirmed,
+          buttonVariant: "default" as const
+        };
       default:
         return null;
     }
@@ -268,7 +309,7 @@ export const ScheduleVisitModal: React.FC<ScheduleVisitModalProps> = ({
           <div className="space-y-6">
             {statusDisplay ? (
               <Card className={`${
-                visitStatus === 'scheduled' ? 'bg-green-50 border-green-200' :
+                visitStatus === 'scheduled' || visitStatus === 'trial_booked' ? 'bg-green-50 border-green-200' :
                 visitStatus === 'cancelled' ? 'bg-red-50 border-red-200' :
                 visitStatus === 'completed' ? 'bg-blue-50 border-blue-200' :
                 'bg-yellow-50 border-yellow-200'
@@ -276,20 +317,20 @@ export const ScheduleVisitModal: React.FC<ScheduleVisitModalProps> = ({
                 <CardContent className="py-6">
                   <div className="flex items-center gap-3 mb-4">
                     <CheckCircle2 className={`h-8 w-8 flex-shrink-0 ${
-                      visitStatus === 'scheduled' ? 'text-green-600' :
+                      visitStatus === 'scheduled' || visitStatus === 'trial_booked' ? 'text-green-600' :
                       visitStatus === 'cancelled' ? 'text-red-600' :
                       visitStatus === 'completed' ? 'text-blue-600' :
                       'text-yellow-600'
                     }`} />
                     <div className="flex-1">
                       <h3 className={`text-lg font-semibold ${
-                        visitStatus === 'scheduled' ? 'text-green-800' :
+                        visitStatus === 'scheduled' || visitStatus === 'trial_booked' ? 'text-green-800' :
                         visitStatus === 'cancelled' ? 'text-red-800' :
                         visitStatus === 'completed' ? 'text-blue-800' :
                         'text-yellow-800'
                       }`}>{statusDisplay.title}</h3>
                       <p className={`${
-                        visitStatus === 'scheduled' ? 'text-green-700' :
+                        visitStatus === 'scheduled' || visitStatus === 'trial_booked' ? 'text-green-700' :
                         visitStatus === 'cancelled' ? 'text-red-700' :
                         visitStatus === 'completed' ? 'text-blue-700' :
                         'text-yellow-700'
@@ -348,6 +389,85 @@ export const ScheduleVisitModal: React.FC<ScheduleVisitModalProps> = ({
               </Card>
             ) : (
               <>
+                {/* Enhanced Fast Track Options */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                  <Card className="bg-gradient-to-br from-orange-50 to-red-50 border-orange-200 relative overflow-hidden">
+                    <div className="absolute top-2 right-2">
+                      <Zap className="h-5 w-5 text-orange-500" />
+                    </div>
+                    <CardHeader>
+                      <CardTitle className="text-lg text-orange-800 flex items-center gap-2">
+                        <Calendar className="h-5 w-5" />
+                        Fast Track: Trial Day
+                      </CardTitle>
+                      <CardDescription className="text-orange-700">
+                        Skip the wait - book a trial day with your matched caregiver now
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-3">
+                        <div className="text-sm text-orange-700">
+                          <p className="font-medium mb-1">What you get:</p>
+                          <ul className="list-disc list-inside space-y-1">
+                            <li>Full day with your matched caregiver</li>
+                            <li>No long-term commitment</li>
+                            <li>Trial fee credited toward subscription</li>
+                          </ul>
+                        </div>
+                        <div className="bg-white p-3 rounded border border-orange-200">
+                          <div className="flex justify-between items-center">
+                            <span className="font-medium">Video: $150 TTD</span>
+                            <span className="text-sm text-gray-600">($22.15 USD)</span>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span className="font-medium">In-Person: $320 TTD</span>
+                            <span className="text-sm text-gray-600">($47.28 USD)</span>
+                          </div>
+                        </div>
+                        <Button 
+                          onClick={handleTrialDayClick}
+                          className="w-full bg-orange-600 hover:bg-orange-700"
+                        >
+                          Book Trial Day
+                          <ArrowRight className="ml-2 h-4 w-4" />
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card className="bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-200">
+                    <CardHeader>
+                      <CardTitle className="text-lg text-blue-800 flex items-center gap-2">
+                        <VideoIcon className="h-5 w-5" />
+                        Traditional: Meet First
+                      </CardTitle>
+                      <CardDescription className="text-blue-700">
+                        Start with an introduction call, then schedule care
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-3">
+                        <div className="text-sm text-blue-700">
+                          <p className="font-medium mb-1">Perfect if you prefer to:</p>
+                          <ul className="list-disc list-inside space-y-1">
+                            <li>Meet your caregiver first</li>
+                            <li>Discuss care needs in detail</li>
+                            <li>Plan your care schedule together</li>
+                          </ul>
+                        </div>
+                        <Button 
+                          onClick={handleReadyToSchedule}
+                          disabled={isUpdating}
+                          variant="outline"
+                          className="w-full border-blue-300 text-blue-700 hover:bg-blue-50"
+                        >
+                          Schedule Introduction
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+
                 {/* How Tavara Visits Work */}
                 <div className="text-lg font-semibold mb-4">How Tavara Visits Work</div>
                 
@@ -474,6 +594,12 @@ export const ScheduleVisitModal: React.FC<ScheduleVisitModalProps> = ({
         open={showGoogleCalendar}
         onOpenChange={setShowGoogleCalendar}
         onScheduleConfirmed={handleScheduleConfirmed}
+      />
+
+      <TrialDayBooking
+        open={showTrialBooking}
+        onOpenChange={setShowTrialBooking}
+        onTrialConfirmed={handleTrialConfirmed}
       />
     </>
   );
