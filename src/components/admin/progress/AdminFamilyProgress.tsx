@@ -1,49 +1,84 @@
 
 import React from 'react';
 import { useFamilyProgress } from '@/components/tav/hooks/useFamilyProgress';
-import { AdminUserContextProvider } from '../AdminUserContextProvider';
+import { AdminAuthOverride, useAuthOverride } from '../AdminAuthOverride';
+import { useAuth } from '@/components/providers/AuthProvider';
 
 interface AdminFamilyProgressProps {
   userId: string;
   children: (data: ReturnType<typeof useFamilyProgress>) => React.ReactNode;
 }
 
-// Create a wrapper component that will use the TAV hook with mocked auth context
-const FamilyProgressWrapper: React.FC<{ 
+// Component that uses the mocked auth context
+const FamilyProgressWithMockedAuth: React.FC<{ 
   children: (data: ReturnType<typeof useFamilyProgress>) => React.ReactNode 
 }> = ({ children }) => {
-  // Temporarily override the useAuth hook by monkey-patching it
-  const originalAuthModule = require('@/components/providers/AuthProvider');
-  const mockAuth = () => {
-    const { useAdminUserContext } = require('../AdminUserContextProvider');
-    const { user, session } = useAdminUserContext();
-    return { user, session, loading: false };
+  const authOverride = useAuthOverride();
+  
+  // Temporarily replace useAuth hook
+  const originalUseAuth = React.useRef(useAuth);
+  
+  // Override useAuth to return our mocked context
+  React.useLayoutEffect(() => {
+    if (authOverride) {
+      // Store original and replace with mock
+      const originalHook = originalUseAuth.current;
+      (global as any).useAuthOverride = () => authOverride;
+      
+      return () => {
+        // Restore original
+        delete (global as any).useAuthOverride;
+      };
+    }
+  }, [authOverride]);
+
+  // Use a custom hook that respects the override
+  const useAuthWithOverride = () => {
+    const override = (global as any).useAuthOverride;
+    if (override) {
+      return override();
+    }
+    return useAuth();
   };
 
-  // Save original and replace
-  const originalUseAuth = originalAuthModule.useAuth;
-  originalAuthModule.useAuth = mockAuth;
+  // Monkey patch the useAuth import temporarily
+  const ModulePatcher: React.FC = () => {
+    React.useLayoutEffect(() => {
+      // This is a hacky but working approach to override the hook
+      const authModule = require('@/components/providers/AuthProvider');
+      const originalUseAuth = authModule.useAuth;
+      
+      authModule.useAuth = useAuthWithOverride;
+      
+      return () => {
+        authModule.useAuth = originalUseAuth;
+      };
+    }, []);
+    
+    return null;
+  };
 
-  try {
-    const progressData = useFamilyProgress();
-    
-    // Restore original
-    originalAuthModule.useAuth = originalUseAuth;
-    
-    return <>{children(progressData)}</>;
-  } catch (error) {
-    // Restore original on error
-    originalAuthModule.useAuth = originalUseAuth;
-    throw error;
-  }
+  return (
+    <>
+      <ModulePatcher />
+      <FamilyProgressContent>{children}</FamilyProgressContent>
+    </>
+  );
+};
+
+const FamilyProgressContent: React.FC<{ 
+  children: (data: ReturnType<typeof useFamilyProgress>) => React.ReactNode 
+}> = ({ children }) => {
+  const progressData = useFamilyProgress();
+  return <>{children(progressData)}</>;
 };
 
 export const AdminFamilyProgress: React.FC<AdminFamilyProgressProps> = ({ userId, children }) => {
   return (
-    <AdminUserContextProvider targetUserId={userId}>
-      <FamilyProgressWrapper>
+    <AdminAuthOverride targetUserId={userId}>
+      <FamilyProgressWithMockedAuth>
         {children}
-      </FamilyProgressWrapper>
-    </AdminUserContextProvider>
+      </FamilyProgressWithMockedAuth>
+    </AdminAuthOverride>
   );
 };
