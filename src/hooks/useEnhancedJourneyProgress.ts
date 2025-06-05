@@ -19,6 +19,7 @@ interface JourneyStep {
   completed: boolean;
   accessible: boolean;
   prerequisites: string[];
+  action?: () => void; // Add action property as optional
 }
 
 interface JourneyPath {
@@ -213,11 +214,30 @@ export const useEnhancedJourneyProgress = (): JourneyProgressData => {
       const stepsWithAccessibility = updateStepAccessibility(processedSteps);
       setSteps(stepsWithAccessibility);
 
-      // Process paths
-      const processedPaths = journeyPaths?.map(path => ({
-        ...path,
-        step_ids: path.step_ids || []
-      })) || [];
+      // Process paths - properly handle step_ids type conversion
+      const processedPaths = journeyPaths?.map(path => {
+        let stepIds: number[] = [];
+        
+        // Handle different possible types for step_ids
+        if (Array.isArray(path.step_ids)) {
+          stepIds = path.step_ids.map(id => Number(id)).filter(id => !isNaN(id));
+        } else if (typeof path.step_ids === 'string') {
+          try {
+            const parsed = JSON.parse(path.step_ids);
+            if (Array.isArray(parsed)) {
+              stepIds = parsed.map(id => Number(id)).filter(id => !isNaN(id));
+            }
+          } catch (error) {
+            console.error('Error parsing step_ids:', error);
+          }
+        }
+
+        return {
+          ...path,
+          step_ids: stepIds
+        };
+      }) || [];
+      
       setPaths(processedPaths);
 
       // Determine current stage

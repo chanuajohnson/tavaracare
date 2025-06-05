@@ -213,7 +213,9 @@ export const EnhancedFamilyNextStepsPanel = () => {
                             disabled={!step.accessible}
                             onClick={(e) => {
                               e.stopPropagation();
-                              step.action && step.action();
+                              if (step.action) {
+                                step.action();
+                              }
                             }}
                           >
                             {getButtonText(step)}
