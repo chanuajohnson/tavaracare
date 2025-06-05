@@ -1,153 +1,195 @@
 
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { Resend } from "npm:resend@1.0.0";
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 
-const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
+const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY')
 
 const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
-};
-
-interface ChatMessage {
-  content: string;
-  isUser: boolean;
-  timestamp: number;
-}
-
-interface ContactFormData {
-  name: string;
-  email: string;
-  message: string;
-  screenshot?: string; // Base64 encoded screenshot (optional)
-  chatData?: {
-    role?: string;
-    sessionId?: string;
-    transcript?: ChatMessage[]; // Added transcript property
-  };
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
 serve(async (req) => {
+  console.log(`${req.method} ${req.url}`)
+
   // Handle CORS preflight requests
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: corsHeaders })
   }
 
   try {
-    const contactData: ContactFormData = await req.json();
-    const { name, email, message, screenshot, chatData } = contactData;
+    if (!RESEND_API_KEY) {
+      console.error('RESEND_API_KEY not found in environment variables')
+      return new Response(
+        JSON.stringify({ error: 'Email service not configured' }),
+        { 
+          status: 500, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      )
+    }
 
-    console.log("Received contact form submission from:", name, email);
+    const { name, email, category, message, screenshot, chatData } = await req.json()
 
     // Validate required fields
     if (!name || !email || !message) {
-      throw new Error("Missing required fields");
+      return new Response(
+        JSON.stringify({ error: 'Missing required fields: name, email, message' }),
+        { 
+          status: 400, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      )
     }
 
-    // Format chat transcript if available
-    let transcriptHtml = '';
-    if (chatData?.transcript && chatData.transcript.length > 0) {
-      transcriptHtml = `
-        <div style="margin-top: 20px; padding: 10px; background-color: #f7f7f9; border-radius: 5px;">
-          <h3>Chat Transcript:</h3>
-          <div style="border: 1px solid #e1e1e8; border-radius: 5px; max-height: 300px; overflow-y: auto; padding: 10px;">
-      `;
-      
-      chatData.transcript.forEach((msg: ChatMessage) => {
-        const timestamp = new Date(msg.timestamp).toLocaleString();
-        const alignment = msg.isUser ? 'right' : 'left';
-        const bgColor = msg.isUser ? '#e3f2fd' : '#f1f1f1';
-        const textColor = msg.isUser ? '#0d47a1' : '#333333';
-        
-        transcriptHtml += `
-          <div style="margin: 5px 0; text-align: ${alignment};">
-            <div style="display: inline-block; background-color: ${bgColor}; color: ${textColor}; padding: 8px 12px; border-radius: 12px; max-width: 80%; text-align: left;">
-              <div style="font-size: 12px; color: #666; margin-bottom: 3px;">${timestamp}</div>
-              <div>${msg.content.replace(/\n/g, "<br>")}</div>
-            </div>
-          </div>
-        `;
-      });
-      
-      transcriptHtml += `
-          </div>
-        </div>
-      `;
-    }
-
-    // Prepare chat data info if available
-    const chatDataHtml = chatData ? `
-      <div style="margin-top: 20px; padding: 10px; background-color: #f5f5f5; border-radius: 5px;">
-        <h3>Chat Session Data:</h3>
-        <p><strong>Role:</strong> ${chatData.role || "Not specified"}</p>
-        <p><strong>Session ID:</strong> ${chatData.sessionId || "Not available"}</p>
-        <p><em>This user requested to speak with a representative through the chat interface.</em></p>
+    // Prepare email content
+    let emailHtml = `
+      <h2>New Contact Form Submission</h2>
+      <p><strong>Name:</strong> ${name}</p>
+      <p><strong>Email:</strong> ${email}</p>
+      <p><strong>Category:</strong> ${category || 'Not specified'}</p>
+      <p><strong>Message:</strong></p>
+      <div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin: 10px 0;">
+        ${message.replace(/\n/g, '<br>')}
       </div>
-      ${transcriptHtml}
-    ` : '';
+    `
 
-    // Send email to support team
-    const supportEmailResponse = await resend.emails.send({
-      from: "Tavara Support <support@tavara.care>",
-      to: "chanuajohnson@gmail.com", // Updated to the requested email
-      subject: `Support Request from ${name}${chatData ? ' (via Chat)' : ''}`,
-      html: `
-        <h1>New Support Request</h1>
-        <p><strong>From:</strong> ${name} (${email})</p>
-        <p><strong>Message:</strong></p>
-        <p>${message.replace(/\n/g, "<br>")}</p>
-        ${chatDataHtml}
-        ${screenshot ? `<p><strong>Screenshot:</strong></p><img src="${screenshot}" alt="User provided screenshot" style="max-width: 100%;" />` : ""}
-      `,
-    });
+    // Add chat data if available
+    if (chatData) {
+      emailHtml += `
+        <h3>Additional Context from Chat:</h3>
+        <div style="background-color: #e8f4f8; padding: 15px; border-radius: 5px; margin: 10px 0;">
+          <pre>${JSON.stringify(chatData, null, 2)}</pre>
+        </div>
+      `
+    }
+
+    // Add screenshot info if provided
+    if (screenshot) {
+      emailHtml += `<p><strong>Screenshot:</strong> Attached</p>`
+    }
+
+    emailHtml += `
+      <hr>
+      <p><small>Submitted from: ${req.headers.get('referer') || 'Direct'}</small></p>
+      <p><small>User Agent: ${req.headers.get('user-agent') || 'Unknown'}</small></p>
+      <p><small>Timestamp: ${new Date().toISOString()}</small></p>
+    `
+
+    // Prepare email payload
+    const emailPayload = {
+      from: 'Tavara.care Support <noreply@tavara.care>',
+      to: ['support@tavara.care'],
+      reply_to: email,
+      subject: `Contact Form: ${category ? `[${category}] ` : ''}${name}`,
+      html: emailHtml,
+    }
+
+    // Add screenshot as attachment if provided
+    if (screenshot) {
+      emailPayload.attachments = [{
+        filename: `screenshot-${Date.now()}.png`,
+        content: screenshot.split(',')[1], // Remove data:image/png;base64, prefix
+        content_type: 'image/png'
+      }]
+    }
+
+    console.log('Sending email with payload:', {
+      ...emailPayload,
+      html: '[HTML content]',
+      attachments: screenshot ? '[Screenshot attached]' : 'None'
+    })
+
+    // Send email via Resend
+    const emailResponse = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${RESEND_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(emailPayload),
+    })
+
+    if (!emailResponse.ok) {
+      const errorText = await emailResponse.text()
+      console.error('Resend API error:', errorText)
+      
+      // Try to parse error response
+      let errorData
+      try {
+        errorData = JSON.parse(errorText)
+      } catch {
+        errorData = { message: errorText }
+      }
+
+      return new Response(
+        JSON.stringify({ 
+          error: 'Failed to send email', 
+          details: errorData.message || 'Unknown error from email service'
+        }),
+        { 
+          status: 500, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      )
+    }
+
+    const emailResult = await emailResponse.json()
+    console.log('Email sent successfully:', emailResult)
 
     // Send confirmation email to user
-    const userEmailResponse = await resend.emails.send({
-      from: "Tavara Support <support@tavara.care>",
-      to: email,
-      subject: "We've received your support request",
-      html: `
-        <h1>Thank you for contacting us, ${name}!</h1>
-        <p>We have received your support request and will get back to you as soon as possible.</p>
-        <p>Your message:</p>
-        <p><em>${message.replace(/\n/g, "<br>")}</em></p>
-        <p>Best regards,<br>The Tavara Care Team</p>
-      `,
-    });
+    try {
+      const confirmationPayload = {
+        from: 'Tavara.care Support <noreply@tavara.care>',
+        to: [email],
+        subject: 'Thank you for contacting Tavara.care',
+        html: `
+          <h2>Thank you for reaching out!</h2>
+          <p>Hi ${name},</p>
+          <p>We've received your message and will get back to you within 24 hours.</p>
+          <p><strong>Your message:</strong></p>
+          <div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin: 10px 0;">
+            ${message.replace(/\n/g, '<br>')}
+          </div>
+          <p>If you need immediate assistance, you can reach us via WhatsApp at +1 (868) 786-5357.</p>
+          <p>Best regards,<br>The Tavara.care Team</p>
+        `,
+      }
 
-    console.log("Emails sent successfully:", {
-      supportEmail: supportEmailResponse,
-      userEmail: userEmailResponse,
-    });
+      await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${RESEND_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(confirmationPayload),
+      })
+    } catch (confirmationError) {
+      console.error('Failed to send confirmation email:', confirmationError)
+      // Don't fail the entire request if confirmation email fails
+    }
 
     return new Response(
       JSON.stringify({ 
         success: true, 
-        message: "Support request submitted successfully" 
+        message: 'Contact form submitted successfully',
+        emailId: emailResult.id 
       }),
-      {
-        status: 200,
-        headers: { 
-          "Content-Type": "application/json",
-          ...corsHeaders 
-        },
+      { 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       }
-    );
+    )
+
   } catch (error) {
-    console.error("Error in send-contact-email function:", error);
+    console.error('Error in send-contact-email function:', error)
     return new Response(
       JSON.stringify({ 
-        success: false, 
-        error: error.message || "Failed to send support request" 
+        error: 'Internal server error', 
+        details: error.message 
       }),
-      {
-        status: 500,
-        headers: { 
-          "Content-Type": "application/json",
-          ...corsHeaders 
-        },
+      { 
+        status: 500, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       }
-    );
+    )
   }
-});
+})

@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { HelpCircle, X, FileQuestion, Phone, Loader2 } from 'lucide-react';
+import { HelpCircle, X, FileQuestion, Phone, Loader2, MessageSquare } from 'lucide-react';
 import { cn } from "@/lib/utils";
 import {
   DropdownMenu,
@@ -9,11 +9,13 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { FeedbackForm } from "./feedback-form";
 
 interface FabProps {
   icon?: React.ReactNode;
@@ -23,6 +25,19 @@ interface FabProps {
   label?: string;
   showMenu?: boolean;
 }
+
+const contactCategories = [
+  { value: "general", label: "General Support" },
+  { value: "technical", label: "Technical Issue" },
+  { value: "billing", label: "Billing Question" },
+  { value: "account", label: "Account Help" },
+  { value: "caregiver", label: "Caregiver Support" },
+  { value: "family", label: "Family Support" },
+  { value: "emergency", label: "Urgent Matter" },
+  { value: "feature", label: "Feature Question" },
+  { value: "partnership", label: "Partnership Inquiry" },
+  { value: "other", label: "Other" }
+];
 
 export const Fab = ({
   icon = <HelpCircle className="h-5 w-5" />,
@@ -35,10 +50,12 @@ export const Fab = ({
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   const [isContactFormOpen, setIsContactFormOpen] = useState(false);
+  const [isFeedbackFormOpen, setIsFeedbackFormOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [contactFormData, setContactFormData] = useState({
     name: "",
     email: "",
+    category: "",
     message: "",
   });
   const [screenshotFile, setScreenshotFile] = useState<File | null>(null);
@@ -96,7 +113,7 @@ export const Fab = ({
       setIsSubmitting(true);
       
       // Validate form
-      if (!contactFormData.name || !contactFormData.email || !contactFormData.message) {
+      if (!contactFormData.name || !contactFormData.email || !contactFormData.category || !contactFormData.message) {
         toast.error("Please fill out all required fields");
         setIsSubmitting(false);
         return;
@@ -137,13 +154,13 @@ export const Fab = ({
       toast.success("Your support request has been submitted. We'll get back to you soon!");
       
       // Reset form
-      setContactFormData({ name: "", email: "", message: "" });
+      setContactFormData({ name: "", email: "", category: "", message: "" });
       setScreenshotFile(null);
       setPrefillData(null);
       setIsContactFormOpen(false);
     } catch (error) {
       console.error("Error submitting contact form:", error);
-      toast.error(error.message || "Failed to send support request. Please try again later.");
+      toast.error("Failed to send support request. Please try again later.");
     } finally {
       setIsSubmitting(false);
     }
@@ -226,7 +243,14 @@ export const Fab = ({
                 onClick={() => setIsContactFormOpen(true)}
               >
                 <FileQuestion className="h-5 w-5" />
-                <span>Contact Form</span>
+                <span>Contact Support</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                className="flex items-center gap-2 cursor-pointer p-3 text-base"
+                onClick={() => setIsFeedbackFormOpen(true)}
+              >
+                <MessageSquare className="h-5 w-5" />
+                <span>Give Feedback</span>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -249,7 +273,7 @@ export const Fab = ({
                   <div className="space-y-4">
                     <div>
                       <label htmlFor="name" className="block text-sm font-medium mb-1">
-                        Name
+                        Name *
                       </label>
                       <input
                         id="name"
@@ -264,7 +288,7 @@ export const Fab = ({
                     </div>
                     <div>
                       <label htmlFor="email" className="block text-sm font-medium mb-1">
-                        Email
+                        Email *
                       </label>
                       <input
                         id="email"
@@ -278,8 +302,28 @@ export const Fab = ({
                       />
                     </div>
                     <div>
+                      <label htmlFor="category" className="block text-sm font-medium mb-1">
+                        Category *
+                      </label>
+                      <Select 
+                        value={contactFormData.category} 
+                        onValueChange={(value) => setContactFormData(prev => ({ ...prev, category: value }))}
+                      >
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Select a category" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {contactCategories.map((category) => (
+                            <SelectItem key={category.value} value={category.value}>
+                              {category.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
                       <label htmlFor="message" className="block text-sm font-medium mb-1">
-                        Message
+                        Message *
                       </label>
                       <Textarea
                         id="message"
@@ -339,6 +383,11 @@ export const Fab = ({
               </div>
             </div>
           )}
+
+          <FeedbackForm 
+            isOpen={isFeedbackFormOpen} 
+            onClose={() => setIsFeedbackFormOpen(false)} 
+          />
         </>
       )}
     </>
