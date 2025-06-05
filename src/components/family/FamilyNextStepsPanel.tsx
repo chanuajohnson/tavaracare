@@ -1,4 +1,3 @@
-
 import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -18,6 +17,7 @@ export const FamilyNextStepsPanel = () => {
   const { carePlanId, loading: carePlanLoading } = useUserCarePlan();
   const [showScheduleModal, setShowScheduleModal] = useState(false);
   const [visitStatus, setVisitStatus] = useState<string>('not_started');
+  const [visitDate, setVisitDate] = useState<string | null>(null);
   
   const [steps, setSteps] = useState([
     { 
@@ -102,12 +102,13 @@ export const FamilyNextStepsPanel = () => {
       // Check user profile completion from profiles table including visit status
       const { data: profile } = await supabase
         .from('profiles')
-        .select('full_name, phone_number, address, care_types, visit_scheduling_status')
+        .select('full_name, phone_number, address, care_types, visit_scheduling_status, visit_scheduled_date')
         .eq('id', user.id)
         .maybeSingle();
 
-      // Set visit status for button text
+      // Set visit status and date for button text
       setVisitStatus(profile?.visit_scheduling_status || 'not_started');
+      setVisitDate(profile?.visit_scheduled_date || null);
 
       // Check for care plans
       const { data: carePlansData } = await supabase
@@ -200,11 +201,13 @@ export const FamilyNextStepsPanel = () => {
     if (step.id === 7) {
       switch (visitStatus) {
         case 'scheduled':
-          return "Change Date";
+          return visitDate 
+            ? `Scheduled for ${new Date(visitDate).toLocaleDateString()}`
+            : "Change Date";
         case 'completed':
           return "Schedule Another";
         case 'ready_to_schedule':
-          return "Ready to Try Again";
+          return "Ready to Try Scheduling Again";
         default:
           return "Schedule your Visit";
       }

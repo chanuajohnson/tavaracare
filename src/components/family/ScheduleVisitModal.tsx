@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -57,7 +58,7 @@ export const ScheduleVisitModal: React.FC<ScheduleVisitModalProps> = ({
         .from('profiles')
         .update({ 
           visit_scheduling_status: 'ready_to_schedule',
-          additional_notes: `Visit scheduling: ready_to_schedule - ${new Date().toISOString()}`
+          visit_notes: `Visit scheduling: ready_to_schedule - ${new Date().toISOString()}`
         })
         .eq('id', user.id);
 
@@ -91,7 +92,7 @@ export const ScheduleVisitModal: React.FC<ScheduleVisitModalProps> = ({
       const { error } = await supabase
         .from('profiles')
         .update({ 
-          additional_notes: `Visit scheduling: not_ready - ${new Date().toISOString()}`
+          visit_notes: `Visit scheduling: not_ready - ${new Date().toISOString()}`
         })
         .eq('id', user.id);
 
@@ -129,12 +130,40 @@ export const ScheduleVisitModal: React.FC<ScheduleVisitModalProps> = ({
     setShowGoogleCalendar(true);
   };
 
+  const handleTryAgain = async () => {
+    if (!user) return;
+    
+    setIsUpdating(true);
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ 
+          visit_scheduling_status: 'ready_to_schedule',
+          visit_notes: `Visit scheduling: ready_to_try_again - ${new Date().toISOString()}`
+        })
+        .eq('id', user.id);
+
+      if (error) throw error;
+
+      setVisitStatus('ready_to_schedule');
+      setShowGoogleCalendar(true);
+      
+    } catch (error) {
+      console.error('Error updating visit status:', error);
+      toast.error("Something went wrong. Please try again.");
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
   const getStatusDisplay = () => {
     switch (visitStatus) {
       case 'scheduled':
         return {
           title: "✅ Visit Scheduled",
-          message: "Your visit has been scheduled! We'll send confirmation details soon.",
+          message: visitDate 
+            ? `Scheduled for ${new Date(visitDate).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })} at 11:00 AM`
+            : "Your visit has been scheduled! We'll send confirmation details soon.",
           buttonText: "Change Date",
           buttonAction: handleChangeDate,
           buttonVariant: "outline" as const
@@ -145,6 +174,14 @@ export const ScheduleVisitModal: React.FC<ScheduleVisitModalProps> = ({
           message: "Thank you for meeting with our team! We hope it was helpful.",
           buttonText: "Schedule Another Visit",
           buttonAction: handleReadyToSchedule,
+          buttonVariant: "default" as const
+        };
+      case 'ready_to_schedule':
+        return {
+          title: "📅 Ready to Schedule",
+          message: "You're ready to schedule your visit. Click below to try again with the calendar.",
+          buttonText: "Ready to Try Scheduling Again",
+          buttonAction: handleTryAgain,
           buttonVariant: "default" as const
         };
       default:
@@ -172,11 +209,6 @@ export const ScheduleVisitModal: React.FC<ScheduleVisitModalProps> = ({
                   <div className="flex-1">
                     <h3 className="text-lg font-semibold text-green-800">{statusDisplay.title}</h3>
                     <p className="text-green-700">{statusDisplay.message}</p>
-                    {visitDate && (
-                      <p className="text-sm text-green-600 mt-1">
-                        Scheduled: {new Date(visitDate).toLocaleDateString()}
-                      </p>
-                    )}
                   </div>
                   <Button 
                     variant={statusDisplay.buttonVariant}

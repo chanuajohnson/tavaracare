@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { supabase } from '@/lib/supabase';
@@ -31,6 +30,7 @@ export const useFamilyProgress = (): FamilyProgressData => {
   const [carePlans, setCarePlans] = useState([]);
   const [showScheduleModal, setShowScheduleModal] = useState(false);
   const [visitStatus, setVisitStatus] = useState<string>('not_started');
+  const [visitDate, setVisitDate] = useState<string | null>(null);
   const [steps, setSteps] = useState<FamilyStep[]>([
     { 
       id: 1, 
@@ -133,11 +133,13 @@ export const useFamilyProgress = (): FamilyProgressData => {
     if (step.id === 7) {
       switch (visitStatus) {
         case 'scheduled':
-          return "Change Date";
+          return visitDate 
+            ? `Scheduled for ${new Date(visitDate).toLocaleDateString()}`
+            : "Change Date";
         case 'completed':
           return "Schedule Another";
         case 'ready_to_schedule':
-          return "Ready to Schedule Again";
+          return "Ready to Try Scheduling Again";
         default:
           return "Schedule Visit";
       }
@@ -176,12 +178,13 @@ export const useFamilyProgress = (): FamilyProgressData => {
       // Check user profile completion and visit status
       const { data: profile } = await supabase
         .from('profiles')
-        .select('full_name, phone_number, visit_scheduling_status')
+        .select('full_name, phone_number, visit_scheduling_status, visit_scheduled_date')
         .eq('id', user.id)
         .maybeSingle();
 
-      // Set visit status for button text updates
+      // Set visit status and date for button text updates
       setVisitStatus(profile?.visit_scheduling_status || 'not_started');
+      setVisitDate(profile?.visit_scheduled_date || null);
 
       // Check for care plans
       const { data: carePlansData } = await supabase
@@ -251,7 +254,7 @@ export const useFamilyProgress = (): FamilyProgressData => {
     if (user) {
       checkStepCompletion();
     }
-  }, [user, visitStatus]);
+  }, [user, visitStatus, visitDate]);
 
   const completedSteps = steps.filter(step => step.completed).length;
   const completionPercentage = Math.round((completedSteps / steps.length) * 100);

@@ -2,6 +2,8 @@
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Calendar, Clock, CheckCircle2, ArrowLeft } from "lucide-react";
 import { useAuth } from "@/components/providers/AuthProvider";
@@ -20,22 +22,28 @@ export const GoogleCalendarSchedulingModal: React.FC<GoogleCalendarSchedulingMod
   onScheduleConfirmed
 }) => {
   const { user } = useAuth();
-  const [step, setStep] = useState<'calendar' | 'confirm'>('calendar');
+  const [step, setStep] = useState<'calendar' | 'confirm' | 'date-input'>('calendar');
   const [isConfirming, setIsConfirming] = useState(false);
+  const [selectedDate, setSelectedDate] = useState('');
+  const [selectedTime, setSelectedTime] = useState('11:00 AM');
 
   const calendarUrl = "https://calendar.google.com/calendar/u/0/appointments/schedules/AcZssZ0zpjFp9GxbxjVNxZttxh9YdswYlq0Wh8_r5FbOHZ5C_ozMGwMd_I7gd9-XJbI3SjhXLRPGfH0B?gv=true";
 
   const handleScheduleConfirmation = async () => {
-    if (!user) return;
+    if (!user || !selectedDate) return;
     
     setIsConfirming(true);
     try {
+      // Create a proper date object from the selected date and time
+      const scheduledDateTime = new Date(`${selectedDate} ${selectedTime}`);
+      
       // Update the user's visit scheduling status to 'scheduled'
       const { error } = await supabase
         .from('profiles')
         .update({ 
           visit_scheduling_status: 'scheduled',
-          visit_scheduled_date: new Date().toISOString() // This will be manually updated by admin with actual date
+          visit_scheduled_date: scheduledDateTime.toISOString(),
+          visit_notes: `Visit scheduled via Google Calendar on ${new Date().toLocaleDateString()}`
         })
         .eq('id', user.id);
 
@@ -50,6 +58,7 @@ export const GoogleCalendarSchedulingModal: React.FC<GoogleCalendarSchedulingMod
           feature_name: 'schedule_visit',
           additional_data: { 
             calendar_used: true,
+            scheduled_date: scheduledDateTime.toISOString(),
             timestamp: new Date().toISOString() 
           }
         });
@@ -58,7 +67,7 @@ export const GoogleCalendarSchedulingModal: React.FC<GoogleCalendarSchedulingMod
       
       onScheduleConfirmed();
       onOpenChange(false);
-      setStep('calendar'); // Reset for next time
+      resetModal();
       
     } catch (error) {
       console.error('Error confirming schedule:', error);
@@ -68,8 +77,31 @@ export const GoogleCalendarSchedulingModal: React.FC<GoogleCalendarSchedulingMod
     }
   };
 
+  const resetModal = () => {
+    setStep('calendar');
+    setSelectedDate('');
+    setSelectedTime('11:00 AM');
+  };
+
   const handleBackToCalendar = () => {
     setStep('calendar');
+  };
+
+  const handleDateInput = () => {
+    setStep('date-input');
+  };
+
+  const handleDateConfirm = () => {
+    if (!selectedDate) {
+      toast.error("Please enter the date you selected.");
+      return;
+    }
+    setStep('confirm');
+  };
+
+  const handleNotScheduled = () => {
+    setStep('calendar');
+    toast.info("No problem! Try selecting a different date or time that works better for you.");
   };
 
   return (
@@ -125,12 +157,72 @@ export const GoogleCalendarSchedulingModal: React.FC<GoogleCalendarSchedulingMod
                 Cancel
               </Button>
               <Button 
-                onClick={() => setStep('confirm')}
+                onClick={handleDateInput}
                 className="bg-green-600 hover:bg-green-700 text-white"
               >
                 I've Selected My Date
               </Button>
             </div>
+          </div>
+        )}
+
+        {step === 'date-input' && (
+          <div className="space-y-6">
+            <Card className="bg-blue-50 border-blue-200">
+              <CardHeader>
+                <CardTitle className="text-lg text-blue-800 flex items-center gap-2">
+                  <Calendar className="h-5 w-5" />
+                  Confirm Your Selected Date
+                </CardTitle>
+                <CardDescription className="text-blue-700">
+                  Please enter the date you selected from the calendar above.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="visit-date">Visit Date</Label>
+                    <Input
+                      id="visit-date"
+                      type="date"
+                      value={selectedDate}
+                      onChange={(e) => setSelectedDate(e.target.value)}
+                      className="mt-1"
+                      min={new Date().toISOString().split('T')[0]}
+                      max={new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="visit-time">Visit Time</Label>
+                    <Input
+                      id="visit-time"
+                      value={selectedTime}
+                      readOnly
+                      className="mt-1 bg-gray-50"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">All visits are scheduled for 11:00 AM - 1:00 PM</p>
+                  </div>
+                </div>
+                
+                <div className="flex gap-3 pt-4">
+                  <Button 
+                    variant="outline" 
+                    onClick={handleBackToCalendar}
+                    className="flex-1"
+                  >
+                    <ArrowLeft className="h-4 w-4 mr-2" />
+                    Back to Calendar
+                  </Button>
+                  <Button 
+                    onClick={handleDateConfirm}
+                    disabled={!selectedDate}
+                    className="flex-1 bg-green-600 hover:bg-green-700 text-white"
+                  >
+                    Confirm This Date
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
           </div>
         )}
 
@@ -140,13 +232,22 @@ export const GoogleCalendarSchedulingModal: React.FC<GoogleCalendarSchedulingMod
               <CardHeader>
                 <CardTitle className="text-lg text-green-800 flex items-center gap-2">
                   <CheckCircle2 className="h-5 w-5" />
-                  Confirm Your Scheduling
+                  Final Confirmation
                 </CardTitle>
                 <CardDescription className="text-green-700">
-                  Please confirm that you've successfully selected a date and time in the Google Calendar above.
+                  Please confirm your visit details before we finalize your appointment.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
+                <div className="bg-white p-4 rounded-lg border border-green-200">
+                  <h4 className="font-medium text-green-800 mb-2">Your Visit Details:</h4>
+                  <div className="text-sm text-green-700 space-y-1">
+                    <p><strong>Date:</strong> {new Date(selectedDate).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+                    <p><strong>Time:</strong> {selectedTime} - 1:00 PM (2-hour visit)</p>
+                    <p><strong>Type:</strong> Care Coordination Visit</p>
+                  </div>
+                </div>
+
                 <div className="bg-white p-4 rounded-lg border border-green-200">
                   <h4 className="font-medium text-green-800 mb-2">What happens next:</h4>
                   <ul className="text-sm text-green-700 space-y-1">
@@ -159,11 +260,11 @@ export const GoogleCalendarSchedulingModal: React.FC<GoogleCalendarSchedulingMod
                 <div className="flex gap-3">
                   <Button 
                     variant="outline" 
-                    onClick={handleBackToCalendar}
+                    onClick={() => setStep('date-input')}
                     className="flex-1"
                   >
                     <ArrowLeft className="h-4 w-4 mr-2" />
-                    Back to Calendar
+                    Edit Date
                   </Button>
                   <Button 
                     onClick={handleScheduleConfirmation}
