@@ -1,4 +1,3 @@
-
 import { supabase } from '@/lib/supabase';
 
 export interface FunnelStage {
@@ -90,11 +89,17 @@ export const analyticsService = {
       .from('user_journey_funnels')
       .update({ 
         completed_at: new Date().toISOString(),
-        conversion_time_seconds: supabase.raw('EXTRACT(EPOCH FROM (NOW() - entered_at))::INTEGER')
+        // Calculate conversion time using a separate query instead of raw SQL
       })
       .eq('id', funnelId);
     
     if (error) throw error;
+    
+    // Update conversion time separately
+    const { error: updateError } = await supabase
+      .rpc('calculate_conversion_time', { funnel_id: funnelId });
+    
+    if (updateError) console.warn('Could not calculate conversion time:', updateError);
   },
 
   async getFunnelAnalytics(funnelName?: string, dateRange?: { start: string; end: string }) {

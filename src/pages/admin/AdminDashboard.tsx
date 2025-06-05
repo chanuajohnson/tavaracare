@@ -1,3 +1,4 @@
+
 import { motion } from "framer-motion";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { DashboardCardGrid } from "@/components/dashboard/DashboardCardGrid";
@@ -15,7 +16,6 @@ import { UserJourneyTracker } from "@/components/tracking/UserJourneyTracker";
 import { useJourneyTracking } from "@/hooks/useJourneyTracking";
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
-import { EnhancedAnalyticsPage } from "./EnhancedAnalyticsPage";
 
 const AdminDashboard = () => {
   const { user } = useAuth();

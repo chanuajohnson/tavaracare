@@ -1,3 +1,4 @@
+
 import { Routes, Route } from "react-router-dom";
 import { useAuth } from "@/components/providers/AuthProvider";
 import Index from "@/pages/Index";
@@ -10,6 +11,7 @@ import CommunityDashboard from "@/pages/dashboards/CommunityDashboard";
 import AdminDashboard from "@/pages/admin/AdminDashboard";
 import UserJourneyPage from "@/pages/admin/UserJourneyPage";
 import FeedbackManagementPage from "@/pages/admin/FeedbackManagementPage";
+import EnhancedAnalyticsPage from "@/pages/admin/EnhancedAnalyticsPage";
 import FeaturesPage from "@/pages/features/FeaturesPage";
 import AboutPage from "@/pages/about/AboutPage";
 import FAQPage from "@/pages/support/FAQPage";
@@ -112,7 +114,6 @@ const AppRoutes = () => {
       <Route path="/subscription/features" element={<SubscriptionFeaturesPage />} />
       
       {/* Admin Routes */}
-      <Route path="/dashboard/admin" element={<AdminDashboard />} />
       <Route path="/admin/user-journey" element={<UserJourneyPage />} />
       <Route path="/admin/feedback" element={<FeedbackManagementPage />} />
       <Route path="/admin/enhanced-analytics" element={<EnhancedAnalyticsPage />} />
