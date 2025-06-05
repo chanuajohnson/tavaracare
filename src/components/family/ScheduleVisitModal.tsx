@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
@@ -37,6 +38,15 @@ export const ScheduleVisitModal: React.FC<ScheduleVisitModalProps> = ({
     }
   }, [user, open]);
 
+  // Reset to visit selection when modal opens and status is not started or cancelled
+  useEffect(() => {
+    if (open && (visitStatus === 'not_started' || visitStatus === 'cancelled')) {
+      setStep('visit_selection');
+      setSelectedVisitType(null);
+      setSelectedCareModel(null);
+    }
+  }, [open, visitStatus]);
+
   const fetchVisitStatus = async () => {
     if (!user) return;
     
@@ -56,11 +66,38 @@ export const ScheduleVisitModal: React.FC<ScheduleVisitModalProps> = ({
     }
   };
 
+  const saveVisitHistory = async (actionType: string, metadata: any = {}) => {
+    if (!user) return;
+    
+    try {
+      await supabase
+        .from('cta_engagement_tracking')
+        .insert({
+          user_id: user.id,
+          action_type: `visit_${actionType}`,
+          feature_name: 'schedule_visit',
+          additional_data: {
+            ...metadata,
+            timestamp: new Date().toISOString(),
+            previous_status: visitStatus
+          }
+        });
+    } catch (error) {
+      console.error('Error saving visit history:', error);
+    }
+  };
+
   const handleCancelVisit = async () => {
     if (!user) return;
     
     setIsUpdating(true);
     try {
+      // Save history before cancelling
+      await saveVisitHistory('cancelled', {
+        visit_date: visitDate,
+        cancelled_from_status: visitStatus
+      });
+
       const { error } = await supabase
         .from('profiles')
         .update({ 
@@ -75,18 +112,6 @@ export const ScheduleVisitModal: React.FC<ScheduleVisitModalProps> = ({
 
       if (error) throw error;
 
-      await supabase
-        .from('cta_engagement_tracking')
-        .insert({
-          user_id: user.id,
-          action_type: 'visit_cancelled',
-          feature_name: 'schedule_visit',
-          additional_data: { 
-            previous_status: visitStatus,
-            cancelled_at: new Date().toISOString()
-          }
-        });
-
       setVisitStatus('cancelled');
       setVisitDate(null);
       toast.success("Visit cancelled successfully");
@@ -100,6 +125,7 @@ export const ScheduleVisitModal: React.FC<ScheduleVisitModalProps> = ({
   };
 
   const handleRescheduleVisit = () => {
+    // Always reset to visit selection for rescheduling
     setVisitStatus('not_started');
     setStep('visit_selection');
     setSelectedVisitType(null);
@@ -108,6 +134,8 @@ export const ScheduleVisitModal: React.FC<ScheduleVisitModalProps> = ({
 
   const handleVisitTypeSelection = (type: VisitType) => {
     setSelectedVisitType(type);
+    saveVisitHistory('type_selected', { visit_type: type });
+    
     if (type === 'video') {
       setShowGoogleCalendar(true);
     } else if (type === 'in_person' || type === 'trial_day') {
@@ -117,6 +145,10 @@ export const ScheduleVisitModal: React.FC<ScheduleVisitModalProps> = ({
 
   const handleCareModelSelection = (model: CareModel) => {
     setSelectedCareModel(model);
+    saveVisitHistory('care_model_selected', { 
+      visit_type: selectedVisitType,
+      care_model: model 
+    });
     setStep('payment');
   };
 
@@ -125,11 +157,13 @@ export const ScheduleVisitModal: React.FC<ScheduleVisitModalProps> = ({
     
     setIsUpdating(true);
     try {
+      const amount = selectedVisitType === 'trial_day' ? 320 : 300;
+      
       const { error: paymentError } = await supabase
         .from('payment_transactions')
         .insert({
           user_id: user.id,
-          amount: selectedVisitType === 'trial_day' ? 320 : 300,
+          amount,
           currency: 'TTD',
           transaction_type: selectedVisitType,
           status: 'completed',
@@ -153,26 +187,19 @@ export const ScheduleVisitModal: React.FC<ScheduleVisitModalProps> = ({
             care_model_preference: selectedCareModel,
             payment_completed: true,
             scheduled_at: new Date().toISOString(),
-            trial_amount: selectedVisitType === 'trial_day' ? 320 : 300
+            trial_amount: amount
           })
         })
         .eq('id', user.id);
 
       if (profileError) throw profileError;
 
-      await supabase
-        .from('cta_engagement_tracking')
-        .insert({
-          user_id: user.id,
-          action_type: `${selectedVisitType}_payment_completed`,
-          feature_name: 'schedule_visit',
-          additional_data: { 
-            care_model: selectedCareModel,
-            amount: selectedVisitType === 'trial_day' ? 320 : 300,
-            transaction_id: transactionId,
-            trial_conversion_eligible: selectedVisitType === 'trial_day'
-          }
-        });
+      await saveVisitHistory('payment_completed', { 
+        care_model: selectedCareModel,
+        amount,
+        transaction_id: transactionId,
+        trial_conversion_eligible: selectedVisitType === 'trial_day'
+      });
 
       setVisitStatus('scheduled');
       setStep('confirmation');
@@ -191,6 +218,8 @@ export const ScheduleVisitModal: React.FC<ScheduleVisitModalProps> = ({
     
     setIsUpdating(true);
     try {
+      await saveVisitHistory('not_ready', {});
+
       const { error } = await supabase
         .from('profiles')
         .update({ 
@@ -201,15 +230,6 @@ export const ScheduleVisitModal: React.FC<ScheduleVisitModalProps> = ({
         .eq('id', user.id);
 
       if (error) throw error;
-
-      await supabase
-        .from('cta_engagement_tracking')
-        .insert({
-          user_id: user.id,
-          action_type: 'visit_not_ready',
-          feature_name: 'schedule_visit',
-          additional_data: { timestamp: new Date().toISOString() }
-        });
 
       toast.success("No problem! You can schedule when you're ready.");
       
@@ -278,7 +298,8 @@ export const ScheduleVisitModal: React.FC<ScheduleVisitModalProps> = ({
 
   const statusDisplay = getStatusDisplay();
 
-  if (statusDisplay) {
+  // Only show status display if we have one AND we're not in the process of rescheduling
+  if (statusDisplay && step !== 'visit_selection' && visitStatus !== 'not_started') {
     return (
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
