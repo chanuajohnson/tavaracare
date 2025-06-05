@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -7,6 +8,12 @@ import { BulkActionPanel } from './BulkActionPanel';
 import { RoleBasedUserGrid } from './RoleBasedUserGrid';
 import { UserWithProgress, RoleStats } from '@/types/adminTypes';
 import { Search, Users, TrendingUp, UserCheck, Clock } from 'lucide-react';
+
+interface AuthUser {
+  id: string;
+  email: string;
+  [key: string]: any;
+}
 
 export function AdminUserJourneyDashboard() {
   const [users, setUsers] = useState<UserWithProgress[]>([]);
@@ -56,7 +63,7 @@ export function AdminUserJourneyDashboard() {
       // Create a map of user emails from auth data
       const emailMap = new Map<string, string>();
       if (authData?.users) {
-        authData.users.forEach((user: any) => {
+        (authData.users as AuthUser[]).forEach((user: AuthUser) => {
           if (user.id && user.email) {
             emailMap.set(user.id, user.email);
           }
@@ -145,11 +152,12 @@ export function AdminUserJourneyDashboard() {
     }
   };
 
-  const handleSelectAll = (checked: boolean) => {
-    if (checked) {
-      setSelectedUsers(filteredUsers.map(user => user.id));
-    } else {
+  const handleSelectAll = () => {
+    const allSelected = selectedUsers.length === filteredUsers.length && filteredUsers.length > 0;
+    if (allSelected) {
       setSelectedUsers([]);
+    } else {
+      setSelectedUsers(filteredUsers.map(user => user.id));
     }
   };
 
