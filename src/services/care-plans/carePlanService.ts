@@ -12,6 +12,9 @@ export interface CarePlan {
   updated_at?: string;
 }
 
+export interface CarePlanDto extends CarePlan {}
+export interface CarePlanInput extends Omit<CarePlan, 'id' | 'created_at' | 'updated_at'> {}
+
 export const fetchCarePlanById = async (carePlanId: string): Promise<CarePlan | null> => {
   try {
     console.log(`Fetching care plan with ID: ${carePlanId}`);
@@ -40,7 +43,7 @@ export const fetchCarePlanById = async (carePlanId: string): Promise<CarePlan | 
   }
 };
 
-export const fetchCarePlansForFamily = async (familyId: string): Promise<CarePlan[]> => {
+export const fetchCarePlans = async (familyId: string): Promise<CarePlan[]> => {
   try {
     const { data, error } = await supabase
       .from('care_plans')
@@ -60,7 +63,9 @@ export const fetchCarePlansForFamily = async (familyId: string): Promise<CarePla
   }
 };
 
-export const createCarePlan = async (carePlan: Omit<CarePlan, 'id' | 'created_at' | 'updated_at'>): Promise<CarePlan> => {
+export const fetchCarePlansForFamily = fetchCarePlans; // Alias for backward compatibility
+
+export const createCarePlan = async (carePlan: CarePlanInput): Promise<CarePlan> => {
   try {
     const { data, error } = await supabase
       .from('care_plans')
@@ -76,6 +81,27 @@ export const createCarePlan = async (carePlan: Omit<CarePlan, 'id' | 'created_at
     return data;
   } catch (error) {
     console.error('Failed to create care plan:', error);
+    throw error;
+  }
+};
+
+export const updateCarePlan = async (id: string, updates: Partial<CarePlan>): Promise<CarePlan> => {
+  try {
+    const { data, error } = await supabase
+      .from('care_plans')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error updating care plan:', error);
+      throw error;
+    }
+
+    return data;
+  } catch (error) {
+    console.error('Failed to update care plan:', error);
     throw error;
   }
 };

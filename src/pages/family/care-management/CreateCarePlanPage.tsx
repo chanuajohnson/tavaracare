@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ArrowLeft } from "lucide-react";
-import { createCarePlan, fetchCarePlanById, updateCarePlan } from "@/services/care-plans";
+import { createCarePlan, fetchCarePlanById, updateCarePlan, type CarePlanInput } from "@/services/care-plans";
 import { toast } from "sonner";
 import { CarePlanMetadata } from '@/types/carePlan';
 
@@ -107,11 +107,11 @@ const CreateCarePlanPage = () => {
     try {
       setIsSubmitting(true);
       
-      const planDetails = {
+      const planDetails: CarePlanInput = {
         title,
         description,
-        familyId: user.id,
-        status: 'active' as const, // Use const assertion to specify literal type
+        family_id: user.id, // Use snake_case to match database
+        status: 'active',
         metadata: {
           planType,
           weekdayCoverage: weekdayOption,
