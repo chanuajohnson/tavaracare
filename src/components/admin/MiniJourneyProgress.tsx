@@ -3,8 +3,7 @@ import React from 'react';
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { CheckCircle2, Clock, Circle } from "lucide-react";
-import { AdminFamilyProgress } from './progress/AdminFamilyProgress';
-import { AdminProfessionalProgress } from './progress/AdminProfessionalProgress';
+import { useUserSpecificProgress } from "@/hooks/useUserSpecificProgress";
 import type { UserRole } from "@/types/userRoles";
 
 interface MiniJourneyProgressProps {
@@ -12,21 +11,10 @@ interface MiniJourneyProgressProps {
   userRole: UserRole;
 }
 
-interface ProgressRendererProps {
-  loading: boolean;
-  completionPercentage: number;
-  nextStep?: { title: string };
-  steps: Array<{ completed: boolean }>;
-  userRole: UserRole;
-}
+export const MiniJourneyProgress: React.FC<MiniJourneyProgressProps> = ({ userId, userRole }) => {
+  // Use the new user-specific hook that mirrors TAV's logic
+  const { loading, completionPercentage, nextStep, steps } = useUserSpecificProgress(userId, userRole);
 
-const ProgressRenderer: React.FC<ProgressRendererProps> = ({ 
-  loading, 
-  completionPercentage, 
-  nextStep, 
-  steps, 
-  userRole 
-}) => {
   if (loading) {
     return (
       <div className="space-y-2">
@@ -76,44 +64,6 @@ const ProgressRenderer: React.FC<ProgressRendererProps> = ({
       <Progress value={completionPercentage} className="h-2" />
       <div className="flex items-center justify-between text-xs text-muted-foreground">
         <span>{completionPercentage}% complete</span>
-        <span className="capitalize">{userRole} Journey</span>
-      </div>
-    </div>
-  );
-};
-
-export const MiniJourneyProgress: React.FC<MiniJourneyProgressProps> = ({ userId, userRole }) => {
-  if (userRole === 'family') {
-    return (
-      <AdminFamilyProgress userId={userId}>
-        {(data) => <ProgressRenderer {...data} userRole={userRole} />}
-      </AdminFamilyProgress>
-    );
-  }
-
-  if (userRole === 'professional') {
-    return (
-      <AdminProfessionalProgress userId={userId}>
-        {(data) => <ProgressRenderer {...data} userRole={userRole} />}
-      </AdminProfessionalProgress>
-    );
-  }
-
-  // Fallback for community/admin roles that don't have TAV hooks
-  return (
-    <div className="space-y-2">
-      <div className="flex items-center justify-between text-sm">
-        <div className="flex items-center gap-2">
-          <Circle className="h-4 w-4 text-gray-600" />
-          <span className="text-gray-500">Progress not available</span>
-        </div>
-        <Badge variant="outline" className="text-xs">
-          -/-
-        </Badge>
-      </div>
-      <Progress value={0} className="h-2" />
-      <div className="flex items-center justify-between text-xs text-muted-foreground">
-        <span>-% complete</span>
         <span className="capitalize">{userRole} Journey</span>
       </div>
     </div>
