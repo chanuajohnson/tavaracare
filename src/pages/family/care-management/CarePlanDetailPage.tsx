@@ -24,7 +24,7 @@ import { MealPlanner } from "@/components/meal-planning/MealPlanner";
 const CarePlanDetailPage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { user, isLoading: authLoading } = useAuth();
+  const { user } = useAuth();
   const [searchParams] = useSearchParams();
   const [confirmRemoveDialogOpen, setConfirmRemoveDialogOpen] = useState(false);
   const [memberToRemove, setMemberToRemove] = useState<CareTeamMemberWithProfile | null>(null);
@@ -32,24 +32,6 @@ const CarePlanDetailPage = () => {
   // Get the tab from URL parameters, default to 'details'
   const initialTab = searchParams.get('tab') || 'details';
   const [activeTab, setActiveTab] = useState(initialTab);
-
-  // Redirect to auth if user is not authenticated
-  useEffect(() => {
-    if (!authLoading && !user) {
-      navigate('/auth');
-      return;
-    }
-  }, [user, authLoading, navigate]);
-
-  // Don't render anything while auth is loading or user is null
-  if (authLoading || !user) {
-    return <CarePlanLoadingState />;
-  }
-
-  // Don't render if no care plan ID
-  if (!id) {
-    return <CarePlanNotFound />;
-  }
 
   const {
     loading,
@@ -62,8 +44,8 @@ const CarePlanDetailPage = () => {
     reloadCareTeamMembers,
     reloadCareShifts,
   } = useCarePlanData({
-    carePlanId: id,
-    userId: user.id, // Now we're guaranteed user exists
+    carePlanId: id!,
+    userId: user!.id,
   });
 
   // Update active tab when URL parameter changes
@@ -109,8 +91,8 @@ const CarePlanDetailPage = () => {
           
           <TabsContent value="team">
             <CareTeamTab 
-              carePlanId={id}
-              familyId={user.id}
+              carePlanId={id!}
+              familyId={user!.id}
               careTeamMembers={careTeamMembers}
               professionals={professionals}
               onMemberAdded={reloadCareTeamMembers}
@@ -122,17 +104,17 @@ const CarePlanDetailPage = () => {
           </TabsContent>
 
           <TabsContent value="medications">
-            <MedicationsTab carePlanId={id} />
+            <MedicationsTab carePlanId={id!} />
           </TabsContent>
 
           <TabsContent value="meals">
-            <MealPlanner carePlanId={id} />
+            <MealPlanner carePlanId={id!} />
           </TabsContent>
           
           <TabsContent value="schedule">
             <EnhancedScheduleTab
-              carePlanId={id}
-              familyId={user.id}
+              carePlanId={id!}
+              familyId={user!.id}
               careShifts={careShifts}
               careTeamMembers={careTeamMembers}
               onShiftUpdated={reloadCareShifts}
@@ -141,11 +123,11 @@ const CarePlanDetailPage = () => {
           </TabsContent>
 
           <TabsContent value="reports">
-            <MedicationReportsTab carePlanId={id} />
+            <MedicationReportsTab carePlanId={id!} />
           </TabsContent>
           
           <TabsContent value="payroll">
-            <PayrollTab carePlanId={id} />
+            <PayrollTab carePlanId={id!} />
           </TabsContent>
         </Tabs>
       </Container>

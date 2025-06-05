@@ -58,7 +58,7 @@ export const SubscriptionFeatureLink = ({
   const { user, userRole } = useAuth();
   
   // Determine proper destination - features page or direct to subscription
-  const destinationPath = directToSubscription ? "/subscription" : "/subscription/features";
+  const destinationPath = directToSubscription ? "/subscription" : "/subscription-features";
   
   // Determine if this is for a professional feature
   const isProfessionalFeature = 

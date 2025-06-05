@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { HelpCircle, X, FileQuestion, Phone, Loader2 } from 'lucide-react';
+import { HelpCircle, X, MessageSquare, FileQuestion, Phone, Loader2 } from 'lucide-react';
 import { cn } from "@/lib/utils";
 import {
   DropdownMenu,
@@ -13,6 +13,8 @@ import { Link, useNavigate } from "react-router-dom";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
+import { useChat } from "@/components/chatbot/ChatProvider";
+import { ChatbotWidget } from "@/components/chatbot/ChatbotWidget";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 interface FabProps {
@@ -36,6 +38,7 @@ export const Fab = ({
   const isMobile = useIsMobile();
   const [isContactFormOpen, setIsContactFormOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isChatOpen, setIsChatOpen] = useState(false);
   const [contactFormData, setContactFormData] = useState({
     name: "",
     email: "",
@@ -43,6 +46,24 @@ export const Fab = ({
   });
   const [screenshotFile, setScreenshotFile] = useState<File | null>(null);
   const [prefillData, setPrefillData] = useState<any>(null);
+  
+  // Try to access the chat context, with a fallback for when context isn't available
+  let chatContextAvailable = true;
+  let openChat: () => void;
+  let closeChat: () => void;
+  
+  try {
+    // Attempt to use the ChatProvider context
+    const chatContext = useChat();
+    openChat = chatContext.openChat;
+    closeChat = chatContext.closeChat;
+  } catch (error) {
+    // Fallback if no ChatProvider is available
+    console.error("Chat context not available in Fab:", error);
+    chatContextAvailable = false;
+    openChat = () => console.error("Chat context not available");
+    closeChat = () => console.error("Chat context not available");
+  }
 
   const positionClasses = {
     "bottom-right": "bottom-6 right-6",
@@ -56,6 +77,11 @@ export const Fab = ({
     const handleOpenContactForm = (event: CustomEvent) => {
       setIsContactFormOpen(true);
       
+      // Close chat if it's open
+      if (isChatOpen) {
+        setIsChatOpen(false);
+      }
+      
       // If we received prefill data from the chat
       if (event.detail?.prefillData) {
         setPrefillData(event.detail.prefillData);
@@ -64,7 +90,7 @@ export const Fab = ({
         if (event.detail.fromChat) {
           setContactFormData(prev => ({
             ...prev,
-            message: `[Request from TAV] I'd like to speak with a representative about Tavara.care services.${
+            message: `[Request from chat] I'd like to speak with a representative about Tavara.care services.${
               event.detail.prefillData.role ? ` I'm interested as a ${event.detail.prefillData.role}.` : ''
             }`
           }));
@@ -77,7 +103,7 @@ export const Fab = ({
     return () => {
       window.removeEventListener('tavara:open-contact-form', handleOpenContactForm as EventListener);
     };
-  }, []);
+  }, [isChatOpen]);
 
   const handleOpenWhatsApp = () => {
     const phoneNumber = "+18687865357";
@@ -87,6 +113,25 @@ export const Fab = ({
 
   const handleFAQClick = () => {
     navigate("/faq");
+  };
+
+  const toggleChat = () => {
+    // Use the ChatProvider context methods if available
+    if (chatContextAvailable) {
+      if (isChatOpen) {
+        closeChat();
+      } else {
+        openChat();
+      }
+    }
+    
+    // Also update the local state to control the chat widget visibility in this component
+    setIsChatOpen(prev => !prev);
+    
+    // Close contact form if open
+    if (isContactFormOpen) {
+      setIsContactFormOpen(false);
+    }
   };
 
   const handleContactFormSubmit = async (e: React.FormEvent) => {
@@ -225,8 +270,15 @@ export const Fab = ({
                 className="flex items-center gap-2 cursor-pointer p-3 text-base"
                 onClick={() => setIsContactFormOpen(true)}
               >
-                <FileQuestion className="h-5 w-5" />
+                <MessageSquare className="h-5 w-5" />
                 <span>Contact Form</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                className="flex items-center gap-2 cursor-pointer p-3 text-base"
+                onClick={toggleChat}
+              >
+                <MessageSquare className="h-5 w-5" />
+                <span>Chat with Assistant</span>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -258,7 +310,7 @@ export const Fab = ({
                         required
                         value={contactFormData.name}
                         onChange={handleInputChange}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+                        className="w-full p-2 border rounded"
                         disabled={isSubmitting}
                       />
                     </div>
@@ -273,13 +325,13 @@ export const Fab = ({
                         required
                         value={contactFormData.email}
                         onChange={handleInputChange}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+                        className="w-full p-2 border rounded"
                         disabled={isSubmitting}
                       />
                     </div>
                     <div>
                       <label htmlFor="message" className="block text-sm font-medium mb-1">
-                        Message
+                        Issue Description
                       </label>
                       <Textarea
                         id="message"
@@ -287,7 +339,8 @@ export const Fab = ({
                         required
                         value={contactFormData.message}
                         onChange={handleInputChange}
-                        className="w-full min-h-[100px]"
+                        className="w-full p-2 border rounded"
+                        rows={4}
                         disabled={isSubmitting}
                       />
                     </div>
@@ -297,45 +350,66 @@ export const Fab = ({
                       </label>
                       <input
                         id="screenshot"
+                        name="screenshot"
                         type="file"
                         accept="image/*"
+                        className="w-full p-2 border rounded"
                         onChange={handleFileChange}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
                         disabled={isSubmitting}
                       />
                       {screenshotFile && (
-                        <p className="text-sm text-green-600 mt-1">
-                          Screenshot attached: {screenshotFile.name}
+                        <p className="text-xs text-green-600 mt-1">
+                          Screenshot selected: {screenshotFile.name}
                         </p>
                       )}
                     </div>
+                    {prefillData && (
+                      <div className="bg-blue-50 p-2 rounded text-xs">
+                        <p>Including chat session data with your request</p>
+                      </div>
+                    )}
                   </div>
-                  <div className="mt-6 flex gap-3">
+                  <div className="mt-6 flex justify-end space-x-2">
                     <Button
                       type="button"
                       variant="outline"
                       onClick={() => setIsContactFormOpen(false)}
                       disabled={isSubmitting}
-                      className="flex-1"
                     >
                       Cancel
                     </Button>
-                    <Button
-                      type="submit"
-                      disabled={isSubmitting}
-                      className="flex-1"
-                    >
+                    <Button type="submit" disabled={isSubmitting}>
                       {isSubmitting ? (
                         <>
-                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                           Sending...
                         </>
                       ) : (
-                        "Send Message"
+                        "Submit"
                       )}
                     </Button>
                   </div>
                 </form>
+              </div>
+            </div>
+          )}
+          
+          {/* Chat widget - improved positioning and responsiveness for mobile */}
+          {isChatOpen && (
+            <div className={`fixed z-50 ${isMobile ? "inset-x-4 bottom-24" : "right-6 bottom-24"}`}>
+              <div className="relative">
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="absolute -right-2 -top-2 h-6 w-6 rounded-full bg-background border shadow-sm z-10"
+                  onClick={toggleChat}
+                >
+                  <X size={14} />
+                </Button>
+                <ChatbotWidget 
+                  width={isMobile ? "100%" : "350px"}
+                  onClose={toggleChat}
+                />
               </div>
             </div>
           )}

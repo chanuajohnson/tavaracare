@@ -3,7 +3,6 @@ import { useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { ensureUserProfile } from '@/lib/profile-utils';
-import { UserRole } from '@/types/database';
 
 export function RedirectHandler() {
   const navigate = useNavigate();
@@ -91,30 +90,9 @@ export function RedirectHandler() {
           // Clear the hash from URL
           window.history.replaceState({}, '', window.location.pathname);
           
-          // Determine the user's role and redirect to appropriate dashboard
-          const userRole = data.user.user_metadata?.role as UserRole;
-          
-          if (userRole) {
-            const dashboardRoutes: Record<UserRole, string> = {
-              'family': '/dashboard/family',
-              'professional': '/dashboard/professional',
-              'community': '/dashboard/community',
-              'admin': '/dashboard/admin'
-            };
-            
-            const targetDashboard = dashboardRoutes[userRole];
-            
-            if (targetDashboard) {
-              console.log('[RedirectHandler] Email confirmation complete, redirecting to dashboard:', targetDashboard);
-              // Use replace to avoid back button issues
-              navigate(targetDashboard, { replace: true });
-              return;
-            }
-          }
-          
-          // Fallback to home if no role detected
-          console.log('[RedirectHandler] No role detected, redirecting to home');
-          navigate('/', { replace: true });
+          // Let AuthProvider handle the redirect to role-based dashboard
+          // Don't navigate manually here - let the existing auth flow handle it
+          console.log('[RedirectHandler] Email confirmation complete, letting AuthProvider handle redirect');
         }
       }
     } catch (error) {

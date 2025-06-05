@@ -9,100 +9,6 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      admin_communications: {
-        Row: {
-          admin_id: string
-          created_at: string | null
-          custom_message: string | null
-          delivery_status: string | null
-          id: string
-          message_type: string
-          response_received: boolean | null
-          sent_at: string | null
-          target_user_id: string
-          template_id: string | null
-        }
-        Insert: {
-          admin_id: string
-          created_at?: string | null
-          custom_message?: string | null
-          delivery_status?: string | null
-          id?: string
-          message_type: string
-          response_received?: boolean | null
-          sent_at?: string | null
-          target_user_id: string
-          template_id?: string | null
-        }
-        Update: {
-          admin_id?: string
-          created_at?: string | null
-          custom_message?: string | null
-          delivery_status?: string | null
-          id?: string
-          message_type?: string
-          response_received?: boolean | null
-          sent_at?: string | null
-          target_user_id?: string
-          template_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "admin_communications_admin_id_fkey"
-            columns: ["admin_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "admin_communications_target_user_id_fkey"
-            columns: ["target_user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "admin_communications_template_id_fkey"
-            columns: ["template_id"]
-            isOneToOne: false
-            referencedRelation: "nudge_templates"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      assistant_nudges: {
-        Row: {
-          context: Json | null
-          created_at: string
-          id: string
-          message: string
-          sender: string
-          status: string
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          context?: Json | null
-          created_at?: string
-          id?: string
-          message: string
-          sender?: string
-          status?: string
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          context?: Json | null
-          created_at?: string
-          id?: string
-          message?: string
-          sender?: string
-          status?: string
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
       calendar_events: {
         Row: {
           calendar_id: string
@@ -1478,39 +1384,6 @@ export type Database = {
           },
         ]
       }
-      nudge_templates: {
-        Row: {
-          created_at: string | null
-          id: string
-          message_template: string
-          message_type: string
-          name: string
-          role: string
-          stage: string
-          updated_at: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          id?: string
-          message_template: string
-          message_type: string
-          name: string
-          role: string
-          stage: string
-          updated_at?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          id?: string
-          message_template?: string
-          message_type?: string
-          name?: string
-          role?: string
-          stage?: string
-          updated_at?: string | null
-        }
-        Relationships: []
-      }
       payment_transactions: {
         Row: {
           amount: number
@@ -1799,8 +1672,6 @@ export type Database = {
           created_at: string | null
           custom_availability_alerts: string | null
           custom_schedule: string | null
-          email_verification_sent_at: string | null
-          email_verified: boolean | null
           emergency_contact: string | null
           enable_community_notifications: boolean | null
           enable_job_alerts: boolean | null
@@ -1815,9 +1686,7 @@ export type Database = {
           involvement_preferences: string[] | null
           job_matching_criteria: string[] | null
           job_notification_method: string | null
-          journey_stage_updated_at: string | null
           languages: string[] | null
-          last_login_at: string | null
           last_name: string | null
           legally_authorized: boolean | null
           license_number: string | null
@@ -1877,8 +1746,6 @@ export type Database = {
           created_at?: string | null
           custom_availability_alerts?: string | null
           custom_schedule?: string | null
-          email_verification_sent_at?: string | null
-          email_verified?: boolean | null
           emergency_contact?: string | null
           enable_community_notifications?: boolean | null
           enable_job_alerts?: boolean | null
@@ -1893,9 +1760,7 @@ export type Database = {
           involvement_preferences?: string[] | null
           job_matching_criteria?: string[] | null
           job_notification_method?: string | null
-          journey_stage_updated_at?: string | null
           languages?: string[] | null
-          last_login_at?: string | null
           last_name?: string | null
           legally_authorized?: boolean | null
           license_number?: string | null
@@ -1955,8 +1820,6 @@ export type Database = {
           created_at?: string | null
           custom_availability_alerts?: string | null
           custom_schedule?: string | null
-          email_verification_sent_at?: string | null
-          email_verified?: boolean | null
           emergency_contact?: string | null
           enable_community_notifications?: boolean | null
           enable_job_alerts?: boolean | null
@@ -1971,9 +1834,7 @@ export type Database = {
           involvement_preferences?: string[] | null
           job_matching_criteria?: string[] | null
           job_notification_method?: string | null
-          journey_stage_updated_at?: string | null
           languages?: string[] | null
-          last_login_at?: string | null
           last_name?: string | null
           legally_authorized?: boolean | null
           license_number?: string | null
@@ -2428,53 +2289,6 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: []
-      }
-      user_journey_progress: {
-        Row: {
-          completed_steps: Json | null
-          completion_percentage: number | null
-          created_at: string | null
-          current_step: number | null
-          id: string
-          last_activity_at: string | null
-          role: string
-          total_steps: number
-          updated_at: string | null
-          user_id: string
-        }
-        Insert: {
-          completed_steps?: Json | null
-          completion_percentage?: number | null
-          created_at?: string | null
-          current_step?: number | null
-          id?: string
-          last_activity_at?: string | null
-          role: string
-          total_steps: number
-          updated_at?: string | null
-          user_id: string
-        }
-        Update: {
-          completed_steps?: Json | null
-          completion_percentage?: number | null
-          created_at?: string | null
-          current_step?: number | null
-          id?: string
-          last_activity_at?: string | null
-          role?: string
-          total_steps?: number
-          updated_at?: string | null
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "user_journey_progress_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: true
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
       }
       user_module_progress: {
         Row: {
