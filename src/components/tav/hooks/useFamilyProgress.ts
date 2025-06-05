@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { supabase } from '@/lib/supabase';
@@ -20,6 +19,8 @@ interface FamilyProgressData {
   nextStep?: FamilyStep;
   loading: boolean;
   carePlans: any[];
+  showScheduleModal: boolean;
+  setShowScheduleModal: (show: boolean) => void;
 }
 
 export const useFamilyProgress = (): FamilyProgressData => {
@@ -27,6 +28,7 @@ export const useFamilyProgress = (): FamilyProgressData => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [carePlans, setCarePlans] = useState([]);
+  const [showScheduleModal, setShowScheduleModal] = useState(false);
   const [steps, setSteps] = useState<FamilyStep[]>([
     { 
       id: 1, 
@@ -79,14 +81,6 @@ export const useFamilyProgress = (): FamilyProgressData => {
     }
   ]);
 
-  const openWhatsApp = () => {
-    const phoneNumber = "8687865357";
-    const message = "I am ready to schedule my initial site visit with matched nurses";
-    const encodedMessage = encodeURIComponent(message);
-    const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodedMessage}`;
-    window.open(whatsappUrl, '_blank');
-  };
-
   const handleStepAction = (step: FamilyStep) => {
     if (step.id === 4) {
       const canAccessMatching = steps[0]?.completed && steps[1]?.completed && steps[2]?.completed;
@@ -112,7 +106,7 @@ export const useFamilyProgress = (): FamilyProgressData => {
     }
     
     if (step.id === 7) {
-      openWhatsApp();
+      setShowScheduleModal(true);
       return;
     }
     
@@ -249,6 +243,8 @@ export const useFamilyProgress = (): FamilyProgressData => {
     completionPercentage,
     nextStep,
     loading,
-    carePlans
+    carePlans,
+    showScheduleModal,
+    setShowScheduleModal
   };
 };

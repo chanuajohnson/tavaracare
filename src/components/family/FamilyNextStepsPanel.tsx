@@ -16,6 +16,7 @@ export const FamilyNextStepsPanel = () => {
   const navigate = useNavigate();
   const { carePlanId, loading: carePlanLoading } = useUserCarePlan();
   const [showScheduleModal, setShowScheduleModal] = useState(false);
+  
   const [steps, setSteps] = useState([
     { 
       id: 1, 
