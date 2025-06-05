@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Link, useSearchParams } from "react-router-dom";
@@ -14,6 +15,8 @@ import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { ProfessionalScheduleView } from "@/components/professional/ProfessionalScheduleView";
 import { MedicationDashboard } from "@/components/professional/MedicationDashboard";
 import { CarePlanMealPlanner } from "@/components/meal-planning/CarePlanMealPlanner";
+import { TrainingProgramSection } from "@/components/professional/TrainingProgramSection";
+import { TrainingModulesSection } from "@/components/professional/TrainingModulesSection";
 import { 
   User, 
   MapPin, 
@@ -32,7 +35,9 @@ import {
   AlertCircle,
   Pill,
   ChefHat,
-  Shield
+  Shield,
+  ChevronDown,
+  ChevronUp
 } from "lucide-react";
 import { toast } from "sonner";
 import { CertificateUpload } from "@/components/professional/CertificateUpload";
@@ -108,6 +113,7 @@ const ProfessionalProfileHub = () => {
   const [loading, setLoading] = useState(true);
   const [selectedCarePlanId, setSelectedCarePlanId] = useState<string | null>(null);
   const [careTeamMembers, setCareTeamMembers] = useState<CareTeamMember[]>([]);
+  const [isTrainingExpanded, setIsTrainingExpanded] = useState(false);
   
   // Get initial tab from URL params, default to "schedule"
   const tabFromUrl = searchParams.get('tab');
@@ -155,6 +161,14 @@ const ProfessionalProfileHub = () => {
       fetchCareTeamMembers(selectedCarePlanId);
     }
   }, [selectedCarePlanId]);
+
+  // Update active tab when URL changes
+  useEffect(() => {
+    const urlTab = searchParams.get('tab');
+    if (urlTab && urlTab !== activeTab) {
+      setActiveTab(urlTab);
+    }
+  }, [searchParams]);
 
   const fetchProfessionalProfile = async () => {
     try {
@@ -672,15 +686,25 @@ const ProfessionalProfileHub = () => {
               </CardContent>
             </Card>
 
-            <Card>
+            <Card 
+              className="cursor-pointer hover:shadow-md transition-shadow" 
+              onClick={() => setIsTrainingExpanded(!isTrainingExpanded)}
+            >
               <CardContent className="pt-6">
                 <div className="flex items-center gap-3">
                   <div className="bg-primary/10 p-3 rounded-full">
                     <Award className="h-6 w-6 text-primary" />
                   </div>
-                  <div>
+                  <div className="flex-1">
                     <h3 className="font-medium">Training</h3>
                     <p className="text-sm text-muted-foreground">Continue learning</p>
+                  </div>
+                  <div className="text-primary">
+                    {isTrainingExpanded ? (
+                      <ChevronUp className="h-4 w-4" />
+                    ) : (
+                      <ChevronDown className="h-4 w-4" />
+                    )}
                   </div>
                 </div>
               </CardContent>
@@ -700,6 +724,35 @@ const ProfessionalProfileHub = () => {
               </CardContent>
             </Card>
           </div>
+
+          {/* Training Content - Expandable Section */}
+          {isTrainingExpanded && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.3 }}
+              className="overflow-hidden"
+            >
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Award className="h-5 w-5 text-primary-600" />
+                    Comprehensive Training Program
+                  </CardTitle>
+                  <CardDescription>
+                    A three-step approach blending self-paced learning, hands-on experience, and career development
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-8">
+                    <TrainingProgramSection />
+                    <TrainingModulesSection />
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          )}
         </motion.div>
       </div>
     </div>
