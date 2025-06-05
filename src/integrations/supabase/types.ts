@@ -1355,6 +1355,190 @@ export type Database = {
         }
         Relationships: []
       }
+      journey_analytics: {
+        Row: {
+          action_type: string
+          additional_data: Json | null
+          completion_time_seconds: number | null
+          created_at: string | null
+          id: string
+          journey_step_id: string
+          session_id: string | null
+          user_id: string | null
+        }
+        Insert: {
+          action_type: string
+          additional_data?: Json | null
+          completion_time_seconds?: number | null
+          created_at?: string | null
+          id?: string
+          journey_step_id: string
+          session_id?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          action_type?: string
+          additional_data?: Json | null
+          completion_time_seconds?: number | null
+          created_at?: string | null
+          id?: string
+          journey_step_id?: string
+          session_id?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "journey_analytics_journey_step_id_fkey"
+            columns: ["journey_step_id"]
+            isOneToOne: false
+            referencedRelation: "journey_steps"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      journey_step_content: {
+        Row: {
+          content: string
+          content_type: string
+          created_at: string | null
+          display_order: number | null
+          id: string
+          is_visible: boolean | null
+          journey_step_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          content: string
+          content_type: string
+          created_at?: string | null
+          display_order?: number | null
+          id?: string
+          is_visible?: boolean | null
+          journey_step_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          content?: string
+          content_type?: string
+          created_at?: string | null
+          display_order?: number | null
+          id?: string
+          is_visible?: boolean | null
+          journey_step_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "journey_step_content_journey_step_id_fkey"
+            columns: ["journey_step_id"]
+            isOneToOne: false
+            referencedRelation: "journey_steps"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      journey_step_paths: {
+        Row: {
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          is_recommended: boolean | null
+          path_color: string | null
+          path_description: string | null
+          path_name: string
+          step_ids: Json
+          updated_at: string | null
+          user_role: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_recommended?: boolean | null
+          path_color?: string | null
+          path_description?: string | null
+          path_name: string
+          step_ids: Json
+          updated_at?: string | null
+          user_role: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_recommended?: boolean | null
+          path_color?: string | null
+          path_description?: string | null
+          path_name?: string
+          step_ids?: Json
+          updated_at?: string | null
+          user_role?: string
+        }
+        Relationships: []
+      }
+      journey_steps: {
+        Row: {
+          category: string
+          created_at: string | null
+          created_by: string | null
+          description: string
+          detailed_explanation: string | null
+          icon_name: string | null
+          id: string
+          is_active: boolean | null
+          is_optional: boolean | null
+          link_path: string | null
+          order_index: number
+          prerequisites: Json | null
+          step_number: number
+          time_estimate_minutes: number | null
+          title: string
+          tooltip_content: string | null
+          updated_at: string | null
+          user_role: string
+        }
+        Insert: {
+          category: string
+          created_at?: string | null
+          created_by?: string | null
+          description: string
+          detailed_explanation?: string | null
+          icon_name?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_optional?: boolean | null
+          link_path?: string | null
+          order_index: number
+          prerequisites?: Json | null
+          step_number: number
+          time_estimate_minutes?: number | null
+          title: string
+          tooltip_content?: string | null
+          updated_at?: string | null
+          user_role: string
+        }
+        Update: {
+          category?: string
+          created_at?: string | null
+          created_by?: string | null
+          description?: string
+          detailed_explanation?: string | null
+          icon_name?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_optional?: boolean | null
+          link_path?: string | null
+          order_index?: number
+          prerequisites?: Json | null
+          step_number?: number
+          time_estimate_minutes?: number | null
+          title?: string
+          tooltip_content?: string | null
+          updated_at?: string | null
+          user_role?: string
+        }
+        Relationships: []
+      }
       lesson_content_blocks: {
         Row: {
           content: string
