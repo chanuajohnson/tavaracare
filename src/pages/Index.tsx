@@ -1,3 +1,4 @@
+
 import { useState, useRef } from "react";
 import { motion } from "framer-motion";
 import { Users, UserCog, Heart, ArrowRight, Check, Vote, HelpCircle } from "lucide-react";
@@ -6,6 +7,8 @@ import { toast } from "sonner";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Fab } from "@/components/ui/fab";
+import { MicroChatBubble } from "@/components/chatbot/MicroChatBubble";
+import { ChatbotSystem } from "@/components/chatbot/ChatbotSystem";
 import { EnvironmentInfo } from "@/components/debug/EnvironmentInfo";
 import { SupabaseDebugger } from "@/components/debug/SupabaseDebugger";
 
@@ -84,13 +87,7 @@ const Index = () => {
           <span className="px-4 py-1.5 rounded-full text-sm font-medium bg-primary-100 text-primary-800 mb-4 inline-block">
             Care Coordination Platform
           </span>
-          <div className="flex justify-center mb-6">
-            <img 
-              src="/TAVARACARElogo.JPG"
-              alt="Tavara" 
-              className="h-12 w-auto md:h-16"
-            />
-          </div>
+          <h1 className="text-4xl md:text-6xl font-bold text-gray-900 mb-6">Tavara</h1>
           <p className="text-lg md:text-xl text-gray-600 max-w-2xl mx-auto">
             Join our community of care coordinators, families, and professionals to make
             caring easier and more effective.
@@ -121,6 +118,8 @@ const Index = () => {
                     {role.cta}
                     <ArrowRight className="ml-2 w-4 h-4 transition-transform duration-300 group-hover/button:translate-x-1" />
                   </button>
+                  
+                  <MicroChatBubble role={role.id as 'family' | 'professional' | 'community'} />
                 </div>
               </div>
             </motion.div>
@@ -140,6 +139,10 @@ const Index = () => {
             >
               Get Started
             </button>
+            
+            <div className="ml-3">
+              <MicroChatBubble role="family" position="right" />
+            </div>
           </div>
         </motion.div>
 
@@ -190,6 +193,8 @@ const Index = () => {
                           {role.cta}
                         </Button>
                       </Link>
+                      
+                      <MicroChatBubble role={role.id as 'family' | 'professional' | 'community'} position="right" />
                     </div>
                   </CardContent>
                 </Card>
@@ -243,6 +248,8 @@ const Index = () => {
                         {communityRole.cta}
                       </Button>
                     </Link>
+                    
+                    <MicroChatBubble role="community" position="right" />
                   </div>
                 </CardContent>
               </Card>
@@ -298,6 +305,12 @@ const Index = () => {
           </motion.div>
         </div>
       </div>
+      
+      <ChatbotSystem
+        position="left-of-fab" 
+        spacing={24}
+        className="bg-primary-500 hover:bg-primary-600 text-white"
+      />
       
       <Fab
         position="bottom-right"

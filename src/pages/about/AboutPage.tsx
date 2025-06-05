@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Breadcrumb } from '@/components/ui/breadcrumbs/Breadcrumb';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -20,24 +21,22 @@ const AboutPage = () => {
     setActiveCard(activeCard === cardId ? null : cardId);
   };
 
-  return (
-    <div className="min-h-screen bg-white">
+  return <div className="min-h-screen bg-white">
       <Container>
         <Breadcrumb />
         <div className="space-y-8 py-8">
           <div className="text-center space-y-4 max-w-3xl mx-auto">
-            <motion.div 
-              initial={{ opacity: 0, y: 20 }} 
-              animate={{ opacity: 1, y: 0 }} 
-              transition={{ duration: 0.5 }}
-              className="flex justify-center mb-4"
-            >
-              <img 
-                src="/TAVARACARElogo.JPG"
-                alt="About Tavara" 
-                className="h-12 w-auto md:h-14"
-              />
-            </motion.div>
+            <motion.h1 initial={{
+            opacity: 0,
+            y: 20
+          }} animate={{
+            opacity: 1,
+            y: 0
+          }} transition={{
+            duration: 0.5
+          }} className="text-4xl font-bold text-primary-800 tracking-tight">
+              About Tavara
+            </motion.h1>
             <motion.p initial={{
             opacity: 0,
             y: 20
@@ -333,8 +332,7 @@ const AboutPage = () => {
           </div>
         </div>
       </Container>
-    </div>
-  );
+    </div>;
 };
 
 export default AboutPage;

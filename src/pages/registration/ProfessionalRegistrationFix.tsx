@@ -12,7 +12,6 @@ import {
 } from '@/integrations/supabase/client';
 import { getPrefillDataFromUrl, applyPrefillDataToForm } from '@/utils/chat/prefillReader';
 import { clearChatSessionData } from '@/utils/chat/chatSessionUtils';
-import { Loader2, RefreshCw, AlertCircle } from 'lucide-react';
 
 const ProfessionalRegistrationFix = () => {
   const { user } = useAuth();
@@ -26,54 +25,13 @@ const ProfessionalRegistrationFix = () => {
   } | null>(null);
   const [prefillApplied, setPrefillApplied] = useState(false);
   const [shouldAutoSubmit, setShouldAutoSubmit] = useState(false);
-  const [userVerified, setUserVerified] = useState(false);
-  const [sessionRefreshed, setSessionRefreshed] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
 
   // Function to set form field values from prefill data
   const setFormValue = (field: string, value: any) => {
     console.log(`Professional registration received prefill data for ${field}:`, value);
-  };
-
-  // Verify user exists in auth system
-  const verifyUserExists = async (): Promise<boolean> => {
-    try {
-      console.log('Verifying user exists in auth system...');
-      
-      // First refresh the session to ensure we have the latest auth state
-      const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
-      
-      if (refreshError) {
-        console.error('Session refresh error:', refreshError);
-        toast.error('Session expired. Please log in again.');
-        navigate('/auth');
-        return false;
-      }
-      
-      if (!refreshData.session?.user) {
-        console.error('No user found after session refresh');
-        toast.error('Authentication required. Please log in again.');
-        navigate('/auth');
-        return false;
-      }
-      
-      // Verify user ID matches
-      if (refreshData.session.user.id !== user?.id) {
-        console.error('User ID mismatch after refresh');
-        toast.error('Authentication error. Please log in again.');
-        navigate('/auth');
-        return false;
-      }
-      
-      setSessionRefreshed(true);
-      console.log('User verification successful:', refreshData.session.user.id);
-      return true;
-    } catch (error: any) {
-      console.error('Error verifying user:', error);
-      toast.error('Unable to verify user authentication. Please try logging in again.');
-      navigate('/auth');
-      return false;
-    }
+    // For this simplified form, we don't need to set many fields
+    // But we log it so we can see what data was received
   };
 
   // Check for auto-redirect flag from chat
@@ -92,9 +50,11 @@ const ProfessionalRegistrationFix = () => {
 
   // Apply prefill data when available
   useEffect(() => {
+    // Only try to apply prefill once
     if (!prefillApplied) {
       console.log('Professional registration checking for prefill data...');
       
+      // Try to apply prefill data from URL and localStorage
       const hasPrefill = applyPrefillDataToForm(
         setFormValue, 
         { 
@@ -112,6 +72,7 @@ const ProfessionalRegistrationFix = () => {
         console.log('Successfully applied prefill data to professional registration form');
         toast.success('Your chat information has been applied to this form');
         
+        // If we should auto-submit and we have prefill data, submit the form
         if (shouldAutoSubmit && user) {
           console.log('Auto-submitting form based on chat completion flow');
           setTimeout(() => {
@@ -124,13 +85,6 @@ const ProfessionalRegistrationFix = () => {
     }
   }, [prefillApplied, shouldAutoSubmit, user]);
 
-  // Verify user on component mount and when user changes
-  useEffect(() => {
-    if (user && !userVerified) {
-      verifyUserExists().then(setUserVerified);
-    }
-  }, [user, userVerified]);
-
   // Check Supabase connection on component mount
   useEffect(() => {
     const checkConnection = async () => {
@@ -138,6 +92,7 @@ const ProfessionalRegistrationFix = () => {
         const env = getCurrentEnvironment();
         setCurrentEnv(env);
         
+        // Get additional environment details for debugging
         const envInfo = getEnvironmentInfo();
         console.log('Environment info:', envInfo);
         
@@ -152,6 +107,7 @@ const ProfessionalRegistrationFix = () => {
           console.log(`Successfully connected to Supabase (${env}):`, data);
           setConnectionStatus('connected');
           
+          // Check schema compatibility
           const schemaCheck = await verifySchemaCompatibility();
           console.log('Schema compatibility check:', schemaCheck);
           setSchemaStatus({
@@ -176,50 +132,27 @@ const ProfessionalRegistrationFix = () => {
     checkConnection();
   }, []);
 
-  // Function to create professional profile with enhanced error handling
+  // Function to create professional profile with retry logic
   const createProfessionalProfile = async (): Promise<{ success: boolean; error?: string }> => {
-    if (!user?.id) {
-      return { success: false, error: 'User ID is not available' };
-    }
-
-    // Ensure user is verified before proceeding
-    if (!userVerified || !sessionRefreshed) {
-      console.log('Verifying user before profile creation...');
-      const verified = await verifyUserExists();
-      if (!verified) {
-        return { success: false, error: 'User verification failed' };
-      }
-      setUserVerified(true);
-    }
-
     let retries = 0;
     const MAX_RETRIES = 3;
     
     while (retries < MAX_RETRIES) {
       try {
-        console.log(`Attempt ${retries + 1} to create/update profile for user:`, user.id);
+        console.log(`Attempt ${retries + 1} to update profile for user:`, user?.id);
         
-        // Check if user exists in auth.users first
-        const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
-        
-        if (authError || !authUser) {
-          console.error('Auth user not found:', authError);
-          return { success: false, error: 'Authentication error. Please log in again.' };
+        if (!user?.id) {
+          throw new Error('User ID is not available');
         }
         
-        if (authUser.id !== user.id) {
-          console.error('User ID mismatch between auth and local state');
-          return { success: false, error: 'Session mismatch. Please log in again.' };
-        }
-        
-        // Use the ensureUserProfile utility function with error handling
+        // Use the ensureUserProfile utility function
         const result = await ensureUserProfile(user.id, 'professional');
         
         if (!result.success) {
-          throw new Error(result.error || 'Failed to create/update profile');
+          throw new Error(result.error || 'Failed to update profile');
         }
         
-        // Update additional professional fields
+        // Update additional professional fields with a more resilient approach
         try {
           const updateData = { 
             professional_type: 'Healthcare Professional',
@@ -234,12 +167,7 @@ const ProfessionalRegistrationFix = () => {
           if (updateError) {
             console.error('Error updating professional type:', updateError);
             
-            // If it's a foreign key error, provide specific guidance
-            if (updateError.message.includes('foreign key') || updateError.message.includes('fkey')) {
-              throw new Error('Profile creation failed due to authentication timing. Please refresh the page and try again.');
-            }
-            
-            // For other schema issues, try minimal update
+            // If the error is about schema, try a simpler update
             if (updateError.message.includes('column') || updateError.message.includes('schema')) {
               console.log('Trying minimal profile update due to schema issues...');
               
@@ -257,14 +185,15 @@ const ProfessionalRegistrationFix = () => {
           }
         } catch (updateErr: any) {
           console.error('Error during profile update:', updateErr);
-          // Continue anyway if base profile was created
+          // Continue anyway as the base profile was created
         }
         
-        // Initialize onboarding progress if supported
+        // Save onboarding progress if the column exists
         if (!schemaStatus || schemaStatus.compatible || 
             !schemaStatus.missingColumns.includes('profiles.onboarding_progress')) {
           try {
             console.log('Initializing onboarding_progress');
+            // Initialize onboarding progress for a new professional
             const progressData = {
               1: true,  // Mark "Complete profile" as complete
               2: false, // Upload certifications
@@ -290,6 +219,7 @@ const ProfessionalRegistrationFix = () => {
             }
           } catch (progressErr) {
             console.warn('Error handling onboarding progress:', progressErr);
+            // Continue anyway as this is non-critical
           }
         } else {
           console.warn('Skipping onboarding_progress initialization - column missing in this environment');
@@ -299,14 +229,6 @@ const ProfessionalRegistrationFix = () => {
       } catch (err: any) {
         console.error(`Attempt ${retries + 1} failed:`, err);
         retries++;
-        
-        // If it's a foreign key constraint error, provide specific guidance
-        if (err.message && err.message.includes('foreign key')) {
-          return { 
-            success: false, 
-            error: 'Profile creation failed due to authentication timing. Please refresh the page and try again, or log out and log back in.'
-          };
-        }
         
         if (retries >= MAX_RETRIES) {
           return { 
@@ -335,11 +257,6 @@ const ProfessionalRegistrationFix = () => {
 
     if (connectionStatus !== 'connected') {
       toast.error("Cannot update profile: database connection issue");
-      return;
-    }
-
-    if (!userVerified) {
-      toast.error("Please wait while we verify your authentication...");
       return;
     }
     
@@ -371,29 +288,15 @@ const ProfessionalRegistrationFix = () => {
       
       toast.success("Professional profile created successfully!");
       
-      // Navigate to dashboard without premature scroll - let dashboard handle scrolling
+      // Delay navigation slightly to ensure toast is visible
       setTimeout(() => {
-        navigate('/dashboard/professional', { replace: true });
+        navigate('/dashboard/professional');
       }, 1500);
     } catch (error: any) {
       console.error("Error in handleSubmit:", error);
       toast.error(`Error creating professional profile: ${error.message || 'Unknown error'}`);
     } finally {
       setIsSubmitting(false);
-    }
-  };
-
-  const handleRefreshSession = async () => {
-    try {
-      setUserVerified(false);
-      setSessionRefreshed(false);
-      const verified = await verifyUserExists();
-      if (verified) {
-        toast.success("Session refreshed successfully!");
-      }
-    } catch (error) {
-      toast.error("Failed to refresh session. Please log in again.");
-      navigate('/auth');
     }
   };
 
@@ -428,45 +331,18 @@ const ProfessionalRegistrationFix = () => {
       )}
       
       {connectionStatus === 'checking' && (
-        <div className="mb-4 p-4 bg-yellow-50 text-yellow-700 rounded-md flex items-center gap-2">
-          <Loader2 className="h-4 w-4 animate-spin" />
+        <div className="mb-4 p-4 bg-yellow-50 text-yellow-700 rounded-md">
           Checking database connection...
         </div>
       )}
       
       {connectionStatus === 'error' && (
-        <div className="mb-4 p-4 bg-red-50 text-red-700 rounded-md flex items-center gap-2">
-          <AlertCircle className="h-4 w-4" />
+        <div className="mb-4 p-4 bg-red-50 text-red-700 rounded-md">
           Database connection error. Your profile cannot be saved at this time.
         </div>
       )}
       
-      {!userVerified && user && (
-        <div className="mb-4 p-4 bg-amber-50 text-amber-700 rounded-md flex items-center gap-2">
-          <Loader2 className="h-4 w-4 animate-spin" />
-          Verifying authentication...
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={handleRefreshSession}
-            className="ml-auto"
-          >
-            <RefreshCw className="h-3 w-3 mr-1" />
-            Refresh Session
-          </Button>
-        </div>
-      )}
-      
       <form ref={formRef} onSubmit={handleSubmit} className="space-y-6">
-        <div className="p-4 bg-green-50 text-green-700 rounded-md">
-          <h3 className="font-medium mb-2">✅ Registration Progress</h3>
-          <ul className="text-sm space-y-1">
-            <li>✓ Email verified</li>
-            <li>✓ Account created</li>
-            <li className="font-medium">→ Creating professional profile...</li>
-          </ul>
-        </div>
-        
         <p className="text-gray-600">
           Clicking "Complete Registration" will create your professional profile and redirect you to your dashboard.
         </p>
@@ -474,23 +350,10 @@ const ProfessionalRegistrationFix = () => {
         <Button 
           type="submit" 
           className="w-full" 
-          disabled={isSubmitting || connectionStatus !== 'connected' || !userVerified}
+          disabled={isSubmitting || connectionStatus !== 'connected'}
         >
-          {isSubmitting ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Creating Profile...
-            </>
-          ) : (
-            'Complete Registration'
-          )}
+          {isSubmitting ? 'Creating Profile...' : 'Complete Registration'}
         </Button>
-        
-        {!userVerified && (
-          <p className="text-sm text-gray-500 text-center">
-            Please wait while we verify your authentication before proceeding.
-          </p>
-        )}
       </form>
     </div>
   );

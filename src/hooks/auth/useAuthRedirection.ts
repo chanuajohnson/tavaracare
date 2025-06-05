@@ -67,7 +67,7 @@ export const useAuthRedirection = (
         return;
       }
 
-      // Check profile completion for informational purposes, but don't redirect based on it
+      // Check profile completion and redirect accordingly
       const profileComplete = await checkProfileCompletion(user.id);
       
       if (effectiveRole) {
@@ -104,12 +104,19 @@ export const useAuthRedirection = (
           return;
         }
         
-        // Always redirect to dashboard regardless of profile completion status
-        // Dashboard will show appropriate next steps for incomplete profiles
-        console.log('[AuthProvider] Redirecting to dashboard:', targetDashboard, 'Profile complete:', profileComplete);
-        startTransition(() => {
-          safeNavigate(targetDashboard, { skipCheck: true });
-        });
+        // Only redirect to dashboard if not already there and profile is complete
+        if (profileComplete) {
+          console.log('[AuthProvider] Redirecting to dashboard:', targetDashboard);
+          startTransition(() => {
+            safeNavigate(targetDashboard, { skipCheck: true });
+          });
+        } else {
+          // Redirect to registration if profile incomplete
+          console.log('[AuthProvider] Redirecting to registration:', targetRegistration);
+          startTransition(() => {
+            safeNavigate(targetRegistration, { skipCheck: true });
+          });
+        }
       } else {
         // Only redirect to home if not already on correct dashboard
         if (location.pathname !== '/') {

@@ -1,3 +1,4 @@
+
 import { supabase } from '@/lib/supabase';
 import { UserRole } from '@/types/database';
 import { getCurrentEnvironment } from '@/integrations/supabase/client';
@@ -13,34 +14,26 @@ export const ensureUserProfile = async (userId: string, role: UserRole = 'family
     const env = getCurrentEnvironment();
     console.log('Ensuring profile exists for user:', userId, 'with role:', role, 'in environment:', env);
     
-    // First verify that the auth user exists
-    const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
+    // First check if session is valid
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
     
-    if (authError) {
-      console.error('Auth verification error when ensuring profile:', authError);
+    if (sessionError) {
+      console.error('Session error when ensuring profile:', sessionError);
       return { 
         success: false, 
-        error: `Authentication error: ${authError.message}` 
+        error: `Authentication error: ${sessionError.message}` 
       };
     }
     
-    if (!authUser) {
-      console.error('No authenticated user found when ensuring profile');
+    if (!session) {
+      console.error('No active session found when ensuring profile');
       return { 
         success: false, 
-        error: 'No authenticated user found. Please log in again.' 
+        error: 'No active authentication session' 
       };
     }
     
-    if (authUser.id !== userId) {
-      console.error('User ID mismatch when ensuring profile');
-      return { 
-        success: false, 
-        error: 'User authentication mismatch. Please log in again.' 
-      };
-    }
-    
-    // Check if profile exists using maybeSingle() to handle cases where no profile exists
+    // Check if profile exists using maybeSingle() instead of single() to handle cases where no profile exists
     const { data: existingProfile, error: profileError } = await supabase
       .from('profiles')
       .select('id, role')
@@ -49,15 +42,6 @@ export const ensureUserProfile = async (userId: string, role: UserRole = 'family
     
     if (profileError) {
       console.error('Error checking for existing profile:', profileError);
-      
-      // Handle foreign key constraint errors specifically
-      if (profileError.message.includes('foreign key') || profileError.message.includes('fkey')) {
-        return { 
-          success: false, 
-          error: 'Authentication timing error. Please refresh the page and try again.' 
-        };
-      }
-      
       return { 
         success: false, 
         error: `Database error: ${profileError.message}` 
@@ -79,15 +63,6 @@ export const ensureUserProfile = async (userId: string, role: UserRole = 'family
             
           if (updateError) {
             console.error('Error updating profile role:', updateError);
-            
-            // Handle foreign key errors during update
-            if (updateError.message.includes('foreign key') || updateError.message.includes('fkey')) {
-              return { 
-                success: false, 
-                error: 'Profile update failed due to authentication timing. Please refresh and try again.' 
-              };
-            }
-            
             return { 
               success: false, 
               error: `Profile update error: ${updateError.message}` 
@@ -120,24 +95,13 @@ export const ensureUserProfile = async (userId: string, role: UserRole = 'family
     // Create profile if it doesn't exist
     console.log('Creating new profile for user:', userId, 'with role:', role);
     
-    // Double-check auth user still exists before creating profile
-    const { data: { user: recheckUser }, error: recheckError } = await supabase.auth.getUser();
-    
-    if (recheckError || !recheckUser || recheckUser.id !== userId) {
-      console.error('Auth user verification failed during profile creation');
-      return { 
-        success: false, 
-        error: 'Authentication verification failed. Please log in again.' 
-      };
-    }
-    
-    // Build base profile object with auth user metadata
+    // Build base profile object
     const profileData = {
       id: userId,
       role: role,
-      full_name: recheckUser?.user_metadata?.full_name || '',
-      first_name: recheckUser?.user_metadata?.first_name || '',
-      last_name: recheckUser?.user_metadata?.last_name || '',
+      full_name: session.user?.user_metadata?.full_name || '',
+      first_name: session.user?.user_metadata?.first_name || '',
+      last_name: session.user?.user_metadata?.last_name || '',
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
     };
@@ -148,31 +112,6 @@ export const ensureUserProfile = async (userId: string, role: UserRole = 'family
     
     if (insertError) {
       console.error('Error creating profile:', insertError);
-      
-      // Handle foreign key constraint errors with specific guidance
-      if (insertError.message.includes('foreign key') || insertError.message.includes('fkey')) {
-        return { 
-          success: false, 
-          error: 'Profile creation failed due to authentication timing. Please refresh the page and try again, or log out and log back in.' 
-        };
-      }
-      
-      // Handle duplicate key errors
-      if (insertError.message.includes('duplicate key') || insertError.message.includes('already exists')) {
-        console.log('Profile already exists (race condition), checking again...');
-        // Try to fetch the existing profile
-        const { data: raceProfile } = await supabase
-          .from('profiles')
-          .select('id, role')
-          .eq('id', userId)
-          .maybeSingle();
-          
-        if (raceProfile) {
-          console.log('Found existing profile after race condition');
-          return { success: true };
-        }
-      }
-      
       return { 
         success: false, 
         error: `Profile creation error: ${insertError.message}` 
@@ -183,15 +122,6 @@ export const ensureUserProfile = async (userId: string, role: UserRole = 'family
     return { success: true };
   } catch (error: any) {
     console.error('Unexpected error ensuring profile:', error);
-    
-    // Handle specific error types
-    if (error.message && error.message.includes('foreign key')) {
-      return { 
-        success: false, 
-        error: 'Authentication timing error. Please refresh the page and try again.' 
-      };
-    }
-    
     return { 
       success: false, 
       error: `Unexpected error: ${error.message}` 
