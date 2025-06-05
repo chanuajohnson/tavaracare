@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -25,11 +24,11 @@ export function AdminUserJourneyDashboard() {
     try {
       setLoading(true);
       
-      const { data: profiles, error } = await supabase
+      // First get profiles data with only existing columns
+      const { data: profiles, error: profilesError } = await supabase
         .from('profiles')
         .select(`
           id,
-          email,
           full_name,
           role,
           email_verified,
@@ -45,20 +44,43 @@ export function AdminUserJourneyDashboard() {
         `)
         .order('created_at', { ascending: false });
 
-      if (error) {
-        console.error('Error fetching users:', error);
+      if (profilesError) {
+        console.error('Error fetching profiles:', profilesError);
         return;
+      }
+
+      // Get auth users data to get email addresses
+      const { data: authUsers, error: authError } = await supabase.auth.admin.listUsers();
+      
+      if (authError) {
+        console.error('Error fetching auth users:', authError);
+        // Continue without email data if auth query fails
+      }
+
+      // Create a map of user emails from auth data
+      const emailMap = new Map();
+      if (authUsers?.users) {
+        authUsers.users.forEach(user => {
+          emailMap.set(user.id, user.email);
+        });
       }
 
       // Transform the data to match our interface
       const transformedUsers: UserWithProgress[] = (profiles || []).map(profile => ({
-        ...profile,
-        email: profile.email || 'No email',
+        id: profile.id,
+        email: emailMap.get(profile.id) || 'No email available',
         full_name: profile.full_name || 'Unknown User',
         role: profile.role || 'family',
         email_verified: profile.email_verified || false,
         last_login_at: profile.last_login_at || profile.created_at,
-        created_at: profile.created_at
+        created_at: profile.created_at,
+        avatar_url: profile.avatar_url,
+        location: profile.location,
+        phone_number: profile.phone_number,
+        professional_type: profile.professional_type,
+        years_of_experience: profile.years_of_experience,
+        care_types: profile.care_types,
+        specialized_care: profile.specialized_care
       }));
 
       setUsers(transformedUsers);
