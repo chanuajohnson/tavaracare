@@ -76,26 +76,7 @@ export const PostTrialConversionModal: React.FC<PostTrialConversionModalProps> =
     if (!user) return;
     
     try {
-      // Create subscription record with trial credit applied
-      const { error: subscriptionError } = await supabase
-        .from('user_subscriptions')
-        .insert({
-          user_id: user.id,
-          plan_id: 'tavara_care_village',
-          status: 'active',
-          metadata: {
-            trial_credit_applied: true,
-            trial_credit_amount: trialAmount,
-            care_model: 'tavara_subscribed',
-            paypal_subscription_id: subscriptionId,
-            converted_from_trial: true,
-            conversion_date: new Date().toISOString()
-          }
-        });
-
-      if (subscriptionError) throw subscriptionError;
-
-      // Update profile with subscription status
+      // First update profile with subscription status
       const { error: profileError } = await supabase
         .from('profiles')
         .update({
@@ -104,7 +85,8 @@ export const PostTrialConversionModal: React.FC<PostTrialConversionModalProps> =
             trial_completed: true,
             subscription_active: true,
             trial_credit_applied: true,
-            conversion_date: new Date().toISOString()
+            conversion_date: new Date().toISOString(),
+            paypal_subscription_id: subscriptionId
           })
         })
         .eq('id', user.id);
