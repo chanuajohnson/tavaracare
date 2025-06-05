@@ -10,9 +10,14 @@ import { Button } from "@/components/ui/button";
 import { BarChart } from "lucide-react";
 import { UserJourneyTracker } from "@/components/tracking/UserJourneyTracker";
 import { useJourneyTracking } from "@/hooks/useJourneyTracking";
+import { useState, useEffect } from "react";
+import { supabase } from "@/lib/supabase";
 
 const AdminDashboard = () => {
   const { user } = useAuth();
+  const [userRole, setUserRole] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+
   const breadcrumbItems = [
     {
       label: "Dashboard",
@@ -24,6 +29,29 @@ const AdminDashboard = () => {
     },
   ];
 
+  // Check if current user is an admin
+  useEffect(() => {
+    const checkAdminRole = async () => {
+      if (user?.id) {
+        try {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('role')
+            .eq('id', user.id)
+            .maybeSingle();
+          
+          setUserRole(profile?.role || null);
+        } catch (error) {
+          console.error('Error checking user role:', error);
+          setUserRole(null);
+        }
+      }
+      setLoading(false);
+    };
+
+    checkAdminRole();
+  }, [user?.id]);
+
   // Track admin dashboard visits
   useJourneyTracking({
     journeyStage: "admin_dashboard_visit",
@@ -31,6 +59,26 @@ const AdminDashboard = () => {
       admin_section: "main_dashboard"
     }
   });
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  // Only show admin content if user is actually an admin
+  if (userRole !== 'admin') {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-gray-900 mb-4">Access Denied</h1>
+          <p className="text-gray-600">You don't have permission to access the admin dashboard.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -55,21 +103,19 @@ const AdminDashboard = () => {
           <p className="text-gray-600 mt-2">Manage system settings and user accounts.</p>
         </motion.div>
 
-        {user?.id === '605540d7-ae87-4a7c-9bd0-5699937f0670' && (
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
-            className="mb-6"
-          >
-            <Link to="/admin/user-journey">
-              <Button className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700">
-                <BarChart className="h-4 w-4" />
-                User Journey Analytics
-              </Button>
-            </Link>
-          </motion.div>
-        )}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+          className="mb-6"
+        >
+          <Link to="/admin/user-journey">
+            <Button className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700">
+              <BarChart className="h-4 w-4" />
+              User Journey Analytics
+            </Button>
+          </Link>
+        </motion.div>
 
         <div className="space-y-8">
           <AdminUserManagement />

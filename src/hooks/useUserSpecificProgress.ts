@@ -69,7 +69,7 @@ export const useUserSpecificProgress = (userId: string, userRole: UserRole): Use
       let updatedSteps = getStepsForRole(userRole);
 
       if (userRole === 'family') {
-        // Mirror TAV's family progress logic exactly - use specific field selection like TAV
+        // Enhanced data fetching with better error handling
         const { data: profile } = await supabase
           .from('profiles')
           .select('full_name, phone_number')
@@ -78,7 +78,7 @@ export const useUserSpecificProgress = (userId: string, userRole: UserRole): Use
 
         console.log(`[useUserSpecificProgress] Family profile data:`, profile);
 
-        // Check care assessment - exact same logic as TAV
+        // Check care assessment
         const { data: careAssessment } = await supabase
           .from('care_needs_family')
           .select('id')
@@ -104,63 +104,63 @@ export const useUserSpecificProgress = (userId: string, userRole: UserRole): Use
 
         console.log(`[useUserSpecificProgress] Care plans:`, carePlans);
 
-        // Check medications
-        const { data: medications } = await supabase
-          .from('medications')
-          .select('id')
-          .in('care_plan_id', (carePlans || []).map(cp => cp.id));
+        // Check medications (improved query with proper error handling)
+        let medications = [];
+        if (carePlans && carePlans.length > 0) {
+          const { data: medicationData } = await supabase
+            .from('medications')
+            .select('id')
+            .in('care_plan_id', carePlans.map(cp => cp.id));
+          medications = medicationData || [];
+        }
 
         console.log(`[useUserSpecificProgress] Medications:`, medications);
 
-        // Check meal plans
-        const { data: mealPlans } = await supabase
-          .from('meal_plans')
-          .select('id')
-          .in('care_plan_id', (carePlans || []).map(cp => cp.id));
+        // Check meal plans (improved query with proper error handling)
+        let mealPlans = [];
+        if (carePlans && carePlans.length > 0) {
+          const { data: mealPlanData } = await supabase
+            .from('meal_plans')
+            .select('id')
+            .in('care_plan_id', carePlans.map(cp => cp.id));
+          mealPlans = mealPlanData || [];
+        }
 
         console.log(`[useUserSpecificProgress] Meal plans:`, mealPlans);
 
-        // Mark steps as completed - exact same logic as TAV
-        // Step 1: Profile completion - mirror TAV's userId + profile check
+        // Mark steps as completed based on data availability
         if (userId && profile?.full_name) {
           updatedSteps[0].completed = true;
           console.log(`[useUserSpecificProgress] Step 1 completed: profile exists with full_name`);
         }
         
-        // Step 2: Care assessment - mirror TAV's logic
         if (careAssessment) {
           updatedSteps[1].completed = true;
           console.log(`[useUserSpecificProgress] Step 2 completed: care assessment exists`);
         }
         
-        // Step 3: Legacy story - mirror TAV's logic
         if (careRecipient && careRecipient.full_name) {
           updatedSteps[2].completed = true;
           console.log(`[useUserSpecificProgress] Step 3 completed: care recipient has full_name`);
         }
         
-        // Step 4: Caregiver matches - mirror TAV's logic
         if (careRecipient) {
           updatedSteps[3].completed = true;
           console.log(`[useUserSpecificProgress] Step 4 completed: care recipient exists`);
         }
         
-        // Step 5: Medication management - mirror TAV's logic
         if (medications && medications.length > 0) {
           updatedSteps[4].completed = true;
           console.log(`[useUserSpecificProgress] Step 5 completed: medications exist`);
         }
         
-        // Step 6: Meal management - mirror TAV's logic
         if (mealPlans && mealPlans.length > 0) {
           updatedSteps[5].completed = true;
           console.log(`[useUserSpecificProgress] Step 6 completed: meal plans exist`);
         }
         
-        // Step 7: Schedule visit - will be implemented later
-        
       } else if (userRole === 'professional') {
-        // Mirror TAV's professional progress logic exactly - use specific field selection like TAV
+        // Enhanced professional progress logic
         const { data: profile } = await supabase
           .from('profiles')
           .select('professional_type, years_of_experience, certifications, availability')
@@ -177,31 +177,26 @@ export const useUserSpecificProgress = (userId: string, userRole: UserRole): Use
 
         console.log(`[useUserSpecificProgress] Professional documents:`, documents);
 
-        // Mark steps as completed - exact same logic as TAV
+        // Mark steps as completed
         updatedSteps[0].completed = true; // Account always completed
         
-        // Step 2: Professional profile - mirror TAV's logic
         if (profile && profile.professional_type && profile.years_of_experience) {
           updatedSteps[1].completed = true;
           console.log(`[useUserSpecificProgress] Step 2 completed: professional profile complete`);
         }
         
-        // Step 3: Documents - mirror TAV's logic
         if (documents && documents.length > 0) {
           updatedSteps[2].completed = true;
           console.log(`[useUserSpecificProgress] Step 3 completed: documents uploaded`);
         }
         
-        // Step 4: Availability - mirror TAV's logic
         if (profile && profile.availability && profile.availability.length > 0) {
           updatedSteps[3].completed = true;
           console.log(`[useUserSpecificProgress] Step 4 completed: availability set`);
         }
         
-        // Steps 5 and 6 will be completed based on future implementations
-        
       } else if (userRole === 'community') {
-        // Mirror TAV's community progress logic
+        // Community progress logic
         const { data: profile } = await supabase
           .from('profiles')
           .select('full_name, contribution_interests')
@@ -210,7 +205,6 @@ export const useUserSpecificProgress = (userId: string, userRole: UserRole): Use
 
         console.log(`[useUserSpecificProgress] Community profile data:`, profile);
 
-        // Mark steps as completed for community - mirror TAV's logic
         if (userId && profile?.full_name) {
           updatedSteps[0].completed = true;
           console.log(`[useUserSpecificProgress] Step 1 completed: community profile exists with full_name`);
