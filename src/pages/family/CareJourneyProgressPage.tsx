@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,6 +11,7 @@ import { ScheduleVisitModal } from "@/components/family/ScheduleVisitModal";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
+import { Breadcrumbs } from "@/components/ui/breadcrumbs";
 
 interface JourneyStep {
   id: number;
@@ -416,6 +416,11 @@ export default function CareJourneyProgressPage() {
   const completedCount = steps.filter(step => step.completed).length;
   const totalCount = steps.length;
 
+  const breadcrumbItems = [
+    { label: "Family Dashboard", href: "/dashboard/family" },
+    { label: "Care Journey Progress", href: "/family/care-journey-progress" }
+  ];
+
   if (loading) {
     return (
       <div className="container mx-auto px-4 py-8">
@@ -435,6 +440,11 @@ export default function CareJourneyProgressPage() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
         >
+          {/* Breadcrumb */}
+          <div className="mb-6">
+            <Breadcrumbs items={breadcrumbItems} />
+          </div>
+
           {/* Header */}
           <div className="mb-8">
             <h1 className="text-3xl font-bold text-gray-900 mb-2 flex items-center gap-2">
