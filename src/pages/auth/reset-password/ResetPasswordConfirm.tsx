@@ -5,7 +5,7 @@ import { ErrorState } from '@/components/auth/reset-password/ErrorState';
 import { PasswordResetForm } from '@/components/auth/reset-password/PasswordResetForm';
 import { extractResetTokens } from '@/utils/authResetUtils';
 import { supabase } from '@/integrations/supabase/client';
-import { VALIDATION_TIMEOUT_MS } from '@/utils/passwordResetUtils';
+import { VALIDATION_TIMEOUT_MS, logResetAttempt } from '@/utils/passwordResetUtils';
 
 const ResetPasswordConfirm = () => {
   const [isLoading, setIsLoading] = useState(true);
@@ -27,7 +27,7 @@ const ResetPasswordConfirm = () => {
         sessionStorage.setItem('skipPostLoginRedirect', 'true');
         
         // Extract tokens from query parameters
-        const { access_token, refresh_token, token, type, error } = extractResetTokens();
+        const { access_token, refresh_token, token, type, email, error } = extractResetTokens();
         
         if (error) {
           throw new Error(error);
@@ -46,22 +46,10 @@ const ResetPasswordConfirm = () => {
                 refresh_token: refresh_token
               });
             } 
-            else if (token && type === 'recovery') {
-              console.log('[Reset] Using legacy token format, exchanging for session');
+            else if (token && type === 'recovery' && email) {
+              console.log('[Reset] Using recovery token format, exchanging for session');
               
-              // For the legacy format, we need to determine the user's email first
-              // This is a workaround since the Supabase API now requires an email for verifyOtp
-              
-              // We can try to extract email from the URL if available
-              const searchParams = new URLSearchParams(window.location.search);
-              const email = searchParams.get('email');
-              
-              if (!email) {
-                console.error('[Reset] Email parameter is missing for recovery token verification');
-                throw new Error('Invalid recovery link. The link must include an email parameter.');
-              }
-              
-              // Now we have the email, we can verify the OTP
+              // Verify the OTP with email
               sessionResult = await supabase.auth.verifyOtp({
                 token: token,
                 type: 'recovery',
@@ -77,7 +65,7 @@ const ResetPasswordConfirm = () => {
 
             if (sessionResult.error) {
               console.error('[Reset] Session error:', sessionResult.error);
-              throw new Error(sessionResult.error.message);
+              throw new Error(`Authentication failed: ${sessionResult.error.message}`);
             }
             
             // Validate the session
@@ -92,6 +80,8 @@ const ResetPasswordConfirm = () => {
             if (!emailAddress) {
               setEmailAddress(user.email);
             }
+            
+            logResetAttempt(true);
             setValidSession(true);
             setValidationError(null);
           })(),
@@ -100,11 +90,18 @@ const ResetPasswordConfirm = () => {
         
       } catch (error: any) {
         console.error('[Reset] Session validation error:', error);
-        setValidationError(
-          error.message === 'Session validation timed out'
-            ? 'Connection timeout. Please try again or request a new reset link.'
-            : error.message
-        );
+        logResetAttempt(false, error.message);
+        
+        let errorMessage = error.message;
+        if (error.message === 'Session validation timed out') {
+          errorMessage = 'Connection timeout. Please try again or request a new reset link.';
+        } else if (error.message.includes('Invalid or expired')) {
+          errorMessage = 'This reset link has expired or is invalid. Please request a new password reset link.';
+        } else if (error.message.includes('Authentication failed')) {
+          errorMessage = 'Unable to verify your reset request. Please request a new password reset link.';
+        }
+        
+        setValidationError(errorMessage);
       } finally {
         setIsLoading(false);
       }
@@ -130,7 +127,7 @@ const ResetPasswordConfirm = () => {
 
   // Skip rendering form if session validation failed
   if (!validSession) {
-    return null;
+    return <ErrorState error="Unable to validate your reset request. Please try again." />;
   }
 
   // Show password reset form

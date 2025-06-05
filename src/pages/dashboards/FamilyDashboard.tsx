@@ -1,541 +1,270 @@
+
 import { motion } from "framer-motion";
+import { useEffect } from "react";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { FileText, Clock, Calendar, PenSquare, ChefHat, ActivitySquare, Users, Bell, Pill, ArrowRight, UserCog, Circle, List, CheckCircle2, MessageSquare } from "lucide-react";
+import { ArrowRight, Users, Calendar, Heart, UserPlus, MessageSquare, CheckCircle2 } from "lucide-react";
 import { UpvoteFeatureButton } from "@/components/features/UpvoteFeatureButton";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/components/providers/AuthProvider";
-import { DashboardCardGrid } from "@/components/dashboard/DashboardCardGrid";
-import { useState, useEffect } from "react";
-import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { toast } from "sonner";
-import { supabase } from "@/lib/supabase";
 import { FamilyNextStepsPanel } from "@/components/family/FamilyNextStepsPanel";
-import { FamilyPostCareNeedForm } from "@/components/family/FamilyPostCareNeedForm";
-import { useNavigate } from "react-router-dom";
-import { CaregiverMatchingCard } from "@/components/family/CaregiverMatchingCard";
 import { DashboardCaregiverMatches } from "@/components/family/DashboardCaregiverMatches";
-import { SubscriptionFeatureLink } from "@/components/subscription/SubscriptionFeatureLink";
-import { TellTheirStoryCard } from "@/components/family/TellTheirStoryCard";
-import { DashboardTracker } from "@/components/tracking/DashboardTracker";
+import { CaregiverMatchingCard } from "@/components/family/CaregiverMatchingCard";
 import { FamilyShortcutMenuBar } from "@/components/family/FamilyShortcutMenuBar";
-import { CaregiverHealthCard } from "@/components/professional/CaregiverHealthCard";
+import { TellTheirStoryCard } from "@/components/family/TellTheirStoryCard";
 
 const FamilyDashboard = () => {
-  const {
-    user,
-    isProfileComplete
-  } = useAuth();
-  const breadcrumbItems = [{
-    label: "Family Dashboard",
-    path: "/dashboard/family"
-  }];
-  const [messages, setMessages] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [carePlans, setCarePlans] = useState([]);
-  const navigate = useNavigate();
-  
+  const { user } = useAuth();
+
+  // Ensure dashboard always loads at the top with enhanced scroll behavior
   useEffect(() => {
-    if (user) {
-      fetchMessages();
-      fetchCarePlans();
-    } else {
-      setLoading(false);
-    }
-  }, [user]);
-
-  const fetchCarePlans = async () => {
-    if (!user) return;
-    
-    try {
-      const { data, error } = await supabase
-        .from('care_plans')
-        .select('id, title')
-        .eq('family_id', user.id);
-      
-      if (error) throw error;
-      setCarePlans(data || []);
-    } catch (error) {
-      console.error("Error fetching care plans:", error);
-    }
-  };
-  
-  const fetchMessages = async () => {
-    try {
-      setLoading(true);
-      const {
-        data,
-        error
-      } = await supabase.from('message_board_posts').select('*').ilike('location', '%Trinidad and Tobago%').order('time_posted', {
-        ascending: false
-      }).limit(4);
-      if (error) {
-        throw error;
-      }
-      if (data) {
-        console.log("Fetched Trinidad and Tobago messages:", data);
-        setMessages(data);
-      }
-    } catch (error) {
-      console.error("Error fetching messages:", error);
-      toast.error("Failed to load message board posts");
-    } finally {
-      setLoading(false);
-    }
-  };
-  
-  const refreshData = async () => {
-    try {
-      setRefreshing(true);
-      toast.info("Refreshing Trinidad and Tobago message board data...");
-      const {
-        data,
-        error
-      } = await supabase.functions.invoke('update-job-data', {
-        body: {
-          region: 'Trinidad and Tobago'
-        }
+    // Use a small delay to ensure DOM is fully rendered
+    const scrollToTop = () => {
+      window.scrollTo({ 
+        top: 0, 
+        left: 0, 
+        behavior: 'instant' 
       });
-      if (error) {
-        throw error;
-      }
-      if (data.success) {
-        toast.success(`Successfully refreshed data with ${data.postsCount} posts`);
-        await fetchMessages();
-      } else {
-        throw new Error(data.error || "Failed to refresh data");
-      }
-    } catch (error) {
-      console.error("Error refreshing data:", error);
-      toast.error("Failed to refresh message board data");
-    } finally {
-      setRefreshing(false);
-    }
-  };
-  
-  const formatTimePosted = timestamp => {
-    if (!timestamp) return "Unknown";
-    const posted = new Date(timestamp);
-    const now = new Date();
-    const diffInMs = now.getTime() - posted.getTime();
-    const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
-    if (diffInHours < 1) return "Just now";
-    if (diffInHours < 24) return `${diffInHours} hours ago`;
-    if (diffInHours < 48) return "Yesterday";
-    return `${Math.floor(diffInHours / 24)} days ago`;
-  };
-  
-  const handleViewFullBoard = () => {
-    navigate('/subscription-features', {
-      state: {
-        returnPath: '/family/message-board',
-        featureType: "Full Message Board"
-      }
-    });
-  };
-  
-  const handleViewAllTasks = () => {
-    navigate('/subscription-features', {
-      state: {
-        returnPath: '/dashboard/family',
-        featureType: "All Tasks View",
-        referringPagePath: '/dashboard/family',
-        referringPageLabel: 'Family Dashboard'
-      }
-    });
-  };
+    };
+    
+    // Immediate scroll
+    scrollToTop();
+    
+    // Additional delayed scroll to ensure it takes effect
+    setTimeout(scrollToTop, 50);
+    setTimeout(scrollToTop, 150);
+  }, []);
 
-  return <div className="min-h-screen bg-background">
-      <DashboardTracker dashboardType="family" />
+  const breadcrumbItems = [
+    {
+      label: "Family Dashboard",
+      path: "/dashboard/family",
+    },
+  ];
+
+  return (
+    <div className="min-h-screen bg-background">
       <div className="container px-4 py-8">
         <DashboardHeader breadcrumbItems={breadcrumbItems} />
 
-        <motion.div initial={{
-        opacity: 0,
-        y: 20
-      }} animate={{
-        opacity: 1,
-        y: 0
-      }} transition={{
-        duration: 0.5
-      }} className="space-y-6">
-          {!user ? <div className="bg-gradient-to-r from-green-50 to-blue-50 p-6 rounded-lg mb-8 border border-green-100">
-              <h2 className="text-2xl font-bold mb-2">Welcome to Tavara! 🚀 It takes a village to care.</h2>
-              <p className="text-gray-600 mb-4">Connect with caregivers, explore features, and help shape the future of care</p>
-              <div className="flex flex-wrap gap-3 mt-4">
-                <Link to="/auth">
-                  <Button variant="default" size="sm">
-                    View Care Plans
-                  </Button>
-                </Link>
-                <Link to="/auth">
-                  <Button variant="outline" size="sm">
-                    Find a Caregiver
-                  </Button>
-                </Link>
-                <Link to="/auth">
-                  <Button variant="outline" size="sm">
-                    Upvote Features
-                  </Button>
-                </Link>
-              </div>
-            </div> : null}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="space-y-6"
+        >
+          <h1 className="text-3xl font-bold">Family Dashboard</h1>
+          <p className="text-muted-foreground mt-2">
+            Manage your care needs and connect with trusted caregivers.
+          </p>
+        </motion.div>
 
-          <h1 className="text-3xl font-semibold mb-4">Family Dashboard</h1>
-          <p className="text-gray-600 mb-2">Comprehensive care coordination platform.</p>
-          
-          {user && <FamilyShortcutMenuBar />}
+        {/* Quick Access Menu Bar - Only show when user is logged in */}
+        {user && <FamilyShortcutMenuBar />}
 
-          <FamilyNextStepsPanel />
-
-          <CaregiverMatchingCard />
-          
-          <CaregiverHealthCard className="mb-8" />
-          
-          <TellTheirStoryCard />
-
-          <DashboardCaregiverMatches />
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-            <motion.div initial={{
-            opacity: 0,
-            y: 20
-          }} animate={{
-            opacity: 1,
-            y: 0
-          }} transition={{
-            duration: 0.5
-          }}>
-              <Card className="h-full border-l-4 border-l-primary">
-                <CardHeader className="pb-2">
-                  <CardTitle className="flex items-center gap-2 text-xl">
-                    <MessageSquare className="h-5 w-5 text-primary" />
-                    Message Board
-                  </CardTitle>
-                  <div className="flex justify-between items-center">
-                    <p className="text-sm text-gray-500">Care provider availability in Trinidad and Tobago</p>
-                    <div className="flex gap-2">
-                      <Button variant="outline" size="sm" className="h-8 gap-1" onClick={handleViewFullBoard} disabled={refreshing}>
-                        <Clock className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
-                        <span className="sr-only">Refresh</span>
-                      </Button>
-                      <Badge variant="outline" className="bg-gray-50 text-gray-700 hover:bg-gray-100">Professional</Badge>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {loading ? <div className="flex justify-center items-center py-12">
-                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-                    </div> : messages.length > 0 ? <div className="space-y-3">
-                      {messages.filter(message => message.type === "professional").slice(0, 3).map(message => <div key={message.id} className="p-3 rounded-lg space-y-2 hover:bg-gray-50 transition-colors cursor-pointer border-l-2 bg-gray-50 border-l-primary-400">
-                          <div className="flex justify-between items-start">
-                            <div className="flex items-center gap-2">
-                              <Avatar className="bg-primary-200">
-                                <AvatarFallback className="text-primary-800">
-                                  {message.author_initial}
-                                </AvatarFallback>
-                              </Avatar>
-                              <div>
-                                <h4 className="font-medium text-sm">{message.title}</h4>
-                                <p className="text-xs text-gray-600">{message.author}</p>
-                              </div>
-                            </div>
-                            {message.urgency && <Badge variant="outline" className={message.urgency === "Immediate" ? "bg-red-50 text-red-700" : message.urgency === "Short Notice" ? "bg-orange-50 text-orange-700" : message.urgency === "This Weekend" ? "bg-amber-50 text-amber-700" : "bg-blue-50 text-blue-700"}>
-                                {message.urgency}
-                              </Badge>}
-                          </div>
-                          
-                          <p className="text-xs text-gray-600">{message.details}</p>
-                          
-                          <div className="flex flex-wrap gap-1 mt-1">
-                            {message.specialties && message.specialties.map((specialty, index) => <Badge key={index} variant="outline" className="text-xs bg-white">
-                                {specialty}
-                              </Badge>)}
-                          </div>
-                          
-                          <div className="flex justify-between items-center pt-1 text-xs text-gray-500">
-                            <div className="flex items-center gap-1">
-                              <Clock className="h-3 w-3" />
-                              <span>Posted {formatTimePosted(message.time_posted)}</span>
-                            </div>
-                            <div className="flex items-center gap-1">
-                              <Users className="h-3 w-3" />
-                              <span>{message.location}</span>
-                            </div>
-                          </div>
-                        </div>)}
-                    </div> : <div className="text-center py-6">
-                      <p className="text-gray-500">No care providers found in Trinidad and Tobago</p>
-                      <Button variant="outline" size="sm" className="mt-2" onClick={refreshData} disabled={refreshing}>
-                        Refresh Data
-                      </Button>
-                    </div>}
-                  
-                  <SubscriptionFeatureLink featureType="Full Message Board" returnPath="/family/message-board" referringPagePath="/dashboard/family" referringPageLabel="Family Dashboard">
-                    View Full Message Board
-                  </SubscriptionFeatureLink>
-                </CardContent>
-              </Card>
-            </motion.div>
-
-            <FamilyPostCareNeedForm />
-          </div>
-
-          <Card className="mb-8">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <UserCog className="h-5 w-5 text-primary" />
-                Profile Management
-              </CardTitle>
-              <CardDescription>Manage your profile information and preferences</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <p className="text-gray-600">Keep your profile up-to-date to ensure you receive the most relevant care coordination support and recommendations.</p>
-              <Link to="/registration/family">
-                <Button variant="default" className="w-full">
-                  Manage Profile
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
-              </Link>
-              <UpvoteFeatureButton featureTitle="Profile Management" className="w-full" buttonText="Upvote this Feature" />
-            </CardContent>
-          </Card>
-
-          <Card className="mb-8">
-            <CardHeader>
-              <CardTitle>Medication Management</CardTitle>
-              <CardDescription>Track and manage medications, schedules, and administration</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {carePlans.length > 0 ? (
-                <div className="space-y-4">
-                  <p className="text-gray-600">Manage medications for your care plans:</p>
-                  <div className="space-y-2">
-                    {carePlans.map((plan) => (
-                      <Link 
-                        key={plan.id} 
-                        to={`/family/care-management/${plan.id}/medications`}
-                        className="block"
-                      >
-                        <Button variant="outline" className="w-full justify-between">
-                          <span>{plan.title} - Medications</span>
-                          <ArrowRight className="h-4 w-4" />
-                        </Button>
-                      </Link>
-                    ))}
-                  </div>
-                </div>
-              ) : (
-                <div className="text-center py-4">
-                  <p className="text-gray-600 mb-4">Create a care plan first to manage medications.</p>
-                  <Link to="/family/care-management/create">
-                    <Button variant="default">
+        {!user ? (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1, duration: 0.5 }}
+            className="my-8"
+          >
+            <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 rounded-lg border border-blue-100">
+              <CardContent className="p-0">
+                <h2 className="text-2xl font-bold">Welcome to Tavara! 🏠 Your Family Care Hub.</h2>
+                <p className="mt-2 text-gray-600">
+                  Connect with trusted caregivers, manage care plans, and get the support your family needs.
+                </p>
+                
+                <div className="flex flex-wrap gap-3 mt-6">
+                  <Link to="/auth">
+                    <Button variant="default" size="sm">
+                      Find Caregivers
+                    </Button>
+                  </Link>
+                  <Link to="/auth">
+                    <Button variant="outline" size="sm">
                       Create Care Plan
-                      <ArrowRight className="ml-2 h-4 w-4" />
+                    </Button>
+                  </Link>
+                  <Link to="/auth">
+                    <Button variant="outline" size="sm">
+                      Explore Features
                     </Button>
                   </Link>
                 </div>
-              )}
-              
-              <div className="mt-6">
-                <UpvoteFeatureButton featureTitle="Medication Management" className="w-full mb-6" buttonText="Upvote this Feature" />
-              </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Pill className="h-5 w-5 text-primary" />
-                      Medications
-                    </CardTitle>
-                    <CardDescription>View and manage medications</CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    {carePlans.length > 0 ? (
-                      <Link to={`/family/care-management/${carePlans[0].id}/medications`}>
-                        <Button variant="secondary" className="w-full">View Medications</Button>
-                      </Link>
-                    ) : (
-                      <Button variant="secondary" className="w-full" disabled>
-                        No Care Plans
-                      </Button>
-                    )}
-                  </CardContent>
-                </Card>
+              </CardContent>
+            </Card>
+          </motion.div>
+        ) : null}
 
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Clock className="h-5 w-5 text-primary" />
-                      Schedule
-                    </CardTitle>
-                    <CardDescription>Manage medication schedules</CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    {carePlans.length > 0 ? (
-                      <Link to={`/family/care-management/${carePlans[0].id}/medications`}>
-                        <Button variant="secondary" className="w-full">View Schedule</Button>
-                      </Link>
-                    ) : (
-                      <Button variant="secondary" className="w-full" disabled>
-                        No Care Plans
-                      </Button>
-                    )}
-                  </CardContent>
-                </Card>
+        {/* Next Steps Panel and Tell Their Story - side by side */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
+          <FamilyNextStepsPanel />
+          <TellTheirStoryCard />
+        </div>
 
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Calendar className="h-5 w-5 text-primary" />
-                      Planning
-                    </CardTitle>
-                    <CardDescription>Plan medication routines</CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    {carePlans.length > 0 ? (
-                      <Link to={`/family/care-management/${carePlans[0].id}/medications`}>
-                        <Button variant="secondary" className="w-full">View Planning</Button>
-                      </Link>
-                    ) : (
-                      <Button variant="secondary" className="w-full" disabled>
-                        No Care Plans
-                      </Button>
-                    )}
-                  </CardContent>
-                </Card>
+        {/* Caregiver Matching Card */}
+        <CaregiverMatchingCard />
 
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <PenSquare className="h-5 w-5 text-primary" />
-                      Administration
-                    </CardTitle>
-                    <CardDescription>Track medication administration</CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    {carePlans.length > 0 ? (
-                      <Link to={`/family/care-management/${carePlans[0].id}/medications`}>
-                        <Button variant="secondary" className="w-full">View Administration</Button>
-                      </Link>
-                    ) : (
-                      <Button variant="secondary" className="w-full" disabled>
-                        No Care Plans
-                      </Button>
-                    )}
-                  </CardContent>
-                </Card>
-              </div>
-            </CardContent>
-          </Card>
+        {/* Family Matches Section */}
+        <div className="mt-8">
+          <DashboardCaregiverMatches />
+        </div>
 
-          <Card className="mb-8">
-            <CardHeader>
-              <CardTitle>Meal Planning</CardTitle>
-              <CardDescription>Plan and manage meals, recipes, and nutrition</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Link to="/family/features-overview">
-                <Button variant="default" className="w-full mb-6">
-                  Learn More
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
-              </Link>
-              <UpvoteFeatureButton featureTitle="Meal Planning" className="w-full mb-6" buttonText="Upvote this Feature" />
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-lg">
-                      <Calendar className="h-5 w-5 text-primary" />
-                      Select Date
-                    </CardTitle>
-                    <CardDescription>Pick a date for meal planning</CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="border rounded-lg p-4">
-                      <p className="text-gray-500 text-sm">Pick a date</p>
-                    </div>
-                    <Link to="/family/features-overview" className="block mt-4">
-                      <Button variant="secondary" className="w-full">Select Date</Button>
-                    </Link>
-                  </CardContent>
-                </Card>
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Care Management */}
+            <Card className="bg-white shadow-sm">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Users className="h-5 w-5" />
+                  Care Management
+                </CardTitle>
+                <CardDescription>
+                  Organize and manage care for your loved ones
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2 mb-4 text-left">
+                  <p className="text-sm text-gray-600">Create Care Plans</p>
+                  <p className="text-sm text-gray-600">Schedule Care Activities</p>
+                  <p className="text-sm text-gray-600">Track Progress</p>
+                  <p className="text-sm text-gray-600">Coordinate with Caregivers</p>
+                </div>
+                <Link to="/family/care-management">
+                  <Button 
+                    variant="default"
+                    className="w-full bg-primary hover:bg-primary-600 text-white"
+                  >
+                    Manage Care
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
+                </Link>
+                <div className="pt-4">
+                  <UpvoteFeatureButton
+                    featureTitle="Care Management Tools"
+                    buttonText="Upvote this Feature"
+                  />
+                </div>
+              </CardContent>
+            </Card>
 
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-lg">
-                      <Clock className="h-5 w-5 text-primary" />
-                      Meal Types
-                    </CardTitle>
-                    <CardDescription>Choose meal types for planning</CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <p className="text-gray-500">Morning Drink</p>
-                        <p className="text-gray-500">Morning Snack</p>
-                        <p className="text-gray-500">Afternoon Snack</p>
-                      </div>
-                      <div className="space-y-2">
-                        <p className="text-gray-500">Breakfast</p>
-                        <p className="text-gray-500">Lunch</p>
-                        <p className="text-gray-500">Dinner</p>
-                      </div>
-                    </div>
-                    <Link to="/family/features-overview" className="block mt-4">
-                      <Button variant="secondary" className="w-full">Select Types</Button>
-                    </Link>
-                  </CardContent>
-                </Card>
+            {/* Community Support */}
+            <Card className="bg-white shadow-sm">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Heart className="h-5 w-5" />
+                  Community Support
+                </CardTitle>
+                <CardDescription>
+                  Connect with other families and support networks
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2 mb-4 text-left">
+                  <p className="text-sm text-gray-600">Join Family Support Groups</p>
+                  <p className="text-sm text-gray-600">Share Resources</p>
+                  <p className="text-sm text-gray-600">Get Advice</p>
+                  <p className="text-sm text-gray-600">Build Connections</p>
+                </div>
+                <Link to="/features">
+                  <Button 
+                    variant="default"
+                    className="w-full bg-primary hover:bg-primary-600 text-white"
+                  >
+                    Find Support
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
+                </Link>
+                <div className="pt-4">
+                  <UpvoteFeatureButton
+                    featureTitle="Community Support Features"
+                    buttonText="Upvote this Feature"
+                  />
+                </div>
+              </CardContent>
+            </Card>
+          </div>
 
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-lg">
-                      <ChefHat className="h-5 w-5 text-primary" />
-                      Recipe Library
-                    </CardTitle>
-                    <CardDescription>Browse and manage recipes</CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <Link to="/family/features-overview">
-                      <Button variant="secondary" className="w-full">View Library</Button>
-                    </Link>
-                  </CardContent>
-                </Card>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Care Assessment */}
+            <Card className="bg-white shadow-sm">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <CheckCircle2 className="h-5 w-5" />
+                  Care Assessment
+                </CardTitle>
+                <CardDescription>
+                  Understand your care needs better
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2 mb-4 text-left">
+                  <p className="text-sm text-gray-600">Complete Care Assessment</p>
+                  <p className="text-sm text-gray-600">Get Personalized Recommendations</p>
+                  <p className="text-sm text-gray-600">Plan Care Strategy</p>
+                  <p className="text-sm text-gray-600">Track Care Goals</p>
+                </div>
+                <Link to="/family/care-needs-assessment">
+                  <Button 
+                    variant="default"
+                    className="w-full bg-primary hover:bg-primary-600 text-white"
+                  >
+                    Start Assessment
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
+                </Link>
+                <div className="pt-4">
+                  <UpvoteFeatureButton
+                    featureTitle="Care Assessment Tools"
+                    buttonText="Upvote this Feature"
+                  />
+                </div>
+              </CardContent>
+            </Card>
 
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-lg">
-                      <ActivitySquare className="h-5 w-5 text-primary" />
-                      Suggestions
-                    </CardTitle>
-                    <CardDescription>Get personalized meal suggestions</CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <Link to="/family/features-overview">
-                      <Button variant="secondary" className="w-full">View Suggestions</Button>
-                    </Link>
-                  </CardContent>
-                </Card>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="mb-8">
-            <CardHeader>
-              <CardTitle>Recent Activity</CardTitle>
-              <CardDescription>Latest updates from your care plans and meal activities</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-gray-600">No recent activities</p>
-            </CardContent>
-          </Card>
-        </motion.div>
+            {/* Resource Library */}
+            <Card className="bg-white shadow-sm">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <MessageSquare className="h-5 w-5" />
+                  Resource Library
+                </CardTitle>
+                <CardDescription>
+                  Access helpful guides and information
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2 mb-4 text-left">
+                  <p className="text-sm text-gray-600">Care Guides</p>
+                  <p className="text-sm text-gray-600">Educational Materials</p>
+                  <p className="text-sm text-gray-600">Best Practices</p>
+                  <p className="text-sm text-gray-600">Expert Advice</p>
+                </div>
+                <Link to="/features">
+                  <Button 
+                    variant="default"
+                    className="w-full bg-primary hover:bg-primary-600 text-white"
+                  >
+                    Browse Resources
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
+                </Link>
+                <div className="pt-4">
+                  <UpvoteFeatureButton
+                    featureTitle="Resource Library"
+                    buttonText="Upvote this Feature"
+                  />
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
       </div>
-    </div>;
+    </div>
+  );
 };
+
 export default FamilyDashboard;
