@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
@@ -78,7 +77,7 @@ export const ScheduleVisitModal: React.FC<ScheduleVisitModalProps> = ({
     
     setIsUpdating(true);
     try {
-      // Record the payment transaction
+      // Record the payment transaction with trial tracking metadata
       const { error: paymentError } = await supabase
         .from('payment_transactions')
         .insert({
@@ -91,13 +90,14 @@ export const ScheduleVisitModal: React.FC<ScheduleVisitModalProps> = ({
           metadata: {
             visit_type: selectedVisitType,
             care_model_preference: selectedCareModel,
-            scheduled_date: new Date().toISOString()
+            scheduled_date: new Date().toISOString(),
+            trial_eligible_for_conversion: selectedVisitType === 'trial_day'
           }
         });
 
       if (paymentError) throw paymentError;
 
-      // Update visit status
+      // Update visit status with care model preference stored
       const { error: profileError } = await supabase
         .from('profiles')
         .update({ 
@@ -106,14 +106,15 @@ export const ScheduleVisitModal: React.FC<ScheduleVisitModalProps> = ({
             visit_type: selectedVisitType,
             care_model_preference: selectedCareModel,
             payment_completed: true,
-            scheduled_at: new Date().toISOString()
+            scheduled_at: new Date().toISOString(),
+            trial_amount: selectedVisitType === 'trial_day' ? 320 : 300
           })
         })
         .eq('id', user.id);
 
       if (profileError) throw profileError;
 
-      // Track engagement
+      // Track engagement with trial conversion flag
       await supabase
         .from('cta_engagement_tracking')
         .insert({
@@ -123,7 +124,8 @@ export const ScheduleVisitModal: React.FC<ScheduleVisitModalProps> = ({
           additional_data: { 
             care_model: selectedCareModel,
             amount: selectedVisitType === 'trial_day' ? 320 : 300,
-            transaction_id: transactionId
+            transaction_id: transactionId,
+            trial_conversion_eligible: selectedVisitType === 'trial_day'
           }
         });
 
@@ -526,6 +528,11 @@ export const ScheduleVisitModal: React.FC<ScheduleVisitModalProps> = ({
                     <p>✅ Payment processed: ${selectedVisitType === 'trial_day' ? '320' : '300'} TTD</p>
                     <p>✅ Care model: {selectedCareModel === 'direct_hire' ? 'Direct Hire' : 'Tavara Care Village'}</p>
                     <p>📅 Our team will contact you within 24 hours to schedule</p>
+                    {selectedVisitType === 'trial_day' && (
+                      <p className="font-semibold text-green-700 bg-green-100 p-2 rounded mt-3">
+                        💰 After your trial, you'll have options to continue with your preferred care model!
+                      </p>
+                    )}
                   </div>
                   
                   <Button 

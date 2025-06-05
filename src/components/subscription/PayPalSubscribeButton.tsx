@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { PayPalButtons, usePayPalScriptReducer } from '@paypal/react-paypal-js';
@@ -78,7 +77,6 @@ export function PayPalSubscribeButton({
         }
       } else {
         // For trial_day and one_time payments, return a mock order ID
-        // In a real implementation, you'd call PayPal's Orders API
         const mockOrderId = `ORDER_${Date.now()}`;
         console.log("Mock one-time payment order created:", mockOrderId);
         return mockOrderId;
