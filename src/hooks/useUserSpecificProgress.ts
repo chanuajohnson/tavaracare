@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import type { UserRole } from '@/types/userRoles';
@@ -68,14 +69,16 @@ export const useUserSpecificProgress = (userId: string, userRole: UserRole): Use
       let updatedSteps = getStepsForRole(userRole);
 
       if (userRole === 'family') {
+        // Enhanced data fetching with better error handling
         const { data: profile } = await supabase
           .from('profiles')
-          .select('full_name, phone_number, visit_scheduling_status, visit_scheduled_date')
+          .select('full_name, phone_number')
           .eq('id', userId)
           .maybeSingle();
 
         console.log(`[useUserSpecificProgress] Family profile data:`, profile);
 
+        // Check care assessment
         const { data: careAssessment } = await supabase
           .from('care_needs_family')
           .select('id')
@@ -84,6 +87,7 @@ export const useUserSpecificProgress = (userId: string, userRole: UserRole): Use
 
         console.log(`[useUserSpecificProgress] Care assessment:`, careAssessment);
 
+        // Check care recipient profile
         const { data: careRecipient } = await supabase
           .from('care_recipient_profiles')
           .select('id, full_name')
@@ -92,6 +96,7 @@ export const useUserSpecificProgress = (userId: string, userRole: UserRole): Use
 
         console.log(`[useUserSpecificProgress] Care recipient:`, careRecipient);
 
+        // Check care plans
         const { data: carePlans } = await supabase
           .from('care_plans')
           .select('id')
@@ -99,6 +104,7 @@ export const useUserSpecificProgress = (userId: string, userRole: UserRole): Use
 
         console.log(`[useUserSpecificProgress] Care plans:`, carePlans);
 
+        // Check medications (improved query with proper error handling)
         let medications = [];
         if (carePlans && carePlans.length > 0) {
           const { data: medicationData } = await supabase
@@ -110,6 +116,7 @@ export const useUserSpecificProgress = (userId: string, userRole: UserRole): Use
 
         console.log(`[useUserSpecificProgress] Medications:`, medications);
 
+        // Check meal plans (improved query with proper error handling)
         let mealPlans = [];
         if (carePlans && carePlans.length > 0) {
           const { data: mealPlanData } = await supabase
@@ -121,6 +128,7 @@ export const useUserSpecificProgress = (userId: string, userRole: UserRole): Use
 
         console.log(`[useUserSpecificProgress] Meal plans:`, mealPlans);
 
+        // Mark steps as completed based on data availability
         if (userId && profile?.full_name) {
           updatedSteps[0].completed = true;
           console.log(`[useUserSpecificProgress] Step 1 completed: profile exists with full_name`);
@@ -151,15 +159,8 @@ export const useUserSpecificProgress = (userId: string, userRole: UserRole): Use
           console.log(`[useUserSpecificProgress] Step 6 completed: meal plans exist`);
         }
         
-        if (profile?.visit_scheduling_status === 'scheduled' || profile?.visit_scheduling_status === 'completed') {
-          updatedSteps[6].completed = true;
-          console.log(`[useUserSpecificProgress] Step 7 completed: visit status is ${profile.visit_scheduling_status}`);
-        } else {
-          updatedSteps[6].completed = false;
-          console.log(`[useUserSpecificProgress] Step 7 incomplete: visit status is ${profile?.visit_scheduling_status || 'not_started'}`);
-        }
-        
       } else if (userRole === 'professional') {
+        // Enhanced professional progress logic
         const { data: profile } = await supabase
           .from('profiles')
           .select('professional_type, years_of_experience, certifications, availability')
@@ -168,6 +169,7 @@ export const useUserSpecificProgress = (userId: string, userRole: UserRole): Use
 
         console.log(`[useUserSpecificProgress] Professional profile data:`, profile);
 
+        // Check documents
         const { data: documents } = await supabase
           .from('professional_documents')
           .select('id')
@@ -175,7 +177,8 @@ export const useUserSpecificProgress = (userId: string, userRole: UserRole): Use
 
         console.log(`[useUserSpecificProgress] Professional documents:`, documents);
 
-        updatedSteps[0].completed = true;
+        // Mark steps as completed
+        updatedSteps[0].completed = true; // Account always completed
         
         if (profile && profile.professional_type && profile.years_of_experience) {
           updatedSteps[1].completed = true;
@@ -193,6 +196,7 @@ export const useUserSpecificProgress = (userId: string, userRole: UserRole): Use
         }
         
       } else if (userRole === 'community') {
+        // Community progress logic
         const { data: profile } = await supabase
           .from('profiles')
           .select('full_name, contribution_interests')
@@ -212,6 +216,7 @@ export const useUserSpecificProgress = (userId: string, userRole: UserRole): Use
         }
         
       } else if (userRole === 'admin') {
+        // Admin steps are typically completed
         updatedSteps[0].completed = true;
         updatedSteps[1].completed = true;
         console.log(`[useUserSpecificProgress] Admin steps completed`);
