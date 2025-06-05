@@ -1,11 +1,12 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { AlertTriangle, MessageSquare, Phone, Users } from "lucide-react";
 import { CareShift, CareTeamMemberWithProfile } from "@/types/careTypes";
+import { InlinePhoneEditor } from './InlinePhoneEditor';
 
 interface EmergencyShiftWhatsAppModalProps {
   open: boolean;
@@ -22,6 +23,8 @@ export const EmergencyShiftWhatsAppModal: React.FC<EmergencyShiftWhatsAppModalPr
   teamMembers,
   emergencyReason
 }) => {
+  const [teamMembersState, setTeamMembersState] = useState(teamMembers);
+
   // Format the emergency message
   const shiftDate = new Date(shift.startTime).toLocaleDateString('en-US', {
     weekday: 'long',
@@ -60,17 +63,25 @@ This is TIME SENSITIVE - first to respond gets the shift.
 Thank you for your quick response!
 - Tavara Care Coordinator`;
 
-  // Filter team members with phone numbers
-  const membersWithPhones = teamMembers.filter(member => 
-    member.professionalDetails?.full_name && 
-    // Note: We'll need phone numbers in the profile data for this to work
-    // For now, we'll show all members and let user know to add phone numbers
-    true
-  );
+  const handlePhoneNumberUpdate = (memberId: string, newPhoneNumber: string | null) => {
+    setTeamMembersState(prevMembers => 
+      prevMembers.map(member => 
+        member.id === memberId 
+          ? {
+              ...member,
+              professionalDetails: {
+                ...member.professionalDetails,
+                phone_number: newPhoneNumber
+              }
+            }
+          : member
+      )
+    );
+  };
 
-  const sendWhatsAppToMember = (memberName: string, phoneNumber?: string) => {
+  const sendWhatsAppToMember = (memberName: string, phoneNumber?: string | null) => {
     if (!phoneNumber) {
-      alert(`Phone number not available for ${memberName}. Please add phone numbers to team member profiles.`);
+      alert(`Phone number not available for ${memberName}. Please add a phone number first.`);
       return;
     }
     
@@ -81,25 +92,29 @@ Thank you for your quick response!
   };
 
   const sendToAllMembers = () => {
-    const membersWithValidPhones = membersWithPhones.filter(member => 
-      member.professionalDetails?.full_name // We'd need actual phone validation here
+    const membersWithValidPhones = teamMembersState.filter(member => 
+      member.professionalDetails?.phone_number
     );
 
     if (membersWithValidPhones.length === 0) {
-      alert('No team members have phone numbers available. Please add phone numbers to team member profiles.');
+      alert('No team members have phone numbers available. Please add phone numbers first.');
       return;
     }
 
-    // Open WhatsApp for each member (browsers will handle multiple tabs)
-    membersWithValidPhones.forEach(member => {
+    // Open WhatsApp for each member with a slight delay to prevent browser blocking
+    membersWithValidPhones.forEach((member, index) => {
       const memberName = member.professionalDetails?.full_name || 'Team Member';
-      // For demo purposes, we'll show the modal. In real implementation, 
-      // phone numbers would come from the profile data
+      const phoneNumber = member.professionalDetails?.phone_number;
+      
       setTimeout(() => {
-        sendWhatsAppToMember(memberName, '+1234567890'); // Placeholder
-      }, 500);
+        sendWhatsAppToMember(memberName, phoneNumber);
+      }, index * 500); // 500ms delay between each
     });
   };
+
+  const membersWithPhones = teamMembersState.filter(member => 
+    member.professionalDetails?.full_name
+  );
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -175,21 +190,26 @@ Thank you for your quick response!
                               <Badge variant="secondary" className="text-xs">
                                 {member.role}
                               </Badge>
-                              {/* In real implementation, show actual phone number */}
-                              <span className="text-xs text-gray-500">
-                                📱 Phone: (Add to profile)
-                              </span>
+                            </div>
+                            <div className="mt-1">
+                              <InlinePhoneEditor
+                                userId={member.caregiverId}
+                                currentPhoneNumber={member.professionalDetails?.phone_number}
+                                userName={member.professionalDetails?.full_name || 'Team Member'}
+                                onPhoneNumberUpdate={(newPhone) => handlePhoneNumberUpdate(member.id, newPhone)}
+                              />
                             </div>
                           </div>
                         </div>
                         <Button
                           onClick={() => sendWhatsAppToMember(
                             member.professionalDetails?.full_name || 'Team Member',
-                            '+1234567890' // Placeholder - would come from profile
+                            member.professionalDetails?.phone_number
                           )}
                           variant="outline"
                           size="sm"
                           className="border-green-300 text-green-700 hover:bg-green-50"
+                          disabled={!member.professionalDetails?.phone_number}
                         >
                           <MessageSquare className="h-4 w-4 mr-2" />
                           Send WhatsApp
@@ -208,14 +228,12 @@ Thank you for your quick response!
               <div className="text-sm text-blue-800">
                 <p className="font-medium mb-2">📱 How this works:</p>
                 <ul className="space-y-1 text-blue-700">
+                  <li>• Add/edit phone numbers for team members using the edit buttons</li>
                   <li>• Click "Send WhatsApp" to open WhatsApp with the pre-written message</li>
                   <li>• Team members can reply directly with "YES" or "NO"</li>
                   <li>• First person to confirm gets the shift</li>
-                  <li>• "Send to All" opens WhatsApp for all team members at once</li>
+                  <li>• "Send to All" opens WhatsApp for all team members with phone numbers</li>
                 </ul>
-                <p className="mt-3 text-xs text-blue-600">
-                  💡 Tip: Add phone numbers to team member profiles for automatic phone detection
-                </p>
               </div>
             </CardContent>
           </Card>
