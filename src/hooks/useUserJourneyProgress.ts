@@ -9,6 +9,8 @@ interface JourneyStep {
   description: string;
   completed: boolean;
   link: string;
+  category?: string;
+  optional?: boolean;
 }
 
 interface UserJourneyData {
@@ -16,23 +18,30 @@ interface UserJourneyData {
   completionPercentage: number;
   nextStep?: JourneyStep;
   loading: boolean;
+  journeyStage?: string;
 }
 
 export const useUserJourneyProgress = (userId: string, userRole: UserRole): UserJourneyData => {
   const [loading, setLoading] = useState(true);
   const [steps, setSteps] = useState<JourneyStep[]>([]);
+  const [journeyStage, setJourneyStage] = useState<string>('foundation');
 
   const getStepsForRole = (role: UserRole): JourneyStep[] => {
     switch (role) {
       case 'family':
         return [
-          { id: 1, title: "Complete your profile", description: "Add your contact information and preferences", completed: false, link: "/registration/family" },
-          { id: 2, title: "Complete initial care assessment", description: "Help us understand your care needs better", completed: false, link: "/family/care-assessment" },
-          { id: 3, title: "Complete your loved one's Legacy Story", description: "Share their story to personalize care", completed: false, link: "/family/story" },
-          { id: 4, title: "See your instant caregiver matches", description: "View personalized caregiver recommendations", completed: false, link: "/caregiver-matching" },
-          { id: 5, title: "Set up medication management", description: "Add medications and schedules", completed: false, link: "/family/care-management" },
-          { id: 6, title: "Set up meal management", description: "Plan meals and create grocery lists", completed: false, link: "/family/care-management" },
-          { id: 7, title: "Schedule your Visit", description: "Meet your care coordinator", completed: false, link: "/family/schedule-visit" }
+          { id: 1, title: "Complete your profile", description: "Add your contact information and preferences", completed: false, link: "/registration/family", category: "foundation" },
+          { id: 2, title: "Complete initial care assessment", description: "Help us understand your care needs better", completed: false, link: "/family/care-assessment", category: "foundation" },
+          { id: 3, title: "Complete your loved one's Legacy Story", description: "Share their story to personalize care", completed: false, link: "/family/story", category: "foundation", optional: true },
+          { id: 4, title: "See your instant caregiver matches", description: "View personalized caregiver recommendations", completed: false, link: "/caregiver/matching", category: "foundation" },
+          { id: 5, title: "Set up medication management", description: "Add medications and schedules", completed: false, link: "/family/care-management", category: "foundation" },
+          { id: 6, title: "Set up meal management", description: "Plan meals and create grocery lists", completed: false, link: "/family/care-management", category: "foundation" },
+          { id: 7, title: "Schedule your Visit", description: "Meet your care coordinator", completed: false, link: "/family/schedule-visit", category: "scheduling" },
+          { id: 8, title: "Confirm Visit", description: "Confirm video link or complete payment", completed: false, link: "/family/schedule-visit", category: "scheduling" },
+          { id: 9, title: "Schedule Trial Day", description: "Choose a trial date with your caregiver", completed: false, link: "/family/schedule-visit", category: "trial", optional: true },
+          { id: 10, title: "Pay for Trial Day", description: "Pay trial fee for 8-hour experience", completed: false, link: "/family/schedule-visit", category: "trial", optional: true },
+          { id: 11, title: "Begin Your Trial", description: "Start your trial session", completed: false, link: "/family/schedule-visit", category: "trial", optional: true },
+          { id: 12, title: "Rate & Choose Your Path", description: "Decide between Direct Hire or Tavara Subscription", completed: false, link: "/family/schedule-visit", category: "conversion" }
         ];
       case 'professional':
         return [
@@ -109,6 +118,22 @@ export const useUserJourneyProgress = (userId: string, userRole: UserRole): User
           .select('id')
           .in('care_plan_id', (carePlans || []).map(cp => cp.id));
 
+        // Check trial payments
+        const { data: trialPayments } = await supabase
+          .from('payment_transactions')
+          .select('*')
+          .eq('user_id', userId)
+          .eq('transaction_type', 'trial_day')
+          .eq('status', 'completed');
+
+        // Parse visit notes for care model
+        let visitNotes = null;
+        try {
+          visitNotes = profile?.visit_notes ? JSON.parse(profile.visit_notes) : null;
+        } catch (error) {
+          console.error('Error parsing visit notes:', error);
+        }
+
         // Mark steps as completed
         if (profile.full_name) updatedSteps[0].completed = true;
         if (careAssessment) updatedSteps[1].completed = true;
@@ -116,6 +141,33 @@ export const useUserJourneyProgress = (userId: string, userRole: UserRole): User
         if (careRecipient) updatedSteps[3].completed = true;
         if (medications && medications.length > 0) updatedSteps[4].completed = true;
         if (mealPlans && mealPlans.length > 0) updatedSteps[5].completed = true;
+        if (profile.visit_scheduling_status === 'scheduled' || profile.visit_scheduling_status === 'completed') updatedSteps[6].completed = true;
+        if (profile.visit_scheduling_status === 'completed') updatedSteps[7].completed = true;
+        
+        const hasTrialPayment = trialPayments && trialPayments.length > 0;
+        if (hasTrialPayment) {
+          updatedSteps[8].completed = true;  // Schedule trial
+          updatedSteps[9].completed = true;  // Pay for trial
+          updatedSteps[10].completed = true; // Begin trial
+        }
+        
+        if (visitNotes?.care_model) updatedSteps[11].completed = true;
+
+        // Determine journey stage
+        const completedSteps = updatedSteps.filter(s => s.completed);
+        const foundationSteps = completedSteps.filter(s => s.category === 'foundation');
+        const schedulingSteps = completedSteps.filter(s => s.category === 'scheduling');
+        const trialSteps = completedSteps.filter(s => s.category === 'trial');
+        
+        if (trialSteps.length > 0 || visitNotes?.care_model) {
+          setJourneyStage('conversion');
+        } else if (schedulingSteps.length > 0) {
+          setJourneyStage('trial');
+        } else if (foundationSteps.length >= 4) {
+          setJourneyStage('scheduling');
+        } else {
+          setJourneyStage('foundation');
+        }
 
       } else if (userRole === 'professional') {
         // Check documents
@@ -162,6 +214,7 @@ export const useUserJourneyProgress = (userId: string, userRole: UserRole): User
     steps,
     completionPercentage,
     nextStep,
-    loading
+    loading,
+    journeyStage
   };
 };
