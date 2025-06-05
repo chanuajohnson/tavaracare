@@ -35,7 +35,7 @@ const transformCarePlanToDb = (plan: Partial<CarePlan>): Partial<DbCarePlan> => 
     title: plan.title,
     description: plan.description,
     status: plan.status,
-    metadata: plan.metadata as Json // Cast CarePlanMetadata to Json
+    metadata: plan.metadata as unknown as Json // Cast CarePlanMetadata to Json via unknown
   };
   
   if (plan.familyId) {
@@ -102,7 +102,7 @@ export const createCarePlan = async (carePlan: CarePlanInput): Promise<CarePlan>
       description: carePlan.description,
       family_id: carePlan.familyId,
       status: carePlan.status,
-      metadata: carePlan.metadata as Json // Cast CarePlanMetadata to Json
+      metadata: carePlan.metadata as unknown as Json // Cast CarePlanMetadata to Json via unknown
     };
 
     const { data, error } = await supabase
