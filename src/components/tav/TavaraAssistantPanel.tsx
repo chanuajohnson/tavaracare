@@ -342,6 +342,7 @@ export const TavaraAssistantPanel: React.FC = () => {
       }`}
     >
       <RoleBasedContent 
+        role={state.currentRole}
         nudges={nudges}
         onNudgeClick={handleNudgeClick}
         isLoading={isLoading}
