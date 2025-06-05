@@ -1,336 +1,292 @@
 
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
-import { Users, Search, Filter, Send, BarChart3, Eye } from "lucide-react";
-import { supabase } from "@/lib/supabase";
-import { UserJourneyCard } from "./UserJourneyCard";
-import { NudgeSystem } from "./NudgeSystem";
-import { BulkActionPanel } from "./BulkActionPanel";
-import { UserDetailModal } from "./UserDetailModal";
-
-// Use inline role definitions matching the actual database schema
-type UserRole = 'family' | 'professional' | 'community' | 'admin';
-type AdminUserRole = 'all' | UserRole;
-
-interface UserJourneyProgress {
-  id: string;
-  user_id: string;
-  role: string;
-  current_step: number;
-  total_steps: number;
-  completion_percentage: number;
-  last_activity_at: string;
-  completed_steps: any;
-  created_at: string;
-  updated_at: string;
-}
-
-interface AdminUserWithProgress {
-  id: string;
-  email: string;
-  full_name: string;
-  role: UserRole;
-  email_verified: boolean;
-  last_login_at: string;
-  created_at: string;
-  avatar_url?: string;
-  journey_progress?: UserJourneyProgress;
-  onboarding_progress?: any;
-  location?: string;
-  phone_number?: string;
-  professional_type?: string;
-  years_of_experience?: string;
-  care_types?: string[];
-  specialized_care?: string[];
-}
-
-interface RoleStats {
-  total: number;
-  verified: number;
-  active: number;
-  stalled: number;
-}
+import { Checkbox } from "@/components/ui/checkbox";
+import { supabase } from '@/lib/supabase';
+import { BulkActionPanel } from './BulkActionPanel';
+import { MiniJourneyProgress } from './MiniJourneyProgress';
+import { UserWithProgress, RoleStats } from '@/types/adminTypes';
+import { Search, Filter, Users, TrendingUp, UserCheck, Clock } from 'lucide-react';
+import { motion } from 'framer-motion';
 
 export function AdminUserJourneyDashboard() {
-  const [users, setUsers] = useState<AdminUserWithProgress[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [selectedRole, setSelectedRole] = useState<AdminUserRole>('all');
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filterStage, setFilterStage] = useState<'all' | string>('all');
+  const [users, setUsers] = useState<UserWithProgress[]>([]);
+  const [filteredUsers, setFilteredUsers] = useState<UserWithProgress[]>([]);
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
-  const [showNudgeSystem, setShowNudgeSystem] = useState(false);
-  const [selectedUserForModal, setSelectedUserForModal] = useState<AdminUserWithProgress | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [roleFilter, setRoleFilter] = useState<string>('all');
+  const [loading, setLoading] = useState(true);
   const [roleStats, setRoleStats] = useState<Record<string, RoleStats>>({});
 
-  const fetchUsersWithProgress = async () => {
+  const fetchUsers = async () => {
     try {
       setLoading(true);
-
-      // First, get all profiles with their data
-      const { data: profiles, error: profilesError } = await supabase
+      
+      const { data: profiles, error } = await supabase
         .from('profiles')
-        .select('*')
+        .select(`
+          id,
+          email,
+          full_name,
+          role,
+          email_verified,
+          last_login_at,
+          created_at,
+          avatar_url,
+          location,
+          phone_number,
+          professional_type,
+          years_of_experience,
+          care_types,
+          specialized_care
+        `)
         .order('created_at', { ascending: false });
 
-      if (profilesError) {
-        console.error('Error fetching profiles:', profilesError);
+      if (error) {
+        console.error('Error fetching users:', error);
         return;
       }
 
-      // Get real emails from auth.users using the service role (admin only)
-      const { data: authUsers, error: authError } = await supabase.auth.admin.listUsers();
-      
-      if (authError) {
-        console.error('Error fetching auth users:', authError);
-      }
+      // Transform the data to match our interface
+      const transformedUsers: UserWithProgress[] = (profiles || []).map(profile => ({
+        ...profile,
+        email: profile.email || 'No email',
+        full_name: profile.full_name || 'Unknown User',
+        role: profile.role || 'family',
+        email_verified: profile.email_verified || false,
+        last_login_at: profile.last_login_at || profile.created_at,
+        created_at: profile.created_at
+      }));
 
-      // Get journey progress data
-      const { data: journeyProgress, error: journeyError } = await supabase
-        .from('user_journey_progress')
-        .select('*');
-
-      if (journeyError) {
-        console.error('Error fetching journey progress:', journeyError);
-      }
-
-      // Combine the data
-      const usersWithProgress: AdminUserWithProgress[] = (profiles || []).map(profile => {
-        // Find real email from auth users
-        const authUser = authUsers?.users?.find((u: any) => u.id === profile.id);
-        const realEmail = authUser?.email || profile.id; // fallback to ID if email not found
-
-        // Find journey progress
-        const userJourneyProgress = journeyProgress?.find(jp => jp.user_id === profile.id);
-
-        return {
-          id: profile.id,
-          email: realEmail,
-          full_name: profile.full_name || 'Unnamed User',
-          role: profile.role as UserRole,
-          email_verified: authUser?.email_confirmed_at ? true : false,
-          last_login_at: profile.last_login_at || profile.created_at,
-          created_at: profile.created_at,
-          avatar_url: profile.avatar_url,
-          journey_progress: userJourneyProgress,
-          onboarding_progress: profile.onboarding_progress,
-          location: profile.location,
-          phone_number: profile.phone_number,
-          professional_type: profile.professional_type,
-          years_of_experience: profile.years_of_experience,
-          care_types: profile.care_types,
-          specialized_care: profile.specialized_care,
-        };
-      });
-
-      setUsers(usersWithProgress);
-      calculateRoleStats(usersWithProgress);
+      setUsers(transformedUsers);
+      calculateRoleStats(transformedUsers);
     } catch (error) {
-      console.error('Error in fetchUsersWithProgress:', error);
+      console.error('Error in fetchUsers:', error);
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => {
-    fetchUsersWithProgress();
-  }, []);
-
-  const calculateRoleStats = (userData: AdminUserWithProgress[]) => {
+  const calculateRoleStats = (userData: UserWithProgress[]) => {
     const stats: Record<string, RoleStats> = {};
     
-    (['family', 'professional', 'community', 'admin'] as const).forEach(role => {
-      const roleUsers = userData.filter(u => u.role === role);
-      const verified = roleUsers.filter(u => u.email_verified).length;
-      const recentActivity = new Date();
-      recentActivity.setDate(recentActivity.getDate() - 7);
-      const active = roleUsers.filter(u => 
-        u.journey_progress?.last_activity_at && 
-        new Date(u.journey_progress.last_activity_at) > recentActivity
-      ).length;
-      const stalled = roleUsers.filter(u => 
-        u.journey_progress?.completion_percentage && 
-        u.journey_progress.completion_percentage < 100 &&
-        (!u.journey_progress.last_activity_at || 
-         new Date(u.journey_progress.last_activity_at) <= recentActivity)
-      ).length;
-
+    ['family', 'professional', 'community', 'admin'].forEach(role => {
+      const roleUsers = userData.filter(user => user.role === role);
       stats[role] = {
         total: roleUsers.length,
-        verified,
-        active,
-        stalled
+        verified: roleUsers.filter(user => user.email_verified).length,
+        active: roleUsers.filter(user => {
+          const lastLogin = new Date(user.last_login_at);
+          const daysSinceLogin = (Date.now() - lastLogin.getTime()) / (1000 * 60 * 60 * 24);
+          return daysSinceLogin <= 7;
+        }).length,
+        stalled: roleUsers.filter(user => {
+          const created = new Date(user.created_at);
+          const daysSinceCreated = (Date.now() - created.getTime()) / (1000 * 60 * 60 * 24);
+          const lastLogin = new Date(user.last_login_at);
+          const daysSinceLogin = (Date.now() - lastLogin.getTime()) / (1000 * 60 * 60 * 24);
+          return daysSinceCreated > 7 && daysSinceLogin > 7;
+        }).length
       };
     });
-
+    
     setRoleStats(stats);
   };
 
-  const filteredUsers = users.filter(user => {
-    const matchesRole = selectedRole === 'all' || user.role === selectedRole;
-    const matchesSearch = !searchTerm || 
-      user.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.id.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStage = filterStage === 'all' || 
-      (user.journey_progress?.current_step.toString() === filterStage);
-    
-    return matchesRole && matchesSearch && matchesStage;
-  });
+  useEffect(() => {
+    fetchUsers();
+  }, []);
 
-  const handleBulkNudge = () => {
-    setShowNudgeSystem(true);
+  useEffect(() => {
+    let filtered = users;
+    
+    if (searchTerm) {
+      filtered = filtered.filter(user => 
+        user.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        user.email?.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+    
+    if (roleFilter !== 'all') {
+      filtered = filtered.filter(user => user.role === roleFilter);
+    }
+    
+    setFilteredUsers(filtered);
+  }, [users, searchTerm, roleFilter]);
+
+  const handleUserSelect = (userId: string, checked: boolean) => {
+    if (checked) {
+      setSelectedUsers(prev => [...prev, userId]);
+    } else {
+      setSelectedUsers(prev => prev.filter(id => id !== userId));
+    }
   };
 
-  const resendVerificationEmail = async (userId: string) => {
-    try {
-      const { error } = await supabase.functions.invoke('resend-verification', {
-        body: { userId }
-      });
-      
-      if (error) throw error;
-      
-      await supabase
-        .from('profiles')
-        .update({ email_verification_sent_at: new Date().toISOString() })
-        .eq('id', userId);
-        
-      fetchUsersWithProgress();
-    } catch (error) {
-      console.error('Error resending verification:', error);
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedUsers(filteredUsers.map(user => user.id));
+    } else {
+      setSelectedUsers([]);
+    }
+  };
+
+  const getRoleBadgeColor = (role: string) => {
+    switch (role) {
+      case 'family': return 'bg-blue-100 text-blue-800';
+      case 'professional': return 'bg-green-100 text-green-800';
+      case 'community': return 'bg-amber-100 text-amber-800';
+      case 'admin': return 'bg-purple-100 text-purple-800';
+      default: return 'bg-gray-100 text-gray-800';
     }
   };
 
   if (loading) {
-    return <div className="flex items-center justify-center h-64">Loading admin dashboard...</div>;
+    return (
+      <div className="space-y-6">
+        <div className="text-center py-12">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+          <p className="text-muted-foreground mt-4">Loading user data...</p>
+        </div>
+      </div>
+    );
   }
 
   return (
     <div className="space-y-6">
-      {/* Header with filters and bulk actions */}
-      <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">User Journey Management</h1>
-          <p className="text-muted-foreground">Monitor user progress and send targeted nudges</p>
-        </div>
-        
-        <div className="flex flex-wrap gap-2">
-          <div className="flex items-center gap-2">
-            <Search className="h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search users, emails, or IDs..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-60"
-            />
-          </div>
-          
-          <Select value={filterStage} onValueChange={setFilterStage}>
-            <SelectTrigger className="w-40">
-              <SelectValue placeholder="Filter by stage" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Stages</SelectItem>
-              <SelectItem value="1">Step 1</SelectItem>
-              <SelectItem value="2">Step 2</SelectItem>
-              <SelectItem value="3">Step 3</SelectItem>
-              <SelectItem value="4">Step 4</SelectItem>
-              <SelectItem value="5">Step 5</SelectItem>
-              <SelectItem value="6">Step 6</SelectItem>
-              <SelectItem value="7">Step 7</SelectItem>
-            </SelectContent>
-          </Select>
-
-          {selectedUsers.length > 0 && (
-            <Button onClick={handleBulkNudge} className="flex items-center gap-2">
-              <Send className="h-4 w-4" />
-              Nudge Selected ({selectedUsers.length})
-            </Button>
-          )}
-        </div>
-      </div>
-
-      {/* Role filter tabs */}
-      <div className="flex gap-2 border-b">
-        {(['all', 'family', 'professional', 'community', 'admin'] as const).map(role => (
-          <Button
-            key={role}
-            variant={selectedRole === role ? "default" : "ghost"}
-            onClick={() => setSelectedRole(role)}
-            className="capitalize"
-          >
-            {role === 'all' ? 'All Users' : `${role} Users`}
-            {role !== 'all' && roleStats[role] && (
-              <Badge variant="secondary" className="ml-2">
-                {roleStats[role].total}
-              </Badge>
-            )}
-          </Button>
+      {/* Role Statistics */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        {Object.entries(roleStats).map(([role, stats]) => (
+          <Card key={role}>
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground capitalize">{role}</p>
+                  <p className="text-2xl font-bold">{stats.total}</p>
+                </div>
+                <Users className="h-8 w-8 text-muted-foreground" />
+              </div>
+              <div className="mt-2 grid grid-cols-3 gap-2 text-xs">
+                <div className="text-green-600">
+                  <UserCheck className="h-3 w-3 inline mr-1" />
+                  {stats.verified}
+                </div>
+                <div className="text-blue-600">
+                  <TrendingUp className="h-3 w-3 inline mr-1" />
+                  {stats.active}
+                </div>
+                <div className="text-amber-600">
+                  <Clock className="h-3 w-3 inline mr-1" />
+                  {stats.stalled}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         ))}
       </div>
 
-      {/* Users Grid - Always in grid format with proper layout */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-        {filteredUsers.map(user => (
-          <UserJourneyCard
-            key={user.id}
-            user={user}
-            selected={selectedUsers.includes(user.id)}
-            onSelect={(selected) => {
-              if (selected) {
-                setSelectedUsers(prev => [...prev, user.id]);
-              } else {
-                setSelectedUsers(prev => prev.filter(id => id !== user.id));
-              }
-            }}
-            onResendVerification={() => resendVerificationEmail(user.id)}
-            onRefresh={fetchUsersWithProgress}
-            onClick={() => setSelectedUserForModal(user)}
-          />
-        ))}
-      </div>
-
-      {filteredUsers.length === 0 && (
-        <div className="text-center py-12">
-          <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-xl font-medium text-gray-600">No Users Found</h3>
-          <p className="text-gray-500 mt-2">
-            No users match your current filters. Try adjusting your search criteria.
-          </p>
-        </div>
-      )}
-
-      {/* Bulk action panel - Pass AdminUserWithProgress array */}
+      {/* Bulk Actions Panel */}
       {selectedUsers.length > 0 && (
         <BulkActionPanel
           selectedUsers={selectedUsers}
-          users={users} // This is AdminUserWithProgress[]
+          users={filteredUsers}
           onClearSelection={() => setSelectedUsers([])}
-          onRefresh={fetchUsersWithProgress}
+          onRefresh={fetchUsers}
         />
       )}
 
-      {/* Nudge system dialog */}
-      {showNudgeSystem && (
-        <NudgeSystem
-          open={showNudgeSystem}
-          onOpenChange={setShowNudgeSystem}
-          selectedUsers={selectedUsers.length > 0 ? selectedUsers : undefined}
-          users={users}
-          onRefresh={fetchUsersWithProgress}
-        />
-      )}
+      {/* Filters and Search */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Users className="h-5 w-5" />
+            User Journey Management
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col sm:flex-row gap-4 mb-4">
+            <div className="flex-1">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                <Input
+                  placeholder="Search users..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <select
+                value={roleFilter}
+                onChange={(e) => setRoleFilter(e.target.value)}
+                className="px-3 py-2 border rounded-md"
+              >
+                <option value="all">All Roles</option>
+                <option value="family">Family</option>
+                <option value="professional">Professional</option>
+                <option value="community">Community</option>
+                <option value="admin">Admin</option>
+              </select>
+            </div>
+          </div>
 
-      {/* User Detail Modal */}
-      <UserDetailModal
-        user={selectedUserForModal}
-        open={!!selectedUserForModal}
-        onOpenChange={(open) => !open && setSelectedUserForModal(null)}
-        onRefresh={fetchUsersWithProgress}
-      />
+          {/* Users List */}
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 pb-2 border-b">
+              <Checkbox
+                checked={selectedUsers.length === filteredUsers.length && filteredUsers.length > 0}
+                onCheckedChange={handleSelectAll}
+              />
+              <span className="text-sm font-medium">
+                Select All ({filteredUsers.length} users)
+              </span>
+            </div>
+
+            {filteredUsers.map((user) => (
+              <motion.div
+                key={user.id}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="flex items-center gap-4 p-4 border rounded-lg hover:bg-gray-50"
+              >
+                <Checkbox
+                  checked={selectedUsers.includes(user.id)}
+                  onCheckedChange={(checked) => handleUserSelect(user.id, checked as boolean)}
+                />
+                
+                <div className="flex-1 min-w-0 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-sm font-medium text-gray-900 truncate">
+                        {user.full_name}
+                      </h3>
+                      <p className="text-xs text-gray-500 truncate">{user.email}</p>
+                    </div>
+                    <Badge className={`${getRoleBadgeColor(user.role)} text-xs`}>
+                      {user.role}
+                    </Badge>
+                  </div>
+                  
+                  {/* Use the updated MiniJourneyProgress component */}
+                  <MiniJourneyProgress 
+                    userId={user.id} 
+                    userRole={user.role as any}
+                  />
+                </div>
+              </motion.div>
+            ))}
+
+            {filteredUsers.length === 0 && (
+              <div className="text-center py-8 text-gray-500">
+                No users found matching your criteria.
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

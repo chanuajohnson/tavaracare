@@ -35,6 +35,9 @@ export interface UserWithProgress {
   specialized_care?: string[];
 }
 
+// Alias for compatibility with BulkActionPanel
+export interface AdminUserWithProgress extends UserWithProgress {}
+
 export interface RoleStats {
   total: number;
   verified: number;
