@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -142,11 +143,17 @@ export default function FAQPage() {
     const matchesCategory = activeCategory ? faq.category === activeCategory : true;
     return matchesSearch && matchesCategory;
   });
+
+  const breadcrumbItems = [
+    { label: "Home", href: "/" },
+    { label: "Support", href: "/support" },
+    { label: "FAQ", href: "/support/faq" }
+  ];
   
   return (
     <div className="container mx-auto py-8 px-4 max-w-4xl">
       {/* Breadcrumbs */}
-      <Breadcrumbs className="mb-6" />
+      <Breadcrumbs items={breadcrumbItems} className="mb-6" />
       
       <div className="text-center mb-8">
         <h1 className="text-3xl font-bold mb-2">Frequently Asked Questions</h1>
