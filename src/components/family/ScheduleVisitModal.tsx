@@ -127,6 +127,8 @@ export const ScheduleVisitModal: React.FC<ScheduleVisitModalProps> = ({
     
     setIsUpdating(true);
     try {
+      console.log('Starting visit cancellation for user:', user.id);
+      
       const { error } = await supabase
         .from('profiles')
         .update({ 
@@ -136,7 +138,12 @@ export const ScheduleVisitModal: React.FC<ScheduleVisitModalProps> = ({
         })
         .eq('id', user.id);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase error during visit cancellation:', error);
+        throw error;
+      }
+
+      console.log('Visit status updated successfully');
 
       await supabase
         .from('cta_engagement_tracking')
@@ -243,9 +250,19 @@ export const ScheduleVisitModal: React.FC<ScheduleVisitModalProps> = ({
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-xl">
-              🌿 Schedule Your Visit with Tavara
-            </DialogTitle>
+            <div className="flex items-center justify-between">
+              <DialogTitle className="flex items-center gap-2 text-xl">
+                🌿 Schedule Your Visit with Tavara
+              </DialogTitle>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => onOpenChange(false)}
+                className="h-6 w-6 p-0"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
           </DialogHeader>
 
           <div className="space-y-6">
@@ -334,7 +351,6 @@ export const ScheduleVisitModal: React.FC<ScheduleVisitModalProps> = ({
                 {/* How Tavara Visits Work */}
                 <div className="text-lg font-semibold mb-4">How Tavara Visits Work</div>
                 
-                {/* Option 1: In-Person Visit */}
                 <Card className="bg-gradient-to-r from-green-50 to-emerald-50 border-green-200">
                   <CardHeader>
                     <CardTitle className="text-lg text-green-800 flex items-center gap-2">
@@ -355,7 +371,6 @@ export const ScheduleVisitModal: React.FC<ScheduleVisitModalProps> = ({
                   </CardContent>
                 </Card>
 
-                {/* Option 2: Remote Video Touchpoints */}
                 <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
                   <CardHeader>
                     <CardTitle className="text-lg text-blue-800 flex items-center gap-2">
@@ -370,7 +385,6 @@ export const ScheduleVisitModal: React.FC<ScheduleVisitModalProps> = ({
                   </CardContent>
                 </Card>
 
-                {/* What Happens Next */}
                 <Card>
                   <CardHeader>
                     <CardTitle className="text-lg">What Happens Next</CardTitle>
@@ -425,7 +439,6 @@ export const ScheduleVisitModal: React.FC<ScheduleVisitModalProps> = ({
                   </CardContent>
                 </Card>
 
-                {/* Your Next Step */}
                 <Card className="bg-gray-50">
                   <CardHeader>
                     <CardTitle className="text-lg">Your Next Step</CardTitle>
