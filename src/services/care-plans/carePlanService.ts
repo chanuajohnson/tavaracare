@@ -1,7 +1,9 @@
 
 import { supabase } from "@/lib/supabase";
+import { CarePlan, CarePlanInput, CarePlanDto } from "@/types/carePlan";
 
-export interface CarePlan {
+// Database interface (snake_case)
+interface DbCarePlan {
   id: string;
   title: string;
   description?: string;
@@ -12,8 +14,35 @@ export interface CarePlan {
   updated_at?: string;
 }
 
-export interface CarePlanDto extends CarePlan {}
-export interface CarePlanInput extends Omit<CarePlan, 'id' | 'created_at' | 'updated_at'> {}
+// Transform database format to frontend format
+const transformCarePlanFromDb = (dbPlan: DbCarePlan): CarePlan => {
+  return {
+    id: dbPlan.id,
+    title: dbPlan.title,
+    description: dbPlan.description || '',
+    familyId: dbPlan.family_id,
+    status: dbPlan.status as 'active' | 'completed' | 'cancelled',
+    metadata: dbPlan.metadata,
+    createdAt: dbPlan.created_at,
+    updatedAt: dbPlan.updated_at || dbPlan.created_at
+  };
+};
+
+// Transform frontend format to database format
+const transformCarePlanToDb = (plan: Partial<CarePlan>): Partial<DbCarePlan> => {
+  const dbPlan: Partial<DbCarePlan> = {
+    title: plan.title,
+    description: plan.description,
+    status: plan.status,
+    metadata: plan.metadata
+  };
+  
+  if (plan.familyId) {
+    dbPlan.family_id = plan.familyId;
+  }
+  
+  return dbPlan;
+};
 
 export const fetchCarePlanById = async (carePlanId: string): Promise<CarePlan | null> => {
   try {
@@ -36,7 +65,7 @@ export const fetchCarePlanById = async (carePlanId: string): Promise<CarePlan | 
     }
 
     console.log('Successfully fetched care plan:', data);
-    return data;
+    return transformCarePlanFromDb(data);
   } catch (error) {
     console.error('Failed to fetch care plan:', error);
     throw error;
@@ -56,7 +85,7 @@ export const fetchCarePlans = async (familyId: string): Promise<CarePlan[]> => {
       throw error;
     }
 
-    return data || [];
+    return (data || []).map(transformCarePlanFromDb);
   } catch (error) {
     console.error('Failed to fetch care plans for family:', error);
     throw error;
@@ -67,9 +96,17 @@ export const fetchCarePlansForFamily = fetchCarePlans; // Alias for backward com
 
 export const createCarePlan = async (carePlan: CarePlanInput): Promise<CarePlan> => {
   try {
+    const dbCarePlan = {
+      title: carePlan.title,
+      description: carePlan.description,
+      family_id: carePlan.familyId,
+      status: carePlan.status,
+      metadata: carePlan.metadata
+    };
+
     const { data, error } = await supabase
       .from('care_plans')
-      .insert(carePlan)
+      .insert(dbCarePlan)
       .select()
       .single();
 
@@ -78,7 +115,7 @@ export const createCarePlan = async (carePlan: CarePlanInput): Promise<CarePlan>
       throw error;
     }
 
-    return data;
+    return transformCarePlanFromDb(data);
   } catch (error) {
     console.error('Failed to create care plan:', error);
     throw error;
@@ -87,9 +124,11 @@ export const createCarePlan = async (carePlan: CarePlanInput): Promise<CarePlan>
 
 export const updateCarePlan = async (id: string, updates: Partial<CarePlan>): Promise<CarePlan> => {
   try {
+    const dbUpdates = transformCarePlanToDb(updates);
+
     const { data, error } = await supabase
       .from('care_plans')
-      .update(updates)
+      .update(dbUpdates)
       .eq('id', id)
       .select()
       .single();
@@ -99,7 +138,7 @@ export const updateCarePlan = async (id: string, updates: Partial<CarePlan>): Pr
       throw error;
     }
 
-    return data;
+    return transformCarePlanFromDb(data);
   } catch (error) {
     console.error('Failed to update care plan:', error);
     throw error;

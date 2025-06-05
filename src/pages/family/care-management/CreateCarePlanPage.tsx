@@ -110,7 +110,7 @@ const CreateCarePlanPage = () => {
       const planDetails: CarePlanInput = {
         title,
         description,
-        family_id: user.id, // Use snake_case to match database
+        familyId: user.id, // Use camelCase to match frontend types
         status: 'active',
         metadata: {
           planType,
