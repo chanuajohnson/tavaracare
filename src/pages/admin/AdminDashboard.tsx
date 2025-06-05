@@ -6,11 +6,12 @@ import { FeatureInterestTracker } from "@/components/admin/FeatureInterestTracke
 import { AdminUserManagement } from "@/components/admin/AdminUserManagement";
 import { WhatsAppTemplateManager } from "@/components/admin/WhatsAppTemplateManager";
 import { FeedbackManagement } from "@/components/admin/FeedbackManagement";
+import { AdminProfileCard } from "@/components/admin/AdminProfileCard";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { BarChart, MessageSquare, Users, TrendingUp, HeadphonesIcon } from "lucide-react";
+import { BarChart, MessageSquare, Users, TrendingUp, HeadphonesIcon, User } from "lucide-react";
 import { UserJourneyTracker } from "@/components/tracking/UserJourneyTracker";
 import { useJourneyTracking } from "@/hooks/useJourneyTracking";
 import { useState, useEffect } from "react";
@@ -104,6 +105,16 @@ const AdminDashboard = () => {
         >
           <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
           <p className="text-gray-600 mt-2">Manage system settings, user accounts, and communication templates.</p>
+        </motion.div>
+
+        {/* Admin Profile Card */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.1 }}
+          className="mb-8"
+        >
+          <AdminProfileCard />
         </motion.div>
 
         <motion.div
