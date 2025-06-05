@@ -505,14 +505,16 @@ export const ScheduleTab: React.FC<ScheduleTabProps> = ({
               </DialogContent>
             </Dialog>
 
-            {/* Emergency WhatsApp Modal */}
-            <EmergencyShiftWhatsAppModal
-              open={emergencyWhatsAppModalOpen}
-              onOpenChange={setEmergencyWhatsAppModalOpen}
-              shift={emergencyShiftData.shift!}
-              teamMembers={careTeamMembers}
-              emergencyReason={emergencyShiftData.reason}
-            />
+            {/* Emergency WhatsApp Modal - Only render when we have valid shift data */}
+            {emergencyShiftData.shift && (
+              <EmergencyShiftWhatsAppModal
+                open={emergencyWhatsAppModalOpen}
+                onOpenChange={setEmergencyWhatsAppModalOpen}
+                shift={emergencyShiftData.shift}
+                teamMembers={careTeamMembers}
+                emergencyReason={emergencyShiftData.reason}
+              />
+            )}
           </>
         ) : (
           <div className="text-center py-6">
