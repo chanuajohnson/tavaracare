@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { supabase } from '@/lib/supabase';
@@ -29,6 +30,7 @@ export const useFamilyProgress = (): FamilyProgressData => {
   const [loading, setLoading] = useState(true);
   const [carePlans, setCarePlans] = useState([]);
   const [showScheduleModal, setShowScheduleModal] = useState(false);
+  const [visitStatus, setVisitStatus] = useState<string>('not_started');
   const [steps, setSteps] = useState<FamilyStep[]>([
     { 
       id: 1, 
@@ -129,7 +131,16 @@ export const useFamilyProgress = (): FamilyProgressData => {
     }
     
     if (step.id === 7) {
-      return "Schedule Visit";
+      switch (visitStatus) {
+        case 'scheduled':
+          return "Change Date";
+        case 'completed':
+          return "Schedule Another";
+        case 'ready_to_schedule':
+          return "Ready to Schedule Again";
+        default:
+          return "Schedule Visit";
+      }
     }
     
     if (step.completed) {
@@ -162,12 +173,15 @@ export const useFamilyProgress = (): FamilyProgressData => {
         .eq('user_id', user.id)
         .maybeSingle();
 
-      // Check user profile completion
+      // Check user profile completion and visit status
       const { data: profile } = await supabase
         .from('profiles')
-        .select('full_name, phone_number')
+        .select('full_name, phone_number, visit_scheduling_status')
         .eq('id', user.id)
         .maybeSingle();
+
+      // Set visit status for button text updates
+      setVisitStatus(profile?.visit_scheduling_status || 'not_started');
 
       // Check for care plans
       const { data: carePlansData } = await supabase
@@ -195,7 +209,7 @@ export const useFamilyProgress = (): FamilyProgressData => {
         buttonText: getButtonText(step)
       }));
       
-      // Mark steps as completed based on data - exact same logic as FamilyNextStepsPanel
+      // Mark steps as completed based on data
       if (user && profile?.full_name) {
         updatedSteps[0].completed = true;
       }
@@ -219,6 +233,11 @@ export const useFamilyProgress = (): FamilyProgressData => {
       if (mealPlans && mealPlans.length > 0) {
         updatedSteps[5].completed = true;
       }
+
+      // Mark visit scheduling as completed if scheduled or completed
+      if (profile?.visit_scheduling_status === 'scheduled' || profile?.visit_scheduling_status === 'completed') {
+        updatedSteps[6].completed = true;
+      }
       
       setSteps(updatedSteps);
     } catch (error) {
@@ -232,7 +251,7 @@ export const useFamilyProgress = (): FamilyProgressData => {
     if (user) {
       checkStepCompletion();
     }
-  }, [user]);
+  }, [user, visitStatus]);
 
   const completedSteps = steps.filter(step => step.completed).length;
   const completionPercentage = Math.round((completedSteps / steps.length) * 100);

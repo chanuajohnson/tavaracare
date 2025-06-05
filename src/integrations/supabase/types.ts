@@ -2038,6 +2038,9 @@ export type Database = {
           specialized_care: string[] | null
           tech_interests: string[] | null
           updated_at: string | null
+          visit_notes: string | null
+          visit_scheduled_date: string | null
+          visit_scheduling_status: string | null
           website: string | null
           why_choose_caregiving: string | null
           work_type: string | null
@@ -2116,6 +2119,9 @@ export type Database = {
           specialized_care?: string[] | null
           tech_interests?: string[] | null
           updated_at?: string | null
+          visit_notes?: string | null
+          visit_scheduled_date?: string | null
+          visit_scheduling_status?: string | null
           website?: string | null
           why_choose_caregiving?: string | null
           work_type?: string | null
@@ -2194,6 +2200,9 @@ export type Database = {
           specialized_care?: string[] | null
           tech_interests?: string[] | null
           updated_at?: string | null
+          visit_notes?: string | null
+          visit_scheduled_date?: string | null
+          visit_scheduling_status?: string | null
           website?: string | null
           why_choose_caregiving?: string | null
           work_type?: string | null

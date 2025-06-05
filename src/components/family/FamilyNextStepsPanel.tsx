@@ -1,3 +1,4 @@
+
 import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -16,6 +17,7 @@ export const FamilyNextStepsPanel = () => {
   const navigate = useNavigate();
   const { carePlanId, loading: carePlanLoading } = useUserCarePlan();
   const [showScheduleModal, setShowScheduleModal] = useState(false);
+  const [visitStatus, setVisitStatus] = useState<string>('not_started');
   
   const [steps, setSteps] = useState([
     { 
@@ -63,7 +65,7 @@ export const FamilyNextStepsPanel = () => {
     { 
       id: 7, 
       title: "Schedule your Visit", 
-      description: "Ready to meet your care coordinator? Send us a message to schedule.", 
+      description: "Ready to meet your care coordinator? Schedule your visit with our integrated calendar.", 
       completed: false, 
       link: "/family/schedule-visit" 
     }
@@ -97,12 +99,15 @@ export const FamilyNextStepsPanel = () => {
         .eq('user_id', user.id)
         .maybeSingle();
 
-      // Check user profile completion from profiles table
+      // Check user profile completion from profiles table including visit status
       const { data: profile } = await supabase
         .from('profiles')
-        .select('full_name, phone_number, address, care_types')
+        .select('full_name, phone_number, address, care_types, visit_scheduling_status')
         .eq('id', user.id)
         .maybeSingle();
+
+      // Set visit status for button text
+      setVisitStatus(profile?.visit_scheduling_status || 'not_started');
 
       // Check for care plans
       const { data: carePlansData } = await supabase
@@ -157,7 +162,10 @@ export const FamilyNextStepsPanel = () => {
         updatedSteps[5].completed = true;
       }
       
-      // Note: Step 7 will be checked once that feature is implemented
+      // Mark seventh step (visit scheduling) as completed if scheduled or completed
+      if (profile?.visit_scheduling_status === 'scheduled' || profile?.visit_scheduling_status === 'completed') {
+        updatedSteps[6].completed = true;
+      }
       
       setSteps(updatedSteps);
     } catch (error) {
@@ -190,7 +198,16 @@ export const FamilyNextStepsPanel = () => {
     }
     
     if (step.id === 7) {
-      return "Schedule your Visit";
+      switch (visitStatus) {
+        case 'scheduled':
+          return "Change Date";
+        case 'completed':
+          return "Schedule Another";
+        case 'ready_to_schedule':
+          return "Ready to Try Again";
+        default:
+          return "Schedule your Visit";
+      }
     }
     
     if (step.completed) {
@@ -208,14 +225,6 @@ export const FamilyNextStepsPanel = () => {
 
   const getButtonIcon = (step: any) => {
     return <ArrowRight className="ml-1 h-3 w-3" />;
-  };
-
-  const openWhatsApp = () => {
-    const phoneNumber = "8687865357";
-    const message = "I am ready to schedule my initial site visit with matched nurses";
-    const encodedMessage = encodeURIComponent(message);
-    const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodedMessage}`;
-    window.open(whatsappUrl, '_blank');
   };
 
   const handleStepClick = (step: any) => {
