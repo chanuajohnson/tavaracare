@@ -1,14 +1,9 @@
-
 import { motion } from "framer-motion";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { FeedbackManagement } from "@/components/admin/FeedbackManagement";
 
 const FeedbackManagementPage = () => {
   const breadcrumbItems = [
-    {
-      label: "Dashboard",
-      path: "/dashboard",
-    },
     {
       label: "Admin",
       path: "/dashboard/admin",

@@ -1,4 +1,3 @@
-
 import { motion } from "framer-motion";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { DashboardCardGrid } from "@/components/dashboard/DashboardCardGrid";
@@ -23,10 +22,6 @@ const AdminDashboard = () => {
   const [loading, setLoading] = useState(true);
 
   const breadcrumbItems = [
-    {
-      label: "Dashboard",
-      path: "/dashboard",
-    },
     {
       label: "Admin",
       path: "/dashboard/admin",
