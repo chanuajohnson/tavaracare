@@ -49,7 +49,7 @@ export function AdminUserJourneyDashboard() {
       }
 
       // Get auth users data to get email addresses
-      const { data: authUsers, error: authError } = await supabase.auth.admin.listUsers();
+      const { data: authData, error: authError } = await supabase.auth.admin.listUsers();
       
       if (authError) {
         console.error('Error fetching auth users:', authError);
@@ -57,10 +57,12 @@ export function AdminUserJourneyDashboard() {
       }
 
       // Create a map of user emails from auth data
-      const emailMap = new Map();
-      if (authUsers?.users) {
-        authUsers.users.forEach(user => {
-          emailMap.set(user.id, user.email);
+      const emailMap = new Map<string, string>();
+      if (authData?.users) {
+        authData.users.forEach((user: any) => {
+          if (user.id && user.email) {
+            emailMap.set(user.id, user.email);
+          }
         });
       }
 
