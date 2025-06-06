@@ -75,12 +75,12 @@ export const JourneyPathVisualization: React.FC<JourneyPathVisualizationProps> =
         </p>
       </CardHeader>
       <CardContent className="space-y-4 sm:space-y-6 px-3 sm:px-6">
-        {/* Stage Progress Visualization with Responsive Layout */}
+        {/* Stage Progress Visualization with Fixed Mobile Layout */}
         <div className="space-y-3 sm:space-y-4">
           <h4 className="font-medium text-sm text-gray-800">Journey Stages</h4>
           
-          {/* Mobile Grid Layout (2x2) */}
-          <div className="grid grid-cols-2 gap-4 sm:hidden">
+          {/* Mobile Grid Layout (2x2) - Fixed responsive classes */}
+          <div className="grid grid-cols-2 gap-3 sm:hidden">
             {categories.map((category) => {
               const status = getStageStatus(category.key);
               const stepsInCategory = getStepsByCategory(category.key);
@@ -89,7 +89,7 @@ export const JourneyPathVisualization: React.FC<JourneyPathVisualizationProps> =
               const completionPercentage = totalInCategory > 0 ? Math.round((completedInCategory / totalInCategory) * 100) : 0;
               
               return (
-                <div key={category.key} className="text-center">
+                <div key={category.key} className="text-center bg-white rounded-lg p-3 border border-gray-200 shadow-sm">
                   <JourneyStageTooltip
                     stageName={category.name}
                     stageKey={category.key}
@@ -98,26 +98,26 @@ export const JourneyPathVisualization: React.FC<JourneyPathVisualizationProps> =
                     totalSteps={totalInCategory}
                     isCurrent={status === 'current'}
                   >
-                    <div className="w-16 h-16 relative mx-auto mb-2 cursor-pointer hover:scale-105 transition-transform">
-                      <svg className="w-16 h-16 transform -rotate-90" viewBox="0 0 36 36">
+                    <div className="w-14 h-14 relative mx-auto mb-2 cursor-pointer hover:scale-105 transition-transform">
+                      <svg className="w-14 h-14 transform -rotate-90" viewBox="0 0 36 36">
                         <path
                           className="text-gray-200"
                           stroke="currentColor"
-                          strokeWidth="3"
+                          strokeWidth="2.5"
                           fill="transparent"
                           d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
                         />
                         <path
                           className={getStageColor(status)}
                           stroke="currentColor"
-                          strokeWidth="3"
+                          strokeWidth="2.5"
                           fill="transparent"
                           strokeDasharray={`${completionPercentage}, 100`}
                           d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
                         />
                       </svg>
                       <div className="absolute inset-0 flex flex-col items-center justify-center">
-                        <div className="bg-white rounded-full w-6 h-6 flex items-center justify-center border-2 border-gray-200 mb-1">
+                        <div className="bg-white rounded-full w-6 h-6 flex items-center justify-center border-2 border-gray-300 mb-1">
                           <span className="text-xs font-bold text-gray-700">{category.number}</span>
                         </div>
                         <span className="text-xs font-semibold text-gray-700">
@@ -126,10 +126,10 @@ export const JourneyPathVisualization: React.FC<JourneyPathVisualizationProps> =
                       </div>
                     </div>
                   </JourneyStageTooltip>
-                  <div className="text-xs font-medium text-gray-800 mb-1">{category.name}</div>
+                  <div className="text-xs font-medium text-gray-800 mb-1 leading-tight">{category.name}</div>
                   <div className="text-xs text-gray-500 leading-tight px-1">{category.description}</div>
                   {status === 'current' && (
-                    <Badge variant="outline" className="mt-1 text-xs border-primary text-primary">Current</Badge>
+                    <Badge variant="outline" className="mt-2 text-xs border-primary text-primary">Current</Badge>
                   )}
                 </div>
               );

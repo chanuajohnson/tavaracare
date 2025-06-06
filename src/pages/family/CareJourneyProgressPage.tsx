@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { motion } from "framer-motion";
 import { EnhancedFamilyNextStepsPanel } from "@/components/family/EnhancedFamilyNextStepsPanel";
 import { Breadcrumbs } from "@/components/ui/breadcrumbs";
@@ -9,6 +9,11 @@ export default function CareJourneyProgressPage() {
     { label: "Family Dashboard", href: "/dashboard/family" },
     { label: "Care Journey Progress", href: "/family/care-journey-progress" }
   ];
+
+  // Scroll to top when page loads
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, []);
 
   return (
     <div className="min-h-screen bg-gray-50">

@@ -1,7 +1,6 @@
-
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, MessageCircle, Sparkles, Check, XIcon } from 'lucide-react';
+import { X, MessageCircle, Sparkles, Check, XIcon, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useTavaraState } from './hooks/useTavaraState';
@@ -41,6 +40,7 @@ export const TavaraAssistantPanel: React.FC = () => {
   const [hasInitialGreeted, setHasInitialGreeted] = useState(false);
   const [showGreeting, setShowGreeting] = useState(false);
   const [greetedPages, setGreetedPages] = useState<Set<string>>(new Set());
+  const [isExpanded, setIsExpanded] = useState(false);
 
   // Get comprehensive journey progress
   const professionalProgress = useProfessionalProgress();
@@ -326,21 +326,39 @@ export const TavaraAssistantPanel: React.FC = () => {
     );
   }
 
-  // Main panel with enhanced journey context
+  // Main panel with improved mobile experience
   return (
     <motion.div
       initial={{ opacity: 0, x: -400 }}
       animate={{ 
         opacity: 1, 
-        x: state.isMinimized ? -300 : 0,
+        x: state.isMinimized ? -280 : 0,
         scale: state.isMinimized ? 0.9 : 1
       }}
       exit={{ opacity: 0, x: -400 }}
       transition={{ type: "spring", damping: 25, stiffness: 300 }}
       className={`fixed left-0 top-0 h-full bg-white shadow-2xl border-r border-gray-200 z-50 flex flex-col ${
-        isMobile ? 'w-full' : 'w-96'
+        isMobile 
+          ? isExpanded 
+            ? 'w-full' 
+            : 'w-3/5 max-w-sm'
+          : 'w-96'
       }`}
     >
+      {/* Mobile expand/collapse button */}
+      {isMobile && (
+        <button
+          onClick={() => setIsExpanded(!isExpanded)}
+          className="absolute -right-8 top-4 bg-primary text-white rounded-r-lg p-2 shadow-lg"
+        >
+          {isExpanded ? (
+            <ChevronLeft className="h-4 w-4" />
+          ) : (
+            <ChevronRight className="h-4 w-4" />
+          )}
+        </button>
+      )}
+
       <RoleBasedContent 
         role={state.currentRole}
         nudges={nudges}
