@@ -8,6 +8,7 @@ import { ScheduleVisitModal } from "./ScheduleVisitModal";
 import { JourneyStepTooltip } from "./JourneyStepTooltip";
 import { JourneyPathVisualization } from "./JourneyPathVisualization";
 import { useEnhancedJourneyProgress } from "@/hooks/useEnhancedJourneyProgress";
+import { useIsMobile } from "@/hooks/use-mobile";
 import * as LucideIcons from "lucide-react";
 
 interface EnhancedFamilyNextStepsPanelProps {
@@ -18,6 +19,7 @@ export const EnhancedFamilyNextStepsPanel: React.FC<EnhancedFamilyNextStepsPanel
   showAllSteps = false 
 }) => {
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
   const { 
     steps, 
     paths,
@@ -35,7 +37,7 @@ export const EnhancedFamilyNextStepsPanel: React.FC<EnhancedFamilyNextStepsPanel
 
   const getIcon = (iconName: string) => {
     const IconComponent = (LucideIcons as any)[iconName];
-    return IconComponent ? <IconComponent className="h-5 w-5" /> : <List className="h-5 w-5" />;
+    return IconComponent ? <IconComponent className="h-4 w-4 sm:h-5 sm:w-5" /> : <List className="h-4 w-4 sm:h-5 sm:w-5" />;
   };
 
   const getButtonText = (step: any) => {
@@ -70,16 +72,16 @@ export const EnhancedFamilyNextStepsPanel: React.FC<EnhancedFamilyNextStepsPanel
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="mb-8"
+        className="mb-6 sm:mb-8"
       >
         <Card className="border-l-4 border-l-primary">
-          <CardHeader className="pb-4">
-            <CardTitle className="flex items-center gap-2 text-xl">
-              <List className="h-5 w-5 text-primary" />
+          <CardHeader className="pb-3 sm:pb-4 px-4 sm:px-6">
+            <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
+              <List className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
               Your Care Journey Progress
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="px-4 sm:px-6">
             <div className="text-center py-6">
               <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto"></div>
               <p className="text-sm text-gray-500 mt-2">Loading progress...</p>
@@ -96,7 +98,7 @@ export const EnhancedFamilyNextStepsPanel: React.FC<EnhancedFamilyNextStepsPanel
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="mb-8 space-y-6"
+        className="mb-6 sm:mb-8 space-y-4 sm:space-y-6"
       >
         {/* Path Visualization - Only show on full page view */}
         {showAllSteps && (
@@ -109,14 +111,16 @@ export const EnhancedFamilyNextStepsPanel: React.FC<EnhancedFamilyNextStepsPanel
 
         {/* Main Progress Card */}
         <Card className="border-l-4 border-l-primary">
-          <CardHeader className="pb-4">
-            <div className="flex items-center justify-between">
+          <CardHeader className="pb-3 sm:pb-4 px-4 sm:px-6">
+            <div className={`${isMobile ? 'flex-col space-y-3' : 'flex items-center justify-between'}`}>
               <div className="flex-1">
-                <CardTitle className="flex items-center gap-2 text-xl mb-2">
-                  <List className="h-5 w-5 text-primary" />
-                  {showAllSteps ? "🌿 Tavara Care Journey Progress" : "Your Care Journey Progress"}
+                <CardTitle className={`flex items-center gap-2 ${isMobile ? 'text-lg' : 'text-xl'} mb-2`}>
+                  <List className={`${isMobile ? 'h-4 w-4' : 'h-5 w-5'} text-primary flex-shrink-0`} />
+                  <span className={isMobile ? 'text-base' : 'text-xl'}>
+                    {showAllSteps ? "🌿 Tavara Care Journey Progress" : "Your Care Journey Progress"}
+                  </span>
                 </CardTitle>
-                <p className="text-sm text-gray-600">
+                <p className="text-xs sm:text-sm text-gray-600">
                   {showAllSteps 
                     ? "Complete these steps to get matched and begin personalized care with confidence"
                     : "Complete these steps to get matched with the right caregiver"
@@ -129,9 +133,9 @@ export const EnhancedFamilyNextStepsPanel: React.FC<EnhancedFamilyNextStepsPanel
                   </span>
                 </div>
               </div>
-              <div className="flex items-center gap-3 ml-4">
+              <div className={`flex items-center gap-3 ${isMobile ? 'justify-center' : 'ml-4'}`}>
                 <div className="text-right">
-                  <div className={`${showAllSteps ? 'text-3xl' : 'text-2xl'} font-bold text-primary`}>
+                  <div className={`${isMobile ? 'text-2xl' : showAllSteps ? 'text-3xl' : 'text-2xl'} font-bold text-primary`}>
                     {completionPercentage}%
                   </div>
                   <div className="text-xs text-gray-500">
@@ -141,8 +145,8 @@ export const EnhancedFamilyNextStepsPanel: React.FC<EnhancedFamilyNextStepsPanel
                     }
                   </div>
                 </div>
-                <div className={`${showAllSteps ? 'w-20 h-20' : 'w-16 h-16'} relative`}>
-                  <svg className={`${showAllSteps ? 'w-20 h-20' : 'w-16 h-16'} transform -rotate-90`} viewBox="0 0 36 36">
+                <div className={`${isMobile ? 'w-16 h-16' : showAllSteps ? 'w-20 h-20' : 'w-16 h-16'} relative`}>
+                  <svg className={`${isMobile ? 'w-16 h-16' : showAllSteps ? 'w-20 h-20' : 'w-16 h-16'} transform -rotate-90`} viewBox="0 0 36 36">
                     <path
                       className="text-gray-200"
                       stroke="currentColor"
@@ -163,8 +167,8 @@ export const EnhancedFamilyNextStepsPanel: React.FC<EnhancedFamilyNextStepsPanel
               </div>
             </div>
           </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
+          <CardContent className="px-4 sm:px-6">
+            <div className="space-y-3 sm:space-y-4">
               {displaySteps.map((step) => (
                 <JourneyStepTooltip
                   key={step.id}
@@ -180,18 +184,18 @@ export const EnhancedFamilyNextStepsPanel: React.FC<EnhancedFamilyNextStepsPanel
                   <div className={`flex items-start gap-3 p-3 rounded-lg transition-colors cursor-pointer ${
                     step.accessible ? 'hover:bg-gray-50' : 'bg-gray-50'
                   }`}>
-                    <div className="mt-0.5">
+                    <div className="mt-0.5 flex-shrink-0">
                       {step.completed ? (
-                        <CheckCircle2 className="h-5 w-5 text-green-500" />
+                        <CheckCircle2 className="h-4 w-4 sm:h-5 sm:w-5 text-green-500" />
                       ) : (
-                        <Circle className={`h-5 w-5 ${step.accessible ? 'text-gray-300' : 'text-gray-200'}`} />
+                        <Circle className={`h-4 w-4 sm:h-5 sm:w-5 ${step.accessible ? 'text-gray-300' : 'text-gray-200'}`} />
                       )}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-start justify-between gap-4">
+                      <div className={`${isMobile ? 'flex-col space-y-2' : 'flex items-start justify-between gap-4'}`}>
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-1">
-                            <div className={`${step.accessible ? 'text-primary' : 'text-gray-300'}`}>
+                            <div className={`${step.accessible ? 'text-primary' : 'text-gray-300'} flex-shrink-0`}>
                               {getIcon(step.icon_name)}
                             </div>
                             <p className={`font-medium text-sm ${
@@ -213,7 +217,7 @@ export const EnhancedFamilyNextStepsPanel: React.FC<EnhancedFamilyNextStepsPanel
                             {step.description}
                           </p>
                         </div>
-                        <div className="flex items-center gap-2 flex-shrink-0">
+                        <div className={`flex items-center ${isMobile ? 'justify-between' : 'gap-2'} flex-shrink-0`}>
                           {!step.completed && (
                             <div className="flex items-center text-xs text-gray-500 gap-1">
                               <Clock className="h-3 w-3" />
@@ -223,7 +227,7 @@ export const EnhancedFamilyNextStepsPanel: React.FC<EnhancedFamilyNextStepsPanel
                           <Button 
                             variant="ghost" 
                             size="sm" 
-                            className={`text-xs px-2 py-1 h-auto ${
+                            className={`text-xs px-2 py-1 h-auto min-h-[44px] ${isMobile ? 'min-w-[44px]' : ''} ${
                               !step.accessible
                                 ? 'text-gray-400 cursor-not-allowed opacity-50'
                                 : step.completed 
@@ -238,7 +242,7 @@ export const EnhancedFamilyNextStepsPanel: React.FC<EnhancedFamilyNextStepsPanel
                               }
                             }}
                           >
-                            {getButtonText(step)}
+                            <span className={isMobile ? 'text-xs' : ''}>{getButtonText(step)}</span>
                             <ArrowRight className="ml-1 h-3 w-3" />
                           </Button>
                         </div>
@@ -250,24 +254,24 @@ export const EnhancedFamilyNextStepsPanel: React.FC<EnhancedFamilyNextStepsPanel
             </div>
             
             {!showAllSteps && (
-              <div className="mt-6 pt-4 border-t">
+              <div className="mt-4 sm:mt-6 pt-4 border-t">
                 <Button
                   variant="outline"
-                  className="w-full justify-between"
+                  className="w-full justify-between min-h-[44px]"
                   onClick={() => navigate('/family/care-journey-progress')}
                 >
-                  <span>View Complete Journey ({steps.length} total steps)</span>
+                  <span className="text-sm">View Complete Journey ({steps.length} total steps)</span>
                   <ArrowRight className="h-4 w-4" />
                 </Button>
               </div>
             )}
 
             {showAllSteps && (
-              <div className="mt-8 text-center">
+              <div className="mt-6 sm:mt-8 text-center">
                 <Button 
                   variant="outline" 
                   onClick={() => navigate('/dashboard/family')}
-                  className="gap-2"
+                  className="gap-2 min-h-[44px]"
                 >
                   ← Back to Dashboard
                 </Button>
