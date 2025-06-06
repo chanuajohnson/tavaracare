@@ -1,7 +1,8 @@
+
 import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { List, ArrowRight } from "lucide-react";
+import { List, ArrowRight, Eye, Sparkles } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { ScheduleVisitModal } from "./ScheduleVisitModal";
 import { LeadCaptureModal } from "./LeadCaptureModal";
@@ -184,22 +185,38 @@ export const EnhancedFamilyNextStepsPanel: React.FC<EnhancedFamilyNextStepsPanel
           />
         )}
 
-        {/* Journey Overview Card */}
-        <Card className="border-l-4 border-l-primary">
+        {/* Journey Overview Card with Demo Indicator for Anonymous Users */}
+        <Card className={`border-l-4 border-l-primary ${isAnonymous ? 'bg-gradient-to-r from-blue-50/30 to-purple-50/30' : ''}`}>
           <CardHeader className="pb-3 sm:pb-4 px-4 sm:px-6">
             <div className={`${isMobile ? 'flex-col space-y-3' : 'flex items-center justify-between'}`}>
               <div className="flex-1">
                 <CardTitle className={`flex items-center gap-2 ${isMobile ? 'text-lg' : 'text-xl'} mb-2`}>
                   <List className={`${isMobile ? 'h-4 w-4' : 'h-5 w-5'} text-primary flex-shrink-0`} />
-                  <span className={isMobile ? 'text-base' : 'text-xl'}>
-                    {showAllSteps ? "🌿 Complete Care Journey" : "Your Care Journey Progress"}
-                  </span>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className={isMobile ? 'text-base' : 'text-xl'}>
+                      {showAllSteps ? "🌿 Complete Care Journey" : "Your Care Journey Progress"}
+                    </span>
+                    {isAnonymous && (
+                      <div className="flex items-center gap-2">
+                        <span className="inline-flex items-center gap-1 bg-gradient-to-r from-blue-500 to-purple-500 text-white text-xs font-medium px-3 py-1 rounded-full">
+                          <Sparkles className="h-3 w-3" />
+                          DEMO
+                        </span>
+                        <span className="inline-flex items-center gap-1 bg-amber-100 text-amber-800 text-xs font-medium px-2 py-1 rounded">
+                          <Eye className="h-3 w-3" />
+                          Preview
+                        </span>
+                      </div>
+                    )}
+                  </div>
                 </CardTitle>
                 <p className="text-xs sm:text-sm text-gray-600">
                   {showAllSteps 
-                    ? "Complete these stages to get matched and begin personalized care with confidence"
+                    ? isAnonymous
+                      ? "✨ Demo Experience - This shows how families complete their care journey with Tavara"
+                      : "Complete these stages to get matched and begin personalized care with confidence"
                     : isAnonymous
-                      ? "See how families build their care village with Tavara"
+                      ? "✨ Demo Experience - Here's how families build their care village with Tavara"
                       : "Follow these stages to get matched with the right caregiver"
                   }
                 </p>
@@ -267,19 +284,50 @@ export const EnhancedFamilyNextStepsPanel: React.FC<EnhancedFamilyNextStepsPanel
             
         {!showAllSteps && (
           <div className="mt-4 sm:mt-6">
-            <Button
-              variant="outline"
-              className="w-full justify-between min-h-[44px]"
-              onClick={handleViewCompleteJourney}
-            >
-              <span className="text-sm">
-                {isAnonymous 
-                  ? "Start Building Your Care Village" 
-                  : `View Complete Journey (${steps.length} total steps)`
-                }
-              </span>
-              <ArrowRight className="h-4 w-4" />
-            </Button>
+            {isAnonymous ? (
+              <div className="space-y-4">
+                <div className="bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 rounded-lg p-4">
+                  <div className="text-center space-y-3">
+                    <div className="flex items-center justify-center gap-2">
+                      <Sparkles className="h-5 w-5 text-blue-500" />
+                      <h3 className="text-lg font-semibold text-gray-800">Ready for Your Real Care Journey?</h3>
+                    </div>
+                    <p className="text-sm text-gray-600 max-w-md mx-auto">
+                      This is a preview of your care journey. Start building your actual care village and get matched with real caregivers in your area.
+                    </p>
+                    <div className="flex flex-col sm:flex-row gap-2 justify-center">
+                      <Button
+                        variant="default"
+                        className="bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white font-medium"
+                        onClick={handleViewCompleteJourney}
+                      >
+                        <ArrowRight className="h-4 w-4 mr-2" />
+                        Start My Real Care Journey
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+                <Button
+                  variant="outline"
+                  className="w-full justify-between min-h-[44px] text-gray-600"
+                  onClick={handleViewCompleteJourney}
+                >
+                  <span className="text-sm">View Complete Demo Journey</span>
+                  <ArrowRight className="h-4 w-4" />
+                </Button>
+              </div>
+            ) : (
+              <Button
+                variant="outline"
+                className="w-full justify-between min-h-[44px]"
+                onClick={handleViewCompleteJourney}
+              >
+                <span className="text-sm">
+                  View Complete Journey ({steps.length} total steps)
+                </span>
+                <ArrowRight className="h-4 w-4" />
+              </Button>
+            )}
           </div>
         )}
 
