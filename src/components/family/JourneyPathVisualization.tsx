@@ -1,8 +1,8 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ArrowRight, Star, Users, CheckCircle2 } from "lucide-react";
+import { JourneyStageTooltip } from "./JourneyStageTooltip";
 
 interface JourneyPath {
   id: string;
@@ -64,8 +64,8 @@ export const JourneyPathVisualization: React.FC<JourneyPathVisualizationProps> =
 
   return (
     <Card className="border-l-4 border-l-primary mb-4 sm:mb-6">
-      <CardHeader className="pb-3 sm:pb-4 px-4 sm:px-6">
-        <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
+      <CardHeader className="pb-3 sm:pb-4 px-3 sm:px-6">
+        <CardTitle className="flex items-center gap-2 text-base sm:text-lg md:text-xl">
           <Star className="h-4 w-4 sm:h-5 sm:w-5 text-primary flex-shrink-0" />
           <span className="text-sm sm:text-base">🛣️ Your Care Journey Paths</span>
         </CardTitle>
@@ -73,8 +73,8 @@ export const JourneyPathVisualization: React.FC<JourneyPathVisualizationProps> =
           Follow the path that works best for your family
         </p>
       </CardHeader>
-      <CardContent className="space-y-4 sm:space-y-6 px-4 sm:px-6">
-        {/* Stage Progress Visualization */}
+      <CardContent className="space-y-4 sm:space-y-6 px-3 sm:px-6">
+        {/* Stage Progress Visualization with Tooltips */}
         <div className="space-y-3 sm:space-y-4">
           <h4 className="font-medium text-sm text-gray-800">Journey Stages</h4>
           <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-gray-300">
@@ -88,30 +88,39 @@ export const JourneyPathVisualization: React.FC<JourneyPathVisualizationProps> =
               return (
                 <div key={category.key} className="flex items-center gap-2 flex-shrink-0">
                   <div className="text-center min-w-[100px] sm:min-w-[120px]">
-                    <div className="w-10 h-10 sm:w-12 sm:h-12 relative mx-auto mb-2">
-                      <svg className="w-10 h-10 sm:w-12 sm:h-12 transform -rotate-90" viewBox="0 0 36 36">
-                        <path
-                          className="text-gray-200"
-                          stroke="currentColor"
-                          strokeWidth="3"
-                          fill="transparent"
-                          d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                        />
-                        <path
-                          className={getStageColor(status)}
-                          stroke="currentColor"
-                          strokeWidth="3"
-                          fill="transparent"
-                          strokeDasharray={`${completionPercentage}, 100`}
-                          d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                        />
-                      </svg>
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <span className="text-xs font-semibold text-gray-700">
-                          {completedInCategory}/{totalInCategory}
-                        </span>
+                    <JourneyStageTooltip
+                      stageName={category.name}
+                      stageKey={category.key}
+                      description={category.description}
+                      completedSteps={completedInCategory}
+                      totalSteps={totalInCategory}
+                      isCurrent={status === 'current'}
+                    >
+                      <div className="w-10 h-10 sm:w-12 sm:h-12 relative mx-auto mb-2 cursor-pointer hover:scale-105 transition-transform">
+                        <svg className="w-10 h-10 sm:w-12 sm:h-12 transform -rotate-90" viewBox="0 0 36 36">
+                          <path
+                            className="text-gray-200"
+                            stroke="currentColor"
+                            strokeWidth="3"
+                            fill="transparent"
+                            d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                          />
+                          <path
+                            className={getStageColor(status)}
+                            stroke="currentColor"
+                            strokeWidth="3"
+                            fill="transparent"
+                            strokeDasharray={`${completionPercentage}, 100`}
+                            d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                          />
+                        </svg>
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <span className="text-xs font-semibold text-gray-700">
+                            {completedInCategory}/{totalInCategory}
+                          </span>
+                        </div>
                       </div>
-                    </div>
+                    </JourneyStageTooltip>
                     <div className="text-xs font-medium text-gray-800">{category.name}</div>
                     <div className="text-xs text-gray-500 mt-1 px-1 leading-tight">{category.description}</div>
                     {status === 'current' && (
