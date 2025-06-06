@@ -1,3 +1,4 @@
+
 import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -167,6 +168,11 @@ export const EnhancedFamilyNextStepsPanel: React.FC<EnhancedFamilyNextStepsPanel
 
   const stageGroups = groupStepsByStage();
 
+  // Filter stages based on showAllSteps prop
+  const stagesToDisplay = showAllSteps 
+    ? Object.values(stageGroups) 
+    : [stageGroups.foundation]; // Only show foundation stage on dashboard
+
   return (
     <>
       <motion.div
@@ -262,16 +268,16 @@ export const EnhancedFamilyNextStepsPanel: React.FC<EnhancedFamilyNextStepsPanel
           </CardHeader>
         </Card>
 
-        {/* Stage-Based Progress Cards */}
+        {/* Stage-Based Progress Cards - Now filtered based on showAllSteps */}
         <div className="space-y-4">
-          {Object.values(stageGroups).map((stage) => (
+          {stagesToDisplay.map((stage) => (
             stage.steps.length > 0 && (
               <JourneyStageCard
                 key={stage.key}
                 stageName={stage.name}
                 stageKey={stage.key}
                 stageDescription={stage.description}
-                steps={showAllSteps ? stage.steps : stage.steps.slice(0, 3)}
+                steps={showAllSteps ? stage.steps : stage.steps}
                 stageColor={stage.color}
                 subscriptionCTA={stage.subscriptionCTA}
                 trackStepAction={trackStepAction}
