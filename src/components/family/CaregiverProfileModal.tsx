@@ -61,18 +61,18 @@ export const CaregiverProfileModal = ({
           </DialogHeader>
           
           <div className="space-y-6">
-            {/* Basic Info - Clearly Visible */}
+            {/* Basic Info - Name Protected */}
             <div className="flex flex-col md:flex-row gap-6 items-center md:items-start">
               <div className="flex flex-col items-center">
                 <Avatar className="h-24 w-24 border-2 border-primary/20">
                   <AvatarImage src={caregiver.avatar_url || undefined} />
                   <AvatarFallback className="bg-primary-100 text-primary-800 text-2xl">
-                    {caregiver.full_name.split(' ').map(n => n[0]).join('')}
+                    PC
                   </AvatarFallback>
                 </Avatar>
                 
                 <div className="mt-3 text-center">
-                  <h3 className="text-xl font-semibold">{caregiver.full_name}</h3>
+                  <h3 className="text-xl font-semibold">Professional Caregiver</h3>
                   <div className="flex items-center justify-center gap-1 text-sm text-gray-500 mt-1">
                     <MapPin className="h-4 w-4" />
                     <span>{caregiver.location}</span>
@@ -80,6 +80,9 @@ export const CaregiverProfileModal = ({
                   {caregiver.distance && (
                     <p className="text-sm text-gray-500">{caregiver.distance.toFixed(1)} km away</p>
                   )}
+                  <div className="text-xs text-blue-600 mt-1">
+                    * Name protected until visit scheduled
+                  </div>
                 </div>
                 
                 <div className="bg-green-100 w-full rounded-lg p-3 text-center border border-green-200 mt-3">
@@ -146,7 +149,7 @@ export const CaregiverProfileModal = ({
                     Schedule Your Visit to Unlock Full Details
                   </h3>
                   <p className="text-gray-500 mb-4">
-                    Get access to reviews, certifications, detailed bio, and contact information
+                    Get access to reviews, certifications, detailed bio, contact information, and full name
                   </p>
                   <Button 
                     onClick={() => setShowScheduleModal(true)}
@@ -157,8 +160,15 @@ export const CaregiverProfileModal = ({
                 </div>
               </div>
               
-              {/* Blurred Content Behind Overlay */}
+              {/* Blurred Content Behind Overlay - Including Protected Name */}
               <div className="blur-sm space-y-4 p-4 bg-gray-50 rounded-lg">
+                <div className="border-b pb-4 mb-4">
+                  <h4 className="font-medium mb-2">Full Name & Contact</h4>
+                  <div className="text-lg font-semibold text-gray-800">{caregiver.full_name}</div>
+                  <div className="text-sm text-gray-600">Phone: (868) 555-0123</div>
+                  <div className="text-sm text-gray-600">Email: caregiver@example.com</div>
+                </div>
+                
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <h4 className="font-medium mb-2">Reviews & Ratings</h4>
@@ -233,7 +243,7 @@ export const CaregiverProfileModal = ({
       <ScheduleVisitModal 
         open={showScheduleModal}
         onOpenChange={setShowScheduleModal}
-        caregiverName={caregiver.full_name}
+        caregiverName="your matched caregiver"
       />
     </>
   );
