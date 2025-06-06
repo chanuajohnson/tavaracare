@@ -6,6 +6,7 @@ import { AppProviders } from "@/components/providers/AppProviders";
 import { SupabaseInitializer } from "@/components/supabase/SupabaseInitializer";
 import { AppRoutes } from "@/components/routing/AppRoutes";
 import { RedirectHandler } from "@/components/routing/RedirectHandler";
+import { RouteValidator } from "@/components/routing/RouteValidator";
 import { GlobalFAB } from "@/components/common/GlobalFAB";
 import { TavaraAssistantPanel } from "@/components/tav/TavaraAssistantPanel";
 
@@ -34,6 +35,7 @@ export default function AppWithProviders() {
     <AppProviders>
       <SupabaseInitializer />
       <RedirectHandler />
+      <RouteValidator />
       <AppContent />
     </AppProviders>
   );

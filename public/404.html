@@ -6,41 +6,48 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Tavara.care - Redirecting...</title>
   <script>
-    // Single Page App redirect script for GitHub Pages
-    // Modified to properly handle query parameters for auth flows
+    // Enhanced SPA redirect script for GitHub Pages/Netlify
+    // Fixes white screen issues on direct links and page refreshes
     (function() {
-      // This script takes the current URL and preserves both the path and query parameters
+      console.log('[404 Redirect] Starting redirect process...');
       
       // Parse the URL components
       var pathname = window.location.pathname;
       var search = window.location.search;
       var hash = window.location.hash;
       
-      // Special handling for auth reset password confirm route
-      if (pathname.includes('/auth/reset-password/confirm')) {
-        console.log('[404 redirect] Auth reset password route detected with query params:', search);
-        // For auth routes with tokens, we need to preserve every query parameter
-        // Redirect to the SPA route with all query parameters intact
-        window.location.href = '/#' + pathname + search;
-        return;
-      }
+      console.log('[404 Redirect] Current URL:', { pathname, search, hash });
       
       // Remove any trailing slash from the path
       pathname = pathname.replace(/\/$/, '');
       
-      // If URL is already the root or 404, just go to index (prevents redirect loop)
-      if (pathname === '/404.html' || pathname === '/404') {
-        window.location.href = '/';
+      // If URL is already the root, 404.html, or empty, go to index
+      if (pathname === '' || pathname === '/' || pathname === '/404.html' || pathname === '/404') {
+        console.log('[404 Redirect] Root or 404 path detected, going to home');
+        window.location.replace('/');
         return;
       }
       
-      // For non-auth routes, use the standard SPA redirect approach
-      var redirectUrl = '/?route=' + encodeURIComponent(pathname.slice(1)) + 
-                       (search ? '&' + search.slice(1) : '') + 
-                       hash;
+      // Special handling for auth reset password confirm route with tokens
+      if (pathname.includes('/auth/reset-password/confirm')) {
+        console.log('[404 Redirect] Auth reset password route detected with tokens:', search);
+        // For auth routes with tokens, preserve all query parameters using hash
+        var redirectUrl = '/#' + pathname + search + hash;
+        console.log('[404 Redirect] Auth redirect to:', redirectUrl);
+        window.location.replace(redirectUrl);
+        return;
+      }
       
-      console.log('[404 redirect] Redirecting to:', redirectUrl);
-      window.location.replace(redirectUrl);
+      // For all other routes, use hash-based routing (SPA-friendly)
+      var redirectUrl = '/#' + pathname + (search ? search : '') + hash;
+      
+      console.log('[404 Redirect] Redirecting to hash route:', redirectUrl);
+      
+      // Add a small delay to ensure logging is visible
+      setTimeout(function() {
+        window.location.replace(redirectUrl);
+      }, 100);
+      
     })();
   </script>
   <style>
@@ -84,6 +91,17 @@
     @keyframes spin {
       to { transform: rotate(360deg); }
     }
+    .debug-info {
+      position: fixed;
+      bottom: 10px;
+      left: 10px;
+      font-size: 10px;
+      color: #6b7280;
+      background: rgba(255, 255, 255, 0.8);
+      padding: 8px;
+      border-radius: 4px;
+      max-width: 300px;
+    }
   </style>
 </head>
 <body>
@@ -91,5 +109,18 @@
   <div class="spinner"></div>
   <h1>Redirecting...</h1>
   <p>Please wait while we redirect you to the requested page. If you're not redirected automatically, <a href="/">click here</a> to go to the homepage.</p>
+  
+  <div class="debug-info">
+    <div>Path: <span id="debug-path"></span></div>
+    <div>Search: <span id="debug-search"></span></div>
+    <div>Hash: <span id="debug-hash"></span></div>
+  </div>
+  
+  <script>
+    // Debug information display
+    document.getElementById('debug-path').textContent = window.location.pathname;
+    document.getElementById('debug-search').textContent = window.location.search || '(none)';
+    document.getElementById('debug-hash').textContent = window.location.hash || '(none)';
+  </script>
 </body>
 </html>

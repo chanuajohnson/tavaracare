@@ -1,13 +1,22 @@
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { ensureUserProfile } from '@/lib/profile-utils';
 import { UserRole } from '@/types/database';
 
+const REDIRECT_TIMEOUT = 5000; // 5 seconds timeout for redirects
+const VALID_ROUTES = [
+  '/', '/auth', '/features', '/about', '/faq',
+  '/registration/family', '/registration/professional', '/registration/community',
+  '/dashboard/family', '/dashboard/professional', '/dashboard/community', '/dashboard/admin',
+  '/family', '/professional', '/community', '/subscription'
+];
+
 export function RedirectHandler() {
   const navigate = useNavigate();
   const location = useLocation();
+  const [isProcessing, setIsProcessing] = useState(false);
   
   useEffect(() => {
     console.log('[RedirectHandler] Checking for redirects', { 
@@ -16,56 +25,149 @@ export function RedirectHandler() {
       hash: location.hash
     });
     
-    // Handle general redirects from query params
-    const params = new URLSearchParams(location.search);
-    const routeParam = params.get('route');
+    // Set processing state
+    setIsProcessing(true);
     
-    // Handle regular route redirects
-    if (routeParam) {
-      const newUrl = '/' + routeParam;
-      console.log(`[RedirectHandler] Redirecting to: ${newUrl}`);
-      navigate(newUrl, { replace: true });
-      return;
-    }
+    // Set up timeout fallback
+    const timeoutId = setTimeout(() => {
+      console.warn('[RedirectHandler] Redirect timeout - falling back to home');
+      setIsProcessing(false);
+      if (location.pathname !== '/') {
+        navigate('/', { replace: true });
+      }
+    }, REDIRECT_TIMEOUT);
     
-    // Handle hash-based redirects for auth flows (from 404.html)
-    if (location.hash.startsWith('#/auth/reset-password/confirm')) {
-      // Extract the path and query string from the hash
-      const hashParts = location.hash.substring(1).split('?');
-      const hashPath = hashParts[0];
-      const hashQuery = hashParts.length > 1 ? `?${hashParts[1]}` : '';
-      
-      console.log(`[RedirectHandler] Auth redirect detected: ${hashPath}${hashQuery}`);
-      
-      // Navigate to the correct route with the query parameters
-      navigate(`${hashPath}${hashQuery}`, { replace: true });
-      return;
-    }
-
-    // Handle email confirmation with authentication tokens
-    if (location.hash && location.hash.includes('access_token=')) {
-      console.log('[RedirectHandler] Email confirmation tokens detected');
-      handleEmailConfirmation();
+    try {
+      processRedirects(timeoutId);
+    } catch (error) {
+      console.error('[RedirectHandler] Error processing redirects:', error);
+      clearTimeout(timeoutId);
+      setIsProcessing(false);
+      // Fallback to home on error
+      navigate('/', { replace: true });
     }
   }, [location, navigate]);
 
-  const handleEmailConfirmation = async () => {
+  const processRedirects = async (timeoutId: NodeJS.Timeout) => {
     try {
-      // Extract tokens from hash
-      const hashParams = new URLSearchParams(location.hash.substring(1));
-      const accessToken = hashParams.get('access_token');
-      const refreshToken = hashParams.get('refresh_token');
-      const expiresAt = hashParams.get('expires_at');
-      const tokenType = hashParams.get('token_type');
-      const type = hashParams.get('type');
+      // Handle legacy query parameter redirects (from old 404.html)
+      const params = new URLSearchParams(location.search);
+      const routeParam = params.get('route');
+      
+      if (routeParam) {
+        const targetRoute = '/' + routeParam;
+        console.log(`[RedirectHandler] Legacy query redirect to: ${targetRoute}`);
+        
+        if (isValidRoute(targetRoute)) {
+          clearTimeout(timeoutId);
+          setIsProcessing(false);
+          navigate(targetRoute, { replace: true });
+          return;
+        } else {
+          console.warn(`[RedirectHandler] Invalid route: ${targetRoute}, redirecting to home`);
+          clearTimeout(timeoutId);
+          setIsProcessing(false);
+          navigate('/', { replace: true });
+          return;
+        }
+      }
+      
+      // Handle hash-based redirects (new approach from updated 404.html)
+      if (location.hash && location.hash.startsWith('#/')) {
+        const hashPath = location.hash.substring(1); // Remove the #
+        const [path, queryString] = hashPath.split('?');
+        
+        console.log(`[RedirectHandler] Hash-based redirect detected: ${path}${queryString ? '?' + queryString : ''}`);
+        
+        if (isValidRoute(path)) {
+          clearTimeout(timeoutId);
+          setIsProcessing(false);
+          
+          // Handle auth routes with special care
+          if (path.includes('/auth/reset-password/confirm')) {
+            await handleEmailConfirmation(queryString);
+          } else {
+            // Navigate to the path with query parameters if present
+            const fullPath = queryString ? `${path}?${queryString}` : path;
+            navigate(fullPath, { replace: true });
+          }
+          return;
+        } else {
+          console.warn(`[RedirectHandler] Invalid hash route: ${path}, redirecting to home`);
+          clearTimeout(timeoutId);
+          setIsProcessing(false);
+          navigate('/', { replace: true });
+          return;
+        }
+      }
 
-      console.log('[RedirectHandler] Processing email confirmation:', { 
+      // Handle email confirmation with authentication tokens (legacy approach)
+      if (location.hash && location.hash.includes('access_token=')) {
+        console.log('[RedirectHandler] Email confirmation tokens detected in hash');
+        await handleEmailConfirmation();
+        clearTimeout(timeoutId);
+        setIsProcessing(false);
+        return;
+      }
+
+      // If no special redirects needed, clear processing
+      clearTimeout(timeoutId);
+      setIsProcessing(false);
+      
+    } catch (error) {
+      console.error('[RedirectHandler] Error in processRedirects:', error);
+      clearTimeout(timeoutId);
+      setIsProcessing(false);
+      navigate('/', { replace: true });
+    }
+  };
+
+  const isValidRoute = (route: string): boolean => {
+    // Check exact matches first
+    if (VALID_ROUTES.includes(route)) {
+      return true;
+    }
+    
+    // Check dynamic routes
+    const dynamicRoutes = [
+      /^\/family\/.*$/,
+      /^\/professional\/.*$/,
+      /^\/community\/.*$/,
+      /^\/admin\/.*$/,
+      /^\/auth\/.*$/,
+      /^\/subscription\/.*$/,
+      /^\/caregiver\/.*$/,
+      /^\/legacy\/.*$/,
+      /^\/debug\/.*$/
+    ];
+    
+    return dynamicRoutes.some(pattern => pattern.test(route));
+  };
+
+  const handleEmailConfirmation = async (queryString?: string) => {
+    try {
+      console.log('[RedirectHandler] Processing email confirmation');
+      
+      // Extract tokens from hash or query string
+      let params: URLSearchParams;
+      
+      if (queryString) {
+        params = new URLSearchParams(queryString);
+      } else {
+        params = new URLSearchParams(location.hash.substring(1));
+      }
+      
+      const accessToken = params.get('access_token');
+      const refreshToken = params.get('refresh_token');
+      const type = params.get('type');
+
+      console.log('[RedirectHandler] Email confirmation params:', { 
         hasAccessToken: !!accessToken, 
         hasRefreshToken: !!refreshToken,
         type 
       });
 
-      if (accessToken && refreshToken && expiresAt) {
+      if (accessToken && refreshToken) {
         // Set the session with the tokens
         const { data, error } = await supabase.auth.setSession({
           access_token: accessToken,
@@ -106,7 +208,6 @@ export function RedirectHandler() {
             
             if (targetDashboard) {
               console.log('[RedirectHandler] Email confirmation complete, redirecting to dashboard:', targetDashboard);
-              // Use replace to avoid back button issues
               navigate(targetDashboard, { replace: true });
               return;
             }
@@ -116,6 +217,9 @@ export function RedirectHandler() {
           console.log('[RedirectHandler] No role detected, redirecting to home');
           navigate('/', { replace: true });
         }
+      } else {
+        console.warn('[RedirectHandler] Missing tokens in email confirmation');
+        navigate('/auth', { replace: true });
       }
     } catch (error) {
       console.error('[RedirectHandler] Error in handleEmailConfirmation:', error);
@@ -124,6 +228,18 @@ export function RedirectHandler() {
       navigate('/auth', { replace: true });
     }
   };
+  
+  // Don't render anything during processing to avoid flicker
+  if (isProcessing) {
+    return (
+      <div className="fixed inset-0 bg-white flex items-center justify-center z-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-sm text-gray-600">Loading page...</p>
+        </div>
+      </div>
+    );
+  }
   
   return null;
 }

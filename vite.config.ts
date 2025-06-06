@@ -14,6 +14,7 @@ export default defineConfig(({ mode }) => {
   
   return {
     // Use empty base for custom domain and preview environments
+    // This ensures proper SPA routing
     base: "",  
     server: {
       host: "::",
@@ -32,6 +33,15 @@ export default defineConfig(({ mode }) => {
     build: {
       outDir: "dist", // Output to 'dist' directory
       sourcemap: mode === 'development', // Enable sourcemaps in development
+      // Ensure proper asset handling for SPA
+      rollupOptions: {
+        output: {
+          // Ensure consistent file names for proper caching
+          entryFileNames: 'assets/[name]-[hash].js',
+          chunkFileNames: 'assets/[name]-[hash].js',
+          assetFileNames: 'assets/[name]-[hash].[ext]'
+        }
+      }
     },
     define: {
       // Make environment variables available to client code
