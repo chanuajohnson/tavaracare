@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, MessageCircle, Sparkles, Check, XIcon, ChevronLeft, ChevronRight, Maximize2 } from 'lucide-react';
@@ -209,6 +210,21 @@ export const TavaraAssistantPanel: React.FC = () => {
     return AUTO_GREET_MESSAGES.guest;
   };
 
+  // Handle expand/collapse toggle with proper state management
+  const handleExpandToggle = () => {
+    if (isExpanded) {
+      setIsExpanded(false);
+    } else {
+      setIsExpanded(true);
+    }
+  };
+
+  // Handle maximize functionality from minimized state
+  const handleMaximizeFromMinimized = () => {
+    setIsExpanded(false); // Start with normal size, not expanded
+    maximizePanel();
+  };
+
   // Show minimized panel if minimized
   if (state.isMinimized) {
     return (
@@ -234,7 +250,7 @@ export const TavaraAssistantPanel: React.FC = () => {
             <Button
               variant="ghost"
               size="sm"
-              onClick={maximizePanel}
+              onClick={handleMaximizeFromMinimized}
               className="h-7 w-7 p-0"
               title="Expand panel"
             >
@@ -372,7 +388,7 @@ export const TavaraAssistantPanel: React.FC = () => {
     );
   }
 
-  // Main panel with improved mobile experience and responsive sizing
+  // Main panel with improved mobile experience, responsive sizing, and proper scroll handling
   return (
     <motion.div
       initial={{ opacity: 0, y: 400 }}
@@ -386,16 +402,22 @@ export const TavaraAssistantPanel: React.FC = () => {
       className={`fixed bottom-0 left-0 bg-white shadow-2xl border-r border-t border-gray-200 z-50 flex flex-col ${
         isMobile 
           ? isExpanded 
-            ? 'w-full max-h-[60vh]' 
-            : 'w-3/5 max-w-sm max-h-[40vh]'
-          : 'w-96 max-h-[40vh]'
+            ? 'w-full h-[70vh] max-h-[70vh]' 
+            : 'w-3/5 max-w-sm h-[40vh] max-h-[40vh]'
+          : 'w-96 h-[40vh] max-h-[40vh]'
       }`}
+      style={{
+        // Ensure consistent positioning and prevent overflow issues
+        minHeight: isMobile ? (isExpanded ? '70vh' : '40vh') : '40vh',
+        maxHeight: isMobile ? (isExpanded ? '70vh' : '40vh') : '40vh'
+      }}
     >
-      {/* Mobile expand/collapse button */}
+      {/* Mobile expand/collapse button - improved positioning and functionality */}
       {isMobile && (
         <button
-          onClick={() => setIsExpanded(!isExpanded)}
-          className="absolute -right-8 top-4 bg-primary text-white rounded-r-lg p-2 shadow-lg"
+          onClick={handleExpandToggle}
+          className="absolute -right-8 top-4 bg-primary text-white rounded-r-lg p-2 shadow-lg hover:bg-primary/90 transition-colors z-10"
+          aria-label={isExpanded ? "Collapse panel" : "Expand panel"}
         >
           {isExpanded ? (
             <ChevronLeft className="h-4 w-4" />
@@ -405,15 +427,18 @@ export const TavaraAssistantPanel: React.FC = () => {
         </button>
       )}
 
-      <RoleBasedContent 
-        role={state.currentRole}
-        nudges={nudges}
-        onNudgeClick={handleNudgeClick}
-        isLoading={isLoading}
-        progressContext={progressContext}
-        onClose={closePanel}
-        onMinimize={minimizePanel}
-      />
+      {/* Scrollable content container */}
+      <div className="flex flex-col h-full overflow-hidden">
+        <RoleBasedContent 
+          role={state.currentRole}
+          nudges={nudges}
+          onNudgeClick={handleNudgeClick}
+          isLoading={isLoading}
+          progressContext={progressContext}
+          onClose={closePanel}
+          onMinimize={minimizePanel}
+        />
+      </div>
     </motion.div>
   );
 };

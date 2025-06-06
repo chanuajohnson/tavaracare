@@ -9,6 +9,48 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      admin_availability_slots: {
+        Row: {
+          admin_id: string
+          created_at: string
+          current_bookings: number
+          date: string
+          description: string | null
+          end_time: string
+          id: string
+          is_available: boolean
+          max_bookings: number
+          start_time: string
+          updated_at: string
+        }
+        Insert: {
+          admin_id: string
+          created_at?: string
+          current_bookings?: number
+          date: string
+          description?: string | null
+          end_time: string
+          id?: string
+          is_available?: boolean
+          max_bookings?: number
+          start_time: string
+          updated_at?: string
+        }
+        Update: {
+          admin_id?: string
+          created_at?: string
+          current_bookings?: number
+          date?: string
+          description?: string | null
+          end_time?: string
+          id?: string
+          is_available?: boolean
+          max_bookings?: number
+          start_time?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       admin_communications: {
         Row: {
           admin_id: string
@@ -3179,6 +3221,59 @@ export type Database = {
             columns: ["plan_id"]
             isOneToOne: false
             referencedRelation: "subscription_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      visit_bookings: {
+        Row: {
+          admin_notes: string | null
+          availability_slot_id: string
+          booking_date: string
+          booking_time: string
+          confirmation_sent: boolean
+          created_at: string
+          id: string
+          status: string
+          updated_at: string
+          user_id: string
+          user_notes: string | null
+          visit_type: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          availability_slot_id: string
+          booking_date: string
+          booking_time: string
+          confirmation_sent?: boolean
+          created_at?: string
+          id?: string
+          status?: string
+          updated_at?: string
+          user_id: string
+          user_notes?: string | null
+          visit_type?: string
+        }
+        Update: {
+          admin_notes?: string | null
+          availability_slot_id?: string
+          booking_date?: string
+          booking_time?: string
+          confirmation_sent?: boolean
+          created_at?: string
+          id?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+          user_notes?: string | null
+          visit_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "visit_bookings_availability_slot_id_fkey"
+            columns: ["availability_slot_id"]
+            isOneToOne: false
+            referencedRelation: "admin_availability_slots"
             referencedColumns: ["id"]
           },
         ]

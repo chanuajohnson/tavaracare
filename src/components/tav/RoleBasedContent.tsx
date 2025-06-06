@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Heart, UserCog, Users, Globe, Shield, ArrowRight, Sparkles, Clock, CheckCircle2, Circle, X, Minimize2 } from 'lucide-react';
@@ -85,7 +86,7 @@ export const RoleBasedContent: React.FC<RoleBasedContentProps> = ({
   // Panel header with close/minimize controls for ALL users (including guests)
   const renderPanelHeader = () => {
     return (
-      <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-white">
+      <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-white flex-shrink-0">
         <div className="flex items-center gap-3">
           <Heart className="h-5 w-5 text-primary flex-shrink-0" />
           <h3 className="text-lg font-semibold">TAV Assistant</h3>
@@ -118,7 +119,7 @@ export const RoleBasedContent: React.FC<RoleBasedContentProps> = ({
     );
   };
 
-  // Main content wrapper
+  // Main content wrapper with improved scrolling
   const renderContent = () => {
     if (role === 'guest') {
       // Show journey previews when user has selected a role to preview

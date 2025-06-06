@@ -8,7 +8,7 @@ import { Calendar, Video, MapPin, Star, Clock, Lock, Sparkles, CreditCard } from
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { toast } from "sonner";
-import { GoogleCalendarSchedulingModal } from "@/components/family/GoogleCalendarSchedulingModal";
+import { InternalSchedulingModal } from "./InternalSchedulingModal";
 
 interface ScheduleVisitModalProps {
   open: boolean;
@@ -27,7 +27,7 @@ export const ScheduleVisitModal = ({
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
   const [visitCompleted, setVisitCompleted] = useState(false);
-  const [showCalendarModal, setShowCalendarModal] = useState(false);
+  const [showInternalScheduling, setShowInternalScheduling] = useState(false);
 
   const handleSlowPlanningPath = () => {
     navigate("/subscription/features", {
@@ -49,12 +49,12 @@ export const ScheduleVisitModal = ({
       return;
     }
 
-    // Open the embedded calendar modal instead of new tab
-    setShowCalendarModal(true);
+    // Open the internal scheduling modal instead of Google Calendar
+    setShowInternalScheduling(true);
   };
 
   const handleScheduleConfirmed = () => {
-    setShowCalendarModal(false);
+    setShowInternalScheduling(false);
     setVisitCompleted(true);
     toast.success("Visit scheduled successfully!");
     
@@ -303,11 +303,12 @@ export const ScheduleVisitModal = ({
         </DialogContent>
       </Dialog>
 
-      {/* Use the existing family Google Calendar Modal */}
-      <GoogleCalendarSchedulingModal
-        open={showCalendarModal}
-        onOpenChange={setShowCalendarModal}
-        onScheduleConfirmed={handleScheduleConfirmed}
+      {/* Internal Scheduling Modal */}
+      <InternalSchedulingModal
+        open={showInternalScheduling}
+        onOpenChange={setShowInternalScheduling}
+        onVisitScheduled={handleScheduleConfirmed}
+        caregiverName={caregiverName}
       />
     </>
   );
