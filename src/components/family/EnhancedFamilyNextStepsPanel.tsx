@@ -10,7 +10,13 @@ import { JourneyPathVisualization } from "./JourneyPathVisualization";
 import { useEnhancedJourneyProgress } from "@/hooks/useEnhancedJourneyProgress";
 import * as LucideIcons from "lucide-react";
 
-export const EnhancedFamilyNextStepsPanel = () => {
+interface EnhancedFamilyNextStepsPanelProps {
+  showAllSteps?: boolean;
+}
+
+export const EnhancedFamilyNextStepsPanel: React.FC<EnhancedFamilyNextStepsPanelProps> = ({ 
+  showAllSteps = false 
+}) => {
   const navigate = useNavigate();
   const { 
     steps, 
@@ -24,8 +30,8 @@ export const EnhancedFamilyNextStepsPanel = () => {
     trackStepAction
   } = useEnhancedJourneyProgress();
 
-  // Show only the first 7 steps in the dashboard panel for cleaner UI
-  const dashboardSteps = steps.slice(0, 7);
+  // Show only the first 7 steps in the dashboard panel, all steps on the dedicated page
+  const displaySteps = showAllSteps ? steps : steps.slice(0, 7);
 
   const getIcon = (iconName: string) => {
     const IconComponent = (LucideIcons as any)[iconName];
@@ -92,12 +98,14 @@ export const EnhancedFamilyNextStepsPanel = () => {
         transition={{ duration: 0.5 }}
         className="mb-8 space-y-6"
       >
-        {/* Path Visualization */}
-        <JourneyPathVisualization 
-          paths={paths}
-          steps={steps}
-          currentStage={currentStage}
-        />
+        {/* Path Visualization - Only show on full page view */}
+        {showAllSteps && (
+          <JourneyPathVisualization 
+            paths={paths}
+            steps={steps}
+            currentStage={currentStage}
+          />
+        )}
 
         {/* Main Progress Card */}
         <Card className="border-l-4 border-l-primary">
@@ -106,9 +114,14 @@ export const EnhancedFamilyNextStepsPanel = () => {
               <div className="flex-1">
                 <CardTitle className="flex items-center gap-2 text-xl mb-2">
                   <List className="h-5 w-5 text-primary" />
-                  Your Care Journey Progress
+                  {showAllSteps ? "🌿 Tavara Care Journey Progress" : "Your Care Journey Progress"}
                 </CardTitle>
-                <p className="text-sm text-gray-600">Complete these steps to get matched with the right caregiver</p>
+                <p className="text-sm text-gray-600">
+                  {showAllSteps 
+                    ? "Complete these steps to get matched and begin personalized care with confidence"
+                    : "Complete these steps to get matched with the right caregiver"
+                  }
+                </p>
                 <div className="flex items-center gap-2 mt-2">
                   <span className="text-xs text-gray-500">Current stage:</span>
                   <span className="text-xs font-medium capitalize bg-primary/10 text-primary px-2 py-1 rounded">
@@ -118,11 +131,18 @@ export const EnhancedFamilyNextStepsPanel = () => {
               </div>
               <div className="flex items-center gap-3 ml-4">
                 <div className="text-right">
-                  <div className="text-2xl font-bold text-primary">{completionPercentage}%</div>
-                  <div className="text-xs text-gray-500">Complete</div>
+                  <div className={`${showAllSteps ? 'text-3xl' : 'text-2xl'} font-bold text-primary`}>
+                    {completionPercentage}%
+                  </div>
+                  <div className="text-xs text-gray-500">
+                    {showAllSteps 
+                      ? `${steps.filter(s => s.completed).length} of ${steps.length} completed`
+                      : "Complete"
+                    }
+                  </div>
                 </div>
-                <div className="w-16 h-16 relative">
-                  <svg className="w-16 h-16 transform -rotate-90" viewBox="0 0 36 36">
+                <div className={`${showAllSteps ? 'w-20 h-20' : 'w-16 h-16'} relative`}>
+                  <svg className={`${showAllSteps ? 'w-20 h-20' : 'w-16 h-16'} transform -rotate-90`} viewBox="0 0 36 36">
                     <path
                       className="text-gray-200"
                       stroke="currentColor"
@@ -145,7 +165,7 @@ export const EnhancedFamilyNextStepsPanel = () => {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {dashboardSteps.map((step) => (
+              {displaySteps.map((step) => (
                 <JourneyStepTooltip
                   key={step.id}
                   title={step.title}
@@ -229,16 +249,30 @@ export const EnhancedFamilyNextStepsPanel = () => {
               ))}
             </div>
             
-            <div className="mt-6 pt-4 border-t">
-              <Button
-                variant="outline"
-                className="w-full justify-between"
-                onClick={() => navigate('/family/care-journey-progress')}
-              >
-                <span>View Complete Journey ({steps.length} total steps)</span>
-                <ArrowRight className="h-4 w-4" />
-              </Button>
-            </div>
+            {!showAllSteps && (
+              <div className="mt-6 pt-4 border-t">
+                <Button
+                  variant="outline"
+                  className="w-full justify-between"
+                  onClick={() => navigate('/family/care-journey-progress')}
+                >
+                  <span>View Complete Journey ({steps.length} total steps)</span>
+                  <ArrowRight className="h-4 w-4" />
+                </Button>
+              </div>
+            )}
+
+            {showAllSteps && (
+              <div className="mt-8 text-center">
+                <Button 
+                  variant="outline" 
+                  onClick={() => navigate('/dashboard/family')}
+                  className="gap-2"
+                >
+                  ← Back to Dashboard
+                </Button>
+              </div>
+            )}
           </CardContent>
         </Card>
       </motion.div>

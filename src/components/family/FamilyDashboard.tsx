@@ -1,34 +1,29 @@
 
-import React from 'react';
-import { FamilyNextStepsPanel } from './FamilyNextStepsPanel';
-import { PostTrialConversionModal } from './PostTrialConversionModal';
-import { useTrialConversion } from '@/hooks/useTrialConversion';
+import React from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { FamilyProfileHeaderSection } from "./FamilyProfileHeaderSection";
+import { EnhancedFamilyNextStepsPanel } from "./EnhancedFamilyNextStepsPanel";
+import { DashboardCaregiverMatches } from "./DashboardCaregiverMatches";
+import { FamilyShortcutMenuBar } from "./FamilyShortcutMenuBar";
+import { TellTheirStoryCard } from "./TellTheirStoryCard";
 
 export const FamilyDashboard = () => {
-  const { 
-    showConversionModal, 
-    setShowConversionModal, 
-    trialAmount,
-    loading 
-  } = useTrialConversion();
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-      </div>
-    );
-  }
-
   return (
-    <div className="container mx-auto px-4 py-8">
-      <FamilyNextStepsPanel />
+    <div className="space-y-6">
+      {/* Profile Header */}
+      <FamilyProfileHeaderSection />
       
-      <PostTrialConversionModal
-        open={showConversionModal}
-        onOpenChange={setShowConversionModal}
-        trialAmount={trialAmount}
-      />
+      {/* Shortcut Menu Bar */}
+      <FamilyShortcutMenuBar />
+      
+      {/* Enhanced Next Steps Panel - Dashboard Version (Limited Steps) */}
+      <EnhancedFamilyNextStepsPanel showAllSteps={false} />
+      
+      {/* Tell Their Story Card */}
+      <TellTheirStoryCard />
+      
+      {/* Caregiver Matches */}
+      <DashboardCaregiverMatches />
     </div>
   );
 };
