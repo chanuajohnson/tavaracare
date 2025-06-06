@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -56,10 +57,10 @@ export const JourneyPathVisualization: React.FC<JourneyPathVisualizationProps> =
   };
 
   const categories = [
-    { name: 'Foundation', key: 'foundation', description: 'Set up your profile and care needs' },
-    { name: 'Scheduling', key: 'scheduling', description: 'Meet your care team' },
-    { name: 'Trial', key: 'trial', description: 'Optional trial experience' },
-    { name: 'Decision', key: 'conversion', description: 'Choose your care model' }
+    { name: 'Foundation', key: 'foundation', description: 'Set up your profile and care needs', number: 1 },
+    { name: 'Scheduling', key: 'scheduling', description: 'Meet your care team', number: 2 },
+    { name: 'Trial', key: 'trial', description: 'Optional trial experience', number: 3 },
+    { name: 'Decision', key: 'conversion', description: 'Choose your care model', number: 4 }
   ];
 
   return (
@@ -74,10 +75,69 @@ export const JourneyPathVisualization: React.FC<JourneyPathVisualizationProps> =
         </p>
       </CardHeader>
       <CardContent className="space-y-4 sm:space-y-6 px-3 sm:px-6">
-        {/* Stage Progress Visualization with Tooltips */}
+        {/* Stage Progress Visualization with Responsive Layout */}
         <div className="space-y-3 sm:space-y-4">
           <h4 className="font-medium text-sm text-gray-800">Journey Stages</h4>
-          <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-gray-300">
+          
+          {/* Mobile Grid Layout (2x2) */}
+          <div className="grid grid-cols-2 gap-4 sm:hidden">
+            {categories.map((category) => {
+              const status = getStageStatus(category.key);
+              const stepsInCategory = getStepsByCategory(category.key);
+              const completedInCategory = stepsInCategory.filter(s => s.completed).length;
+              const totalInCategory = stepsInCategory.length;
+              const completionPercentage = totalInCategory > 0 ? Math.round((completedInCategory / totalInCategory) * 100) : 0;
+              
+              return (
+                <div key={category.key} className="text-center">
+                  <JourneyStageTooltip
+                    stageName={category.name}
+                    stageKey={category.key}
+                    description={category.description}
+                    completedSteps={completedInCategory}
+                    totalSteps={totalInCategory}
+                    isCurrent={status === 'current'}
+                  >
+                    <div className="w-16 h-16 relative mx-auto mb-2 cursor-pointer hover:scale-105 transition-transform">
+                      <svg className="w-16 h-16 transform -rotate-90" viewBox="0 0 36 36">
+                        <path
+                          className="text-gray-200"
+                          stroke="currentColor"
+                          strokeWidth="3"
+                          fill="transparent"
+                          d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                        />
+                        <path
+                          className={getStageColor(status)}
+                          stroke="currentColor"
+                          strokeWidth="3"
+                          fill="transparent"
+                          strokeDasharray={`${completionPercentage}, 100`}
+                          d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                        />
+                      </svg>
+                      <div className="absolute inset-0 flex flex-col items-center justify-center">
+                        <div className="bg-white rounded-full w-6 h-6 flex items-center justify-center border-2 border-gray-200 mb-1">
+                          <span className="text-xs font-bold text-gray-700">{category.number}</span>
+                        </div>
+                        <span className="text-xs font-semibold text-gray-700">
+                          {completedInCategory}/{totalInCategory}
+                        </span>
+                      </div>
+                    </div>
+                  </JourneyStageTooltip>
+                  <div className="text-xs font-medium text-gray-800 mb-1">{category.name}</div>
+                  <div className="text-xs text-gray-500 leading-tight px-1">{category.description}</div>
+                  {status === 'current' && (
+                    <Badge variant="outline" className="mt-1 text-xs border-primary text-primary">Current</Badge>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Desktop Horizontal Layout */}
+          <div className="hidden sm:flex items-center gap-2 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-gray-300">
             {categories.map((category, index) => {
               const status = getStageStatus(category.key);
               const stepsInCategory = getStepsByCategory(category.key);
