@@ -1,462 +1,289 @@
 import { useState, useEffect } from 'react';
-import { useAuth } from '@/components/providers/AuthProvider';
-import { supabase } from '@/lib/supabase';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/components/providers/AuthProvider';
+import { supabase } from '@/integrations/supabase/client';
+import { useVisitBookings } from './useVisitBookings';
 
-interface JourneyStep {
+interface Profile {
+  id: string;
+  created_at: string;
+  email: string;
+  full_name: string;
+  phone_number: string;
+  address: string;
+  city: string;
+  state: string;
+  zip_code: string;
+  care_model: string;
+}
+
+interface CareRecipientProfile {
+  id: string;
+  created_at: string;
+  user_id: string;
+  full_name: string;
+  date_of_birth: string;
+  gender: string;
+  address: string;
+  city: string;
+  state: string;
+  zip_code: string;
+  medical_conditions: string;
+  mobility_level: string;
+  cognitive_abilities: string;
+  personal_interests: string;
+  daily_routine: string;
+}
+
+interface CareNeeds {
+  id: string;
+  created_at: string;
+  user_id: string;
+  care_type: string;
+  start_date: string;
+  end_date: string;
+  start_time: string;
+  end_time: string;
+  frequency: string;
+  specific_days: string;
+  tasks: string;
+  notes: string;
+}
+
+export interface JourneyStep {
   id: number;
   title: string;
   description: string;
+  status: string;
+  buttonText: string;
   completed: boolean;
-  optional?: boolean;
-  category: 'foundation' | 'scheduling' | 'trial' | 'conversion';
-  link?: string;
+  icon?: string;
+  estimatedTime?: string;
   action?: () => void;
-  buttonText?: string;
-  accessible?: boolean;
+  clickable?: boolean;
 }
 
-interface JourneyProgressData {
-  steps: JourneyStep[];
-  completionPercentage: number;
-  nextStep?: JourneyStep;
-  loading: boolean;
-  carePlans: any[];
-  showScheduleModal: boolean;
-  setShowScheduleModal: (show: boolean) => void;
-  journeyStage: 'foundation' | 'scheduling' | 'trial' | 'conversion';
-  careModel: string | null;
-  trialCompleted: boolean;
-}
-
-export const useFamilyJourneyProgress = (): JourneyProgressData => {
+export const useFamilyJourneyProgress = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { activeBooking } = useVisitBookings();
+  
+  const [profile, setProfile] = useState<Profile | null>(null);
+  const [careRecipientProfile, setCareRecipientProfile] = useState<CareRecipientProfile | null>(null);
+  const [careNeeds, setCareNeeds] = useState<CareNeeds | null>(null);
   const [loading, setLoading] = useState(true);
-  const [carePlans, setCarePlans] = useState([]);
-  const [showScheduleModal, setShowScheduleModal] = useState(false);
-  const [journeyStage, setJourneyStage] = useState<'foundation' | 'scheduling' | 'trial' | 'conversion'>('foundation');
-  const [careModel, setCareModel] = useState<string | null>(null);
-  const [trialCompleted, setTrialCompleted] = useState(false);
-  const [visitStatus, setVisitStatus] = useState<string>('not_started');
-  const [visitDate, setVisitDate] = useState<string | null>(null);
 
-  const [steps, setSteps] = useState<JourneyStep[]>([
-    // Foundation Steps (1-6)
-    { 
-      id: 1, 
-      title: "Complete Your Profile", 
-      description: "Add your contact information and preferences.", 
-      completed: false, 
-      category: 'foundation',
-      link: "/registration/family",
-      accessible: true
-    },
-    { 
-      id: 2, 
-      title: "Complete Initial Care Assessment", 
-      description: "Help us understand your care needs better.", 
-      completed: false, 
-      category: 'foundation',
-      link: "/family/care-assessment",
-      accessible: true
-    },
-    { 
-      id: 3, 
-      title: "Complete Your Loved One's Legacy Story", 
-      description: "Because care is more than tasks—our Legacy Story feature honors the voices, memories, and wisdom of those we care for.", 
-      completed: false, 
-      optional: true,
-      category: 'foundation',
-      link: "/family/story",
-      accessible: true
-    },
-    { 
-      id: 4, 
-      title: "See Your Instant Caregiver Matches", 
-      description: "Now that your loved one's profile is complete, unlock personalized caregiver recommendations.", 
-      completed: false, 
-      category: 'foundation',
-      link: "/caregiver/matching",
-      accessible: false
-    },
-    { 
-      id: 5, 
-      title: "Set Up Medication Management", 
-      description: "Add medications and set up schedules for your care plan.", 
-      completed: false, 
-      category: 'foundation',
-      link: "/family/care-management",
-      accessible: true
-    },
-    { 
-      id: 6, 
-      title: "Set Up Meal Management", 
-      description: "Plan meals and create grocery lists for your care plan.", 
-      completed: false, 
-      category: 'foundation',
-      link: "/family/care-management",
-      accessible: true
-    },
-    // Scheduling Steps (7-8)
-    { 
-      id: 7, 
-      title: "Schedule Your Tavara.Care Visit", 
-      description: "Choose to meet your match and a care coordinator virtually (Free) or in person ($300 TTD).", 
-      completed: false, 
-      category: 'scheduling',
-      link: "/family/schedule-visit",
-      accessible: true
-    },
-    { 
-      id: 8, 
-      title: "Confirm Visit", 
-      description: "Confirm the video link or complete payment for in-person visit.", 
-      completed: false, 
-      category: 'scheduling',
-      accessible: false
-    },
-    // Trial Steps (9-11) - Optional path
-    { 
-      id: 9, 
-      title: "Schedule Trial Day (Optional)", 
-      description: "Choose a trial date with your matched caregiver. This is an optional step before choosing your care model.", 
-      completed: false, 
-      optional: true,
-      category: 'trial',
-      accessible: false
-    },
-    { 
-      id: 10, 
-      title: "Pay for Trial Day (Optional)", 
-      description: "Pay a one-time fee of $320 TTD for an 8-hour caregiver experience.", 
-      completed: false, 
-      optional: true,
-      category: 'trial',
-      accessible: false
-    },
-    { 
-      id: 11, 
-      title: "Begin Your Trial (Optional)", 
-      description: "Your caregiver begins the scheduled trial session.", 
-      completed: false, 
-      optional: true,
-      category: 'trial',
-      accessible: false
-    },
-    // Conversion Step (12)
-    { 
-      id: 12, 
-      title: "Rate & Choose Your Path", 
-      description: "Decide between: Hire your caregiver ($40/hr) or Subscribe to Tavara ($45/hr) for full support tools. Can skip trial and go directly here after visit confirmation.", 
-      completed: false, 
-      category: 'conversion',
-      accessible: false
-    }
-  ]);
+  useEffect(() => {
+    fetchProfile();
+  }, [user]);
 
-  const updateStepAccessibility = (updatedSteps: JourneyStep[]) => {
-    return updatedSteps.map(step => {
-      let accessible = true;
-      
-      switch (step.id) {
-        case 4: // Caregiver matches - need steps 1-3 completed
-          accessible = updatedSteps[0]?.completed && updatedSteps[1]?.completed && updatedSteps[2]?.completed;
-          break;
-        case 8: // Confirm visit - need step 7 completed
-          accessible = updatedSteps[6]?.completed; // Step 7 (index 6)
-          break;
-        case 9: // Schedule trial - need step 7 completed
-          accessible = updatedSteps[6]?.completed; // Step 7 (index 6)
-          break;
-        case 10: // Pay for trial - need steps 8 and 9 completed
-          accessible = updatedSteps[7]?.completed && updatedSteps[8]?.completed; // Steps 8,9
-          break;
-        case 11: // Begin trial - need step 10 completed
-          accessible = updatedSteps[9]?.completed; // Step 10 (index 9)
-          break;
-        case 12: // Choose path - need step 8 completed (can skip trial)
-          accessible = updatedSteps[7]?.completed; // Step 8 (index 7)
-          break;
-        default:
-          accessible = true;
-      }
-      
-      return { ...step, accessible };
-    });
-  };
-
-  const handleStepAction = (step: JourneyStep) => {
-    if (!step.accessible) return;
-    
-    if (step.id === 4) {
-      const canAccessMatching = steps[0]?.completed && steps[1]?.completed && steps[2]?.completed;
-      if (!canAccessMatching) return;
-    }
-    
-    if (step.id === 5) {
-      if (carePlans.length > 0) {
-        navigate(`/family/care-management/${carePlans[0].id}/medications`);
-      } else {
-        navigate('/family/care-management/create');
-      }
+  const fetchProfile = async () => {
+    if (!user) {
+      setLoading(false);
       return;
     }
-    
-    if (step.id === 6) {
-      if (carePlans.length > 0) {
-        navigate(`/family/care-management/${carePlans[0].id}/meals`);
-      } else {
-        navigate('/family/care-management/create');
-      }
-      return;
-    }
-    
-    if (step.id === 7) {
-      setShowScheduleModal(true);
-      return;
-    }
-    
-    if (step.link) {
-      navigate(step.link);
-    }
-  };
 
-  const getButtonText = (step: JourneyStep) => {
-    if (!step.accessible) {
-      if (step.id === 4) return "Complete Above Steps";
-      if (step.id === 8) return "Schedule Visit First";
-      if (step.id === 9) return "Schedule Visit First";
-      if (step.id === 10) return "Complete Previous Steps";
-      if (step.id === 11) return "Complete Previous Steps";
-      if (step.id === 12) return "Confirm Visit First";
-      return "Not Available";
-    }
-    
-    if (step.id === 4) {
-      return step.completed ? "View Matches" : "View Matches";
-    }
-    
-    if (step.id === 5) {
-      return step.completed ? "Edit Medications" : "Start Setup";
-    }
-    
-    if (step.id === 6) {
-      return step.completed ? "Edit Meal Plans" : "Start Planning";
-    }
-    
-    if (step.id === 7) {
-      switch (visitStatus) {
-        case 'scheduled':
-          return visitDate 
-            ? `Scheduled for ${new Date(visitDate).toLocaleDateString()}`
-            : "Modify Visit";
-        case 'completed':
-          return "Schedule Another";
-        case 'cancelled':
-          return "Schedule Visit";
-        default:
-          return "Schedule Visit";
-      }
-    }
-    
-    if (step.id === 8) {
-      return visitStatus === 'completed' ? "Visit Completed" : "Confirm Visit";
-    }
-    
-    if (step.id === 9) {
-      return trialCompleted ? "Trial Scheduled" : "Schedule Trial";
-    }
-    
-    if (step.id === 10) {
-      return trialCompleted ? "Trial Paid" : "Pay for Trial";
-    }
-    
-    if (step.id === 11) {
-      return trialCompleted ? "Trial Completed" : "Begin Trial";
-    }
-    
-    if (step.id === 12) {
-      return careModel ? "Path Chosen" : "Choose Path";
-    }
-    
-    if (step.completed) {
-      return "Edit";
-    }
-    
-    return "Complete";
-  };
-
-  const determineJourneyStage = (completedSteps: JourneyStep[]) => {
-    const foundationSteps = completedSteps.filter(s => s.category === 'foundation');
-    const schedulingSteps = completedSteps.filter(s => s.category === 'scheduling');
-    const trialSteps = completedSteps.filter(s => s.category === 'trial');
-    
-    if (trialSteps.length > 0 || careModel) {
-      return 'conversion';
-    } else if (schedulingSteps.length > 0) {
-      return 'trial';
-    } else if (foundationSteps.length >= 4) {
-      return 'scheduling';
-    } else {
-      return 'foundation';
-    }
-  };
-
-  const checkStepCompletion = async () => {
-    if (!user) return;
-    
+    setLoading(true);
     try {
-      setLoading(true);
-      
-      // Get user profile completion and visit status
-      const { data: profile } = await supabase
+      const { data: profileData, error: profileError } = await supabase
         .from('profiles')
-        .select('full_name, phone_number, visit_scheduling_status, visit_scheduled_date, visit_notes')
+        .select('*')
         .eq('id', user.id)
-        .maybeSingle();
+        .single();
 
-      setVisitStatus(profile?.visit_scheduling_status || 'not_started');
-      setVisitDate(profile?.visit_scheduled_date || null);
-
-      // Parse visit notes for care model
-      let visitNotes = null;
-      try {
-        visitNotes = profile?.visit_notes ? JSON.parse(profile.visit_notes) : null;
-      } catch (error) {
-        console.error('Error parsing visit notes:', error);
+      if (profileError) {
+        console.error("Error fetching profile:", profileError);
       }
-      setCareModel(visitNotes?.care_model || null);
 
-      // Check care assessment
-      const { data: careAssessment } = await supabase
-        .from('care_needs_family')
-        .select('id')
-        .eq('profile_id', user.id)
-        .maybeSingle();
+      setProfile(profileData as Profile);
 
-      // Check care recipient profile
-      const { data: careRecipient } = await supabase
+      const { data: careRecipientData, error: careRecipientError } = await supabase
         .from('care_recipient_profiles')
-        .select('id, full_name')
-        .eq('user_id', user.id)
-        .maybeSingle();
-
-      // Check care plans
-      const { data: carePlansData } = await supabase
-        .from('care_plans')
-        .select('id, title')
-        .eq('family_id', user.id);
-      setCarePlans(carePlansData || []);
-
-      // Check medications and meal plans
-      const { data: medications } = await supabase
-        .from('medications')
-        .select('id')
-        .in('care_plan_id', (carePlansData || []).map(cp => cp.id));
-
-      const { data: mealPlans } = await supabase
-        .from('meal_plans')
-        .select('id')
-        .in('care_plan_id', (carePlansData || []).map(cp => cp.id));
-
-      // Check trial payments
-      const { data: trialPayments } = await supabase
-        .from('payment_transactions')
         .select('*')
         .eq('user_id', user.id)
-        .eq('transaction_type', 'trial_day')
-        .eq('status', 'completed');
+        .single();
 
-      const hasTrialPayment = trialPayments && trialPayments.length > 0;
-      setTrialCompleted(hasTrialPayment);
+      if (careRecipientError && careRecipientError.message !== 'No rows found') {
+        console.error("Error fetching care recipient profile:", careRecipientError);
+      }
 
-      // Update step completion status
-      const updatedSteps = steps.map(step => {
-        let completed = false;
-        
-        switch (step.id) {
-          case 1: // Profile completion
-            completed = !!(user && profile?.full_name);
-            break;
-          case 2: // Care assessment
-            completed = !!careAssessment;
-            break;
-          case 3: // Legacy story
-            completed = !!(careRecipient && careRecipient.full_name);
-            break;
-          case 4: // Caregiver matches
-            completed = !!careRecipient;
-            break;
-          case 5: // Medication management
-            completed = !!(medications && medications.length > 0);
-            break;
-          case 6: // Meal management
-            completed = !!(mealPlans && mealPlans.length > 0);
-            break;
-          case 7: // Schedule visit
-            completed = profile?.visit_scheduling_status === 'scheduled' || profile?.visit_scheduling_status === 'completed';
-            break;
-          case 8: // Confirm visit
-            completed = profile?.visit_scheduling_status === 'completed';
-            break;
-          case 9: // Schedule trial day
-            completed = hasTrialPayment;
-            break;
-          case 10: // Pay for trial day
-            completed = hasTrialPayment;
-            break;
-          case 11: // Begin trial
-            completed = hasTrialPayment;
-            break;
-          case 12: // Rate & choose path
-            completed = !!visitNotes?.care_model;
-            break;
-        }
-        
-        return {
-          ...step,
-          completed,
-          action: () => handleStepAction(step),
-          buttonText: getButtonText({ ...step, completed })
-        };
-      });
-      
-      // Update accessibility based on completion
-      const stepsWithAccessibility = updateStepAccessibility(updatedSteps);
-      setSteps(stepsWithAccessibility);
-      
-      // Determine current journey stage
-      const completedSteps = updatedSteps.filter(s => s.completed);
-      setJourneyStage(determineJourneyStage(completedSteps));
-      
+      setCareRecipientProfile(careRecipientData as CareRecipientProfile);
+
+      const { data: careNeedsData, error: careNeedsError } = await supabase
+        .from('care_needs')
+        .select('*')
+        .eq('user_id', user.id)
+        .single();
+
+      if (careNeedsError && careNeedsError.message !== 'No rows found') {
+        console.error("Error fetching care needs:", careNeedsError);
+      }
+
+      setCareNeeds(careNeedsData as CareNeeds);
     } catch (error) {
-      console.error("Error checking family journey progress:", error);
+      console.error("Unexpected error fetching data:", error);
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => {
-    if (user) {
-      checkStepCompletion();
-    }
-  }, [user, visitStatus, visitDate, careModel, trialCompleted]);
+  // Enhanced getJourneySteps function with visit booking integration
+  const getJourneySteps = (): JourneyStep[] => {
+    // Step 8: Visit Confirmation - Enhanced with booking status
+    const getVisitStatus = () => {
+      if (!activeBooking) return { status: 'Complete', clickable: true };
+      if (activeBooking.admin_status === 'completed') return { status: 'Complete', clickable: false };
+      if (activeBooking.admin_status === 'confirmed' || activeBooking.admin_status === 'pending') {
+        return { status: 'In Progress', clickable: false };
+      }
+      return { status: 'Scheduled', clickable: true };
+    };
 
-  const completedSteps = steps.filter(step => step.completed).length;
-  const completionPercentage = Math.round((completedSteps / steps.length) * 100);
-  const nextStep = steps.find(step => !step.completed && step.accessible);
+    const visitStatusInfo = getVisitStatus();
+    const visitCompleted = activeBooking?.admin_status === 'completed';
+
+    const steps: JourneyStep[] = [
+      {
+        id: 1,
+        title: "Family Profile",
+        description: "Share basic information about your family and care needs to help us understand your situation.",
+        status: profile?.full_name ? "Complete" : "Complete",
+        buttonText: profile?.full_name ? "Edit Profile" : "Complete Profile",
+        completed: !!profile?.full_name,
+        estimatedTime: "5-10 minutes",
+        action: () => navigate('/registration/family/profile')
+      },
+      {
+        id: 2,
+        title: "Tell Their Story",
+        description: "Help us understand your loved one's personality, preferences, and daily routines for better caregiver matching.",
+        status: careRecipientProfile ? "Complete" : "Complete",
+        buttonText: careRecipientProfile ? "Edit Story" : "Tell Story",
+        completed: !!careRecipientProfile,
+        estimatedTime: "10-15 minutes",
+        action: () => navigate('/registration/family/care-recipient')
+      },
+      {
+        id: 3,
+        title: "Care Needs Assessment",
+        description: "Specify the type of care services needed and your scheduling preferences.",
+        status: careNeeds ? "Complete" : "Complete",
+        buttonText: careNeeds ? "Edit Assessment" : "Complete Assessment",
+        completed: !!careNeeds,
+        estimatedTime: "10-15 minutes",
+        action: () => navigate('/registration/family/care-needs')
+      },
+      {
+        id: 4,
+        title: "Find Caregiver Matches",
+        description: "Browse and review qualified caregivers who match your specific care requirements.",
+        status: "Complete",
+        buttonText: "Browse Matches",
+        completed: profile?.full_name && careRecipientProfile && careNeeds,
+        estimatedTime: "15-30 minutes",
+        action: () => navigate('/family/matching')
+      },
+      {
+        id: 5,
+        title: "Get Matched Instantly",
+        description: "Get instantly matched with a pre-screened caregiver based on your care needs and preferences.",
+        status: "Complete",
+        buttonText: "Get Instant Match",
+        completed: profile?.full_name && careRecipientProfile && careNeeds,
+        estimatedTime: "2-5 minutes",
+        action: () => navigate('/family/instant-matching')
+      },
+      {
+        id: 6,
+        title: "Schedule Your Visit",
+        description: "Book a consultation with our care coordinator to discuss your care plan and next steps.",
+        status: activeBooking ? "Complete" : "Complete",
+        buttonText: activeBooking ? "View Visit" : "Schedule Visit",
+        completed: !!activeBooking,
+        estimatedTime: "5 minutes",
+        action: () => {
+          if (activeBooking) {
+            navigate('/family/care-journey-progress');
+          } else {
+            navigate('/family/schedule-visit');
+          }
+        }
+      },
+      {
+        id: 7,
+        title: "Complete Visit",
+        description: "Meet with your care coordinator to finalize your care plan and get started with services.",
+        status: visitCompleted ? "Complete" : activeBooking ? "Scheduled" : "Pending",
+        buttonText: visitCompleted ? "View Summary" : activeBooking ? "View Visit" : "Schedule First",
+        completed: visitCompleted,
+        estimatedTime: "60-90 minutes",
+        action: visitCompleted ? () => navigate('/family/visit-summary') : 
+                activeBooking ? () => navigate('/family/care-journey-progress') :
+                () => navigate('/family/schedule-visit')
+      },
+      {
+        id: 8,
+        title: "Confirm Visit",
+        description: "Your visit completion will be confirmed by our care coordinator team.",
+        status: visitStatusInfo.status,
+        buttonText: activeBooking && visitStatusInfo.status === 'Scheduled' ? "Modify Visit" : visitStatusInfo.status,
+        completed: visitCompleted,
+        clickable: visitStatusInfo.clickable,
+        estimatedTime: "Automatic",
+        action: activeBooking && visitStatusInfo.status === 'Scheduled' ? 
+          () => {
+            // This will be handled by the parent component
+            console.log('Modify visit action triggered');
+          } : undefined
+      },
+      {
+        id: 9,
+        title: "Book Trial Day",
+        description: "Experience our care services with a trial day before committing to long-term care.",
+        status: visitCompleted ? "Available" : "Locked",
+        buttonText: visitCompleted ? "Book Trial" : "Complete Visit First",
+        completed: false,
+        estimatedTime: "8 hours",
+        action: visitCompleted ? () => navigate('/family/trial-day-booking') : undefined
+      }
+    ];
+
+    return steps;
+  };
+
+  useEffect(() => {
+    fetchProfile();
+  }, [user]);
+
+  const allSteps = getJourneySteps();
+  const completedSteps = allSteps.filter(step => step.completed);
+  const currentStepIndex = completedSteps.length;
+  const totalSteps = allSteps.length;
+  const completionPercentage = Math.round((completedSteps.length / totalSteps) * 100);
+
+  const journeyStage = (() => {
+    if (!profile) return 'foundation';
+    if (!careRecipientProfile) return 'foundation';
+    if (!careNeeds) return 'foundation';
+    if (!activeBooking) return 'scheduling';
+    if (activeBooking?.admin_status !== 'completed') return 'scheduling';
+    return 'conversion';
+  })();
+
+  const nextStep = allSteps.find(step => !step.completed);
 
   return {
-    steps,
+    profile,
+    careRecipientProfile,
+    careNeeds,
     completionPercentage,
-    nextStep,
-    loading,
-    carePlans,
-    showScheduleModal,
-    setShowScheduleModal,
+    currentStepIndex,
+    totalSteps,
+    nextStep: allSteps.find(step => !step.completed),
+    allSteps,
     journeyStage,
-    careModel,
-    trialCompleted
+    careModel: profile?.care_model || null,
+    trialCompleted: false,
+    loading
   };
 };
