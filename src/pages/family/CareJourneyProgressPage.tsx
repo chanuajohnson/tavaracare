@@ -22,8 +22,14 @@ export default function CareJourneyProgressPage() {
           <Breadcrumbs items={breadcrumbItems} />
         </div>
 
+        {/* Debug Information */}
+        <div className="mb-4 p-4 bg-gray-100 rounded-lg text-sm">
+          <p><strong>Debug Info:</strong> This page uses the Enhanced Journey Progress system</p>
+          <p>Check browser console for detailed progress calculation logs</p>
+        </div>
+
         {/* Enhanced Journey Progress Panel - Full Version */}
-        <EnhancedFamilyNextStepsPanel />
+        <EnhancedFamilyNextStepsPanel showAllSteps={true} />
       </motion.div>
     </div>
   );

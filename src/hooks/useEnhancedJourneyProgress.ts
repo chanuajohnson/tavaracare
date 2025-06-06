@@ -19,7 +19,7 @@ interface JourneyStep {
   completed: boolean;
   accessible: boolean;
   prerequisites: string[];
-  action?: () => void; // Add action property as optional
+  action?: () => void;
 }
 
 interface JourneyPath {
@@ -85,6 +85,7 @@ export const useEnhancedJourneyProgress = (): JourneyProgressData => {
     
     try {
       setLoading(true);
+      console.log('Fetching journey data for user:', user.id);
       
       // Fetch journey steps from database
       const { data: journeySteps, error: stepsError } = await supabase
@@ -95,6 +96,7 @@ export const useEnhancedJourneyProgress = (): JourneyProgressData => {
         .order('order_index');
 
       if (stepsError) throw stepsError;
+      console.log('Journey steps fetched:', journeySteps);
 
       // Fetch journey paths
       const { data: journeyPaths, error: pathsError } = await supabase
@@ -112,6 +114,7 @@ export const useEnhancedJourneyProgress = (): JourneyProgressData => {
         .eq('id', user.id)
         .maybeSingle();
 
+      console.log('User profile:', profile);
       setVisitStatus(profile?.visit_scheduling_status || 'not_started');
 
       // Parse visit notes for care model
@@ -123,35 +126,45 @@ export const useEnhancedJourneyProgress = (): JourneyProgressData => {
       }
       setCareModel(visitNotes?.care_model || null);
 
-      // Check other completion data
+      // Check care assessment
       const { data: careAssessment } = await supabase
         .from('care_needs_family')
         .select('id')
         .eq('profile_id', user.id)
         .maybeSingle();
+      console.log('Care assessment:', careAssessment);
 
+      // Check care recipient
       const { data: careRecipient } = await supabase
         .from('care_recipient_profiles')
         .select('id, full_name')
         .eq('user_id', user.id)
         .maybeSingle();
+      console.log('Care recipient:', careRecipient);
 
+      // Check care plans
       const { data: carePlansData } = await supabase
         .from('care_plans')
         .select('id, title')
         .eq('family_id', user.id);
+      console.log('Care plans:', carePlansData);
       setCarePlans(carePlansData || []);
 
+      // Check medications - using care_plan_id
       const { data: medications } = await supabase
         .from('medications')
-        .select('id')
+        .select('id, care_plan_id')
         .in('care_plan_id', (carePlansData || []).map(cp => cp.id));
+      console.log('Medications:', medications);
 
+      // Check meal plans - using care_plan_id
       const { data: mealPlans } = await supabase
         .from('meal_plans')
-        .select('id')
+        .select('id, care_plan_id')
         .in('care_plan_id', (carePlansData || []).map(cp => cp.id));
+      console.log('Meal plans:', mealPlans);
 
+      // Check trial payments
       const { data: trialPayments } = await supabase
         .from('payment_transactions')
         .select('*')
@@ -166,38 +179,50 @@ export const useEnhancedJourneyProgress = (): JourneyProgressData => {
       const processedSteps = journeySteps?.map(step => {
         let completed = false;
         
+        console.log(`Checking completion for step ${step.step_number}: ${step.title}`);
+        
         switch (step.step_number) {
           case 1:
             completed = !!(user && profile?.full_name);
+            console.log(`Step 1 completion: user=${!!user}, full_name=${!!profile?.full_name}, completed=${completed}`);
             break;
           case 2:
             completed = !!careAssessment;
+            console.log(`Step 2 completion: careAssessment=${!!careAssessment}, completed=${completed}`);
             break;
           case 3:
             completed = !!(careRecipient && careRecipient.full_name);
+            console.log(`Step 3 completion: careRecipient=${!!careRecipient}, full_name=${!!careRecipient?.full_name}, completed=${completed}`);
             break;
           case 4:
             completed = !!careRecipient;
+            console.log(`Step 4 completion: careRecipient=${!!careRecipient}, completed=${completed}`);
             break;
           case 5:
             completed = !!(medications && medications.length > 0);
+            console.log(`Step 5 completion: medications count=${medications?.length || 0}, completed=${completed}`);
             break;
           case 6:
             completed = !!(mealPlans && mealPlans.length > 0);
+            console.log(`Step 6 completion: meal plans count=${mealPlans?.length || 0}, completed=${completed}`);
             break;
           case 7:
             completed = profile?.visit_scheduling_status === 'scheduled' || profile?.visit_scheduling_status === 'completed';
+            console.log(`Step 7 completion: visit_status=${profile?.visit_scheduling_status}, completed=${completed}`);
             break;
           case 8:
             completed = profile?.visit_scheduling_status === 'completed';
+            console.log(`Step 8 completion: visit_status=${profile?.visit_scheduling_status}, completed=${completed}`);
             break;
           case 9:
           case 10:
           case 11:
             completed = hasTrialPayment;
+            console.log(`Step ${step.step_number} completion: hasTrialPayment=${hasTrialPayment}, completed=${completed}`);
             break;
           case 12:
             completed = !!visitNotes?.care_model;
+            console.log(`Step 12 completion: care_model=${!!visitNotes?.care_model}, completed=${completed}`);
             break;
         }
 
@@ -210,9 +235,16 @@ export const useEnhancedJourneyProgress = (): JourneyProgressData => {
         };
       }) || [];
 
+      console.log('Processed steps with completion status:', processedSteps);
+
       // Update accessibility
       const stepsWithAccessibility = updateStepAccessibility(processedSteps);
       setSteps(stepsWithAccessibility);
+
+      const completedCount = stepsWithAccessibility.filter(s => s.completed).length;
+      const totalCount = stepsWithAccessibility.length;
+      const percentage = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
+      console.log(`Progress calculation: ${completedCount}/${totalCount} = ${percentage}%`);
 
       // Process paths - properly handle step_ids type conversion
       const processedPaths = journeyPaths?.map(path => {
