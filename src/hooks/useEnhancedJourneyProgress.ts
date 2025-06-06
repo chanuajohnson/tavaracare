@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { supabase } from '@/lib/supabase';
@@ -616,6 +617,12 @@ export const useEnhancedJourneyProgress = (): JourneyProgressData => {
     
     // Track the action
     trackStepAction(step.id, 'started');
+    
+    // Handle step 4 specifically - redirect to family matching page
+    if (step.step_number === 4) {
+      navigate('/family/matching');
+      return;
+    }
     
     if (step.step_number === 5 || step.step_number === 6) {
       if (carePlans.length > 0) {

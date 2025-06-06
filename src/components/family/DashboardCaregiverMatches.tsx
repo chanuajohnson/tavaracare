@@ -67,7 +67,7 @@ export const DashboardCaregiverMatches = () => {
       setIsLoading(true);
 
       // First use mock caregivers immediately to prevent UI waiting
-      setCaregivers(MOCK_CAREGIVERS);
+      setCaregivers(MOCK_CAREGIVERS.slice(0, 1)); // Show only 1 caregiver
 
       const { data: professionalUsers, error: professionalError } = await supabase
         .from('profiles')
@@ -85,7 +85,7 @@ export const DashboardCaregiverMatches = () => {
         console.log("No professional users found, using mock data");
         await trackEngagement('dashboard_caregiver_matches_view', { 
           data_source: 'mock_data',
-          caregiver_count: MOCK_CAREGIVERS.length,
+          caregiver_count: 1, // Updated to reflect showing only 1
           view_context: 'dashboard_widget',
           component: 'DashboardCaregiverMatches'
         });
@@ -109,19 +109,20 @@ export const DashboardCaregiverMatches = () => {
       
       console.log("Loaded real professional users:", realCaregivers.length);
 
-      // If we have few real caregivers, supplement with some mock ones
-      const limitedMockCaregivers = MOCK_CAREGIVERS.slice(0, Math.max(0, 3 - realCaregivers.length));
-      const allCaregivers = [...realCaregivers, ...limitedMockCaregivers].slice(0, 3);
+      // Show only the best match (1 caregiver)
+      const bestMatch = realCaregivers.length > 0 
+        ? [realCaregivers.sort((a, b) => b.match_score - a.match_score)[0]]
+        : MOCK_CAREGIVERS.slice(0, 1);
 
       await trackEngagement('dashboard_caregiver_matches_view', {
-        data_source: realCaregivers.length > 0 ? 'mixed_data' : 'mock_data',
-        real_caregiver_count: realCaregivers.length,
-        mock_caregiver_count: limitedMockCaregivers.length,
+        data_source: realCaregivers.length > 0 ? 'real_data' : 'mock_data',
+        real_caregiver_count: realCaregivers.length > 0 ? 1 : 0,
+        mock_caregiver_count: realCaregivers.length > 0 ? 0 : 1,
         view_context: 'dashboard_widget',
         component: 'DashboardCaregiverMatches'
       });
       
-      setCaregivers(allCaregivers);
+      setCaregivers(bestMatch);
       setDataLoaded(true);
     } catch (error) {
       console.error("Error loading caregivers:", error);
@@ -152,7 +153,7 @@ export const DashboardCaregiverMatches = () => {
         <div>
           <CardTitle className="text-xl">Your Caregiver Matches</CardTitle>
           <p className="text-sm text-gray-500">
-            {caregivers.length} caregivers match your care needs
+            Your best match based on care needs
           </p>
         </div>
         <SubscriptionFeatureLink
