@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Tavara.care - Redirecting...</title>
   <script>
-    // Enhanced SPA redirect script for Lovable preview with comprehensive asset handling
+    // Enhanced SPA redirect script for both Lovable preview AND production hosting
     (function() {
       console.log('[404 Redirect] Starting redirect process...');
       
@@ -18,29 +18,36 @@
       
       console.log('[404 Redirect] Current URL:', { pathname, search, hash, hostname });
       
-      // Enhanced asset detection for Lovable preview environment
+      // Enhanced asset detection for both preview and production environments
       var assetExtensions = /\.(css|js|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot|otf|map|json|xml|txt|pdf|zip|mp4|mp3|wav)$/i;
       var isAssetRequest = assetExtensions.test(pathname);
       var isAssetsDirectory = pathname.includes('/assets/') || pathname.startsWith('/static/');
       
-      // Special handling for Lovable preview environment
+      // Enhanced environment detection
       var isLovablePreview = hostname.includes('lovable.app') || hostname.includes('localhost');
+      var isProductionSite = hostname === 'tavara.care' || hostname === 'www.tavara.care';
+      
+      console.log('[404 Redirect] Environment detection:', {
+        isLovablePreview: isLovablePreview,
+        isProductionSite: isProductionSite,
+        hostname: hostname
+      });
       
       if (isAssetRequest || isAssetsDirectory) {
-        console.log('[404 Redirect] Asset request detected, not redirecting:', pathname);
+        console.log('[404 Redirect] Asset request detected:', pathname);
         
-        // For Lovable preview, try to redirect asset requests to the root assets path
-        if (isLovablePreview && pathname.includes('/assets/')) {
+        // For asset requests, try to redirect to the correct path
+        if (pathname.includes('/assets/')) {
           var assetFileName = pathname.split('/assets/').pop();
           if (assetFileName) {
             var rootAssetPath = '/assets/' + assetFileName;
-            console.log('[404 Redirect] Attempting asset redirect to:', rootAssetPath);
+            console.log('[404 Redirect] Redirecting asset to root path:', rootAssetPath);
             window.location.replace(rootAssetPath);
             return;
           }
         }
         
-        // Show proper 404 message for assets that can't be found
+        // If asset can't be found, show proper 404 message
         document.body.innerHTML = '<div style="text-align: center; padding: 50px; font-family: system-ui;"><h1>Asset Not Found</h1><p>The requested file could not be found: ' + pathname + '</p><p><a href="/">Return to Home</a></p></div>';
         return;
       }
@@ -69,15 +76,12 @@
       var redirectUrl = '/#' + pathname + (search ? search : '') + hash;
       
       console.log('[404 Redirect] Redirecting to hash route:', redirectUrl);
-      console.log('[404 Redirect] Environment info:', {
-        isLovablePreview: isLovablePreview,
-        userAgent: navigator.userAgent.substring(0, 50) + '...'
-      });
       
-      // Add a small delay to ensure logging is visible and DOM is ready
+      // Enhanced redirect with environment-specific handling
       setTimeout(function() {
+        console.log('[404 Redirect] Executing redirect to:', redirectUrl);
         window.location.replace(redirectUrl);
-      }, 150);
+      }, isProductionSite ? 200 : 150); // Slightly longer delay for production
       
     })();
   </script>
@@ -144,6 +148,11 @@
       border-radius: 4px;
       border: 1px solid rgba(16, 185, 129, 0.2);
     }
+    .production-indicator {
+      background: rgba(239, 68, 68, 0.1);
+      color: #dc2626;
+      border: 1px solid rgba(239, 68, 68, 0.2);
+    }
   </style>
 </head>
 <body>
@@ -161,19 +170,37 @@
     <div>Search: <span id="debug-search"></span></div>
     <div>Hash: <span id="debug-hash"></span></div>
     <div>Host: <span id="debug-host"></span></div>
+    <div>Asset Detection: <span id="debug-asset"></span></div>
   </div>
   
   <script>
-    // Debug information display
-    document.getElementById('debug-path').textContent = window.location.pathname;
+    // Enhanced debug information display
+    var pathname = window.location.pathname;
+    var hostname = window.location.hostname;
+    
+    document.getElementById('debug-path').textContent = pathname;
     document.getElementById('debug-search').textContent = window.location.search || '(none)';
     document.getElementById('debug-hash').textContent = window.location.hash || '(none)';
-    document.getElementById('debug-host').textContent = window.location.hostname;
+    document.getElementById('debug-host').textContent = hostname;
     
-    // Environment indicator
-    var isLovable = window.location.hostname.includes('lovable.app');
-    var envType = isLovable ? 'Lovable Preview' : 'Production';
+    // Asset detection debug
+    var assetExtensions = /\.(css|js|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot|otf|map|json|xml|txt|pdf|zip|mp4|mp3|wav)$/i;
+    var isAssetRequest = assetExtensions.test(pathname);
+    var isAssetsDirectory = pathname.includes('/assets/') || pathname.startsWith('/static/');
+    document.getElementById('debug-asset').textContent = (isAssetRequest || isAssetsDirectory) ? 'Yes' : 'No';
+    
+    // Enhanced environment indicator
+    var isLovable = hostname.includes('lovable.app');
+    var isProduction = hostname === 'tavara.care' || hostname === 'www.tavara.care';
+    var envType = isProduction ? 'Production' : (isLovable ? 'Lovable Preview' : 'Other');
+    
     document.getElementById('env-type').textContent = envType;
+    
+    // Style environment indicator based on type
+    var envIndicator = document.getElementById('env-indicator');
+    if (isProduction) {
+      envIndicator.className += ' production-indicator';
+    }
   </script>
 </body>
 </html>
