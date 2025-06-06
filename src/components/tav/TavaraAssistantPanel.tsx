@@ -375,20 +375,20 @@ export const TavaraAssistantPanel: React.FC = () => {
   // Main panel with improved mobile experience and responsive sizing
   return (
     <motion.div
-      initial={{ opacity: 0, x: -400 }}
+      initial={{ opacity: 0, y: 400 }}
       animate={{ 
         opacity: 1, 
-        x: 0,
+        y: 0,
         scale: 1
       }}
-      exit={{ opacity: 0, x: -400 }}
+      exit={{ opacity: 0, y: 400 }}
       transition={{ type: "spring", damping: 25, stiffness: 300 }}
-      className={`fixed left-0 top-0 h-full bg-white shadow-2xl border-r border-gray-200 z-50 flex flex-col ${
+      className={`fixed bottom-0 left-0 bg-white shadow-2xl border-r border-t border-gray-200 z-50 flex flex-col ${
         isMobile 
           ? isExpanded 
-            ? 'w-full' 
-            : 'w-3/5 max-w-sm'
-          : 'w-96'
+            ? 'w-full max-h-[60vh]' 
+            : 'w-3/5 max-w-sm max-h-[40vh]'
+          : 'w-96 max-h-[40vh]'
       }`}
     >
       {/* Mobile expand/collapse button */}
