@@ -20,6 +20,10 @@ interface UserSpecificProgressData {
   loading: boolean;
 }
 
+const isValidCategory = (category: string): category is 'foundation' | 'scheduling' | 'trial' | 'conversion' => {
+  return ['foundation', 'scheduling', 'trial', 'conversion'].includes(category);
+};
+
 export const useUserSpecificProgress = (userId: string, userRole: string): UserSpecificProgressData => {
   const [loading, setLoading] = useState(true);
   const [steps, setSteps] = useState<JourneyStep[]>([]);
@@ -105,8 +109,16 @@ export const useUserSpecificProgress = (userId: string, userRole: string): UserS
             }
           }
 
+          // Ensure category is valid, fallback to 'foundation' if not
+          const validCategory = isValidCategory(step.category) ? step.category : 'foundation';
+
           return {
-            ...step,
+            id: step.id,
+            step_number: step.step_number,
+            title: step.title,
+            description: step.description,
+            category: validCategory,
+            is_optional: step.is_optional || false,
             completed,
             accessible: true // For admin view, all steps are accessible to see
           };
