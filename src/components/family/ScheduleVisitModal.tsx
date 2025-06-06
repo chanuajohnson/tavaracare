@@ -216,7 +216,7 @@ export const ScheduleVisitModal = ({
             </CardContent>
           </Card>
 
-          {/* Card 3: Trial Day - Locked until visit completion */}
+          {/* Card 3: Trial Day - Enhanced Preview with Partial Info */}
           <Card className={`relative border-2 transition-colors ${
             visitCompleted 
               ? 'border-purple-200 hover:border-purple-300' 
@@ -230,27 +230,22 @@ export const ScheduleVisitModal = ({
               </div>
             )}
             
-            {!visitCompleted && (
-              <div className="absolute inset-0 bg-white/80 backdrop-blur-sm z-10 flex items-center justify-center rounded-lg">
-                <div className="text-center p-4">
-                  <Lock className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-                  <p className="text-sm text-gray-500">
-                    Unlocks after visit completion
-                  </p>
-                </div>
-              </div>
-            )}
-            
             <CardHeader className="text-center pt-6">
               <div className="flex items-center justify-center gap-2 mb-2">
                 <Clock className="h-5 w-5 text-purple-500" />
-                <CardTitle className="text-lg">Trial Day</CardTitle>
+                <CardTitle className="text-lg">Trial Day Experience</CardTitle>
               </div>
-              <div className="text-3xl font-bold text-purple-600">$320</div>
-              <CardDescription>TTD - Full day experience</CardDescription>
+              <div className="text-3xl font-bold text-purple-600">$35</div>
+              <CardDescription>per hour - 8 hour shift</CardDescription>
             </CardHeader>
             
             <CardContent className="space-y-4">
+              <div className="text-center mb-4">
+                <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200">
+                  Schedule within a week of visit completion
+                </Badge>
+              </div>
+              
               <div className="space-y-2 text-sm">
                 <div className="flex items-center gap-2">
                   <Star className="h-4 w-4 text-purple-500" />
@@ -269,19 +264,37 @@ export const ScheduleVisitModal = ({
                   <span>No long-term commitment</span>
                 </div>
               </div>
-              
-              <Button 
-                className={`w-full ${
-                  visitCompleted 
-                    ? 'bg-purple-600 hover:bg-purple-700' 
-                    : 'bg-gray-400 cursor-not-allowed'
-                }`}
-                onClick={handleTrialDay}
-                disabled={!visitCompleted}
-              >
-                <CreditCard className="h-4 w-4 mr-2" />
-                Book Trial Day
-              </Button>
+
+              {/* Locked overlay for actions */}
+              {!visitCompleted && (
+                <div className="relative">
+                  <div className="absolute inset-0 bg-white/80 backdrop-blur-sm z-10 flex items-center justify-center rounded-lg">
+                    <div className="text-center p-2">
+                      <Lock className="h-6 w-6 text-gray-400 mx-auto mb-1" />
+                      <p className="text-xs text-gray-500">
+                        Unlocks after visit completion
+                      </p>
+                    </div>
+                  </div>
+                  <Button 
+                    className="w-full bg-gray-400 cursor-not-allowed"
+                    disabled={true}
+                  >
+                    <CreditCard className="h-4 w-4 mr-2" />
+                    Book Trial Day
+                  </Button>
+                </div>
+              )}
+
+              {visitCompleted && (
+                <Button 
+                  className="w-full bg-purple-600 hover:bg-purple-700"
+                  onClick={handleTrialDay}
+                >
+                  <CreditCard className="h-4 w-4 mr-2" />
+                  Book Trial Day
+                </Button>
+              )}
               
               <p className="text-xs text-gray-500 text-center">
                 {visitCompleted 

@@ -1,4 +1,3 @@
-
 import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -89,9 +88,9 @@ export const EnhancedFamilyNextStepsPanel: React.FC<EnhancedFamilyNextStepsPanel
         navigateTo: "/subscription/features"
       };
     } else {
-      // Existing logic for logged-in users
+      // Only show subscription CTA for foundation stage
       if (foundationCompleted && !schedulingCompleted) {
-        stages.scheduling.subscriptionCTA = {
+        stages.foundation.subscriptionCTA = {
           show: true,
           title: "Unlock Premium Match Features",
           description: "Get unlimited caregiver matches and advanced filtering for $7.99 one-time.",
@@ -102,18 +101,7 @@ export const EnhancedFamilyNextStepsPanel: React.FC<EnhancedFamilyNextStepsPanel
         };
       }
 
-      if (schedulingCompleted && !trialCompleted) {
-        stages.trial.subscriptionCTA = {
-          show: true,
-          title: "Manage Your Care Easily",
-          description: "Get care coordination tools, shift tracking, and family updates for $14.99/mo.",
-          buttonText: "Get Care Tools",
-          action: "upgrade", 
-          featureType: "care_tools",
-          planId: "family_care",
-          navigateTo: "/subscription"
-        };
-      }
+      // Remove scheduling stage subscription CTA - keep it clean for direct scheduling
 
       if (trialCompleted) {
         stages.conversion.subscriptionCTA = {
