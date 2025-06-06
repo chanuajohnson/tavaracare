@@ -89,12 +89,6 @@ export const RoleBasedContent: React.FC<RoleBasedContentProps> = ({
         <div className="flex items-center gap-3">
           <Heart className="h-5 w-5 text-primary flex-shrink-0" />
           <h3 className="text-lg font-semibold">TAV Assistant</h3>
-          {role === 'guest' && (
-            <span className="inline-flex items-center gap-1 bg-gradient-to-r from-blue-500 to-purple-500 text-white text-xs font-medium px-2 py-1 rounded-full">
-              <Sparkles className="h-3 w-3" />
-              DEMO
-            </span>
-          )}
         </div>
         <div className="flex items-center gap-2">
           {onMinimize && (
