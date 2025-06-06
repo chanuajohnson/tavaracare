@@ -8,7 +8,7 @@ import { Calendar, Video, MapPin, Star, Clock, Lock, Sparkles, CreditCard } from
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { toast } from "sonner";
-import { GoogleCalendarSchedulingModal } from "@/components/common/GoogleCalendarSchedulingModal";
+import { GoogleCalendarSchedulingModal } from "@/components/family/GoogleCalendarSchedulingModal";
 
 interface ScheduleVisitModalProps {
   open: boolean;
@@ -28,7 +28,6 @@ export const ScheduleVisitModal = ({
   const [isLoading, setIsLoading] = useState(false);
   const [visitCompleted, setVisitCompleted] = useState(false);
   const [showCalendarModal, setShowCalendarModal] = useState(false);
-  const [selectedVisitType, setSelectedVisitType] = useState<'virtual' | 'in_person' | null>(null);
 
   const handleSlowPlanningPath = () => {
     navigate("/subscription/features", {
@@ -50,20 +49,11 @@ export const ScheduleVisitModal = ({
       return;
     }
 
-    // Store the visit type for the calendar modal
-    setSelectedVisitType(visitType);
-    
-    // Open Google Calendar in new tab
-    const calendarUrl = "https://calendar.google.com/calendar/u/0/appointments/schedules/AcZssZ0zpjFp9GxbxjVNxZttxh9YdswYlq0Wh8_r5FbOHZ5C_ozMGwMd_I7gd9-XJbI3SjhXLRPGfH0B?gv=true";
-    window.open(calendarUrl, '_blank');
-    
-    // Show the contact information modal
-    setTimeout(() => {
-      setShowCalendarModal(true);
-    }, 1000); // Small delay to let user see the calendar opened
+    // Open the embedded calendar modal instead of new tab
+    setShowCalendarModal(true);
   };
 
-  const handleCalendarSuccess = () => {
+  const handleScheduleConfirmed = () => {
     setShowCalendarModal(false);
     setVisitCompleted(true);
     toast.success("Visit scheduled successfully!");
@@ -313,12 +303,11 @@ export const ScheduleVisitModal = ({
         </DialogContent>
       </Dialog>
 
-      {/* Google Calendar Scheduling Modal */}
+      {/* Use the existing family Google Calendar Modal */}
       <GoogleCalendarSchedulingModal
         open={showCalendarModal}
         onOpenChange={setShowCalendarModal}
-        onSuccess={handleCalendarSuccess}
-        visitType={selectedVisitType}
+        onScheduleConfirmed={handleScheduleConfirmed}
       />
     </>
   );
