@@ -6,7 +6,7 @@ import { ScheduleVisitModal } from "@/components/family/ScheduleVisitModal";
 import { useEnhancedJourneyProgress } from "@/hooks/useEnhancedJourneyProgress";
 import { FamilyDashboard } from "@/components/family/FamilyDashboard";
 
-export default function FamilyDashboard() {
+export default function FamilyDashboardPage() {
   const { user } = useAuth();
   const {
     loading,
