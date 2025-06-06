@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabase';
 import { ensureUserProfile } from '@/lib/profile-utils';
 import { UserRole } from '@/types/database';
 
-const REDIRECT_TIMEOUT = 5000; // 5 seconds timeout for redirects
+const REDIRECT_TIMEOUT = 3000; // Reduced to 3 seconds for faster fallback
 const VALID_ROUTES = [
   '/', '/auth', '/features', '/about', '/faq',
   '/registration/family', '/registration/professional', '/registration/community',
@@ -24,6 +24,11 @@ export function RedirectHandler() {
       search: location.search,
       hash: location.hash
     });
+    
+    // Only process if we have something to redirect
+    if (!location.hash && !location.search.includes('route=') && !location.hash.includes('access_token=')) {
+      return;
+    }
     
     // Set processing state
     setIsProcessing(true);

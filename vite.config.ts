@@ -13,9 +13,8 @@ export default defineConfig(({ mode }) => {
   const envPrefix = 'VITE_';
   
   return {
-    // Use empty base for custom domain and preview environments
-    // This ensures proper SPA routing
-    base: "",  
+    // Use proper base for SPA routing - this ensures assets load correctly
+    base: "./",  
     server: {
       host: "::",
       port: 8080,
@@ -36,7 +35,7 @@ export default defineConfig(({ mode }) => {
       // Ensure proper asset handling for SPA
       rollupOptions: {
         output: {
-          // Ensure consistent file names for proper caching
+          // Ensure consistent file names for proper caching and loading
           entryFileNames: 'assets/[name]-[hash].js',
           chunkFileNames: 'assets/[name]-[hash].js',
           assetFileNames: 'assets/[name]-[hash].[ext]'
