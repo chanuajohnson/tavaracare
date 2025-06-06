@@ -80,6 +80,33 @@ export const useEnhancedJourneyProgress = (): JourneyProgressData => {
     }
   };
 
+  // Helper function to determine step accessibility - moved outside of fetchJourneyData
+  const determineStepAccessibility = (stepNumber: number, allSteps: JourneyStep[]) => {
+    switch (stepNumber) {
+      case 4: // Caregiver matches - need steps 1-3 completed
+        const foundationSteps = allSteps.filter(s => [1, 2, 3].includes(s.step_number));
+        return foundationSteps.every(s => s.completed);
+      case 8: // Confirm visit - need step 7 completed
+        const step7 = allSteps.find(s => s.step_number === 7);
+        return step7?.completed || false;
+      case 9: // Schedule trial - need step 7 completed
+        const step7ForTrial = allSteps.find(s => s.step_number === 7);
+        return step7ForTrial?.completed || false;
+      case 10: // Pay for trial - need steps 8 and 9 completed
+        const step8 = allSteps.find(s => s.step_number === 8);
+        const step9 = allSteps.find(s => s.step_number === 9);
+        return (step8?.completed && step9?.completed) || false;
+      case 11: // Begin trial - need step 10 completed
+        const step10 = allSteps.find(s => s.step_number === 10);
+        return step10?.completed || false;
+      case 12: // Choose path - need step 8 completed (can skip trial)
+        const step8ForPath = allSteps.find(s => s.step_number === 8);
+        return step8ForPath?.completed || false;
+      default:
+        return true;
+    }
+  };
+
   const fetchJourneyData = async () => {
     if (!user) return;
     
@@ -150,18 +177,28 @@ export const useEnhancedJourneyProgress = (): JourneyProgressData => {
       console.log('Care plans:', carePlansData);
       setCarePlans(carePlansData || []);
 
-      // Check medications - using care_plan_id
-      const { data: medications } = await supabase
-        .from('medications')
-        .select('id, care_plan_id')
-        .in('care_plan_id', (carePlansData || []).map(cp => cp.id));
+      // Check medications - using care_plan_id from care plans
+      let medications = [];
+      if (carePlansData && carePlansData.length > 0) {
+        const carePlanIds = carePlansData.map(cp => cp.id);
+        const { data: medicationsData } = await supabase
+          .from('medications')
+          .select('id, care_plan_id')
+          .in('care_plan_id', carePlanIds);
+        medications = medicationsData || [];
+      }
       console.log('Medications:', medications);
 
-      // Check meal plans - using care_plan_id
-      const { data: mealPlans } = await supabase
-        .from('meal_plans')
-        .select('id, care_plan_id')
-        .in('care_plan_id', (carePlansData || []).map(cp => cp.id));
+      // Check meal plans - using care_plan_id from care plans
+      let mealPlans = [];
+      if (carePlansData && carePlansData.length > 0) {
+        const carePlanIds = carePlansData.map(cp => cp.id);
+        const { data: mealPlansData } = await supabase
+          .from('meal_plans')
+          .select('id, care_plan_id')
+          .in('care_plan_id', carePlanIds);
+        mealPlans = mealPlansData || [];
+      }
       console.log('Meal plans:', mealPlans);
 
       // Check trial payments
@@ -175,8 +212,8 @@ export const useEnhancedJourneyProgress = (): JourneyProgressData => {
       const hasTrialPayment = trialPayments && trialPayments.length > 0;
       setTrialCompleted(hasTrialPayment);
 
-      // Process steps with completion status
-      const processedSteps = journeySteps?.map(step => {
+      // Process steps with completion status first (without accessibility)
+      const stepsWithCompletion = journeySteps?.map(step => {
         let completed = false;
         
         console.log(`Checking completion for step ${step.step_number}: ${step.title}`);
@@ -230,19 +267,22 @@ export const useEnhancedJourneyProgress = (): JourneyProgressData => {
           ...step,
           id: step.id,
           completed,
-          accessible: determineAccessibility(step.step_number, processedSteps || [], completed),
+          accessible: true, // Will be updated in the next step
           prerequisites: step.prerequisites || []
         };
       }) || [];
 
-      console.log('Processed steps with completion status:', processedSteps);
+      // Now update accessibility for all steps using the completed steps array
+      const processedSteps = stepsWithCompletion.map(step => ({
+        ...step,
+        accessible: determineStepAccessibility(step.step_number, stepsWithCompletion)
+      }));
 
-      // Update accessibility
-      const stepsWithAccessibility = updateStepAccessibility(processedSteps);
-      setSteps(stepsWithAccessibility);
+      console.log('Processed steps with completion status and accessibility:', processedSteps);
+      setSteps(processedSteps);
 
-      const completedCount = stepsWithAccessibility.filter(s => s.completed).length;
-      const totalCount = stepsWithAccessibility.length;
+      const completedCount = processedSteps.filter(s => s.completed).length;
+      const totalCount = processedSteps.length;
       const percentage = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
       console.log(`Progress calculation: ${completedCount}/${totalCount} = ${percentage}%`);
 
@@ -273,7 +313,7 @@ export const useEnhancedJourneyProgress = (): JourneyProgressData => {
       setPaths(processedPaths);
 
       // Determine current stage
-      const completedSteps = stepsWithAccessibility.filter(s => s.completed);
+      const completedSteps = processedSteps.filter(s => s.completed);
       setCurrentStage(determineJourneyStage(completedSteps));
       
     } catch (error) {
@@ -281,36 +321,6 @@ export const useEnhancedJourneyProgress = (): JourneyProgressData => {
     } finally {
       setLoading(false);
     }
-  };
-
-  const determineAccessibility = (stepNumber: number, allSteps: any[], isCompleted: boolean) => {
-    // Basic accessibility logic - can be enhanced based on prerequisites
-    switch (stepNumber) {
-      case 4: // Caregiver matches - need steps 1-3 completed
-        const foundationComplete = allSteps.slice(0, 3).every(s => s.completed);
-        return foundationComplete;
-      case 8: // Confirm visit - need step 7 completed
-        return allSteps.find(s => s.step_number === 7)?.completed || false;
-      case 9: // Schedule trial - need step 7 completed
-        return allSteps.find(s => s.step_number === 7)?.completed || false;
-      case 10: // Pay for trial - need steps 8 and 9 completed
-        const step8Complete = allSteps.find(s => s.step_number === 8)?.completed;
-        const step9Complete = allSteps.find(s => s.step_number === 9)?.completed;
-        return step8Complete && step9Complete;
-      case 11: // Begin trial - need step 10 completed
-        return allSteps.find(s => s.step_number === 10)?.completed || false;
-      case 12: // Choose path - need step 8 completed (can skip trial)
-        return allSteps.find(s => s.step_number === 8)?.completed || false;
-      default:
-        return true;
-    }
-  };
-
-  const updateStepAccessibility = (steps: JourneyStep[]) => {
-    return steps.map(step => ({
-      ...step,
-      accessible: determineAccessibility(step.step_number, steps, step.completed)
-    }));
   };
 
   const determineJourneyStage = (completedSteps: JourneyStep[]) => {
