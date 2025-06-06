@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, MessageCircle, Sparkles, Check, XIcon, ChevronLeft, ChevronRight, Maximize2 } from 'lucide-react';
@@ -212,6 +211,7 @@ export const TavaraAssistantPanel: React.FC = () => {
 
   // Handle expand/collapse toggle with proper state management
   const handleExpandToggle = () => {
+    console.log('TAV: Expand toggle clicked, current isExpanded:', isExpanded);
     if (isExpanded) {
       setIsExpanded(false);
     } else {
@@ -219,14 +219,23 @@ export const TavaraAssistantPanel: React.FC = () => {
     }
   };
 
-  // Handle maximize functionality from minimized state
+  // Fixed maximize functionality from minimized state
   const handleMaximizeFromMinimized = () => {
-    setIsExpanded(false); // Start with normal size, not expanded
+    console.log('TAV: Maximizing from minimized state');
+    setIsExpanded(true); // Set to expanded state for larger size
     maximizePanel();
+  };
+
+  // Enhanced close panel function with debugging
+  const handleClosePanel = () => {
+    console.log('TAV: Close panel clicked, current state:', { isOpen: state.isOpen, isMinimized: state.isMinimized });
+    setIsExpanded(false); // Reset expanded state
+    closePanel();
   };
 
   // Show minimized panel if minimized
   if (state.isMinimized) {
+    console.log('TAV: Rendering minimized panel');
     return (
       <div className={`fixed z-50 ${isMobile 
         ? 'bottom-20 left-4' 
@@ -259,7 +268,7 @@ export const TavaraAssistantPanel: React.FC = () => {
             <Button
               variant="ghost"
               size="sm"
-              onClick={closePanel}
+              onClick={handleClosePanel}
               className="h-7 w-7 p-0"
               title="Close panel"
             >
@@ -435,7 +444,7 @@ export const TavaraAssistantPanel: React.FC = () => {
           onNudgeClick={handleNudgeClick}
           isLoading={isLoading}
           progressContext={progressContext}
-          onClose={closePanel}
+          onClose={handleClosePanel}
           onMinimize={minimizePanel}
         />
       </div>
