@@ -7,6 +7,7 @@ import { ChevronDown, ChevronUp, CheckCircle2, Circle, Clock, ArrowRight } from 
 import { JourneyStepTooltip } from "./JourneyStepTooltip";
 import { SubscriptionTrackingButton } from "@/components/subscription/SubscriptionTrackingButton";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useNavigate } from "react-router-dom";
 import * as LucideIcons from "lucide-react";
 
 interface JourneyStep {
@@ -43,6 +44,7 @@ interface JourneyStageCardProps {
     navigateTo: string;
   };
   trackStepAction: (stepId: string, action: string) => void;
+  isAnonymous?: boolean;
 }
 
 export const JourneyStageCard: React.FC<JourneyStageCardProps> = ({
@@ -52,10 +54,12 @@ export const JourneyStageCard: React.FC<JourneyStageCardProps> = ({
   steps,
   stageColor,
   subscriptionCTA,
-  trackStepAction
+  trackStepAction,
+  isAnonymous = false
 }) => {
   const [isExpanded, setIsExpanded] = useState(true);
   const isMobile = useIsMobile();
+  const navigate = useNavigate();
   
   const completedSteps = steps.filter(step => step.completed).length;
   const totalSteps = steps.length;
@@ -73,6 +77,10 @@ export const JourneyStageCard: React.FC<JourneyStageCardProps> = ({
   };
 
   const getButtonText = (step: JourneyStep) => {
+    if (isAnonymous) {
+      return "Start Journey";
+    }
+
     if (!step.accessible) {
       if (step.step_number === 4) return "Complete Above Steps";
       if (step.step_number === 8) return "Schedule Visit First";
@@ -96,6 +104,14 @@ export const JourneyStageCard: React.FC<JourneyStageCardProps> = ({
     }
     
     return step.completed ? "Edit" : "Complete";
+  };
+
+  const handleSubscriptionCTA = () => {
+    if (isAnonymous) {
+      navigate('/auth');
+    } else if (subscriptionCTA?.navigateTo) {
+      navigate(subscriptionCTA.navigateTo);
+    }
   };
 
   const stageStatus = getStageStatus();
@@ -205,16 +221,26 @@ export const JourneyStageCard: React.FC<JourneyStageCardProps> = ({
                   <p className="text-xs text-gray-600 mb-3">
                     {subscriptionCTA.description}
                   </p>
-                  <SubscriptionTrackingButton
-                    action={subscriptionCTA.action as any}
-                    featureType={subscriptionCTA.featureType}
-                    planId={subscriptionCTA.planId}
-                    navigateTo={subscriptionCTA.navigateTo}
-                    variant="default"
-                    className="text-xs px-3 py-2 h-auto"
-                  >
-                    {subscriptionCTA.buttonText}
-                  </SubscriptionTrackingButton>
+                  {isAnonymous ? (
+                    <Button
+                      onClick={handleSubscriptionCTA}
+                      variant="default"
+                      className="text-xs px-3 py-2 h-auto"
+                    >
+                      {subscriptionCTA.buttonText}
+                    </Button>
+                  ) : (
+                    <SubscriptionTrackingButton
+                      action={subscriptionCTA.action as any}
+                      featureType={subscriptionCTA.featureType}
+                      planId={subscriptionCTA.planId}
+                      navigateTo={subscriptionCTA.navigateTo}
+                      variant="default"
+                      className="text-xs px-3 py-2 h-auto"
+                    >
+                      {subscriptionCTA.buttonText}
+                    </SubscriptionTrackingButton>
+                  )}
                 </div>
               </div>
             </div>
@@ -235,26 +261,26 @@ export const JourneyStageCard: React.FC<JourneyStageCardProps> = ({
                 onTooltipView={() => trackStepAction(step.id, 'tooltip_viewed')}
               >
                 <div className={`flex items-start gap-3 p-3 rounded-lg transition-colors cursor-pointer ${
-                  step.accessible ? 'hover:bg-gray-50' : 'bg-gray-50'
+                  (step.accessible || isAnonymous) ? 'hover:bg-gray-50' : 'bg-gray-50'
                 }`}>
                   <div className="mt-0.5 flex-shrink-0">
                     {step.completed ? (
                       <CheckCircle2 className="h-4 w-4 sm:h-5 sm:w-5 text-green-500" />
                     ) : (
-                      <Circle className={`h-4 w-4 sm:h-5 sm:w-5 ${step.accessible ? 'text-gray-300' : 'text-gray-200'}`} />
+                      <Circle className={`h-4 w-4 sm:h-5 sm:w-5 ${(step.accessible || isAnonymous) ? 'text-gray-300' : 'text-gray-200'}`} />
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className={`${isMobile ? 'flex-col space-y-2' : 'flex items-start justify-between gap-4'}`}>
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
-                          <div className={`${step.accessible ? 'text-primary' : 'text-gray-300'} flex-shrink-0`}>
+                          <div className={`${(step.accessible || isAnonymous) ? 'text-primary' : 'text-gray-300'} flex-shrink-0`}>
                             {getIcon(step.icon_name)}
                           </div>
                           <p className={`font-medium text-sm ${
                             step.completed 
                               ? 'text-gray-500 line-through' 
-                              : step.accessible 
+                              : (step.accessible || isAnonymous)
                                 ? 'text-gray-800' 
                                 : 'text-gray-400'
                           }`}>
@@ -265,7 +291,7 @@ export const JourneyStageCard: React.FC<JourneyStageCardProps> = ({
                           )}
                         </div>
                         <p className={`text-xs mt-1 ${
-                          step.accessible ? 'text-gray-500' : 'text-gray-400'
+                          (step.accessible || isAnonymous) ? 'text-gray-500' : 'text-gray-400'
                         }`}>
                           {step.description}
                         </p>
@@ -274,20 +300,20 @@ export const JourneyStageCard: React.FC<JourneyStageCardProps> = ({
                         {!step.completed && (
                           <div className="flex items-center text-xs text-gray-500 gap-1">
                             <Clock className="h-3 w-3" />
-                            <span>{step.accessible ? 'Pending' : 'Locked'}</span>
+                            <span>{(step.accessible || isAnonymous) ? 'Pending' : 'Locked'}</span>
                           </div>
                         )}
                         <Button 
                           variant="ghost" 
                           size="sm" 
                           className={`text-xs px-2 py-1 h-auto min-h-[44px] ${isMobile ? 'min-w-[44px]' : ''} ${
-                            !step.accessible
+                            !(step.accessible || isAnonymous)
                               ? 'text-gray-400 cursor-not-allowed opacity-50'
                               : step.completed 
                                 ? 'text-blue-600 hover:text-blue-700' 
                                 : 'text-primary hover:text-primary-600'
                           }`}
-                          disabled={!step.accessible}
+                          disabled={!(step.accessible || isAnonymous)}
                           onClick={(e) => {
                             e.stopPropagation();
                             if (step.action) {

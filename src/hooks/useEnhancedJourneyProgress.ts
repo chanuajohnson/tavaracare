@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { supabase } from '@/lib/supabase';
@@ -44,6 +43,9 @@ interface JourneyProgressData {
   careModel: string | null;
   trialCompleted: boolean;
   trackStepAction: (stepId: string, action: string) => Promise<void>;
+  isAnonymous: boolean;
+  showLeadCaptureModal: boolean;
+  setShowLeadCaptureModal: (show: boolean) => void;
 }
 
 // Helper function to validate and convert category
@@ -55,6 +57,230 @@ const validateCategory = (category: string): 'foundation' | 'scheduling' | 'tria
   return 'foundation';
 };
 
+// Dummy data for anonymous users
+const getDummyJourneyData = (): { steps: JourneyStep[], paths: JourneyPath[] } => {
+  const dummySteps: JourneyStep[] = [
+    {
+      id: 'dummy-1',
+      step_number: 1,
+      title: 'Create your family profile',
+      description: 'Tell us about your care needs',
+      category: 'foundation',
+      is_optional: false,
+      tooltip_content: 'Start by creating your family profile to get personalized care recommendations',
+      detailed_explanation: 'Your profile helps us understand your unique care situation',
+      time_estimate_minutes: 10,
+      link_path: '/registration/family',
+      icon_name: 'User',
+      completed: true,
+      accessible: true,
+      prerequisites: []
+    },
+    {
+      id: 'dummy-2',
+      step_number: 2,
+      title: 'Complete care assessment',
+      description: 'Detail your care requirements',
+      category: 'foundation',
+      is_optional: false,
+      tooltip_content: 'Help us understand the specific care needs',
+      detailed_explanation: 'This assessment ensures we match you with the right caregivers',
+      time_estimate_minutes: 15,
+      link_path: '/family/care-assessment',
+      icon_name: 'ClipboardList',
+      completed: true,
+      accessible: true,
+      prerequisites: []
+    },
+    {
+      id: 'dummy-3',
+      step_number: 3,
+      title: 'Create care recipient profile',
+      description: 'Tell us about your loved one',
+      category: 'foundation',
+      is_optional: false,
+      tooltip_content: 'Share details about the person receiving care',
+      detailed_explanation: 'This helps caregivers provide personalized, compassionate care',
+      time_estimate_minutes: 15,
+      link_path: '/family/care-recipient',
+      icon_name: 'Heart',
+      completed: true,
+      accessible: true,
+      prerequisites: []
+    },
+    {
+      id: 'dummy-4',
+      step_number: 4,
+      title: 'View caregiver matches',
+      description: 'See caregivers who match your needs',
+      category: 'foundation',
+      is_optional: false,
+      tooltip_content: 'Browse qualified caregivers in your area',
+      detailed_explanation: 'We\'ve found caregivers who specialize in your care needs',
+      time_estimate_minutes: 10,
+      link_path: '/family/caregiver-matches',
+      icon_name: 'Users',
+      completed: false,
+      accessible: false,
+      prerequisites: []
+    },
+    {
+      id: 'dummy-5',
+      step_number: 5,
+      title: 'Set up medication management',
+      description: 'Track medications and schedules',
+      category: 'scheduling',
+      is_optional: false,
+      tooltip_content: 'Create a medication plan for your loved one',
+      detailed_explanation: 'Ensure medications are taken correctly and on time',
+      time_estimate_minutes: 20,
+      link_path: '/family/medications',
+      icon_name: 'Pill',
+      completed: false,
+      accessible: false,
+      prerequisites: []
+    },
+    {
+      id: 'dummy-6',
+      step_number: 6,
+      title: 'Create meal plans',
+      description: 'Plan nutritious meals',
+      category: 'scheduling',
+      is_optional: true,
+      tooltip_content: 'Develop meal plans tailored to dietary needs',
+      detailed_explanation: 'Ensure proper nutrition with customized meal planning',
+      time_estimate_minutes: 15,
+      link_path: '/family/meal-plans',
+      icon_name: 'Utensils',
+      completed: false,
+      accessible: false,
+      prerequisites: []
+    },
+    {
+      id: 'dummy-7',
+      step_number: 7,
+      title: 'Schedule initial visit',
+      description: 'Meet your care coordinator',
+      category: 'scheduling',
+      is_optional: false,
+      tooltip_content: 'Schedule a time to meet your care team',
+      detailed_explanation: 'This visit helps establish care goals and expectations',
+      time_estimate_minutes: 5,
+      link_path: '/family/schedule-visit',
+      icon_name: 'Calendar',
+      completed: false,
+      accessible: false,
+      prerequisites: []
+    },
+    {
+      id: 'dummy-8',
+      step_number: 8,
+      title: 'Complete initial visit',
+      description: 'Finalize care plan details',
+      category: 'scheduling',
+      is_optional: false,
+      tooltip_content: 'Meet with your care coordinator to finalize details',
+      detailed_explanation: 'This visit confirms all aspects of your care plan',
+      time_estimate_minutes: 60,
+      link_path: '/family/visit-confirmation',
+      icon_name: 'CheckSquare',
+      completed: false,
+      accessible: false,
+      prerequisites: []
+    },
+    {
+      id: 'dummy-9',
+      step_number: 9,
+      title: 'Schedule trial day',
+      description: 'Try care services for a day',
+      category: 'trial',
+      is_optional: true,
+      tooltip_content: 'Experience our care services with no long-term commitment',
+      detailed_explanation: 'A trial day helps ensure the care plan meets your needs',
+      time_estimate_minutes: 5,
+      link_path: '/family/schedule-trial',
+      icon_name: 'CalendarCheck',
+      completed: false,
+      accessible: false,
+      prerequisites: []
+    },
+    {
+      id: 'dummy-10',
+      step_number: 10,
+      title: 'Pay for trial day',
+      description: 'Process payment for trial',
+      category: 'trial',
+      is_optional: true,
+      tooltip_content: 'Secure your trial day with payment',
+      detailed_explanation: 'Trial day payment is applied to your first month of service',
+      time_estimate_minutes: 5,
+      link_path: '/family/trial-payment',
+      icon_name: 'CreditCard',
+      completed: false,
+      accessible: false,
+      prerequisites: []
+    },
+    {
+      id: 'dummy-11',
+      step_number: 11,
+      title: 'Complete trial day',
+      description: 'Experience care services',
+      category: 'trial',
+      is_optional: true,
+      tooltip_content: 'Experience our care services firsthand',
+      detailed_explanation: 'Your trial day helps confirm the right care approach',
+      time_estimate_minutes: 480,
+      link_path: '/family/trial-completion',
+      icon_name: 'ThumbsUp',
+      completed: false,
+      accessible: false,
+      prerequisites: []
+    },
+    {
+      id: 'dummy-12',
+      step_number: 12,
+      title: 'Choose care model',
+      description: 'Select your ongoing care plan',
+      category: 'conversion',
+      is_optional: false,
+      tooltip_content: 'Choose the care model that best fits your needs',
+      detailed_explanation: 'We offer flexible care models to meet your specific situation',
+      time_estimate_minutes: 15,
+      link_path: '/family/care-model-selection',
+      icon_name: 'Check',
+      completed: false,
+      accessible: false,
+      prerequisites: []
+    }
+  ];
+
+  // Complete steps 1-3 for 25% completion
+  dummySteps[0].completed = true;
+  dummySteps[1].completed = true;
+  dummySteps[2].completed = true;
+
+  const dummyPaths: JourneyPath[] = [
+    {
+      id: 'dummy-path-1',
+      path_name: 'Quick Start Path',
+      path_description: 'Get matched with a caregiver in 24-48 hours',
+      step_ids: [1, 2, 3, 4, 7, 8],
+      path_color: '#10B981',
+      is_recommended: true
+    },
+    {
+      id: 'dummy-path-2',
+      path_name: 'Comprehensive Planning',
+      path_description: 'Take time to plan every detail of your care',
+      step_ids: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+      path_color: '#3B82F6',
+      is_recommended: false
+    }
+  ];
+
+  return { steps: dummySteps, paths: dummyPaths };
+};
+
 export const useEnhancedJourneyProgress = (): JourneyProgressData => {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -63,10 +289,13 @@ export const useEnhancedJourneyProgress = (): JourneyProgressData => {
   const [paths, setPaths] = useState<JourneyPath[]>([]);
   const [carePlans, setCarePlans] = useState([]);
   const [showScheduleModal, setShowScheduleModal] = useState(false);
+  const [showLeadCaptureModal, setShowLeadCaptureModal] = useState(false);
   const [currentStage, setCurrentStage] = useState<'foundation' | 'scheduling' | 'trial' | 'conversion'>('foundation');
   const [careModel, setCareModel] = useState<string | null>(null);
   const [trialCompleted, setTrialCompleted] = useState(false);
   const [visitStatus, setVisitStatus] = useState<string>('not_started');
+
+  const isAnonymous = !user;
 
   const trackStepAction = async (stepId: string, action: string) => {
     if (!user) return;
@@ -87,6 +316,31 @@ export const useEnhancedJourneyProgress = (): JourneyProgressData => {
     } catch (error) {
       console.error('Error tracking step action:', error);
     }
+  };
+
+  // Handle anonymous users with dummy data
+  useEffect(() => {
+    if (isAnonymous) {
+      const { steps: dummySteps, paths: dummyPaths } = getDummyJourneyData();
+      setSteps(dummySteps.map(step => ({
+        ...step,
+        action: () => handleAnonymousStepAction(step)
+      })));
+      setPaths(dummyPaths);
+      setCurrentStage('foundation');
+      setLoading(false);
+      return;
+    }
+
+    // Existing logged-in user logic
+    if (user) {
+      fetchJourneyData();
+    }
+  }, [user]);
+
+  const handleAnonymousStepAction = (step: JourneyStep) => {
+    // For anonymous users, all actions trigger lead capture
+    setShowLeadCaptureModal(true);
   };
 
   // Helper function to determine step accessibility
@@ -408,6 +662,9 @@ export const useEnhancedJourneyProgress = (): JourneyProgressData => {
     setShowScheduleModal,
     careModel,
     trialCompleted,
-    trackStepAction
+    trackStepAction,
+    isAnonymous,
+    showLeadCaptureModal,
+    setShowLeadCaptureModal
   };
 };

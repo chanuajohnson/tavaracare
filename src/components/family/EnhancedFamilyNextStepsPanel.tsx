@@ -1,10 +1,10 @@
-
 import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { List, ArrowRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { ScheduleVisitModal } from "./ScheduleVisitModal";
+import { LeadCaptureModal } from "./LeadCaptureModal";
 import { JourneyPathVisualization } from "./JourneyPathVisualization";
 import { JourneyStageCard } from "./JourneyStageCard";
 import { useEnhancedJourneyProgress } from "@/hooks/useEnhancedJourneyProgress";
@@ -28,7 +28,10 @@ export const EnhancedFamilyNextStepsPanel: React.FC<EnhancedFamilyNextStepsPanel
     loading, 
     showScheduleModal, 
     setShowScheduleModal,
-    trackStepAction
+    showLeadCaptureModal,
+    setShowLeadCaptureModal,
+    trackStepAction,
+    isAnonymous
   } = useEnhancedJourneyProgress();
 
   // Group steps by stage
@@ -68,50 +71,72 @@ export const EnhancedFamilyNextStepsPanel: React.FC<EnhancedFamilyNextStepsPanel
       }
     };
 
-    // Add subscription CTAs based on stage completion
+    // Add subscription CTAs based on stage completion and user status
     const foundationCompleted = stages.foundation.steps.every(step => step.completed);
     const schedulingCompleted = stages.scheduling.steps.every(step => step.completed);
     const trialCompleted = stages.trial.steps.every(step => step.completed);
 
-    if (foundationCompleted && !schedulingCompleted) {
-      stages.scheduling.subscriptionCTA = {
+    if (isAnonymous) {
+      // For anonymous users, show conversion CTA on foundation
+      stages.foundation.subscriptionCTA = {
         show: true,
-        title: "Unlock Premium Match Features",
-        description: "Get unlimited caregiver matches and advanced filtering for $7.99 one-time.",
-        buttonText: "Unlock Matches",
+        title: "Start Your Care Journey",
+        description: "Get matched with qualified caregivers for $7.99 one-time.",
+        buttonText: "Start Care Journey",
         action: "upgrade",
         featureType: "teaser_unlock",
-        navigateTo: "/subscription/features"
+        navigateTo: "/auth"
       };
-    }
+    } else {
+      // Existing logic for logged-in users
+      if (foundationCompleted && !schedulingCompleted) {
+        stages.scheduling.subscriptionCTA = {
+          show: true,
+          title: "Unlock Premium Match Features",
+          description: "Get unlimited caregiver matches and advanced filtering for $7.99 one-time.",
+          buttonText: "Unlock Matches",
+          action: "upgrade",
+          featureType: "teaser_unlock",
+          navigateTo: "/subscription/features"
+        };
+      }
 
-    if (schedulingCompleted && !trialCompleted) {
-      stages.trial.subscriptionCTA = {
-        show: true,
-        title: "Manage Your Care Easily",
-        description: "Get care coordination tools, shift tracking, and family updates for $14.99/mo.",
-        buttonText: "Get Care Tools",
-        action: "upgrade", 
-        featureType: "care_tools",
-        planId: "family_care",
-        navigateTo: "/subscription"
-      };
-    }
+      if (schedulingCompleted && !trialCompleted) {
+        stages.trial.subscriptionCTA = {
+          show: true,
+          title: "Manage Your Care Easily",
+          description: "Get care coordination tools, shift tracking, and family updates for $14.99/mo.",
+          buttonText: "Get Care Tools",
+          action: "upgrade", 
+          featureType: "care_tools",
+          planId: "family_care",
+          navigateTo: "/subscription"
+        };
+      }
 
-    if (trialCompleted) {
-      stages.conversion.subscriptionCTA = {
-        show: true,
-        title: "Ready for Full Care Management?",
-        description: "Get everything included: caregivers, tools, and 24/7 support.",
-        buttonText: "View Full Service",
-        action: "learn_more",
-        featureType: "managed_care",
-        planId: "family_premium", 
-        navigateTo: "/subscription"
-      };
+      if (trialCompleted) {
+        stages.conversion.subscriptionCTA = {
+          show: true,
+          title: "Ready for Full Care Management?",
+          description: "Get everything included: caregivers, tools, and 24/7 support.",
+          buttonText: "View Full Service",
+          action: "learn_more",
+          featureType: "managed_care",
+          planId: "family_premium", 
+          navigateTo: "/subscription"
+        };
+      }
     }
 
     return stages;
+  };
+
+  const handleViewCompleteJourney = () => {
+    if (isAnonymous) {
+      setShowLeadCaptureModal(true);
+    } else {
+      navigate('/family/care-journey-progress');
+    }
   };
 
   if (loading) {
@@ -150,8 +175,8 @@ export const EnhancedFamilyNextStepsPanel: React.FC<EnhancedFamilyNextStepsPanel
         transition={{ duration: 0.5 }}
         className="mb-6 sm:mb-8 space-y-4 sm:space-y-6"
       >
-        {/* Path Visualization - Only show on full page view */}
-        {showAllSteps && (
+        {/* Path Visualization - Only show on full page view and for logged-in users */}
+        {showAllSteps && !isAnonymous && (
           <JourneyPathVisualization 
             paths={paths}
             steps={steps}
@@ -173,7 +198,9 @@ export const EnhancedFamilyNextStepsPanel: React.FC<EnhancedFamilyNextStepsPanel
                 <p className="text-xs sm:text-sm text-gray-600">
                   {showAllSteps 
                     ? "Complete these stages to get matched and begin personalized care with confidence"
-                    : "Follow these stages to get matched with the right caregiver"
+                    : isAnonymous
+                      ? "See how families build their care village with Tavara"
+                      : "Follow these stages to get matched with the right caregiver"
                   }
                 </p>
                 <div className="flex items-center gap-2 mt-2">
@@ -232,6 +259,7 @@ export const EnhancedFamilyNextStepsPanel: React.FC<EnhancedFamilyNextStepsPanel
                 stageColor={stage.color}
                 subscriptionCTA={stage.subscriptionCTA}
                 trackStepAction={trackStepAction}
+                isAnonymous={isAnonymous}
               />
             )
           ))}
@@ -242,15 +270,20 @@ export const EnhancedFamilyNextStepsPanel: React.FC<EnhancedFamilyNextStepsPanel
             <Button
               variant="outline"
               className="w-full justify-between min-h-[44px]"
-              onClick={() => navigate('/family/care-journey-progress')}
+              onClick={handleViewCompleteJourney}
             >
-              <span className="text-sm">View Complete Journey ({steps.length} total steps)</span>
+              <span className="text-sm">
+                {isAnonymous 
+                  ? "Start Building Your Care Village" 
+                  : `View Complete Journey (${steps.length} total steps)`
+                }
+              </span>
               <ArrowRight className="h-4 w-4" />
             </Button>
           </div>
         )}
 
-        {showAllSteps && (
+        {showAllSteps && !isAnonymous && (
           <div className="mt-6 sm:mt-8 text-center">
             <Button 
               variant="outline" 
@@ -263,11 +296,22 @@ export const EnhancedFamilyNextStepsPanel: React.FC<EnhancedFamilyNextStepsPanel
         )}
       </motion.div>
 
-      {/* Schedule Visit Modal */}
-      <ScheduleVisitModal 
-        open={showScheduleModal}
-        onOpenChange={setShowScheduleModal}
-      />
+      {/* Schedule Visit Modal - Only for logged-in users */}
+      {!isAnonymous && (
+        <ScheduleVisitModal 
+          open={showScheduleModal}
+          onOpenChange={setShowScheduleModal}
+        />
+      )}
+
+      {/* Lead Capture Modal - Only for anonymous users */}
+      {isAnonymous && (
+        <LeadCaptureModal 
+          open={showLeadCaptureModal}
+          onOpenChange={setShowLeadCaptureModal}
+          source="journey_progress_panel"
+        />
+      )}
     </>
   );
 };
