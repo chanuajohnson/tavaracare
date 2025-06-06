@@ -2,7 +2,7 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ArrowDown, ArrowRight, Star, Users, CheckCircle2, Circle } from "lucide-react";
+import { ArrowRight, Star, Users, CheckCircle2 } from "lucide-react";
 
 interface JourneyPath {
   id: string;
@@ -48,10 +48,10 @@ export const JourneyPathVisualization: React.FC<JourneyPathVisualizationProps> =
 
   const getStageColor = (status: string) => {
     switch (status) {
-      case 'completed': return 'bg-green-500';
-      case 'in-progress': return 'bg-primary';
-      case 'current': return 'bg-orange-500';
-      default: return 'bg-gray-300';
+      case 'completed': return 'text-green-500';
+      case 'in-progress': return 'text-primary';
+      case 'current': return 'text-orange-500';
+      default: return 'text-gray-300';
     }
   };
 
@@ -82,14 +82,35 @@ export const JourneyPathVisualization: React.FC<JourneyPathVisualizationProps> =
               const status = getStageStatus(category.key);
               const stepsInCategory = getStepsByCategory(category.key);
               const completedInCategory = stepsInCategory.filter(s => s.completed).length;
+              const totalInCategory = stepsInCategory.length;
+              const completionPercentage = totalInCategory > 0 ? Math.round((completedInCategory / totalInCategory) * 100) : 0;
               
               return (
                 <div key={category.key} className="flex items-center gap-2 flex-shrink-0">
                   <div className="text-center min-w-[120px]">
-                    <div className={`w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-2 ${getStageColor(status)} text-white shadow-sm`}>
-                      <span className="text-sm font-semibold">
-                        {completedInCategory}/{stepsInCategory.length}
-                      </span>
+                    <div className="w-12 h-12 relative mx-auto mb-2">
+                      <svg className="w-12 h-12 transform -rotate-90" viewBox="0 0 36 36">
+                        <path
+                          className="text-gray-200"
+                          stroke="currentColor"
+                          strokeWidth="3"
+                          fill="transparent"
+                          d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                        />
+                        <path
+                          className={getStageColor(status)}
+                          stroke="currentColor"
+                          strokeWidth="3"
+                          fill="transparent"
+                          strokeDasharray={`${completionPercentage}, 100`}
+                          d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                        />
+                      </svg>
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <span className="text-xs font-semibold text-gray-700">
+                          {completedInCategory}/{totalInCategory}
+                        </span>
+                      </div>
                     </div>
                     <div className="text-xs font-medium text-gray-800">{category.name}</div>
                     <div className="text-xs text-gray-500 mt-1">{category.description}</div>
