@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, MessageCircle, Sparkles, Check, XIcon, ChevronLeft, ChevronRight } from 'lucide-react';
+import { X, MessageCircle, Sparkles, Check, XIcon, ChevronLeft, ChevronRight, Maximize2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useTavaraState } from './hooks/useTavaraState';
@@ -33,7 +33,7 @@ export const TavaraAssistantPanel: React.FC = () => {
   const { user } = useAuth();
   const location = useLocation();
   const isMobile = useIsMobile();
-  const { state, openPanel, closePanel, minimizePanel, markNudgesAsRead } = useTavaraState();
+  const { state, openPanel, closePanel, minimizePanel, maximizePanel, markNudgesAsRead } = useTavaraState();
   const { currentForm, isFormPage, isJourneyTouchpoint } = useFormDetection();
   const [nudges, setNudges] = useState<AssistantNudge[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -209,6 +209,52 @@ export const TavaraAssistantPanel: React.FC = () => {
     return AUTO_GREET_MESSAGES.guest;
   };
 
+  // Show minimized panel if minimized
+  if (state.isMinimized) {
+    return (
+      <div className={`fixed z-50 ${isMobile 
+        ? 'bottom-20 left-4' 
+        : 'bottom-6 left-6'
+      }`}>
+        <motion.div
+          initial={{ scale: 0.8, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          className="flex items-center gap-2 bg-white rounded-lg shadow-lg border border-gray-200 p-3"
+        >
+          <div className="flex items-center gap-2">
+            <MessageCircle className="h-5 w-5 text-primary" />
+            <span className="text-sm font-medium text-gray-700">TAV</span>
+            {nudges.length > 0 && (
+              <div className="bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold">
+                {nudges.length}
+              </div>
+            )}
+          </div>
+          <div className="flex items-center gap-1">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={maximizePanel}
+              className="h-7 w-7 p-0"
+              title="Expand panel"
+            >
+              <Maximize2 className="h-3 w-3" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={closePanel}
+              className="h-7 w-7 p-0"
+              title="Close panel"
+            >
+              <X className="h-3 w-3" />
+            </Button>
+          </div>
+        </motion.div>
+      </div>
+    );
+  }
+
   // Floating button with enhanced magic effects
   if (!state.isOpen && !state.isMinimized) {
     return (
@@ -326,14 +372,14 @@ export const TavaraAssistantPanel: React.FC = () => {
     );
   }
 
-  // Main panel with improved mobile experience
+  // Main panel with improved mobile experience and responsive sizing
   return (
     <motion.div
       initial={{ opacity: 0, x: -400 }}
       animate={{ 
         opacity: 1, 
-        x: state.isMinimized ? -280 : 0,
-        scale: state.isMinimized ? 0.9 : 1
+        x: 0,
+        scale: 1
       }}
       exit={{ opacity: 0, x: -400 }}
       transition={{ type: "spring", damping: 25, stiffness: 300 }}

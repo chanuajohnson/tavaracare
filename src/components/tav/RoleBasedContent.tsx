@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Heart, UserCog, Users, Globe, Shield, ArrowRight, Sparkles, Clock, CheckCircle2, Circle, X, Minimize2 } from 'lucide-react';
@@ -83,41 +82,46 @@ export const RoleBasedContent: React.FC<RoleBasedContentProps> = ({
     setPreviewState('selection');
   };
 
-  // Panel header with close/minimize controls for logged-in users
+  // Panel header with close/minimize controls for ALL users (including guests)
   const renderPanelHeader = () => {
-    if (role && role !== 'guest') {
-      return (
-        <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-white">
-          <div className="flex items-center gap-3">
-            <Heart className="h-5 w-5 text-primary flex-shrink-0" />
-            <h3 className="text-lg font-semibold">TAV Assistant</h3>
-          </div>
-          <div className="flex items-center gap-2">
-            {onMinimize && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={onMinimize}
-                className="h-8 w-8 p-0"
-              >
-                <Minimize2 className="h-4 w-4" />
-              </Button>
-            )}
-            {onClose && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={onClose}
-                className="h-8 w-8 p-0"
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            )}
-          </div>
+    return (
+      <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-white">
+        <div className="flex items-center gap-3">
+          <Heart className="h-5 w-5 text-primary flex-shrink-0" />
+          <h3 className="text-lg font-semibold">TAV Assistant</h3>
+          {role === 'guest' && (
+            <span className="inline-flex items-center gap-1 bg-gradient-to-r from-blue-500 to-purple-500 text-white text-xs font-medium px-2 py-1 rounded-full">
+              <Sparkles className="h-3 w-3" />
+              DEMO
+            </span>
+          )}
         </div>
-      );
-    }
-    return null;
+        <div className="flex items-center gap-2">
+          {onMinimize && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onMinimize}
+              className="h-8 w-8 p-0 hover:bg-gray-100"
+              title="Minimize panel"
+            >
+              <Minimize2 className="h-4 w-4" />
+            </Button>
+          )}
+          {onClose && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onClose}
+              className="h-8 w-8 p-0 hover:bg-gray-100"
+              title="Close panel"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          )}
+        </div>
+      </div>
+    );
   };
 
   // Main content wrapper
