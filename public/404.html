@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Tavara.care - Redirecting...</title>
   <script>
-    // Enhanced SPA redirect script for GitHub Pages/Netlify with better asset handling
+    // Enhanced SPA redirect script for GitHub Pages/Netlify with comprehensive asset handling
     (function() {
       console.log('[404 Redirect] Starting redirect process...');
       
@@ -17,9 +17,21 @@
       
       console.log('[404 Redirect] Current URL:', { pathname, search, hash });
       
-      // If this is an asset request (CSS, JS, etc.), don't redirect
-      if (pathname.match(/\.(css|js|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$/)) {
+      // Comprehensive asset detection - if this is any type of asset request, don't redirect
+      var assetExtensions = /\.(css|js|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot|otf|map|json|xml|txt|pdf|zip|mp4|mp3|wav)$/i;
+      var isAssetRequest = assetExtensions.test(pathname);
+      
+      if (isAssetRequest) {
         console.log('[404 Redirect] Asset request detected, not redirecting:', pathname);
+        // For assets, show a proper 404 message instead of redirecting
+        document.body.innerHTML = '<div style="text-align: center; padding: 50px; font-family: system-ui;"><h1>Asset Not Found</h1><p>The requested file could not be found: ' + pathname + '</p></div>';
+        return;
+      }
+      
+      // Check if this looks like an assets directory request
+      if (pathname.includes('/assets/') || pathname.startsWith('/static/')) {
+        console.log('[404 Redirect] Assets directory request detected, not redirecting:', pathname);
+        document.body.innerHTML = '<div style="text-align: center; padding: 50px; font-family: system-ui;"><h1>Asset Not Found</h1><p>The requested asset could not be found: ' + pathname + '</p></div>';
         return;
       }
       
@@ -29,7 +41,7 @@
       // If URL is already the root, 404.html, or empty, go to index
       if (pathname === '' || pathname === '/' || pathname === '/404.html' || pathname === '/404') {
         console.log('[404 Redirect] Root or 404 path detected, going to home');
-        window.location.replace('./');
+        window.location.replace('/');
         return;
       }
       
@@ -37,14 +49,14 @@
       if (pathname.includes('/auth/reset-password/confirm')) {
         console.log('[404 Redirect] Auth reset password route detected with tokens:', search);
         // For auth routes with tokens, preserve all query parameters using hash
-        var redirectUrl = './#' + pathname + search + hash;
+        var redirectUrl = '/#' + pathname + search + hash;
         console.log('[404 Redirect] Auth redirect to:', redirectUrl);
         window.location.replace(redirectUrl);
         return;
       }
       
       // For all other routes, use hash-based routing (SPA-friendly)
-      var redirectUrl = './#' + pathname + (search ? search : '') + hash;
+      var redirectUrl = '/#' + pathname + (search ? search : '') + hash;
       
       console.log('[404 Redirect] Redirecting to hash route:', redirectUrl);
       
@@ -113,7 +125,7 @@
   <div class="logo">Tavara.care</div>
   <div class="spinner"></div>
   <h1>Redirecting...</h1>
-  <p>Please wait while we redirect you to the requested page. If you're not redirected automatically, <a href="./">click here</a> to go to the homepage.</p>
+  <p>Please wait while we redirect you to the requested page. If you're not redirected automatically, <a href="/">click here</a> to go to the homepage.</p>
   
   <div class="debug-info">
     <div>Path: <span id="debug-path"></span></div>

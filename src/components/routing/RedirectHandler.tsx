@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabase';
 import { ensureUserProfile } from '@/lib/profile-utils';
 import { UserRole } from '@/types/database';
 
-const REDIRECT_TIMEOUT = 3000; // Reduced to 3 seconds for faster fallback
+const REDIRECT_TIMEOUT = 2000; // Reduced to 2 seconds for faster fallback
 const VALID_ROUTES = [
   '/', '/auth', '/features', '/about', '/faq',
   '/registration/family', '/registration/professional', '/registration/community',
@@ -25,8 +25,20 @@ export function RedirectHandler() {
       hash: location.hash
     });
     
+    // Check if this is an asset request - don't process assets
+    const assetExtensions = /\.(css|js|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot|otf|map|json|xml|txt|pdf|zip|mp4|mp3|wav)$/i;
+    if (assetExtensions.test(location.pathname)) {
+      console.log('[RedirectHandler] Asset request detected, skipping redirect handling');
+      return;
+    }
+    
     // Only process if we have something to redirect
-    if (!location.hash && !location.search.includes('route=') && !location.hash.includes('access_token=')) {
+    const hasRedirectData = location.hash || 
+                           location.search.includes('route=') || 
+                           location.hash.includes('access_token=') ||
+                           location.search.includes('access_token=');
+    
+    if (!hasRedirectData) {
       return;
     }
     
@@ -110,6 +122,15 @@ export function RedirectHandler() {
       if (location.hash && location.hash.includes('access_token=')) {
         console.log('[RedirectHandler] Email confirmation tokens detected in hash');
         await handleEmailConfirmation();
+        clearTimeout(timeoutId);
+        setIsProcessing(false);
+        return;
+      }
+
+      // Handle email confirmation tokens in search params
+      if (location.search && location.search.includes('access_token=')) {
+        console.log('[RedirectHandler] Email confirmation tokens detected in search');
+        await handleEmailConfirmation(location.search.substring(1));
         clearTimeout(timeoutId);
         setIsProcessing(false);
         return;

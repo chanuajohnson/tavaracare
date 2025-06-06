@@ -13,8 +13,9 @@ export default defineConfig(({ mode }) => {
   const envPrefix = 'VITE_';
   
   return {
-    // Use proper base for SPA routing - this ensures assets load correctly
-    base: "./",  
+    // Use absolute base for preview environment, relative for production
+    // This ensures assets load correctly in both environments
+    base: isPreview ? "/" : "./",  
     server: {
       host: "::",
       port: 8080,
