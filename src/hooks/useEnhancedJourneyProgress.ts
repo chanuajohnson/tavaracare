@@ -46,6 +46,15 @@ interface JourneyProgressData {
   trackStepAction: (stepId: string, action: string) => Promise<void>;
 }
 
+// Helper function to validate and convert category
+const validateCategory = (category: string): 'foundation' | 'scheduling' | 'trial' | 'conversion' => {
+  if (['foundation', 'scheduling', 'trial', 'conversion'].includes(category)) {
+    return category as 'foundation' | 'scheduling' | 'trial' | 'conversion';
+  }
+  // Fallback to foundation if invalid category
+  return 'foundation';
+};
+
 export const useEnhancedJourneyProgress = (): JourneyProgressData => {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -80,7 +89,7 @@ export const useEnhancedJourneyProgress = (): JourneyProgressData => {
     }
   };
 
-  // Helper function to determine step accessibility - moved outside of fetchJourneyData
+  // Helper function to determine step accessibility
   const determineStepAccessibility = (stepNumber: number, allSteps: JourneyStep[]) => {
     switch (stepNumber) {
       case 4: // Caregiver matches - need steps 1-3 completed
@@ -212,7 +221,7 @@ export const useEnhancedJourneyProgress = (): JourneyProgressData => {
       const hasTrialPayment = trialPayments && trialPayments.length > 0;
       setTrialCompleted(hasTrialPayment);
 
-      // Process steps with completion status first (without accessibility)
+      // Process steps with completion status first
       const stepsWithCompletion = journeySteps?.map(step => {
         let completed = false;
         
@@ -264,12 +273,21 @@ export const useEnhancedJourneyProgress = (): JourneyProgressData => {
         }
 
         return {
-          ...step,
           id: step.id,
+          step_number: step.step_number,
+          title: step.title,
+          description: step.description,
+          category: validateCategory(step.category),
+          is_optional: step.is_optional || false,
+          tooltip_content: step.tooltip_content || '',
+          detailed_explanation: step.detailed_explanation || '',
+          time_estimate_minutes: step.time_estimate_minutes || 0,
+          link_path: step.link_path || '',
+          icon_name: step.icon_name || '',
           completed,
           accessible: true, // Will be updated in the next step
-          prerequisites: step.prerequisites || []
-        };
+          prerequisites: step.prerequisites ? (Array.isArray(step.prerequisites) ? step.prerequisites : []) : []
+        } as JourneyStep;
       }) || [];
 
       // Now update accessibility for all steps using the completed steps array
