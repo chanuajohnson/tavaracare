@@ -54,7 +54,7 @@ export const GoogleCalendarSchedulingModal = ({
     }
 
     const validation = validateChatInput(value, fieldType);
-    return validation.isValid ? "" : validation.message;
+    return validation.isValid ? "" : validation.errorMessage || "Invalid input";
   };
 
   const handleInputChange = (field: string, value: string) => {

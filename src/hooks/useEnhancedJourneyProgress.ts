@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { supabase } from '@/lib/supabase';
@@ -47,6 +46,7 @@ interface JourneyProgressData {
   isAnonymous: boolean;
   showLeadCaptureModal: boolean;
   setShowLeadCaptureModal: (show: boolean) => void;
+  onVisitScheduled: () => void;
 }
 
 // Helper function to validate and convert category

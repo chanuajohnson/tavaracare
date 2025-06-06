@@ -1,23 +1,14 @@
+
 import { useEffect } from 'react';
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useNavigate } from 'react-router-dom';
-import { JourneyProgressCard } from "@/components/family/JourneyProgressCard";
-import { FamilyCarePlanOverview } from "@/components/family/FamilyCarePlanOverview";
-import { FamilyRecentActivity } from "@/components/family/FamilyRecentActivity";
-import { QuickActionsCard } from "@/components/family/QuickActionsCard";
-import { FamilyUpcomingAppointments } from "@/components/family/FamilyUpcomingAppointments";
-import { FamilySupportCard } from "@/components/family/FamilySupportCard";
 import { ScheduleVisitModal } from "@/components/family/ScheduleVisitModal";
 import { useEnhancedJourneyProgress } from "@/hooks/useEnhancedJourneyProgress";
+import { FamilyDashboard } from "@/components/family/FamilyDashboard";
 
 export default function FamilyDashboard() {
   const { user } = useAuth();
   const {
-    steps,
-    paths,
-    completionPercentage,
-    nextStep,
-    currentStage,
     loading,
     showScheduleModal,
     setShowScheduleModal,
@@ -55,26 +46,7 @@ export default function FamilyDashboard() {
       </header>
 
       <main className="container mx-auto px-4 pb-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-2 space-y-6">
-            <JourneyProgressCard
-              steps={steps}
-              paths={paths}
-              completionPercentage={completionPercentage}
-              nextStep={nextStep}
-              currentStage={currentStage}
-              loading={loading}
-            />
-            <FamilyCarePlanOverview />
-            <FamilyRecentActivity />
-          </div>
-          
-          <div className="space-y-6">
-            <QuickActionsCard />
-            <FamilyUpcomingAppointments />
-            <FamilySupportCard />
-          </div>
-        </div>
+        <FamilyDashboard />
       </main>
 
       <ScheduleVisitModal
