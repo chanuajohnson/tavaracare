@@ -295,8 +295,14 @@ export const useEnhancedJourneyProgress = (): JourneyProgressData => {
   const [careModel, setCareModel] = useState<string | null>(null);
   const [trialCompleted, setTrialCompleted] = useState(false);
   const [visitStatus, setVisitStatus] = useState<string>('not_started');
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   const isAnonymous = !user;
+
+  // Function to trigger a refresh of journey data
+  const refreshJourneyProgress = () => {
+    setRefreshTrigger(prev => prev + 1);
+  };
 
   const trackStepAction = async (stepId: string, action: string) => {
     if (!user) return;
@@ -345,17 +351,15 @@ export const useEnhancedJourneyProgress = (): JourneyProgressData => {
   };
 
   // Helper function to determine step accessibility
-  const determineStepAccessibility = (stepNumber: number, allSteps: JourneyStep[]) => {
+  const determineStepAccessibility = (stepNumber: number, allSteps: JourneyStep[], profileData: any) => {
     switch (stepNumber) {
       case 4: // Caregiver matches - need steps 1-3 completed
         const foundationSteps = allSteps.filter(s => [1, 2, 3].includes(s.step_number));
         return foundationSteps.every(s => s.completed);
       case 8: // Confirm visit - need step 7 completed
-        const step7 = allSteps.find(s => s.step_number === 7);
-        return step7?.completed || false;
-      case 9: // Schedule trial - need step 7 completed
-        const step7ForTrial = allSteps.find(s => s.step_number === 7);
-        return step7ForTrial?.completed || false;
+        return profileData?.visit_scheduling_status === 'scheduled' || profileData?.visit_scheduling_status === 'completed';
+      case 9: // Schedule trial - need step 8 completed (visit confirmed) OR step 7 completed (visit scheduled)
+        return profileData?.visit_scheduling_status === 'completed' || profileData?.visit_scheduling_status === 'scheduled';
       case 10: // Pay for trial - need steps 8 and 9 completed
         const step8 = allSteps.find(s => s.step_number === 8);
         const step9 = allSteps.find(s => s.step_number === 9);
@@ -364,8 +368,7 @@ export const useEnhancedJourneyProgress = (): JourneyProgressData => {
         const step10 = allSteps.find(s => s.step_number === 10);
         return step10?.completed || false;
       case 12: // Choose path - need step 8 completed (can skip trial)
-        const step8ForPath = allSteps.find(s => s.step_number === 8);
-        return step8ForPath?.completed || false;
+        return profileData?.visit_scheduling_status === 'completed';
       default:
         return true;
     }
@@ -545,10 +548,10 @@ export const useEnhancedJourneyProgress = (): JourneyProgressData => {
         } as JourneyStep;
       }) || [];
 
-      // Now update accessibility for all steps using the completed steps array
+      // Now update accessibility for all steps using the completed steps array and profile data
       const processedSteps = stepsWithCompletion.map(step => ({
         ...step,
-        accessible: determineStepAccessibility(step.step_number, stepsWithCompletion)
+        accessible: determineStepAccessibility(step.step_number, stepsWithCompletion, profile)
       }));
 
       console.log('Processed steps with completion status and accessibility:', processedSteps);
@@ -644,8 +647,33 @@ export const useEnhancedJourneyProgress = (): JourneyProgressData => {
     }
   };
 
+  const handleVisitScheduled = () => {
+    // Immediately refresh the journey progress when a visit is scheduled
+    refreshJourneyProgress();
+  };
+
+  // Effect to fetch data and listen for changes
   useEffect(() => {
+    if (isAnonymous) {
+      const { steps: dummySteps, paths: dummyPaths } = getDummyJourneyData();
+      setSteps(dummySteps.map(step => ({
+        ...step,
+        action: () => handleAnonymousStepAction(step)
+      })));
+      setPaths(dummyPaths);
+      setCurrentStage('foundation');
+      setLoading(false);
+      return;
+    }
+
     if (user) {
+      fetchJourneyData();
+    }
+  }, [user, refreshTrigger]);
+
+  // Additional effect to refresh when visit status changes
+  useEffect(() => {
+    if (user && visitStatus) {
       fetchJourneyData();
     }
   }, [user, visitStatus, careModel, trialCompleted]);
@@ -666,12 +694,19 @@ export const useEnhancedJourneyProgress = (): JourneyProgressData => {
     loading,
     carePlans,
     showScheduleModal,
-    setShowScheduleModal,
+    setShowScheduleModal: (show: boolean) => {
+      setShowScheduleModal(show);
+      if (!show) {
+        // Refresh when modal closes to catch any updates
+        refreshJourneyProgress();
+      }
+    },
     careModel,
     trialCompleted,
     trackStepAction,
     isAnonymous,
     showLeadCaptureModal,
-    setShowLeadCaptureModal
+    setShowLeadCaptureModal,
+    onVisitScheduled: handleVisitScheduled
   };
 };
