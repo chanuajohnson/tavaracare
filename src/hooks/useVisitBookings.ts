@@ -13,6 +13,11 @@ interface VisitBooking {
   availability_slot_id: string;
   admin_status: string;
   is_cancelled: boolean;
+  reschedule_reason?: string;
+  original_booking_date?: string;
+  original_booking_time?: string;
+  cancelled_at?: string;
+  cancellation_reason?: string;
 }
 
 export const useVisitBookings = () => {
@@ -37,7 +42,14 @@ export const useVisitBookings = () => {
         .order('booking_date', { ascending: true });
 
       if (error) throw error;
-      setBookings(data || []);
+      
+      // Type the data properly
+      const typedData = (data || []).map(booking => ({
+        ...booking,
+        visit_type: booking.visit_type as 'virtual' | 'in_person'
+      }));
+      
+      setBookings(typedData);
       setError(null);
     } catch (err) {
       console.error('Error fetching visit bookings:', err);

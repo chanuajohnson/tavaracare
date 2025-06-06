@@ -83,6 +83,34 @@ export const EnhancedFamilyNextStepsPanel: React.FC<EnhancedFamilyNextStepsPanel
 
   const stepsToShow = showAllSteps ? updatedSteps : updatedSteps.slice(0, 6);
 
+  // Create default props for JourneyPathVisualization
+  const defaultPaths = [
+    {
+      id: '1',
+      path_name: 'Standard Care Path',
+      path_description: 'Complete all steps at your own pace for comprehensive care setup',
+      step_ids: [1, 2, 3, 4, 5, 6, 7, 8, 9],
+      path_color: '#3B82F6',
+      is_recommended: true
+    },
+    {
+      id: '2', 
+      path_name: 'Express Path',
+      path_description: 'Fast-track essential steps for urgent care needs',
+      step_ids: [1, 3, 6, 7, 8],
+      path_color: '#F59E0B',
+      is_recommended: false
+    }
+  ];
+
+  const defaultJourneySteps = allSteps.map(step => ({
+    step_number: step.id,
+    title: step.title,
+    category: step.id <= 3 ? 'foundation' : step.id <= 6 ? 'scheduling' : step.id <= 7 ? 'trial' : 'conversion',
+    completed: step.completed,
+    accessible: true
+  }));
+
   return (
     <div className="w-full max-w-4xl mx-auto space-y-6">
       {/* Header Section */}
@@ -213,7 +241,11 @@ export const EnhancedFamilyNextStepsPanel: React.FC<EnhancedFamilyNextStepsPanel
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <JourneyPathVisualization />
+            <JourneyPathVisualization 
+              paths={defaultPaths}
+              steps={defaultJourneySteps}
+              currentStage={journeyStage || 'foundation'}
+            />
           </CardContent>
         </Card>
       )}

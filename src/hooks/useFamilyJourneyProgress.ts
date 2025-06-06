@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/components/providers/AuthProvider';
@@ -7,14 +8,11 @@ import { useVisitBookings } from './useVisitBookings';
 interface Profile {
   id: string;
   created_at: string;
-  email: string;
   full_name: string;
-  phone_number: string;
-  address: string;
-  city: string;
-  state: string;
-  zip_code: string;
-  care_model: string;
+  phone_number?: string;
+  address?: string;
+  care_model?: string;
+  role: string;
 }
 
 interface CareRecipientProfile {
@@ -22,32 +20,41 @@ interface CareRecipientProfile {
   created_at: string;
   user_id: string;
   full_name: string;
-  date_of_birth: string;
-  gender: string;
-  address: string;
-  city: string;
-  state: string;
-  zip_code: string;
-  medical_conditions: string;
-  mobility_level: string;
-  cognitive_abilities: string;
-  personal_interests: string;
-  daily_routine: string;
+  birth_year: string;
+  life_story?: string;
+  personality_traits?: string[];
+  hobbies_interests?: string[];
+  daily_routines?: string;
+  challenges?: string[];
+  joyful_things?: string;
+  sensitivities?: string;
+  cultural_preferences?: string;
+  caregiver_personality?: string[];
+  specific_requests?: string;
 }
 
 interface CareNeeds {
   id: string;
   created_at: string;
   user_id: string;
-  care_type: string;
-  start_date: string;
-  end_date: string;
-  start_time: string;
-  end_time: string;
-  frequency: string;
-  specific_days: string;
-  tasks: string;
-  notes: string;
+  profile_id: string;
+  plan_type?: string;
+  preferred_time_start?: string;
+  preferred_time_end?: string;
+  weekday_coverage?: string;
+  weekend_coverage?: string;
+  assistance_bathing?: boolean;
+  assistance_dressing?: boolean;
+  assistance_toileting?: boolean;
+  assistance_medication?: boolean;
+  assistance_feeding?: boolean;
+  assistance_mobility?: boolean;
+  meal_prep?: boolean;
+  escort_to_appointments?: boolean;
+  communication_method?: string;
+  emergency_contact_name?: string;
+  emergency_contact_phone?: string;
+  additional_notes?: string;
 }
 
 export interface JourneyStep {
@@ -95,7 +102,7 @@ export const useFamilyJourneyProgress = () => {
         console.error("Error fetching profile:", profileError);
       }
 
-      setProfile(profileData as Profile);
+      setProfile(profileData);
 
       const { data: careRecipientData, error: careRecipientError } = await supabase
         .from('care_recipient_profiles')
@@ -107,19 +114,19 @@ export const useFamilyJourneyProgress = () => {
         console.error("Error fetching care recipient profile:", careRecipientError);
       }
 
-      setCareRecipientProfile(careRecipientData as CareRecipientProfile);
+      setCareRecipientProfile(careRecipientData);
 
       const { data: careNeedsData, error: careNeedsError } = await supabase
-        .from('care_needs')
+        .from('care_needs_family')
         .select('*')
-        .eq('user_id', user.id)
+        .eq('profile_id', user.id)
         .single();
 
       if (careNeedsError && careNeedsError.message !== 'No rows found') {
         console.error("Error fetching care needs:", careNeedsError);
       }
 
-      setCareNeeds(careNeedsData as CareNeeds);
+      setCareNeeds(careNeedsData);
     } catch (error) {
       console.error("Unexpected error fetching data:", error);
     } finally {
@@ -179,7 +186,7 @@ export const useFamilyJourneyProgress = () => {
         description: "Browse and review qualified caregivers who match your specific care requirements.",
         status: "Complete",
         buttonText: "Browse Matches",
-        completed: profile?.full_name && careRecipientProfile && careNeeds,
+        completed: !!(profile?.full_name && careRecipientProfile && careNeeds),
         estimatedTime: "15-30 minutes",
         action: () => navigate('/family/matching')
       },
@@ -189,7 +196,7 @@ export const useFamilyJourneyProgress = () => {
         description: "Get instantly matched with a pre-screened caregiver based on your care needs and preferences.",
         status: "Complete",
         buttonText: "Get Instant Match",
-        completed: profile?.full_name && careRecipientProfile && careNeeds,
+        completed: !!(profile?.full_name && careRecipientProfile && careNeeds),
         estimatedTime: "2-5 minutes",
         action: () => navigate('/family/instant-matching')
       },
@@ -251,10 +258,6 @@ export const useFamilyJourneyProgress = () => {
     return steps;
   };
 
-  useEffect(() => {
-    fetchProfile();
-  }, [user]);
-
   const allSteps = getJourneySteps();
   const completedSteps = allSteps.filter(step => step.completed);
   const currentStepIndex = completedSteps.length;
@@ -279,11 +282,15 @@ export const useFamilyJourneyProgress = () => {
     completionPercentage,
     currentStepIndex,
     totalSteps,
-    nextStep: allSteps.find(step => !step.completed),
+    nextStep,
     allSteps,
     journeyStage,
     careModel: profile?.care_model || null,
     trialCompleted: false,
-    loading
+    loading,
+    // Add the missing properties that other components expect
+    steps: allSteps,
+    showScheduleModal: false,
+    setShowScheduleModal: () => {}
   };
 };
