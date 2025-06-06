@@ -1,4 +1,3 @@
-
 import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -86,7 +85,7 @@ export const EnhancedFamilyNextStepsPanel: React.FC<EnhancedFamilyNextStepsPanel
         buttonText: "Start Care Journey",
         action: "upgrade",
         featureType: "teaser_unlock",
-        navigateTo: "/auth"
+        navigateTo: "/subscription/features"
       };
     } else {
       // Existing logic for logged-in users
@@ -293,16 +292,16 @@ export const EnhancedFamilyNextStepsPanel: React.FC<EnhancedFamilyNextStepsPanel
                       <h3 className="text-lg font-semibold text-gray-800">Ready for Your Real Care Journey?</h3>
                     </div>
                     <p className="text-sm text-gray-600 max-w-md mx-auto">
-                      This is a preview of your care journey. Start building your actual care village and get matched with real caregivers in your area.
+                      This is a preview of your care journey. Choose a care plan to get matched with real caregivers in your area.
                     </p>
                     <div className="flex flex-col sm:flex-row gap-2 justify-center">
                       <Button
                         variant="default"
                         className="bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white font-medium"
-                        onClick={handleViewCompleteJourney}
+                        onClick={() => navigate('/subscription/features')}
                       >
                         <ArrowRight className="h-4 w-4 mr-2" />
-                        Start My Real Care Journey
+                        Choose Care Plan
                       </Button>
                     </div>
                   </div>

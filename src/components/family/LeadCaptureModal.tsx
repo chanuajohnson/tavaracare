@@ -95,12 +95,18 @@ export const LeadCaptureModal: React.FC<LeadCaptureModalProps> = ({
       if (existingLead) {
         toast({
           title: "Already Registered",
-          description: "This email or phone number is already in our system. Redirecting you to continue...",
+          description: "This email or phone number is already in our system. Taking you to choose your care plan...",
           variant: "default"
         });
         
         setTimeout(() => {
-          navigate('/auth');
+          navigate('/subscription/features', { 
+            state: { 
+              email,
+              phone: formattedPhone,
+              source: 'existing_lead'
+            }
+          });
         }, 2000);
         return;
       }
@@ -127,18 +133,20 @@ export const LeadCaptureModal: React.FC<LeadCaptureModalProps> = ({
       setIsSuccess(true);
       
       toast({
-        title: "Welcome to Tavara! 💙",
-        description: "We'll be in touch within 24 hours with your caregiver match.",
+        title: "Information Captured! 💙",
+        description: "Now choose your care plan to get matched with caregivers.",
         variant: "default"
       });
 
       // Auto-close and redirect after success
       setTimeout(() => {
         onOpenChange(false);
-        navigate('/auth', { 
+        navigate('/subscription/features', { 
           state: { 
-            returnPath: '/family/care-journey-progress',
-            prefillEmail: email 
+            email,
+            phone: formattedPhone,
+            source: 'lead_capture_modal',
+            returnPath: '/family/care-journey-progress'
           }
         });
       }, 3000);
@@ -155,9 +163,9 @@ export const LeadCaptureModal: React.FC<LeadCaptureModalProps> = ({
     }
   };
 
-  const handleSkipToRegistration = () => {
+  const handleSkipToSubscription = () => {
     onOpenChange(false);
-    navigate('/auth');
+    navigate('/subscription/features');
   };
 
   if (isSuccess) {
@@ -167,13 +175,13 @@ export const LeadCaptureModal: React.FC<LeadCaptureModalProps> = ({
           <div className="text-center py-6">
             <CheckCircle className="h-16 w-16 text-green-500 mx-auto mb-4" />
             <h3 className="text-xl font-semibold text-gray-900 mb-2">
-              Welcome to Tavara Care Village! 💙
+              Ready to Choose Your Care Plan! 💙
             </h3>
             <p className="text-gray-600 mb-4">
-              We'll contact you within 24 hours with your personalized caregiver match.
+              Now select the care plan that's right for your family to get matched with qualified caregivers.
             </p>
             <p className="text-sm text-gray-500">
-              Redirecting you to complete your profile...
+              Taking you to care plan options...
             </p>
           </div>
         </DialogContent>
@@ -194,7 +202,7 @@ export const LeadCaptureModal: React.FC<LeadCaptureModalProps> = ({
         <div className="space-y-4">
           <div className="text-center">
             <p className="text-sm text-gray-600 mb-4">
-              Get your personalized caregiver match and start your care journey with Tavara.
+              Get your personalized caregiver match by choosing the right care plan for your family.
             </p>
           </div>
 
@@ -243,16 +251,16 @@ export const LeadCaptureModal: React.FC<LeadCaptureModalProps> = ({
                 disabled={isSubmitting}
                 className="w-full bg-primary hover:bg-primary/90"
               >
-                {isSubmitting ? 'Getting Your Match...' : 'Get My Caregiver Match 💙'}
+                {isSubmitting ? 'Saving Info...' : 'Continue to Care Plans 💙'}
               </Button>
               
               <Button
                 type="button"
                 variant="ghost"
-                onClick={handleSkipToRegistration}
+                onClick={handleSkipToSubscription}
                 className="w-full text-sm text-gray-600 hover:text-gray-800"
               >
-                Skip for now, just sign up
+                Skip for now, view care plans
               </Button>
             </div>
           </form>
