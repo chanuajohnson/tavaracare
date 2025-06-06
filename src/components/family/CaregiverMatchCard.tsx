@@ -22,14 +22,16 @@ interface CaregiverMatchCardProps {
   referringPagePath?: string;
   referringPageLabel?: string;
   showUnlockButton?: boolean;
+  onUnlockProfile?: () => void;
 }
 
 export const CaregiverMatchCard = ({ 
   caregiver, 
-  returnPath = "/family-matching",
+  returnPath = "/family/matching",
   referringPagePath = "/dashboard/family",
   referringPageLabel = "Family Dashboard",
-  showUnlockButton = true
+  showUnlockButton = true,
+  onUnlockProfile
 }: CaregiverMatchCardProps) => {
   return (
     <div className={`p-4 rounded-lg border ${caregiver.is_premium ? 'border-amber-300' : 'border-gray-200'} relative`}>
@@ -90,16 +92,28 @@ export const CaregiverMatchCard = ({
           </div>
           
           {showUnlockButton && (
-            <SubscriptionFeatureLink
-              featureType="Premium Caregiver Profiles"
-              returnPath={returnPath}
-              referringPagePath={referringPagePath}
-              referringPageLabel={referringPageLabel}
-              variant="default"
-              className="w-full"
-            >
-              Unlock Profile
-            </SubscriptionFeatureLink>
+            <>
+              {onUnlockProfile ? (
+                <Button
+                  variant="default"
+                  className="w-full"
+                  onClick={onUnlockProfile}
+                >
+                  Unlock Profile
+                </Button>
+              ) : (
+                <SubscriptionFeatureLink
+                  featureType="Premium Caregiver Profiles"
+                  returnPath={returnPath}
+                  referringPagePath={referringPagePath}
+                  referringPageLabel={referringPageLabel}
+                  variant="default"
+                  className="w-full"
+                >
+                  Unlock Profile
+                </SubscriptionFeatureLink>
+              )}
+            </>
           )}
         </div>
       </div>
