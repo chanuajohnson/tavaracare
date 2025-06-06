@@ -2,7 +2,7 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ArrowDown, ArrowRight, Star, Users } from "lucide-react";
+import { ArrowDown, ArrowRight, Star, Users, CheckCircle2, Circle } from "lucide-react";
 
 interface JourneyPath {
   id: string;
@@ -49,7 +49,7 @@ export const JourneyPathVisualization: React.FC<JourneyPathVisualizationProps> =
   const getStageColor = (status: string) => {
     switch (status) {
       case 'completed': return 'bg-green-500';
-      case 'in-progress': return 'bg-blue-500';
+      case 'in-progress': return 'bg-primary';
       case 'current': return 'bg-orange-500';
       default: return 'bg-gray-300';
     }
@@ -63,11 +63,11 @@ export const JourneyPathVisualization: React.FC<JourneyPathVisualizationProps> =
   ];
 
   return (
-    <Card className="mb-6">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-lg">
+    <Card className="border-l-4 border-l-primary mb-6">
+      <CardHeader className="pb-4">
+        <CardTitle className="flex items-center gap-2 text-xl">
           <Star className="h-5 w-5 text-primary" />
-          Your Care Journey Paths
+          🛣️ Your Care Journey Paths
         </CardTitle>
         <p className="text-sm text-gray-600">
           Follow the path that works best for your family
@@ -76,7 +76,7 @@ export const JourneyPathVisualization: React.FC<JourneyPathVisualizationProps> =
       <CardContent className="space-y-6">
         {/* Stage Progress Visualization */}
         <div className="space-y-4">
-          <h4 className="font-medium text-sm">Journey Stages</h4>
+          <h4 className="font-medium text-sm text-gray-800">Journey Stages</h4>
           <div className="flex items-center gap-2 overflow-x-auto pb-2">
             {categories.map((category, index) => {
               const status = getStageStatus(category.key);
@@ -86,15 +86,15 @@ export const JourneyPathVisualization: React.FC<JourneyPathVisualizationProps> =
               return (
                 <div key={category.key} className="flex items-center gap-2 flex-shrink-0">
                   <div className="text-center min-w-[120px]">
-                    <div className={`w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-2 ${getStageColor(status)} text-white`}>
+                    <div className={`w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-2 ${getStageColor(status)} text-white shadow-sm`}>
                       <span className="text-sm font-semibold">
                         {completedInCategory}/{stepsInCategory.length}
                       </span>
                     </div>
-                    <div className="text-xs font-medium">{category.name}</div>
+                    <div className="text-xs font-medium text-gray-800">{category.name}</div>
                     <div className="text-xs text-gray-500 mt-1">{category.description}</div>
                     {status === 'current' && (
-                      <Badge variant="outline" className="mt-1 text-xs">Current</Badge>
+                      <Badge variant="outline" className="mt-1 text-xs border-primary text-primary">Current</Badge>
                     )}
                   </div>
                   {index < categories.length - 1 && (
@@ -108,24 +108,28 @@ export const JourneyPathVisualization: React.FC<JourneyPathVisualizationProps> =
 
         {/* Path Options */}
         <div className="space-y-4">
-          <h4 className="font-medium text-sm">Choose Your Path</h4>
+          <h4 className="font-medium text-sm text-gray-800">Choose Your Path</h4>
           <div className="grid gap-4 md:grid-cols-2">
             {paths.map((path) => (
-              <Card key={path.id} className={`border-2 ${path.is_recommended ? 'border-primary bg-primary/5' : 'border-gray-200'}`}>
+              <Card key={path.id} className={`border-2 transition-colors ${
+                path.is_recommended 
+                  ? 'border-primary bg-primary/5 shadow-sm' 
+                  : 'border-gray-200 hover:border-gray-300'
+              }`}>
                 <CardContent className="p-4">
                   <div className="flex items-center gap-2 mb-2">
                     <div 
-                      className="w-3 h-3 rounded-full"
+                      className="w-3 h-3 rounded-full shadow-sm"
                       style={{ backgroundColor: path.path_color }}
                     />
-                    <h5 className="font-medium text-sm">{path.path_name}</h5>
+                    <h5 className="font-medium text-sm text-gray-800">{path.path_name}</h5>
                     {path.is_recommended && (
-                      <Badge className="text-xs">Recommended</Badge>
+                      <Badge className="text-xs bg-primary text-white">Recommended</Badge>
                     )}
                   </div>
-                  <p className="text-xs text-gray-600 mb-3">{path.path_description}</p>
+                  <p className="text-xs text-gray-600 mb-3 leading-relaxed">{path.path_description}</p>
                   <div className="text-xs text-gray-500">
-                    {path.step_ids.length} steps total
+                    <span className="font-medium">{path.step_ids.length}</span> steps total
                   </div>
                 </CardContent>
               </Card>
@@ -134,40 +138,40 @@ export const JourneyPathVisualization: React.FC<JourneyPathVisualizationProps> =
         </div>
 
         {/* Subscription Benefits */}
-        <div className="bg-gradient-to-r from-purple-50 to-blue-50 p-4 rounded-lg border border-purple-200">
+        <div className="bg-gradient-to-r from-primary/5 to-blue-50 p-4 rounded-lg border border-primary/20">
           <div className="flex items-start gap-3">
-            <Users className="h-5 w-5 text-purple-600 mt-0.5" />
+            <Users className="h-5 w-5 text-primary mt-0.5" />
             <div className="flex-1">
-              <h4 className="font-medium text-sm text-purple-900 mb-2">
+              <h4 className="font-medium text-sm text-gray-800 mb-2">
                 Why Choose Tavara Care Village? ($45/hr vs $40/hr Direct)
               </h4>
               <div className="grid md:grid-cols-2 gap-3 text-xs">
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
-                    <div className="w-1.5 h-1.5 bg-purple-600 rounded-full"></div>
-                    <span>24/7 care coordinator support</span>
+                    <CheckCircle2 className="w-3 h-3 text-primary" />
+                    <span className="text-gray-600">24/7 care coordinator support</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <div className="w-1.5 h-1.5 bg-purple-600 rounded-full"></div>
-                    <span>Automated payroll & tax handling</span>
+                    <CheckCircle2 className="w-3 h-3 text-primary" />
+                    <span className="text-gray-600">Automated payroll & tax handling</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <div className="w-1.5 h-1.5 bg-purple-600 rounded-full"></div>
-                    <span>Advanced medication management</span>
+                    <CheckCircle2 className="w-3 h-3 text-primary" />
+                    <span className="text-gray-600">Advanced medication management</span>
                   </div>
                 </div>
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
-                    <div className="w-1.5 h-1.5 bg-purple-600 rounded-full"></div>
-                    <span>Meal planning & grocery integration</span>
+                    <CheckCircle2 className="w-3 h-3 text-primary" />
+                    <span className="text-gray-600">Meal planning & grocery integration</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <div className="w-1.5 h-1.5 bg-purple-600 rounded-full"></div>
-                    <span>Real-time family updates</span>
+                    <CheckCircle2 className="w-3 h-3 text-primary" />
+                    <span className="text-gray-600">Real-time family updates</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <div className="w-1.5 h-1.5 bg-purple-600 rounded-full"></div>
-                    <span>Emergency response protocols</span>
+                    <CheckCircle2 className="w-3 h-3 text-primary" />
+                    <span className="text-gray-600">Emergency response protocols</span>
                   </div>
                 </div>
               </div>
