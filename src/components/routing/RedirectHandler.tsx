@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
@@ -22,13 +21,21 @@ export function RedirectHandler() {
     console.log('[RedirectHandler] Checking for redirects', { 
       pathname: location.pathname, 
       search: location.search,
-      hash: location.hash
+      hash: location.hash,
+      hostname: window.location.hostname,
+      isLovablePreview: window.location.hostname.includes('lovable.app')
     });
     
     // Check if this is an asset request - don't process assets
     const assetExtensions = /\.(css|js|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot|otf|map|json|xml|txt|pdf|zip|mp4|mp3|wav)$/i;
     if (assetExtensions.test(location.pathname)) {
       console.log('[RedirectHandler] Asset request detected, skipping redirect handling');
+      return;
+    }
+    
+    // Check for asset directory requests
+    if (location.pathname.includes('/assets/') || location.pathname.startsWith('/static/')) {
+      console.log('[RedirectHandler] Asset directory request detected, skipping redirect handling');
       return;
     }
     
@@ -39,6 +46,7 @@ export function RedirectHandler() {
                            location.search.includes('access_token=');
     
     if (!hasRedirectData) {
+      console.log('[RedirectHandler] No redirect data found, skipping processing');
       return;
     }
     
@@ -106,6 +114,7 @@ export function RedirectHandler() {
           } else {
             // Navigate to the path with query parameters if present
             const fullPath = queryString ? `${path}?${queryString}` : path;
+            console.log(`[RedirectHandler] Navigating to: ${fullPath}`);
             navigate(fullPath, { replace: true });
           }
           return;
@@ -261,7 +270,8 @@ export function RedirectHandler() {
       <div className="fixed inset-0 bg-white flex items-center justify-center z-50">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-sm text-gray-600">Loading page...</p>
+          <p className="text-sm text-gray-600">Processing redirect...</p>
+          <p className="text-xs text-gray-400 mt-2">Environment: {window.location.hostname.includes('lovable.app') ? 'Lovable Preview' : 'Production'}</p>
         </div>
       </div>
     );

@@ -6,16 +6,25 @@ import { componentTagger } from "lovable-tagger";
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => {
-  // Determine if we're in a preview environment by checking environment variables
-  const isPreview = process.env.PREVIEW === 'true';
+  // Detect Lovable preview environment properly
+  const isLovablePreview = process.env.VITE_ENV === 'development' || 
+                          process.env.VITE_ENV === 'lovable' ||
+                          mode === 'development';
   
   // Determine environment for variable loading
   const envPrefix = 'VITE_';
   
+  console.log('[Vite Config] Environment detection:', {
+    mode,
+    VITE_ENV: process.env.VITE_ENV,
+    isLovablePreview,
+    NODE_ENV: process.env.NODE_ENV
+  });
+  
   return {
-    // Use absolute base for preview environment, relative for production
-    // This ensures assets load correctly in both environments
-    base: isPreview ? "/" : "./",  
+    // Use absolute paths for Lovable preview to fix asset loading
+    // Use relative paths for production builds
+    base: isLovablePreview ? "/" : "./",
     server: {
       host: "::",
       port: 8080,
@@ -46,7 +55,7 @@ export default defineConfig(({ mode }) => {
     define: {
       // Make environment variables available to client code
       __APP_ENV__: JSON.stringify(process.env.VITE_ENV || mode),
-      __IS_PREVIEW__: isPreview,
+      __IS_PREVIEW__: isLovablePreview,
     },
     // Enhanced environment variable handling
     envPrefix: envPrefix,
