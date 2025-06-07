@@ -74,11 +74,20 @@ export const AdminVisitScheduleManager = () => {
 
       if (error) throw error;
       
-      // Transform the data to ensure visit_type is properly typed
-      const transformedBookings = (data || []).map(booking => ({
-        ...booking,
-        visit_type: booking.visit_type as 'virtual' | 'in_person'
-      }));
+      // Transform the data to ensure proper typing and handle nullable profiles
+      const transformedBookings = (data || []).map(booking => {
+        // Handle the case where profiles might be null or have an error structure
+        let profileData = null;
+        if (booking.profiles && typeof booking.profiles === 'object' && !('error' in booking.profiles)) {
+          profileData = booking.profiles as { full_name: string; email?: string };
+        }
+        
+        return {
+          ...booking,
+          visit_type: booking.visit_type as 'virtual' | 'in_person',
+          profiles: profileData
+        };
+      });
       
       setBookings(transformedBookings);
     } catch (error) {
