@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -303,27 +302,63 @@ export const JourneyStageCard: React.FC<JourneyStageCardProps> = ({
                             <span>{(step.accessible || isAnonymous) ? 'Pending' : 'Locked'}</span>
                           </div>
                         )}
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          className={`text-xs px-2 py-1 h-auto min-h-[44px] ${isMobile ? 'min-w-[44px]' : ''} ${
-                            !(step.accessible || isAnonymous)
-                              ? 'text-gray-400 cursor-not-allowed opacity-50'
-                              : step.completed 
-                                ? 'text-blue-600 hover:text-blue-700' 
-                                : 'text-primary hover:text-primary-600'
-                          }`}
-                          disabled={!(step.accessible || isAnonymous)}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            if (step.action) {
-                              step.action();
-                            }
-                          }}
-                        >
-                          <span className={isMobile ? 'text-xs' : ''}>{getButtonText(step)}</span>
-                          <ArrowRight className="ml-1 h-3 w-3" />
-                        </Button>
+                        
+                        {/* Enhanced Step 7 Button Layout */}
+                        {step.step_number === 7 && step.completed && !isAnonymous ? (
+                          <div className="flex gap-2">
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              className="text-xs px-2 py-1 h-auto min-h-[44px] text-blue-600 hover:text-blue-700"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (step.action) {
+                                  step.action();
+                                }
+                              }}
+                            >
+                              <span className={isMobile ? 'text-xs' : ''}>Modify Visit</span>
+                              <ArrowRight className="ml-1 h-3 w-3" />
+                            </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              className="text-xs px-2 py-1 h-auto min-h-[44px] text-red-600 hover:text-red-700"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                // This will be handled by the parent component (EnhancedFamilyNextStepsPanel)
+                                // through the step's cancel action
+                                if (step.cancelAction) {
+                                  step.cancelAction();
+                                }
+                              }}
+                            >
+                              <span className={isMobile ? 'text-xs' : ''}>Cancel Visit</span>
+                            </Button>
+                          </div>
+                        ) : (
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className={`text-xs px-2 py-1 h-auto min-h-[44px] ${isMobile ? 'min-w-[44px]' : ''} ${
+                              !(step.accessible || isAnonymous)
+                                ? 'text-gray-400 cursor-not-allowed opacity-50'
+                                : step.completed 
+                                  ? 'text-blue-600 hover:text-blue-700' 
+                                  : 'text-primary hover:text-primary-600'
+                            }`}
+                            disabled={!(step.accessible || isAnonymous)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (step.action) {
+                                step.action();
+                              }
+                            }}
+                          >
+                            <span className={isMobile ? 'text-xs' : ''}>{getButtonText(step)}</span>
+                            <ArrowRight className="ml-1 h-3 w-3" />
+                          </Button>
+                        )}
                       </div>
                     </div>
                   </div>

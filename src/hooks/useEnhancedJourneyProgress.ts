@@ -40,6 +40,11 @@ interface JourneyProgressData {
   carePlans: any[];
   showScheduleModal: boolean;
   setShowScheduleModal: (show: boolean) => void;
+  showInternalScheduleModal: boolean;
+  setShowInternalScheduleModal: (show: boolean) => void;
+  showCancelVisitModal: boolean;
+  setShowCancelVisitModal: (show: boolean) => void;
+  visitDetails: any;
   careModel: string | null;
   trialCompleted: boolean;
   trackStepAction: (stepId: string, action: string) => Promise<void>;
@@ -47,6 +52,7 @@ interface JourneyProgressData {
   showLeadCaptureModal: boolean;
   setShowLeadCaptureModal: (show: boolean) => void;
   onVisitScheduled: () => void;
+  onVisitCancelled: () => void;
 }
 
 // Helper function to validate and convert category
@@ -291,10 +297,13 @@ export const useEnhancedJourneyProgress = (): JourneyProgressData => {
   const [carePlans, setCarePlans] = useState([]);
   const [showScheduleModal, setShowScheduleModal] = useState(false);
   const [showLeadCaptureModal, setShowLeadCaptureModal] = useState(false);
+  const [showInternalScheduleModal, setShowInternalScheduleModal] = useState(false);
+  const [showCancelVisitModal, setShowCancelVisitModal] = useState(false);
   const [currentStage, setCurrentStage] = useState<'foundation' | 'scheduling' | 'trial' | 'conversion'>('foundation');
   const [careModel, setCareModel] = useState<string | null>(null);
   const [trialCompleted, setTrialCompleted] = useState(false);
   const [visitStatus, setVisitStatus] = useState<string>('not_started');
+  const [visitDetails, setVisitDetails] = useState<any>(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   const isAnonymous = !user;
@@ -356,6 +365,8 @@ export const useEnhancedJourneyProgress = (): JourneyProgressData => {
       case 4: // Caregiver matches - need steps 1-3 completed
         const foundationSteps = allSteps.filter(s => [1, 2, 3].includes(s.step_number));
         return foundationSteps.every(s => s.completed);
+      case 7: // Schedule initial visit - need step 4 completed
+        return !!profileData?.caregiver_matches;
       case 8: // Confirm visit - need step 7 completed
         return profileData?.visit_scheduling_status === 'scheduled' || profileData?.visit_scheduling_status === 'completed';
       case 9: // Schedule trial - need step 8 completed (visit confirmed) OR step 7 completed (visit scheduled)
@@ -411,7 +422,7 @@ export const useEnhancedJourneyProgress = (): JourneyProgressData => {
       console.log('User profile:', profile);
       setVisitStatus(profile?.visit_scheduling_status || 'not_started');
 
-      // Parse visit notes for care model
+      // Parse visit notes for care model and visit details
       let visitNotes = null;
       try {
         visitNotes = profile?.visit_notes ? JSON.parse(profile.visit_notes) : null;
@@ -419,6 +430,26 @@ export const useEnhancedJourneyProgress = (): JourneyProgressData => {
         console.error('Error parsing visit notes:', error);
       }
       setCareModel(visitNotes?.care_model || null);
+
+      // Get visit details if visit is scheduled
+      if (profile?.visit_scheduling_status === 'scheduled' || profile?.visit_scheduling_status === 'completed') {
+        const { data: visitBooking } = await supabase
+          .from('visit_bookings')
+          .select('booking_date, booking_time, visit_type')
+          .eq('user_id', user.id)
+          .eq('status', 'confirmed')
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .single();
+        
+        if (visitBooking) {
+          setVisitDetails({
+            date: visitBooking.booking_date,
+            time: visitBooking.booking_time,
+            type: visitBooking.visit_type
+          });
+        }
+      }
 
       // Check care assessment
       const { data: careAssessment } = await supabase
@@ -637,8 +668,9 @@ export const useEnhancedJourneyProgress = (): JourneyProgressData => {
       return;
     }
     
+    // Step 7 - Direct to internal scheduling modal (bypass path selection)
     if (step.step_number === 7) {
-      setShowScheduleModal(true);
+      setShowInternalScheduleModal(true);
       return;
     }
     
@@ -649,6 +681,11 @@ export const useEnhancedJourneyProgress = (): JourneyProgressData => {
 
   const handleVisitScheduled = () => {
     // Immediately refresh the journey progress when a visit is scheduled
+    refreshJourneyProgress();
+  };
+
+  const handleVisitCancelled = () => {
+    // Refresh the journey progress when a visit is cancelled
     refreshJourneyProgress();
   };
 
@@ -701,12 +738,23 @@ export const useEnhancedJourneyProgress = (): JourneyProgressData => {
         refreshJourneyProgress();
       }
     },
+    showInternalScheduleModal,
+    setShowInternalScheduleModal: (show: boolean) => {
+      setShowInternalScheduleModal(show);
+      if (!show) {
+        refreshJourneyProgress();
+      }
+    },
+    showCancelVisitModal,
+    setShowCancelVisitModal,
+    visitDetails,
     careModel,
     trialCompleted,
     trackStepAction,
     isAnonymous,
     showLeadCaptureModal,
     setShowLeadCaptureModal,
-    onVisitScheduled: handleVisitScheduled
+    onVisitScheduled: handleVisitScheduled,
+    onVisitCancelled: handleVisitCancelled
   };
 };

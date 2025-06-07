@@ -28,10 +28,16 @@ export const EnhancedFamilyNextStepsPanel: React.FC<EnhancedFamilyNextStepsPanel
     loading, 
     showScheduleModal, 
     setShowScheduleModal,
+    showInternalScheduleModal,
+    setShowInternalScheduleModal,
+    showCancelVisitModal,
+    setShowCancelVisitModal,
     showLeadCaptureModal,
     setShowLeadCaptureModal,
+    visitDetails,
     trackStepAction,
-    isAnonymous
+    isAnonymous,
+    onVisitCancelled
   } = useEnhancedJourneyProgress();
 
   // Group steps by stage
@@ -42,7 +48,10 @@ export const EnhancedFamilyNextStepsPanel: React.FC<EnhancedFamilyNextStepsPanel
         key: "foundation",
         description: "Set up your profile and care needs",
         color: "blue",
-        steps: steps.filter(step => step.category === 'foundation'),
+        steps: steps.filter(step => step.category === 'foundation').map(step => ({
+          ...step,
+          cancelAction: step.step_number === 7 && step.completed ? () => setShowCancelVisitModal(true) : undefined
+        })),
         subscriptionCTA: null
       },
       scheduling: {
@@ -50,7 +59,10 @@ export const EnhancedFamilyNextStepsPanel: React.FC<EnhancedFamilyNextStepsPanel
         key: "scheduling",
         description: "Meet your care team and coordinate services",
         color: "green",
-        steps: steps.filter(step => step.category === 'scheduling'),
+        steps: steps.filter(step => step.category === 'scheduling').map(step => ({
+          ...step,
+          cancelAction: step.step_number === 7 && step.completed ? () => setShowCancelVisitModal(true) : undefined
+        })),
         subscriptionCTA: null
       },
       trial: {
@@ -58,7 +70,10 @@ export const EnhancedFamilyNextStepsPanel: React.FC<EnhancedFamilyNextStepsPanel
         key: "trial", 
         description: "Experience care with an optional trial day",
         color: "purple",
-        steps: steps.filter(step => step.category === 'trial'),
+        steps: steps.filter(step => step.category === 'trial').map(step => ({
+          ...step,
+          cancelAction: step.step_number === 7 && step.completed ? () => setShowCancelVisitModal(true) : undefined
+        })),
         subscriptionCTA: null
       },
       conversion: {
@@ -66,7 +81,10 @@ export const EnhancedFamilyNextStepsPanel: React.FC<EnhancedFamilyNextStepsPanel
         key: "conversion",
         description: "Choose your care model and begin services", 
         color: "orange",
-        steps: steps.filter(step => step.category === 'conversion'),
+        steps: steps.filter(step => step.category === 'conversion').map(step => ({
+          ...step,
+          cancelAction: step.step_number === 7 && step.completed ? () => setShowCancelVisitModal(true) : undefined
+        })),
         subscriptionCTA: null
       }
     };
@@ -337,11 +355,43 @@ export const EnhancedFamilyNextStepsPanel: React.FC<EnhancedFamilyNextStepsPanel
         )}
       </motion.div>
 
-      {/* Schedule Visit Modal - Only for logged-in users */}
+      {/* Schedule Visit Modal - Only for logged-in users (old modal) */}
       {!isAnonymous && (
         <ScheduleVisitModal 
           open={showScheduleModal}
           onOpenChange={setShowScheduleModal}
+        />
+      )}
+
+      {/* Internal Scheduling Modal - Direct calendar access */}
+      {!isAnonymous && (
+        <InternalSchedulingModal
+          open={showInternalScheduleModal}
+          onOpenChange={setShowInternalScheduleModal}
+          caregiverName="your care coordinator"
+          onVisitScheduled={() => {
+            setShowInternalScheduleModal(false);
+            // The hook will handle the refresh
+          }}
+        />
+      )}
+
+      {/* Cancel Visit Modal */}
+      {!isAnonymous && (
+        <CancelVisitDialog
+          open={showCancelVisitModal}
+          onOpenChange={setShowCancelVisitModal}
+          visitDetails={visitDetails ? {
+            date: new Date(visitDetails.date).toLocaleDateString(),
+            time: visitDetails.time,
+            type: visitDetails.type === 'virtual' ? 'Virtual Visit' : 'In-Person Visit'
+          } : undefined}
+          onVisitCancelled={() => {
+            setShowCancelVisitModal(false);
+            if (onVisitCancelled) {
+              onVisitCancelled();
+            }
+          }}
         />
       )}
 
