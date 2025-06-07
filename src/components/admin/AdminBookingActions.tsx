@@ -24,6 +24,8 @@ import { format } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from "sonner";
 
+type AdminStatus = 'pending' | 'confirmed' | 'cancelled' | 'completed' | 'locked';
+
 interface VisitBooking {
   id: string;
   user_id: string;
@@ -32,7 +34,7 @@ interface VisitBooking {
   visit_type: 'virtual' | 'in_person';
   status: string;
   payment_status: string;
-  admin_status: string;
+  admin_status: AdminStatus;
   family_address?: string;
   family_phone?: string;
   admin_notes?: string;
@@ -55,11 +57,11 @@ export const AdminBookingActions: React.FC<AdminBookingActionsProps> = ({
 }) => {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [adminNotes, setAdminNotes] = useState(booking.admin_notes || '');
-  const [adminStatus, setAdminStatus] = useState(booking.admin_status);
+  const [adminStatus, setAdminStatus] = useState<AdminStatus>(booking.admin_status);
   const [nurseAssigned, setNurseAssigned] = useState(booking.nurse_assigned || '');
   const [loading, setLoading] = useState(false);
 
-  const handleStatusUpdate = async (newStatus: string) => {
+  const handleStatusUpdate = async (newStatus: AdminStatus) => {
     setLoading(true);
     try {
       const { error } = await supabase
@@ -247,7 +249,7 @@ export const AdminBookingActions: React.FC<AdminBookingActionsProps> = ({
             <div className="space-y-4">
               <div>
                 <Label htmlFor="admin-status">Admin Status</Label>
-                <Select value={adminStatus} onValueChange={setAdminStatus}>
+                <Select value={adminStatus} onValueChange={(value: AdminStatus) => setAdminStatus(value)}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
