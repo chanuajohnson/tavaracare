@@ -87,12 +87,12 @@ export const AdminBookingFilters: React.FC<AdminBookingFiltersProps> = ({
         {/* Status Filter */}
         <div className="space-y-2">
           <label className="text-sm font-medium">Status</label>
-          <Select value={filters.status} onValueChange={(value) => updateFilter('status', value)}>
+          <Select value={filters.status || "all"} onValueChange={(value) => updateFilter('status', value === "all" ? "" : value)}>
             <SelectTrigger>
               <SelectValue placeholder="All statuses" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All Statuses</SelectItem>
+              <SelectItem value="all">All Statuses</SelectItem>
               <SelectItem value="pending">Pending</SelectItem>
               <SelectItem value="confirmed">Confirmed</SelectItem>
               <SelectItem value="completed">Completed</SelectItem>
@@ -105,12 +105,12 @@ export const AdminBookingFilters: React.FC<AdminBookingFiltersProps> = ({
         {/* Visit Type Filter */}
         <div className="space-y-2">
           <label className="text-sm font-medium">Visit Type</label>
-          <Select value={filters.visitType} onValueChange={(value) => updateFilter('visitType', value)}>
+          <Select value={filters.visitType || "all"} onValueChange={(value) => updateFilter('visitType', value === "all" ? "" : value)}>
             <SelectTrigger>
               <SelectValue placeholder="All types" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All Types</SelectItem>
+              <SelectItem value="all">All Types</SelectItem>
               <SelectItem value="virtual">Virtual</SelectItem>
               <SelectItem value="in_person">In-Person</SelectItem>
             </SelectContent>
@@ -120,12 +120,12 @@ export const AdminBookingFilters: React.FC<AdminBookingFiltersProps> = ({
         {/* Nurse Filter */}
         <div className="space-y-2">
           <label className="text-sm font-medium">Nurse Assigned</label>
-          <Select value={filters.nurseAssigned} onValueChange={(value) => updateFilter('nurseAssigned', value)}>
+          <Select value={filters.nurseAssigned || "all"} onValueChange={(value) => updateFilter('nurseAssigned', value === "all" ? "" : value)}>
             <SelectTrigger>
               <SelectValue placeholder="All nurses" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All Nurses</SelectItem>
+              <SelectItem value="all">All Nurses</SelectItem>
               <SelectItem value="unassigned">Unassigned</SelectItem>
               <SelectItem value="assigned">Assigned</SelectItem>
             </SelectContent>

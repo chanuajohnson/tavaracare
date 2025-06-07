@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -70,7 +69,7 @@ export const AdminVisitScheduleManager = () => {
 
   // Create breadcrumb items
   const breadcrumbItems = [
-    { label: 'Admin Dashboard', href: '/admin' },
+    { label: 'Admin Dashboard', href: '/dashboard/admin' },
     { label: 'Visit Schedule Management', href: '/admin/visit-schedule', current: true }
   ];
 
@@ -118,7 +117,7 @@ export const AdminVisitScheduleManager = () => {
           admin_notes,
           nurse_assigned,
           confirmation_sent,
-          profiles!visit_bookings_user_id_fkey (
+          profiles (
             full_name,
             email
           )
