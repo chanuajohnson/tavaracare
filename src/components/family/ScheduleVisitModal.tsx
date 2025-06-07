@@ -4,11 +4,12 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, Video, MapPin, Star, Clock, Lock, Sparkles, CreditCard } from "lucide-react";
+import { Calendar, Video, MapPin, Star, Clock, Lock, Sparkles, CreditCard, CheckCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { toast } from "sonner";
 import { InternalSchedulingModal } from "./InternalSchedulingModal";
+import { PayPalSubscribeButton } from "@/components/subscription/PayPalSubscribeButton";
 
 interface ScheduleVisitModalProps {
   open: boolean;
@@ -25,9 +26,10 @@ export const ScheduleVisitModal = ({
 }: ScheduleVisitModalProps) => {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [isLoading, setIsLoading] = useState(false);
   const [visitCompleted, setVisitCompleted] = useState(false);
   const [showInternalScheduling, setShowInternalScheduling] = useState(false);
+  const [selectedVisitType, setSelectedVisitType] = useState<'virtual' | 'in_person'>('virtual');
+  const [paymentCompleted, setPaymentCompleted] = useState(false);
 
   const handleSlowPlanningPath = () => {
     navigate("/subscription/features", {
@@ -43,14 +45,39 @@ export const ScheduleVisitModal = ({
     onOpenChange(false);
   };
 
-  const handleScheduleVisit = (visitType: 'virtual' | 'in_person') => {
+  const handleVirtualVisit = () => {
     if (!user) {
       toast.error("Please log in to schedule a visit");
       return;
     }
 
-    // Open the internal scheduling modal instead of Google Calendar
+    setSelectedVisitType('virtual');
     setShowInternalScheduling(true);
+  };
+
+  const handleInPersonVisit = () => {
+    if (!user) {
+      toast.error("Please log in to schedule a visit");
+      return;
+    }
+
+    if (!paymentCompleted) {
+      // Show payment first
+      setSelectedVisitType('in_person');
+      return;
+    }
+
+    // Payment completed, proceed to scheduling
+    setShowInternalScheduling(true);
+  };
+
+  const handlePaymentSuccess = () => {
+    setPaymentCompleted(true);
+    toast.success("Payment completed! Now you can schedule your in-person visit.");
+    // Automatically open scheduling after payment
+    setTimeout(() => {
+      setShowInternalScheduling(true);
+    }, 1000);
   };
 
   const handleScheduleConfirmed = () => {
@@ -170,8 +197,7 @@ export const ScheduleVisitModal = ({
                   <Button 
                     size="sm" 
                     className="w-full bg-green-600 hover:bg-green-700"
-                    onClick={() => handleScheduleVisit('virtual')}
-                    disabled={isLoading}
+                    onClick={handleVirtualVisit}
                   >
                     Schedule Virtual Visit
                   </Button>
@@ -181,23 +207,45 @@ export const ScheduleVisitModal = ({
                 <div className="border rounded-lg p-3 hover:bg-gray-50 transition-colors">
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-2">
-                      <MapPin className="h-4 w-4 text-green-500" />
+                      <MapPin className="h-4 w-4 text-orange-500" />
                       <span className="font-medium">In-Person Visit</span>
+                      {paymentCompleted && (
+                        <CheckCircle className="h-4 w-4 text-green-500" />
+                      )}
                     </div>
                     <Badge variant="outline" className="bg-orange-50 text-orange-700">
                       $300 TTD
                     </Badge>
                   </div>
                   <p className="text-sm text-gray-600 mb-3">Home assessment with care coordinator</p>
-                  <Button 
-                    size="sm" 
-                    variant="outline" 
-                    className="w-full border-green-600 text-green-600 hover:bg-green-50"
-                    onClick={() => handleScheduleVisit('in_person')}
-                    disabled={isLoading}
-                  >
-                    Schedule Home Visit
-                  </Button>
+                  
+                  {!paymentCompleted ? (
+                    <div className="space-y-2">
+                      <p className="text-xs text-gray-500 mb-2">Payment required before scheduling</p>
+                      <PayPalSubscribeButton
+                        paymentType="one_time"
+                        amount="300"
+                        currency="TTD"
+                        description="In-Person Visit - Home Assessment"
+                        onSuccess={handlePaymentSuccess}
+                        onError={(error) => {
+                          console.error('PayPal payment error:', error);
+                          toast.error('Payment failed. Please try again.');
+                        }}
+                        className="w-full text-sm"
+                      >
+                        Pay $300 TTD & Schedule
+                      </PayPalSubscribeButton>
+                    </div>
+                  ) : (
+                    <Button 
+                      size="sm" 
+                      className="w-full bg-orange-600 hover:bg-orange-700"
+                      onClick={handleInPersonVisit}
+                    >
+                      Schedule Home Visit
+                    </Button>
+                  )}
                 </div>
                 
                 <p className="text-xs text-gray-500 text-center">
@@ -307,6 +355,7 @@ export const ScheduleVisitModal = ({
       <InternalSchedulingModal
         open={showInternalScheduling}
         onOpenChange={setShowInternalScheduling}
+        visitType={selectedVisitType}
         onVisitScheduled={handleScheduleConfirmed}
         caregiverName={caregiverName}
       />

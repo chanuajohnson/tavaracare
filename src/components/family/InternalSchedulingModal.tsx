@@ -9,6 +9,7 @@ import { useAuth } from "@/components/providers/AuthProvider";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { format, addDays, startOfDay, isSameDay, isAfter, isBefore } from "date-fns";
+import { VirtualVisitForm } from "./VirtualVisitForm";
 
 interface TimeSlot {
   id: string;
@@ -31,6 +32,7 @@ interface AvailabilitySlot {
 interface InternalSchedulingModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  visitType?: 'virtual' | 'in_person';
   caregiverName?: string;
   onVisitScheduled?: () => void;
 }
@@ -38,6 +40,7 @@ interface InternalSchedulingModalProps {
 export const InternalSchedulingModal = ({ 
   open, 
   onOpenChange, 
+  visitType = 'virtual',
   caregiverName = "your matched caregiver",
   onVisitScheduled
 }: InternalSchedulingModalProps) => {
@@ -45,11 +48,9 @@ export const InternalSchedulingModal = ({
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedTime, setSelectedTime] = useState<string>('11:00');
   const [selectedSlotId, setSelectedSlotId] = useState<string | null>(null);
-  const [visitType, setVisitType] = useState<'virtual' | 'in_person'>('virtual');
-  const [isLoading, setIsLoading] = useState(false);
   const [currentWeekStart, setCurrentWeekStart] = useState(startOfDay(new Date()));
   const [availabilitySlots, setAvailabilitySlots] = useState<AvailabilitySlot[]>([]);
-  const [showConfirmation, setShowConfirmation] = useState(false);
+  const [showForm, setShowForm] = useState(false);
 
   // Calculate booking limit (14 days from today)
   const maxBookingDate = addDays(new Date(), 14);
@@ -61,6 +62,10 @@ export const InternalSchedulingModal = ({
   useEffect(() => {
     if (open) {
       fetchAvailabilitySlots();
+      setShowForm(false);
+      setSelectedDate(null);
+      setSelectedTime('11:00');
+      setSelectedSlotId(null);
     }
   }, [open, currentWeekStart]);
 
@@ -139,39 +144,20 @@ export const InternalSchedulingModal = ({
     setSelectedSlotId(timeSlot.id);
   };
 
-  const handleScheduleConfirm = async () => {
-    if (!user || !selectedDate || !selectedSlotId) {
+  const handleContinueToForm = () => {
+    if (!selectedDate || !selectedSlotId) {
       toast.error("Please select a date and time");
       return;
     }
+    setShowForm(true);
+  };
 
-    setIsLoading(true);
-    try {
-      const { error } = await supabase
-        .from('visit_bookings')
-        .insert({
-          user_id: user.id,
-          availability_slot_id: selectedSlotId,
-          booking_date: format(selectedDate, 'yyyy-MM-dd'),
-          booking_time: selectedTime + ':00',
-          visit_type: visitType,
-          status: 'confirmed'
-        });
-
-      if (error) throw error;
-
-      toast.success("Visit scheduled successfully!");
-      setShowConfirmation(false);
-      onOpenChange(false);
-      
-      if (onVisitScheduled) {
-        onVisitScheduled();
-      }
-    } catch (error) {
-      console.error('Error booking visit:', error);
-      toast.error("Failed to schedule visit. Please try again.");
-    } finally {
-      setIsLoading(false);
+  const handleFormSuccess = () => {
+    setShowForm(false);
+    onOpenChange(false);
+    
+    if (onVisitScheduled) {
+      onVisitScheduled();
     }
   };
 
@@ -184,67 +170,24 @@ export const InternalSchedulingModal = ({
     return slots.some(slot => slot.available);
   };
 
-  if (showConfirmation) {
+  if (showForm && selectedDate && selectedSlotId) {
     return (
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Confirm Your Visit</DialogTitle>
+            <DialogTitle>Complete Your Booking</DialogTitle>
             <DialogDescription>
-              Please review your booking details below.
+              Please provide your contact information to complete the booking.
             </DialogDescription>
           </DialogHeader>
           
-          <div className="space-y-4">
-            <Card>
-              <CardContent className="pt-4">
-                <div className="space-y-3">
-                  <div className="flex items-center gap-2">
-                    <Calendar className="h-4 w-4 text-primary" />
-                    <span className="font-medium">
-                      {selectedDate && format(selectedDate, 'EEEE, MMMM d, yyyy')}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Clock className="h-4 w-4 text-primary" />
-                    <span className="font-medium">{selectedTime}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {visitType === 'virtual' ? (
-                      <Video className="h-4 w-4 text-green-500" />
-                    ) : (
-                      <MapPin className="h-4 w-4 text-orange-500" />
-                    )}
-                    <span className="font-medium">
-                      {visitType === 'virtual' ? 'Virtual Visit' : 'In-Person Visit'}
-                    </span>
-                    <Badge variant="outline" className={
-                      visitType === 'virtual' ? 'bg-green-50 text-green-700' : 'bg-orange-50 text-orange-700'
-                    }>
-                      {visitType === 'virtual' ? 'FREE' : '$300 TTD'}
-                    </Badge>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <div className="flex gap-3">
-              <Button 
-                variant="outline" 
-                onClick={() => setShowConfirmation(false)}
-                className="flex-1"
-              >
-                Back
-              </Button>
-              <Button 
-                onClick={handleScheduleConfirm}
-                disabled={isLoading}
-                className="flex-1"
-              >
-                {isLoading ? 'Booking...' : 'Confirm Booking'}
-              </Button>
-            </div>
-          </div>
+          <VirtualVisitForm
+            selectedDate={selectedDate}
+            selectedTime={selectedTime}
+            selectedSlotId={selectedSlotId}
+            onSuccess={handleFormSuccess}
+            onBack={() => setShowForm(false)}
+          />
         </DialogContent>
       </Dialog>
     );
@@ -254,51 +197,41 @@ export const InternalSchedulingModal = ({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Schedule Your Visit</DialogTitle>
+          <DialogTitle>Schedule Your {visitType === 'virtual' ? 'Virtual' : 'In-Person'} Visit</DialogTitle>
           <DialogDescription>
             Choose a convenient date and time to meet with your care coordinator.
           </DialogDescription>
         </DialogHeader>
         
         <div className="space-y-6">
-          {/* Visit Type Selection */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Card 
-              className={`cursor-pointer transition-colors ${
-                visitType === 'virtual' ? 'border-green-500 bg-green-50' : 'hover:bg-gray-50'
-              }`}
-              onClick={() => setVisitType('virtual')}
-            >
-              <CardHeader className="pb-3">
-                <div className="flex items-center gap-2">
+          {/* Visit Type Display */}
+          <Card className={`border-2 ${visitType === 'virtual' ? 'border-green-200 bg-green-50' : 'border-orange-200 bg-orange-50'}`}>
+            <CardHeader className="pb-3">
+              <div className="flex items-center gap-2">
+                {visitType === 'virtual' ? (
                   <Video className="h-5 w-5 text-green-500" />
-                  <CardTitle className="text-lg">Virtual Visit</CardTitle>
-                  <Badge variant="outline" className="bg-green-50 text-green-700 ml-auto">
-                    FREE
-                  </Badge>
-                </div>
-                <CardDescription>1-2 hour video call to discuss care needs</CardDescription>
-              </CardHeader>
-            </Card>
-
-            <Card 
-              className={`cursor-pointer transition-colors ${
-                visitType === 'in_person' ? 'border-orange-500 bg-orange-50' : 'hover:bg-gray-50'
-              }`}
-              onClick={() => setVisitType('in_person')}
-            >
-              <CardHeader className="pb-3">
-                <div className="flex items-center gap-2">
+                ) : (
                   <MapPin className="h-5 w-5 text-orange-500" />
-                  <CardTitle className="text-lg">In-Person Visit</CardTitle>
-                  <Badge variant="outline" className="bg-orange-50 text-orange-700 ml-auto">
-                    $300 TTD
-                  </Badge>
-                </div>
-                <CardDescription>Home assessment with care coordinator</CardDescription>
-              </CardHeader>
-            </Card>
-          </div>
+                )}
+                <CardTitle className="text-lg">
+                  {visitType === 'virtual' ? 'Virtual Visit' : 'In-Person Visit'}
+                </CardTitle>
+                <Badge variant="outline" className={
+                  visitType === 'virtual' 
+                    ? 'bg-green-50 text-green-700 ml-auto' 
+                    : 'bg-orange-50 text-orange-700 ml-auto'
+                }>
+                  {visitType === 'virtual' ? 'FREE' : '$300 TTD'}
+                </Badge>
+              </div>
+              <CardDescription>
+                {visitType === 'virtual' 
+                  ? '1-2 hour video call to discuss care needs'
+                  : 'Home assessment with care coordinator'
+                }
+              </CardDescription>
+            </CardHeader>
+          </Card>
 
           {/* Calendar Section */}
           <div className="space-y-4">
@@ -410,11 +343,11 @@ export const InternalSchedulingModal = ({
           {/* Continue Button */}
           {selectedDate && selectedTime && selectedSlotId && (
             <Button 
-              onClick={() => setShowConfirmation(true)}
+              onClick={handleContinueToForm}
               className="w-full"
               size="lg"
             >
-              Continue to Confirmation
+              Continue to Contact Details
             </Button>
           )}
 

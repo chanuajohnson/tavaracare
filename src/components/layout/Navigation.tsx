@@ -37,12 +37,28 @@ import { toast } from 'sonner';
 import { resetAuthState } from '@/lib/supabase';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useState } from 'react';
+import { SupportMenu } from '@/components/ui/support-menu';
+import { FeedbackForm } from '@/components/ui/feedback-form';
 
 export function Navigation() {
   const { user, signOut, isLoading, userRole } = useAuth();
   const location = useLocation();
   const isMobile = useIsMobile();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isFeedbackFormOpen, setIsFeedbackFormOpen] = useState(false);
+
+  // Listen for feedback form events
+  React.useEffect(() => {
+    const handleOpenFeedbackForm = () => {
+      setIsFeedbackFormOpen(true);
+    };
+
+    window.addEventListener('tavara:open-feedback-form', handleOpenFeedbackForm);
+    
+    return () => {
+      window.removeEventListener('tavara:open-feedback-form', handleOpenFeedbackForm);
+    };
+  }, []);
 
   console.log('Navigation render -', { 
     user: !!user, 
@@ -105,116 +121,198 @@ export function Navigation() {
   const isAdmin = userRole === 'admin';
 
   return (
-    <nav className="bg-background border-b py-3 px-4 sm:px-6">
-      <div className="container mx-auto flex justify-between items-center">
-        <div className="flex items-center flex-col sm:flex-row">
-          <Link to="/" className="flex items-center">
-            <img 
-              src="/TAVARACARElogo.JPG"
-              alt="Tavara" 
-              className="h-6 w-auto sm:h-7"
-            />
-          </Link>
-          <span className="text-xs text-gray-600 italic sm:ml-2">It takes a village to care</span>
-        </div>
-        
-        {/* Mobile menu button */}
-        {isMobile && (
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            className="lg:hidden" 
-            onClick={() => setIsMenuOpen(!isMenuOpen)}
-          >
-            <Menu className="h-5 w-5" />
-          </Button>
-        )}
-        
-        <div className={`${isMobile ? (isMenuOpen ? "flex flex-col absolute top-16 left-0 right-0 bg-background border-b z-50 p-4 space-y-3" : "hidden") : "flex items-center gap-4"}`}>
-          {(!isMobile || isMenuOpen) && (
-            <>
-              <Link to="/about" className="text-gray-700 hover:text-primary">
-                About
-              </Link>
-              
-              <Link to="/features" className="text-gray-700 hover:text-primary">
-                Features
-              </Link>
-              
-              {isSpecificUser && (
-                <Link to="/admin/user-journey" className="flex items-center gap-1 text-indigo-600 hover:text-indigo-700">
-                  <BarChart className="h-4 w-4" />
-                  <span className="hidden sm:inline">User Journey</span>
+    <>
+      <nav className="sticky top-0 z-40 bg-background border-b py-3 px-4 sm:px-6 backdrop-blur-sm bg-background/95">
+        <div className="container mx-auto flex justify-between items-center">
+          <div className="flex items-center flex-col sm:flex-row">
+            <Link to="/" className="flex items-center">
+              <img 
+                src="/TAVARACARElogo.JPG"
+                alt="Tavara" 
+                className="h-6 w-auto sm:h-7"
+              />
+            </Link>
+            <span className="text-xs text-gray-600 italic sm:ml-2">It takes a village to care</span>
+          </div>
+          
+          <div className="flex items-center gap-2">
+            {/* Mobile menu button */}
+            {isMobile && (
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="lg:hidden" 
+                onClick={() => setIsMenuOpen(!isMenuOpen)}
+              >
+                <Menu className="h-5 w-5" />
+              </Button>
+            )}
+            
+            {/* Support Menu - Always visible */}
+            <SupportMenu />
+            
+            {/* Desktop Navigation */}
+            {!isMobile && (
+              <div className="flex items-center gap-4">
+                <Link to="/about" className="text-gray-700 hover:text-primary">
+                  About
                 </Link>
-              )}
-              
-              {user && dashboardPath ? (
-                <Link to={dashboardPath} className="flex items-center gap-1 text-gray-700 hover:text-primary">
-                  <LayoutDashboard className="h-4 w-4" />
-                  <span className={isMobile ? "inline" : "hidden sm:inline"}>
-                    {userRole ? `${userRole.charAt(0).toUpperCase() + userRole.slice(1)} Dashboard` : 'Dashboard'}
-                  </span>
+                
+                <Link to="/features" className="text-gray-700 hover:text-primary">
+                  Features
                 </Link>
-              ) : !user ? (
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="sm" className="flex items-center gap-1">
-                      <LayoutDashboard className="h-4 w-4" />
-                      <span className={isMobile ? "inline" : "hidden sm:inline"}>Navigation</span>
-                      <ChevronDown className="h-3 w-3" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-56">
-                    <DropdownMenuGroup>
-                      <DropdownMenuLabel>Dashboards</DropdownMenuLabel>
+                
+                {isSpecificUser && (
+                  <Link to="/admin/user-journey" className="flex items-center gap-1 text-indigo-600 hover:text-indigo-700">
+                    <BarChart className="h-4 w-4" />
+                    <span className="hidden sm:inline">User Journey</span>
+                  </Link>
+                )}
+                
+                {user && dashboardPath ? (
+                  <Link to={dashboardPath} className="flex items-center gap-1 text-gray-700 hover:text-primary">
+                    <LayoutDashboard className="h-4 w-4" />
+                    <span className="hidden sm:inline">
+                      {userRole ? `${userRole.charAt(0).toUpperCase() + userRole.slice(1)} Dashboard` : 'Dashboard'}
+                    </span>
+                  </Link>
+                ) : !user ? (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="sm" className="flex items-center gap-1">
+                        <LayoutDashboard className="h-4 w-4" />
+                        <span className="hidden sm:inline">Navigation</span>
+                        <ChevronDown className="h-3 w-3" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-56">
+                      <DropdownMenuGroup>
+                        <DropdownMenuLabel>Dashboards</DropdownMenuLabel>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem>
+                          <Link to="/dashboard/family">Family Dashboard</Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem>
+                          <Link to="/dashboard/professional">Professional Dashboard</Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem>
+                          <Link to="/dashboard/community">Community Dashboard</Link>
+                        </DropdownMenuItem>
+                      </DropdownMenuGroup>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem>
-                        <Link to="/dashboard/family">Family Dashboard</Link>
+                        <Link to="/auth/register">Create Account</Link>
                       </DropdownMenuItem>
                       <DropdownMenuItem>
-                        <Link to="/dashboard/professional">Professional Dashboard</Link>
+                        <Link to="/auth/reset-password">Forgot Password</Link>
                       </DropdownMenuItem>
-                      <DropdownMenuItem>
-                        <Link to="/dashboard/community">Community Dashboard</Link>
-                      </DropdownMenuItem>
-                    </DropdownMenuGroup>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem>
-                      <Link to="/auth/register">Create Account</Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem>
-                      <Link to="/auth/reset-password">Forgot Password</Link>
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              ) : null}
-              
-              {isLoading ? (
-                <Button variant="outline" size="sm" disabled className="flex items-center gap-2">
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  <span>Loading...</span>
-                </Button>
-              ) : user ? (
-                <Button 
-                  onClick={handleSignOut}
-                  size="sm"
-                  className="flex items-center gap-2 bg-primary-600 text-white hover:bg-primary-700 transition-colors"
-                >
-                  <LogOut className="h-4 w-4" />
-                  <span>{isMobile ? "Sign Out" : "Sign Out"}</span>
-                </Button>
-              ) : (
-                <Link to="/auth">
-                  <Button variant="default" size="sm" className="flex items-center gap-2">
-                    <LogIn className="h-4 w-4" />
-                    <span>Sign In</span>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                ) : null}
+                
+                {isLoading ? (
+                  <Button variant="outline" size="sm" disabled className="flex items-center gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span>Loading...</span>
                   </Button>
-                </Link>
-              )}
-            </>
-          )}
+                ) : user ? (
+                  <Button 
+                    onClick={handleSignOut}
+                    size="sm"
+                    className="flex items-center gap-2 bg-primary-600 text-white hover:bg-primary-700 transition-colors"
+                  >
+                    <LogOut className="h-4 w-4" />
+                    <span>Sign Out</span>
+                  </Button>
+                ) : (
+                  <Link to="/auth">
+                    <Button variant="default" size="sm" className="flex items-center gap-2">
+                      <LogIn className="h-4 w-4" />
+                      <span>Sign In</span>
+                    </Button>
+                  </Link>
+                )}
+              </div>
+            )}
+          </div>
         </div>
-      </div>
-    </nav>
+        
+        {/* Mobile Menu */}
+        {isMobile && isMenuOpen && (
+          <div className="absolute top-full left-0 right-0 bg-background border-b z-50 p-4 space-y-3">
+            <Link to="/about" className="block text-gray-700 hover:text-primary">
+              About
+            </Link>
+            
+            <Link to="/features" className="block text-gray-700 hover:text-primary">
+              Features
+            </Link>
+            
+            {isSpecificUser && (
+              <Link to="/admin/user-journey" className="flex items-center gap-1 text-indigo-600 hover:text-indigo-700">
+                <BarChart className="h-4 w-4" />
+                <span>User Journey</span>
+              </Link>
+            )}
+            
+            {user && dashboardPath ? (
+              <Link to={dashboardPath} className="flex items-center gap-1 text-gray-700 hover:text-primary">
+                <LayoutDashboard className="h-4 w-4" />
+                <span>
+                  {userRole ? `${userRole.charAt(0).toUpperCase() + userRole.slice(1)} Dashboard` : 'Dashboard'}
+                </span>
+              </Link>
+            ) : !user ? (
+              <div className="space-y-2">
+                <Link to="/dashboard/family" className="block text-gray-700 hover:text-primary">
+                  Family Dashboard
+                </Link>
+                <Link to="/dashboard/professional" className="block text-gray-700 hover:text-primary">
+                  Professional Dashboard
+                </Link>
+                <Link to="/dashboard/community" className="block text-gray-700 hover:text-primary">
+                  Community Dashboard
+                </Link>
+                <Link to="/auth/register" className="block text-gray-700 hover:text-primary">
+                  Create Account
+                </Link>
+                <Link to="/auth/reset-password" className="block text-gray-700 hover:text-primary">
+                  Forgot Password
+                </Link>
+              </div>
+            ) : null}
+            
+            {isLoading ? (
+              <Button variant="outline" size="sm" disabled className="flex items-center gap-2 w-full">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span>Loading...</span>
+              </Button>
+            ) : user ? (
+              <Button 
+                onClick={handleSignOut}
+                size="sm"
+                className="flex items-center gap-2 bg-primary-600 text-white hover:bg-primary-700 transition-colors w-full"
+              >
+                <LogOut className="h-4 w-4" />
+                <span>Sign Out</span>
+              </Button>
+            ) : (
+              <Link to="/auth" className="block">
+                <Button variant="default" size="sm" className="flex items-center gap-2 w-full">
+                  <LogIn className="h-4 w-4" />
+                  <span>Sign In</span>
+                </Button>
+              </Link>
+            )}
+          </div>
+        )}
+      </nav>
+
+      {/* Feedback Form Modal */}
+      <FeedbackForm 
+        open={isFeedbackFormOpen}
+        onOpenChange={setIsFeedbackFormOpen}
+      />
+    </>
   );
 };

@@ -3228,12 +3228,20 @@ export type Database = {
       visit_bookings: {
         Row: {
           admin_notes: string | null
+          admin_status: string | null
           availability_slot_id: string
           booking_date: string
           booking_time: string
+          cancellation_reason: string | null
+          cancelled_at: string | null
           confirmation_sent: boolean
           created_at: string
           id: string
+          is_cancelled: boolean | null
+          original_booking_date: string | null
+          original_booking_time: string | null
+          reschedule_count: number | null
+          reschedule_reason: string | null
           status: string
           updated_at: string
           user_id: string
@@ -3242,12 +3250,20 @@ export type Database = {
         }
         Insert: {
           admin_notes?: string | null
+          admin_status?: string | null
           availability_slot_id: string
           booking_date: string
           booking_time: string
+          cancellation_reason?: string | null
+          cancelled_at?: string | null
           confirmation_sent?: boolean
           created_at?: string
           id?: string
+          is_cancelled?: boolean | null
+          original_booking_date?: string | null
+          original_booking_time?: string | null
+          reschedule_count?: number | null
+          reschedule_reason?: string | null
           status?: string
           updated_at?: string
           user_id: string
@@ -3256,12 +3272,20 @@ export type Database = {
         }
         Update: {
           admin_notes?: string | null
+          admin_status?: string | null
           availability_slot_id?: string
           booking_date?: string
           booking_time?: string
+          cancellation_reason?: string | null
+          cancelled_at?: string | null
           confirmation_sent?: boolean
           created_at?: string
           id?: string
+          is_cancelled?: boolean | null
+          original_booking_date?: string | null
+          original_booking_time?: string | null
+          reschedule_count?: number | null
+          reschedule_reason?: string | null
           status?: string
           updated_at?: string
           user_id?: string
@@ -3531,6 +3555,10 @@ export type Database = {
         Args: { target_user_id: string }
         Returns: undefined
       }
+      cancel_visit_booking: {
+        Args: { booking_id: string; reason?: string }
+        Returns: undefined
+      }
       detect_medication_conflicts: {
         Args: {
           p_medication_id: string
@@ -3557,6 +3585,16 @@ export type Database = {
       has_user_voted_for_feature: {
         Args: { feature_id: string; user_id: string }
         Returns: boolean
+      }
+      reschedule_visit_booking: {
+        Args: {
+          booking_id: string
+          new_slot_id: string
+          new_date: string
+          new_time: string
+          reason?: string
+        }
+        Returns: undefined
       }
       update_care_plan_status: {
         Args: { plan_id: string; new_status: string }
