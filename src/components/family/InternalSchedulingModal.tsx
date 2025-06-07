@@ -15,6 +15,7 @@ interface TimeSlot {
   time: string;
   available: boolean;
   description?: string;
+  spotsLeft: number;
 }
 
 interface AvailabilitySlot {
@@ -73,7 +74,8 @@ export const InternalSchedulingModal = ({
         .gte('date', format(currentWeekStart, 'yyyy-MM-dd'))
         .lte('date', format(weekEnd, 'yyyy-MM-dd'))
         .eq('is_available', true)
-        .lt('current_bookings', 'max_bookings');
+        .order('date', { ascending: true })
+        .order('start_time', { ascending: true });
 
       if (error) throw error;
       setAvailabilitySlots(data || []);
@@ -104,7 +106,8 @@ export const InternalSchedulingModal = ({
       id: slot.id,
       time: slot.start_time.slice(0, 5), // Extract HH:MM format
       available: slot.current_bookings < slot.max_bookings,
-      description: slot.description || undefined
+      description: slot.description || undefined,
+      spotsLeft: slot.max_bookings - slot.current_bookings
     }));
   };
 
@@ -147,6 +150,13 @@ export const InternalSchedulingModal = ({
 
     setIsLoading(true);
     try {
+      // Get user profile for additional details
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('full_name, phone_number')
+        .eq('id', user.id)
+        .single();
+
       const { error } = await supabase
         .from('visit_bookings')
         .insert({
@@ -155,7 +165,10 @@ export const InternalSchedulingModal = ({
           booking_date: format(selectedDate, 'yyyy-MM-dd'),
           booking_time: selectedTime + ':00',
           visit_type: visitType,
-          status: 'confirmed'
+          status: 'confirmed',
+          user_full_name: profile?.full_name || user.email,
+          user_whatsapp: profile?.phone_number || null,
+          visit_notes: {}
         });
 
       if (error) throw error;
@@ -163,6 +176,9 @@ export const InternalSchedulingModal = ({
       toast.success("Visit scheduled successfully!");
       setShowConfirmation(false);
       onOpenChange(false);
+      
+      // Refresh availability to show updated booking counts
+      await fetchAvailabilitySlots();
       
       if (onVisitScheduled) {
         onVisitScheduled();
@@ -378,7 +394,7 @@ export const InternalSchedulingModal = ({
             {selectedDate && (
               <div className="space-y-3">
                 <h4 className="font-medium">Available Times for {format(selectedDate, 'EEEE, MMMM d')}</h4>
-                <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                   {getSlotsForDate(selectedDate).map((timeSlot) => (
                     <Button
                       key={timeSlot.id}
@@ -386,7 +402,7 @@ export const InternalSchedulingModal = ({
                       size="sm"
                       disabled={!timeSlot.available}
                       onClick={() => handleTimeSelect(timeSlot)}
-                      className={`${
+                      className={`h-auto p-3 flex flex-col items-center ${
                         selectedTime === timeSlot.time 
                           ? 'bg-primary text-white' 
                           : timeSlot.available 
@@ -394,7 +410,10 @@ export const InternalSchedulingModal = ({
                           : 'opacity-50 cursor-not-allowed'
                       }`}
                     >
-                      {timeSlot.time}
+                      <div className="font-medium">{timeSlot.time}</div>
+                      <div className="text-xs">
+                        {timeSlot.available ? `${timeSlot.spotsLeft} spots left` : 'Fully booked'}
+                      </div>
                     </Button>
                   ))}
                 </div>
