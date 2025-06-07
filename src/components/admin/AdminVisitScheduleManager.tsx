@@ -2,14 +2,15 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Calendar, Settings, List, Clock, BarChart3 } from "lucide-react";
-import { Breadcrumb, useBreadcrumbs } from "@/components/ui/breadcrumb";
+import { Calendar, Settings, List, Clock, BarChart3, AlertCircle } from "lucide-react";
+import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { AdminCalendarView } from './AdminCalendarView';
 import { AdminBookingTable } from './AdminBookingTable';
 import { AdminScheduleSettings } from './AdminScheduleSettings';
 import { AdminBookingFilters } from './AdminBookingFilters';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from "sonner";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 type AdminStatus = 'pending' | 'confirmed' | 'cancelled' | 'completed' | 'locked';
 
@@ -57,6 +58,7 @@ export const AdminVisitScheduleManager = () => {
   const [adminConfig, setAdminConfig] = useState<AdminConfig | null>(null);
   const [bookings, setBookings] = useState<VisitBooking[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("calendar");
   const [filters, setFilters] = useState<BookingFilters>({
     status: '',
@@ -66,26 +68,40 @@ export const AdminVisitScheduleManager = () => {
     searchTerm: ''
   });
 
-  const breadcrumbs = useBreadcrumbs();
+  // Create breadcrumb items
+  const breadcrumbItems = [
+    { label: 'Admin Dashboard', href: '/admin' },
+    { label: 'Visit Schedule Management', href: '/admin/visit-schedule', current: true }
+  ];
 
   const fetchAdminConfig = async () => {
     try {
+      console.log('Fetching admin visit config...');
       const { data, error } = await supabase
         .from('admin_visit_config')
         .select('*')
         .limit(1)
-        .single();
+        .maybeSingle();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching admin config:', error);
+        throw error;
+      }
+
+      console.log('Admin config fetched:', data);
       setAdminConfig(data);
-    } catch (error) {
-      console.error('Error fetching admin config:', error);
+    } catch (error: any) {
+      console.error('Error in fetchAdminConfig:', error);
+      setError(`Failed to load admin configuration: ${error.message}`);
       toast.error('Failed to load admin configuration');
     }
   };
 
   const fetchBookings = async () => {
     try {
+      console.log('Fetching visit bookings...');
+      
+      // Check if visit_bookings table exists by trying to query it
       const { data, error } = await supabase
         .from('visit_bookings')
         .select(`
@@ -97,7 +113,16 @@ export const AdminVisitScheduleManager = () => {
         `)
         .order('booking_date', { ascending: true });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching bookings:', error);
+        // If table doesn't exist, just set empty bookings instead of throwing
+        if (error.message.includes('relation "public.visit_bookings" does not exist')) {
+          console.log('Visit bookings table does not exist, setting empty array');
+          setBookings([]);
+          return;
+        }
+        throw error;
+      }
       
       const transformedBookings = (data || []).map(booking => {
         let profileData = null;
@@ -113,9 +138,11 @@ export const AdminVisitScheduleManager = () => {
         };
       });
       
+      console.log('Bookings fetched:', transformedBookings.length);
       setBookings(transformedBookings);
-    } catch (error) {
-      console.error('Error fetching bookings:', error);
+    } catch (error: any) {
+      console.error('Error in fetchBookings:', error);
+      setError(`Failed to load visit bookings: ${error.message}`);
       toast.error('Failed to load visit bookings');
     }
   };
@@ -147,8 +174,16 @@ export const AdminVisitScheduleManager = () => {
   useEffect(() => {
     const loadData = async () => {
       setLoading(true);
-      await Promise.all([fetchAdminConfig(), fetchBookings()]);
-      setLoading(false);
+      setError(null);
+      
+      try {
+        await Promise.all([fetchAdminConfig(), fetchBookings()]);
+      } catch (err: any) {
+        console.error('Error loading data:', err);
+        setError(err.message || 'Failed to load data');
+      } finally {
+        setLoading(false);
+      }
     };
 
     loadData();
@@ -166,9 +201,28 @@ export const AdminVisitScheduleManager = () => {
   if (loading) {
     return (
       <div className="container mx-auto px-4 py-8">
+        <div className="mb-6">
+          <Breadcrumb items={breadcrumbItems} />
+        </div>
         <div className="flex items-center justify-center h-64">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
         </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="mb-6">
+          <Breadcrumb items={breadcrumbItems} />
+        </div>
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            {error}
+          </AlertDescription>
+        </Alert>
       </div>
     );
   }
@@ -177,7 +231,7 @@ export const AdminVisitScheduleManager = () => {
     <div className="container mx-auto px-4 py-8">
       {/* Breadcrumb Navigation */}
       <div className="mb-6">
-        <Breadcrumb items={breadcrumbs} />
+        <Breadcrumb items={breadcrumbItems} />
       </div>
 
       {/* Header */}
@@ -276,11 +330,18 @@ export const AdminVisitScheduleManager = () => {
               <CardTitle>Monthly Calendar View</CardTitle>
             </CardHeader>
             <CardContent>
-              <AdminCalendarView 
-                bookings={filteredBookings} 
-                adminConfig={adminConfig}
-                onBookingUpdate={handleBookingUpdate}
-              />
+              {adminConfig ? (
+                <AdminCalendarView 
+                  bookings={filteredBookings} 
+                  adminConfig={adminConfig}
+                  onBookingUpdate={handleBookingUpdate}
+                />
+              ) : (
+                <div className="text-center py-12 text-muted-foreground">
+                  <Calendar className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p>No admin configuration found. Please configure schedule settings first.</p>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>

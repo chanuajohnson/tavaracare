@@ -2,7 +2,7 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
-import { Home, BookOpen } from "lucide-react";
+import { BookOpen } from "lucide-react";
 
 interface DashboardBreadcrumbItem {
   label: string;
