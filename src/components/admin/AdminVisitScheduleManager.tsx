@@ -5,7 +5,7 @@ import { Calendar, Settings, List, Clock } from "lucide-react";
 import { AdminCalendarView } from './AdminCalendarView';
 import { AdminBookingTable } from './AdminBookingTable';
 import { AdminScheduleSettings } from './AdminScheduleSettings';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from "sonner";
 
 interface AdminConfig {

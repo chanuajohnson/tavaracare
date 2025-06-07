@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Calendar, Clock, Save, Plus, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from "sonner";
 
 interface AdminConfig {
