@@ -3322,7 +3322,7 @@ export type Database = {
       visit_bookings: {
         Row: {
           admin_notes: string | null
-          admin_status: string | null
+          admin_status: Database["public"]["Enums"]["admin_status_enum"] | null
           availability_slot_id: string
           booking_date: string
           booking_time: string
@@ -3354,7 +3354,7 @@ export type Database = {
         }
         Insert: {
           admin_notes?: string | null
-          admin_status?: string | null
+          admin_status?: Database["public"]["Enums"]["admin_status_enum"] | null
           availability_slot_id: string
           booking_date: string
           booking_time: string
@@ -3386,7 +3386,7 @@ export type Database = {
         }
         Update: {
           admin_notes?: string | null
-          admin_status?: string | null
+          admin_status?: Database["public"]["Enums"]["admin_status_enum"] | null
           availability_slot_id?: string
           booking_date?: string
           booking_time?: string
@@ -3757,6 +3757,12 @@ export type Database = {
       }
     }
     Enums: {
+      admin_status_enum:
+        | "pending"
+        | "confirmed"
+        | "cancelled"
+        | "completed"
+        | "locked"
       care_urgency:
         | "immediate"
         | "within_week"
@@ -3915,6 +3921,13 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      admin_status_enum: [
+        "pending",
+        "confirmed",
+        "cancelled",
+        "completed",
+        "locked",
+      ],
       care_urgency: [
         "immediate",
         "within_week",
