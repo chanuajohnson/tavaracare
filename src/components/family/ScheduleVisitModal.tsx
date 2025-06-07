@@ -223,19 +223,18 @@ export const ScheduleVisitModal = ({
                     <div className="space-y-2">
                       <p className="text-xs text-gray-500 mb-2">Payment required before scheduling</p>
                       <PayPalSubscribeButton
+                        planId="in-person-visit"
+                        planName="In-Person Visit"
+                        price="300"
                         paymentType="one_time"
-                        amount="300"
-                        currency="TTD"
-                        description="In-Person Visit - Home Assessment"
                         onSuccess={handlePaymentSuccess}
                         onError={(error) => {
                           console.error('PayPal payment error:', error);
                           toast.error('Payment failed. Please try again.');
                         }}
                         className="w-full text-sm"
-                      >
-                        Pay $300 TTD & Schedule
-                      </PayPalSubscribeButton>
+                        isComingSoon={false}
+                      />
                     </div>
                   ) : (
                     <Button 
