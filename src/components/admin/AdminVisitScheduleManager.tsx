@@ -140,13 +140,19 @@ export const AdminVisitScheduleManager = () => {
       const transformedBookings = (data || []).map(booking => {
         let profileData = null;
         
-        // Handle both single profile object and array of profiles
-        if (booking.profiles) {
-          if (Array.isArray(booking.profiles)) {
-            profileData = booking.profiles[0] || null;
-          } else {
-            profileData = booking.profiles as { full_name: string; email?: string };
+        // Safely check if profiles data exists and is valid
+        if (booking.profiles && typeof booking.profiles === 'object') {
+          // Check if it's an error object (has 'error' property)
+          const profilesData = booking.profiles as any;
+          
+          if (!profilesData.error && !Array.isArray(profilesData)) {
+            // It's a single profile object
+            profileData = profilesData as { full_name: string; email?: string };
+          } else if (Array.isArray(profilesData) && profilesData.length > 0) {
+            // It's an array of profiles, take the first one
+            profileData = profilesData[0] as { full_name: string; email?: string };
           }
+          // If it's an error object or empty array, profileData remains null
         }
         
         return {
