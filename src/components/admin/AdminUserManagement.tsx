@@ -48,7 +48,7 @@ export const AdminUserManagement = () => {
       }
 
       // Call our edge function to get users
-      const response = await fetch(`${supabase.supabaseUrl}/functions/v1/admin-users?action=list-users`, {
+      const response = await fetch(`https://cpdfmyemjrefnhddyrck.supabase.co/functions/v1/admin-users?action=list-users`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${session.access_token}`,
@@ -105,7 +105,7 @@ export const AdminUserManagement = () => {
         return;
       }
 
-      const response = await fetch(`${supabase.supabaseUrl}/functions/v1/admin-users?action=delete-user&userId=${userId}`, {
+      const response = await fetch(`https://cpdfmyemjrefnhddyrck.supabase.co/functions/v1/admin-users?action=delete-user&userId=${userId}`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${session.access_token}`,
