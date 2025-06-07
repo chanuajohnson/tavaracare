@@ -1,4 +1,5 @@
 
+import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/components/providers/AuthProvider';
@@ -9,20 +10,12 @@ import {
   ChevronDown,
   Loader2,
   BarChart,
-  Users,
-  UserPlus,
-  Home,
-  HeartPulse,
-  BookOpen,
-  MessageSquare,
-  Calendar,
-  UserCircle,
-  LifeBuoy,
-  Building2,
-  FileText,
-  CreditCard,
-  Info,
   Menu,
+  HelpCircle,
+  MessageSquare,
+  Phone,
+  FileText,
+  ExternalLink,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -83,6 +76,21 @@ export function Navigation() {
     }
   };
 
+  const handleWhatsAppSupport = () => {
+    const phoneNumber = "18687773695";
+    const message = encodeURIComponent("Hi, I need help with Tavara Care services.");
+    const whatsappUrl = `https://wa.me/${phoneNumber}?text=${message}`;
+    window.open(whatsappUrl, '_blank');
+  };
+
+  const handleContactSupport = () => {
+    toast.info("Contact support feature coming soon!");
+  };
+
+  const handleGiveFeedback = () => {
+    toast.info("Feedback feature coming soon!");
+  };
+
   const getDashboardPath = () => {
     if (!userRole) return null;
     
@@ -102,10 +110,9 @@ export function Navigation() {
 
   const dashboardPath = getDashboardPath();
   const isSpecificUser = user?.id === '605540d7-ae87-4a7c-9bd0-5699937f0670';
-  const isAdmin = userRole === 'admin';
 
   return (
-    <nav className="bg-background border-b py-3 px-4 sm:px-6">
+    <nav className="sticky top-0 z-50 bg-background border-b py-3 px-4 sm:px-6">
       <div className="container mx-auto flex justify-between items-center">
         <div className="flex items-center flex-col sm:flex-row">
           <Link to="/" className="flex items-center">
@@ -118,17 +125,52 @@ export function Navigation() {
           <span className="text-xs text-gray-600 italic sm:ml-2">It takes a village to care</span>
         </div>
         
-        {/* Mobile menu button */}
-        {isMobile && (
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            className="lg:hidden" 
-            onClick={() => setIsMenuOpen(!isMenuOpen)}
-          >
-            <Menu className="h-5 w-5" />
-          </Button>
-        )}
+        <div className="flex items-center gap-2">
+          {/* Help/Support Button */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="sm" className="flex items-center gap-1">
+                <HelpCircle className="h-4 w-4" />
+                {!isMobile && <span className="hidden sm:inline">Help</span>}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuGroup>
+                <DropdownMenuLabel>Support Options</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => window.open('/support/faq', '_blank')}>
+                  <FileText className="h-4 w-4 mr-2" />
+                  FAQ Section
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleWhatsAppSupport}>
+                  <MessageSquare className="h-4 w-4 mr-2" />
+                  WhatsApp Support
+                  <ExternalLink className="h-3 w-3 ml-auto" />
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleContactSupport}>
+                  <Phone className="h-4 w-4 mr-2" />
+                  Contact Support
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleGiveFeedback}>
+                  <MessageSquare className="h-4 w-4 mr-2" />
+                  Give Feedback
+                </DropdownMenuItem>
+              </DropdownMenuGroup>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          {/* Mobile menu button */}
+          {isMobile && (
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="lg:hidden" 
+              onClick={() => setIsMenuOpen(!isMenuOpen)}
+            >
+              <Menu className="h-5 w-5" />
+            </Button>
+          )}
+        </div>
         
         <div className={`${isMobile ? (isMenuOpen ? "flex flex-col absolute top-16 left-0 right-0 bg-background border-b z-50 p-4 space-y-3" : "hidden") : "flex items-center gap-4"}`}>
           {(!isMobile || isMenuOpen) && (
