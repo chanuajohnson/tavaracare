@@ -1,12 +1,14 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { HorizontalTabs, HorizontalTabsContent, HorizontalTabsList, HorizontalTabsTrigger } from "@/components/ui/horizontal-scroll-tabs";
 import { Calendar, Settings, List, Clock, BarChart3, AlertCircle } from "lucide-react";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { AdminCalendarView } from './AdminCalendarView';
 import { AdminBookingTable } from './AdminBookingTable';
 import { AdminScheduleSettings } from './AdminScheduleSettings';
 import { AdminBookingFilters } from './AdminBookingFilters';
+import { ScheduleVisitDialog } from './ScheduleVisitDialog';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from "sonner";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -25,6 +27,7 @@ interface AdminConfig {
 interface VisitBooking {
   id: string;
   user_id: string;
+  user_full_name: string;
   booking_date: string;
   booking_time: string;
   visit_type: 'virtual' | 'in_person';
@@ -36,10 +39,6 @@ interface VisitBooking {
   admin_notes?: string;
   nurse_assigned?: string;
   confirmation_sent: boolean;
-  profiles?: {
-    full_name: string;
-    email?: string;
-  } | null;
 }
 
 interface BookingFilters {
@@ -100,12 +99,13 @@ export const AdminVisitScheduleManager = () => {
     try {
       console.log('Fetching visit bookings...');
       
-      // First, check if visit_bookings table exists and has data
+      // Fetch bookings using the existing user_full_name field
       const { data, error } = await supabase
         .from('visit_bookings')
         .select(`
           id,
           user_id,
+          user_full_name,
           booking_date,
           booking_time,
           visit_type,
@@ -116,17 +116,12 @@ export const AdminVisitScheduleManager = () => {
           family_phone,
           admin_notes,
           nurse_assigned,
-          confirmation_sent,
-          profiles (
-            full_name,
-            email
-          )
+          confirmation_sent
         `)
         .order('booking_date', { ascending: true });
 
       if (error) {
         console.error('Error fetching bookings:', error);
-        // If table doesn't exist or there's a relationship error, set empty bookings
         if (error.message.includes('relation') || error.message.includes('does not exist')) {
           console.log('Visit bookings table issue, setting empty array');
           setBookings([]);
@@ -136,31 +131,12 @@ export const AdminVisitScheduleManager = () => {
       }
       
       // Transform the data to match our interface
-      const transformedBookings = (data || []).map(booking => {
-        let profileData = null;
-        
-        // Safely check if profiles data exists and is valid
-        if (booking.profiles && typeof booking.profiles === 'object') {
-          // Check if it's an error object (has 'error' property)
-          const profilesData = booking.profiles as any;
-          
-          if (!profilesData.error && !Array.isArray(profilesData)) {
-            // It's a single profile object
-            profileData = profilesData as { full_name: string; email?: string };
-          } else if (Array.isArray(profilesData) && profilesData.length > 0) {
-            // It's an array of profiles, take the first one
-            profileData = profilesData[0] as { full_name: string; email?: string };
-          }
-          // If it's an error object or empty array, profileData remains null
-        }
-        
-        return {
-          ...booking,
-          visit_type: booking.visit_type as 'virtual' | 'in_person',
-          admin_status: booking.admin_status as AdminStatus,
-          profiles: profileData
-        };
-      });
+      const transformedBookings = (data || []).map(booking => ({
+        ...booking,
+        visit_type: booking.visit_type as 'virtual' | 'in_person',
+        admin_status: booking.admin_status as AdminStatus,
+        user_full_name: booking.user_full_name || 'Unknown User'
+      }));
       
       console.log('Bookings fetched:', transformedBookings.length);
       setBookings(transformedBookings);
@@ -168,7 +144,6 @@ export const AdminVisitScheduleManager = () => {
       console.error('Error in fetchBookings:', error);
       setError(`Failed to load visit bookings: ${error.message}`);
       toast.error('Failed to load visit bookings');
-      // Set empty bookings to prevent crashes
       setBookings([]);
     }
   };
@@ -177,7 +152,7 @@ export const AdminVisitScheduleManager = () => {
   const filteredBookings = bookings.filter(booking => {
     if (filters.status && booking.admin_status !== filters.status) return false;
     if (filters.visitType && booking.visit_type !== filters.visitType) return false;
-    if (filters.searchTerm && !booking.profiles?.full_name?.toLowerCase().includes(filters.searchTerm.toLowerCase())) return false;
+    if (filters.searchTerm && !booking.user_full_name?.toLowerCase().includes(filters.searchTerm.toLowerCase())) return false;
     
     if (filters.nurseAssigned) {
       if (filters.nurseAssigned === 'unassigned' && booking.nurse_assigned) return false;
@@ -250,7 +225,6 @@ export const AdminVisitScheduleManager = () => {
           </AlertDescription>
         </Alert>
         
-        {/* Show a retry button */}
         <div className="mt-4">
           <button 
             onClick={() => window.location.reload()}
@@ -270,21 +244,26 @@ export const AdminVisitScheduleManager = () => {
         <Breadcrumb items={breadcrumbItems} />
       </div>
 
-      {/* Header */}
+      {/* Header with Schedule Button */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">Visit Schedule Management</h1>
-        <p className="text-muted-foreground">
-          Manage family visit bookings, configure availability, and coordinate with nurses.
-        </p>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold mb-2">Visit Schedule Management</h1>
+            <p className="text-muted-foreground">
+              Manage family visit bookings, configure availability, and coordinate with nurses.
+            </p>
+          </div>
+          <ScheduleVisitDialog onVisitScheduled={handleBookingUpdate} />
+        </div>
       </div>
 
       {/* Summary Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Total Bookings</p>
+                <p className="text-sm text-muted-foreground">Total</p>
                 <p className="text-2xl font-bold">{bookings.length}</p>
               </div>
               <Calendar className="h-8 w-8 text-blue-500" />
@@ -340,27 +319,27 @@ export const AdminVisitScheduleManager = () => {
         </Card>
       </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="calendar" className="flex items-center gap-2">
+      <HorizontalTabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+        <HorizontalTabsList className="grid w-full grid-cols-4">
+          <HorizontalTabsTrigger value="calendar">
             <Calendar className="h-4 w-4" />
-            Calendar View
-          </TabsTrigger>
-          <TabsTrigger value="bookings" className="flex items-center gap-2">
+            <span className="hidden sm:inline ml-2">Calendar</span>
+          </HorizontalTabsTrigger>
+          <HorizontalTabsTrigger value="bookings">
             <List className="h-4 w-4" />
-            All Bookings
-          </TabsTrigger>
-          <TabsTrigger value="settings" className="flex items-center gap-2">
+            <span className="hidden sm:inline ml-2">Bookings</span>
+          </HorizontalTabsTrigger>
+          <HorizontalTabsTrigger value="settings">
             <Settings className="h-4 w-4" />
-            Schedule Settings
-          </TabsTrigger>
-          <TabsTrigger value="analytics" className="flex items-center gap-2">
+            <span className="hidden sm:inline ml-2">Settings</span>
+          </HorizontalTabsTrigger>
+          <HorizontalTabsTrigger value="analytics">
             <BarChart3 className="h-4 w-4" />
-            Analytics
-          </TabsTrigger>
-        </TabsList>
+            <span className="hidden sm:inline ml-2">Analytics</span>
+          </HorizontalTabsTrigger>
+        </HorizontalTabsList>
 
-        <TabsContent value="calendar" className="space-y-6">
+        <HorizontalTabsContent value="calendar" className="space-y-6">
           <Card>
             <CardHeader>
               <CardTitle>Monthly Calendar View</CardTitle>
@@ -380,9 +359,9 @@ export const AdminVisitScheduleManager = () => {
               )}
             </CardContent>
           </Card>
-        </TabsContent>
+        </HorizontalTabsContent>
 
-        <TabsContent value="bookings" className="space-y-6">
+        <HorizontalTabsContent value="bookings" className="space-y-6">
           <AdminBookingFilters
             filters={filters}
             onFiltersChange={setFilters}
@@ -401,9 +380,9 @@ export const AdminVisitScheduleManager = () => {
               />
             </CardContent>
           </Card>
-        </TabsContent>
+        </HorizontalTabsContent>
 
-        <TabsContent value="settings" className="space-y-6">
+        <HorizontalTabsContent value="settings" className="space-y-6">
           <Card>
             <CardHeader>
               <CardTitle>Schedule Configuration</CardTitle>
@@ -415,9 +394,9 @@ export const AdminVisitScheduleManager = () => {
               />
             </CardContent>
           </Card>
-        </TabsContent>
+        </HorizontalTabsContent>
 
-        <TabsContent value="analytics" className="space-y-6">
+        <HorizontalTabsContent value="analytics" className="space-y-6">
           <Card>
             <CardHeader>
               <CardTitle>Visit Analytics</CardTitle>
@@ -430,8 +409,8 @@ export const AdminVisitScheduleManager = () => {
               </div>
             </CardContent>
           </Card>
-        </TabsContent>
-      </Tabs>
+        </HorizontalTabsContent>
+      </HorizontalTabs>
     </div>
   );
 };

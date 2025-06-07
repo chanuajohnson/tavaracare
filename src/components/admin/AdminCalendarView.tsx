@@ -8,15 +8,13 @@ import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isToday
 interface VisitBooking {
   id: string;
   user_id: string;
+  user_full_name: string;
   booking_date: string;
   booking_time: string;
   visit_type: 'virtual' | 'in_person';
   status: string;
   payment_status: string;
   admin_status: string;
-  profiles?: {
-    full_name: string;
-  };
 }
 
 interface AdminConfig {
@@ -71,7 +69,7 @@ export const AdminCalendarView: React.FC<AdminCalendarViewProps> = ({
   return (
     <div className="space-y-6">
       {/* Calendar Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="flex items-center gap-4">
           <Button 
             variant="outline" 
@@ -94,24 +92,24 @@ export const AdminCalendarView: React.FC<AdminCalendarViewProps> = ({
           </Button>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2 text-xs">
           <Badge variant="outline" className="bg-green-50 text-green-700">
             <Clock className="h-3 w-3 mr-1" />
             Available Days
           </Badge>
           <Badge variant="outline" className="bg-blue-50 text-blue-700">
             <Video className="h-3 w-3 mr-1" />
-            Virtual Visits
+            Virtual
           </Badge>
           <Badge variant="outline" className="bg-purple-50 text-purple-700">
             <Home className="h-3 w-3 mr-1" />
-            In-Person Visits
+            In-Person
           </Badge>
         </div>
       </div>
 
       {/* Calendar Grid */}
-      <div className="grid grid-cols-7 gap-2">
+      <div className="grid grid-cols-7 gap-1 sm:gap-2">
         {/* Day Headers */}
         {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
           <div key={day} className="p-2 text-center text-sm font-medium text-muted-foreground">
@@ -129,13 +127,13 @@ export const AdminCalendarView: React.FC<AdminCalendarViewProps> = ({
             <div
               key={date.toISOString()}
               className={`
-                min-h-[100px] p-2 border rounded-lg relative
+                min-h-[80px] sm:min-h-[100px] p-1 sm:p-2 border rounded-lg relative
                 ${isToday(date) ? 'ring-2 ring-primary' : ''}
                 ${isAvailable ? 'bg-green-50' : 'bg-gray-50'}
                 ${isPastDate ? 'opacity-60' : ''}
               `}
             >
-              <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center justify-between mb-1 sm:mb-2">
                 <span className={`text-sm font-medium ${isToday(date) ? 'text-primary' : ''}`}>
                   {format(date, 'd')}
                 </span>
@@ -152,20 +150,20 @@ export const AdminCalendarView: React.FC<AdminCalendarViewProps> = ({
                       p-1 rounded text-xs cursor-pointer
                       ${booking.visit_type === 'virtual' ? 'bg-blue-100 text-blue-800' : 'bg-purple-100 text-purple-800'}
                     `}
-                    title={`${booking.profiles?.full_name} - ${booking.booking_time} (${booking.admin_status})`}
+                    title={`${booking.user_full_name} - ${booking.booking_time} (${booking.admin_status})`}
                   >
                     <div className="flex items-center gap-1">
                       {booking.visit_type === 'virtual' ? (
-                        <Video className="h-3 w-3" />
+                        <Video className="h-2 w-2 sm:h-3 sm:w-3" />
                       ) : (
-                        <Home className="h-3 w-3" />
+                        <Home className="h-2 w-2 sm:h-3 sm:w-3" />
                       )}
-                      <span className="truncate">
+                      <span className="truncate text-xs">
                         {booking.booking_time}
                       </span>
                     </div>
-                    <div className="truncate font-medium">
-                      {booking.profiles?.full_name || 'Unknown'}
+                    <div className="truncate font-medium text-xs">
+                      {booking.user_full_name}
                     </div>
                     <Badge 
                       variant="outline" 
