@@ -79,16 +79,20 @@ export const InternalSchedulingModal = ({
 
       if (profileError) throw profileError;
 
-      // Create visit booking record
+      // Create visit booking record with all required fields
       const { error: bookingError } = await supabase
         .from('visit_bookings')
         .insert({
+          id: crypto.randomUUID(),
           user_id: user.id,
+          availability_slot_id: crypto.randomUUID(), // Required field - using generated ID for virtual visits
           booking_date: details.date,
           booking_time: details.time,
           visit_type: details.type,
           status: 'scheduled',
-          payment_status: 'not_required'
+          payment_status: 'not_required',
+          payment_amount: 0,
+          payment_currency: 'TTD'
         });
 
       if (bookingError) {

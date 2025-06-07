@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -48,7 +49,7 @@ interface JourneyStageCardProps {
   visitDetails?: {
     date: string;
     time: string;
-    type: 'virtual' | 'in-person';
+    type: 'virtual' | 'in_person';
   };
 }
 
