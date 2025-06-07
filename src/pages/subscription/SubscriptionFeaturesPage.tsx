@@ -1,13 +1,7 @@
+
 import React, { useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { 
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator
-} from "@/components/ui/breadcrumb";
+import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
 import { Home, Lock, CheckCircle, ArrowRight, Heart, Users, Shield, Star } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -139,25 +133,15 @@ export default function SubscriptionFeaturesPage() {
 
   // Demo flow specific content
   if (isFromDemoFlow) {
+    const breadcrumbItems = [
+      { label: 'Home', href: '/' },
+      { label: 'Choose Your Care Plan', href: location.pathname, current: true }
+    ];
+
     return (
       <div className="container px-4 py-8">
         <div className="mb-8">
-          <Breadcrumb>
-            <BreadcrumbList>
-              <BreadcrumbItem>
-                <BreadcrumbLink asChild>
-                  <Link to="/" className="flex items-center gap-1">
-                    <Home className="h-4 w-4" />
-                    <span>Home</span>
-                  </Link>
-                </BreadcrumbLink>
-              </BreadcrumbItem>
-              <BreadcrumbItem>
-                <BreadcrumbSeparator />
-                <BreadcrumbPage>Choose Your Care Plan</BreadcrumbPage>
-              </BreadcrumbItem>
-            </BreadcrumbList>
-          </Breadcrumb>
+          <Breadcrumb items={breadcrumbItems} />
         </div>
         
         <div className="max-w-4xl mx-auto">
@@ -281,36 +265,16 @@ export default function SubscriptionFeaturesPage() {
   }
 
   // Regular flow content (existing code)
+  const breadcrumbItems = [
+    { label: 'Home', href: '/' },
+    ...(dashboardPath && dashboardPath !== "/" ? [{ label: dashboardLabel !== "Home" ? dashboardLabel : "Dashboard", href: dashboardPath }] : []),
+    { label: 'Premium Features', href: location.pathname, current: true }
+  ];
+
   return (
     <div className="container px-4 py-8">
       <div className="mb-8">
-        <Breadcrumb>
-          <BreadcrumbList>
-            <BreadcrumbItem>
-              <BreadcrumbLink asChild>
-                <Link to="/" className="flex items-center gap-1">
-                  <Home className="h-4 w-4" />
-                  <span>Home</span>
-                </Link>
-              </BreadcrumbLink>
-            </BreadcrumbItem>
-            
-            {/* Always show the dashboard breadcrumb item, but ensure it's not "Home" again */}
-            {dashboardPath && dashboardPath !== "/" && (
-              <BreadcrumbItem>
-                <BreadcrumbSeparator />
-                <BreadcrumbLink asChild>
-                  <Link to={dashboardPath}>{dashboardLabel !== "Home" ? dashboardLabel : "Dashboard"}</Link>
-                </BreadcrumbLink>
-              </BreadcrumbItem>
-            )}
-            
-            <BreadcrumbItem>
-              <BreadcrumbSeparator />
-              <BreadcrumbPage>Premium Features</BreadcrumbPage>
-            </BreadcrumbItem>
-          </BreadcrumbList>
-        </Breadcrumb>
+        <Breadcrumb items={breadcrumbItems} />
       </div>
       
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
