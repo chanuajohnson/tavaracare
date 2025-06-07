@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -10,11 +10,22 @@ import { useAuth } from '@/components/providers/AuthProvider';
 import { supabase } from '@/lib/supabase';
 import { toast } from "sonner";
 import { PayPalPaymentModal } from './PayPalPaymentModal';
+import { format, addDays } from 'date-fns';
 
 interface InternalSchedulingModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onVisitScheduled?: () => void;
+}
+
+interface AvailableSlot {
+  id: string;
+  date: string;
+  start_time: string;
+  end_time: string;
+  is_available: boolean;
+  current_bookings: number;
+  max_bookings: number;
 }
 
 export const InternalSchedulingModal = ({ 
@@ -24,30 +35,65 @@ export const InternalSchedulingModal = ({
 }: InternalSchedulingModalProps) => {
   const { user } = useAuth();
   const [visitType, setVisitType] = useState<'virtual' | 'in_person'>('virtual');
-  const [selectedDate, setSelectedDate] = useState('');
-  const [selectedTime, setSelectedTime] = useState('');
+  const [selectedSlot, setSelectedSlot] = useState<AvailableSlot | null>(null);
   const [isConfirmed, setIsConfirmed] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [visitDetails, setVisitDetails] = useState<any>(null);
+  const [availableSlots, setAvailableSlots] = useState<AvailableSlot[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const availableDates = [
-    { date: '2024-01-15', display: 'Mon, Jan 15' },
-    { date: '2024-01-16', display: 'Tue, Jan 16' },
-    { date: '2024-01-17', display: 'Wed, Jan 17' },
-    { date: '2024-01-18', display: 'Thu, Jan 18' },
-  ];
+  useEffect(() => {
+    if (open) {
+      fetchAvailableSlots();
+    }
+  }, [open]);
 
-  const availableTimes = [
-    '9:00 AM', '10:00 AM', '11:00 AM', '2:00 PM', '3:00 PM', '4:00 PM'
-  ];
+  const fetchAvailableSlots = async () => {
+    setLoading(true);
+    try {
+      // Get admin configuration first
+      const { data: configData, error: configError } = await supabase
+        .from('admin_visit_config')
+        .select('*')
+        .limit(1)
+        .single();
+
+      if (configError) throw configError;
+
+      // Calculate date range (14 days from today as per admin config)
+      const today = new Date();
+      const maxDate = addDays(today, configData.advance_booking_days);
+
+      // Fetch available slots within the date range
+      const { data: slotsData, error: slotsError } = await supabase
+        .from('admin_availability_slots')
+        .select('*')
+        .gte('date', today.toISOString().split('T')[0])
+        .lte('date', maxDate.toISOString().split('T')[0])
+        .eq('is_available', true)
+        .lt('current_bookings', configData.max_bookings_per_day)
+        .order('date', { ascending: true });
+
+      if (slotsError) throw slotsError;
+
+      setAvailableSlots(slotsData || []);
+    } catch (error) {
+      console.error('Error fetching available slots:', error);
+      toast.error('Failed to load available appointment slots');
+      setAvailableSlots([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleConfirmBooking = async () => {
-    if (!selectedDate || !selectedTime || !user) return;
+    if (!selectedSlot || !user) return;
 
     const details = {
-      date: selectedDate,
-      time: selectedTime,
-      type: visitType
+      date: selectedSlot.date,
+      time: selectedSlot.start_time,
+      type: visitType,
+      slotId: selectedSlot.id
     };
 
     if (visitType === 'in_person') {
@@ -85,14 +131,15 @@ export const InternalSchedulingModal = ({
         .insert({
           id: crypto.randomUUID(),
           user_id: user.id,
-          availability_slot_id: crypto.randomUUID(), // Required field - using generated ID for virtual visits
+          availability_slot_id: details.slotId,
           booking_date: details.date,
           booking_time: details.time,
           visit_type: details.type,
           status: 'scheduled',
           payment_status: 'not_required',
           payment_amount: 0,
-          payment_currency: 'TTD'
+          payment_currency: 'TTD',
+          admin_status: 'pending'
         });
 
       if (bookingError) {
@@ -137,8 +184,7 @@ export const InternalSchedulingModal = ({
 
   const resetModal = () => {
     setVisitType('virtual');
-    setSelectedDate('');
-    setSelectedTime('');
+    setSelectedSlot(null);
     setIsConfirmed(false);
     setShowPaymentModal(false);
     setVisitDetails(null);
@@ -149,6 +195,14 @@ export const InternalSchedulingModal = ({
       resetModal();
     }
     onOpenChange(open);
+  };
+
+  const formatSlotDisplay = (slot: AvailableSlot) => {
+    const date = new Date(slot.date);
+    return {
+      display: format(date, 'EEE, MMM d'),
+      date: slot.date
+    };
   };
 
   if (isConfirmed) {
@@ -163,7 +217,7 @@ export const InternalSchedulingModal = ({
               Visit Scheduled Successfully!
             </h3>
             <p className="text-gray-600 mb-4">
-              Your {visitType === 'virtual' ? 'virtual' : 'in-person'} visit is confirmed for {availableDates.find(d => d.date === selectedDate)?.display} at {selectedTime}.
+              Your {visitType === 'virtual' ? 'virtual' : 'in-person'} visit is confirmed for {selectedSlot && formatSlotDisplay(selectedSlot).display} at {selectedSlot?.start_time}.
             </p>
             <p className="text-sm text-gray-500">
               You'll receive a confirmation email shortly with all the details.
@@ -236,52 +290,59 @@ export const InternalSchedulingModal = ({
               </ul>
             </div>
 
-            {/* Date Selection */}
-            <div>
-              <h3 className="text-lg font-semibold mb-4">Select Date</h3>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                {availableDates.map((dateOption) => (
-                  <Button
-                    key={dateOption.date}
-                    variant={selectedDate === dateOption.date ? "default" : "outline"}
-                    className="p-3 h-auto flex flex-col items-center"
-                    onClick={() => setSelectedDate(dateOption.date)}
-                  >
-                    <Calendar className="h-4 w-4 mb-1" />
-                    <span className="text-xs">{dateOption.display}</span>
-                  </Button>
-                ))}
+            {/* Available Slots */}
+            {loading ? (
+              <div className="text-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
+                <p className="text-sm text-muted-foreground">Loading available appointments...</p>
               </div>
-            </div>
-
-            {/* Time Selection */}
-            {selectedDate && (
+            ) : (
               <div>
-                <h3 className="text-lg font-semibold mb-4">Select Time</h3>
-                <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
-                  {availableTimes.map((time) => (
-                    <Button
-                      key={time}
-                      variant={selectedTime === time ? "default" : "outline"}
-                      className="p-2 h-auto flex items-center justify-center"
-                      onClick={() => setSelectedTime(time)}
-                    >
-                      <Clock className="h-3 w-3 mr-1" />
-                      <span className="text-xs">{time}</span>
-                    </Button>
-                  ))}
-                </div>
+                <h3 className="text-lg font-semibold mb-4">Select Available Appointment</h3>
+                {availableSlots.length > 0 ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {availableSlots.map((slot) => {
+                      const slotDisplay = formatSlotDisplay(slot);
+                      return (
+                        <Button
+                          key={slot.id}
+                          variant={selectedSlot?.id === slot.id ? "default" : "outline"}
+                          className="p-4 h-auto flex flex-col items-start"
+                          onClick={() => setSelectedSlot(slot)}
+                        >
+                          <div className="flex items-center gap-2 mb-1">
+                            <Calendar className="h-4 w-4" />
+                            <span className="font-medium">{slotDisplay.display}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Clock className="h-3 w-3" />
+                            <span className="text-sm">{slot.start_time} - {slot.end_time}</span>
+                          </div>
+                          <div className="text-xs text-muted-foreground mt-1">
+                            {slot.current_bookings}/{slot.max_bookings} booked
+                          </div>
+                        </Button>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <Calendar className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                    <p>No available appointment slots found</p>
+                    <p className="text-sm">Please check back later or contact support</p>
+                  </div>
+                )}
               </div>
             )}
 
             {/* Confirmation */}
-            {selectedDate && selectedTime && (
+            {selectedSlot && (
               <div className="bg-green-50 p-4 rounded-lg border border-green-200">
                 <h4 className="font-medium text-green-900 mb-2">Visit Summary:</h4>
                 <div className="text-sm text-green-800">
                   <p><strong>Type:</strong> {visitType === 'virtual' ? 'Virtual Visit' : 'In-Person Home Visit'}</p>
-                  <p><strong>Date:</strong> {availableDates.find(d => d.date === selectedDate)?.display}</p>
-                  <p><strong>Time:</strong> {selectedTime}</p>
+                  <p><strong>Date:</strong> {formatSlotDisplay(selectedSlot).display}</p>
+                  <p><strong>Time:</strong> {selectedSlot.start_time} - {selectedSlot.end_time}</p>
                   <p><strong>Cost:</strong> {visitType === 'virtual' ? 'FREE' : '$300 TTD'}</p>
                 </div>
               </div>
@@ -298,7 +359,7 @@ export const InternalSchedulingModal = ({
               </Button>
               <Button 
                 onClick={handleConfirmBooking}
-                disabled={!selectedDate || !selectedTime}
+                disabled={!selectedSlot}
                 className="flex-1"
               >
                 {visitType === 'in_person' ? 'Proceed to Payment' : 'Confirm Booking'}

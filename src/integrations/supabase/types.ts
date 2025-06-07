@@ -12,6 +12,7 @@ export type Database = {
       admin_availability_slots: {
         Row: {
           admin_id: string | null
+          config_id: string | null
           created_at: string
           created_by: string | null
           current_bookings: number
@@ -20,6 +21,7 @@ export type Database = {
           end_time: string
           id: string
           is_available: boolean
+          is_blocked: boolean | null
           is_default_slot: boolean | null
           max_bookings: number
           slot_type: string | null
@@ -28,6 +30,7 @@ export type Database = {
         }
         Insert: {
           admin_id?: string | null
+          config_id?: string | null
           created_at?: string
           created_by?: string | null
           current_bookings?: number
@@ -36,6 +39,7 @@ export type Database = {
           end_time: string
           id?: string
           is_available?: boolean
+          is_blocked?: boolean | null
           is_default_slot?: boolean | null
           max_bookings?: number
           slot_type?: string | null
@@ -44,6 +48,7 @@ export type Database = {
         }
         Update: {
           admin_id?: string | null
+          config_id?: string | null
           created_at?: string
           created_by?: string | null
           current_bookings?: number
@@ -52,13 +57,54 @@ export type Database = {
           end_time?: string
           id?: string
           is_available?: boolean
+          is_blocked?: boolean | null
           is_default_slot?: boolean | null
           max_bookings?: number
           slot_type?: string | null
           start_time?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "admin_availability_slots_config_id_fkey"
+            columns: ["config_id"]
+            isOneToOne: false
+            referencedRelation: "admin_visit_config"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      admin_blocked_dates: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          date: string
+          id: string
+          reason: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          date: string
+          id?: string
+          reason?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          date?: string
+          id?: string
+          reason?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "admin_blocked_dates_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       admin_communications: {
         Row: {
@@ -120,6 +166,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      admin_visit_config: {
+        Row: {
+          advance_booking_days: number
+          available_days: string[]
+          created_at: string | null
+          end_time: string
+          id: string
+          max_bookings_per_day: number
+          start_time: string
+          updated_at: string | null
+        }
+        Insert: {
+          advance_booking_days?: number
+          available_days?: string[]
+          created_at?: string | null
+          end_time?: string
+          id?: string
+          max_bookings_per_day?: number
+          start_time?: string
+          updated_at?: string | null
+        }
+        Update: {
+          advance_booking_days?: number
+          available_days?: string[]
+          created_at?: string | null
+          end_time?: string
+          id?: string
+          max_bookings_per_day?: number
+          start_time?: string
+          updated_at?: string | null
+        }
+        Relationships: []
       }
       analytics_aggregations: {
         Row: {
@@ -3251,8 +3330,11 @@ export type Database = {
           cancelled_at: string | null
           confirmation_sent: boolean
           created_at: string
+          family_address: string | null
+          family_phone: string | null
           id: string
           is_cancelled: boolean | null
+          nurse_assigned: string | null
           original_booking_date: string | null
           original_booking_time: string | null
           payment_amount: number | null
@@ -3280,8 +3362,11 @@ export type Database = {
           cancelled_at?: string | null
           confirmation_sent?: boolean
           created_at?: string
+          family_address?: string | null
+          family_phone?: string | null
           id?: string
           is_cancelled?: boolean | null
+          nurse_assigned?: string | null
           original_booking_date?: string | null
           original_booking_time?: string | null
           payment_amount?: number | null
@@ -3309,8 +3394,11 @@ export type Database = {
           cancelled_at?: string | null
           confirmation_sent?: boolean
           created_at?: string
+          family_address?: string | null
+          family_phone?: string | null
           id?: string
           is_cancelled?: boolean | null
+          nurse_assigned?: string | null
           original_booking_date?: string | null
           original_booking_time?: string | null
           payment_amount?: number | null
@@ -3334,6 +3422,13 @@ export type Database = {
             columns: ["availability_slot_id"]
             isOneToOne: false
             referencedRelation: "admin_availability_slots"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "visit_bookings_nurse_assigned_fkey"
+            columns: ["nurse_assigned"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -3609,6 +3704,10 @@ export type Database = {
           status: string
           notes: string
         }[]
+      }
+      generate_admin_configured_slots: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
       }
       generate_default_availability_slots: {
         Args: Record<PropertyKey, never>

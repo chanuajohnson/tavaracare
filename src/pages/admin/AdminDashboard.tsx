@@ -1,186 +1,111 @@
-import { motion } from "framer-motion";
-import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
-import { DashboardCardGrid } from "@/components/dashboard/DashboardCardGrid";
-import { FeatureInterestTracker } from "@/components/admin/FeatureInterestTracker";
-import { AdminUserManagement } from "@/components/admin/AdminUserManagement";
-import { WhatsAppTemplateManager } from "@/components/admin/WhatsAppTemplateManager";
-import { FeedbackManagement } from "@/components/admin/FeedbackManagement";
-import { AdminProfileCard } from "@/components/admin/AdminProfileCard";
-import { useAuth } from "@/components/providers/AuthProvider";
-import { Link } from "react-router-dom";
+
+import React from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { BarChart, MessageSquare, Users, TrendingUp, HeadphonesIcon, User } from "lucide-react";
-import { UserJourneyTracker } from "@/components/tracking/UserJourneyTracker";
-import { useJourneyTracking } from "@/hooks/useJourneyTracking";
-import { useState, useEffect } from "react";
-import { supabase } from "@/lib/supabase";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { MessageSquare, Users, Calendar, TrendingUp, BarChart } from "lucide-react";
+import { AdminUserManagement } from "@/components/admin/AdminUserManagement";
+import { FeatureInterestTracker } from "@/components/admin/FeatureInterestTracker";
+import { FeedbackManagement } from "@/components/admin/FeedbackManagement";
 
-const AdminDashboard = () => {
-  const { user } = useAuth();
-  const [userRole, setUserRole] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+export default function AdminDashboard() {
+  const navigate = useNavigate();
 
-  const breadcrumbItems = [
-    {
-      label: "Admin",
-      path: "/dashboard/admin",
-    },
-  ];
+  const handleVisitScheduleClick = () => {
+    navigate('/admin/visit-schedule');
+  };
 
-  // Check if current user is an admin
-  useEffect(() => {
-    const checkAdminRole = async () => {
-      if (user?.id) {
-        try {
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('role')
-            .eq('id', user.id)
-            .maybeSingle();
-          
-          setUserRole(profile?.role || null);
-        } catch (error) {
-          console.error('Error checking user role:', error);
-          setUserRole(null);
-        }
-      }
-      setLoading(false);
-    };
+  const handleFeedbackClick = () => {
+    navigate('/admin/feedback');
+  };
 
-    checkAdminRole();
-  }, [user?.id]);
-
-  // Track admin dashboard visits
-  useJourneyTracking({
-    journeyStage: "admin_dashboard_visit",
-    additionalData: {
-      admin_section: "main_dashboard"
-    }
-  });
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-      </div>
-    );
-  }
-
-  // Only show admin content if user is actually an admin
-  if (userRole !== 'admin') {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">Access Denied</h1>
-          <p className="text-gray-600">You don't have permission to access the admin dashboard.</p>
-        </div>
-      </div>
-    );
-  }
+  const handleJourneyClick = () => {
+    navigate('/admin/user-journey');
+  };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="container px-4 py-8">
-        {/* Also add the component-based tracking for demonstration */}
-        <UserJourneyTracker 
-          journeyStage="admin_section_view" 
-          additionalData={{ section: "admin_dashboard" }}
-        />
+    <div className="container mx-auto px-4 py-8">
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold mb-2">Admin Dashboard</h1>
+        <p className="text-muted-foreground">
+          Manage users, monitor engagement, and track platform health.
+        </p>
+      </div>
+
+      {/* Quick Actions */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <Button
+          onClick={handleVisitScheduleClick}
+          className="h-20 flex flex-col items-center justify-center gap-2"
+          variant="outline"
+        >
+          <Calendar className="h-6 w-6" />
+          <span className="text-sm font-medium">Visit Schedule Management</span>
+        </Button>
         
-        <DashboardHeader
-          breadcrumbItems={breadcrumbItems}
-        />
-
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="mb-8"
+        <Button
+          onClick={handleFeedbackClick}
+          className="h-20 flex flex-col items-center justify-center gap-2"
+          variant="outline"
         >
-          <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
-          <p className="text-gray-600 mt-2">Manage system settings, user accounts, and communication templates.</p>
-        </motion.div>
-
-        {/* Admin Profile Card */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.1 }}
-          className="mb-8"
+          <MessageSquare className="h-6 w-6" />
+          <span className="text-sm font-medium">TAVARA Feedback</span>
+        </Button>
+        
+        <Button
+          onClick={handleJourneyClick}
+          className="h-20 flex flex-col items-center justify-center gap-2"
+          variant="outline"
         >
-          <AdminProfileCard />
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.2 }}
-          className="mb-6 flex gap-3"
+          <TrendingUp className="h-6 w-6" />
+          <span className="text-sm font-medium">User Journey Analytics</span>
+        </Button>
+        
+        <Button
+          className="h-20 flex flex-col items-center justify-center gap-2"
+          variant="outline"
+          disabled
         >
-          <Link to="/admin/user-journey">
-            <Button className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700">
-              <BarChart className="h-4 w-4" />
-              User Journey Analytics
-            </Button>
-          </Link>
-          <Link to="/admin/feedback">
-            <Button className="flex items-center gap-2 bg-green-600 hover:bg-green-700">
-              <HeadphonesIcon className="h-4 w-4" />
-              TAVARA Feedback
-            </Button>
-          </Link>
-        </motion.div>
+          <BarChart className="h-6 w-6" />
+          <span className="text-sm font-medium">Platform Analytics</span>
+        </Button>
+      </div>
 
-        <div className="space-y-8">
-          <Tabs defaultValue="users" className="w-full">
-            <TabsList className="grid w-full grid-cols-5">
-              <TabsTrigger value="users" className="flex items-center gap-2">
-                <Users className="h-4 w-4" />
-                User Management
-              </TabsTrigger>
-              <TabsTrigger value="feedback" className="flex items-center gap-2">
-                <HeadphonesIcon className="h-4 w-4" />
-                Feedback Management
-              </TabsTrigger>
-              <TabsTrigger value="templates" className="flex items-center gap-2">
-                <MessageSquare className="h-4 w-4" />
-                WhatsApp Templates
-              </TabsTrigger>
-              <TabsTrigger value="analytics" className="flex items-center gap-2">
-                <TrendingUp className="h-4 w-4" />
-                Feature Analytics
-              </TabsTrigger>
-              <TabsTrigger value="overview" className="flex items-center gap-2">
-                <BarChart className="h-4 w-4" />
-                System Overview
-              </TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="users" className="mt-6">
-              <AdminUserManagement />
-            </TabsContent>
-            
-            <TabsContent value="feedback" className="mt-6">
-              <FeedbackManagement />
-            </TabsContent>
-            
-            <TabsContent value="templates" className="mt-6">
-              <WhatsAppTemplateManager />
-            </TabsContent>
-            
-            <TabsContent value="analytics" className="mt-6">
-              <FeatureInterestTracker />
-            </TabsContent>
-            
-            <TabsContent value="overview" className="mt-6">
-              <DashboardCardGrid />
-            </TabsContent>
-          </Tabs>
-        </div>
+      {/* Main Content */}
+      <div className="grid gap-8">
+        {/* User Management */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Users className="h-5 w-5" />
+              User Management
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <AdminUserManagement />
+          </CardContent>
+        </Card>
+
+        {/* Feature Interest Tracking */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Feature Interest Tracking</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <FeatureInterestTracker />
+          </CardContent>
+        </Card>
+
+        {/* Feedback Management */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Recent Feedback</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <FeedbackManagement />
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
-};
-
-export default AdminDashboard;
+}
