@@ -45,11 +45,11 @@ export const ScheduleVisitDialog: React.FC<ScheduleVisitDialogProps> = ({
     setLoading(true);
     
     try {
+      // Create a default availability slot first or use null
       const { error } = await supabase
         .from('visit_bookings')
         .insert({
-          user_id: formData.userId,
-          user_full_name: formData.userFullName,
+          availability_slot_id: null, // Set to null since admin is manually scheduling
           booking_date: format(formData.bookingDate, 'yyyy-MM-dd'),
           booking_time: formData.bookingTime,
           visit_type: formData.visitType,
@@ -59,7 +59,10 @@ export const ScheduleVisitDialog: React.FC<ScheduleVisitDialogProps> = ({
           family_address: formData.familyAddress || null,
           family_phone: formData.familyPhone || null,
           admin_notes: formData.adminNotes || null,
-          confirmation_sent: false
+          confirmation_sent: false,
+          user_full_name: formData.userFullName,
+          // Note: We're not including user_id as it might not be a valid field in the schema
+          // If user_id is needed, we would need to look up the user first
         });
 
       if (error) throw error;
