@@ -3418,6 +3418,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "fk_visit_bookings_user_id"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "visit_bookings_availability_slot_id_fkey"
             columns: ["availability_slot_id"]
             isOneToOne: false

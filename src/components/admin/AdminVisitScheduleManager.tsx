@@ -101,12 +101,24 @@ export const AdminVisitScheduleManager = () => {
     try {
       console.log('Fetching visit bookings...');
       
-      // Check if visit_bookings table exists by trying to query it
+      // First, check if visit_bookings table exists and has data
       const { data, error } = await supabase
         .from('visit_bookings')
         .select(`
-          *,
-          profiles:user_id (
+          id,
+          user_id,
+          booking_date,
+          booking_time,
+          visit_type,
+          status,
+          payment_status,
+          admin_status,
+          family_address,
+          family_phone,
+          admin_notes,
+          nurse_assigned,
+          confirmation_sent,
+          profiles!visit_bookings_user_id_fkey (
             full_name,
             email
           )
@@ -115,19 +127,26 @@ export const AdminVisitScheduleManager = () => {
 
       if (error) {
         console.error('Error fetching bookings:', error);
-        // If table doesn't exist, just set empty bookings instead of throwing
-        if (error.message.includes('relation "public.visit_bookings" does not exist')) {
-          console.log('Visit bookings table does not exist, setting empty array');
+        // If table doesn't exist or there's a relationship error, set empty bookings
+        if (error.message.includes('relation') || error.message.includes('does not exist')) {
+          console.log('Visit bookings table issue, setting empty array');
           setBookings([]);
           return;
         }
         throw error;
       }
       
+      // Transform the data to match our interface
       const transformedBookings = (data || []).map(booking => {
         let profileData = null;
-        if (booking.profiles && typeof booking.profiles === 'object' && !Array.isArray(booking.profiles)) {
-          profileData = booking.profiles as { full_name: string; email?: string };
+        
+        // Handle both single profile object and array of profiles
+        if (booking.profiles) {
+          if (Array.isArray(booking.profiles)) {
+            profileData = booking.profiles[0] || null;
+          } else {
+            profileData = booking.profiles as { full_name: string; email?: string };
+          }
         }
         
         return {
@@ -144,6 +163,8 @@ export const AdminVisitScheduleManager = () => {
       console.error('Error in fetchBookings:', error);
       setError(`Failed to load visit bookings: ${error.message}`);
       toast.error('Failed to load visit bookings');
+      // Set empty bookings to prevent crashes
+      setBookings([]);
     }
   };
 
@@ -223,6 +244,16 @@ export const AdminVisitScheduleManager = () => {
             {error}
           </AlertDescription>
         </Alert>
+        
+        {/* Show a retry button */}
+        <div className="mt-4">
+          <button 
+            onClick={() => window.location.reload()}
+            className="px-4 py-2 bg-primary text-white rounded hover:bg-primary/90"
+          >
+            Retry Loading
+          </button>
+        </div>
       </div>
     );
   }
