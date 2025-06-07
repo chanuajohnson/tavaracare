@@ -77,7 +77,7 @@ export const AdminVisitScheduleManager = () => {
       const transformedBookings = (data || []).map(booking => {
         // Handle the case where profiles might be null or have an error structure
         let profileData = null;
-        if (booking.profiles && typeof booking.profiles === 'object' && !('error' in booking.profiles)) {
+        if (booking.profiles && typeof booking.profiles === 'object' && !Array.isArray(booking.profiles)) {
           profileData = booking.profiles as { full_name: string; email?: string };
         }
         
