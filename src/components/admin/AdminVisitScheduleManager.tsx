@@ -73,7 +73,14 @@ export const AdminVisitScheduleManager = () => {
         .order('booking_date', { ascending: true });
 
       if (error) throw error;
-      setBookings(data || []);
+      
+      // Transform the data to ensure visit_type is properly typed
+      const transformedBookings = (data || []).map(booking => ({
+        ...booking,
+        visit_type: booking.visit_type as 'virtual' | 'in_person'
+      }));
+      
+      setBookings(transformedBookings);
     } catch (error) {
       console.error('Error fetching bookings:', error);
       toast.error('Failed to load visit bookings');
