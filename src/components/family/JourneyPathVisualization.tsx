@@ -243,7 +243,7 @@ export const JourneyPathVisualization: React.FC<JourneyPathVisualizationProps> =
                   </div>
                   <div className="flex items-center gap-2">
                     <CheckCircle2 className="w-3 h-3 text-primary flex-shrink-0" />
-                    <span className="text-gray-600">Automated payroll & tax handling</span>
+                    <span className="text-gray-600">Admin Tools and Assistance</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <CheckCircle2 className="w-3 h-3 text-primary flex-shrink-0" />
@@ -261,7 +261,7 @@ export const JourneyPathVisualization: React.FC<JourneyPathVisualizationProps> =
                   </div>
                   <div className="flex items-center gap-2">
                     <CheckCircle2 className="w-3 h-3 text-primary flex-shrink-0" />
-                    <span className="text-gray-600">Emergency response protocols</span>
+                    <span className="text-gray-600">Build Your Care Team and Fill Care Seamlessly on Demand</span>
                   </div>
                 </div>
               </div>
