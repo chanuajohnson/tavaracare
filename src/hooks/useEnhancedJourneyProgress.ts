@@ -184,15 +184,15 @@ const getDummyJourneyData = (): { steps: JourneyStep[], paths: JourneyPath[] } =
     {
       id: 'dummy-8',
       step_number: 8,
-      title: 'Complete initial visit',
-      description: 'Finalize care plan details',
+      title: 'Manage visit details',
+      description: 'Review and adjust your visit arrangements',
       category: 'scheduling',
       is_optional: false,
-      tooltip_content: 'Meet with your care coordinator to finalize details',
-      detailed_explanation: 'This visit confirms all aspects of your care plan',
-      time_estimate_minutes: 60,
-      link_path: '/family/visit-confirmation',
-      icon_name: 'CheckSquare',
+      tooltip_content: 'Manage your scheduled visit details and preferences',
+      detailed_explanation: 'Handle visit modifications, confirmations, and special requirements',
+      time_estimate_minutes: 10,
+      link_path: '/family/visit-management',
+      icon_name: 'Settings',
       completed: false,
       accessible: false,
       prerequisites: []
@@ -361,19 +361,23 @@ export const useEnhancedJourneyProgress = (): JourneyProgressData => {
     setShowLeadCaptureModal(true);
   };
 
-  // Helper function to determine step accessibility - FIXED LOGIC
+  // Helper function to determine step accessibility
   const determineStepAccessibility = (stepNumber: number, allSteps: JourneyStep[], profileData: any) => {
     switch (stepNumber) {
       case 4: // Caregiver matches - need steps 1-3 completed
         const foundationSteps = allSteps.filter(s => [1, 2, 3].includes(s.step_number));
         return foundationSteps.every(s => s.completed);
-      case 7: // Schedule initial visit - need step 4 completed (FIXED)
+      case 7: // Schedule initial visit - need step 4 completed
         const step4 = allSteps.find(s => s.step_number === 4);
         return step4?.completed || false;
-      case 8: // Confirm visit - need step 7 completed
-        return profileData?.visit_scheduling_status === 'scheduled' || profileData?.visit_scheduling_status === 'completed';
-      case 9: // Schedule trial - need step 8 completed (visit confirmed) OR step 7 completed (visit scheduled)
-        return profileData?.visit_scheduling_status === 'completed' || profileData?.visit_scheduling_status === 'scheduled';
+      case 8: // Manage visit details - need step 7 completed (visit scheduled)
+        const hasVisitScheduled = profileData?.visit_scheduling_status && 
+          ['scheduled', 'completed', 'cancelled'].includes(profileData.visit_scheduling_status);
+        return hasVisitScheduled;
+      case 9: // Schedule trial - need step 7 completed (visit scheduled)
+        const hasVisitForTrial = profileData?.visit_scheduling_status && 
+          ['scheduled', 'completed'].includes(profileData.visit_scheduling_status);
+        return hasVisitForTrial;
       case 10: // Pay for trial - need steps 8 and 9 completed
         const step8 = allSteps.find(s => s.step_number === 8);
         const step9 = allSteps.find(s => s.step_number === 9);
@@ -382,10 +386,52 @@ export const useEnhancedJourneyProgress = (): JourneyProgressData => {
         const step10 = allSteps.find(s => s.step_number === 10);
         return step10?.completed || false;
       case 12: // Choose path - need step 8 completed (can skip trial)
-        return profileData?.visit_scheduling_status === 'completed';
+        const step8Complete = allSteps.find(s => s.step_number === 8);
+        return step8Complete?.completed || false;
       default:
         return true;
     }
+  };
+
+  // Helper function to extract visit details from various sources
+  const extractVisitDetails = (profile: any, visitBooking: any) => {
+    let details = null;
+
+    // First try visit_bookings table
+    if (visitBooking) {
+      details = {
+        date: visitBooking.booking_date,
+        time: visitBooking.booking_time,
+        type: visitBooking.visit_type
+      };
+    }
+
+    // Then try visit_notes in profile
+    if (!details && profile?.visit_notes) {
+      try {
+        const visitNotes = JSON.parse(profile.visit_notes);
+        if (visitNotes.visit_type || visitNotes.visit_date) {
+          details = {
+            date: visitNotes.visit_date || profile.visit_scheduled_date,
+            time: visitNotes.visit_time || '11:00 AM',
+            type: visitNotes.visit_type || 'virtual'
+          };
+        }
+      } catch (error) {
+        console.error('Error parsing visit notes:', error);
+      }
+    }
+
+    // Fallback to profile fields
+    if (!details && profile?.visit_scheduled_date) {
+      details = {
+        date: profile.visit_scheduled_date,
+        time: '11:00 AM', // Default time
+        type: 'virtual' // Default type
+      };
+    }
+
+    return details;
   };
 
   const fetchJourneyData = async () => {
@@ -425,7 +471,7 @@ export const useEnhancedJourneyProgress = (): JourneyProgressData => {
       console.log('User profile:', profile);
       setVisitStatus(profile?.visit_scheduling_status || 'not_started');
 
-      // Parse visit notes for care model and visit details
+      // Parse visit notes for care model
       let visitNotes = null;
       try {
         visitNotes = profile?.visit_notes ? JSON.parse(profile.visit_notes) : null;
@@ -434,25 +480,24 @@ export const useEnhancedJourneyProgress = (): JourneyProgressData => {
       }
       setCareModel(visitNotes?.care_model || null);
 
-      // Get visit details if visit is scheduled
-      if (profile?.visit_scheduling_status === 'scheduled' || profile?.visit_scheduling_status === 'completed') {
-        const { data: visitBooking } = await supabase
+      // Get visit details from visit_bookings table or profile
+      let visitBooking = null;
+      if (profile?.visit_scheduling_status && 
+          ['scheduled', 'completed', 'cancelled'].includes(profile.visit_scheduling_status)) {
+        const { data: booking } = await supabase
           .from('visit_bookings')
           .select('booking_date, booking_time, visit_type')
           .eq('user_id', user.id)
-          .eq('status', 'confirmed')
           .order('created_at', { ascending: false })
           .limit(1)
-          .single();
+          .maybeSingle();
         
-        if (visitBooking) {
-          setVisitDetails({
-            date: visitBooking.booking_date,
-            time: visitBooking.booking_time,
-            type: visitBooking.visit_type
-          });
-        }
+        visitBooking = booking;
       }
+
+      // Extract visit details from multiple sources
+      const extractedVisitDetails = extractVisitDetails(profile, visitBooking);
+      setVisitDetails(extractedVisitDetails);
 
       // Check care assessment
       const { data: careAssessment } = await supabase
@@ -545,10 +590,13 @@ export const useEnhancedJourneyProgress = (): JourneyProgressData => {
             console.log(`Step 6 completion: meal plans count=${mealPlans?.length || 0}, completed=${completed}`);
             break;
           case 7:
-            completed = profile?.visit_scheduling_status === 'scheduled' || profile?.visit_scheduling_status === 'completed';
+            // Step 7 is completed when a visit has been scheduled (any status)
+            completed = !!(profile?.visit_scheduling_status && 
+              ['scheduled', 'completed', 'cancelled'].includes(profile.visit_scheduling_status));
             console.log(`Step 7 completion: visit_status=${profile?.visit_scheduling_status}, completed=${completed}`);
             break;
           case 8:
+            // Step 8 is completed when visit has been confirmed/completed
             completed = profile?.visit_scheduling_status === 'completed';
             console.log(`Step 8 completion: visit_status=${profile?.visit_scheduling_status}, completed=${completed}`);
             break;
@@ -573,11 +621,21 @@ export const useEnhancedJourneyProgress = (): JourneyProgressData => {
           detailedExplanation = 'Secure your trial day with payment. The trial day fee covers 8 hours of professional caregiving coordinated by Tavara. You have options via our subscription service to add trial days or make your final decision between direct hire and Tavara Care Village subscription based on your experience and preferences. Choose Direct Hire ($40/hr) to manage everything yourself, or Tavara Care Village ($45/hr) for full support including payroll, scheduling, medication management, and 24/7 coordinator support.';
         }
 
+        // Update Step 8 title and description
+        let title = step.title;
+        let description = step.description;
+        if (step.step_number === 8) {
+          title = 'Manage visit details';
+          description = 'Review and adjust your visit arrangements';
+          tooltipContent = 'Manage your scheduled visit details and preferences';
+          detailedExplanation = 'Handle visit modifications, confirmations, and special requirements';
+        }
+
         return {
           id: step.id,
           step_number: step.step_number,
-          title: step.title,
-          description: step.description,
+          title,
+          description,
           category: validateCategory(step.category),
           is_optional: step.is_optional || false,
           tooltip_content: tooltipContent,

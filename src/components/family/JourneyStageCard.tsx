@@ -107,16 +107,25 @@ export const JourneyStageCard: React.FC<JourneyStageCardProps> = ({
     }
     
     if (step.step_number === 7) {
+      if (step.completed && visitDetails) {
+        return "Modify Visit";
+      }
       return step.completed ? "Modify Visit" : "Schedule Visit";
+    }
+    
+    if (step.step_number === 8) {
+      return step.completed ? "Manage Details" : "Manage Visit";
     }
     
     return step.completed ? "Edit" : "Complete";
   };
 
   const getStepStatus = (step: JourneyStep) => {
+    if (step.step_number === 7 && step.completed && visitDetails) {
+      return 'Scheduled';
+    }
     if (step.completed) return 'Completed';
     if (step.accessible) return 'Available';
-    if (step.step_number === 7 && visitDetails) return 'Scheduled';
     return 'Locked';
   };
 
@@ -311,7 +320,7 @@ export const JourneyStageCard: React.FC<JourneyStageCardProps> = ({
                         </p>
                         
                         {/* Show visit details for Step 7 if scheduled */}
-                        {step.step_number === 7 && visitDetails && !step.completed && (
+                        {step.step_number === 7 && visitDetails && step.completed && (
                           <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded-lg">
                             <div className="flex items-center gap-2 text-sm">
                               <div className="flex items-center gap-1">
@@ -327,7 +336,7 @@ export const JourneyStageCard: React.FC<JourneyStageCardProps> = ({
                               <div className="flex items-center gap-1">
                                 <Calendar className="h-3 w-3 text-blue-600" />
                                 <span className="text-blue-700 text-xs">
-                                  {visitDetails.date} at {visitDetails.time}
+                                  {new Date(visitDetails.date).toLocaleDateString()} at {visitDetails.time}
                                 </span>
                               </div>
                             </div>
