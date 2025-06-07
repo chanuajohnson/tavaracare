@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -6,6 +5,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Video, Home, Calendar, Phone, Mail, MapPin, User } from "lucide-react";
 import { format } from 'date-fns';
 import { AdminBookingActions } from './AdminBookingActions';
+
+type AdminStatus = 'pending' | 'confirmed' | 'cancelled' | 'completed' | 'locked';
 
 interface VisitBooking {
   id: string;
@@ -15,7 +16,7 @@ interface VisitBooking {
   visit_type: 'virtual' | 'in_person';
   status: string;
   payment_status: string;
-  admin_status: string;
+  admin_status: AdminStatus;
   family_address?: string;
   family_phone?: string;
   admin_notes?: string;
