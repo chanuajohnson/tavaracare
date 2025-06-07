@@ -277,7 +277,7 @@ export const EnhancedFamilyNextStepsPanel: React.FC<EnhancedFamilyNextStepsPanel
           </CardHeader>
         </Card>
 
-        {/* Stage-Based Progress Cards - Now filtered based on showAllSteps */}
+        {/* Stage-Based Progress Cards - Now filtered based on showAllSteps and pass visitDetails */}
         <div className="space-y-4">
           {stagesToDisplay.map((stage) => (
             stage.steps.length > 0 && (
@@ -291,6 +291,7 @@ export const EnhancedFamilyNextStepsPanel: React.FC<EnhancedFamilyNextStepsPanel
                 subscriptionCTA={stage.subscriptionCTA}
                 trackStepAction={trackStepAction}
                 isAnonymous={isAnonymous}
+                visitDetails={visitDetails}
               />
             )
           ))}

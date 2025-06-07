@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { supabase } from '@/lib/supabase';
@@ -219,8 +220,8 @@ const getDummyJourneyData = (): { steps: JourneyStep[], paths: JourneyPath[] } =
       description: 'Process payment for trial',
       category: 'trial',
       is_optional: true,
-      tooltip_content: 'Secure your trial day with payment',
-      detailed_explanation: 'Trial day payment is applied to your first month of service',
+      tooltip_content: 'Secure your trial day with payment. The trial day fee covers 8 hours of professional caregiving coordinated by Tavara.',
+      detailed_explanation: 'Secure your trial day with payment. The trial day fee covers 8 hours of professional caregiving coordinated by Tavara. You have options via our subscription service to add trial days or make your final decision between direct hire and Tavara Care Village subscription based on your experience and preferences. Choose Direct Hire ($40/hr) to manage everything yourself, or Tavara Care Village ($45/hr) for full support including payroll, scheduling, medication management, and 24/7 coordinator support.',
       time_estimate_minutes: 5,
       link_path: '/family/trial-payment',
       icon_name: 'CreditCard',
@@ -360,14 +361,15 @@ export const useEnhancedJourneyProgress = (): JourneyProgressData => {
     setShowLeadCaptureModal(true);
   };
 
-  // Helper function to determine step accessibility
+  // Helper function to determine step accessibility - FIXED LOGIC
   const determineStepAccessibility = (stepNumber: number, allSteps: JourneyStep[], profileData: any) => {
     switch (stepNumber) {
       case 4: // Caregiver matches - need steps 1-3 completed
         const foundationSteps = allSteps.filter(s => [1, 2, 3].includes(s.step_number));
         return foundationSteps.every(s => s.completed);
-      case 7: // Schedule initial visit - need step 4 completed
-        return !!profileData?.caregiver_matches;
+      case 7: // Schedule initial visit - need step 4 completed (FIXED)
+        const step4 = allSteps.find(s => s.step_number === 4);
+        return step4?.completed || false;
       case 8: // Confirm visit - need step 7 completed
         return profileData?.visit_scheduling_status === 'scheduled' || profileData?.visit_scheduling_status === 'completed';
       case 9: // Schedule trial - need step 8 completed (visit confirmed) OR step 7 completed (visit scheduled)
@@ -562,6 +564,15 @@ export const useEnhancedJourneyProgress = (): JourneyProgressData => {
             break;
         }
 
+        // Update tooltip content for step 10 if needed
+        let tooltipContent = step.tooltip_content || '';
+        let detailedExplanation = step.detailed_explanation || '';
+        
+        if (step.step_number === 10) {
+          tooltipContent = 'Secure your trial day with payment. The trial day fee covers 8 hours of professional caregiving coordinated by Tavara.';
+          detailedExplanation = 'Secure your trial day with payment. The trial day fee covers 8 hours of professional caregiving coordinated by Tavara. You have options via our subscription service to add trial days or make your final decision between direct hire and Tavara Care Village subscription based on your experience and preferences. Choose Direct Hire ($40/hr) to manage everything yourself, or Tavara Care Village ($45/hr) for full support including payroll, scheduling, medication management, and 24/7 coordinator support.';
+        }
+
         return {
           id: step.id,
           step_number: step.step_number,
@@ -569,8 +580,8 @@ export const useEnhancedJourneyProgress = (): JourneyProgressData => {
           description: step.description,
           category: validateCategory(step.category),
           is_optional: step.is_optional || false,
-          tooltip_content: step.tooltip_content || '',
-          detailed_explanation: step.detailed_explanation || '',
+          tooltip_content: tooltipContent,
+          detailed_explanation: detailedExplanation,
           time_estimate_minutes: step.time_estimate_minutes || 0,
           link_path: step.link_path || '',
           icon_name: step.icon_name || '',

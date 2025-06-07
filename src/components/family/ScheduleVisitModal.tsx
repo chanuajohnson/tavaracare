@@ -1,14 +1,11 @@
 
-import { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import React, { useState } from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
+import { Calendar, Video, Home, Clock, CheckCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, Video, MapPin, Star, Clock, Lock, Sparkles, CreditCard } from "lucide-react";
-import { useNavigate } from "react-router-dom";
-import { useAuth } from "@/components/providers/AuthProvider";
-import { toast } from "sonner";
-import { InternalSchedulingModal } from "./InternalSchedulingModal";
 
 interface ScheduleVisitModalProps {
   open: boolean;
@@ -20,296 +17,203 @@ interface ScheduleVisitModalProps {
 export const ScheduleVisitModal = ({ 
   open, 
   onOpenChange, 
-  caregiverName = "your matched caregiver",
+  caregiverName = "your care coordinator",
   onVisitScheduled
 }: ScheduleVisitModalProps) => {
-  const { user } = useAuth();
-  const navigate = useNavigate();
-  const [isLoading, setIsLoading] = useState(false);
-  const [visitCompleted, setVisitCompleted] = useState(false);
-  const [showInternalScheduling, setShowInternalScheduling] = useState(false);
+  const [visitType, setVisitType] = useState<'virtual' | 'in-person'>('virtual');
+  const [selectedDate, setSelectedDate] = useState('');
+  const [selectedTime, setSelectedTime] = useState('');
+  const [isConfirmed, setIsConfirmed] = useState(false);
 
-  const handleSlowPlanningPath = () => {
-    navigate("/subscription/features", {
-      state: {
-        featureType: "Premium Match Features",
-        returnPath: "/family/matching",
-        referringPagePath: "/dashboard/family",
-        referringPageLabel: "Family Dashboard",
-        planType: "slow_planning",
-        price: 7.99
+  const availableDates = [
+    { date: '2024-01-15', display: 'Mon, Jan 15' },
+    { date: '2024-01-16', display: 'Tue, Jan 16' },
+    { date: '2024-01-17', display: 'Wed, Jan 17' },
+    { date: '2024-01-18', display: 'Thu, Jan 18' },
+  ];
+
+  const availableTimes = [
+    '9:00 AM', '10:00 AM', '11:00 AM', '2:00 PM', '3:00 PM', '4:00 PM'
+  ];
+
+  const handleConfirmBooking = () => {
+    if (selectedDate && selectedTime) {
+      setIsConfirmed(true);
+      // Call the callback to update journey progress
+      if (onVisitScheduled) {
+        onVisitScheduled();
       }
-    });
-    onOpenChange(false);
-  };
-
-  const handleScheduleVisit = (visitType: 'virtual' | 'in_person') => {
-    if (!user) {
-      toast.error("Please log in to schedule a visit");
-      return;
-    }
-
-    // Open the internal scheduling modal instead of Google Calendar
-    setShowInternalScheduling(true);
-  };
-
-  const handleScheduleConfirmed = () => {
-    setShowInternalScheduling(false);
-    setVisitCompleted(true);
-    toast.success("Visit scheduled successfully!");
-    
-    // Notify parent component about the successful scheduling
-    if (onVisitScheduled) {
-      onVisitScheduled();
+      // Close modal after a short delay to show confirmation
+      setTimeout(() => {
+        onOpenChange(false);
+        setIsConfirmed(false);
+      }, 1500);
     }
   };
 
-  const handleTrialDay = () => {
-    if (!visitCompleted) {
-      toast.error("Please complete your visit first to unlock trial day");
-      return;
-    }
-    
-    navigate("/family/trial-day-booking");
-    onOpenChange(false);
+  const resetModal = () => {
+    setVisitType('virtual');
+    setSelectedDate('');
+    setSelectedTime('');
+    setIsConfirmed(false);
   };
 
-  return (
-    <>
-      <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader className="text-center">
-            <DialogTitle className="text-2xl font-bold">
-              Choose Your Path Forward
-            </DialogTitle>
-            <DialogDescription className="text-lg">
-              Ready to connect with {caregiverName}? Pick the option that works best for you.
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
-            {/* Card 1: Slow Planning Path */}
-            <Card className="relative border-2 border-blue-200 hover:border-blue-300 transition-colors">
-              <CardHeader className="text-center">
-                <div className="flex items-center justify-center gap-2 mb-2">
-                  <Sparkles className="h-5 w-5 text-blue-500" />
-                  <CardTitle className="text-lg">Unlock Premium Features</CardTitle>
-                </div>
-                <div className="text-3xl font-bold text-blue-600">$7.99</div>
-                <CardDescription>One-time unlock</CardDescription>
-              </CardHeader>
-              
-              <CardContent className="space-y-4">
-                <div className="text-center mb-4">
-                  <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
-                    No Rush? Browse & Compare
-                  </Badge>
-                </div>
-                
-                <div className="space-y-2 text-sm">
-                  <div className="flex items-center gap-2">
-                    <Star className="h-4 w-4 text-blue-500" />
-                    <span>See all qualified caregivers</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Star className="h-4 w-4 text-blue-500" />
-                    <span>Advanced filtering options</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Star className="h-4 w-4 text-blue-500" />
-                    <span>Compare profiles & reviews</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Star className="h-4 w-4 text-blue-500" />
-                    <span>Take your time to decide</span>
-                  </div>
-                </div>
-                
-                <Button 
-                  className="w-full bg-blue-600 hover:bg-blue-700"
-                  onClick={handleSlowPlanningPath}
-                >
-                  Browse All Matches
-                </Button>
-                
-                <p className="text-xs text-gray-500 text-center">
-                  Perfect for non-urgent care planning
-                </p>
-              </CardContent>
-            </Card>
+  const handleOpenChange = (open: boolean) => {
+    if (!open) {
+      resetModal();
+    }
+    onOpenChange(open);
+  };
 
-            {/* Card 2: Schedule Visit - Urgent Care Path */}
-            <Card className="relative border-2 border-green-200 hover:border-green-300 transition-colors">
-              <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                <Badge className="bg-green-500 text-white px-3 py-1">
-                  Ready for Care
-                </Badge>
-              </div>
-              
-              <CardHeader className="text-center pt-6">
-                <div className="flex items-center justify-center gap-2 mb-2">
-                  <Calendar className="h-5 w-5 text-green-500" />
-                  <CardTitle className="text-lg">Schedule Your Visit</CardTitle>
-                </div>
-                <CardDescription>Meet your care coordinator</CardDescription>
-              </CardHeader>
-              
-              <CardContent className="space-y-4">
-                {/* Virtual Visit Option */}
-                <div className="border rounded-lg p-3 hover:bg-gray-50 transition-colors">
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-2">
-                      <Video className="h-4 w-4 text-green-500" />
-                      <span className="font-medium">Virtual Visit</span>
-                    </div>
-                    <Badge variant="outline" className="bg-green-50 text-green-700">
-                      FREE
-                    </Badge>
-                  </div>
-                  <p className="text-sm text-gray-600 mb-3">1-2 hour video call to discuss care needs</p>
-                  <Button 
-                    size="sm" 
-                    className="w-full bg-green-600 hover:bg-green-700"
-                    onClick={() => handleScheduleVisit('virtual')}
-                    disabled={isLoading}
-                  >
-                    Schedule Virtual Visit
-                  </Button>
-                </div>
-                
-                {/* In-Person Visit Option */}
-                <div className="border rounded-lg p-3 hover:bg-gray-50 transition-colors">
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-2">
-                      <MapPin className="h-4 w-4 text-green-500" />
-                      <span className="font-medium">In-Person Visit</span>
-                    </div>
-                    <Badge variant="outline" className="bg-orange-50 text-orange-700">
-                      $300 TTD
-                    </Badge>
-                  </div>
-                  <p className="text-sm text-gray-600 mb-3">Home assessment with care coordinator</p>
-                  <Button 
-                    size="sm" 
-                    variant="outline" 
-                    className="w-full border-green-600 text-green-600 hover:bg-green-50"
-                    onClick={() => handleScheduleVisit('in_person')}
-                    disabled={isLoading}
-                  >
-                    Schedule Home Visit
-                  </Button>
-                </div>
-                
-                <p className="text-xs text-gray-500 text-center">
-                  Perfect when you need care soon
-                </p>
-              </CardContent>
-            </Card>
-
-            {/* Card 3: Trial Day */}
-            <Card className={`relative border-2 transition-colors ${
-              visitCompleted 
-                ? 'border-purple-200 hover:border-purple-300' 
-                : 'border-gray-200 opacity-60'
-            }`}>
-              {visitCompleted && (
-                <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                  <Badge className="bg-purple-500 text-white px-3 py-1">
-                    Most Popular
-                  </Badge>
-                </div>
-              )}
-              
-              <CardHeader className="text-center pt-6">
-                <div className="flex items-center justify-center gap-2 mb-2">
-                  <Clock className="h-5 w-5 text-purple-500" />
-                  <CardTitle className="text-lg">Trial Day Experience</CardTitle>
-                </div>
-                <div className="text-3xl font-bold text-purple-600">$35</div>
-                <CardDescription>per hour - 8 hour shift</CardDescription>
-              </CardHeader>
-              
-              <CardContent className="space-y-4">
-                <div className="text-center mb-4">
-                  <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200">
-                    Schedule within a week of visit completion
-                  </Badge>
-                </div>
-                
-                <div className="space-y-2 text-sm">
-                  <div className="flex items-center gap-2">
-                    <Star className="h-4 w-4 text-purple-500" />
-                    <span>8-hour care experience</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Star className="h-4 w-4 text-purple-500" />
-                    <span>Meet {caregiverName}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Star className="h-4 w-4 text-purple-500" />
-                    <span>Full service preview</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Star className="h-4 w-4 text-purple-500" />
-                    <span>No long-term commitment</span>
-                  </div>
-                </div>
-
-                {!visitCompleted && (
-                  <div className="relative">
-                    <div className="absolute inset-0 bg-white/80 backdrop-blur-sm z-10 flex items-center justify-center rounded-lg">
-                      <div className="text-center p-2">
-                        <Lock className="h-6 w-6 text-gray-400 mx-auto mb-1" />
-                        <p className="text-xs text-gray-500">
-                          Unlocks after visit completion
-                        </p>
-                      </div>
-                    </div>
-                    <Button 
-                      className="w-full bg-gray-400 cursor-not-allowed"
-                      disabled={true}
-                    >
-                      <CreditCard className="h-4 w-4 mr-2" />
-                      Book Trial Day
-                    </Button>
-                  </div>
-                )}
-
-                {visitCompleted && (
-                  <Button 
-                    className="w-full bg-purple-600 hover:bg-purple-700"
-                    onClick={handleTrialDay}
-                  >
-                    <CreditCard className="h-4 w-4 mr-2" />
-                    Book Trial Day
-                  </Button>
-                )}
-                
-                <p className="text-xs text-gray-500 text-center">
-                  {visitCompleted 
-                    ? "Experience care with no commitment" 
-                    : "Complete your visit to unlock this option"
-                  }
-                </p>
-              </CardContent>
-            </Card>
-          </div>
-          
-          <div className="mt-6 text-center">
+  if (isConfirmed) {
+    return (
+      <Dialog open={open} onOpenChange={handleOpenChange}>
+        <DialogContent className="max-w-md">
+          <div className="text-center py-8">
+            <div className="mb-4">
+              <CheckCircle className="h-16 w-16 text-green-500 mx-auto" />
+            </div>
+            <h3 className="text-xl font-semibold text-gray-900 mb-2">
+              Visit Scheduled Successfully!
+            </h3>
+            <p className="text-gray-600 mb-4">
+              Your {visitType === 'virtual' ? 'virtual' : 'in-person'} visit with {caregiverName} is confirmed for {availableDates.find(d => d.date === selectedDate)?.display} at {selectedTime}.
+            </p>
             <p className="text-sm text-gray-500">
-              Questions? Contact us at <span className="text-primary font-medium">support@tavara.care</span>
+              You'll receive a confirmation email shortly with all the details.
             </p>
           </div>
         </DialogContent>
       </Dialog>
+    );
+  }
 
-      {/* Internal Scheduling Modal */}
-      <InternalSchedulingModal
-        open={showInternalScheduling}
-        onOpenChange={setShowInternalScheduling}
-        onVisitScheduled={handleScheduleConfirmed}
-        caregiverName={caregiverName}
-      />
-    </>
+  return (
+    <Dialog open={open} onOpenChange={handleOpenChange}>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="text-2xl font-bold">Choose Your Path Forward</DialogTitle>
+          <p className="text-muted-foreground">
+            Schedule a visit with {caregiverName} to discuss your care needs and unlock access to caregiver profiles.
+          </p>
+        </DialogHeader>
+        
+        <div className="space-y-6">
+          {/* Visit Type Selection */}
+          <div>
+            <h3 className="text-lg font-semibold mb-4">Select Visit Type</h3>
+            <RadioGroup value={visitType} onValueChange={(value: 'virtual' | 'in-person') => setVisitType(value)}>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="flex items-center space-x-2 p-4 border rounded-lg hover:bg-gray-50">
+                  <RadioGroupItem value="virtual" id="virtual" />
+                  <Label htmlFor="virtual" className="flex-1 cursor-pointer">
+                    <div className="flex items-center gap-3">
+                      <Video className="h-6 w-6 text-blue-600" />
+                      <div>
+                        <div className="font-medium">Schedule Virtual Visit</div>
+                        <div className="text-sm text-gray-500">30-minute video call consultation</div>
+                      </div>
+                    </div>
+                  </Label>
+                </div>
+                
+                <div className="flex items-center space-x-2 p-4 border rounded-lg hover:bg-gray-50">
+                  <RadioGroupItem value="in-person" id="in-person" />
+                  <Label htmlFor="in-person" className="flex-1 cursor-pointer">
+                    <div className="flex items-center gap-3">
+                      <Home className="h-6 w-6 text-green-600" />
+                      <div>
+                        <div className="font-medium">Schedule Home Visit</div>
+                        <div className="text-sm text-gray-500">In-person home assessment</div>
+                      </div>
+                    </div>
+                  </Label>
+                </div>
+              </div>
+            </RadioGroup>
+          </div>
+
+          {/* Visit Benefits */}
+          <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+            <h4 className="font-medium text-blue-900 mb-2">What's included in your visit:</h4>
+            <ul className="text-sm text-blue-800 space-y-1">
+              <li>• Personalized care assessment</li>
+              <li>• Unlock All Matches access to detailed caregiver profiles</li>
+              <li>• Custom care plan recommendations</li>
+              <li>• Direct introduction to matched caregivers</li>
+            </ul>
+          </div>
+
+          {/* Date Selection */}
+          <div>
+            <h3 className="text-lg font-semibold mb-4">Select Date</h3>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              {availableDates.map((dateOption) => (
+                <Button
+                  key={dateOption.date}
+                  variant={selectedDate === dateOption.date ? "default" : "outline"}
+                  className="p-3 h-auto flex flex-col items-center"
+                  onClick={() => setSelectedDate(dateOption.date)}
+                >
+                  <Calendar className="h-4 w-4 mb-1" />
+                  <span className="text-xs">{dateOption.display}</span>
+                </Button>
+              ))}
+            </div>
+          </div>
+
+          {/* Time Selection */}
+          {selectedDate && (
+            <div>
+              <h3 className="text-lg font-semibold mb-4">Select Time</h3>
+              <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
+                {availableTimes.map((time) => (
+                  <Button
+                    key={time}
+                    variant={selectedTime === time ? "default" : "outline"}
+                    className="p-2 h-auto flex items-center justify-center"
+                    onClick={() => setSelectedTime(time)}
+                  >
+                    <Clock className="h-3 w-3 mr-1" />
+                    <span className="text-xs">{time}</span>
+                  </Button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Confirmation */}
+          {selectedDate && selectedTime && (
+            <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+              <h4 className="font-medium text-green-900 mb-2">Visit Summary:</h4>
+              <div className="text-sm text-green-800">
+                <p><strong>Type:</strong> {visitType === 'virtual' ? 'Virtual Visit' : 'In-Person Home Visit'}</p>
+                <p><strong>Date:</strong> {availableDates.find(d => d.date === selectedDate)?.display}</p>
+                <p><strong>Time:</strong> {selectedTime}</p>
+                <p><strong>With:</strong> {caregiverName}</p>
+              </div>
+            </div>
+          )}
+
+          {/* Action Buttons */}
+          <div className="flex gap-3 pt-4">
+            <Button 
+              variant="outline" 
+              onClick={() => onOpenChange(false)}
+              className="flex-1"
+            >
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleConfirmBooking}
+              disabled={!selectedDate || !selectedTime}
+              className="flex-1"
+            >
+              Confirm Booking
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 };

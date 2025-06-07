@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -27,12 +27,14 @@ interface CaregiverProfileModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   caregiver: Caregiver;
+  onVisitScheduled?: () => void;
 }
 
 export const CaregiverProfileModal = ({ 
   open, 
   onOpenChange, 
-  caregiver 
+  caregiver,
+  onVisitScheduled 
 }: CaregiverProfileModalProps) => {
   const [showScheduleModal, setShowScheduleModal] = useState(false);
 
@@ -45,6 +47,25 @@ export const CaregiverProfileModal = ({
         setShowScheduleModal(true);
       }, 500);
     }
+  };
+
+  // Handle visit scheduling completion
+  const handleVisitScheduledComplete = () => {
+    // Close the schedule modal first
+    setShowScheduleModal(false);
+    
+    // Close the profile modal
+    onOpenChange(false);
+    
+    // Call the parent callback to update journey progress
+    if (onVisitScheduled) {
+      onVisitScheduled();
+    }
+    
+    // Navigate to the care journey progress page focusing on scheduling
+    setTimeout(() => {
+      window.location.href = '/family/care-journey-progress#scheduling';
+    }, 100);
   };
 
   return (
@@ -146,7 +167,7 @@ export const CaregiverProfileModal = ({
                 <div className="text-center p-6">
                   <Lock className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                   <h3 className="text-lg font-semibold text-gray-600 mb-2">
-                    Schedule Your Visit to Unlock Full Details
+                    Schedule Your Visit to Unlock All Matches
                   </h3>
                   <p className="text-gray-500 mb-4">
                     Get access to reviews, certifications, detailed bio, contact information, and full name
@@ -239,11 +260,12 @@ export const CaregiverProfileModal = ({
         </DialogContent>
       </Dialog>
       
-      {/* Schedule Visit Modal */}
+      {/* Schedule Visit Modal with proper callback chain */}
       <ScheduleVisitModal 
         open={showScheduleModal}
         onOpenChange={setShowScheduleModal}
         caregiverName="your matched caregiver"
+        onVisitScheduled={handleVisitScheduledComplete}
       />
     </>
   );

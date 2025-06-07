@@ -1,8 +1,9 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ChevronDown, ChevronUp, CheckCircle2, Circle, Clock, ArrowRight } from "lucide-react";
+import { ChevronDown, ChevronUp, CheckCircle2, Circle, Clock, ArrowRight, Calendar, Video, Home } from "lucide-react";
 import { JourneyStepTooltip } from "./JourneyStepTooltip";
 import { SubscriptionTrackingButton } from "@/components/subscription/SubscriptionTrackingButton";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -45,6 +46,11 @@ interface JourneyStageCardProps {
   };
   trackStepAction: (stepId: string, action: string) => void;
   isAnonymous?: boolean;
+  visitDetails?: {
+    date: string;
+    time: string;
+    type: 'virtual' | 'in-person';
+  };
 }
 
 export const JourneyStageCard: React.FC<JourneyStageCardProps> = ({
@@ -55,7 +61,8 @@ export const JourneyStageCard: React.FC<JourneyStageCardProps> = ({
   stageColor,
   subscriptionCTA,
   trackStepAction,
-  isAnonymous = false
+  isAnonymous = false,
+  visitDetails
 }) => {
   const [isExpanded, setIsExpanded] = useState(true);
   const isMobile = useIsMobile();
@@ -104,6 +111,13 @@ export const JourneyStageCard: React.FC<JourneyStageCardProps> = ({
     }
     
     return step.completed ? "Edit" : "Complete";
+  };
+
+  const getStepStatus = (step: JourneyStep) => {
+    if (step.completed) return 'Completed';
+    if (step.accessible) return 'Available';
+    if (step.step_number === 7 && visitDetails) return 'Scheduled';
+    return 'Locked';
   };
 
   const handleSubscriptionCTA = () => {
@@ -295,12 +309,36 @@ export const JourneyStageCard: React.FC<JourneyStageCardProps> = ({
                         }`}>
                           {step.description}
                         </p>
+                        
+                        {/* Show visit details for Step 7 if scheduled */}
+                        {step.step_number === 7 && visitDetails && !step.completed && (
+                          <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded-lg">
+                            <div className="flex items-center gap-2 text-sm">
+                              <div className="flex items-center gap-1">
+                                {visitDetails.type === 'virtual' ? (
+                                  <Video className="h-3 w-3 text-blue-600" />
+                                ) : (
+                                  <Home className="h-3 w-3 text-blue-600" />
+                                )}
+                                <span className="text-blue-800 font-medium">
+                                  {visitDetails.type === 'virtual' ? 'Virtual Visit' : 'Home Visit'}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <Calendar className="h-3 w-3 text-blue-600" />
+                                <span className="text-blue-700 text-xs">
+                                  {visitDetails.date} at {visitDetails.time}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        )}
                       </div>
                       <div className={`flex items-center ${isMobile ? 'justify-between' : 'gap-2'} flex-shrink-0`}>
                         {!step.completed && (
                           <div className="flex items-center text-xs text-gray-500 gap-1">
                             <Clock className="h-3 w-3" />
-                            <span>{(step.accessible || isAnonymous) ? 'Pending' : 'Locked'}</span>
+                            <span>{getStepStatus(step)}</span>
                           </div>
                         )}
                         
