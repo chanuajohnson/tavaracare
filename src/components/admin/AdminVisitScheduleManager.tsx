@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -34,7 +35,7 @@ interface VisitBooking {
   profiles?: {
     full_name: string;
     email?: string;
-  };
+  } | null;
 }
 
 export const AdminVisitScheduleManager = () => {
