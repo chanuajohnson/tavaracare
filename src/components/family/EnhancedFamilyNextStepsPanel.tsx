@@ -122,8 +122,6 @@ export const EnhancedFamilyNextStepsPanel: React.FC<EnhancedFamilyNextStepsPanel
         };
       }
 
-      // Remove scheduling stage subscription CTA - keep it clean for direct scheduling
-
       if (trialCompleted) {
         stages.conversion.subscriptionCTA = {
           show: true,
@@ -334,77 +332,45 @@ export const EnhancedFamilyNextStepsPanel: React.FC<EnhancedFamilyNextStepsPanel
             ) : (
               <Button
                 variant="outline"
-                className="w-full justify-between min-h-[44px]"
+                className="w-full justify-between min-h-[44px] text-gray-600"
                 onClick={handleViewCompleteJourney}
               >
-                <span className="text-sm">
-                  View Complete Journey ({steps.length} total steps)
-                </span>
+                <span className="text-sm">View Complete Journey</span>
                 <ArrowRight className="h-4 w-4" />
               </Button>
             )}
           </div>
         )}
-
-        {showAllSteps && !isAnonymous && (
-          <div className="mt-6 sm:mt-8 text-center">
-            <Button 
-              variant="outline" 
-              onClick={() => navigate('/dashboard/family')}
-              className="gap-2 min-h-[44px]"
-            >
-              ← Back to Dashboard
-            </Button>
-          </div>
-        )}
       </motion.div>
 
-      {/* Schedule Visit Modal - Only for logged-in users (old modal) */}
-      {!isAnonymous && (
-        <ScheduleVisitModal 
-          open={showScheduleModal}
-          onOpenChange={setShowScheduleModal}
-        />
-      )}
+      {/* Modals */}
+      <ScheduleVisitModal
+        open={showScheduleModal}
+        onOpenChange={setShowScheduleModal}
+        onVisitScheduled={() => {
+          // This will be handled by the modal close callback
+        }}
+      />
 
-      {/* Internal Scheduling Modal - Direct calendar access */}
-      {!isAnonymous && (
-        <InternalSchedulingModal
-          open={showInternalScheduleModal}
-          onOpenChange={setShowInternalScheduleModal}
-          caregiverName="your care coordinator"
-          onVisitScheduled={() => {
-            setShowInternalScheduleModal(false);
-            // The hook will handle the refresh
-          }}
-        />
-      )}
+      <InternalSchedulingModal
+        open={showInternalScheduleModal}
+        onOpenChange={setShowInternalScheduleModal}
+        onVisitScheduled={() => {
+          // This will be handled by the modal close callback
+        }}
+      />
 
-      {/* Cancel Visit Modal */}
-      {!isAnonymous && (
-        <CancelVisitDialog
-          open={showCancelVisitModal}
-          onOpenChange={setShowCancelVisitModal}
-          visitDetails={visitDetails ? {
-            date: new Date(visitDetails.date).toLocaleDateString(),
-            time: visitDetails.time,
-            type: visitDetails.type === 'virtual' ? 'Virtual Visit' : 'In-Person Visit'
-          } : undefined}
-          onVisitCancelled={() => {
-            setShowCancelVisitModal(false);
-            if (onVisitCancelled) {
-              onVisitCancelled();
-            }
-          }}
-        />
-      )}
+      <CancelVisitDialog
+        open={showCancelVisitModal}
+        onOpenChange={setShowCancelVisitModal}
+        visitDetails={visitDetails}
+        onVisitCancelled={onVisitCancelled}
+      />
 
-      {/* Lead Capture Modal - Only for anonymous users */}
       {isAnonymous && (
-        <LeadCaptureModal 
+        <LeadCaptureModal
           open={showLeadCaptureModal}
           onOpenChange={setShowLeadCaptureModal}
-          source="journey_progress_panel"
         />
       )}
     </>

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { supabase } from '@/lib/supabase';
@@ -62,7 +61,6 @@ const validateCategory = (category: string): 'foundation' | 'scheduling' | 'tria
   if (['foundation', 'scheduling', 'trial', 'conversion'].includes(category)) {
     return category as 'foundation' | 'scheduling' | 'trial' | 'conversion';
   }
-  // Fallback to foundation if invalid category
   return 'foundation';
 };
 
@@ -196,70 +194,6 @@ const getDummyJourneyData = (): { steps: JourneyStep[], paths: JourneyPath[] } =
       completed: false,
       accessible: false,
       prerequisites: []
-    },
-    {
-      id: 'dummy-9',
-      step_number: 9,
-      title: 'Schedule trial day',
-      description: 'Try care services for a day',
-      category: 'trial',
-      is_optional: true,
-      tooltip_content: 'Experience our care services with no long-term commitment',
-      detailed_explanation: 'A trial day helps ensure the care plan meets your needs',
-      time_estimate_minutes: 5,
-      link_path: '/family/schedule-trial',
-      icon_name: 'CalendarCheck',
-      completed: false,
-      accessible: false,
-      prerequisites: []
-    },
-    {
-      id: 'dummy-10',
-      step_number: 10,
-      title: 'Pay for trial day',
-      description: 'Process payment for trial',
-      category: 'trial',
-      is_optional: true,
-      tooltip_content: 'Secure your trial day with payment. The trial day fee covers 8 hours of professional caregiving coordinated by Tavara.',
-      detailed_explanation: 'Secure your trial day with payment. The trial day fee covers 8 hours of professional caregiving coordinated by Tavara. You have options via our subscription service to add trial days or make your final decision between direct hire and Tavara Care Village subscription based on your experience and preferences. Choose Direct Hire ($40/hr) to manage everything yourself, or Tavara Care Village ($45/hr) for full support including payroll, scheduling, medication management, and 24/7 coordinator support.',
-      time_estimate_minutes: 5,
-      link_path: '/family/trial-payment',
-      icon_name: 'CreditCard',
-      completed: false,
-      accessible: false,
-      prerequisites: []
-    },
-    {
-      id: 'dummy-11',
-      step_number: 11,
-      title: 'Complete trial day',
-      description: 'Experience care services',
-      category: 'trial',
-      is_optional: true,
-      tooltip_content: 'Experience our care services firsthand',
-      detailed_explanation: 'Your trial day helps confirm the right care approach',
-      time_estimate_minutes: 480,
-      link_path: '/family/trial-completion',
-      icon_name: 'ThumbsUp',
-      completed: false,
-      accessible: false,
-      prerequisites: []
-    },
-    {
-      id: 'dummy-12',
-      step_number: 12,
-      title: 'Choose care model',
-      description: 'Select your ongoing care plan',
-      category: 'conversion',
-      is_optional: false,
-      tooltip_content: 'Choose the care model that best fits your needs',
-      detailed_explanation: 'We offer flexible care models to meet your specific situation',
-      time_estimate_minutes: 15,
-      link_path: '/family/care-model-selection',
-      icon_name: 'Check',
-      completed: false,
-      accessible: false,
-      prerequisites: []
     }
   ];
 
@@ -350,14 +284,12 @@ export const useEnhancedJourneyProgress = (): JourneyProgressData => {
       return;
     }
 
-    // Existing logged-in user logic
     if (user) {
       fetchJourneyData();
     }
   }, [user]);
 
   const handleAnonymousStepAction = (step: JourneyStep) => {
-    // For anonymous users, all actions trigger lead capture
     setShowLeadCaptureModal(true);
   };
 
@@ -370,10 +302,10 @@ export const useEnhancedJourneyProgress = (): JourneyProgressData => {
       case 7: // Schedule initial visit - need step 4 completed
         const step4 = allSteps.find(s => s.step_number === 4);
         return step4?.completed || false;
-      case 8: // Manage visit details - need step 7 completed (visit scheduled)
-        const hasVisitScheduled = profileData?.visit_scheduling_status && 
-          ['scheduled', 'completed', 'cancelled'].includes(profileData.visit_scheduling_status);
-        return hasVisitScheduled;
+      case 8: // Manage visit details - need step 7 completed and visit scheduled (not cancelled)
+        const hasValidVisit = profileData?.visit_scheduling_status && 
+          ['scheduled', 'completed'].includes(profileData.visit_scheduling_status);
+        return hasValidVisit;
       case 9: // Schedule trial - need step 7 completed (visit scheduled)
         const hasVisitForTrial = profileData?.visit_scheduling_status && 
           ['scheduled', 'completed'].includes(profileData.visit_scheduling_status);
@@ -590,13 +522,13 @@ export const useEnhancedJourneyProgress = (): JourneyProgressData => {
             console.log(`Step 6 completion: meal plans count=${mealPlans?.length || 0}, completed=${completed}`);
             break;
           case 7:
-            // Step 7 is completed when a visit has been scheduled (any status)
+            // Step 7 is completed when a visit has been scheduled (any status except cancelled)
             completed = !!(profile?.visit_scheduling_status && 
-              ['scheduled', 'completed', 'cancelled'].includes(profile.visit_scheduling_status));
+              ['scheduled', 'completed'].includes(profile.visit_scheduling_status));
             console.log(`Step 7 completion: visit_status=${profile?.visit_scheduling_status}, completed=${completed}`);
             break;
           case 8:
-            // Step 8 is completed when visit has been confirmed/completed
+            // Step 8 is accessible when visit is scheduled/completed, completed when user has managed details
             completed = profile?.visit_scheduling_status === 'completed';
             console.log(`Step 8 completion: visit_status=${profile?.visit_scheduling_status}, completed=${completed}`);
             break;
@@ -792,7 +724,8 @@ export const useEnhancedJourneyProgress = (): JourneyProgressData => {
   return {
     steps: steps.map(step => ({
       ...step,
-      action: () => handleStepAction(step)
+      action: () => handleStepAction(step),
+      cancelAction: step.step_number === 7 && step.completed ? () => setShowCancelVisitModal(true) : undefined
     })),
     paths,
     completionPercentage,
@@ -804,7 +737,6 @@ export const useEnhancedJourneyProgress = (): JourneyProgressData => {
     setShowScheduleModal: (show: boolean) => {
       setShowScheduleModal(show);
       if (!show) {
-        // Refresh when modal closes to catch any updates
         refreshJourneyProgress();
       }
     },
