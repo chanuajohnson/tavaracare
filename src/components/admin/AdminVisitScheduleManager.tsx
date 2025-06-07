@@ -11,6 +11,8 @@ import { AdminBookingFilters } from './AdminBookingFilters';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from "sonner";
 
+type AdminStatus = 'pending' | 'confirmed' | 'cancelled' | 'completed' | 'locked';
+
 interface AdminConfig {
   id: string;
   available_days: string[];
@@ -28,7 +30,7 @@ interface VisitBooking {
   visit_type: 'virtual' | 'in_person';
   status: string;
   payment_status: string;
-  admin_status: string;
+  admin_status: AdminStatus;
   family_address?: string;
   family_phone?: string;
   admin_notes?: string;
@@ -106,6 +108,7 @@ export const AdminVisitScheduleManager = () => {
         return {
           ...booking,
           visit_type: booking.visit_type as 'virtual' | 'in_person',
+          admin_status: booking.admin_status as AdminStatus,
           profiles: profileData
         };
       });
