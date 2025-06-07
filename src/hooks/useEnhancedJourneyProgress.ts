@@ -19,6 +19,7 @@ interface JourneyStep {
   accessible: boolean;
   prerequisites: string[];
   action?: () => void;
+  cancelAction?: () => void;
 }
 
 interface JourneyPath {

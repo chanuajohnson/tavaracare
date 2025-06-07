@@ -23,6 +23,7 @@ interface JourneyStep {
   time_estimate_minutes: number;
   is_optional: boolean;
   action?: () => void;
+  cancelAction?: () => void;
   buttonText?: string;
 }
 
@@ -326,8 +327,6 @@ export const JourneyStageCard: React.FC<JourneyStageCardProps> = ({
                               className="text-xs px-2 py-1 h-auto min-h-[44px] text-red-600 hover:text-red-700"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                // This will be handled by the parent component (EnhancedFamilyNextStepsPanel)
-                                // through the step's cancel action
                                 if (step.cancelAction) {
                                   step.cancelAction();
                                 }

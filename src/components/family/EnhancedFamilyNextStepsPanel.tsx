@@ -1,9 +1,12 @@
+
 import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { List, ArrowRight, Eye, Sparkles } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { ScheduleVisitModal } from "./ScheduleVisitModal";
+import { InternalSchedulingModal } from "./InternalSchedulingModal";
+import { CancelVisitDialog } from "./CancelVisitDialog";
 import { LeadCaptureModal } from "./LeadCaptureModal";
 import { JourneyPathVisualization } from "./JourneyPathVisualization";
 import { JourneyStageCard } from "./JourneyStageCard";
