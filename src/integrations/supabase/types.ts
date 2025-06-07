@@ -2274,6 +2274,8 @@ export type Database = {
           tech_interests: string[] | null
           updated_at: string | null
           visit_notes: string | null
+          visit_payment_reference: string | null
+          visit_payment_status: string | null
           visit_scheduled_date: string | null
           visit_scheduling_status: string | null
           website: string | null
@@ -2355,6 +2357,8 @@ export type Database = {
           tech_interests?: string[] | null
           updated_at?: string | null
           visit_notes?: string | null
+          visit_payment_reference?: string | null
+          visit_payment_status?: string | null
           visit_scheduled_date?: string | null
           visit_scheduling_status?: string | null
           website?: string | null
@@ -2436,6 +2440,8 @@ export type Database = {
           tech_interests?: string[] | null
           updated_at?: string | null
           visit_notes?: string | null
+          visit_payment_reference?: string | null
+          visit_payment_status?: string | null
           visit_scheduled_date?: string | null
           visit_scheduling_status?: string | null
           website?: string | null
@@ -3249,6 +3255,10 @@ export type Database = {
           is_cancelled: boolean | null
           original_booking_date: string | null
           original_booking_time: string | null
+          payment_amount: number | null
+          payment_currency: string | null
+          payment_reference: string | null
+          payment_status: string | null
           reschedule_count: number | null
           reschedule_reason: string | null
           status: string
@@ -3274,6 +3284,10 @@ export type Database = {
           is_cancelled?: boolean | null
           original_booking_date?: string | null
           original_booking_time?: string | null
+          payment_amount?: number | null
+          payment_currency?: string | null
+          payment_reference?: string | null
+          payment_status?: string | null
           reschedule_count?: number | null
           reschedule_reason?: string | null
           status?: string
@@ -3299,6 +3313,10 @@ export type Database = {
           is_cancelled?: boolean | null
           original_booking_date?: string | null
           original_booking_time?: string | null
+          payment_amount?: number | null
+          payment_currency?: string | null
+          payment_reference?: string | null
+          payment_status?: string | null
           reschedule_count?: number | null
           reschedule_reason?: string | null
           status?: string
@@ -3624,6 +3642,14 @@ export type Database = {
       }
       update_site_visit_status: {
         Args: { plan_id: string; new_status: string }
+        Returns: undefined
+      }
+      update_visit_payment_status: {
+        Args: {
+          user_id_param: string
+          payment_status_param: string
+          payment_reference_param?: string
+        }
         Returns: undefined
       }
       validate_admin_signup_code: {

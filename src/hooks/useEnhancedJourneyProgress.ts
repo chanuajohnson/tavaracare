@@ -178,22 +178,6 @@ const getDummyJourneyData = (): { steps: JourneyStep[], paths: JourneyPath[] } =
       completed: false,
       accessible: false,
       prerequisites: []
-    },
-    {
-      id: 'dummy-8',
-      step_number: 8,
-      title: 'Manage visit details',
-      description: 'Review and adjust your visit arrangements',
-      category: 'scheduling',
-      is_optional: false,
-      tooltip_content: 'Manage your scheduled visit details and preferences',
-      detailed_explanation: 'Handle visit modifications, confirmations, and special requirements',
-      time_estimate_minutes: 10,
-      link_path: '/family/visit-management',
-      icon_name: 'Settings',
-      completed: false,
-      accessible: false,
-      prerequisites: []
     }
   ];
 
@@ -207,7 +191,7 @@ const getDummyJourneyData = (): { steps: JourneyStep[], paths: JourneyPath[] } =
       id: 'dummy-path-1',
       path_name: 'Quick Start Path',
       path_description: 'Get matched with a caregiver in 24-48 hours',
-      step_ids: [1, 2, 3, 4, 7, 8],
+      step_ids: [1, 2, 3, 4, 7],
       path_color: '#10B981',
       is_recommended: true
     },
@@ -302,24 +286,19 @@ export const useEnhancedJourneyProgress = (): JourneyProgressData => {
       case 7: // Schedule initial visit - need step 4 completed
         const step4 = allSteps.find(s => s.step_number === 4);
         return step4?.completed || false;
-      case 8: // Manage visit details - need step 7 completed and visit scheduled (not cancelled)
-        const hasValidVisit = profileData?.visit_scheduling_status && 
-          ['scheduled', 'completed'].includes(profileData.visit_scheduling_status);
-        return hasValidVisit;
       case 9: // Schedule trial - need step 7 completed (visit scheduled)
         const hasVisitForTrial = profileData?.visit_scheduling_status && 
           ['scheduled', 'completed'].includes(profileData.visit_scheduling_status);
         return hasVisitForTrial;
-      case 10: // Pay for trial - need steps 8 and 9 completed
-        const step8 = allSteps.find(s => s.step_number === 8);
+      case 10: // Pay for trial - need step 9 completed
         const step9 = allSteps.find(s => s.step_number === 9);
-        return (step8?.completed && step9?.completed) || false;
+        return step9?.completed || false;
       case 11: // Begin trial - need step 10 completed
         const step10 = allSteps.find(s => s.step_number === 10);
         return step10?.completed || false;
-      case 12: // Choose path - need step 8 completed (can skip trial)
-        const step8Complete = allSteps.find(s => s.step_number === 8);
-        return step8Complete?.completed || false;
+      case 12: // Choose path - need step 7 completed (can skip trial)
+        const step7Complete = allSteps.find(s => s.step_number === 7);
+        return step7Complete?.completed || false;
       default:
         return true;
     }
@@ -373,12 +352,13 @@ export const useEnhancedJourneyProgress = (): JourneyProgressData => {
       setLoading(true);
       console.log('Fetching journey data for user:', user.id);
       
-      // Fetch journey steps from database
+      // Fetch journey steps from database (excluding step 8)
       const { data: journeySteps, error: stepsError } = await supabase
         .from('journey_steps')
         .select('*')
         .eq('user_role', 'family')
         .eq('is_active', true)
+        .neq('step_number', 8) // Exclude step 8
         .order('order_index');
 
       if (stepsError) throw stepsError;
@@ -527,11 +507,6 @@ export const useEnhancedJourneyProgress = (): JourneyProgressData => {
               ['scheduled', 'completed'].includes(profile.visit_scheduling_status));
             console.log(`Step 7 completion: visit_status=${profile?.visit_scheduling_status}, completed=${completed}`);
             break;
-          case 8:
-            // Step 8 is accessible when visit is scheduled/completed, completed when user has managed details
-            completed = profile?.visit_scheduling_status === 'completed';
-            console.log(`Step 8 completion: visit_status=${profile?.visit_scheduling_status}, completed=${completed}`);
-            break;
           case 9:
           case 10:
           case 11:
@@ -553,21 +528,11 @@ export const useEnhancedJourneyProgress = (): JourneyProgressData => {
           detailedExplanation = 'Secure your trial day with payment. The trial day fee covers 8 hours of professional caregiving coordinated by Tavara. You have options via our subscription service to add trial days or make your final decision between direct hire and Tavara Care Village subscription based on your experience and preferences. Choose Direct Hire ($40/hr) to manage everything yourself, or Tavara Care Village ($45/hr) for full support including payroll, scheduling, medication management, and 24/7 coordinator support.';
         }
 
-        // Update Step 8 title and description
-        let title = step.title;
-        let description = step.description;
-        if (step.step_number === 8) {
-          title = 'Manage visit details';
-          description = 'Review and adjust your visit arrangements';
-          tooltipContent = 'Manage your scheduled visit details and preferences';
-          detailedExplanation = 'Handle visit modifications, confirmations, and special requirements';
-        }
-
         return {
           id: step.id,
           step_number: step.step_number,
-          title,
-          description,
+          title: step.title,
+          description: step.description,
           category: validateCategory(step.category),
           is_optional: step.is_optional || false,
           tooltip_content: tooltipContent,

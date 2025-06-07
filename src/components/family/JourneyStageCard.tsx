@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -90,7 +89,6 @@ export const JourneyStageCard: React.FC<JourneyStageCardProps> = ({
 
     if (!step.accessible) {
       if (step.step_number === 4) return "Complete Above Steps";
-      if (step.step_number === 8) return "Schedule Visit First";
       return "Not Available";
     }
     
@@ -111,10 +109,6 @@ export const JourneyStageCard: React.FC<JourneyStageCardProps> = ({
         return "Modify Visit";
       }
       return step.completed ? "Modify Visit" : "Schedule Visit";
-    }
-    
-    if (step.step_number === 8) {
-      return step.completed ? "Manage Details" : "Manage Visit";
     }
     
     return step.completed ? "Edit" : "Complete";
@@ -332,6 +326,11 @@ export const JourneyStageCard: React.FC<JourneyStageCardProps> = ({
                                 <span className="text-blue-800 font-medium">
                                   {visitDetails.type === 'virtual' ? 'Virtual Visit' : 'Home Visit'}
                                 </span>
+                                {visitDetails.type === 'in_person' && (
+                                  <span className="text-xs bg-green-100 text-green-800 px-1 py-0.5 rounded ml-1">
+                                    Paid
+                                  </span>
+                                )}
                               </div>
                               <div className="flex items-center gap-1">
                                 <Calendar className="h-3 w-3 text-blue-600" />
