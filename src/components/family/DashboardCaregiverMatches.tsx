@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -12,9 +12,28 @@ import { CaregiverMatchingModal } from "./CaregiverMatchingModal";
 
 export const DashboardCaregiverMatches = () => {
   const { user } = useAuth();
-  const { caregivers, isLoading } = useCaregiverMatches(true);
+  const { caregivers, isLoading: hookLoading } = useCaregiverMatches(true);
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [showMatchingModal, setShowMatchingModal] = useState(false);
+  
+  // Local loading state with minimum timer to prevent flashing
+  const [isLocalLoading, setIsLocalLoading] = useState(true);
+
+  useEffect(() => {
+    if (user) {
+      setIsLocalLoading(true);
+      
+      // Minimum loading time of 2.5 seconds to prevent flashing
+      const minLoadingTimer = setTimeout(() => {
+        setIsLocalLoading(false);
+      }, 2500);
+
+      return () => clearTimeout(minLoadingTimer);
+    }
+  }, [user]);
+
+  // Show loading state if either hook is loading OR local timer hasn't finished
+  const isLoading = hookLoading || isLocalLoading;
 
   if (!user) {
     return null;
