@@ -12,7 +12,6 @@ interface MiniJourneyProgressProps {
 }
 
 export const MiniJourneyProgress: React.FC<MiniJourneyProgressProps> = ({ userId, userRole }) => {
-  // Use the enhanced user-specific hook that works with admin RLS policies
   const { loading, completionPercentage, nextStep, steps } = useUserSpecificProgress(userId, userRole);
 
   if (loading) {
