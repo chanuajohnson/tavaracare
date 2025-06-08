@@ -1,17 +1,21 @@
+
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
-import { Star, MapPin, Clock, Heart, Users, Shield, CheckCircle2, Sparkles } from "lucide-react";
+import { Shield, Sparkles } from "lucide-react";
 import { SubscriptionFeatureLink } from "@/components/subscription/SubscriptionFeatureLink";
 import { MatchingTracker } from "@/components/tracking/MatchingTracker";
+import { useCaregiverMatches } from "@/hooks/useCaregiverMatches";
+import { CaregiverMatchCard } from "@/components/family/CaregiverMatchCard";
+import { CaregiverProfileModal } from "@/components/family/CaregiverProfileModal";
 
 const FamilyMatchingPage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [showMagicalMessage, setShowMagicalMessage] = useState(true);
+  const [showProfileModal, setShowProfileModal] = useState(false);
+  const { caregivers, isLoading: caregiverLoading, dataLoaded } = useCaregiverMatches(true); // Show only best match
 
   useEffect(() => {
     // Show the magical loading for 3 seconds, then show the caregiver
@@ -35,21 +39,7 @@ const FamilyMatchingPage = () => {
     { label: "Caregiver Matching", path: "/family/matching" },
   ];
 
-  const teaserCaregiver = {
-    id: "teaser-1",
-    name: "Sarah M.",
-    title: "Senior Care Specialist",
-    rating: 4.9,
-    location: "Port of Spain",
-    experience: "8+ years",
-    hourlyRate: "$25-35",
-    skills: ["Dementia Care", "Medication Management", "Mobility Support", "Meal Preparation"],
-    bio: "Passionate about providing compassionate care with specialized training in dementia and Alzheimer's support.",
-    availability: "Monday - Friday, 8am - 6pm",
-    languages: ["English", "Spanish"],
-    certifications: ["CNA", "CPR Certified", "First Aid"],
-    matchPercentage: 95
-  };
+  const bestMatch = caregivers[0]; // Get the single best match
 
   if (isLoading) {
     return (
@@ -124,9 +114,9 @@ const FamilyMatchingPage = () => {
           className="space-y-6 mt-8"
         >
           <div className="text-center space-y-4">
-            <h1 className="text-3xl font-bold">Your Caregiver Matches</h1>
+            <h1 className="text-3xl font-bold">Your Perfect Caregiver Match</h1>
             <p className="text-muted-foreground max-w-2xl mx-auto">
-              We've found carefully screened caregivers based on your specific care needs and preferences.
+              We've found a carefully screened caregiver based on your specific care needs and preferences.
             </p>
           </div>
 
@@ -138,7 +128,7 @@ const FamilyMatchingPage = () => {
                 <h3 className="text-lg font-semibold text-blue-900">Premium Matching Service</h3>
               </div>
               <p className="text-blue-800 mb-4">
-                You're viewing a sample match. Unlock our full caregiver network with verified professionals, 
+                You're viewing your best match. Unlock our full caregiver network with verified professionals, 
                 background checks, and personalized matching based on your exact requirements.
               </p>
               <SubscriptionFeatureLink
@@ -154,117 +144,58 @@ const FamilyMatchingPage = () => {
             </CardContent>
           </Card>
 
-          {/* Sample Caregiver Match */}
-          <Card className="overflow-hidden">
-            <CardHeader className="bg-gradient-to-r from-green-50 to-emerald-50">
-              <div className="flex items-center justify-between">
-                <div className="space-y-1">
-                  <CardTitle className="text-xl">{teaserCaregiver.name}</CardTitle>
-                  <CardDescription className="text-base">{teaserCaregiver.title}</CardDescription>
-                </div>
-                <div className="text-right space-y-1">
-                  <Badge variant="secondary" className="bg-green-100 text-green-800">
-                    {teaserCaregiver.matchPercentage}% Match
-                  </Badge>
-                  <div className="flex items-center space-x-1">
-                    <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                    <span className="font-medium">{teaserCaregiver.rating}</span>
+          {/* Caregiver Match */}
+          {caregiverLoading ? (
+            <div className="flex justify-center items-center py-6">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            </div>
+          ) : bestMatch ? (
+            <Card className="overflow-hidden">
+              <CardHeader className="bg-gradient-to-r from-green-50 to-emerald-50">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-1">
+                    <CardTitle className="text-xl">Your Perfect Match</CardTitle>
+                    <CardDescription className="text-base">Recommended based on your care needs</CardDescription>
                   </div>
                 </div>
-              </div>
-            </CardHeader>
-            
-            <CardContent className="p-6 space-y-6">
-              {/* Basic Info */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="flex items-center space-x-2">
-                  <MapPin className="h-4 w-4 text-muted-foreground" />
-                  <span>{teaserCaregiver.location}</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Clock className="h-4 w-4 text-muted-foreground" />
-                  <span>{teaserCaregiver.experience}</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <span className="font-medium">{teaserCaregiver.hourlyRate}/hour</span>
-                </div>
-              </div>
-
-              <Separator />
-
-              {/* Bio */}
-              <div>
-                <h4 className="font-medium mb-2">About</h4>
-                <p className="text-muted-foreground">{teaserCaregiver.bio}</p>
-              </div>
-
-              {/* Skills */}
-              <div>
-                <h4 className="font-medium mb-3">Specialties</h4>
-                <div className="flex flex-wrap gap-2">
-                  {teaserCaregiver.skills.map((skill) => (
-                    <Badge key={skill} variant="outline" className="border-blue-200 text-blue-700">
-                      {skill}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-
-              {/* Certifications */}
-              <div>
-                <h4 className="font-medium mb-3">Certifications & Languages</h4>
-                <div className="space-y-2">
-                  <div className="flex flex-wrap gap-2">
-                    {teaserCaregiver.certifications.map((cert) => (
-                      <Badge key={cert} className="bg-green-100 text-green-800 border-green-200">
-                        <CheckCircle2 className="h-3 w-3 mr-1" />
-                        {cert}
-                      </Badge>
-                    ))}
-                  </div>
-                  <div className="flex items-center space-x-2 text-sm text-muted-foreground">
-                    <span>Languages:</span>
-                    <span>{teaserCaregiver.languages.join(", ")}</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Availability */}
-              <div>
-                <h4 className="font-medium mb-2">Availability</h4>
-                <p className="text-muted-foreground">{teaserCaregiver.availability}</p>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="flex space-x-3 pt-4">
-                <SubscriptionFeatureLink
-                  featureType="Contact Caregiver"
+              </CardHeader>
+              
+              <CardContent className="p-6">
+                <CaregiverMatchCard
+                  caregiver={bestMatch}
                   returnPath="/family/matching"
                   referringPagePath="/family/matching"
                   referringPageLabel="Caregiver Matching"
-                  className="flex-1"
-                >
-                  <Button className="w-full">
-                    <Heart className="h-4 w-4 mr-2" />
-                    Contact Caregiver
-                  </Button>
-                </SubscriptionFeatureLink>
+                  showUnlockButton={false}
+                />
                 
-                <SubscriptionFeatureLink
-                  featureType="View Full Profile"
-                  returnPath="/family/matching"
-                  referringPagePath="/family/matching"
-                  referringPageLabel="Caregiver Matching"
-                  className="flex-1"
-                >
-                  <Button variant="outline" className="w-full">
-                    <Users className="h-4 w-4 mr-2" />
+                <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <Button 
+                    variant="default" 
+                    className="w-full bg-green-600 hover:bg-green-700"
+                    onClick={() => setShowProfileModal(true)}
+                  >
                     View Full Profile
                   </Button>
-                </SubscriptionFeatureLink>
-              </div>
-            </CardContent>
-          </Card>
+                  
+                  <SubscriptionFeatureLink
+                    featureType="Premium Match Features"
+                    returnPath="/family/matching"
+                    referringPagePath="/family/matching"
+                    referringPageLabel="Caregiver Matching"
+                    variant="outline"
+                    className="w-full"
+                  >
+                    Browse All Matches
+                  </SubscriptionFeatureLink>
+                </div>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="text-center py-6">
+              <p className="text-gray-500 mb-4">No caregiver matches found</p>
+            </div>
+          )}
 
           {/* Why Only One Match Notice */}
           <Card className="bg-amber-50 border-amber-200">
@@ -274,7 +205,7 @@ const FamilyMatchingPage = () => {
                 <div>
                   <h4 className="font-medium text-amber-900 mb-1">Why am I seeing only one match?</h4>
                   <p className="text-sm text-amber-800">
-                    This is a preview of our matching capabilities. Premium members get access to our full network 
+                    This is your perfect match based on compatibility. Premium members get access to our full network 
                     of verified caregivers, advanced filtering options, and unlimited matches based on your specific needs.
                   </p>
                 </div>
@@ -283,6 +214,15 @@ const FamilyMatchingPage = () => {
           </Card>
         </motion.div>
       </div>
+
+      {/* Profile Modal */}
+      {bestMatch && (
+        <CaregiverProfileModal
+          open={showProfileModal}
+          onOpenChange={setShowProfileModal}
+          caregiver={bestMatch}
+        />
+      )}
     </div>
   );
 };

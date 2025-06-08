@@ -1,4 +1,3 @@
-
 import { Routes, Route } from "react-router-dom";
 import { useAuth } from "@/components/providers/AuthProvider";
 import Index from "@/pages/Index";
@@ -9,6 +8,7 @@ import FamilyDashboard from "@/pages/dashboards/FamilyDashboard";
 import ProfessionalDashboard from "@/pages/dashboards/ProfessionalDashboard";
 import CommunityDashboard from "@/pages/dashboards/CommunityDashboard";
 import AdminDashboard from "@/pages/admin/AdminDashboard";
+import AdminVisitSchedulePage from "@/pages/admin/AdminVisitSchedulePage";
 import UserJourneyPage from "@/pages/admin/UserJourneyPage";
 import FeedbackManagementPage from "@/pages/admin/FeedbackManagementPage";
 import FeaturesPage from "@/pages/features/FeaturesPage";
@@ -41,6 +41,7 @@ import MedicationManagementPage from "@/pages/family/MedicationManagementPage";
 import CareManagementPage from "@/pages/family/care-management/CareManagementPage";
 import CarePlanDetailPage from "@/pages/family/care-management/CarePlanDetailPage";
 import CreateCarePlanPage from "@/pages/family/care-management/CreateCarePlanPage";
+import CareJourneyProgressPage from "@/pages/family/CareJourneyProgressPage";
 
 // Community Pages
 import CommunityFeaturesOverview from "@/pages/community/CommunityFeaturesOverview";
@@ -102,6 +103,7 @@ export const AppRoutes = () => {
       <Route path="/family/care-management/:id/medications" element={<MedicationManagementPage />} />
       <Route path="/family/care-management/:id/meals" element={<MealManagementPage />} />
       <Route path="/family/care-management/create" element={<CreateCarePlanPage />} />
+      <Route path="/family/care-journey-progress" element={<CareJourneyProgressPage />} />
       
       {/* Community Routes */}
       <Route path="/community" element={<CommunityFeaturesOverview />} />
@@ -115,6 +117,7 @@ export const AppRoutes = () => {
       <Route path="/subscription/features" element={<SubscriptionFeaturesPage />} />
       
       {/* Admin Routes */}
+      <Route path="/admin/visit-schedule" element={<AdminVisitSchedulePage />} />
       <Route path="/admin/user-journey" element={<UserJourneyPage />} />
       <Route path="/admin/feedback" element={<FeedbackManagementPage />} />
       

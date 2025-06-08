@@ -1,6 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
+import { useSharedFamilyJourneyData } from '@/hooks/useSharedFamilyJourneyData';
 import type { UserRole } from '@/types/userRoles';
 
 interface JourneyStep {
@@ -9,6 +10,8 @@ interface JourneyStep {
   description: string;
   completed: boolean;
   link: string;
+  category?: string;
+  optional?: boolean;
 }
 
 interface UserJourneyData {
@@ -16,24 +19,50 @@ interface UserJourneyData {
   completionPercentage: number;
   nextStep?: JourneyStep;
   loading: boolean;
+  journeyStage?: string;
 }
 
 export const useUserJourneyProgress = (userId: string, userRole: UserRole): UserJourneyData => {
+  // Use shared family data for family users
+  const familyProgress = useSharedFamilyJourneyData(userRole === 'family' ? userId : '');
+  
   const [loading, setLoading] = useState(true);
   const [steps, setSteps] = useState<JourneyStep[]>([]);
+  const [journeyStage, setJourneyStage] = useState<string>('foundation');
 
+  // If this is a family user, return the shared family data
+  if (userRole === 'family') {
+    const convertedSteps = familyProgress.steps.map(step => ({
+      ...step,
+      link: step.id === 1 ? "/registration/family" :
+            step.id === 2 ? "/family/care-assessment" :
+            step.id === 3 ? "/family/story" :
+            step.id === 4 ? "/caregiver/matching" :
+            step.id === 5 ? "/family/care-management" :
+            step.id === 6 ? "/family/care-management" :
+            step.id === 7 ? "/family/schedule-visit" :
+            step.id === 8 ? "/family/schedule-visit" :
+            step.id === 9 ? "/family/schedule-visit" :
+            step.id === 10 ? "/family/schedule-visit" :
+            step.id === 11 ? "/family/schedule-visit" :
+            step.id === 12 ? "/family/schedule-visit" : "/dashboard"
+    }));
+
+    return {
+      steps: convertedSteps,
+      completionPercentage: familyProgress.completionPercentage,
+      nextStep: familyProgress.nextStep ? {
+        ...familyProgress.nextStep,
+        link: convertedSteps.find(s => s.id === familyProgress.nextStep?.id)?.link || "/dashboard"
+      } : undefined,
+      loading: familyProgress.loading,
+      journeyStage: familyProgress.journeyStage
+    };
+  }
+
+  // For non-family users, keep the existing logic
   const getStepsForRole = (role: UserRole): JourneyStep[] => {
     switch (role) {
-      case 'family':
-        return [
-          { id: 1, title: "Complete your profile", description: "Add your contact information and preferences", completed: false, link: "/registration/family" },
-          { id: 2, title: "Complete initial care assessment", description: "Help us understand your care needs better", completed: false, link: "/family/care-assessment" },
-          { id: 3, title: "Complete your loved one's Legacy Story", description: "Share their story to personalize care", completed: false, link: "/family/story" },
-          { id: 4, title: "See your instant caregiver matches", description: "View personalized caregiver recommendations", completed: false, link: "/caregiver-matching" },
-          { id: 5, title: "Set up medication management", description: "Add medications and schedules", completed: false, link: "/family/care-management" },
-          { id: 6, title: "Set up meal management", description: "Plan meals and create grocery lists", completed: false, link: "/family/care-management" },
-          { id: 7, title: "Schedule your Visit", description: "Meet your care coordinator", completed: false, link: "/family/schedule-visit" }
-        ];
       case 'professional':
         return [
           { id: 1, title: "Create your account", description: "Set up your Tavara account", completed: true, link: "/auth" },
@@ -76,48 +105,7 @@ export const useUserJourneyProgress = (userId: string, userRole: UserRole): User
 
       let updatedSteps = getStepsForRole(userRole);
 
-      if (userRole === 'family') {
-        // Check care assessment
-        const { data: careAssessment } = await supabase
-          .from('care_needs_family')
-          .select('id')
-          .eq('profile_id', userId)
-          .maybeSingle();
-
-        // Check care recipient profile
-        const { data: careRecipient } = await supabase
-          .from('care_recipient_profiles')
-          .select('id, full_name')
-          .eq('user_id', userId)
-          .maybeSingle();
-
-        // Check care plans
-        const { data: carePlans } = await supabase
-          .from('care_plans')
-          .select('id')
-          .eq('family_id', userId);
-
-        // Check medications
-        const { data: medications } = await supabase
-          .from('medications')
-          .select('id')
-          .in('care_plan_id', (carePlans || []).map(cp => cp.id));
-
-        // Check meal plans
-        const { data: mealPlans } = await supabase
-          .from('meal_plans')
-          .select('id')
-          .in('care_plan_id', (carePlans || []).map(cp => cp.id));
-
-        // Mark steps as completed
-        if (profile.full_name) updatedSteps[0].completed = true;
-        if (careAssessment) updatedSteps[1].completed = true;
-        if (careRecipient && careRecipient.full_name) updatedSteps[2].completed = true;
-        if (careRecipient) updatedSteps[3].completed = true;
-        if (medications && medications.length > 0) updatedSteps[4].completed = true;
-        if (mealPlans && mealPlans.length > 0) updatedSteps[5].completed = true;
-
-      } else if (userRole === 'professional') {
+      if (userRole === 'professional') {
         // Check documents
         const { data: documents } = await supabase
           .from('professional_documents')
@@ -149,7 +137,9 @@ export const useUserJourneyProgress = (userId: string, userRole: UserRole): User
   };
 
   useEffect(() => {
-    if (userId && userRole) {
+    // Since family users are handled above with early return, 
+    // this useEffect only runs for non-family users
+    if (userId) {
       checkStepCompletion();
     }
   }, [userId, userRole]);
@@ -162,6 +152,7 @@ export const useUserJourneyProgress = (userId: string, userRole: UserRole): User
     steps,
     completionPercentage,
     nextStep,
-    loading
+    loading,
+    journeyStage
   };
 };

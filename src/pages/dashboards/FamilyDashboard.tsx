@@ -1,3 +1,4 @@
+
 import { motion } from "framer-motion";
 import { useEffect } from "react";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
@@ -7,7 +8,7 @@ import { ArrowRight, Users, Heart, UserPlus, MessageSquare, CheckCircle2 } from 
 import { UpvoteFeatureButton } from "@/components/features/UpvoteFeatureButton";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/components/providers/AuthProvider";
-import { FamilyNextStepsPanel } from "@/components/family/FamilyNextStepsPanel";
+import { EnhancedFamilyNextStepsPanel } from "@/components/family/EnhancedFamilyNextStepsPanel";
 import { DashboardCaregiverMatches } from "@/components/family/DashboardCaregiverMatches";
 import { CaregiverMatchingCard } from "@/components/family/CaregiverMatchingCard";
 import { FamilyShortcutMenuBar } from "@/components/family/FamilyShortcutMenuBar";
@@ -111,11 +112,17 @@ const FamilyDashboard = () => {
           </motion.div>
         ) : null}
 
-        {/* Next Steps Panel and Tell Their Story - side by side */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
-          <FamilyNextStepsPanel />
-          <TellTheirStoryCard />
+        {/* Enhanced Next Steps Panel - Works for both anonymous and logged-in users */}
+        <div className="mt-8">
+          <EnhancedFamilyNextStepsPanel showAllSteps={false} />
         </div>
+
+        {/* Tell Their Story Card - side by side with enhanced panel for logged-in users only */}
+        {user && (
+          <div className="mt-6">
+            <TellTheirStoryCard />
+          </div>
+        )}
 
         {/* Caregiver Matching Card */}
         <CaregiverMatchingCard />
