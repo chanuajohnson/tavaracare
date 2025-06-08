@@ -3,7 +3,7 @@ import React, { useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
-import { Home, Lock, CheckCircle, ArrowRight, Heart, Users, Shield, Star } from 'lucide-react';
+import { Home, Lock, CheckCircle, ArrowRight, Heart, Users, Shield, Star, Sparkles } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAuth } from "@/components/providers/AuthProvider";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
@@ -49,19 +49,24 @@ export default function SubscriptionFeaturesPage() {
     }
     
     switch(featureType?.toLowerCase()) {
+      case 'caregiver matching':
+      case 'unlock matches':
+      case 'view caregiver profile':
+      case 'browse all matches':
+        return [
+          "Access unlimited caregiver profiles and matches",
+          "View complete caregiver backgrounds, experience, and certifications",
+          "Direct messaging with caregivers for interviews and coordination",
+          "Save favorites and create comparison lists",
+          "Advanced filtering by skills, availability, and location",
+          "Priority access to new caregiver registrations"
+        ];
       case 'posting care needs':
         return [
           "Post unlimited care need requests",
           "Receive priority applications from caregivers",
           "Add detailed care requirements and photos",
           "Set custom notification preferences"
-        ];
-      case 'caregiver matching':
-        return [
-          "View unlimited caregiver profiles",
-          "Advanced filtering by skills, experience, and availability",
-          "Directly message potential caregivers",
-          "Save favorites and comparison tools"
         ];
       case 'view full message board':
         return [
@@ -264,7 +269,7 @@ export default function SubscriptionFeaturesPage() {
     );
   }
 
-  // Regular flow content (existing code)
+  // Regular flow content for logged-in users
   const breadcrumbItems = [
     { label: 'Home', href: '/' },
     ...(dashboardPath && dashboardPath !== "/" ? [{ label: dashboardLabel !== "Home" ? dashboardLabel : "Dashboard", href: dashboardPath }] : []),
@@ -277,156 +282,216 @@ export default function SubscriptionFeaturesPage() {
         <Breadcrumb items={breadcrumbItems} />
       </div>
       
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2 space-y-6">
-          <div>
-            <h1 className="text-3xl font-bold mb-2">
-              {featureType ? `Unlock ${featureType}` : 'Premium Subscription Features'}
+      <div className="max-w-6xl mx-auto">
+        {/* Hero Section */}
+        <div className="text-center mb-8">
+          <div className="flex items-center justify-center gap-2 mb-4">
+            <Sparkles className="h-8 w-8 text-primary" />
+            <h1 className="text-4xl font-bold">
+              {featureType === 'caregiver matching' || featureType === 'unlock matches' || featureType === 'view caregiver profile' || featureType === 'browse all matches'
+                ? 'Unlock Caregiver Matching' 
+                : `Unlock ${featureType || 'Premium Features'}`}
             </h1>
-            <p className="text-muted-foreground text-lg">
-              {planType === 'family' ? 
-                'Enhance your caregiving experience with premium features designed for families.' :
-                'Boost your professional profile and access more opportunities with premium features.'}
-            </p>
           </div>
-          
-          {/* Feature details */}
-          <Card>
-            <CardHeader className="pb-3">
-              <div className="flex items-center gap-2">
-                <Lock className="h-5 w-5 text-primary" />
-                <CardTitle>Premium {featureType || 'Feature'}</CardTitle>
-              </div>
-              <CardDescription>
-                Upgrade your subscription to access this and other premium features
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="bg-muted/30 p-4 rounded-lg">
-                  <h3 className="font-medium mb-2">What you'll get with a premium plan:</h3>
-                  <ul className="space-y-2">
-                    {featureBenefits.map((benefit, index) => (
-                      <li key={index} className="flex items-start gap-2">
-                        <CheckCircle className="h-5 w-5 text-green-500 mt-0.5 flex-shrink-0" />
-                        <span>{benefit}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-                
-                <div className="bg-primary/10 p-4 rounded-lg border border-primary/20">
-                  <h3 className="font-medium mb-2">Why upgrade?</h3>
-                  <p>
-                    {planType === 'family' ? 
-                      'Finding the right care is crucial. Our premium features help you connect with qualified caregivers faster and more effectively.' :
-                      'Stand out from other professionals and get more job opportunities with our premium professional features.'}
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          
-          <div className="flex flex-col sm:flex-row gap-4">
-            <Button 
-              onClick={handleSubscribeClick}
-              size="lg"
-              className="flex items-center gap-2"
-            >
-              View Subscription Plans <ArrowRight className="h-4 w-4" />
-            </Button>
-            
-            <Button 
-              variant="outline" 
-              onClick={() => navigate(dashboardPath)}
-            >
-              Return to {dashboardLabel}
-            </Button>
-          </div>
+          <p className="text-xl text-muted-foreground mb-6">
+            {planType === 'family' ? 
+              'Get full access to Trinidad & Tobago\'s most trusted caregiver network.' :
+              'Boost your professional profile and access more opportunities.'}
+          </p>
         </div>
-        
-        <div className="lg:col-span-1">
-          <Card className="sticky top-24">
-            <CardHeader>
-              <CardTitle className="text-xl">Available Plans</CardTitle>
-              <CardDescription>
-                Choose the plan that best fits your needs
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {planType === 'family' ? (
-                <>
-                  <div className="p-3 border rounded-md">
-                    <h3 className="font-medium">Family Basic</h3>
-                    <p className="text-sm text-muted-foreground">Free</p>
-                    <div className="mt-2 text-sm text-muted-foreground">Limited access to essential features</div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="lg:col-span-2 space-y-6">
+            {/* Feature Details Card */}
+            <Card className="border-2 border-primary/20">
+              <CardHeader>
+                <div className="flex items-center gap-2">
+                  <Lock className="h-5 w-5 text-primary" />
+                  <CardTitle className="text-xl">
+                    {featureType === 'caregiver matching' || featureType === 'unlock matches' || featureType === 'view caregiver profile' || featureType === 'browse all matches'
+                      ? 'Caregiver Matching & Profiles' 
+                      : `Premium ${featureType || 'Feature'}`}
+                  </CardTitle>
+                </div>
+                <CardDescription>
+                  Upgrade to access this feature and unlock the full Tavara experience
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="bg-gradient-to-r from-primary/10 to-primary/5 p-4 rounded-lg border border-primary/20">
+                    <h3 className="font-semibold mb-3 flex items-center gap-2">
+                      <Star className="h-5 w-5 text-primary" />
+                      What you'll get with premium access:
+                    </h3>
+                    <ul className="space-y-2">
+                      {featureBenefits.map((benefit, index) => (
+                        <li key={index} className="flex items-start gap-2">
+                          <CheckCircle className="h-5 w-5 text-green-500 mt-0.5 flex-shrink-0" />
+                          <span className="text-sm">{benefit}</span>
+                        </li>
+                      ))}
+                    </ul>
                   </div>
                   
-                  <div className="p-3 border-2 border-primary rounded-md bg-primary/5">
-                    <h3 className="font-medium text-primary">Family Care</h3>
-                    <p className="text-sm text-muted-foreground">$14.99/month</p>
-                    <div className="mt-2 text-sm text-muted-foreground">Access to most premium features</div>
-                    <Button 
-                      className="w-full mt-3" 
-                      size="sm"
-                      onClick={handleSubscribeClick}
-                    >
-                      Upgrade to Care
-                    </Button>
+                  <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                    <h3 className="font-semibold mb-2 text-blue-800">Why families choose Tavara Premium:</h3>
+                    <p className="text-sm text-blue-700">
+                      {planType === 'family' ? 
+                        'Finding the right caregiver is crucial for your loved one\'s wellbeing. Our premium matching system helps you connect with qualified, background-checked caregivers faster and more effectively than anywhere else in Trinidad & Tobago.' :
+                        'Stand out from other professionals and get more job opportunities with our premium professional features.'}
+                    </p>
                   </div>
-                  
-                  <div className="p-3 border rounded-md">
-                    <h3 className="font-medium">Family Premium</h3>
-                    <p className="text-sm text-muted-foreground">$29.99/month</p>
-                    <div className="mt-2 text-sm text-muted-foreground">Unlimited access to all features</div>
-                    <Button 
-                      className="w-full mt-3" 
-                      variant="outline"
-                      size="sm"
-                      onClick={handleSubscribeClick}
-                    >
-                      View Premium
-                    </Button>
+                </div>
+              </CardContent>
+            </Card>
+            
+            {/* Trust Indicators */}
+            <Card>
+              <CardContent className="pt-6">
+                <h3 className="font-semibold mb-4 flex items-center gap-2">
+                  <Shield className="h-5 w-5 text-green-600" />
+                  Why Trinidad & Tobago trusts Tavara
+                </h3>
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div className="flex items-start gap-3">
+                    <CheckCircle className="h-5 w-5 text-green-500 mt-1 flex-shrink-0" />
+                    <div>
+                      <p className="font-medium text-sm">Background-Checked Caregivers</p>
+                      <p className="text-xs text-muted-foreground">Every caregiver goes through our comprehensive vetting process</p>
+                    </div>
                   </div>
-                </>
-              ) : (
-                <>
-                  <div className="p-3 border rounded-md">
-                    <h3 className="font-medium">Professional Basic</h3>
-                    <p className="text-sm text-muted-foreground">Free</p>
-                    <div className="mt-2 text-sm text-muted-foreground">Limited access to essential features</div>
+                  <div className="flex items-start gap-3">
+                    <CheckCircle className="h-5 w-5 text-green-500 mt-1 flex-shrink-0" />
+                    <div>
+                      <p className="font-medium text-sm">Local Community Focus</p>
+                      <p className="text-xs text-muted-foreground">Built specifically for Trinidad & Tobago families</p>
+                    </div>
                   </div>
-                  
-                  <div className="p-3 border-2 border-primary rounded-md bg-primary/5">
-                    <h3 className="font-medium text-primary">Professional Pro</h3>
-                    <p className="text-sm text-muted-foreground">$19.99/month</p>
-                    <div className="mt-2 text-sm text-muted-foreground">Enhanced access and visibility</div>
-                    <Button 
-                      className="w-full mt-3" 
-                      size="sm"
-                      onClick={handleSubscribeClick}
-                    >
-                      Upgrade to Pro
-                    </Button>
+                  <div className="flex items-start gap-3">
+                    <CheckCircle className="h-5 w-5 text-green-500 mt-1 flex-shrink-0" />
+                    <div>
+                      <p className="font-medium text-sm">24/7 Support</p>
+                      <p className="text-xs text-muted-foreground">Our care coordinators are always here to help</p>
+                    </div>
                   </div>
-                  
-                  <div className="p-3 border rounded-md">
-                    <h3 className="font-medium">Professional Expert</h3>
-                    <p className="text-sm text-muted-foreground">$34.99/month</p>
-                    <div className="mt-2 text-sm text-muted-foreground">Complete access to all features</div>
-                    <Button 
-                      className="w-full mt-3" 
-                      variant="outline"
-                      size="sm"
-                      onClick={handleSubscribeClick}
-                    >
-                      View Expert
-                    </Button>
+                  <div className="flex items-start gap-3">
+                    <CheckCircle className="h-5 w-5 text-green-500 mt-1 flex-shrink-0" />
+                    <div>
+                      <p className="font-medium text-sm">Secure & Private</p>
+                      <p className="text-xs text-muted-foreground">Your family's information is protected and encrypted</p>
+                    </div>
                   </div>
-                </>
-              )}
-            </CardContent>
-          </Card>
+                </div>
+              </CardContent>
+            </Card>
+            
+            <div className="flex flex-col sm:flex-row gap-4">
+              <Button 
+                onClick={handleSubscribeClick}
+                size="lg"
+                className="flex items-center gap-2"
+              >
+                Unlock Premium Access <ArrowRight className="h-4 w-4" />
+              </Button>
+              
+              <Button 
+                variant="outline" 
+                onClick={() => navigate(dashboardPath)}
+              >
+                Return to {dashboardLabel}
+              </Button>
+            </div>
+          </div>
+          
+          {/* Pricing Sidebar */}
+          <div className="lg:col-span-1">
+            <Card className="sticky top-24">
+              <CardHeader>
+                <CardTitle className="text-xl">Choose Your Plan</CardTitle>
+                <CardDescription>
+                  Get started with premium access today
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {planType === 'family' ? (
+                  <>
+                    <div className="p-4 border-2 border-primary rounded-lg bg-gradient-to-r from-primary/5 to-primary/10">
+                      <div className="text-center mb-3">
+                        <h3 className="font-semibold text-primary text-lg">Caregiver Access</h3>
+                        <div className="text-3xl font-bold text-primary">$7.99</div>
+                        <div className="text-sm text-muted-foreground">One-time payment</div>
+                      </div>
+                      <ul className="space-y-2 text-sm mb-4">
+                        <li className="flex items-center gap-2">
+                          <CheckCircle className="h-4 w-4 text-green-500" />
+                          Unlimited caregiver matches
+                        </li>
+                        <li className="flex items-center gap-2">
+                          <CheckCircle className="h-4 w-4 text-green-500" />
+                          Full profile access
+                        </li>
+                        <li className="flex items-center gap-2">
+                          <CheckCircle className="h-4 w-4 text-green-500" />
+                          Direct messaging
+                        </li>
+                        <li className="flex items-center gap-2">
+                          <CheckCircle className="h-4 w-4 text-green-500" />
+                          Advanced search & filters
+                        </li>
+                      </ul>
+                      <Button 
+                        className="w-full" 
+                        onClick={handleSubscribeClick}
+                      >
+                        Get Access Now
+                      </Button>
+                    </div>
+                    
+                    <div className="text-center p-3 text-sm text-muted-foreground">
+                      <p>✨ <strong>Limited Time:</strong> Usually $19.99/month</p>
+                      <p>🔒 <strong>Secure Payment:</strong> One-time fee, lifetime access</p>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="p-3 border rounded-md">
+                      <h3 className="font-medium">Professional Basic</h3>
+                      <p className="text-sm text-muted-foreground">Free</p>
+                      <div className="mt-2 text-sm text-muted-foreground">Limited access to essential features</div>
+                    </div>
+                    
+                    <div className="p-3 border-2 border-primary rounded-md bg-primary/5">
+                      <h3 className="font-medium text-primary">Professional Pro</h3>
+                      <p className="text-sm text-muted-foreground">$19.99/month</p>
+                      <div className="mt-2 text-sm text-muted-foreground">Enhanced access and visibility</div>
+                      <Button 
+                        className="w-full mt-3" 
+                        size="sm"
+                        onClick={handleSubscribeClick}
+                      >
+                        Upgrade to Pro
+                      </Button>
+                    </div>
+                    
+                    <div className="p-3 border rounded-md">
+                      <h3 className="font-medium">Professional Expert</h3>
+                      <p className="text-sm text-muted-foreground">$34.99/month</p>
+                      <div className="mt-2 text-sm text-muted-foreground">Complete access to all features</div>
+                      <Button 
+                        className="w-full mt-3" 
+                        variant="outline"
+                        size="sm"
+                        onClick={handleSubscribeClick}
+                      >
+                        View Expert
+                      </Button>
+                    </div>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </div>
     </div>
