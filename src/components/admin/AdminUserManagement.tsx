@@ -6,25 +6,23 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Trash2, Search, Filter, Shield } from "lucide-react";
+import { Trash2, Search, Filter, Shield, Grid3X3, List } from "lucide-react";
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from "sonner";
-
-interface AuthUser {
-  id: string;
-  email?: string;
-  created_at: string;
-  last_sign_in_at?: string;
-  user_metadata?: any;
-}
 
 interface Profile {
   id: string;
   role: string;
   full_name?: string;
+  created_at: string;
+  last_login_at?: string;
 }
 
-interface UserWithProfile extends AuthUser {
+interface UserWithProfile {
+  id: string;
+  email?: string;
+  created_at: string;
+  last_sign_in_at?: string;
   profile?: Profile;
 }
 
@@ -34,20 +32,12 @@ export const AdminUserManagement = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState<string>('');
+  const [viewMode, setViewMode] = useState<'table' | 'grid'>('table');
+  const [error, setError] = useState<string | null>(null);
 
-  const fetchUsers = async () => {
+  const fetchProfiles = async () => {
     try {
-      setLoading(true);
-      console.log('Fetching users and profiles...');
-      
-      // Get auth session
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        toast.error('Not authenticated');
-        return;
-      }
-
-      // First, fetch profiles to ensure we have user data to display
+      console.log('Fetching profiles...');
       const { data: profilesData, error: profilesError } = await supabase
         .from('profiles')
         .select('*');
@@ -57,67 +47,91 @@ export const AdminUserManagement = () => {
         throw profilesError;
       }
 
-      console.log('Profiles fetched:', profilesData?.length || 0);
+      console.log('Profiles fetched successfully:', profilesData?.length || 0);
       const safeProfiles = Array.isArray(profilesData) ? profilesData : [];
       setProfiles(safeProfiles);
+      
+      // Convert profiles to users format for display
+      const profileUsers: UserWithProfile[] = safeProfiles.map(profile => ({
+        id: profile.id,
+        email: 'Profile data only',
+        created_at: profile.created_at || new Date().toISOString(),
+        last_sign_in_at: profile.last_login_at,
+        profile
+      }));
 
-      let authUsers: AuthUser[] = [];
-      let usersWithProfiles: UserWithProfile[] = [];
+      setUsers(profileUsers);
+      return safeProfiles;
+    } catch (error: any) {
+      console.error('Error in fetchProfiles:', error);
+      throw error;
+    }
+  };
 
-      try {
-        // Call our edge function to get auth users
-        const response = await fetch(`https://cpdfmyemjrefnhddyrck.supabase.co/functions/v1/admin-users?action=list-users`, {
-          method: 'GET',
-          headers: {
-            'Authorization': `Bearer ${session.access_token}`,
-            'Content-Type': 'application/json',
-          },
-        });
-
-        if (response.ok) {
-          const responseData = await response.json();
-          console.log('Edge function response:', responseData);
-          
-          authUsers = Array.isArray(responseData.users) ? responseData.users : [];
-          console.log('Auth users fetched:', authUsers.length);
-
-          // Merge auth users with profiles
-          usersWithProfiles = authUsers.map((user: AuthUser) => {
-            const profile = safeProfiles.find(p => p.id === user.id);
-            return {
-              ...user,
-              profile
-            };
-          });
-
-          console.log('Merged users with profiles:', usersWithProfiles.length);
-          setUsers(usersWithProfiles);
-          toast.success(`Loaded ${usersWithProfiles.length} users successfully`);
-        } else {
-          throw new Error(`Edge function returned ${response.status}`);
-        }
-      } catch (edgeFunctionError: any) {
-        console.error('Edge function failed:', edgeFunctionError);
-        
-        // Fallback: Create minimal user objects from profiles if edge function fails
-        if (safeProfiles.length > 0) {
-          const fallbackUsers = safeProfiles.map(profile => ({
-            id: profile.id,
-            email: 'Unknown',
-            created_at: new Date().toISOString(),
-            profile
-          }));
-          setUsers(fallbackUsers);
-          toast.info(`Using fallback data: ${fallbackUsers.length} users from profiles`);
-        } else {
-          throw new Error(`Edge function failed and no profile fallback: ${edgeFunctionError.message}`);
-        }
+  const enhanceWithAuthData = async (profiles: Profile[]) => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        console.log('No session found, skipping auth enhancement');
+        return;
       }
 
+      console.log('Attempting to enhance with auth data...');
+      const response = await fetch(`https://cpdfmyemjrefnhddyrck.supabase.co/functions/v1/admin-users?action=list-users`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        console.log('Auth enhancement failed, continuing with profile data only');
+        return;
+      }
+
+      const responseData = await response.json();
+      const authUsers = Array.isArray(responseData.users) ? responseData.users : [];
+      
+      console.log('Auth users fetched:', authUsers.length);
+
+      // Merge auth data with profiles
+      const enhancedUsers = authUsers.map((authUser: any) => {
+        const profile = profiles.find(p => p.id === authUser.id);
+        return {
+          ...authUser,
+          profile
+        };
+      });
+
+      setUsers(enhancedUsers);
+      toast.success(`Enhanced with auth data: ${enhancedUsers.length} users`);
+    } catch (error: any) {
+      console.error('Auth enhancement failed:', error);
+      // Don't throw error, just continue with profile data
+    }
+  };
+
+  const fetchUsers = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      // First, always fetch profiles as our primary data source
+      const profiles = await fetchProfiles();
+      
+      // Then try to enhance with auth data if possible
+      await enhanceWithAuthData(profiles);
+      
     } catch (error: any) {
       console.error('Error fetching users:', error);
+      setError(error.message);
       toast.error(`Failed to load users: ${error.message}`);
-      setUsers([]);
+      
+      // Ensure we always have some data to display
+      if (users.length === 0) {
+        setUsers([]);
+      }
     } finally {
       setLoading(false);
     }
@@ -160,13 +174,14 @@ export const AdminUserManagement = () => {
     fetchUsers();
   }, []);
 
-  // Fixed filtering logic
+  // Safe filtering logic
   const filteredUsers = users.filter(user => {
+    if (!user) return false;
+    
     const matchesSearch = !searchTerm || 
       user.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.profile?.full_name?.toLowerCase().includes(searchTerm.toLowerCase());
     
-    // Fixed: properly handle empty roleFilter and "all" value
     const matchesRole = !roleFilter || roleFilter === 'all' || user.profile?.role === roleFilter;
     
     return matchesSearch && matchesRole;
@@ -181,6 +196,43 @@ export const AdminUserManagement = () => {
       default: return 'bg-gray-100 text-gray-800';
     }
   };
+
+  const renderUserCard = (user: UserWithProfile) => (
+    <Card key={user.id} className="p-4">
+      <div className="flex items-center justify-between mb-3">
+        <div>
+          <div className="font-medium">
+            {user.profile?.full_name || 'No name'}
+          </div>
+          <div className="text-sm text-gray-500">
+            {user.email || 'No email'}
+          </div>
+        </div>
+        <Badge className={getRoleBadgeColor(user.profile?.role || 'unknown')}>
+          {user.profile?.role || 'No role'}
+        </Badge>
+      </div>
+      <div className="text-sm text-gray-600 mb-3">
+        <div>Created: {new Date(user.created_at).toLocaleDateString()}</div>
+        <div>
+          Last Sign In: {user.last_sign_in_at 
+            ? new Date(user.last_sign_in_at).toLocaleDateString()
+            : 'Never'
+          }
+        </div>
+      </div>
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={() => handleDeleteUser(user.id)}
+        className="text-red-600 hover:text-red-700 w-full"
+        disabled={user.profile?.role === 'admin'}
+      >
+        <Trash2 className="h-4 w-4 mr-2" />
+        Delete User
+      </Button>
+    </Card>
+  );
 
   if (loading) {
     return (
@@ -203,9 +255,15 @@ export const AdminUserManagement = () => {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* Filters */}
-        <div className="flex gap-4 items-center">
-          <div className="relative flex-1">
+        {error && (
+          <div className="bg-red-50 border border-red-200 rounded p-3 text-red-700">
+            Error: {error}
+          </div>
+        )}
+
+        {/* Controls */}
+        <div className="flex gap-4 items-center flex-wrap">
+          <div className="relative flex-1 min-w-48">
             <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
             <Input
               placeholder="Search users..."
@@ -226,6 +284,22 @@ export const AdminUserManagement = () => {
               <SelectItem value="community">Community</SelectItem>
             </SelectContent>
           </Select>
+          <div className="flex gap-2">
+            <Button
+              variant={viewMode === 'table' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setViewMode('table')}
+            >
+              <List className="h-4 w-4" />
+            </Button>
+            <Button
+              variant={viewMode === 'grid' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setViewMode('grid')}
+            >
+              <Grid3X3 className="h-4 w-4" />
+            </Button>
+          </div>
           <Button onClick={fetchUsers} variant="outline">
             <Filter className="h-4 w-4 mr-2" />
             Refresh
@@ -258,65 +332,71 @@ export const AdminUserManagement = () => {
           </div>
         </div>
 
-        {/* Users Table */}
-        <div className="border rounded-lg overflow-hidden">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>User</TableHead>
-                <TableHead>Role</TableHead>
-                <TableHead>Created</TableHead>
-                <TableHead>Last Sign In</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredUsers.map((user) => (
-                <TableRow key={user.id}>
-                  <TableCell>
-                    <div>
-                      <div className="font-medium">
-                        {user.profile?.full_name || 'No name'}
-                      </div>
-                      <div className="text-sm text-gray-500">
-                        {user.email || 'No email'}
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge className={getRoleBadgeColor(user.profile?.role || 'unknown')}>
-                      {user.profile?.role || 'No role'}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <div className="text-sm">
-                      {new Date(user.created_at).toLocaleDateString()}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="text-sm">
-                      {user.last_sign_in_at 
-                        ? new Date(user.last_sign_in_at).toLocaleDateString()
-                        : 'Never'
-                      }
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleDeleteUser(user.id)}
-                      className="text-red-600 hover:text-red-700"
-                      disabled={user.profile?.role === 'admin'}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </TableCell>
+        {/* Users Display */}
+        {viewMode === 'grid' ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {filteredUsers.map(renderUserCard)}
+          </div>
+        ) : (
+          <div className="border rounded-lg overflow-hidden">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>User</TableHead>
+                  <TableHead>Role</TableHead>
+                  <TableHead>Created</TableHead>
+                  <TableHead>Last Sign In</TableHead>
+                  <TableHead>Actions</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
+              </TableHeader>
+              <TableBody>
+                {filteredUsers.map((user) => (
+                  <TableRow key={user.id}>
+                    <TableCell>
+                      <div>
+                        <div className="font-medium">
+                          {user.profile?.full_name || 'No name'}
+                        </div>
+                        <div className="text-sm text-gray-500">
+                          {user.email || 'No email'}
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge className={getRoleBadgeColor(user.profile?.role || 'unknown')}>
+                        {user.profile?.role || 'No role'}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <div className="text-sm">
+                        {new Date(user.created_at).toLocaleDateString()}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="text-sm">
+                        {user.last_sign_in_at 
+                          ? new Date(user.last_sign_in_at).toLocaleDateString()
+                          : 'Never'
+                        }
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleDeleteUser(user.id)}
+                        className="text-red-600 hover:text-red-700"
+                        disabled={user.profile?.role === 'admin'}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        )}
 
         {filteredUsers.length === 0 && !loading && (
           <div className="text-center py-8 text-gray-500">

@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Textarea } from "@/components/ui/textarea";
-import { CalendarIcon, Plus, Search } from "lucide-react";
+import { CalendarIcon, Search } from "lucide-react";
 import { format } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from "sonner";
@@ -16,10 +16,10 @@ import { cn } from "@/lib/utils";
 
 interface ScheduleVisitDialogProps {
   onVisitScheduled: () => void;
+  onClose: () => void;
   preselectedUser?: {
     id: string;
     full_name: string;
-    email: string;
     preferred_visit_type: 'virtual' | 'in_person';
   };
 }
@@ -31,9 +31,9 @@ interface UserSearchResult {
 
 export const ScheduleVisitDialog: React.FC<ScheduleVisitDialogProps> = ({
   onVisitScheduled,
+  onClose,
   preselectedUser
 }) => {
-  const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [searchingUsers, setSearchingUsers] = useState(false);
   const [userSearchResults, setUserSearchResults] = useState<UserSearchResult[]>([]);
@@ -50,19 +50,6 @@ export const ScheduleVisitDialog: React.FC<ScheduleVisitDialogProps> = ({
     familyPhone: '',
     adminNotes: ''
   });
-
-  // Reset form when preselectedUser changes
-  React.useEffect(() => {
-    if (preselectedUser) {
-      setFormData(prev => ({
-        ...prev,
-        userSearch: preselectedUser.full_name,
-        selectedUserId: preselectedUser.id,
-        userFullName: preselectedUser.full_name,
-        visitType: preselectedUser.preferred_visit_type
-      }));
-    }
-  }, [preselectedUser]);
 
   const searchUsers = async (searchTerm: string) => {
     if (searchTerm.length < 2) {
@@ -219,7 +206,6 @@ export const ScheduleVisitDialog: React.FC<ScheduleVisitDialogProps> = ({
 
       if (profileError) {
         console.error('Error updating user profile:', profileError);
-        // Don't throw error here as booking was successful
       }
 
       // Update slot booking count
@@ -239,21 +225,8 @@ export const ScheduleVisitDialog: React.FC<ScheduleVisitDialogProps> = ({
       }
 
       toast.success('Visit scheduled successfully');
-      setOpen(false);
-      setFormData({
-        userSearch: '',
-        selectedUserId: '',
-        userFullName: '',
-        bookingDate: undefined,
-        bookingTime: '',
-        selectedSlotId: '',
-        visitType: 'virtual',
-        familyAddress: '',
-        familyPhone: '',
-        adminNotes: ''
-      });
-      setAvailableSlots([]);
       onVisitScheduled();
+      onClose();
     } catch (error: any) {
       console.error('Error scheduling visit:', error);
       toast.error(`Failed to schedule visit: ${error.message}`);
@@ -269,13 +242,7 @@ export const ScheduleVisitDialog: React.FC<ScheduleVisitDialogProps> = ({
   ];
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button className="mb-4">
-          <Plus className="h-4 w-4 mr-2" />
-          Schedule Visit for User
-        </Button>
-      </DialogTrigger>
+    <Dialog open={true} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Schedule Visit for User</DialogTitle>
@@ -350,7 +317,6 @@ export const ScheduleVisitDialog: React.FC<ScheduleVisitDialogProps> = ({
                     onSelect={handleDateChange}
                     disabled={(date) => date < new Date()}
                     initialFocus
-                    className="pointer-events-auto"
                   />
                 </PopoverContent>
               </Popover>
@@ -442,7 +408,7 @@ export const ScheduleVisitDialog: React.FC<ScheduleVisitDialogProps> = ({
           </div>
 
           <div className="flex justify-end gap-2 pt-4">
-            <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+            <Button type="button" variant="outline" onClick={onClose}>
               Cancel
             </Button>
             <Button type="submit" disabled={loading}>

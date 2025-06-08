@@ -26,11 +26,12 @@ export const AdminSchedulingQueue: React.FC<AdminSchedulingQueueProps> = ({ onRe
   const [pendingRequests, setPendingRequests] = useState<PendingSchedulingRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedUser, setSelectedUser] = useState<PendingSchedulingRequest | null>(null);
-  const [showScheduleDialog, setShowScheduleDialog] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchPendingRequests = async () => {
     try {
       setLoading(true);
+      setError(null);
       console.log('Fetching pending scheduling requests...');
       
       const { data, error } = await supabase
@@ -48,16 +49,21 @@ export const AdminSchedulingQueue: React.FC<AdminSchedulingQueueProps> = ({ onRe
       console.log('Pending requests fetched:', data?.length || 0);
       
       // Transform and validate the data with proper type casting
-      const transformedRequests = (data || []).map(request => ({
-        ...request,
+      const transformedRequests: PendingSchedulingRequest[] = (data || []).map(request => ({
+        id: request.id,
+        full_name: request.full_name || 'Unknown',
         preferred_visit_type: (request.preferred_visit_type === 'virtual' || request.preferred_visit_type === 'in_person') 
           ? request.preferred_visit_type as 'virtual' | 'in_person'
-          : 'virtual' as 'virtual' | 'in_person' // fallback to virtual if invalid
+          : 'virtual' as 'virtual' | 'in_person',
+        admin_scheduling_requested_at: request.admin_scheduling_requested_at || new Date().toISOString(),
+        visit_scheduling_status: request.visit_scheduling_status || 'ready_to_schedule',
+        phone_number: request.phone_number || undefined
       }));
       
       setPendingRequests(transformedRequests);
     } catch (error: any) {
       console.error('Error in fetchPendingRequests:', error);
+      setError(error.message);
       toast.error(`Failed to load pending requests: ${error.message}`);
       setPendingRequests([]);
     } finally {
@@ -67,23 +73,21 @@ export const AdminSchedulingQueue: React.FC<AdminSchedulingQueueProps> = ({ onRe
 
   const handleScheduleVisit = (user: PendingSchedulingRequest) => {
     setSelectedUser(user);
-    setShowScheduleDialog(true);
   };
 
   const handleVisitScheduled = async () => {
     await fetchPendingRequests(); // Refresh the list
     onRequestScheduled(); // Notify parent component
-    setShowScheduleDialog(false);
+    setSelectedUser(null);
+  };
+
+  const handleDialogClose = () => {
     setSelectedUser(null);
   };
 
   useEffect(() => {
     fetchPendingRequests();
   }, []);
-
-  const getVisitTypeIcon = (type: 'virtual' | 'in_person') => {
-    return type === 'virtual' ? <Video className="h-4 w-4" /> : <Home className="h-4 w-4" />;
-  };
 
   const getVisitTypeBadge = (type: 'virtual' | 'in_person') => {
     return type === 'virtual' 
@@ -106,6 +110,12 @@ export const AdminSchedulingQueue: React.FC<AdminSchedulingQueueProps> = ({ onRe
   return (
     <>
       <div className="space-y-6">
+        {error && (
+          <div className="bg-red-50 border border-red-200 rounded p-3 text-red-700">
+            Error: {error}
+          </div>
+        )}
+
         {/* Summary Stats */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Card>
@@ -236,10 +246,10 @@ export const AdminSchedulingQueue: React.FC<AdminSchedulingQueueProps> = ({ onRe
       {selectedUser && (
         <ScheduleVisitDialog
           onVisitScheduled={handleVisitScheduled}
+          onClose={handleDialogClose}
           preselectedUser={{
             id: selectedUser.id,
             full_name: selectedUser.full_name,
-            email: '', // Empty since we don't have email
             preferred_visit_type: selectedUser.preferred_visit_type
           }}
         />
