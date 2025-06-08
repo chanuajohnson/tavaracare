@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { supabase } from '@/lib/supabase';
@@ -538,17 +537,16 @@ export const useEnhancedJourneyProgress = (): JourneyProgressData => {
                           (profile?.visit_scheduling_status === 'scheduled' || 
                            profile?.visit_scheduling_status === 'completed');
               break;
-            // Note: Step 8 removed as requested
-            case 8: // Schedule trial day (was step 9)
+            case 8: // Schedule trial day (renumbered from previous step 9)
               isCompleted = hasTrialPayment;
               break;
-            case 9: // Pay for trial day (was step 10)
+            case 9: // Pay for trial day (renumbered from previous step 10)
               isCompleted = hasTrialPayment;
               break;
-            case 10: // Begin trial (was step 11)
+            case 10: // Begin trial (renumbered from previous step 11)
               isCompleted = hasTrialPayment;
               break;
-            case 11: // Rate & choose path (was step 12)
+            case 11: // Rate & choose path (renumbered from previous step 12)
               isCompleted = !!profile?.visit_notes && JSON.parse(profile.visit_notes || '{}')?.care_model;
               break;
             default:
