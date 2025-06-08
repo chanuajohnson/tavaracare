@@ -1,13 +1,13 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { HorizontalTabs, HorizontalTabsContent, HorizontalTabsList, HorizontalTabsTrigger } from "@/components/ui/horizontal-scroll-tabs";
-import { Calendar, Settings, List, Clock, BarChart3, AlertCircle, Users } from "lucide-react";
+import { Calendar, Settings, List, Clock, BarChart3, AlertCircle } from "lucide-react";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { AdminCalendarView } from './AdminCalendarView';
 import { AdminBookingTable } from './AdminBookingTable';
 import { AdminScheduleSettings } from './AdminScheduleSettings';
 import { AdminBookingFilters } from './AdminBookingFilters';
-import { AdminSchedulingQueue } from './AdminSchedulingQueue';
 import { ScheduleVisitDialog } from './ScheduleVisitDialog';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from "sonner";
@@ -58,7 +58,6 @@ export const AdminVisitScheduleManager = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("calendar");
-  const [pendingRequestsCount, setPendingRequestsCount] = useState(0);
   const [filters, setFilters] = useState<BookingFilters>({
     status: '',
     visitType: '',
@@ -72,21 +71,6 @@ export const AdminVisitScheduleManager = () => {
     { label: 'Admin Dashboard', href: '/dashboard/admin' },
     { label: 'Visit Schedule Management', href: '/admin/visit-schedule', current: true }
   ];
-
-  const fetchPendingRequestsCount = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('id', { count: 'exact' })
-        .eq('ready_for_admin_scheduling', true)
-        .eq('visit_scheduling_status', 'ready_to_schedule');
-
-      if (error) throw error;
-      setPendingRequestsCount(data?.length || 0);
-    } catch (error: any) {
-      console.error('Error fetching pending requests count:', error);
-    }
-  };
 
   const fetchAdminConfig = async () => {
     try {
@@ -194,7 +178,7 @@ export const AdminVisitScheduleManager = () => {
       setError(null);
       
       try {
-        await Promise.all([fetchAdminConfig(), fetchBookings(), fetchPendingRequestsCount()]);
+        await Promise.all([fetchAdminConfig(), fetchBookings()]);
       } catch (err: any) {
         console.error('Error loading data:', err);
         setError(err.message || 'Failed to load data');
@@ -213,7 +197,6 @@ export const AdminVisitScheduleManager = () => {
 
   const handleBookingUpdate = () => {
     fetchBookings();
-    fetchPendingRequestsCount(); // Also refresh pending count
   };
 
   if (loading) {
@@ -275,7 +258,7 @@ export const AdminVisitScheduleManager = () => {
       </div>
 
       {/* Summary Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
@@ -284,18 +267,6 @@ export const AdminVisitScheduleManager = () => {
                 <p className="text-2xl font-bold">{bookings.length}</p>
               </div>
               <Calendar className="h-8 w-8 text-blue-500" />
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Pending Scheduling</p>
-                <p className="text-2xl font-bold text-orange-600">{pendingRequestsCount}</p>
-              </div>
-              <Users className="h-8 w-8 text-orange-500" />
             </div>
           </CardContent>
         </Card>
@@ -349,19 +320,10 @@ export const AdminVisitScheduleManager = () => {
       </div>
 
       <HorizontalTabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <HorizontalTabsList className="grid w-full grid-cols-5">
+        <HorizontalTabsList className="grid w-full grid-cols-4">
           <HorizontalTabsTrigger value="calendar">
             <Calendar className="h-4 w-4" />
             <span className="hidden sm:inline ml-2">Calendar</span>
-          </HorizontalTabsTrigger>
-          <HorizontalTabsTrigger value="queue" className="relative">
-            <Users className="h-4 w-4" />
-            <span className="hidden sm:inline ml-2">Queue</span>
-            {pendingRequestsCount > 0 && (
-              <span className="absolute -top-1 -right-1 bg-orange-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                {pendingRequestsCount}
-              </span>
-            )}
           </HorizontalTabsTrigger>
           <HorizontalTabsTrigger value="bookings">
             <List className="h-4 w-4" />
@@ -397,10 +359,6 @@ export const AdminVisitScheduleManager = () => {
               )}
             </CardContent>
           </Card>
-        </HorizontalTabsContent>
-
-        <HorizontalTabsContent value="queue" className="space-y-6">
-          <AdminSchedulingQueue onRequestScheduled={handleBookingUpdate} />
         </HorizontalTabsContent>
 
         <HorizontalTabsContent value="bookings" className="space-y-6">
