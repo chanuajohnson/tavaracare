@@ -9,6 +9,103 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      admin_availability_slots: {
+        Row: {
+          admin_id: string | null
+          config_id: string | null
+          created_at: string
+          created_by: string | null
+          current_bookings: number
+          date: string
+          description: string | null
+          end_time: string
+          id: string
+          is_available: boolean
+          is_blocked: boolean | null
+          is_default_slot: boolean | null
+          max_bookings: number
+          slot_type: string | null
+          start_time: string
+          updated_at: string
+        }
+        Insert: {
+          admin_id?: string | null
+          config_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          current_bookings?: number
+          date: string
+          description?: string | null
+          end_time: string
+          id?: string
+          is_available?: boolean
+          is_blocked?: boolean | null
+          is_default_slot?: boolean | null
+          max_bookings?: number
+          slot_type?: string | null
+          start_time: string
+          updated_at?: string
+        }
+        Update: {
+          admin_id?: string | null
+          config_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          current_bookings?: number
+          date?: string
+          description?: string | null
+          end_time?: string
+          id?: string
+          is_available?: boolean
+          is_blocked?: boolean | null
+          is_default_slot?: boolean | null
+          max_bookings?: number
+          slot_type?: string | null
+          start_time?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "admin_availability_slots_config_id_fkey"
+            columns: ["config_id"]
+            isOneToOne: false
+            referencedRelation: "admin_visit_config"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      admin_blocked_dates: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          date: string
+          id: string
+          reason: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          date: string
+          id?: string
+          reason?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          date?: string
+          id?: string
+          reason?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "admin_blocked_dates_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       admin_communications: {
         Row: {
           admin_id: string
@@ -69,6 +166,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      admin_visit_config: {
+        Row: {
+          advance_booking_days: number
+          available_days: string[]
+          created_at: string | null
+          end_time: string
+          id: string
+          max_bookings_per_day: number
+          start_time: string
+          updated_at: string | null
+        }
+        Insert: {
+          advance_booking_days?: number
+          available_days?: string[]
+          created_at?: string | null
+          end_time?: string
+          id?: string
+          max_bookings_per_day?: number
+          start_time?: string
+          updated_at?: string | null
+        }
+        Update: {
+          advance_booking_days?: number
+          available_days?: string[]
+          created_at?: string | null
+          end_time?: string
+          id?: string
+          max_bookings_per_day?: number
+          start_time?: string
+          updated_at?: string | null
+        }
+        Relationships: []
       }
       analytics_aggregations: {
         Row: {
@@ -1355,6 +1485,190 @@ export type Database = {
         }
         Relationships: []
       }
+      journey_analytics: {
+        Row: {
+          action_type: string
+          additional_data: Json | null
+          completion_time_seconds: number | null
+          created_at: string | null
+          id: string
+          journey_step_id: string
+          session_id: string | null
+          user_id: string | null
+        }
+        Insert: {
+          action_type: string
+          additional_data?: Json | null
+          completion_time_seconds?: number | null
+          created_at?: string | null
+          id?: string
+          journey_step_id: string
+          session_id?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          action_type?: string
+          additional_data?: Json | null
+          completion_time_seconds?: number | null
+          created_at?: string | null
+          id?: string
+          journey_step_id?: string
+          session_id?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "journey_analytics_journey_step_id_fkey"
+            columns: ["journey_step_id"]
+            isOneToOne: false
+            referencedRelation: "journey_steps"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      journey_step_content: {
+        Row: {
+          content: string
+          content_type: string
+          created_at: string | null
+          display_order: number | null
+          id: string
+          is_visible: boolean | null
+          journey_step_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          content: string
+          content_type: string
+          created_at?: string | null
+          display_order?: number | null
+          id?: string
+          is_visible?: boolean | null
+          journey_step_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          content?: string
+          content_type?: string
+          created_at?: string | null
+          display_order?: number | null
+          id?: string
+          is_visible?: boolean | null
+          journey_step_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "journey_step_content_journey_step_id_fkey"
+            columns: ["journey_step_id"]
+            isOneToOne: false
+            referencedRelation: "journey_steps"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      journey_step_paths: {
+        Row: {
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          is_recommended: boolean | null
+          path_color: string | null
+          path_description: string | null
+          path_name: string
+          step_ids: Json
+          updated_at: string | null
+          user_role: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_recommended?: boolean | null
+          path_color?: string | null
+          path_description?: string | null
+          path_name: string
+          step_ids: Json
+          updated_at?: string | null
+          user_role: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_recommended?: boolean | null
+          path_color?: string | null
+          path_description?: string | null
+          path_name?: string
+          step_ids?: Json
+          updated_at?: string | null
+          user_role?: string
+        }
+        Relationships: []
+      }
+      journey_steps: {
+        Row: {
+          category: string
+          created_at: string | null
+          created_by: string | null
+          description: string
+          detailed_explanation: string | null
+          icon_name: string | null
+          id: string
+          is_active: boolean | null
+          is_optional: boolean | null
+          link_path: string | null
+          order_index: number
+          prerequisites: Json | null
+          step_number: number
+          time_estimate_minutes: number | null
+          title: string
+          tooltip_content: string | null
+          updated_at: string | null
+          user_role: string
+        }
+        Insert: {
+          category: string
+          created_at?: string | null
+          created_by?: string | null
+          description: string
+          detailed_explanation?: string | null
+          icon_name?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_optional?: boolean | null
+          link_path?: string | null
+          order_index: number
+          prerequisites?: Json | null
+          step_number: number
+          time_estimate_minutes?: number | null
+          title: string
+          tooltip_content?: string | null
+          updated_at?: string | null
+          user_role: string
+        }
+        Update: {
+          category?: string
+          created_at?: string | null
+          created_by?: string | null
+          description?: string
+          detailed_explanation?: string | null
+          icon_name?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_optional?: boolean | null
+          link_path?: string | null
+          order_index?: number
+          prerequisites?: Json | null
+          step_number?: number
+          time_estimate_minutes?: number | null
+          title?: string
+          tooltip_content?: string | null
+          updated_at?: string | null
+          user_role?: string
+        }
+        Relationships: []
+      }
       lesson_content_blocks: {
         Row: {
           content: string
@@ -1969,6 +2283,7 @@ export type Database = {
           additional_notes: string | null
           additional_professional_notes: string | null
           address: string | null
+          admin_scheduling_requested_at: string | null
           administers_medication: boolean | null
           availability: string[] | null
           avatar_url: string | null
@@ -2027,10 +2342,12 @@ export type Database = {
           payment_methods: string[] | null
           phone_number: string | null
           preferred_contact_method: string | null
+          preferred_visit_type: string | null
           preferred_work_locations: string | null
           professional_type: string | null
           provides_housekeeping: boolean | null
           provides_transportation: boolean | null
+          ready_for_admin_scheduling: boolean | null
           registration_skipped: boolean | null
           relationship: string | null
           role: Database["public"]["Enums"]["user_role"]
@@ -2038,6 +2355,11 @@ export type Database = {
           specialized_care: string[] | null
           tech_interests: string[] | null
           updated_at: string | null
+          visit_notes: string | null
+          visit_payment_reference: string | null
+          visit_payment_status: string | null
+          visit_scheduled_date: string | null
+          visit_scheduling_status: string | null
           website: string | null
           why_choose_caregiving: string | null
           work_type: string | null
@@ -2047,6 +2369,7 @@ export type Database = {
           additional_notes?: string | null
           additional_professional_notes?: string | null
           address?: string | null
+          admin_scheduling_requested_at?: string | null
           administers_medication?: boolean | null
           availability?: string[] | null
           avatar_url?: string | null
@@ -2105,10 +2428,12 @@ export type Database = {
           payment_methods?: string[] | null
           phone_number?: string | null
           preferred_contact_method?: string | null
+          preferred_visit_type?: string | null
           preferred_work_locations?: string | null
           professional_type?: string | null
           provides_housekeeping?: boolean | null
           provides_transportation?: boolean | null
+          ready_for_admin_scheduling?: boolean | null
           registration_skipped?: boolean | null
           relationship?: string | null
           role?: Database["public"]["Enums"]["user_role"]
@@ -2116,6 +2441,11 @@ export type Database = {
           specialized_care?: string[] | null
           tech_interests?: string[] | null
           updated_at?: string | null
+          visit_notes?: string | null
+          visit_payment_reference?: string | null
+          visit_payment_status?: string | null
+          visit_scheduled_date?: string | null
+          visit_scheduling_status?: string | null
           website?: string | null
           why_choose_caregiving?: string | null
           work_type?: string | null
@@ -2125,6 +2455,7 @@ export type Database = {
           additional_notes?: string | null
           additional_professional_notes?: string | null
           address?: string | null
+          admin_scheduling_requested_at?: string | null
           administers_medication?: boolean | null
           availability?: string[] | null
           avatar_url?: string | null
@@ -2183,10 +2514,12 @@ export type Database = {
           payment_methods?: string[] | null
           phone_number?: string | null
           preferred_contact_method?: string | null
+          preferred_visit_type?: string | null
           preferred_work_locations?: string | null
           professional_type?: string | null
           provides_housekeeping?: boolean | null
           provides_transportation?: boolean | null
+          ready_for_admin_scheduling?: boolean | null
           registration_skipped?: boolean | null
           relationship?: string | null
           role?: Database["public"]["Enums"]["user_role"]
@@ -2194,6 +2527,11 @@ export type Database = {
           specialized_care?: string[] | null
           tech_interests?: string[] | null
           updated_at?: string | null
+          visit_notes?: string | null
+          visit_payment_reference?: string | null
+          visit_payment_status?: string | null
+          visit_scheduled_date?: string | null
+          visit_scheduling_status?: string | null
           website?: string | null
           why_choose_caregiving?: string | null
           work_type?: string | null
@@ -2990,6 +3328,127 @@ export type Database = {
           },
         ]
       }
+      visit_bookings: {
+        Row: {
+          admin_notes: string | null
+          admin_status: Database["public"]["Enums"]["admin_status_enum"] | null
+          availability_slot_id: string
+          booking_date: string
+          booking_time: string
+          cancellation_reason: string | null
+          cancelled_at: string | null
+          confirmation_sent: boolean
+          created_at: string
+          family_address: string | null
+          family_phone: string | null
+          id: string
+          is_cancelled: boolean | null
+          nurse_assigned: string | null
+          original_booking_date: string | null
+          original_booking_time: string | null
+          payment_amount: number | null
+          payment_currency: string | null
+          payment_reference: string | null
+          payment_status: string | null
+          reschedule_count: number | null
+          reschedule_reason: string | null
+          status: string
+          updated_at: string
+          user_full_name: string | null
+          user_id: string
+          user_notes: string | null
+          user_whatsapp: string | null
+          visit_notes: Json | null
+          visit_type: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          admin_status?: Database["public"]["Enums"]["admin_status_enum"] | null
+          availability_slot_id: string
+          booking_date: string
+          booking_time: string
+          cancellation_reason?: string | null
+          cancelled_at?: string | null
+          confirmation_sent?: boolean
+          created_at?: string
+          family_address?: string | null
+          family_phone?: string | null
+          id?: string
+          is_cancelled?: boolean | null
+          nurse_assigned?: string | null
+          original_booking_date?: string | null
+          original_booking_time?: string | null
+          payment_amount?: number | null
+          payment_currency?: string | null
+          payment_reference?: string | null
+          payment_status?: string | null
+          reschedule_count?: number | null
+          reschedule_reason?: string | null
+          status?: string
+          updated_at?: string
+          user_full_name?: string | null
+          user_id: string
+          user_notes?: string | null
+          user_whatsapp?: string | null
+          visit_notes?: Json | null
+          visit_type?: string
+        }
+        Update: {
+          admin_notes?: string | null
+          admin_status?: Database["public"]["Enums"]["admin_status_enum"] | null
+          availability_slot_id?: string
+          booking_date?: string
+          booking_time?: string
+          cancellation_reason?: string | null
+          cancelled_at?: string | null
+          confirmation_sent?: boolean
+          created_at?: string
+          family_address?: string | null
+          family_phone?: string | null
+          id?: string
+          is_cancelled?: boolean | null
+          nurse_assigned?: string | null
+          original_booking_date?: string | null
+          original_booking_time?: string | null
+          payment_amount?: number | null
+          payment_currency?: string | null
+          payment_reference?: string | null
+          payment_status?: string | null
+          reschedule_count?: number | null
+          reschedule_reason?: string | null
+          status?: string
+          updated_at?: string
+          user_full_name?: string | null
+          user_id?: string
+          user_notes?: string | null
+          user_whatsapp?: string | null
+          visit_notes?: Json | null
+          visit_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_visit_bookings_user_id"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "visit_bookings_availability_slot_id_fkey"
+            columns: ["availability_slot_id"]
+            isOneToOne: false
+            referencedRelation: "admin_availability_slots"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "visit_bookings_nurse_assigned_fkey"
+            columns: ["nurse_assigned"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       webhook_events: {
         Row: {
           created_at: string
@@ -3243,6 +3702,10 @@ export type Database = {
         Args: { target_user_id: string }
         Returns: undefined
       }
+      cancel_visit_booking: {
+        Args: { booking_id: string; reason?: string }
+        Returns: undefined
+      }
       detect_medication_conflicts: {
         Args: {
           p_medication_id: string
@@ -3258,6 +3721,14 @@ export type Database = {
           notes: string
         }[]
       }
+      generate_admin_configured_slots: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
+      generate_default_availability_slots: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       get_current_user_role: {
         Args: Record<PropertyKey, never>
         Returns: string
@@ -3270,6 +3741,16 @@ export type Database = {
         Args: { feature_id: string; user_id: string }
         Returns: boolean
       }
+      reschedule_visit_booking: {
+        Args: {
+          booking_id: string
+          new_slot_id: string
+          new_date: string
+          new_time: string
+          reason?: string
+        }
+        Returns: undefined
+      }
       update_care_plan_status: {
         Args: { plan_id: string; new_status: string }
         Returns: undefined
@@ -3278,12 +3759,26 @@ export type Database = {
         Args: { plan_id: string; new_status: string }
         Returns: undefined
       }
+      update_visit_payment_status: {
+        Args: {
+          user_id_param: string
+          payment_status_param: string
+          payment_reference_param?: string
+        }
+        Returns: undefined
+      }
       validate_admin_signup_code: {
         Args: { provided_code: string }
         Returns: boolean
       }
     }
     Enums: {
+      admin_status_enum:
+        | "pending"
+        | "confirmed"
+        | "cancelled"
+        | "completed"
+        | "locked"
       care_urgency:
         | "immediate"
         | "within_week"
@@ -3442,6 +3937,13 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      admin_status_enum: [
+        "pending",
+        "confirmed",
+        "cancelled",
+        "completed",
+        "locked",
+      ],
       care_urgency: [
         "immediate",
         "within_week",

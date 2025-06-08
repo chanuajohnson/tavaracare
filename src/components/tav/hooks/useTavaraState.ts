@@ -52,12 +52,17 @@ export const useTavaraState = () => {
 
   const closePanel = () => {
     console.log('TAV: Closing panel');
-    setState(prev => ({ ...prev, isOpen: false }));
+    setState(prev => ({ ...prev, isOpen: false, isMinimized: false }));
   };
 
   const minimizePanel = () => {
     console.log('TAV: Minimizing panel');
-    setState(prev => ({ ...prev, isMinimized: true, isOpen: false }));
+    setState(prev => ({ ...prev, isMinimized: true, isOpen: true }));
+  };
+
+  const maximizePanel = () => {
+    console.log('TAV: Maximizing panel');
+    setState(prev => ({ ...prev, isMinimized: false, isOpen: true }));
   };
 
   const markNudgesAsRead = () => {
@@ -70,6 +75,7 @@ export const useTavaraState = () => {
     openPanel,
     closePanel,
     minimizePanel,
+    maximizePanel,
     markNudgesAsRead
   };
 };

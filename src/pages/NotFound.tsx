@@ -2,15 +2,7 @@
 import { useLocation } from "react-router-dom";
 import { useEffect } from "react";
 import { Link } from "react-router-dom";
-import { 
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator
-} from "@/components/ui/breadcrumb";
-import { Home } from "lucide-react";
+import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
 
 const NotFound = () => {
@@ -23,25 +15,15 @@ const NotFound = () => {
     );
   }, [location.pathname]);
 
+  const breadcrumbItems = [
+    { label: 'Home', href: '/' },
+    { label: 'Not Found', href: location.pathname, current: true }
+  ];
+
   return (
     <div className="min-h-screen bg-gray-100">
       <div className="container px-4 mx-auto py-8">
-        <Breadcrumb>
-          <BreadcrumbList>
-            <BreadcrumbItem>
-              <BreadcrumbLink asChild>
-                <Link to="/" className="flex items-center gap-1">
-                  <Home className="h-4 w-4" />
-                  <span>Home</span>
-                </Link>
-              </BreadcrumbLink>
-            </BreadcrumbItem>
-            <BreadcrumbItem>
-              <BreadcrumbSeparator />
-              <BreadcrumbPage>Not Found</BreadcrumbPage>
-            </BreadcrumbItem>
-          </BreadcrumbList>
-        </Breadcrumb>
+        <Breadcrumb items={breadcrumbItems} />
 
         <div className="flex flex-col items-center justify-center py-12">
           <div className="text-center">
