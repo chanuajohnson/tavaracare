@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -107,17 +106,23 @@ export const JourneyStageCard: React.FC<JourneyStageCardProps> = ({
     
     if (step.step_number === 7) {
       if (step.completed && visitDetails) {
-        return "Cancel Visit";  // Only show cancel option for completed visits
+        return "Cancel Visit";
+      } else if (step.completed) {
+        return "Visit Scheduled";
       }
-      return step.completed ? "Reschedule Visit" : "Schedule Visit";
+      return "Request Scheduling";
     }
     
     return step.completed ? "Edit" : "Complete";
   };
 
   const getStepStatus = (step: JourneyStep) => {
-    if (step.step_number === 7 && step.completed && visitDetails) {
-      return 'Scheduled';
+    if (step.step_number === 7) {
+      if (step.completed && visitDetails) {
+        return 'Scheduled';
+      } else if (step.completed) {
+        return 'Admin Scheduling';
+      }
     }
     if (step.completed) return 'Completed';
     if (step.accessible) return 'Available';
@@ -313,6 +318,21 @@ export const JourneyStageCard: React.FC<JourneyStageCardProps> = ({
                         }`}>
                           {step.description}
                         </p>
+                        
+                        {/* Show admin scheduling status for Step 7 */}
+                        {step.step_number === 7 && step.completed && !visitDetails && (
+                          <div className="mt-2 p-2 bg-amber-50 border border-amber-200 rounded-lg">
+                            <div className="flex items-center gap-2 text-sm">
+                              <div className="flex items-center gap-1">
+                                <Calendar className="h-3 w-3 text-amber-600" />
+                                <span className="text-amber-800 font-medium">Admin Scheduling</span>
+                              </div>
+                              <span className="text-amber-700 text-xs">
+                                Admin will contact you within 24 hours
+                              </span>
+                            </div>
+                          </div>
+                        )}
                         
                         {/* Show visit details for Step 7 if scheduled */}
                         {step.step_number === 7 && visitDetails && step.completed && (

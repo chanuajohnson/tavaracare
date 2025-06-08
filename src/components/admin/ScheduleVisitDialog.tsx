@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -15,6 +16,12 @@ import { cn } from "@/lib/utils";
 
 interface ScheduleVisitDialogProps {
   onVisitScheduled: () => void;
+  preselectedUser?: {
+    id: string;
+    full_name: string;
+    email: string;
+    preferred_visit_type: 'virtual' | 'in_person';
+  };
 }
 
 interface UserSearchResult {
@@ -23,7 +30,8 @@ interface UserSearchResult {
 }
 
 export const ScheduleVisitDialog: React.FC<ScheduleVisitDialogProps> = ({
-  onVisitScheduled
+  onVisitScheduled,
+  preselectedUser
 }) => {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -31,17 +39,30 @@ export const ScheduleVisitDialog: React.FC<ScheduleVisitDialogProps> = ({
   const [userSearchResults, setUserSearchResults] = useState<UserSearchResult[]>([]);
   const [availableSlots, setAvailableSlots] = useState<Array<{id: string, start_time: string, end_time: string}>>([]);
   const [formData, setFormData] = useState({
-    userSearch: '',
-    selectedUserId: '',
-    userFullName: '',
+    userSearch: preselectedUser?.full_name || '',
+    selectedUserId: preselectedUser?.id || '',
+    userFullName: preselectedUser?.full_name || '',
     bookingDate: undefined as Date | undefined,
     bookingTime: '',
     selectedSlotId: '',
-    visitType: 'virtual' as 'virtual' | 'in_person',
+    visitType: preselectedUser?.preferred_visit_type || 'virtual' as 'virtual' | 'in_person',
     familyAddress: '',
     familyPhone: '',
     adminNotes: ''
   });
+
+  // Reset form when preselectedUser changes
+  React.useEffect(() => {
+    if (preselectedUser) {
+      setFormData(prev => ({
+        ...prev,
+        userSearch: preselectedUser.full_name,
+        selectedUserId: preselectedUser.id,
+        userFullName: preselectedUser.full_name,
+        visitType: preselectedUser.preferred_visit_type
+      }));
+    }
+  }, [preselectedUser]);
 
   const searchUsers = async (searchTerm: string) => {
     if (searchTerm.length < 2) {
@@ -261,38 +282,50 @@ export const ScheduleVisitDialog: React.FC<ScheduleVisitDialogProps> = ({
         </DialogHeader>
         
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="userSearch">Search User *</Label>
-            <div className="relative">
-              <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-              <Input
-                id="userSearch"
-                value={formData.userSearch}
-                onChange={(e) => {
-                  const value = e.target.value;
-                  setFormData(prev => ({ ...prev, userSearch: value }));
-                  searchUsers(value);
-                }}
-                placeholder="Search by name..."
-                className="pl-9"
-                required
-              />
-              {userSearchResults.length > 0 && (
-                <div className="absolute z-10 w-full mt-1 bg-white border rounded-md shadow-lg max-h-40 overflow-y-auto">
-                  {userSearchResults.map((user) => (
-                    <button
-                      key={user.id}
-                      type="button"
-                      onClick={() => selectUser(user)}
-                      className="w-full px-3 py-2 text-left hover:bg-gray-50 border-b last:border-b-0"
-                    >
-                      <div className="font-medium">{user.full_name}</div>
-                    </button>
-                  ))}
-                </div>
-              )}
+          {!preselectedUser && (
+            <div className="space-y-2">
+              <Label htmlFor="userSearch">Search User *</Label>
+              <div className="relative">
+                <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                <Input
+                  id="userSearch"
+                  value={formData.userSearch}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setFormData(prev => ({ ...prev, userSearch: value }));
+                    searchUsers(value);
+                  }}
+                  placeholder="Search by name..."
+                  className="pl-9"
+                  required
+                />
+                {userSearchResults.length > 0 && (
+                  <div className="absolute z-10 w-full mt-1 bg-white border rounded-md shadow-lg max-h-40 overflow-y-auto">
+                    {userSearchResults.map((user) => (
+                      <button
+                        key={user.id}
+                        type="button"
+                        onClick={() => selectUser(user)}
+                        className="w-full px-3 py-2 text-left hover:bg-gray-50 border-b last:border-b-0"
+                      >
+                        <div className="font-medium">{user.full_name}</div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
+          )}
+
+          {preselectedUser && (
+            <div className="space-y-2">
+              <Label>Selected User</Label>
+              <div className="p-3 bg-gray-50 rounded-md">
+                <div className="font-medium">{preselectedUser.full_name}</div>
+                <div className="text-sm text-gray-500">Preferred: {preselectedUser.preferred_visit_type}</div>
+              </div>
+            </div>
+          )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">

@@ -2283,6 +2283,7 @@ export type Database = {
           additional_notes: string | null
           additional_professional_notes: string | null
           address: string | null
+          admin_scheduling_requested_at: string | null
           administers_medication: boolean | null
           availability: string[] | null
           avatar_url: string | null
@@ -2341,10 +2342,12 @@ export type Database = {
           payment_methods: string[] | null
           phone_number: string | null
           preferred_contact_method: string | null
+          preferred_visit_type: string | null
           preferred_work_locations: string | null
           professional_type: string | null
           provides_housekeeping: boolean | null
           provides_transportation: boolean | null
+          ready_for_admin_scheduling: boolean | null
           registration_skipped: boolean | null
           relationship: string | null
           role: Database["public"]["Enums"]["user_role"]
@@ -2366,6 +2369,7 @@ export type Database = {
           additional_notes?: string | null
           additional_professional_notes?: string | null
           address?: string | null
+          admin_scheduling_requested_at?: string | null
           administers_medication?: boolean | null
           availability?: string[] | null
           avatar_url?: string | null
@@ -2424,10 +2428,12 @@ export type Database = {
           payment_methods?: string[] | null
           phone_number?: string | null
           preferred_contact_method?: string | null
+          preferred_visit_type?: string | null
           preferred_work_locations?: string | null
           professional_type?: string | null
           provides_housekeeping?: boolean | null
           provides_transportation?: boolean | null
+          ready_for_admin_scheduling?: boolean | null
           registration_skipped?: boolean | null
           relationship?: string | null
           role?: Database["public"]["Enums"]["user_role"]
@@ -2449,6 +2455,7 @@ export type Database = {
           additional_notes?: string | null
           additional_professional_notes?: string | null
           address?: string | null
+          admin_scheduling_requested_at?: string | null
           administers_medication?: boolean | null
           availability?: string[] | null
           avatar_url?: string | null
@@ -2507,10 +2514,12 @@ export type Database = {
           payment_methods?: string[] | null
           phone_number?: string | null
           preferred_contact_method?: string | null
+          preferred_visit_type?: string | null
           preferred_work_locations?: string | null
           professional_type?: string | null
           provides_housekeeping?: boolean | null
           provides_transportation?: boolean | null
+          ready_for_admin_scheduling?: boolean | null
           registration_skipped?: boolean | null
           relationship?: string | null
           role?: Database["public"]["Enums"]["user_role"]

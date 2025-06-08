@@ -178,59 +178,13 @@ const getDummyJourneyData = (): { steps: JourneyStep[], paths: JourneyPath[] } =
       accessible: false,
       prerequisites: []
     },
-    {
-      id: 'dummy-8',
-      step_number: 8,
-      title: 'Schedule trial day (Optional)',
-      description: 'Choose a trial date with your matched caregiver. This is an optional step before choosing your care model.',
-      category: 'trial',
-      is_optional: true,
-      tooltip_content: 'Experience care with a trial day',
-      detailed_explanation: 'Test your caregiver match before committing',
-      time_estimate_minutes: 5,
-      link_path: '/family/trial',
-      icon_name: 'TestTube',
-      completed: false,
-      accessible: false,
-      prerequisites: []
-    },
-    {
-      id: 'dummy-9',
-      step_number: 9,
-      title: 'Pay for trial day (Optional)',
-      description: 'Pay a one-time fee of $320 TTD for an 8-hour caregiver experience.',
-      category: 'trial',
-      is_optional: true,
-      tooltip_content: 'Complete payment for trial',
-      detailed_explanation: 'Secure your trial day with payment',
-      time_estimate_minutes: 10,
-      link_path: '/family/trial-payment',
-      icon_name: 'CreditCard',
-      completed: false,
-      accessible: false,
-      prerequisites: []
-    },
-    {
-      id: 'dummy-10',
-      step_number: 10,
-      title: 'Begin your trial (Optional)',
-      description: 'Your caregiver begins the scheduled trial session.',
-      category: 'trial',
-      is_optional: true,
-      tooltip_content: 'Start your trial experience',
-      detailed_explanation: 'Experience personalized care during your trial',
-      time_estimate_minutes: 480,
-      link_path: '/family/trial-session',
-      icon_name: 'Play',
-      completed: false,
-      accessible: false,
-      prerequisites: []
-    },
+    // Note: Steps 8-10 (trial steps) are hidden for anonymous users
+    // They only show for authenticated users who explicitly choose trial path
     {
       id: 'dummy-11',
       step_number: 11,
-      title: 'Rate & Choose Your Path',
-      description: 'Decide between: Hire your caregiver ($40/hr) or Subscribe to Tavara ($45/hr) for full support tools. Can skip trial and go directly here after visit confirmation.',
+      title: 'Choose Your Care Model',
+      description: 'Decide between hiring directly ($40/hr) or subscribing to Tavara ($45/hr) for full support tools.',
       category: 'conversion',
       is_optional: false,
       tooltip_content: 'Choose your care model',
@@ -254,14 +208,14 @@ const getDummyJourneyData = (): { steps: JourneyStep[], paths: JourneyPath[] } =
       id: 'dummy-path-1',
       path_name: 'Quick Start Path',
       path_description: 'Get matched with a caregiver in 24-48 hours',
-      step_ids: [1, 2, 3, 4, 7],
+      step_ids: [1, 2, 3, 4, 7, 11], // Skip trial steps for default path
       path_color: '#10B981',
       is_recommended: true
     },
     {
       id: 'dummy-path-2',
-      path_name: 'Comprehensive Planning',
-      path_description: 'Take time to plan every detail of your care',
+      path_name: 'Trial Experience Path',
+      path_description: 'Try before you commit with our trial option',
       step_ids: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
       path_color: '#3B82F6',
       is_recommended: false
@@ -347,18 +301,20 @@ export const useEnhancedJourneyProgress = (): JourneyProgressData => {
         return [1, 2, 3].every(num => completedSteps.has(num));
       case 7: // Schedule initial visit - need step 4 completed
         return completedSteps.has(4);
-      case 8: // Schedule trial - need step 7 completed (visit scheduled)
-        // Check both profile status and actual visit bookings
-        const hasVisitScheduled = visitBookingData || 
+      case 8: // Schedule trial - need step 7 completed (admin has scheduled visit)
+        const hasAdminScheduledVisit = visitBookingData || 
           (profileData?.visit_scheduling_status && 
            ['scheduled', 'completed'].includes(profileData.visit_scheduling_status));
-        return hasVisitScheduled;
+        return hasAdminScheduledVisit;
       case 9: // Pay for trial - need step 8 completed
         return completedSteps.has(8);
       case 10: // Begin trial - need step 9 completed
         return completedSteps.has(9);
       case 11: // Choose path - need step 7 completed (can skip trial)
-        return completedSteps.has(7);
+        const hasVisitScheduled = visitBookingData || 
+          (profileData?.visit_scheduling_status && 
+           ['scheduled', 'completed'].includes(profileData.visit_scheduling_status));
+        return hasVisitScheduled;
       default:
         return true;
     }
@@ -369,7 +325,7 @@ export const useEnhancedJourneyProgress = (): JourneyProgressData => {
     let details = null;
 
     // First priority: visit_bookings table (most reliable source)
-    if (visitBooking) {
+    if (visitBooking && visitBooking.status !== 'cancelled') {
       details = {
         date: visitBooking.booking_date,
         time: visitBooking.booking_time,
@@ -381,8 +337,8 @@ export const useEnhancedJourneyProgress = (): JourneyProgressData => {
       };
     }
 
-    // Second priority: visit_notes in profile
-    if (!details && profile?.visit_notes) {
+    // Second priority: visit_notes in profile (only if not cancelled)
+    if (!details && profile?.visit_notes && profile?.visit_scheduling_status !== 'cancelled') {
       try {
         const visitNotes = JSON.parse(profile.visit_notes);
         if (visitNotes.visit_type || visitNotes.visit_date) {
@@ -398,8 +354,8 @@ export const useEnhancedJourneyProgress = (): JourneyProgressData => {
       }
     }
 
-    // Third priority: profile fields
-    if (!details && profile?.visit_scheduled_date) {
+    // Third priority: profile fields (only if not cancelled)
+    if (!details && profile?.visit_scheduled_date && profile?.visit_scheduling_status !== 'cancelled') {
       details = {
         date: profile.visit_scheduled_date,
         time: '11:00 AM',
@@ -424,11 +380,12 @@ export const useEnhancedJourneyProgress = (): JourneyProgressData => {
         .eq('id', user.id)
         .single();
 
-      // Fetch visit bookings for this user
+      // Fetch active (non-cancelled) visit bookings for this user
       const { data: visitBookings } = await supabase
         .from('visit_bookings')
         .select('*')
         .eq('user_id', user.id)
+        .neq('status', 'cancelled')
         .order('created_at', { ascending: false })
         .limit(1);
 
@@ -442,7 +399,7 @@ export const useEnhancedJourneyProgress = (): JourneyProgressData => {
       let currentVisitStatus = 'not_started';
       if (latestVisitBooking) {
         currentVisitStatus = latestVisitBooking.status === 'confirmed' ? 'scheduled' : latestVisitBooking.status;
-      } else if (profile?.visit_scheduling_status) {
+      } else if (profile?.visit_scheduling_status && profile.visit_scheduling_status !== 'cancelled') {
         currentVisitStatus = profile.visit_scheduling_status;
       }
       setVisitStatus(currentVisitStatus);
@@ -526,22 +483,21 @@ export const useEnhancedJourneyProgress = (): JourneyProgressData => {
             case 6: // Meal plans
               isCompleted = !!(mealPlansData && mealPlansData.length > 0);
               break;
-            case 7: // Schedule initial visit
-              // Check both visit bookings and profile status
+            case 7: // Schedule initial visit - completed when admin has scheduled
               isCompleted = !!latestVisitBooking || 
                           (profile?.visit_scheduling_status === 'scheduled' || 
                            profile?.visit_scheduling_status === 'completed');
               break;
-            case 8: // Schedule trial day (renumbered from previous step 9)
+            case 8: // Schedule trial day
               isCompleted = hasTrialPayment;
               break;
-            case 9: // Pay for trial day (renumbered from previous step 10)
+            case 9: // Pay for trial day
               isCompleted = hasTrialPayment;
               break;
-            case 10: // Begin trial (renumbered from previous step 11)
+            case 10: // Begin trial
               isCompleted = hasTrialPayment;
               break;
-            case 11: // Rate & choose path (renumbered from previous step 12)
+            case 11: // Rate & choose path
               isCompleted = !!profile?.visit_notes && JSON.parse(profile.visit_notes || '{}')?.care_model;
               break;
             default:
@@ -615,7 +571,7 @@ export const useEnhancedJourneyProgress = (): JourneyProgressData => {
 
   const handleStepAction = (step: JourneyStep) => {
     if (step.step_number === 7) {
-      // If visit is already scheduled, show cancel option
+      // For Step 7, show scheduling request modal or cancel option
       if (visitDetails) {
         setShowCancelVisitModal(true);
       } else {
@@ -643,12 +599,13 @@ export const useEnhancedJourneyProgress = (): JourneyProgressData => {
         })
         .eq('id', visitDetails.id);
 
-      // Update user profile
+      // Update user profile to reset visit scheduling status
       await supabase
         .from('profiles')
         .update({
-          visit_scheduling_status: 'cancelled',
-          visit_notes: null
+          visit_scheduling_status: 'not_started',
+          visit_notes: null,
+          visit_scheduled_date: null
         })
         .eq('id', user.id);
 
