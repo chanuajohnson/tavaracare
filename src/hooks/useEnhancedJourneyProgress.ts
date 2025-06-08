@@ -369,7 +369,7 @@ export const useEnhancedJourneyProgress = (): JourneyProgressData => {
     let details = null;
 
     // First priority: visit_bookings table (most reliable source)
-    if (visitBooking) {
+    if (visitBooking && visitBooking.status !== 'cancelled') {
       details = {
         date: visitBooking.booking_date,
         time: visitBooking.booking_time,
@@ -381,8 +381,8 @@ export const useEnhancedJourneyProgress = (): JourneyProgressData => {
       };
     }
 
-    // Second priority: visit_notes in profile
-    if (!details && profile?.visit_notes) {
+    // Second priority: visit_notes in profile (only if not cancelled)
+    if (!details && profile?.visit_notes && profile?.visit_scheduling_status !== 'cancelled') {
       try {
         const visitNotes = JSON.parse(profile.visit_notes);
         if (visitNotes.visit_type || visitNotes.visit_date) {
@@ -398,8 +398,8 @@ export const useEnhancedJourneyProgress = (): JourneyProgressData => {
       }
     }
 
-    // Third priority: profile fields
-    if (!details && profile?.visit_scheduled_date) {
+    // Third priority: profile fields (only if not cancelled)
+    if (!details && profile?.visit_scheduled_date && profile?.visit_scheduling_status !== 'cancelled') {
       details = {
         date: profile.visit_scheduled_date,
         time: '11:00 AM',
@@ -424,11 +424,12 @@ export const useEnhancedJourneyProgress = (): JourneyProgressData => {
         .eq('id', user.id)
         .single();
 
-      // Fetch visit bookings for this user
+      // Fetch active (non-cancelled) visit bookings for this user
       const { data: visitBookings } = await supabase
         .from('visit_bookings')
         .select('*')
         .eq('user_id', user.id)
+        .neq('status', 'cancelled')
         .order('created_at', { ascending: false })
         .limit(1);
 
@@ -442,7 +443,7 @@ export const useEnhancedJourneyProgress = (): JourneyProgressData => {
       let currentVisitStatus = 'not_started';
       if (latestVisitBooking) {
         currentVisitStatus = latestVisitBooking.status === 'confirmed' ? 'scheduled' : latestVisitBooking.status;
-      } else if (profile?.visit_scheduling_status) {
+      } else if (profile?.visit_scheduling_status && profile.visit_scheduling_status !== 'cancelled') {
         currentVisitStatus = profile.visit_scheduling_status;
       }
       setVisitStatus(currentVisitStatus);
@@ -526,22 +527,21 @@ export const useEnhancedJourneyProgress = (): JourneyProgressData => {
             case 6: // Meal plans
               isCompleted = !!(mealPlansData && mealPlansData.length > 0);
               break;
-            case 7: // Schedule initial visit
-              // Check both visit bookings and profile status
+            case 7: // Schedule initial visit - only completed if there's an active visit
               isCompleted = !!latestVisitBooking || 
                           (profile?.visit_scheduling_status === 'scheduled' || 
                            profile?.visit_scheduling_status === 'completed');
               break;
-            case 8: // Schedule trial day (renumbered from previous step 9)
+            case 8: // Schedule trial day
               isCompleted = hasTrialPayment;
               break;
-            case 9: // Pay for trial day (renumbered from previous step 10)
+            case 9: // Pay for trial day
               isCompleted = hasTrialPayment;
               break;
-            case 10: // Begin trial (renumbered from previous step 11)
+            case 10: // Begin trial
               isCompleted = hasTrialPayment;
               break;
-            case 11: // Rate & choose path (renumbered from previous step 12)
+            case 11: // Rate & choose path
               isCompleted = !!profile?.visit_notes && JSON.parse(profile.visit_notes || '{}')?.care_model;
               break;
             default:
@@ -643,12 +643,13 @@ export const useEnhancedJourneyProgress = (): JourneyProgressData => {
         })
         .eq('id', visitDetails.id);
 
-      // Update user profile
+      // Update user profile to reset visit scheduling status
       await supabase
         .from('profiles')
         .update({
-          visit_scheduling_status: 'cancelled',
-          visit_notes: null
+          visit_scheduling_status: 'not_started',
+          visit_notes: null,
+          visit_scheduled_date: null
         })
         .eq('id', user.id);
 
