@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { supabase } from '@/lib/supabase';
@@ -98,7 +99,7 @@ export const useFamilyJourneyProgress = (): JourneyProgressData => {
       link: "/family/care-management",
       accessible: true
     },
-    // Scheduling Steps (7-8)
+    // Scheduling Steps (7) - Step 8 removed
     { 
       id: 7, 
       title: "Schedule Your Tavara.Care Visit", 
@@ -108,17 +109,9 @@ export const useFamilyJourneyProgress = (): JourneyProgressData => {
       link: "/family/schedule-visit",
       accessible: true
     },
+    // Trial Steps (8-10) - Renumbered from 9-11
     { 
       id: 8, 
-      title: "Confirm Visit", 
-      description: "Confirm the video link or complete payment for in-person visit.", 
-      completed: false, 
-      category: 'scheduling',
-      accessible: false
-    },
-    // Trial Steps (9-11) - Optional path
-    { 
-      id: 9, 
       title: "Schedule Trial Day (Optional)", 
       description: "Choose a trial date with your matched caregiver. This is an optional step before choosing your care model.", 
       completed: false, 
@@ -127,7 +120,7 @@ export const useFamilyJourneyProgress = (): JourneyProgressData => {
       accessible: false
     },
     { 
-      id: 10, 
+      id: 9, 
       title: "Pay for Trial Day (Optional)", 
       description: "Pay a one-time fee of $320 TTD for an 8-hour caregiver experience.", 
       completed: false, 
@@ -136,7 +129,7 @@ export const useFamilyJourneyProgress = (): JourneyProgressData => {
       accessible: false
     },
     { 
-      id: 11, 
+      id: 10, 
       title: "Begin Your Trial (Optional)", 
       description: "Your caregiver begins the scheduled trial session.", 
       completed: false, 
@@ -144,9 +137,9 @@ export const useFamilyJourneyProgress = (): JourneyProgressData => {
       category: 'trial',
       accessible: false
     },
-    // Conversion Step (12)
+    // Conversion Step (11) - Renumbered from 12
     { 
-      id: 12, 
+      id: 11, 
       title: "Rate & Choose Your Path", 
       description: "Decide between: Hire your caregiver ($40/hr) or Subscribe to Tavara ($45/hr) for full support tools. Can skip trial and go directly here after visit confirmation.", 
       completed: false, 
@@ -163,20 +156,17 @@ export const useFamilyJourneyProgress = (): JourneyProgressData => {
         case 4: // Caregiver matches - need steps 1-3 completed
           accessible = updatedSteps[0]?.completed && updatedSteps[1]?.completed && updatedSteps[2]?.completed;
           break;
-        case 8: // Confirm visit - need step 7 completed
+        case 8: // Schedule trial - need step 7 completed (renumbered from 9)
           accessible = updatedSteps[6]?.completed; // Step 7 (index 6)
           break;
-        case 9: // Schedule trial - need step 7 completed
-          accessible = updatedSteps[6]?.completed; // Step 7 (index 6)
-          break;
-        case 10: // Pay for trial - need steps 8 and 9 completed
-          accessible = updatedSteps[7]?.completed && updatedSteps[8]?.completed; // Steps 8,9
-          break;
-        case 11: // Begin trial - need step 10 completed
-          accessible = updatedSteps[9]?.completed; // Step 10 (index 9)
-          break;
-        case 12: // Choose path - need step 8 completed (can skip trial)
+        case 9: // Pay for trial - need step 8 completed (renumbered from 10)
           accessible = updatedSteps[7]?.completed; // Step 8 (index 7)
+          break;
+        case 10: // Begin trial - need step 9 completed (renumbered from 11)
+          accessible = updatedSteps[8]?.completed; // Step 9 (index 8)
+          break;
+        case 11: // Choose path - need step 7 completed (renumbered from 12)
+          accessible = updatedSteps[6]?.completed; // Step 7 (index 6)
           break;
         default:
           accessible = true;
@@ -226,10 +216,9 @@ export const useFamilyJourneyProgress = (): JourneyProgressData => {
     if (!step.accessible) {
       if (step.id === 4) return "Complete Above Steps";
       if (step.id === 8) return "Schedule Visit First";
-      if (step.id === 9) return "Schedule Visit First";
+      if (step.id === 9) return "Complete Previous Steps";
       if (step.id === 10) return "Complete Previous Steps";
-      if (step.id === 11) return "Complete Previous Steps";
-      if (step.id === 12) return "Confirm Visit First";
+      if (step.id === 11) return "Schedule Visit First";
       return "Not Available";
     }
     
@@ -261,22 +250,18 @@ export const useFamilyJourneyProgress = (): JourneyProgressData => {
     }
     
     if (step.id === 8) {
-      return visitStatus === 'completed' ? "Visit Completed" : "Confirm Visit";
-    }
-    
-    if (step.id === 9) {
       return trialCompleted ? "Trial Scheduled" : "Schedule Trial";
     }
     
-    if (step.id === 10) {
+    if (step.id === 9) {
       return trialCompleted ? "Trial Paid" : "Pay for Trial";
     }
     
-    if (step.id === 11) {
+    if (step.id === 10) {
       return trialCompleted ? "Trial Completed" : "Begin Trial";
     }
     
-    if (step.id === 12) {
+    if (step.id === 11) {
       return careModel ? "Path Chosen" : "Choose Path";
     }
     
@@ -397,19 +382,16 @@ export const useFamilyJourneyProgress = (): JourneyProgressData => {
           case 7: // Schedule visit
             completed = profile?.visit_scheduling_status === 'scheduled' || profile?.visit_scheduling_status === 'completed';
             break;
-          case 8: // Confirm visit
-            completed = profile?.visit_scheduling_status === 'completed';
-            break;
-          case 9: // Schedule trial day
+          case 8: // Schedule trial day (renumbered from 9)
             completed = hasTrialPayment;
             break;
-          case 10: // Pay for trial day
+          case 9: // Pay for trial day (renumbered from 10)
             completed = hasTrialPayment;
             break;
-          case 11: // Begin trial
+          case 10: // Begin trial (renumbered from 11)
             completed = hasTrialPayment;
             break;
-          case 12: // Rate & choose path
+          case 11: // Rate & choose path (renumbered from 12)
             completed = !!visitNotes?.care_model;
             break;
         }
