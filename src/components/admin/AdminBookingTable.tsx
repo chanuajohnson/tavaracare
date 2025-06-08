@@ -27,6 +27,7 @@ interface VisitBooking {
   admin_notes?: string;
   nurse_assigned?: string;
   confirmation_sent: boolean;
+  availability_slot_id?: string;
 }
 
 interface AdminBookingTableProps {
@@ -54,12 +55,27 @@ export const AdminBookingTable: React.FC<AdminBookingTableProps> = ({
   const handleDeleteBooking = async (bookingId: string) => {
     setDeletingId(bookingId);
     try {
+      // Get booking details first to update slot count
+      const { data: booking } = await supabase
+        .from('visit_bookings')
+        .select('availability_slot_id')
+        .eq('id', bookingId)
+        .single();
+
       const { error } = await supabase
         .from('visit_bookings')
         .delete()
         .eq('id', bookingId);
 
       if (error) throw error;
+
+      // Update slot booking count if there was a slot
+      if (booking?.availability_slot_id) {
+        await supabase
+          .from('admin_availability_slots')
+          .update({ current_bookings: supabase.raw('current_bookings - 1') })
+          .eq('id', booking.availability_slot_id);
+      }
       
       toast.success('Booking deleted successfully');
       onBookingUpdate();
@@ -113,6 +129,19 @@ export const AdminBookingTable: React.FC<AdminBookingTableProps> = ({
     }
   };
 
+  const getBookingSourceBadge = (booking: VisitBooking) => {
+    const isAdminScheduled = !booking.availability_slot_id || booking.admin_status === 'confirmed';
+    return isAdminScheduled ? (
+      <Badge variant="outline" className="text-xs bg-orange-50 text-orange-700">
+        Admin
+      </Badge>
+    ) : (
+      <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700">
+        Self
+      </Badge>
+    );
+  };
+
   if (bookings.length === 0) {
     return (
       <div className="text-center py-12">
@@ -137,6 +166,7 @@ export const AdminBookingTable: React.FC<AdminBookingTableProps> = ({
                   <span className="font-medium">{booking.user_full_name}</span>
                 </div>
                 <div className="flex gap-1">
+                  {getBookingSourceBadge(booking)}
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
                       <Button 
@@ -243,6 +273,7 @@ export const AdminBookingTable: React.FC<AdminBookingTableProps> = ({
                   </Button>
                 </TableHead>
                 <TableHead>Visit Type</TableHead>
+                <TableHead>Source</TableHead>
                 <TableHead>Priority</TableHead>
                 <TableHead>Payment</TableHead>
                 <TableHead>Nurse</TableHead>
@@ -299,6 +330,10 @@ export const AdminBookingTable: React.FC<AdminBookingTableProps> = ({
                           {booking.visit_type.replace('_', ' ')}
                         </span>
                       </div>
+                    </TableCell>
+
+                    <TableCell>
+                      {getBookingSourceBadge(booking)}
                     </TableCell>
 
                     <TableCell>

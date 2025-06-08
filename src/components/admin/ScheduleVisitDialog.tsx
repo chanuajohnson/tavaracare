@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Textarea } from "@/components/ui/textarea";
-import { CalendarIcon, Plus } from "lucide-react";
+import { CalendarIcon, Plus, Search } from "lucide-react";
 import { format } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from "sonner";
@@ -18,26 +18,134 @@ interface ScheduleVisitDialogProps {
   onVisitScheduled: () => void;
 }
 
+interface UserSearchResult {
+  id: string;
+  full_name: string;
+  email?: string;
+}
+
 export const ScheduleVisitDialog: React.FC<ScheduleVisitDialogProps> = ({
   onVisitScheduled
 }) => {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [searchingUsers, setSearchingUsers] = useState(false);
+  const [userSearchResults, setUserSearchResults] = useState<UserSearchResult[]>([]);
+  const [availableSlots, setAvailableSlots] = useState<Array<{id: string, start_time: string, end_time: string}>>([]);
   const [formData, setFormData] = useState({
-    userId: '',
+    userSearch: '',
+    selectedUserId: '',
     userFullName: '',
     bookingDate: undefined as Date | undefined,
     bookingTime: '',
+    selectedSlotId: '',
     visitType: 'virtual' as 'virtual' | 'in_person',
     familyAddress: '',
     familyPhone: '',
     adminNotes: ''
   });
 
+  const searchUsers = async (searchTerm: string) => {
+    if (searchTerm.length < 2) {
+      setUserSearchResults([]);
+      return;
+    }
+
+    setSearchingUsers(true);
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, full_name, email')
+        .or(`full_name.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%`)
+        .limit(10);
+
+      if (error) throw error;
+      setUserSearchResults(data || []);
+    } catch (error: any) {
+      console.error('Error searching users:', error);
+      toast.error('Failed to search users');
+    } finally {
+      setSearchingUsers(false);
+    }
+  };
+
+  const selectUser = (user: UserSearchResult) => {
+    setFormData(prev => ({
+      ...prev,
+      selectedUserId: user.id,
+      userFullName: user.full_name,
+      userSearch: `${user.full_name} (${user.email})`
+    }));
+    setUserSearchResults([]);
+  };
+
+  const fetchAvailableSlots = async (date: Date) => {
+    try {
+      const dateStr = format(date, 'yyyy-MM-dd');
+      const { data, error } = await supabase
+        .from('admin_availability_slots')
+        .select('id, start_time, end_time, current_bookings, max_bookings')
+        .eq('date', dateStr)
+        .eq('is_available', true)
+        .lt('current_bookings', supabase.raw('max_bookings'));
+
+      if (error) throw error;
+      setAvailableSlots(data || []);
+    } catch (error: any) {
+      console.error('Error fetching available slots:', error);
+      setAvailableSlots([]);
+    }
+  };
+
+  const createAdminSlot = async (date: Date, time: string) => {
+    try {
+      const dateStr = format(date, 'yyyy-MM-dd');
+      const { data, error } = await supabase
+        .from('admin_availability_slots')
+        .insert({
+          date: dateStr,
+          start_time: time,
+          end_time: time, // Single time slot
+          is_available: true,
+          max_bookings: 1,
+          current_bookings: 0,
+          description: 'Admin created slot',
+          is_default_slot: false,
+          slot_type: 'admin_created'
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data.id;
+    } catch (error: any) {
+      console.error('Error creating admin slot:', error);
+      throw error;
+    }
+  };
+
+  const handleDateChange = (date: Date | undefined) => {
+    setFormData(prev => ({ ...prev, bookingDate: date, selectedSlotId: '', bookingTime: '' }));
+    if (date) {
+      fetchAvailableSlots(date);
+    }
+  };
+
+  const handleSlotSelection = (slotId: string) => {
+    const slot = availableSlots.find(s => s.id === slotId);
+    if (slot) {
+      setFormData(prev => ({
+        ...prev,
+        selectedSlotId: slotId,
+        bookingTime: slot.start_time
+      }));
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.userId || !formData.userFullName || !formData.bookingDate || !formData.bookingTime) {
+    if (!formData.selectedUserId || !formData.bookingDate || !formData.bookingTime) {
       toast.error('Please fill in all required fields');
       return;
     }
@@ -45,11 +153,18 @@ export const ScheduleVisitDialog: React.FC<ScheduleVisitDialogProps> = ({
     setLoading(true);
     
     try {
-      // Create a default availability slot first or use null
+      let slotId = formData.selectedSlotId;
+      
+      // If no existing slot selected, create a new admin slot
+      if (!slotId) {
+        slotId = await createAdminSlot(formData.bookingDate, formData.bookingTime);
+      }
+
       const { error } = await supabase
         .from('visit_bookings')
         .insert({
-          availability_slot_id: null, // Set to null since admin is manually scheduling
+          user_id: formData.selectedUserId,
+          availability_slot_id: slotId,
           booking_date: format(formData.bookingDate, 'yyyy-MM-dd'),
           booking_time: formData.bookingTime,
           visit_type: formData.visitType,
@@ -61,24 +176,31 @@ export const ScheduleVisitDialog: React.FC<ScheduleVisitDialogProps> = ({
           admin_notes: formData.adminNotes || null,
           confirmation_sent: false,
           user_full_name: formData.userFullName,
-          // Note: We're not including user_id as it might not be a valid field in the schema
-          // If user_id is needed, we would need to look up the user first
         });
 
       if (error) throw error;
 
+      // Update slot booking count
+      await supabase
+        .from('admin_availability_slots')
+        .update({ current_bookings: supabase.raw('current_bookings + 1') })
+        .eq('id', slotId);
+
       toast.success('Visit scheduled successfully');
       setOpen(false);
       setFormData({
-        userId: '',
+        userSearch: '',
+        selectedUserId: '',
         userFullName: '',
         bookingDate: undefined,
         bookingTime: '',
+        selectedSlotId: '',
         visitType: 'virtual',
         familyAddress: '',
         familyPhone: '',
         adminNotes: ''
       });
+      setAvailableSlots([]);
       onVisitScheduled();
     } catch (error: any) {
       console.error('Error scheduling visit:', error);
@@ -108,27 +230,37 @@ export const ScheduleVisitDialog: React.FC<ScheduleVisitDialogProps> = ({
         </DialogHeader>
         
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="userId">User ID *</Label>
+          <div className="space-y-2">
+            <Label htmlFor="userSearch">Search User *</Label>
+            <div className="relative">
+              <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
               <Input
-                id="userId"
-                value={formData.userId}
-                onChange={(e) => setFormData(prev => ({ ...prev, userId: e.target.value }))}
-                placeholder="Enter user ID"
+                id="userSearch"
+                value={formData.userSearch}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setFormData(prev => ({ ...prev, userSearch: value }));
+                  searchUsers(value);
+                }}
+                placeholder="Search by name or email..."
+                className="pl-9"
                 required
               />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="userFullName">Full Name *</Label>
-              <Input
-                id="userFullName"
-                value={formData.userFullName}
-                onChange={(e) => setFormData(prev => ({ ...prev, userFullName: e.target.value }))}
-                placeholder="Enter full name"
-                required
-              />
+              {userSearchResults.length > 0 && (
+                <div className="absolute z-10 w-full mt-1 bg-white border rounded-md shadow-lg max-h-40 overflow-y-auto">
+                  {userSearchResults.map((user) => (
+                    <button
+                      key={user.id}
+                      type="button"
+                      onClick={() => selectUser(user)}
+                      className="w-full px-3 py-2 text-left hover:bg-gray-50 border-b last:border-b-0"
+                    >
+                      <div className="font-medium">{user.full_name}</div>
+                      {user.email && <div className="text-sm text-gray-500">{user.email}</div>}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
 
@@ -152,7 +284,7 @@ export const ScheduleVisitDialog: React.FC<ScheduleVisitDialogProps> = ({
                   <Calendar
                     mode="single"
                     selected={formData.bookingDate}
-                    onSelect={(date) => setFormData(prev => ({ ...prev, bookingDate: date }))}
+                    onSelect={handleDateChange}
                     disabled={(date) => date < new Date()}
                     initialFocus
                     className="pointer-events-auto"
@@ -162,20 +294,38 @@ export const ScheduleVisitDialog: React.FC<ScheduleVisitDialogProps> = ({
             </div>
             
             <div className="space-y-2">
-              <Label>Visit Time *</Label>
-              <Select 
-                value={formData.bookingTime} 
-                onValueChange={(value) => setFormData(prev => ({ ...prev, bookingTime: value }))}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select time" />
-                </SelectTrigger>
-                <SelectContent>
-                  {timeSlots.map(time => (
-                    <SelectItem key={time} value={time}>{time}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Label>Available Time Slots *</Label>
+              {availableSlots.length > 0 ? (
+                <Select 
+                  value={formData.selectedSlotId} 
+                  onValueChange={handleSlotSelection}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select available slot" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableSlots.map(slot => (
+                      <SelectItem key={slot.id} value={slot.id}>
+                        {slot.start_time} - {slot.end_time}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : (
+                <Select 
+                  value={formData.bookingTime} 
+                  onValueChange={(value) => setFormData(prev => ({ ...prev, bookingTime: value }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select time (will create new slot)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {timeSlots.map(time => (
+                      <SelectItem key={time} value={time}>{time}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
             </div>
           </div>
 

@@ -15,6 +15,7 @@ interface VisitBooking {
   status: string;
   payment_status: string;
   admin_status: string;
+  availability_slot_id?: string;
 }
 
 interface AdminConfig {
@@ -49,7 +50,7 @@ export const AdminCalendarView: React.FC<AdminCalendarViewProps> = ({
 
   const isAvailableDay = (date: Date) => {
     if (!adminConfig) return false;
-    const dayName = format(date, 'EEEE'); // Full day name
+    const dayName = format(date, 'EEEE');
     return adminConfig.available_days.includes(dayName);
   };
 
@@ -60,6 +61,12 @@ export const AdminCalendarView: React.FC<AdminCalendarViewProps> = ({
       case 'cancelled': return 'bg-red-100 text-red-800';
       default: return 'bg-gray-100 text-gray-800';
     }
+  };
+
+  const getBookingTypeIndicator = (booking: VisitBooking) => {
+    // Admin-scheduled bookings don't have availability_slot_id or have admin-created slots
+    const isAdminScheduled = !booking.availability_slot_id || booking.admin_status === 'confirmed';
+    return isAdminScheduled ? '(Admin)' : '(Self)';
   };
 
   const navigateMonth = (direction: 'prev' | 'next') => {
@@ -104,6 +111,9 @@ export const AdminCalendarView: React.FC<AdminCalendarViewProps> = ({
           <Badge variant="outline" className="bg-purple-50 text-purple-700">
             <Home className="h-3 w-3 mr-1" />
             In-Person
+          </Badge>
+          <Badge variant="outline" className="bg-orange-50 text-orange-700">
+            Admin Scheduled
           </Badge>
         </div>
       </div>
@@ -150,7 +160,7 @@ export const AdminCalendarView: React.FC<AdminCalendarViewProps> = ({
                       p-1 rounded text-xs cursor-pointer
                       ${booking.visit_type === 'virtual' ? 'bg-blue-100 text-blue-800' : 'bg-purple-100 text-purple-800'}
                     `}
-                    title={`${booking.user_full_name} - ${booking.booking_time} (${booking.admin_status})`}
+                    title={`${booking.user_full_name} - ${booking.booking_time} (${booking.admin_status}) ${getBookingTypeIndicator(booking)}`}
                   >
                     <div className="flex items-center gap-1">
                       {booking.visit_type === 'virtual' ? (
@@ -165,12 +175,17 @@ export const AdminCalendarView: React.FC<AdminCalendarViewProps> = ({
                     <div className="truncate font-medium text-xs">
                       {booking.user_full_name}
                     </div>
-                    <Badge 
-                      variant="outline" 
-                      className={`text-xs ${getStatusColor(booking.admin_status)}`}
-                    >
-                      {booking.admin_status}
-                    </Badge>
+                    <div className="flex items-center gap-1">
+                      <Badge 
+                        variant="outline" 
+                        className={`text-xs ${getStatusColor(booking.admin_status)}`}
+                      >
+                        {booking.admin_status}
+                      </Badge>
+                      <span className="text-xs text-gray-500">
+                        {getBookingTypeIndicator(booking)}
+                      </span>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -198,6 +213,7 @@ export const AdminCalendarView: React.FC<AdminCalendarViewProps> = ({
           <div>
             <p><strong>Max Bookings per Day:</strong> {adminConfig?.max_bookings_per_day || 'Not configured'}</p>
             <p><strong>Total Bookings This Month:</strong> {bookings.length}</p>
+            <p><strong>Admin Scheduled:</strong> {bookings.filter(b => b.admin_status === 'confirmed').length}</p>
           </div>
         </div>
       </div>
