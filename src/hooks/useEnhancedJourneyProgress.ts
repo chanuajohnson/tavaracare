@@ -178,7 +178,6 @@ const getDummyJourneyData = (): { steps: JourneyStep[], paths: JourneyPath[] } =
       accessible: false,
       prerequisites: []
     },
-    // Note: Step 8 removed as requested
     {
       id: 'dummy-8',
       step_number: 8,
@@ -342,14 +341,12 @@ export const useEnhancedJourneyProgress = (): JourneyProgressData => {
   };
 
   // Helper function to determine step accessibility
-  const determineStepAccessibility = (stepNumber: number, allSteps: JourneyStep[], profileData: any, visitBookingData: any) => {
+  const determineStepAccessibility = (stepNumber: number, completedSteps: Set<number>, profileData: any, visitBookingData: any) => {
     switch (stepNumber) {
       case 4: // Caregiver matches - need steps 1-3 completed
-        const foundationSteps = allSteps.filter(s => [1, 2, 3].includes(s.step_number));
-        return foundationSteps.every(s => s.completed);
+        return [1, 2, 3].every(num => completedSteps.has(num));
       case 7: // Schedule initial visit - need step 4 completed
-        const step4 = allSteps.find(s => s.step_number === 4);
-        return step4?.completed || false;
+        return completedSteps.has(4);
       case 8: // Schedule trial - need step 7 completed (visit scheduled)
         // Check both profile status and actual visit bookings
         const hasVisitScheduled = visitBookingData || 
@@ -357,14 +354,11 @@ export const useEnhancedJourneyProgress = (): JourneyProgressData => {
            ['scheduled', 'completed'].includes(profileData.visit_scheduling_status));
         return hasVisitScheduled;
       case 9: // Pay for trial - need step 8 completed
-        const step8 = allSteps.find(s => s.step_number === 8);
-        return step8?.completed || false;
+        return completedSteps.has(8);
       case 10: // Begin trial - need step 9 completed
-        const step9 = allSteps.find(s => s.step_number === 9);
-        return step9?.completed || false;
+        return completedSteps.has(9);
       case 11: // Choose path - need step 7 completed (can skip trial)
-        const step7Complete = allSteps.find(s => s.step_number === 7);
-        return step7Complete?.completed || false;
+        return completedSteps.has(7);
       default:
         return true;
     }
@@ -506,10 +500,11 @@ export const useEnhancedJourneyProgress = (): JourneyProgressData => {
         .eq('is_active', true);
 
       if (journeySteps) {
-        const processedSteps = journeySteps.map(step => {
-          const stepCategory = validateCategory(step.category);
+        // First, calculate which steps are completed
+        const completedStepsSet = new Set<number>();
+        
+        journeySteps.forEach(step => {
           let isCompleted = false;
-          let isAccessible = true;
 
           // Enhanced step completion logic using actual data
           switch (step.step_number) {
@@ -553,8 +548,16 @@ export const useEnhancedJourneyProgress = (): JourneyProgressData => {
               isCompleted = false;
           }
 
-          // Determine accessibility
-          isAccessible = determineStepAccessibility(step.step_number, journeySteps, profile, latestVisitBooking);
+          if (isCompleted) {
+            completedStepsSet.add(step.step_number);
+          }
+        });
+
+        // Now process steps with completion and accessibility
+        const processedSteps: JourneyStep[] = journeySteps.map(step => {
+          const stepCategory = validateCategory(step.category);
+          const isCompleted = completedStepsSet.has(step.step_number);
+          const isAccessible = determineStepAccessibility(step.step_number, completedStepsSet, profile, latestVisitBooking);
 
           return {
             id: step.id,
