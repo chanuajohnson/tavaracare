@@ -41,21 +41,26 @@ export const AdminUserManagement = () => {
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
 
   // Transform users to UserWithProgress format for the grid
-  const transformedUsers: UserWithProgress[] = users.map(user => ({
-    id: user.id,
-    email: user.email || user.profile?.email || 'No email',
-    full_name: user.profile?.full_name || 'Unnamed User',
-    role: (user.profile?.role || 'family') as 'family' | 'professional' | 'community' | 'admin',
-    email_verified: true, // Assume verified for existing users
-    last_login_at: user.last_sign_in_at || user.profile?.last_login_at || user.created_at,
-    created_at: user.created_at,
-    phone_number: user.profile?.phone_number,
-    location: undefined, // Add if available in your data
-    professional_type: undefined, // Add if available in your data
-    years_of_experience: undefined, // Add if available in your data
-    care_types: [], // Add if available in your data
-    specialized_care: [] // Add if available in your data
-  }));
+  const transformedUsers: UserWithProgress[] = users.map(user => {
+    // Get email from either user object or profile, with fallback
+    const userEmail = user.email || user.profile?.email || 'No email';
+    
+    return {
+      id: user.id,
+      email: userEmail,
+      full_name: user.profile?.full_name || 'Unnamed User',
+      role: (user.profile?.role || 'family') as 'family' | 'professional' | 'community' | 'admin',
+      email_verified: true, // Assume verified for existing users
+      last_login_at: user.last_sign_in_at || user.profile?.last_login_at || user.created_at,
+      created_at: user.created_at,
+      phone_number: user.profile?.phone_number,
+      location: undefined, // Add if available in your data
+      professional_type: undefined, // Add if available in your data
+      years_of_experience: undefined, // Add if available in your data
+      care_types: [], // Add if available in your data
+      specialized_care: [] // Add if available in your data
+    };
+  });
 
   const fetchProfiles = async () => {
     try {
@@ -76,7 +81,7 @@ export const AdminUserManagement = () => {
       // Convert profiles to users format for display
       const profileUsers: UserWithProfile[] = safeProfiles.map(profile => ({
         id: profile.id,
-        email: profile.email || 'Profile data only',
+        email: 'Profile data only', // Fallback for profile-only data
         created_at: profile.created_at || new Date().toISOString(),
         last_sign_in_at: profile.last_login_at,
         profile
@@ -344,7 +349,7 @@ export const AdminUserManagement = () => {
           </div>
         </div>
 
-        {/* Users Display - Now with proper grid/table toggle */}
+        {/* Users Display - Grid or Table view */}
         {viewMode === 'grid' ? (
           <RoleBasedUserGrid
             users={filteredTransformedUsers}
