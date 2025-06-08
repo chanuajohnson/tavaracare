@@ -1,7 +1,6 @@
-
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, MessageCircle, Sparkles, Check, XIcon } from 'lucide-react';
+import { X, MessageCircle, Sparkles, Check, XIcon, ChevronLeft, ChevronRight, Maximize2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useTavaraState } from './hooks/useTavaraState';
@@ -12,7 +11,7 @@ import { ManualNudgeService } from './ManualNudgeService';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { AssistantNudge } from './types';
 import { useProfessionalProgress } from './hooks/useProfessionalProgress';
-import { useFamilyProgress } from './hooks/useFamilyProgress';
+import { useFamilyJourneyProgress } from '@/hooks/useFamilyJourneyProgress';
 import { useLocation } from 'react-router-dom';
 
 const AUTO_GREET_MESSAGES = {
@@ -23,21 +22,29 @@ const AUTO_GREET_MESSAGES = {
   admin: "⚡ Admin panel ready. How can I assist with platform management today?"
 };
 
+const JOURNEY_STAGE_MESSAGES = {
+  foundation: "💙 I see you're building your care foundation! Let's make sure we have everything needed to find your perfect caregiver match.",
+  scheduling: "📅 Great progress! You're ready to meet with our care coordinator. This is where your care plan really comes to life.",
+  trial: "🌟 Exciting! You're about to experience our trial day. This is the perfect way to ensure compatibility before committing.",
+  conversion: "🎉 Congratulations on completing your trial! Now it's time to choose the care path that works best for your family."
+};
+
 export const TavaraAssistantPanel: React.FC = () => {
   const { user } = useAuth();
   const location = useLocation();
   const isMobile = useIsMobile();
-  const { state, openPanel, closePanel, minimizePanel, markNudgesAsRead } = useTavaraState();
+  const { state, openPanel, closePanel, minimizePanel, maximizePanel, markNudgesAsRead } = useTavaraState();
   const { currentForm, isFormPage, isJourneyTouchpoint } = useFormDetection();
   const [nudges, setNudges] = useState<AssistantNudge[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [hasInitialGreeted, setHasInitialGreeted] = useState(false);
   const [showGreeting, setShowGreeting] = useState(false);
   const [greetedPages, setGreetedPages] = useState<Set<string>>(new Set());
+  const [isExpanded, setIsExpanded] = useState(false);
 
-  // Get real progress data based on user role
+  // Get comprehensive journey progress
   const professionalProgress = useProfessionalProgress();
-  const familyProgress = useFamilyProgress();
+  const familyJourneyProgress = useFamilyJourneyProgress();
 
   // Initialize session tracking
   useEffect(() => {
@@ -57,7 +64,7 @@ export const TavaraAssistantPanel: React.FC = () => {
     }
   }, [user]);
 
-  // MAGIC AUTO-GREETING - Automatically shows and opens without user interaction
+  // MAGIC AUTO-GREETING with journey stage awareness
   useEffect(() => {
     const sessionKey = `tavara_session_greeted`;
     const hasGreetedThisSession = sessionStorage.getItem(sessionKey);
@@ -67,7 +74,8 @@ export const TavaraAssistantPanel: React.FC = () => {
       hasInitialGreeted,
       isOpen: state.isOpen,
       currentRole: state.currentRole,
-      pathname: location.pathname
+      pathname: location.pathname,
+      journeyStage: state.currentRole === 'family' ? familyJourneyProgress.journeyStage : null
     });
     
     // Show magic greeting if haven't greeted this session AND not already open
@@ -88,7 +96,7 @@ export const TavaraAssistantPanel: React.FC = () => {
         }, 2500); // Show greeting for 2.5 seconds then auto-open
       }, 1200); // Initial delay for page load
     }
-  }, [hasInitialGreeted, state.isOpen, openPanel, location.pathname]);
+  }, [hasInitialGreeted, state.isOpen, openPanel, location.pathname, familyJourneyProgress.journeyStage]);
 
   // NAVIGATION AUTO-GREETING (contextual magic on journey touchpoints)
   useEffect(() => {
@@ -145,21 +153,25 @@ export const TavaraAssistantPanel: React.FC = () => {
     markNudgesAsRead();
   };
 
-  // Create real progress context based on user role
+  // Create comprehensive progress context based on user role
   const getProgressContext = () => {
     if (state.currentRole === 'professional') {
       const { completionPercentage, nextStep } = professionalProgress;
       return {
         completionPercentage: completionPercentage || 0,
         currentStep: nextStep?.title || 'Complete your professional profile',
-        nextAction: nextStep?.description || 'Add your experience and certifications'
+        nextAction: nextStep?.description || 'Add your experience and certifications',
+        journeyStage: 'foundation'
       };
     } else if (state.currentRole === 'family') {
-      const { completionPercentage, nextStep } = familyProgress;
+      const { completionPercentage, nextStep, journeyStage, careModel, trialCompleted } = familyJourneyProgress;
       return {
         completionPercentage: completionPercentage || 0,
         currentStep: nextStep?.title || 'Complete your profile',
-        nextAction: nextStep?.description || 'Add your care needs information'
+        nextAction: nextStep?.description || 'Add your care needs information',
+        journeyStage,
+        careModel,
+        trialCompleted
       };
     }
     
@@ -167,17 +179,26 @@ export const TavaraAssistantPanel: React.FC = () => {
     return {
       completionPercentage: 0,
       currentStep: 'Get Started',
-      nextAction: 'Complete your registration'
+      nextAction: 'Complete your registration',
+      journeyStage: 'foundation'
     };
   };
 
   const progressContext = getProgressContext();
 
-  // Enhanced greeting message with form context or initial welcome
+  // Enhanced greeting message with journey stage context
   const getContextualGreeting = () => {
     // For form-specific pages, use form context
     if (currentForm?.autoGreetingMessage) {
       return currentForm.autoGreetingMessage;
+    }
+    
+    // For family users, add journey stage context
+    if (state.currentRole === 'family' && progressContext.journeyStage) {
+      const stageMessage = JOURNEY_STAGE_MESSAGES[progressContext.journeyStage];
+      if (stageMessage) {
+        return stageMessage;
+      }
     }
     
     // For initial greeting or pages without forms, use role-based or default
@@ -188,6 +209,77 @@ export const TavaraAssistantPanel: React.FC = () => {
     return AUTO_GREET_MESSAGES.guest;
   };
 
+  // Handle expand/collapse toggle with proper state management
+  const handleExpandToggle = () => {
+    console.log('TAV: Expand toggle clicked, current isExpanded:', isExpanded);
+    if (isExpanded) {
+      setIsExpanded(false);
+    } else {
+      setIsExpanded(true);
+    }
+  };
+
+  // Fixed maximize functionality from minimized state
+  const handleMaximizeFromMinimized = () => {
+    console.log('TAV: Maximizing from minimized state');
+    setIsExpanded(true); // Set to expanded state for larger size
+    maximizePanel();
+  };
+
+  // Enhanced close panel function with debugging
+  const handleClosePanel = () => {
+    console.log('TAV: Close panel clicked, current state:', { isOpen: state.isOpen, isMinimized: state.isMinimized });
+    setIsExpanded(false); // Reset expanded state
+    closePanel();
+  };
+
+  // Show minimized panel if minimized
+  if (state.isMinimized) {
+    console.log('TAV: Rendering minimized panel');
+    return (
+      <div className={`fixed z-50 ${isMobile 
+        ? 'bottom-20 left-4' 
+        : 'bottom-6 left-6'
+      }`}>
+        <motion.div
+          initial={{ scale: 0.8, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          className="flex items-center gap-2 bg-white rounded-lg shadow-lg border border-gray-200 p-3"
+        >
+          <div className="flex items-center gap-2">
+            <MessageCircle className="h-5 w-5 text-primary" />
+            <span className="text-sm font-medium text-gray-700">TAV</span>
+            {nudges.length > 0 && (
+              <div className="bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold">
+                {nudges.length}
+              </div>
+            )}
+          </div>
+          <div className="flex items-center gap-1">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleMaximizeFromMinimized}
+              className="h-7 w-7 p-0"
+              title="Expand panel"
+            >
+              <Maximize2 className="h-3 w-3" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleClosePanel}
+              className="h-7 w-7 p-0"
+              title="Close panel"
+            >
+              <X className="h-3 w-3" />
+            </Button>
+          </div>
+        </motion.div>
+      </div>
+    );
+  }
+
   // Floating button with enhanced magic effects
   if (!state.isOpen && !state.isMinimized) {
     return (
@@ -195,7 +287,7 @@ export const TavaraAssistantPanel: React.FC = () => {
         ? 'bottom-20 left-4' 
         : 'bottom-6 left-6'
       }`}>
-        {/* VERTICAL magic greeting bubble - AUTO-LOADING without user interaction */}
+        {/* Enhanced journey-aware greeting bubble */}
         <AnimatePresence>
           {showGreeting && (
             <motion.div
@@ -237,208 +329,125 @@ export const TavaraAssistantPanel: React.FC = () => {
                 <div className="flex items-center gap-3">
                   <span className="text-xl">💙</span>
                   <div className="flex-1">
-                    <p className="font-semibold text-primary text-base leading-tight">
-                      TAV Assistant
-                    </p>
-                    {currentForm && (
-                      <span className="bg-primary/10 text-primary text-xs px-2 py-1 rounded-full inline-block mt-1">
-                        Helping with {currentForm.formTitle}
-                      </span>
-                    )}
+                    <p className="font-semibold text-primary text-sm">Hi! I'm TAV</p>
+                    <p className="text-xs text-gray-600">Your Care Coordinator</p>
                   </div>
                 </div>
-                
-                <p className={`text-muted-foreground leading-relaxed ${isMobile ? 'text-sm' : 'text-sm'}`}>
+                <p className="text-xs text-gray-800 leading-relaxed">
                   {getContextualGreeting()}
                 </p>
                 
-                {/* Form-specific context (for form navigation) */}
-                {currentForm && (
-                  <div className="p-2 bg-primary/5 rounded-lg">
-                    <p className={`text-primary font-medium ${isMobile ? 'text-xs' : 'text-sm'}`}>
-                      ✨ I can help you fill this out conversationally!
-                    </p>
+                {/* Journey progress indicator for family users */}
+                {state.currentRole === 'family' && progressContext.completionPercentage > 0 && (
+                  <div className="bg-gray-50 rounded-lg p-2">
+                    <div className="flex justify-between items-center mb-1">
+                      <span className="text-xs font-medium text-gray-600">Journey Progress</span>
+                      <span className="text-xs font-bold text-primary">{progressContext.completionPercentage}%</span>
+                    </div>
+                    <div className="w-full h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                      <div 
+                        className="h-full bg-primary rounded-full transition-all duration-300" 
+                        style={{ width: `${progressContext.completionPercentage}%` }}
+                      />
+                    </div>
                   </div>
                 )}
-
-                <p className="text-xs text-primary/70 text-center animate-pulse">
-                  Opening assistant panel...
-                </p>
               </div>
-              
-              {/* Enhanced speech bubble tail - positioned for vertical layout */}
-              <div className="absolute bottom-[-8px] left-6 w-4 h-4 bg-white border-r-2 border-b-2 border-primary/40 transform rotate-45"></div>
             </motion.div>
           )}
         </AnimatePresence>
 
-        {/* Compact TAV button */}
-        <motion.div
+        {/* Magic floating button */}
+        <motion.button
           initial={{ scale: 0, rotate: -180 }}
           animate={{ scale: 1, rotate: 0 }}
-          transition={{ type: "spring", damping: 15, stiffness: 200, delay: 0.3 }}
-          whileHover={{ scale: 1.08 }}
-          whileTap={{ scale: 0.92 }}
+          whileHover={{ scale: 1.05, y: -2 }}
+          whileTap={{ scale: 0.95 }}
+          transition={{ 
+            type: "spring", 
+            damping: 15, 
+            stiffness: 300,
+            delay: 0.3
+          }}
+          onClick={openPanel}
+          className={`relative bg-gradient-to-r from-primary to-primary/80 text-white rounded-full shadow-2xl hover:shadow-primary/25 transition-all duration-300 ${
+            isMobile ? 'w-14 h-14' : 'w-16 h-16'
+          }`}
         >
-          <Button
-            onClick={openPanel}
-            size="icon"
-            className="h-14 w-14 rounded-full bg-gradient-to-r from-primary via-primary/90 to-primary shadow-xl relative overflow-hidden group hover:shadow-2xl transition-all duration-300"
-          >
-            {/* Enhanced magic sparkle effect */}
-            <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-              <Sparkles className="h-3 w-3 absolute top-2 right-2 text-white/70 animate-pulse" />
-              <Sparkles className="h-2 w-2 absolute bottom-2 left-2 text-white/50 animate-pulse" style={{ animationDelay: '0.3s' }} />
-              <Sparkles className="h-2 w-2 absolute top-3 left-3 text-white/60 animate-pulse" style={{ animationDelay: '0.7s' }} />
-            </div>
-            
-            <MessageCircle className="h-6 w-6 transition-transform group-hover:scale-110" />
-            
-            {/* Enhanced notification badge with form awareness */}
-            {(nudges.length > 0 || isFormPage) && (
-              <motion.div
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                className="absolute -top-1 -right-1 h-6 w-6 rounded-full bg-gradient-to-r from-primary/80 to-primary flex items-center justify-center shadow-lg border-2 border-white"
-              >
-                {nudges.length > 0 ? (
-                  <span className="text-xs text-white font-bold">
-                    {nudges.length}
-                  </span>
-                ) : (
-                  <Sparkles className="h-3 w-3 text-white" />
-                )}
-              </motion.div>
-            )}
-          </Button>
-        </motion.div>
+          {/* Pulsing ring effect */}
+          <div className="absolute inset-0 rounded-full bg-primary/30 animate-ping" />
+          <div className="absolute inset-0 rounded-full bg-primary/20 animate-pulse" style={{ animationDelay: '0.5s' }} />
+          
+          <div className="relative flex items-center justify-center h-full">
+            <MessageCircle className={`${isMobile ? 'h-6 w-6' : 'h-7 w-7'}`} />
+          </div>
+          
+          {/* Notification badge for nudges */}
+          {nudges.length > 0 && (
+            <motion.div
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-6 h-6 flex items-center justify-center font-bold shadow-lg"
+            >
+              {nudges.length}
+            </motion.div>
+          )}
+        </motion.button>
       </div>
     );
   }
 
+  // Main panel with improved mobile experience, responsive sizing, and proper scroll handling
   return (
-    <AnimatePresence>
-      {state.isOpen && (
-        <>
-          {/* Mobile backdrop */}
-          {isMobile && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/20 z-40"
-              onClick={closePanel}
-            />
+    <motion.div
+      initial={{ opacity: 0, y: 400 }}
+      animate={{ 
+        opacity: 1, 
+        y: 0,
+        scale: 1
+      }}
+      exit={{ opacity: 0, y: 400 }}
+      transition={{ type: "spring", damping: 25, stiffness: 300 }}
+      className={`fixed bottom-0 left-0 bg-white shadow-2xl border-r border-t border-gray-200 z-50 flex flex-col ${
+        isMobile 
+          ? isExpanded 
+            ? 'w-full h-[70vh] max-h-[70vh]' 
+            : 'w-3/5 max-w-sm h-[40vh] max-h-[40vh]'
+          : 'w-96 h-[40vh] max-h-[40vh]'
+      }`}
+      style={{
+        // Ensure consistent positioning and prevent overflow issues
+        minHeight: isMobile ? (isExpanded ? '70vh' : '40vh') : '40vh',
+        maxHeight: isMobile ? (isExpanded ? '70vh' : '40vh') : '40vh'
+      }}
+    >
+      {/* Mobile expand/collapse button - improved positioning and functionality */}
+      {isMobile && (
+        <button
+          onClick={handleExpandToggle}
+          className="absolute -right-8 top-4 bg-primary text-white rounded-r-lg p-2 shadow-lg hover:bg-primary/90 transition-colors z-10"
+          aria-label={isExpanded ? "Collapse panel" : "Expand panel"}
+        >
+          {isExpanded ? (
+            <ChevronLeft className="h-4 w-4" />
+          ) : (
+            <ChevronRight className="h-4 w-4" />
           )}
-          
-          {/* Vertical panel optimized for vertical layout */}
-          <motion.div
-            initial={isMobile 
-              ? { x: '-100%', opacity: 0 } 
-              : { x: '-100%', opacity: 0, scale: 0.95 }
-            }
-            animate={isMobile 
-              ? { x: 0, opacity: 1 } 
-              : { x: 0, opacity: 1, scale: 1 }
-            }
-            exit={isMobile 
-              ? { x: '-100%', opacity: 0 } 
-              : { x: '-100%', opacity: 0, scale: 0.95 }
-            }
-            transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className={`fixed z-50 bg-white border shadow-2xl ${
-              isMobile
-                ? 'bottom-4 left-4 right-4 rounded-2xl max-h-[65vh] border'
-                : 'bottom-6 left-6 rounded-2xl border max-h-[65vh] w-[min(26rem,38vw)]'
-            }`}
-          >
-            {/* Header */}
-            <div className={`flex items-center justify-between border-b bg-gradient-to-r from-primary/5 to-transparent ${
-              isMobile ? 'p-3' : 'p-4'
-            }`}>
-              <div className="flex items-center gap-3 min-w-0 flex-1">
-                <div className="h-8 w-8 rounded-full bg-gradient-to-r from-primary to-primary/80 flex items-center justify-center shadow-md flex-shrink-0">
-                  <MessageCircle className="h-4 w-4 text-white" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <h2 className="font-semibold text-base leading-tight">TAV Assistant</h2>
-                  <p className="text-sm text-muted-foreground leading-tight truncate">
-                    {currentForm ? `Helping with ${currentForm.formTitle}` : 'Your care coordinator'}
-                  </p>
-                </div>
-              </div>
-              
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={closePanel}
-                className="h-8 w-8 hover:bg-primary/10 flex-shrink-0"
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
-
-            {/* Content with optimized scrolling for vertical layout */}
-            <div className={`overflow-y-auto ${
-              isMobile 
-                ? 'p-3 max-h-[calc(65vh-80px)]' 
-                : 'p-4 max-h-[calc(65vh-90px)]'
-            }`}>
-              {/* Form context banner */}
-              {currentForm && (
-                <div className="mb-4 p-3 bg-gradient-to-r from-primary/5 to-primary/10 rounded-lg border border-primary/20">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Sparkles className="h-4 w-4 text-primary flex-shrink-0" />
-                    <h3 className="text-sm font-medium text-primary">
-                      {currentForm.formTitle} Assistance
-                    </h3>
-                  </div>
-                  <p className="text-sm text-primary/80 leading-relaxed">
-                    {currentForm.autoGreetingMessage || "I can help you fill this out conversationally or guide you step by step. What would be most helpful?"}
-                  </p>
-                </div>
-              )}
-
-              {/* Nudges */}
-              {nudges.length > 0 && (
-                <div className="mb-4 space-y-3">
-                  <h3 className="text-sm font-medium text-amber-800 flex items-center gap-2">
-                    <Sparkles className="h-4 w-4 flex-shrink-0" />
-                    Messages for you:
-                  </h3>
-                  {nudges.map((nudge) => (
-                    <motion.div
-                      key={nudge.id}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="bg-gradient-to-r from-amber-50 to-amber-50/50 border border-amber-200 rounded-lg p-3 cursor-pointer hover:from-amber-100 hover:to-amber-100/50 transition-all duration-200"
-                      onClick={() => handleNudgeClick(nudge)}
-                    >
-                      <p className="text-sm text-amber-800 leading-relaxed">{nudge.message}</p>
-                      <p className="text-xs text-amber-600 mt-2 leading-tight">
-                        From {nudge.sender} • Click to dismiss
-                      </p>
-                    </motion.div>
-                  ))}
-                </div>
-              )}
-
-              {/* Role-based content with real progress context */}
-              <RoleBasedContent 
-                role={state.currentRole} 
-                progressContext={progressContext}
-              />
-            </div>
-
-            {/* Mobile handle */}
-            {isMobile && (
-              <div className="flex justify-center py-2 bg-gray-50/50">
-                <div className="w-8 h-1 bg-gray-300 rounded-full" />
-              </div>
-            )}
-          </motion.div>
-        </>
+        </button>
       )}
-    </AnimatePresence>
+
+      {/* Scrollable content container */}
+      <div className="flex flex-col h-full overflow-hidden">
+        <RoleBasedContent 
+          role={state.currentRole}
+          nudges={nudges}
+          onNudgeClick={handleNudgeClick}
+          isLoading={isLoading}
+          progressContext={progressContext}
+          onClose={handleClosePanel}
+          onMinimize={minimizePanel}
+        />
+      </div>
+    </motion.div>
   );
 };
