@@ -1,8 +1,8 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { HorizontalTabs, HorizontalTabsContent, HorizontalTabsList, HorizontalTabsTrigger } from "@/components/ui/horizontal-scroll-tabs";
-import { Calendar, Settings, List, Clock, BarChart3, AlertCircle, Users } from "lucide-react";
+import { Calendar, Settings, List, Clock, BarChart3, AlertCircle, Users, Plus } from "lucide-react";
 import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { AdminCalendarView } from './AdminCalendarView';
 import { AdminBookingTable } from './AdminBookingTable';
@@ -60,6 +60,7 @@ export const AdminVisitScheduleManager = () => {
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("calendar");
   const [pendingRequestsCount, setPendingRequestsCount] = useState(0);
+  const [showScheduleDialog, setShowScheduleDialog] = useState(false);
   const [filters, setFilters] = useState<BookingFilters>({
     status: '',
     visitType: '',
@@ -217,6 +218,19 @@ export const AdminVisitScheduleManager = () => {
     fetchPendingRequestsCount(); // Also refresh pending count
   };
 
+  const handleScheduleVisit = () => {
+    setShowScheduleDialog(true);
+  };
+
+  const handleVisitScheduled = () => {
+    handleBookingUpdate();
+    setShowScheduleDialog(false);
+  };
+
+  const handleDialogClose = () => {
+    setShowScheduleDialog(false);
+  };
+
   if (loading) {
     return (
       <div className="container mx-auto px-4 py-8">
@@ -271,10 +285,13 @@ export const AdminVisitScheduleManager = () => {
               Manage family visit bookings, configure availability, and coordinate with nurses.
             </p>
           </div>
-          <ScheduleVisitDialog 
-            onVisitScheduled={handleBookingUpdate} 
-            onClose={() => {}} 
-          />
+          <Button 
+            onClick={handleScheduleVisit}
+            className="flex items-center gap-2"
+          >
+            <Plus className="h-4 w-4" />
+            Schedule Visit
+          </Button>
         </div>
       </div>
 
@@ -457,6 +474,14 @@ export const AdminVisitScheduleManager = () => {
           </Card>
         </HorizontalTabsContent>
       </HorizontalTabs>
+
+      {/* Schedule Visit Dialog - Only render when showScheduleDialog is true */}
+      {showScheduleDialog && (
+        <ScheduleVisitDialog 
+          onVisitScheduled={handleVisitScheduled} 
+          onClose={handleDialogClose} 
+        />
+      )}
     </div>
   );
 };
