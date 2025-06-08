@@ -6,6 +6,7 @@ import { AppProviders } from '@/components/providers/AppProviders';
 import { AppRoutes } from '@/components/routing/AppRoutes';
 import { Layout } from '@/components/layout/Layout';
 import { Toaster } from "sonner";
+import { TavaraAssistantPanel } from '@/components/tav/TavaraAssistantPanel';
 
 function App() {
   return (
@@ -15,6 +16,7 @@ function App() {
           <AppRoutes />
         </Layout>
         <Toaster />
+        <TavaraAssistantPanel />
       </AppProviders>
     </SessionContextProvider>
   );
