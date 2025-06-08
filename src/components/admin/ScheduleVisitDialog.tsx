@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -21,7 +20,6 @@ interface ScheduleVisitDialogProps {
 interface UserSearchResult {
   id: string;
   full_name: string;
-  email?: string;
 }
 
 export const ScheduleVisitDialog: React.FC<ScheduleVisitDialogProps> = ({
@@ -55,8 +53,8 @@ export const ScheduleVisitDialog: React.FC<ScheduleVisitDialogProps> = ({
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, full_name, email')
-        .or(`full_name.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%`)
+        .select('id, full_name')
+        .ilike('full_name', `%${searchTerm}%`)
         .limit(10);
 
       if (error) throw error;
@@ -74,7 +72,7 @@ export const ScheduleVisitDialog: React.FC<ScheduleVisitDialogProps> = ({
       ...prev,
       selectedUserId: user.id,
       userFullName: user.full_name,
-      userSearch: `${user.full_name} (${user.email})`
+      userSearch: user.full_name
     }));
     setUserSearchResults([]);
   };
@@ -87,7 +85,7 @@ export const ScheduleVisitDialog: React.FC<ScheduleVisitDialogProps> = ({
         .select('id, start_time, end_time, current_bookings, max_bookings')
         .eq('date', dateStr)
         .eq('is_available', true)
-        .lt('current_bookings', supabase.raw('max_bookings'));
+        .lt('current_bookings', 'max_bookings');
 
       if (error) throw error;
       setAvailableSlots(data || []);
@@ -105,7 +103,7 @@ export const ScheduleVisitDialog: React.FC<ScheduleVisitDialogProps> = ({
         .insert({
           date: dateStr,
           start_time: time,
-          end_time: time, // Single time slot
+          end_time: time,
           is_available: true,
           max_bookings: 1,
           current_bookings: 0,
@@ -181,10 +179,12 @@ export const ScheduleVisitDialog: React.FC<ScheduleVisitDialogProps> = ({
       if (error) throw error;
 
       // Update slot booking count
-      await supabase
+      const { error: updateError } = await supabase
         .from('admin_availability_slots')
-        .update({ current_bookings: supabase.raw('current_bookings + 1') })
+        .update({ current_bookings: 1 })
         .eq('id', slotId);
+
+      if (updateError) console.error('Error updating slot count:', updateError);
 
       toast.success('Visit scheduled successfully');
       setOpen(false);
@@ -242,7 +242,7 @@ export const ScheduleVisitDialog: React.FC<ScheduleVisitDialogProps> = ({
                   setFormData(prev => ({ ...prev, userSearch: value }));
                   searchUsers(value);
                 }}
-                placeholder="Search by name or email..."
+                placeholder="Search by name..."
                 className="pl-9"
                 required
               />
@@ -256,7 +256,6 @@ export const ScheduleVisitDialog: React.FC<ScheduleVisitDialogProps> = ({
                       className="w-full px-3 py-2 text-left hover:bg-gray-50 border-b last:border-b-0"
                     >
                       <div className="font-medium">{user.full_name}</div>
-                      {user.email && <div className="text-sm text-gray-500">{user.email}</div>}
                     </button>
                   ))}
                 </div>

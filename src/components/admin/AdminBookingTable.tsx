@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -71,10 +70,12 @@ export const AdminBookingTable: React.FC<AdminBookingTableProps> = ({
 
       // Update slot booking count if there was a slot
       if (booking?.availability_slot_id) {
-        await supabase
+        const { error: updateError } = await supabase
           .from('admin_availability_slots')
-          .update({ current_bookings: supabase.raw('current_bookings - 1') })
+          .update({ current_bookings: booking.current_bookings - 1 })
           .eq('id', booking.availability_slot_id);
+        
+        if (updateError) console.error('Error updating slot count:', updateError);
       }
       
       toast.success('Booking deleted successfully');
