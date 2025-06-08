@@ -30,15 +30,18 @@ export const CaregiverMatchingModal = ({
   referringPagePath = "/dashboard/family",
   referringPageLabel = "Family Dashboard"
 }: CaregiverMatchingModalProps) => {
-  const [isLoading, setIsLoading] = useState(true);
+  const [isTimerLoading, setIsTimerLoading] = useState(true);
   const [currentMessageIndex, setCurrentMessageIndex] = useState(0);
   const [showProfileModal, setShowProfileModal] = useState(false);
   const { caregivers, isLoading: caregiverLoading, dataLoaded } = useCaregiverMatches(true);
 
+  // Combined loading state: wait for both timer AND data to be loaded
+  const isLoading = isTimerLoading || !dataLoaded;
+
   useEffect(() => {
     if (open) {
       console.log('CaregiverMatchingModal opened');
-      setIsLoading(true);
+      setIsTimerLoading(true);
       setCurrentMessageIndex(0);
       
       // Cycle through magical messages every 1.5 seconds
@@ -48,8 +51,8 @@ export const CaregiverMatchingModal = ({
 
       // Show the magical loading for 4.5 seconds total (3 messages)
       const loadingTimer = setTimeout(() => {
-        setIsLoading(false);
-        console.log('CaregiverMatchingModal loading complete');
+        setIsTimerLoading(false);
+        console.log('CaregiverMatchingModal timer complete, dataLoaded:', dataLoaded);
       }, 4500);
 
       return () => {
@@ -57,7 +60,7 @@ export const CaregiverMatchingModal = ({
         clearTimeout(loadingTimer);
       };
     }
-  }, [open]);
+  }, [open, dataLoaded]);
 
   const bestMatch = caregivers[0];
   const currentMessage = MAGICAL_MESSAGES[currentMessageIndex];
@@ -71,7 +74,7 @@ export const CaregiverMatchingModal = ({
             additionalData={{
               referrer: referringPagePath,
               access_type: 'modal_view',
-              shown_matches: 1
+              shown_matches: caregivers.length
             }}
           />
           
@@ -159,7 +162,7 @@ export const CaregiverMatchingModal = ({
                     </CardContent>
                   </Card>
 
-                  {/* Caregiver Match - Only show when we have data and magical loading is done */}
+                  {/* Caregiver Match - Only show when we have data and loading is done */}
                   {bestMatch ? (
                     <Card className="overflow-hidden bg-white">
                       <CardHeader className="bg-gradient-to-r from-green-50 to-emerald-50">
