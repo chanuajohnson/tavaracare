@@ -31,7 +31,7 @@ export const AdminUserManagement = () => {
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [roleFilter, setRoleFilter] = useState<string>('');
+  const [roleFilter, setRoleFilter] = useState<string>('all');
   const [viewMode, setViewMode] = useState<'table' | 'grid'>('table');
   const [error, setError] = useState<string | null>(null);
 
@@ -95,19 +95,26 @@ export const AdminUserManagement = () => {
       
       console.log('Auth users fetched:', authUsers.length);
 
-      // Merge auth data with profiles
-      const enhancedUsers = authUsers.map((authUser: any) => {
-        const profile = profiles.find(p => p.id === authUser.id);
-        return {
-          ...authUser,
-          profile
-        };
-      });
+      // Only enhance if we actually got auth users data
+      if (authUsers.length > 0) {
+        // Merge auth data with profiles
+        const enhancedUsers = authUsers.map((authUser: any) => {
+          const profile = profiles.find(p => p.id === authUser.id);
+          return {
+            ...authUser,
+            profile
+          };
+        });
 
-      setUsers(enhancedUsers);
-      toast.success(`Enhanced with auth data: ${enhancedUsers.length} users`);
+        setUsers(enhancedUsers);
+        toast.success(`Enhanced with auth data: ${enhancedUsers.length} users`);
+      } else {
+        console.log('No auth users returned, keeping profile data');
+        toast.info(`Using profile data: ${profiles.length} users`);
+      }
     } catch (error: any) {
       console.error('Auth enhancement failed:', error);
+      toast.info(`Using profile data: ${profiles.length} users`);
       // Don't throw error, just continue with profile data
     }
   };
@@ -121,6 +128,7 @@ export const AdminUserManagement = () => {
       const profiles = await fetchProfiles();
       
       // Then try to enhance with auth data if possible
+      // This will only replace users if auth data is successfully retrieved
       await enhanceWithAuthData(profiles);
       
     } catch (error: any) {
@@ -277,7 +285,7 @@ export const AdminUserManagement = () => {
               <SelectValue placeholder="All Roles" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All Roles</SelectItem>
+              <SelectItem value="all">All Roles</SelectItem>
               <SelectItem value="admin">Admin</SelectItem>
               <SelectItem value="professional">Professional</SelectItem>
               <SelectItem value="family">Family</SelectItem>
