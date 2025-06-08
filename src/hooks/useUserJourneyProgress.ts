@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useSharedFamilyJourneyData } from '@/hooks/useSharedFamilyJourneyData';
@@ -136,7 +137,8 @@ export const useUserJourneyProgress = (userId: string, userRole: UserRole): User
   };
 
   useEffect(() => {
-    if (userId && userRole && userRole !== 'family') {
+    // Only check for non-family users
+    if (userId && userRole !== 'family') {
       checkStepCompletion();
     }
   }, [userId, userRole]);
