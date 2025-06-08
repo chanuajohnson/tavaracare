@@ -9,6 +9,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Trash2, Search, Filter, Shield, Grid3X3, List } from "lucide-react";
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from "sonner";
+import { RoleBasedUserGrid } from './RoleBasedUserGrid';
+import { UserWithProgress } from '@/types/adminTypes';
 
 interface Profile {
   id: string;
@@ -16,6 +18,8 @@ interface Profile {
   full_name?: string;
   created_at: string;
   last_login_at?: string;
+  phone_number?: string;
+  email?: string;
 }
 
 interface UserWithProfile {
@@ -32,8 +36,26 @@ export const AdminUserManagement = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState<string>('all');
-  const [viewMode, setViewMode] = useState<'table' | 'grid'>('table');
+  const [viewMode, setViewMode] = useState<'table' | 'grid'>('grid');
   const [error, setError] = useState<string | null>(null);
+  const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
+
+  // Transform users to UserWithProgress format for the grid
+  const transformedUsers: UserWithProgress[] = users.map(user => ({
+    id: user.id,
+    email: user.email || user.profile?.email || 'No email',
+    full_name: user.profile?.full_name || 'Unnamed User',
+    role: (user.profile?.role || 'family') as 'family' | 'professional' | 'community' | 'admin',
+    email_verified: true, // Assume verified for existing users
+    last_login_at: user.last_sign_in_at || user.profile?.last_login_at || user.created_at,
+    created_at: user.created_at,
+    phone_number: user.profile?.phone_number,
+    location: undefined, // Add if available in your data
+    professional_type: undefined, // Add if available in your data
+    years_of_experience: undefined, // Add if available in your data
+    care_types: [], // Add if available in your data
+    specialized_care: [] // Add if available in your data
+  }));
 
   const fetchProfiles = async () => {
     try {
@@ -54,7 +76,7 @@ export const AdminUserManagement = () => {
       // Convert profiles to users format for display
       const profileUsers: UserWithProfile[] = safeProfiles.map(profile => ({
         id: profile.id,
-        email: 'Profile data only',
+        email: profile.email || 'Profile data only',
         created_at: profile.created_at || new Date().toISOString(),
         last_sign_in_at: profile.last_login_at,
         profile
@@ -178,6 +200,14 @@ export const AdminUserManagement = () => {
     }
   };
 
+  const handleUserSelect = (userId: string, checked: boolean) => {
+    if (checked) {
+      setSelectedUsers(prev => [...prev, userId]);
+    } else {
+      setSelectedUsers(prev => prev.filter(id => id !== userId));
+    }
+  };
+
   useEffect(() => {
     fetchUsers();
   }, []);
@@ -195,6 +225,17 @@ export const AdminUserManagement = () => {
     return matchesSearch && matchesRole;
   });
 
+  // Filter transformed users for grid view
+  const filteredTransformedUsers = transformedUsers.filter(user => {
+    const matchesSearch = !searchTerm || 
+      user.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.full_name?.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesRole = !roleFilter || roleFilter === 'all' || user.role === roleFilter;
+    
+    return matchesSearch && matchesRole;
+  });
+
   const getRoleBadgeColor = (role: string) => {
     switch (role) {
       case 'admin': return 'bg-red-100 text-red-800';
@@ -204,43 +245,6 @@ export const AdminUserManagement = () => {
       default: return 'bg-gray-100 text-gray-800';
     }
   };
-
-  const renderUserCard = (user: UserWithProfile) => (
-    <Card key={user.id} className="p-4">
-      <div className="flex items-center justify-between mb-3">
-        <div>
-          <div className="font-medium">
-            {user.profile?.full_name || 'No name'}
-          </div>
-          <div className="text-sm text-gray-500">
-            {user.email || 'No email'}
-          </div>
-        </div>
-        <Badge className={getRoleBadgeColor(user.profile?.role || 'unknown')}>
-          {user.profile?.role || 'No role'}
-        </Badge>
-      </div>
-      <div className="text-sm text-gray-600 mb-3">
-        <div>Created: {new Date(user.created_at).toLocaleDateString()}</div>
-        <div>
-          Last Sign In: {user.last_sign_in_at 
-            ? new Date(user.last_sign_in_at).toLocaleDateString()
-            : 'Never'
-          }
-        </div>
-      </div>
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={() => handleDeleteUser(user.id)}
-        className="text-red-600 hover:text-red-700 w-full"
-        disabled={user.profile?.role === 'admin'}
-      >
-        <Trash2 className="h-4 w-4 mr-2" />
-        Delete User
-      </Button>
-    </Card>
-  );
 
   if (loading) {
     return (
@@ -340,11 +344,14 @@ export const AdminUserManagement = () => {
           </div>
         </div>
 
-        {/* Users Display */}
+        {/* Users Display - Now with proper grid/table toggle */}
         {viewMode === 'grid' ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filteredUsers.map(renderUserCard)}
-          </div>
+          <RoleBasedUserGrid
+            users={filteredTransformedUsers}
+            selectedUsers={selectedUsers}
+            onUserSelect={handleUserSelect}
+            onRefresh={fetchUsers}
+          />
         ) : (
           <div className="border rounded-lg overflow-hidden">
             <Table>
