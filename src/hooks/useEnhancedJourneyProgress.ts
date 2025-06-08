@@ -559,7 +559,7 @@ export const useEnhancedJourneyProgress = (): JourneyProgressData => {
           const isCompleted = completedStepsSet.has(step.step_number);
           const isAccessible = determineStepAccessibility(step.step_number, completedStepsSet, profile, latestVisitBooking);
 
-          return {
+          const processedStep: JourneyStep = {
             id: step.id,
             step_number: step.step_number,
             title: step.title,
@@ -576,11 +576,13 @@ export const useEnhancedJourneyProgress = (): JourneyProgressData => {
             prerequisites: (step.prerequisites as string[]) || [],
             action: step.step_number === 7 && extractedVisitDetails ? 
               () => setShowCancelVisitModal(true) : 
-              () => handleStepAction(step),
+              () => handleStepAction(processedStep),
             cancelAction: step.step_number === 7 && extractedVisitDetails ? 
               () => setShowCancelVisitModal(true) : 
               undefined
           };
+
+          return processedStep;
         });
 
         setSteps(processedSteps);
