@@ -347,18 +347,20 @@ export const useEnhancedJourneyProgress = (): JourneyProgressData => {
         return [1, 2, 3].every(num => completedSteps.has(num));
       case 7: // Schedule initial visit - need step 4 completed
         return completedSteps.has(4);
-      case 8: // Schedule trial - need step 7 completed (visit scheduled)
-        // Check both profile status and actual visit bookings
-        const hasVisitScheduled = visitBookingData || 
+      case 8: // Schedule trial - need step 7 completed (admin has scheduled visit)
+        const hasAdminScheduledVisit = visitBookingData || 
           (profileData?.visit_scheduling_status && 
            ['scheduled', 'completed'].includes(profileData.visit_scheduling_status));
-        return hasVisitScheduled;
+        return hasAdminScheduledVisit;
       case 9: // Pay for trial - need step 8 completed
         return completedSteps.has(8);
       case 10: // Begin trial - need step 9 completed
         return completedSteps.has(9);
       case 11: // Choose path - need step 7 completed (can skip trial)
-        return completedSteps.has(7);
+        const hasVisitScheduled = visitBookingData || 
+          (profileData?.visit_scheduling_status && 
+           ['scheduled', 'completed'].includes(profileData.visit_scheduling_status));
+        return hasVisitScheduled;
       default:
         return true;
     }
@@ -527,7 +529,7 @@ export const useEnhancedJourneyProgress = (): JourneyProgressData => {
             case 6: // Meal plans
               isCompleted = !!(mealPlansData && mealPlansData.length > 0);
               break;
-            case 7: // Schedule initial visit - only completed if there's an active visit
+            case 7: // Schedule initial visit - completed when admin has scheduled
               isCompleted = !!latestVisitBooking || 
                           (profile?.visit_scheduling_status === 'scheduled' || 
                            profile?.visit_scheduling_status === 'completed');
@@ -615,7 +617,7 @@ export const useEnhancedJourneyProgress = (): JourneyProgressData => {
 
   const handleStepAction = (step: JourneyStep) => {
     if (step.step_number === 7) {
-      // If visit is already scheduled, show cancel option
+      // For Step 7, show scheduling request modal or cancel option
       if (visitDetails) {
         setShowCancelVisitModal(true);
       } else {
