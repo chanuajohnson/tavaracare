@@ -238,7 +238,7 @@ export const TavaraAssistantPanel: React.FC = () => {
     console.log('TAV: Rendering minimized panel');
     return (
       <div className={`fixed z-50 ${isMobile 
-        ? 'bottom-20 left-4' 
+        ? 'bottom-4 left-4' 
         : 'bottom-6 left-6'
       }`}>
         <motion.div
@@ -284,7 +284,7 @@ export const TavaraAssistantPanel: React.FC = () => {
   if (!state.isOpen && !state.isMinimized) {
     return (
       <div className={`fixed z-50 ${isMobile 
-        ? 'bottom-20 left-4' 
+        ? 'bottom-4 left-4' 
         : 'bottom-6 left-6'
       }`}>
         {/* Enhanced journey-aware greeting bubble */}
