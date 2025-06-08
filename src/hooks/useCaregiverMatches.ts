@@ -54,6 +54,8 @@ export const useCaregiverMatches = (showOnlyBestMatch: boolean = true) => {
   
   // Use ref to prevent multiple simultaneous requests only
   const loadingRef = useRef(false);
+  // Cache processed caregivers to prevent regeneration
+  const processedCaregiversRef = useRef<Caregiver[] | null>(null);
 
   const loadCaregivers = useCallback(async () => {
     // Only prevent multiple simultaneous calls, not legitimate reloads
@@ -68,12 +70,23 @@ export const useCaregiverMatches = (showOnlyBestMatch: boolean = true) => {
       setIsLoading(true);
       setError(null);
 
+      // If we already have processed caregivers for this session, use them
+      if (processedCaregiversRef.current) {
+        const finalCaregivers = showOnlyBestMatch 
+          ? processedCaregiversRef.current.slice(0, 1) 
+          : processedCaregiversRef.current;
+        setCaregivers(finalCaregivers);
+        setIsLoading(false);
+        loadingRef.current = false;
+        return;
+      }
+
       // Try to fetch real professional data first
       const { data: professionalUsers, error: professionalError } = await supabase
         .from('profiles')
         .select('*')
         .eq('role', 'professional')
-        .limit(showOnlyBestMatch ? 3 : 10); // Get more to ensure we have data after filtering
+        .limit(showOnlyBestMatch ? 3 : 10);
       
       if (professionalError) {
         console.warn("Error fetching professional users:", professionalError);
@@ -81,6 +94,7 @@ export const useCaregiverMatches = (showOnlyBestMatch: boolean = true) => {
         const fallbackCaregivers = showOnlyBestMatch 
           ? MOCK_CAREGIVERS.slice(0, 1) 
           : MOCK_CAREGIVERS;
+        processedCaregiversRef.current = MOCK_CAREGIVERS; // Cache full list
         setCaregivers(fallbackCaregivers);
         await trackEngagement('caregiver_matches_view', { 
           data_source: 'mock_data_fallback',
@@ -96,6 +110,7 @@ export const useCaregiverMatches = (showOnlyBestMatch: boolean = true) => {
         const fallbackCaregivers = showOnlyBestMatch 
           ? MOCK_CAREGIVERS.slice(0, 1) 
           : MOCK_CAREGIVERS;
+        processedCaregiversRef.current = MOCK_CAREGIVERS; // Cache full list
         setCaregivers(fallbackCaregivers);
         await trackEngagement('caregiver_matches_view', { 
           data_source: 'mock_data',
@@ -105,10 +120,22 @@ export const useCaregiverMatches = (showOnlyBestMatch: boolean = true) => {
         return;
       }
 
-      // Process real caregiver data
+      // Process real caregiver data with consistent scoring
       const realCaregivers: Caregiver[] = professionalUsers.map((professional, index) => {
-        // Generate match scores in descending order for better presentation
-        const matchScore = Math.floor(Math.random() * (99 - 75) + 75) - (index * 2);
+        // Use consistent hash-based scoring instead of random
+        const hashCode = (str: string) => {
+          let hash = 0;
+          for (let i = 0; i < str.length; i++) {
+            const char = str.charCodeAt(i);
+            hash = ((hash << 5) - hash) + char;
+            hash = hash & hash; // Convert to 32-bit integer
+          }
+          return Math.abs(hash);
+        };
+        
+        const hash = hashCode(professional.id + user.id);
+        const matchScore = 75 + (hash % 25); // Score between 75-99
+        const isPremium = (hash % 10) < 3; // 30% chance of premium
         
         // Parse care_types if it's a string, otherwise use as array or default
         let careTypes: string[] = ['General Care'];
@@ -131,13 +158,16 @@ export const useCaregiverMatches = (showOnlyBestMatch: boolean = true) => {
           location: professional.location || 'Trinidad and Tobago',
           care_types: careTypes,
           years_of_experience: professional.years_of_experience || '2+ years',
-          match_score: Math.max(matchScore, 70), // Ensure minimum 70% match
-          is_premium: Math.random() > 0.7 // 30% chance of premium
+          match_score: matchScore,
+          is_premium: isPremium
         };
       });
       
-      // Sort by match score descending
+      // Sort by match score descending to ensure best match first
       realCaregivers.sort((a, b) => b.match_score - a.match_score);
+      
+      // Cache the processed caregivers
+      processedCaregiversRef.current = realCaregivers;
       
       console.log("Loaded real professional users:", realCaregivers.length);
 
@@ -165,6 +195,7 @@ export const useCaregiverMatches = (showOnlyBestMatch: boolean = true) => {
       const fallbackCaregivers = showOnlyBestMatch 
         ? MOCK_CAREGIVERS.slice(0, 1) 
         : MOCK_CAREGIVERS;
+      processedCaregiversRef.current = MOCK_CAREGIVERS; // Cache full list
       setCaregivers(fallbackCaregivers);
       
       await trackEngagement('caregiver_matches_view', {
