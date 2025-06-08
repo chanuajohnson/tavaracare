@@ -3,6 +3,7 @@ import { useEffect } from 'react';
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useNavigate } from 'react-router-dom';
 import { ScheduleVisitModal } from "@/components/family/ScheduleVisitModal";
+import { CancelVisitModal } from "@/components/family/CancelVisitModal";
 import { useEnhancedJourneyProgress } from "@/hooks/useEnhancedJourneyProgress";
 import { FamilyDashboard } from "@/components/family/FamilyDashboard";
 
@@ -12,7 +13,11 @@ export default function FamilyDashboardPage() {
     loading,
     showScheduleModal,
     setShowScheduleModal,
-    onVisitScheduled
+    showCancelVisitModal,
+    setShowCancelVisitModal,
+    visitDetails,
+    onVisitScheduled,
+    onVisitCancelled
   } = useEnhancedJourneyProgress();
 
   const navigate = useNavigate();
@@ -53,6 +58,13 @@ export default function FamilyDashboardPage() {
         open={showScheduleModal}
         onOpenChange={setShowScheduleModal}
         onVisitScheduled={onVisitScheduled}
+      />
+
+      <CancelVisitModal
+        open={showCancelVisitModal}
+        onOpenChange={setShowCancelVisitModal}
+        visitDetails={visitDetails}
+        onCancel={onVisitCancelled}
       />
     </div>
   );

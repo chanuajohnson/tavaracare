@@ -158,7 +158,8 @@ export const ScheduleVisitDialog: React.FC<ScheduleVisitDialogProps> = ({
         slotId = await createAdminSlot(formData.bookingDate, formData.bookingTime);
       }
 
-      const { error } = await supabase
+      // Create the visit booking
+      const { error: bookingError } = await supabase
         .from('visit_bookings')
         .insert({
           user_id: formData.selectedUserId,
@@ -176,15 +177,45 @@ export const ScheduleVisitDialog: React.FC<ScheduleVisitDialogProps> = ({
           user_full_name: formData.userFullName,
         });
 
-      if (error) throw error;
+      if (bookingError) throw bookingError;
+
+      // Update the user's profile to reflect the scheduled visit
+      const visitDetails = {
+        visit_type: formData.visitType,
+        visit_date: format(formData.bookingDate, 'yyyy-MM-dd'),
+        visit_time: formData.bookingTime,
+        scheduled_by: 'admin'
+      };
+
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .update({
+          visit_scheduling_status: 'scheduled',
+          visit_scheduled_date: format(formData.bookingDate, 'yyyy-MM-dd'),
+          visit_notes: JSON.stringify(visitDetails)
+        })
+        .eq('id', formData.selectedUserId);
+
+      if (profileError) {
+        console.error('Error updating user profile:', profileError);
+        // Don't throw error here as booking was successful
+      }
 
       // Update slot booking count
-      const { error: updateError } = await supabase
+      const { data: slotData } = await supabase
         .from('admin_availability_slots')
-        .update({ current_bookings: 1 })
-        .eq('id', slotId);
+        .select('current_bookings')
+        .eq('id', slotId)
+        .single();
 
-      if (updateError) console.error('Error updating slot count:', updateError);
+      if (slotData) {
+        const { error: updateError } = await supabase
+          .from('admin_availability_slots')
+          .update({ current_bookings: slotData.current_bookings + 1 })
+          .eq('id', slotId);
+
+        if (updateError) console.error('Error updating slot count:', updateError);
+      }
 
       toast.success('Visit scheduled successfully');
       setOpen(false);

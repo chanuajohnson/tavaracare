@@ -64,7 +64,6 @@ const validateCategory = (category: string): 'foundation' | 'scheduling' | 'tria
   return 'foundation';
 };
 
-// Dummy data for anonymous users
 const getDummyJourneyData = (): { steps: JourneyStep[], paths: JourneyPath[] } => {
   const dummySteps: JourneyStep[] = [
     {
@@ -271,14 +270,14 @@ export const useEnhancedJourneyProgress = (): JourneyProgressData => {
     if (user) {
       fetchJourneyData();
     }
-  }, [user]);
+  }, [user, refreshTrigger]);
 
   const handleAnonymousStepAction = (step: JourneyStep) => {
     setShowLeadCaptureModal(true);
   };
 
   // Helper function to determine step accessibility
-  const determineStepAccessibility = (stepNumber: number, allSteps: JourneyStep[], profileData: any) => {
+  const determineStepAccessibility = (stepNumber: number, allSteps: JourneyStep[], profileData: any, visitBookingData: any) => {
     switch (stepNumber) {
       case 4: // Caregiver matches - need steps 1-3 completed
         const foundationSteps = allSteps.filter(s => [1, 2, 3].includes(s.step_number));
@@ -287,9 +286,11 @@ export const useEnhancedJourneyProgress = (): JourneyProgressData => {
         const step4 = allSteps.find(s => s.step_number === 4);
         return step4?.completed || false;
       case 9: // Schedule trial - need step 7 completed (visit scheduled)
-        const hasVisitForTrial = profileData?.visit_scheduling_status && 
-          ['scheduled', 'completed'].includes(profileData.visit_scheduling_status);
-        return hasVisitForTrial;
+        // Check both profile status and actual visit bookings
+        const hasVisitScheduled = visitBookingData || 
+          (profileData?.visit_scheduling_status && 
+           ['scheduled', 'completed'].includes(profileData.visit_scheduling_status));
+        return hasVisitScheduled;
       case 10: // Pay for trial - need step 9 completed
         const step9 = allSteps.find(s => s.step_number === 9);
         return step9?.completed || false;
@@ -304,20 +305,24 @@ export const useEnhancedJourneyProgress = (): JourneyProgressData => {
     }
   };
 
-  // Helper function to extract visit details from various sources
+  // Enhanced helper function to extract visit details from various sources
   const extractVisitDetails = (profile: any, visitBooking: any) => {
     let details = null;
 
-    // First try visit_bookings table
+    // First priority: visit_bookings table (most reliable source)
     if (visitBooking) {
       details = {
         date: visitBooking.booking_date,
         time: visitBooking.booking_time,
-        type: visitBooking.visit_type
+        type: visitBooking.visit_type,
+        status: visitBooking.status,
+        admin_status: visitBooking.admin_status,
+        id: visitBooking.id,
+        is_admin_scheduled: !visitBooking.availability_slot_id || visitBooking.admin_status === 'confirmed'
       };
     }
 
-    // Then try visit_notes in profile
+    // Second priority: visit_notes in profile
     if (!details && profile?.visit_notes) {
       try {
         const visitNotes = JSON.parse(profile.visit_notes);
@@ -325,7 +330,8 @@ export const useEnhancedJourneyProgress = (): JourneyProgressData => {
           details = {
             date: visitNotes.visit_date || profile.visit_scheduled_date,
             time: visitNotes.visit_time || '11:00 AM',
-            type: visitNotes.visit_type || 'virtual'
+            type: visitNotes.visit_type || 'virtual',
+            is_admin_scheduled: visitNotes.scheduled_by === 'admin'
           };
         }
       } catch (error) {
@@ -333,12 +339,13 @@ export const useEnhancedJourneyProgress = (): JourneyProgressData => {
       }
     }
 
-    // Fallback to profile fields
+    // Third priority: profile fields
     if (!details && profile?.visit_scheduled_date) {
       details = {
         date: profile.visit_scheduled_date,
-        time: '11:00 AM', // Default time
-        type: 'virtual' // Default type
+        time: '11:00 AM',
+        type: 'virtual',
+        is_admin_scheduled: false
       };
     }
 
@@ -347,351 +354,215 @@ export const useEnhancedJourneyProgress = (): JourneyProgressData => {
 
   const fetchJourneyData = async () => {
     if (!user) return;
-    
+
     try {
       setLoading(true);
-      console.log('Fetching journey data for user:', user.id);
-      
-      // Fetch journey steps from database (excluding step 8)
-      const { data: journeySteps, error: stepsError } = await supabase
+
+      // Fetch user profile data
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+
+      // Fetch visit bookings for this user
+      const { data: visitBookings } = await supabase
+        .from('visit_bookings')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(1);
+
+      const latestVisitBooking = visitBookings?.[0];
+
+      // Extract visit details with priority to visit_bookings table
+      const extractedVisitDetails = extractVisitDetails(profile, latestVisitBooking);
+      setVisitDetails(extractedVisitDetails);
+
+      // Determine visit status based on multiple sources
+      let currentVisitStatus = 'not_started';
+      if (latestVisitBooking) {
+        currentVisitStatus = latestVisitBooking.status === 'confirmed' ? 'scheduled' : latestVisitBooking.status;
+      } else if (profile?.visit_scheduling_status) {
+        currentVisitStatus = profile.visit_scheduling_status;
+      }
+      setVisitStatus(currentVisitStatus);
+
+      const { data: journeySteps } = await supabase
         .from('journey_steps')
         .select('*')
         .eq('user_role', 'family')
         .eq('is_active', true)
-        .neq('step_number', 8) // Exclude step 8
-        .order('order_index');
+        .order('step_number');
 
-      if (stepsError) throw stepsError;
-      console.log('Journey steps fetched:', journeySteps);
-
-      // Fetch journey paths
-      const { data: journeyPaths, error: pathsError } = await supabase
+      const { data: journeyPaths } = await supabase
         .from('journey_step_paths')
         .select('*')
         .eq('user_role', 'family')
         .eq('is_active', true);
 
-      if (pathsError) throw pathsError;
-
-      // Get user profile and completion data
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('full_name, phone_number, visit_scheduling_status, visit_scheduled_date, visit_notes')
-        .eq('id', user.id)
-        .maybeSingle();
-
-      console.log('User profile:', profile);
-      setVisitStatus(profile?.visit_scheduling_status || 'not_started');
-
-      // Parse visit notes for care model
-      let visitNotes = null;
-      try {
-        visitNotes = profile?.visit_notes ? JSON.parse(profile.visit_notes) : null;
-      } catch (error) {
-        console.error('Error parsing visit notes:', error);
-      }
-      setCareModel(visitNotes?.care_model || null);
-
-      // Get visit details from visit_bookings table or profile
-      let visitBooking = null;
-      if (profile?.visit_scheduling_status && 
-          ['scheduled', 'completed', 'cancelled'].includes(profile.visit_scheduling_status)) {
-        const { data: booking } = await supabase
-          .from('visit_bookings')
-          .select('booking_date, booking_time, visit_type')
-          .eq('user_id', user.id)
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .maybeSingle();
-        
-        visitBooking = booking;
-      }
-
-      // Extract visit details from multiple sources
-      const extractedVisitDetails = extractVisitDetails(profile, visitBooking);
-      setVisitDetails(extractedVisitDetails);
-
-      // Check care assessment
-      const { data: careAssessment } = await supabase
-        .from('care_needs_family')
-        .select('id')
-        .eq('profile_id', user.id)
-        .maybeSingle();
-      console.log('Care assessment:', careAssessment);
-
-      // Check care recipient
-      const { data: careRecipient } = await supabase
-        .from('care_recipient_profiles')
-        .select('id, full_name')
-        .eq('user_id', user.id)
-        .maybeSingle();
-      console.log('Care recipient:', careRecipient);
-
-      // Check care plans
-      const { data: carePlansData } = await supabase
+      const { data: careData } = await supabase
         .from('care_plans')
-        .select('id, title')
-        .eq('family_id', user.id);
-      console.log('Care plans:', carePlansData);
-      setCarePlans(carePlansData || []);
-
-      // Check medications - using care_plan_id from care plans
-      let medications = [];
-      if (carePlansData && carePlansData.length > 0) {
-        const carePlanIds = carePlansData.map(cp => cp.id);
-        const { data: medicationsData } = await supabase
-          .from('medications')
-          .select('id, care_plan_id')
-          .in('care_plan_id', carePlanIds);
-        medications = medicationsData || [];
-      }
-      console.log('Medications:', medications);
-
-      // Check meal plans - using care_plan_id from care plans
-      let mealPlans = [];
-      if (carePlansData && carePlansData.length > 0) {
-        const carePlanIds = carePlansData.map(cp => cp.id);
-        const { data: mealPlansData } = await supabase
-          .from('meal_plans')
-          .select('id, care_plan_id')
-          .in('care_plan_id', carePlanIds);
-        mealPlans = mealPlansData || [];
-      }
-      console.log('Meal plans:', mealPlans);
-
-      // Check trial payments
-      const { data: trialPayments } = await supabase
-        .from('payment_transactions')
         .select('*')
-        .eq('user_id', user.id)
-        .eq('transaction_type', 'trial_day')
-        .eq('status', 'completed');
+        .eq('family_id', user.id);
 
-      const hasTrialPayment = trialPayments && trialPayments.length > 0;
-      setTrialCompleted(hasTrialPayment);
+      setCarePlans(careData || []);
 
-      // Process steps with completion status first
-      const stepsWithCompletion = journeySteps?.map(step => {
-        let completed = false;
-        
-        console.log(`Checking completion for step ${step.step_number}: ${step.title}`);
-        
-        switch (step.step_number) {
-          case 1:
-            completed = !!(user && profile?.full_name);
-            console.log(`Step 1 completion: user=${!!user}, full_name=${!!profile?.full_name}, completed=${completed}`);
-            break;
-          case 2:
-            completed = !!careAssessment;
-            console.log(`Step 2 completion: careAssessment=${!!careAssessment}, completed=${completed}`);
-            break;
-          case 3:
-            completed = !!(careRecipient && careRecipient.full_name);
-            console.log(`Step 3 completion: careRecipient=${!!careRecipient}, full_name=${!!careRecipient?.full_name}, completed=${completed}`);
-            break;
-          case 4:
-            completed = !!careRecipient;
-            console.log(`Step 4 completion: careRecipient=${!!careRecipient}, completed=${completed}`);
-            break;
-          case 5:
-            completed = !!(medications && medications.length > 0);
-            console.log(`Step 5 completion: medications count=${medications?.length || 0}, completed=${completed}`);
-            break;
-          case 6:
-            completed = !!(mealPlans && mealPlans.length > 0);
-            console.log(`Step 6 completion: meal plans count=${mealPlans?.length || 0}, completed=${completed}`);
-            break;
-          case 7:
-            // Step 7 is completed when a visit has been scheduled (any status except cancelled)
-            completed = !!(profile?.visit_scheduling_status && 
-              ['scheduled', 'completed'].includes(profile.visit_scheduling_status));
-            console.log(`Step 7 completion: visit_status=${profile?.visit_scheduling_status}, completed=${completed}`);
-            break;
-          case 9:
-          case 10:
-          case 11:
-            completed = hasTrialPayment;
-            console.log(`Step ${step.step_number} completion: hasTrialPayment=${hasTrialPayment}, completed=${completed}`);
-            break;
-          case 12:
-            completed = !!visitNotes?.care_model;
-            console.log(`Step 12 completion: care_model=${!!visitNotes?.care_model}, completed=${completed}`);
-            break;
-        }
+      if (journeySteps) {
+        const processedSteps = journeySteps.map(step => {
+          const stepCategory = validateCategory(step.category);
+          let isCompleted = false;
+          let isAccessible = true;
 
-        // Update tooltip content for step 10 if needed
-        let tooltipContent = step.tooltip_content || '';
-        let detailedExplanation = step.detailed_explanation || '';
-        
-        if (step.step_number === 10) {
-          tooltipContent = 'Secure your trial day with payment. The trial day fee covers 8 hours of professional caregiving coordinated by Tavara.';
-          detailedExplanation = 'Secure your trial day with payment. The trial day fee covers 8 hours of professional caregiving coordinated by Tavara. You have options via our subscription service to add trial days or make your final decision between direct hire and Tavara Care Village subscription based on your experience and preferences. Choose Direct Hire ($40/hr) to manage everything yourself, or Tavara Care Village ($45/hr) for full support including payroll, scheduling, medication management, and 24/7 coordinator support.';
-        }
-
-        return {
-          id: step.id,
-          step_number: step.step_number,
-          title: step.title,
-          description: step.description,
-          category: validateCategory(step.category),
-          is_optional: step.is_optional || false,
-          tooltip_content: tooltipContent,
-          detailed_explanation: detailedExplanation,
-          time_estimate_minutes: step.time_estimate_minutes || 0,
-          link_path: step.link_path || '',
-          icon_name: step.icon_name || '',
-          completed,
-          accessible: true, // Will be updated in the next step
-          prerequisites: step.prerequisites ? (Array.isArray(step.prerequisites) ? step.prerequisites : []) : []
-        } as JourneyStep;
-      }) || [];
-
-      // Now update accessibility for all steps using the completed steps array and profile data
-      const processedSteps = stepsWithCompletion.map(step => ({
-        ...step,
-        accessible: determineStepAccessibility(step.step_number, stepsWithCompletion, profile)
-      }));
-
-      console.log('Processed steps with completion status and accessibility:', processedSteps);
-      setSteps(processedSteps);
-
-      const completedCount = processedSteps.filter(s => s.completed).length;
-      const totalCount = processedSteps.length;
-      const percentage = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
-      console.log(`Progress calculation: ${completedCount}/${totalCount} = ${percentage}%`);
-
-      // Process paths - properly handle step_ids type conversion
-      const processedPaths = journeyPaths?.map(path => {
-        let stepIds: number[] = [];
-        
-        // Handle different possible types for step_ids
-        if (Array.isArray(path.step_ids)) {
-          stepIds = path.step_ids.map(id => Number(id)).filter(id => !isNaN(id));
-        } else if (typeof path.step_ids === 'string') {
-          try {
-            const parsed = JSON.parse(path.step_ids);
-            if (Array.isArray(parsed)) {
-              stepIds = parsed.map(id => Number(id)).filter(id => !isNaN(id));
-            }
-          } catch (error) {
-            console.error('Error parsing step_ids:', error);
+          // Enhanced step completion logic
+          switch (step.step_number) {
+            case 1: // Profile creation
+              isCompleted = !!profile?.full_name;
+              break;
+            case 2: // Care assessment
+              isCompleted = !!profile?.care_assessment_completed;
+              break;
+            case 3: // Care recipient profile
+              isCompleted = !!profile?.care_recipient_completed;
+              break;
+            case 4: // View caregiver matches
+              isCompleted = !!profile?.caregiver_matches_viewed;
+              break;
+            case 5: // Medication management
+              isCompleted = !!profile?.medication_setup_completed;
+              break;
+            case 6: // Meal plans
+              isCompleted = !!profile?.meal_plans_completed;
+              break;
+            case 7: // Schedule initial visit
+              // Check both visit bookings and profile status
+              isCompleted = !!latestVisitBooking || 
+                          (profile?.visit_scheduling_status === 'scheduled' || 
+                           profile?.visit_scheduling_status === 'completed');
+              break;
+            case 8: // Prepare for visit
+              isCompleted = currentVisitStatus === 'completed' || !!profile?.visit_prep_completed;
+              break;
+            case 9: // Schedule trial
+              isCompleted = !!profile?.trial_scheduled;
+              break;
+            case 10: // Pay for trial
+              isCompleted = !!profile?.trial_payment_completed;
+              break;
+            case 11: // Begin trial
+              isCompleted = !!profile?.trial_started;
+              break;
+            case 12: // Choose subscription
+              isCompleted = !!profile?.subscription_selected;
+              break;
+            default:
+              isCompleted = false;
           }
+
+          // Determine accessibility
+          isAccessible = determineStepAccessibility(step.step_number, journeySteps, profile, latestVisitBooking);
+
+          return {
+            id: step.id,
+            step_number: step.step_number,
+            title: step.title,
+            description: step.description,
+            category: stepCategory,
+            is_optional: step.is_optional,
+            tooltip_content: step.tooltip_content || '',
+            detailed_explanation: step.detailed_explanation || '',
+            time_estimate_minutes: step.time_estimate_minutes || 0,
+            link_path: step.link_path || '',
+            icon_name: step.icon_name || 'Circle',
+            completed: isCompleted,
+            accessible: isAccessible,
+            prerequisites: (step.prerequisites as string[]) || [],
+            action: step.step_number === 7 && extractedVisitDetails ? 
+              () => setShowCancelVisitModal(true) : 
+              () => handleStepAction(step),
+            cancelAction: step.step_number === 7 && extractedVisitDetails ? 
+              () => setShowCancelVisitModal(true) : 
+              undefined
+          };
+        });
+
+        setSteps(processedSteps);
+        setPaths(journeyPaths || []);
+
+        // Determine current stage
+        const completedCount = processedSteps.filter(s => s.completed).length;
+        if (completedCount <= 3) {
+          setCurrentStage('foundation');
+        } else if (completedCount <= 7) {
+          setCurrentStage('scheduling');
+        } else if (completedCount <= 11) {
+          setCurrentStage('trial');
+        } else {
+          setCurrentStage('conversion');
         }
-
-        return {
-          ...path,
-          step_ids: stepIds
-        };
-      }) || [];
-      
-      setPaths(processedPaths);
-
-      // Determine current stage
-      const completedSteps = processedSteps.filter(s => s.completed);
-      setCurrentStage(determineJourneyStage(completedSteps));
-      
+      }
     } catch (error) {
-      console.error("Error fetching enhanced journey data:", error);
+      console.error('Error fetching journey data:', error);
     } finally {
       setLoading(false);
     }
   };
 
-  const determineJourneyStage = (completedSteps: JourneyStep[]) => {
-    const foundationSteps = completedSteps.filter(s => s.category === 'foundation');
-    const schedulingSteps = completedSteps.filter(s => s.category === 'scheduling');
-    const trialSteps = completedSteps.filter(s => s.category === 'trial');
-    
-    if (trialSteps.length > 0 || careModel) {
-      return 'conversion';
-    } else if (schedulingSteps.length > 0) {
-      return 'trial';
-    } else if (foundationSteps.length >= 4) {
-      return 'scheduling';
-    } else {
-      return 'foundation';
-    }
-  };
-
   const handleStepAction = (step: JourneyStep) => {
-    if (!step.accessible) return;
-    
-    // Track the action
-    trackStepAction(step.id, 'started');
-    
-    // Handle step 4 specifically - redirect to family matching page
-    if (step.step_number === 4) {
-      navigate('/family/matching');
-      return;
-    }
-    
-    if (step.step_number === 5 || step.step_number === 6) {
-      if (carePlans.length > 0) {
-        const route = step.step_number === 5 ? 'medications' : 'meals';
-        navigate(`/family/care-management/${carePlans[0].id}/${route}`);
-      } else {
-        navigate('/family/care-management/create');
-      }
-      return;
-    }
-    
-    // Step 7 - Direct to internal scheduling modal (bypass path selection)
     if (step.step_number === 7) {
-      setShowInternalScheduleModal(true);
-      return;
-    }
-    
-    if (step.link_path) {
+      // If visit is already scheduled, show cancel option
+      if (visitDetails) {
+        setShowCancelVisitModal(true);
+      } else {
+        setShowScheduleModal(true);
+      }
+    } else if (step.link_path) {
       navigate(step.link_path);
     }
   };
 
-  const handleVisitScheduled = () => {
-    // Immediately refresh the journey progress when a visit is scheduled
+  const onVisitScheduled = () => {
     refreshJourneyProgress();
   };
 
-  const handleVisitCancelled = () => {
-    // Refresh the journey progress when a visit is cancelled
-    refreshJourneyProgress();
+  const onVisitCancelled = async () => {
+    if (!user || !visitDetails?.id) return;
+
+    try {
+      // Cancel the visit booking
+      await supabase
+        .from('visit_bookings')
+        .update({
+          status: 'cancelled',
+          admin_status: 'cancelled'
+        })
+        .eq('id', visitDetails.id);
+
+      // Update user profile
+      await supabase
+        .from('profiles')
+        .update({
+          visit_scheduling_status: 'cancelled',
+          visit_notes: null
+        })
+        .eq('id', user.id);
+
+      setShowCancelVisitModal(false);
+      refreshJourneyProgress();
+    } catch (error) {
+      console.error('Error cancelling visit:', error);
+    }
   };
 
-  // Effect to fetch data and listen for changes
-  useEffect(() => {
-    if (isAnonymous) {
-      const { steps: dummySteps, paths: dummyPaths } = getDummyJourneyData();
-      setSteps(dummySteps.map(step => ({
-        ...step,
-        action: () => handleAnonymousStepAction(step)
-      })));
-      setPaths(dummyPaths);
-      setCurrentStage('foundation');
-      setLoading(false);
-      return;
-    }
-
-    if (user) {
-      fetchJourneyData();
-    }
-  }, [user, refreshTrigger]);
-
-  // Additional effect to refresh when visit status changes
-  useEffect(() => {
-    if (user && visitStatus) {
-      fetchJourneyData();
-    }
-  }, [user, visitStatus, careModel, trialCompleted]);
-
+  // Calculate completion percentage
   const completedSteps = steps.filter(step => step.completed).length;
   const completionPercentage = steps.length > 0 ? Math.round((completedSteps / steps.length) * 100) : 0;
+
+  // Find next step
   const nextStep = steps.find(step => !step.completed && step.accessible);
 
   return {
-    steps: steps.map(step => ({
-      ...step,
-      action: () => handleStepAction(step),
-      cancelAction: step.step_number === 7 && step.completed ? () => setShowCancelVisitModal(true) : undefined
-    })),
+    steps,
     paths,
     completionPercentage,
     nextStep,
@@ -699,19 +570,9 @@ export const useEnhancedJourneyProgress = (): JourneyProgressData => {
     loading,
     carePlans,
     showScheduleModal,
-    setShowScheduleModal: (show: boolean) => {
-      setShowScheduleModal(show);
-      if (!show) {
-        refreshJourneyProgress();
-      }
-    },
+    setShowScheduleModal,
     showInternalScheduleModal,
-    setShowInternalScheduleModal: (show: boolean) => {
-      setShowInternalScheduleModal(show);
-      if (!show) {
-        refreshJourneyProgress();
-      }
-    },
+    setShowInternalScheduleModal,
     showCancelVisitModal,
     setShowCancelVisitModal,
     visitDetails,
@@ -721,7 +582,7 @@ export const useEnhancedJourneyProgress = (): JourneyProgressData => {
     isAnonymous,
     showLeadCaptureModal,
     setShowLeadCaptureModal,
-    onVisitScheduled: handleVisitScheduled,
-    onVisitCancelled: handleVisitCancelled
+    onVisitScheduled,
+    onVisitCancelled
   };
 };
