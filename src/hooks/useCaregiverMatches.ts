@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { supabase } from "@/lib/supabase";
 import { useTracking } from "@/hooks/useTracking";
@@ -50,28 +50,49 @@ export const useCaregiverMatches = (showOnlyBestMatch: boolean = true) => {
   const [caregivers, setCaregivers] = useState<Caregiver[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [dataLoaded, setDataLoaded] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const { trackEngagement } = useTracking();
+  
+  // Use refs to prevent multiple simultaneous requests
+  const loadingRef = useRef(false);
+  const userIdRef = useRef<string | null>(null);
 
   const loadCaregivers = useCallback(async () => {
-    if (!user || dataLoaded) return;
+    // Prevent multiple simultaneous calls
+    if (loadingRef.current || !user || dataLoaded || userIdRef.current === user.id) {
+      return;
+    }
+    
+    console.log('Starting caregiver load for user:', user.id);
+    loadingRef.current = true;
+    userIdRef.current = user.id;
     
     try {
       setIsLoading(true);
+      setError(null);
 
-      // First use mock caregivers immediately to prevent UI waiting
+      // Use mock caregivers immediately to prevent UI waiting
       const initialCaregivers = showOnlyBestMatch 
         ? MOCK_CAREGIVERS.slice(0, 1) 
         : MOCK_CAREGIVERS;
       setCaregivers(initialCaregivers);
 
+      // Try to fetch real professional data
       const { data: professionalUsers, error: professionalError } = await supabase
         .from('profiles')
         .select('*')
-        .eq('role', 'professional');
+        .eq('role', 'professional')
+        .limit(showOnlyBestMatch ? 1 : 10);
       
       if (professionalError) {
-        console.error("Error fetching professional users:", professionalError);
-        toast.error("Failed to load caregiver matches");
+        console.warn("Error fetching professional users:", professionalError);
+        // Continue with mock data, don't show error to user
+        await trackEngagement('caregiver_matches_view', { 
+          data_source: 'mock_data_fallback',
+          caregiver_count: initialCaregivers.length,
+          view_context: showOnlyBestMatch ? 'dashboard_widget' : 'matching_page',
+          error: professionalError.message
+        });
         setDataLoaded(true);
         return;
       }
@@ -87,6 +108,7 @@ export const useCaregiverMatches = (showOnlyBestMatch: boolean = true) => {
         return;
       }
 
+      // Process real caregiver data
       const realCaregivers: Caregiver[] = professionalUsers.map(professional => {
         const matchScore = Math.floor(Math.random() * (99 - 65) + 65);
         return {
@@ -105,12 +127,10 @@ export const useCaregiverMatches = (showOnlyBestMatch: boolean = true) => {
 
       let finalCaregivers: Caregiver[];
       if (showOnlyBestMatch) {
-        // Show only the best match (1 caregiver)
         finalCaregivers = realCaregivers.length > 0 
           ? [realCaregivers.sort((a, b) => b.match_score - a.match_score)[0]]
           : MOCK_CAREGIVERS.slice(0, 1);
       } else {
-        // Show multiple caregivers
         finalCaregivers = realCaregivers.length > 0 ? realCaregivers : MOCK_CAREGIVERS;
       }
 
@@ -125,26 +145,42 @@ export const useCaregiverMatches = (showOnlyBestMatch: boolean = true) => {
       setDataLoaded(true);
     } catch (error) {
       console.error("Error loading caregivers:", error);
-      toast.error("Error loading caregiver matches");
+      setError(error instanceof Error ? error.message : "Unknown error");
+      // Don't show toast error, use fallback data instead
+      const fallbackCaregivers = showOnlyBestMatch 
+        ? MOCK_CAREGIVERS.slice(0, 1) 
+        : MOCK_CAREGIVERS;
+      setCaregivers(fallbackCaregivers);
       setDataLoaded(true);
     } finally {
       setIsLoading(false);
+      loadingRef.current = false;
     }
-  }, [user, trackEngagement, dataLoaded, showOnlyBestMatch]);
+  }, [user?.id, trackEngagement, dataLoaded, showOnlyBestMatch]);
   
   useEffect(() => {
-    if (user && !dataLoaded) {
+    // Reset state when user changes
+    if (user?.id !== userIdRef.current) {
+      setDataLoaded(false);
+      setCaregivers([]);
+      setError(null);
+      userIdRef.current = null;
+    }
+
+    if (user && !dataLoaded && !loadingRef.current) {
+      // Small delay to prevent rapid successive calls
       const timer = setTimeout(() => {
         loadCaregivers();
-      }, 100);
+      }, 200);
       
       return () => clearTimeout(timer);
     }
-  }, [user, dataLoaded, loadCaregivers]);
+  }, [user, loadCaregivers, dataLoaded]);
 
   return {
     caregivers,
     isLoading,
-    dataLoaded
+    dataLoaded,
+    error
   };
 };

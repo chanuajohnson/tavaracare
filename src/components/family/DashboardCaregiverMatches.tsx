@@ -3,7 +3,7 @@ import { useState } from "react";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Users } from "lucide-react";
+import { ArrowRight, Users, Sparkles } from "lucide-react";
 import { SubscriptionFeatureLink } from "@/components/subscription/SubscriptionFeatureLink";
 import { useCaregiverMatches } from "@/hooks/useCaregiverMatches";
 import { CaregiverMatchCard } from "./CaregiverMatchCard";
@@ -46,8 +46,22 @@ export const DashboardCaregiverMatches = () => {
         
         <CardContent>
           {isLoading ? (
-            <div className="flex justify-center items-center py-6">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            <div className="flex flex-col justify-center items-center py-8 space-y-4">
+              {/* Magical loading with sparkles */}
+              <div className="relative">
+                <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-200 border-t-blue-600"></div>
+                <Sparkles className="absolute -top-1 -right-1 h-5 w-5 text-blue-500 animate-pulse" />
+                <Sparkles className="absolute -bottom-1 -left-1 h-3 w-3 text-purple-500 animate-pulse delay-150" />
+                <Sparkles className="absolute top-1/2 -left-3 h-2 w-2 text-pink-500 animate-pulse delay-300" />
+              </div>
+              <div className="text-center space-y-1">
+                <p className="text-lg font-semibold text-blue-600">
+                  Finding your perfect match! ✨
+                </p>
+                <p className="text-sm text-gray-600">
+                  Analyzing caregivers in your area...
+                </p>
+              </div>
             </div>
           ) : bestMatch ? (
             <div className="space-y-4">
