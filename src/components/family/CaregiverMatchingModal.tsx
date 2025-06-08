@@ -159,70 +159,129 @@ export const CaregiverMatchingModal = ({
                     </CardContent>
                   </Card>
 
-                  {/* Caregiver Match - Only show when we have data and magical loading is done */}
+                  {/* Magical Caregiver Match - Enhanced with sparkles and glow */}
                   {bestMatch ? (
-                    <Card className="overflow-hidden bg-white">
-                      <CardHeader className="bg-gradient-to-r from-green-50 to-emerald-50">
-                        <div className="flex items-center justify-between">
-                          <div className="space-y-1">
-                            <CardTitle className="text-xl">Your Perfect Match</CardTitle>
-                            <CardDescription className="text-base">Recommended based on your care needs</CardDescription>
-                          </div>
-                        </div>
-                      </CardHeader>
-                      
-                      <CardContent className="p-6">
-                        <CaregiverMatchCard
-                          caregiver={bestMatch}
-                          returnPath="/family/matching"
-                          referringPagePath={referringPagePath}
-                          referringPageLabel={referringPageLabel}
-                          showUnlockButton={false}
-                        />
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ duration: 0.6, delay: 0.2 }}
+                      className="relative"
+                    >
+                      {/* Magical sparkles around the card */}
+                      <div className="absolute inset-0 pointer-events-none">
+                        <Sparkles className="absolute -top-4 -right-4 h-6 w-6 text-blue-500 animate-pulse" />
+                        <Sparkles className="absolute -top-2 left-1/4 h-4 w-4 text-purple-500 animate-pulse delay-300" />
+                        <Sparkles className="absolute -bottom-4 -left-4 h-5 w-5 text-pink-500 animate-pulse delay-150" />
+                        <Sparkles className="absolute top-1/2 -right-6 h-3 w-3 text-green-500 animate-pulse delay-450" />
+                        <Sparkles className="absolute -bottom-2 right-1/3 h-4 w-4 text-yellow-500 animate-pulse delay-600" />
+                        <Sparkles className="absolute top-1/4 -left-3 h-3 w-3 text-indigo-500 animate-pulse delay-200" />
+                      </div>
+
+                      <Card className="overflow-hidden bg-white shadow-lg border-2 border-transparent bg-gradient-to-r from-white via-white to-white relative">
+                        {/* Subtle glow effect */}
+                        <div className="absolute inset-0 bg-gradient-to-r from-blue-100/20 via-purple-100/20 to-pink-100/20 rounded-lg opacity-50"></div>
                         
-                        <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
-                          <Button 
-                            variant="default" 
-                            className="w-full bg-green-600 hover:bg-green-700"
-                            onClick={() => setShowProfileModal(true)}
+                        <CardHeader className="bg-gradient-to-r from-green-50 to-emerald-50 relative">
+                          <div className="flex items-center justify-between">
+                            <motion.div 
+                              className="space-y-1"
+                              initial={{ x: -20, opacity: 0 }}
+                              animate={{ x: 0, opacity: 1 }}
+                              transition={{ duration: 0.5, delay: 0.4 }}
+                            >
+                              <div className="flex items-center space-x-2">
+                                <CardTitle className="text-xl">Your Perfect Match</CardTitle>
+                                <Sparkles className="h-5 w-5 text-green-500 animate-pulse" />
+                              </div>
+                              <CardDescription className="text-base">Recommended based on your care needs</CardDescription>
+                            </motion.div>
+                            
+                            {/* Animated match percentage */}
+                            <motion.div
+                              initial={{ scale: 0, rotate: -180 }}
+                              animate={{ scale: 1, rotate: 0 }}
+                              transition={{ duration: 0.6, delay: 0.6 }}
+                              className="bg-green-500 text-white px-4 py-2 rounded-full font-bold text-lg shadow-lg relative overflow-hidden"
+                            >
+                              {/* Shimmer effect */}
+                              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-pulse"></div>
+                              <span className="relative z-10">{bestMatch.match_score}% Match!</span>
+                            </motion.div>
+                          </div>
+                        </CardHeader>
+                        
+                        <CardContent className="p-6 relative">
+                          <motion.div
+                            initial={{ y: 20, opacity: 0 }}
+                            animate={{ y: 0, opacity: 1 }}
+                            transition={{ duration: 0.5, delay: 0.5 }}
                           >
-                            View Full Profile
-                          </Button>
+                            <CaregiverMatchCard
+                              caregiver={bestMatch}
+                              returnPath="/family/matching"
+                              referringPagePath={referringPagePath}
+                              referringPageLabel={referringPageLabel}
+                              showUnlockButton={false}
+                            />
+                          </motion.div>
                           
-                          <SubscriptionFeatureLink
-                            featureType="Premium Match Features"
-                            returnPath="/family/matching"
-                            referringPagePath={referringPagePath}
-                            referringPageLabel={referringPageLabel}
-                            variant="outline"
-                            className="w-full"
+                          <motion.div 
+                            className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-4"
+                            initial={{ y: 20, opacity: 0 }}
+                            animate={{ y: 0, opacity: 1 }}
+                            transition={{ duration: 0.5, delay: 0.7 }}
                           >
-                            Browse All Matches
-                          </SubscriptionFeatureLink>
-                        </div>
-                      </CardContent>
-                    </Card>
+                            <Button 
+                              variant="default" 
+                              className="w-full bg-green-600 hover:bg-green-700 transform hover:scale-105 transition-all duration-200"
+                              onClick={() => setShowProfileModal(true)}
+                            >
+                              View Full Profile
+                            </Button>
+                            
+                            <SubscriptionFeatureLink
+                              featureType="Premium Match Features"
+                              returnPath="/family/matching"
+                              referringPagePath={referringPagePath}
+                              referringPageLabel={referringPageLabel}
+                              variant="outline"
+                              className="w-full transform hover:scale-105 transition-all duration-200"
+                            >
+                              Browse All Matches
+                            </SubscriptionFeatureLink>
+                          </motion.div>
+                        </CardContent>
+                      </Card>
+                    </motion.div>
                   ) : (
                     <div className="text-center py-6">
                       <p className="text-gray-500 mb-4">No caregiver matches found</p>
                     </div>
                   )}
 
-                  {/* Why Only One Match Notice */}
-                  <Card className="bg-amber-50 border-amber-200">
-                    <CardContent className="p-4">
-                      <div className="flex items-start space-x-3">
-                        <Sparkles className="h-5 w-5 text-amber-600 mt-0.5" />
-                        <div>
-                          <h4 className="font-medium text-amber-900 mb-1">Why am I seeing only one match?</h4>
-                          <p className="text-sm text-amber-800">
-                            This is your perfect match based on compatibility. Premium members get access to our full network 
-                            of verified caregivers, advanced filtering options, and unlimited matches based on your specific needs.
-                          </p>
+                  {/* Why Only One Match Notice - Enhanced */}
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5, delay: 0.8 }}
+                  >
+                    <Card className="bg-amber-50 border-amber-200 relative overflow-hidden">
+                      {/* Subtle glow */}
+                      <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-amber-300 via-yellow-300 to-amber-300 opacity-60"></div>
+                      <CardContent className="p-4">
+                        <div className="flex items-start space-x-3">
+                          <Sparkles className="h-5 w-5 text-amber-600 mt-0.5 animate-pulse" />
+                          <div>
+                            <h4 className="font-medium text-amber-900 mb-1">Why am I seeing only one match?</h4>
+                            <p className="text-sm text-amber-800">
+                              This is your perfect match based on compatibility. Premium members get access to our full network 
+                              of verified caregivers, advanced filtering options, and unlimited matches based on your specific needs.
+                            </p>
+                          </div>
                         </div>
-                      </div>
-                    </CardContent>
-                  </Card>
+                      </CardContent>
+                    </Card>
+                  </motion.div>
                 </motion.div>
               )}
             </AnimatePresence>
