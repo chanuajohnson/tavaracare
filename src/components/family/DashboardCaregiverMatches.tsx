@@ -16,24 +16,22 @@ export const DashboardCaregiverMatches = () => {
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [showMatchingModal, setShowMatchingModal] = useState(false);
   
-  // Local loading state with minimum timer to prevent flashing
-  const [isLocalLoading, setIsLocalLoading] = useState(true);
+  // Single loading state that ensures consistent behavior
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     if (user) {
-      setIsLocalLoading(true);
+      setIsLoading(true);
       
-      // Minimum loading time of 2.5 seconds to prevent flashing
-      const minLoadingTimer = setTimeout(() => {
-        setIsLocalLoading(false);
+      // Set minimum loading time of 2.5 seconds to prevent flashing
+      // This ensures we don't show content until the timer completes
+      const loadingTimer = setTimeout(() => {
+        setIsLoading(false);
       }, 2500);
 
-      return () => clearTimeout(minLoadingTimer);
+      return () => clearTimeout(loadingTimer);
     }
   }, [user]);
-
-  // Show loading state if either hook is loading OR local timer hasn't finished
-  const isLoading = hookLoading || isLocalLoading;
 
   if (!user) {
     return null;
