@@ -1,6 +1,5 @@
 
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,18 +8,19 @@ import { SubscriptionFeatureLink } from "@/components/subscription/SubscriptionF
 import { useCaregiverMatches } from "@/hooks/useCaregiverMatches";
 import { CaregiverMatchCard } from "./CaregiverMatchCard";
 import { CaregiverProfileModal } from "./CaregiverProfileModal";
+import { CaregiverMatchingModal } from "./CaregiverMatchingModal";
 
 export const DashboardCaregiverMatches = () => {
   const { user } = useAuth();
-  const navigate = useNavigate();
-  const { caregivers, isLoading } = useCaregiverMatches(true); // Show only best match
+  const { caregivers, isLoading } = useCaregiverMatches(true);
   const [showProfileModal, setShowProfileModal] = useState(false);
+  const [showMatchingModal, setShowMatchingModal] = useState(false);
 
   if (!user) {
     return null;
   }
 
-  const bestMatch = caregivers[0]; // Get the single best match
+  const bestMatch = caregivers[0];
 
   return (
     <>
@@ -72,9 +72,9 @@ export const DashboardCaregiverMatches = () => {
                 <Button 
                   variant="outline" 
                   className="w-full"
-                  onClick={() => navigate("/family/matching")}
+                  onClick={() => setShowMatchingModal(true)}
                 >
-                  View All Matches
+                  View Full Match
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </div>
@@ -86,8 +86,8 @@ export const DashboardCaregiverMatches = () => {
               <p className="text-gray-500 mt-2 mb-4">
                 Complete your care assessment to get personalized caregiver matches.
               </p>
-              <Button variant="outline" onClick={() => navigate("/family/care-needs-assessment")}>
-                Complete Assessment
+              <Button variant="outline" onClick={() => setShowMatchingModal(true)}>
+                Find Matches
               </Button>
             </div>
           )}
@@ -102,6 +102,14 @@ export const DashboardCaregiverMatches = () => {
           caregiver={bestMatch}
         />
       )}
+
+      {/* Matching Modal */}
+      <CaregiverMatchingModal
+        open={showMatchingModal}
+        onOpenChange={setShowMatchingModal}
+        referringPagePath="/dashboard/family"
+        referringPageLabel="Family Dashboard"
+      />
     </>
   );
 };
