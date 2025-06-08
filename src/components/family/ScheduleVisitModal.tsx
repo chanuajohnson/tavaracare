@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -40,7 +39,7 @@ export const ScheduleVisitModal = ({
           ready_for_admin_scheduling: true,
           preferred_visit_type: visitType,
           admin_scheduling_requested_at: new Date().toISOString(),
-          visit_scheduling_status: 'requested'
+          visit_scheduling_status: 'ready_to_schedule'
         })
         .eq('id', user.id);
 
