@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Trash2, Search, Filter, UserPlus, Shield } from "lucide-react";
+import { Trash2, Search, Filter, Shield } from "lucide-react";
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from "sonner";
 
@@ -34,11 +34,12 @@ export const AdminUserManagement = () => {
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [roleFilter, setRoleFilter] = useState<string>('');
+  const [roleFilter, setRoleFilter] = useState<string>(''); // Changed to empty string for default "all"
 
   const fetchUsers = async () => {
     try {
       setLoading(true);
+      console.log('Fetching users and profiles...');
       
       // Get auth session
       const { data: { session } } = await supabase.auth.getSession();
@@ -47,7 +48,20 @@ export const AdminUserManagement = () => {
         return;
       }
 
-      // Call our edge function to get users
+      // First, fetch profiles to ensure we have user data to display
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('profiles')
+        .select('*');
+
+      if (profilesError) {
+        console.error('Error fetching profiles:', profilesError);
+        throw profilesError;
+      }
+
+      console.log('Profiles fetched:', profilesData?.length || 0);
+      setProfiles(profilesData || []);
+
+      // Call our edge function to get auth users
       const response = await fetch(`https://cpdfmyemjrefnhddyrck.supabase.co/functions/v1/admin-users?action=list-users`, {
         method: 'GET',
         headers: {
@@ -58,22 +72,15 @@ export const AdminUserManagement = () => {
 
       if (!response.ok) {
         const errorData = await response.json();
+        console.error('Edge function error:', errorData);
         throw new Error(errorData.error || 'Failed to fetch users');
       }
 
-      const { users: authUsers } = await response.json();
+      const responseData = await response.json();
+      console.log('Edge function response:', responseData);
       
-      // Fetch profiles separately
-      const { data: profilesData, error: profilesError } = await supabase
-        .from('profiles')
-        .select('*');
-
-      if (profilesError) {
-        console.error('Error fetching profiles:', profilesError);
-        throw profilesError;
-      }
-
-      setProfiles(profilesData || []);
+      const authUsers = responseData.users || [];
+      console.log('Auth users fetched:', authUsers.length);
 
       // Merge auth users with profiles
       const usersWithProfiles = authUsers.map((user: AuthUser) => {
@@ -84,10 +91,27 @@ export const AdminUserManagement = () => {
         };
       });
 
+      console.log('Merged users with profiles:', usersWithProfiles.length);
       setUsers(usersWithProfiles);
+
+      // Show success toast
+      toast.success(`Loaded ${usersWithProfiles.length} users successfully`);
+
     } catch (error: any) {
       console.error('Error fetching users:', error);
       toast.error(`Failed to load users: ${error.message}`);
+      
+      // Fallback: If edge function fails but we have profiles, create minimal user objects
+      if (profiles.length > 0) {
+        const fallbackUsers = profiles.map(profile => ({
+          id: profile.id,
+          email: profile.email || 'Unknown',
+          created_at: new Date().toISOString(),
+          profile
+        }));
+        setUsers(fallbackUsers);
+        toast.info(`Using fallback data: ${fallbackUsers.length} users from profiles`);
+      }
     } finally {
       setLoading(false);
     }
@@ -130,12 +154,14 @@ export const AdminUserManagement = () => {
     fetchUsers();
   }, []);
 
+  // Fixed filtering logic
   const filteredUsers = users.filter(user => {
     const matchesSearch = !searchTerm || 
       user.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.profile?.full_name?.toLowerCase().includes(searchTerm.toLowerCase());
     
-    const matchesRole = !roleFilter || user.profile?.role === roleFilter;
+    // Fixed: properly handle empty roleFilter and "all" value
+    const matchesRole = !roleFilter || roleFilter === 'all' || user.profile?.role === roleFilter;
     
     return matchesSearch && matchesRole;
   });
@@ -184,10 +210,10 @@ export const AdminUserManagement = () => {
           </div>
           <Select value={roleFilter} onValueChange={setRoleFilter}>
             <SelectTrigger className="w-48">
-              <SelectValue placeholder="Filter by role" />
+              <SelectValue placeholder="All Roles" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Roles</SelectItem>
+              <SelectItem value="">All Roles</SelectItem>
               <SelectItem value="admin">Admin</SelectItem>
               <SelectItem value="professional">Professional</SelectItem>
               <SelectItem value="family">Family</SelectItem>
@@ -286,9 +312,9 @@ export const AdminUserManagement = () => {
           </Table>
         </div>
 
-        {filteredUsers.length === 0 && (
+        {filteredUsers.length === 0 && !loading && (
           <div className="text-center py-8 text-gray-500">
-            No users found matching your criteria.
+            {users.length === 0 ? 'No users found.' : 'No users match your search criteria.'}
           </div>
         )}
       </CardContent>
