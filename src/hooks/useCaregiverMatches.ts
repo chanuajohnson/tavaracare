@@ -49,23 +49,20 @@ export const useCaregiverMatches = (showOnlyBestMatch: boolean = true) => {
   const { user } = useAuth();
   const [caregivers, setCaregivers] = useState<Caregiver[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [dataLoaded, setDataLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { trackEngagement } = useTracking();
   
-  // Use refs to prevent multiple simultaneous requests
+  // Use ref to prevent multiple simultaneous requests only
   const loadingRef = useRef(false);
-  const userIdRef = useRef<string | null>(null);
 
   const loadCaregivers = useCallback(async () => {
-    // Prevent multiple simultaneous calls
-    if (loadingRef.current || !user || dataLoaded || userIdRef.current === user.id) {
+    // Only prevent multiple simultaneous calls, not legitimate reloads
+    if (loadingRef.current || !user) {
       return;
     }
     
     console.log('Starting caregiver load for user:', user.id);
     loadingRef.current = true;
-    userIdRef.current = user.id;
     
     try {
       setIsLoading(true);
@@ -91,7 +88,6 @@ export const useCaregiverMatches = (showOnlyBestMatch: boolean = true) => {
           view_context: showOnlyBestMatch ? 'dashboard_widget' : 'matching_page',
           error: professionalError.message
         });
-        setDataLoaded(true);
         return;
       }
 
@@ -106,7 +102,6 @@ export const useCaregiverMatches = (showOnlyBestMatch: boolean = true) => {
           caregiver_count: fallbackCaregivers.length,
           view_context: showOnlyBestMatch ? 'dashboard_widget' : 'matching_page',
         });
-        setDataLoaded(true);
         return;
       }
 
@@ -162,7 +157,6 @@ export const useCaregiverMatches = (showOnlyBestMatch: boolean = true) => {
       });
       
       setCaregivers(finalCaregivers);
-      setDataLoaded(true);
     } catch (error) {
       console.error("Error loading caregivers:", error);
       setError(error instanceof Error ? error.message : "Unknown error");
@@ -172,7 +166,6 @@ export const useCaregiverMatches = (showOnlyBestMatch: boolean = true) => {
         ? MOCK_CAREGIVERS.slice(0, 1) 
         : MOCK_CAREGIVERS;
       setCaregivers(fallbackCaregivers);
-      setDataLoaded(true);
       
       await trackEngagement('caregiver_matches_view', {
         data_source: 'mock_data_error_fallback',
@@ -184,31 +177,24 @@ export const useCaregiverMatches = (showOnlyBestMatch: boolean = true) => {
       setIsLoading(false);
       loadingRef.current = false;
     }
-  }, [user?.id, trackEngagement, dataLoaded, showOnlyBestMatch]);
+  }, [user?.id, trackEngagement, showOnlyBestMatch]);
   
   useEffect(() => {
-    // Reset state when user changes
-    if (user?.id !== userIdRef.current) {
-      setDataLoaded(false);
-      setCaregivers([]);
-      setError(null);
-      userIdRef.current = null;
-    }
-
-    if (user && !dataLoaded && !loadingRef.current) {
+    if (user) {
+      console.log('useCaregiverMatches effect triggered for user:', user.id);
       // Small delay to prevent rapid successive calls
       const timer = setTimeout(() => {
         loadCaregivers();
-      }, 200);
+      }, 100);
       
       return () => clearTimeout(timer);
     }
-  }, [user, loadCaregivers, dataLoaded]);
+  }, [user, loadCaregivers]);
 
   return {
     caregivers,
     isLoading,
-    dataLoaded,
+    dataLoaded: caregivers.length > 0,
     error
   };
 };
