@@ -159,12 +159,8 @@ export const CaregiverMatchingModal = ({
                     </CardContent>
                   </Card>
 
-                  {/* Caregiver Match */}
-                  {caregiverLoading ? (
-                    <div className="flex justify-center items-center py-6">
-                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-                    </div>
-                  ) : bestMatch ? (
+                  {/* Caregiver Match - Only show when we have data and magical loading is done */}
+                  {bestMatch ? (
                     <Card className="overflow-hidden bg-white">
                       <CardHeader className="bg-gradient-to-r from-green-50 to-emerald-50">
                         <div className="flex items-center justify-between">
