@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { HorizontalTabs, HorizontalTabsContent, HorizontalTabsList, HorizontalTabsTrigger } from "@/components/ui/horizontal-scroll-tabs";
@@ -270,7 +271,10 @@ export const AdminVisitScheduleManager = () => {
               Manage family visit bookings, configure availability, and coordinate with nurses.
             </p>
           </div>
-          <ScheduleVisitDialog onVisitScheduled={handleBookingUpdate} />
+          <ScheduleVisitDialog 
+            onVisitScheduled={handleBookingUpdate} 
+            onClose={() => {}} 
+          />
         </div>
       </div>
 
