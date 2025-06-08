@@ -1,40 +1,25 @@
 
-import { useLocation } from "react-router-dom";
-import { useEffect } from "react";
-import { Navigation } from "@/components/layout/Navigation";
-import { AppProviders } from "@/components/providers/AppProviders";
-import { SupabaseInitializer } from "@/components/supabase/SupabaseInitializer";
-import { AppRoutes } from "@/components/routing/AppRoutes";
-import { RedirectHandler } from "@/components/routing/RedirectHandler";
-import { GlobalFAB } from "@/components/common/GlobalFAB";
-import { TavaraAssistantPanel } from "@/components/tav/TavaraAssistantPanel";
+import React from 'react';
+import { SessionContextProvider } from '@supabase/auth-helpers-react'
+import { supabase } from '@/integrations/supabase/client';
+import { AppProviders } from '@/components/providers/AppProviders';
+import { AppRoutes } from '@/components/routing/AppRoutes';
+import { Layout } from '@/components/layout/Layout';
+import { Toaster } from "sonner";
+import { TavaraAssistantPanel } from '@/components/tav/TavaraAssistantPanel';
 
-function AppContent() {
-  const location = useLocation();
-  const isIndexPage = location.pathname === "/";
-  
-  useEffect(() => {
-    console.log('[App] Route changed to:', location.pathname);
-  }, [location.pathname]);
-  
+function App() {
   return (
-    <div className="min-h-screen flex flex-col">
-      <Navigation />
-      <main className="flex-1">
-        <AppRoutes />
-      </main>
-      {!isIndexPage && <GlobalFAB />}
-      <TavaraAssistantPanel />
-    </div>
+    <SessionContextProvider supabaseClient={supabase}>
+      <AppProviders>
+        <Layout>
+          <AppRoutes />
+        </Layout>
+        <Toaster />
+        <TavaraAssistantPanel />
+      </AppProviders>
+    </SessionContextProvider>
   );
 }
 
-export default function AppWithProviders() {
-  return (
-    <AppProviders>
-      <SupabaseInitializer />
-      <RedirectHandler />
-      <AppContent />
-    </AppProviders>
-  );
-}
+export default App;

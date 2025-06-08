@@ -1,0 +1,125 @@
+
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { MapPin, Star } from "lucide-react";
+import { SubscriptionFeatureLink } from "@/components/subscription/SubscriptionFeatureLink";
+
+interface Caregiver {
+  id: string;
+  full_name: string;
+  avatar_url: string | null;
+  location: string | null;
+  care_types: string[] | null;
+  years_of_experience: string | null;
+  match_score: number;
+  is_premium: boolean;
+}
+
+interface CaregiverMatchCardProps {
+  caregiver: Caregiver;
+  returnPath?: string;
+  referringPagePath?: string;
+  referringPageLabel?: string;
+  showUnlockButton?: boolean;
+  onUnlockProfile?: () => void;
+}
+
+export const CaregiverMatchCard = ({ 
+  caregiver, 
+  returnPath = "/family/matching",
+  referringPagePath = "/dashboard/family",
+  referringPageLabel = "Family Dashboard",
+  showUnlockButton = true,
+  onUnlockProfile
+}: CaregiverMatchCardProps) => {
+  return (
+    <div className={`p-4 rounded-lg border ${caregiver.is_premium ? 'border-amber-300' : 'border-gray-200'} relative`}>
+      {caregiver.is_premium && (
+        <div className="absolute top-0 right-0">
+          <Badge className="bg-amber-500 text-white uppercase font-bold rounded-tl-none rounded-tr-sm rounded-br-none rounded-bl-sm px-2">
+            Premium
+          </Badge>
+        </div>
+      )}
+      
+      <div className="flex flex-col sm:flex-row gap-4">
+        <div className="flex flex-col items-center sm:items-start sm:w-1/4">
+          <Avatar className="h-16 w-16 border-2 border-primary/20">
+            <AvatarImage src={caregiver.avatar_url || undefined} />
+            <AvatarFallback className="bg-primary-100 text-primary-800 text-xl">
+              PC
+            </AvatarFallback>
+          </Avatar>
+          
+          <div className="mt-2 text-center sm:text-left">
+            <h3 className="font-semibold">Professional Caregiver</h3>
+            <div className="flex items-center justify-center sm:justify-start gap-1 text-sm text-gray-500">
+              <MapPin className="h-3.5 w-3.5" />
+              <span>{caregiver.location}</span>
+            </div>
+            <div className="text-xs text-blue-600 mt-1">
+              * Name protected until subscription
+            </div>
+            <div className="mt-1 bg-primary-50 rounded px-2 py-1 text-center">
+              <span className="text-sm font-medium text-primary-700">{caregiver.match_score}% Match</span>
+            </div>
+          </div>
+        </div>
+        
+        <div className="sm:w-2/4 space-y-2">
+          <div className="text-sm">
+            <span className="font-medium">Experience:</span> {caregiver.years_of_experience}
+          </div>
+          
+          <div className="text-sm">
+            <span className="font-medium block mb-1">Specialties:</span>
+            <div className="flex flex-wrap gap-1">
+              {caregiver.care_types?.map((type, i) => (
+                <Badge key={i} variant="outline" className="bg-gray-50">
+                  {type}
+                </Badge>
+              ))}
+            </div>
+          </div>
+        </div>
+        
+        <div className="sm:w-1/4 flex flex-col justify-center space-y-3">
+          <div className="flex">
+            {[1, 2, 3, 4, 5].map(star => (
+              <Star 
+                key={star}
+                className="h-4 w-4 text-amber-400"
+              />
+            ))}
+          </div>
+          
+          {showUnlockButton && (
+            <>
+              {onUnlockProfile ? (
+                <Button
+                  variant="default"
+                  className="w-full"
+                  onClick={onUnlockProfile}
+                >
+                  Unlock Profile
+                </Button>
+              ) : (
+                <SubscriptionFeatureLink
+                  featureType="Premium Caregiver Profiles"
+                  returnPath={returnPath}
+                  referringPagePath={referringPagePath}
+                  referringPageLabel={referringPageLabel}
+                  variant="default"
+                  className="w-full"
+                >
+                  Unlock Profile
+                </SubscriptionFeatureLink>
+              )}
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
