@@ -71,25 +71,23 @@ export const useCaregiverMatches = (showOnlyBestMatch: boolean = true) => {
       setIsLoading(true);
       setError(null);
 
-      // Use mock caregivers immediately to prevent UI waiting
-      const initialCaregivers = showOnlyBestMatch 
-        ? MOCK_CAREGIVERS.slice(0, 1) 
-        : MOCK_CAREGIVERS;
-      setCaregivers(initialCaregivers);
-
-      // Try to fetch real professional data
+      // Try to fetch real professional data first
       const { data: professionalUsers, error: professionalError } = await supabase
         .from('profiles')
         .select('*')
         .eq('role', 'professional')
-        .limit(showOnlyBestMatch ? 1 : 10);
+        .limit(showOnlyBestMatch ? 3 : 10); // Get more to ensure we have data after filtering
       
       if (professionalError) {
         console.warn("Error fetching professional users:", professionalError);
-        // Continue with mock data, don't show error to user
+        // Fall back to mock data on error
+        const fallbackCaregivers = showOnlyBestMatch 
+          ? MOCK_CAREGIVERS.slice(0, 1) 
+          : MOCK_CAREGIVERS;
+        setCaregivers(fallbackCaregivers);
         await trackEngagement('caregiver_matches_view', { 
           data_source: 'mock_data_fallback',
-          caregiver_count: initialCaregivers.length,
+          caregiver_count: fallbackCaregivers.length,
           view_context: showOnlyBestMatch ? 'dashboard_widget' : 'matching_page',
           error: professionalError.message
         });
@@ -99,9 +97,13 @@ export const useCaregiverMatches = (showOnlyBestMatch: boolean = true) => {
 
       if (!professionalUsers || professionalUsers.length === 0) {
         console.log("No professional users found, using mock data");
+        const fallbackCaregivers = showOnlyBestMatch 
+          ? MOCK_CAREGIVERS.slice(0, 1) 
+          : MOCK_CAREGIVERS;
+        setCaregivers(fallbackCaregivers);
         await trackEngagement('caregiver_matches_view', { 
           data_source: 'mock_data',
-          caregiver_count: initialCaregivers.length,
+          caregiver_count: fallbackCaregivers.length,
           view_context: showOnlyBestMatch ? 'dashboard_widget' : 'matching_page',
         });
         setDataLoaded(true);
@@ -109,36 +111,54 @@ export const useCaregiverMatches = (showOnlyBestMatch: boolean = true) => {
       }
 
       // Process real caregiver data
-      const realCaregivers: Caregiver[] = professionalUsers.map(professional => {
-        const matchScore = Math.floor(Math.random() * (99 - 65) + 65);
+      const realCaregivers: Caregiver[] = professionalUsers.map((professional, index) => {
+        // Generate match scores in descending order for better presentation
+        const matchScore = Math.floor(Math.random() * (99 - 75) + 75) - (index * 2);
+        
+        // Parse care_types if it's a string, otherwise use as array or default
+        let careTypes: string[] = ['General Care'];
+        if (professional.care_types) {
+          if (typeof professional.care_types === 'string') {
+            try {
+              careTypes = JSON.parse(professional.care_types);
+            } catch {
+              careTypes = [professional.care_types];
+            }
+          } else if (Array.isArray(professional.care_types)) {
+            careTypes = professional.care_types;
+          }
+        }
+        
         return {
           id: professional.id,
           full_name: professional.full_name || 'Professional Caregiver',
           avatar_url: professional.avatar_url,
-          location: professional.location || 'Port of Spain',
-          care_types: professional.care_types || ['General Care'],
+          location: professional.location || 'Trinidad and Tobago',
+          care_types: careTypes,
           years_of_experience: professional.years_of_experience || '2+ years',
-          match_score: matchScore,
-          is_premium: false
+          match_score: Math.max(matchScore, 70), // Ensure minimum 70% match
+          is_premium: Math.random() > 0.7 // 30% chance of premium
         };
       });
+      
+      // Sort by match score descending
+      realCaregivers.sort((a, b) => b.match_score - a.match_score);
       
       console.log("Loaded real professional users:", realCaregivers.length);
 
       let finalCaregivers: Caregiver[];
       if (showOnlyBestMatch) {
-        finalCaregivers = realCaregivers.length > 0 
-          ? [realCaregivers.sort((a, b) => b.match_score - a.match_score)[0]]
-          : MOCK_CAREGIVERS.slice(0, 1);
+        finalCaregivers = realCaregivers.slice(0, 1);
       } else {
-        finalCaregivers = realCaregivers.length > 0 ? realCaregivers : MOCK_CAREGIVERS;
+        finalCaregivers = realCaregivers;
       }
 
       await trackEngagement('caregiver_matches_view', {
-        data_source: realCaregivers.length > 0 ? 'real_data' : 'mock_data',
-        real_caregiver_count: realCaregivers.length > 0 ? finalCaregivers.length : 0,
-        mock_caregiver_count: realCaregivers.length > 0 ? 0 : finalCaregivers.length,
+        data_source: 'real_data',
+        real_caregiver_count: finalCaregivers.length,
+        mock_caregiver_count: 0,
         view_context: showOnlyBestMatch ? 'dashboard_widget' : 'matching_page',
+        caregiver_names: finalCaregivers.map(c => c.full_name)
       });
       
       setCaregivers(finalCaregivers);
@@ -146,12 +166,20 @@ export const useCaregiverMatches = (showOnlyBestMatch: boolean = true) => {
     } catch (error) {
       console.error("Error loading caregivers:", error);
       setError(error instanceof Error ? error.message : "Unknown error");
-      // Don't show toast error, use fallback data instead
+      
+      // Use fallback data on error
       const fallbackCaregivers = showOnlyBestMatch 
         ? MOCK_CAREGIVERS.slice(0, 1) 
         : MOCK_CAREGIVERS;
       setCaregivers(fallbackCaregivers);
       setDataLoaded(true);
+      
+      await trackEngagement('caregiver_matches_view', {
+        data_source: 'mock_data_error_fallback',
+        caregiver_count: fallbackCaregivers.length,
+        view_context: showOnlyBestMatch ? 'dashboard_widget' : 'matching_page',
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
     } finally {
       setIsLoading(false);
       loadingRef.current = false;
