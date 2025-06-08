@@ -137,8 +137,9 @@ export const useUserJourneyProgress = (userId: string, userRole: UserRole): User
   };
 
   useEffect(() => {
-    // Only check for non-family users
-    if (userId && userRole !== 'family') {
+    // Since family users are handled above with early return, 
+    // this useEffect only runs for non-family users
+    if (userId) {
       checkStepCompletion();
     }
   }, [userId, userRole]);
