@@ -21,7 +21,7 @@ export const useFamilyProgress = () => {
       ...step,
       action: step.id === 4 
         ? () => setShowCaregiverMatchingModal(true)
-        : step.action
+        : () => {} // Provide a default no-op function since JourneyStep doesn't have action property
     })) || []
   };
 };
