@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { supabase } from '@/lib/supabase';
@@ -177,10 +178,75 @@ const getDummyJourneyData = (): { steps: JourneyStep[], paths: JourneyPath[] } =
       completed: false,
       accessible: false,
       prerequisites: []
+    },
+    // Note: Step 8 removed as requested
+    {
+      id: 'dummy-8',
+      step_number: 8,
+      title: 'Schedule trial day (Optional)',
+      description: 'Choose a trial date with your matched caregiver. This is an optional step before choosing your care model.',
+      category: 'trial',
+      is_optional: true,
+      tooltip_content: 'Experience care with a trial day',
+      detailed_explanation: 'Test your caregiver match before committing',
+      time_estimate_minutes: 5,
+      link_path: '/family/trial',
+      icon_name: 'TestTube',
+      completed: false,
+      accessible: false,
+      prerequisites: []
+    },
+    {
+      id: 'dummy-9',
+      step_number: 9,
+      title: 'Pay for trial day (Optional)',
+      description: 'Pay a one-time fee of $320 TTD for an 8-hour caregiver experience.',
+      category: 'trial',
+      is_optional: true,
+      tooltip_content: 'Complete payment for trial',
+      detailed_explanation: 'Secure your trial day with payment',
+      time_estimate_minutes: 10,
+      link_path: '/family/trial-payment',
+      icon_name: 'CreditCard',
+      completed: false,
+      accessible: false,
+      prerequisites: []
+    },
+    {
+      id: 'dummy-10',
+      step_number: 10,
+      title: 'Begin your trial (Optional)',
+      description: 'Your caregiver begins the scheduled trial session.',
+      category: 'trial',
+      is_optional: true,
+      tooltip_content: 'Start your trial experience',
+      detailed_explanation: 'Experience personalized care during your trial',
+      time_estimate_minutes: 480,
+      link_path: '/family/trial-session',
+      icon_name: 'Play',
+      completed: false,
+      accessible: false,
+      prerequisites: []
+    },
+    {
+      id: 'dummy-11',
+      step_number: 11,
+      title: 'Rate & Choose Your Path',
+      description: 'Decide between: Hire your caregiver ($40/hr) or Subscribe to Tavara ($45/hr) for full support tools. Can skip trial and go directly here after visit confirmation.',
+      category: 'conversion',
+      is_optional: false,
+      tooltip_content: 'Choose your care model',
+      detailed_explanation: 'Select the best care option for your family',
+      time_estimate_minutes: 15,
+      link_path: '/family/choose-path',
+      icon_name: 'Star',
+      completed: false,
+      accessible: false,
+      prerequisites: []
     }
   ];
 
-  // Complete steps 1-3 for 25% completion
+  // Complete steps 1-3 for demo
   dummySteps[0].completed = true;
   dummySteps[1].completed = true;
   dummySteps[2].completed = true;
@@ -198,7 +264,7 @@ const getDummyJourneyData = (): { steps: JourneyStep[], paths: JourneyPath[] } =
       id: 'dummy-path-2',
       path_name: 'Comprehensive Planning',
       path_description: 'Take time to plan every detail of your care',
-      step_ids: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+      step_ids: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
       path_color: '#3B82F6',
       is_recommended: false
     }
@@ -285,19 +351,19 @@ export const useEnhancedJourneyProgress = (): JourneyProgressData => {
       case 7: // Schedule initial visit - need step 4 completed
         const step4 = allSteps.find(s => s.step_number === 4);
         return step4?.completed || false;
-      case 9: // Schedule trial - need step 7 completed (visit scheduled)
+      case 8: // Schedule trial - need step 7 completed (visit scheduled)
         // Check both profile status and actual visit bookings
         const hasVisitScheduled = visitBookingData || 
           (profileData?.visit_scheduling_status && 
            ['scheduled', 'completed'].includes(profileData.visit_scheduling_status));
         return hasVisitScheduled;
-      case 10: // Pay for trial - need step 9 completed
+      case 9: // Pay for trial - need step 8 completed
+        const step8 = allSteps.find(s => s.step_number === 8);
+        return step8?.completed || false;
+      case 10: // Begin trial - need step 9 completed
         const step9 = allSteps.find(s => s.step_number === 9);
         return step9?.completed || false;
-      case 11: // Begin trial - need step 10 completed
-        const step10 = allSteps.find(s => s.step_number === 10);
-        return step10?.completed || false;
-      case 12: // Choose path - need step 7 completed (can skip trial)
+      case 11: // Choose path - need step 7 completed (can skip trial)
         const step7Complete = allSteps.find(s => s.step_number === 7);
         return step7Complete?.completed || false;
       default:
@@ -388,6 +454,45 @@ export const useEnhancedJourneyProgress = (): JourneyProgressData => {
       }
       setVisitStatus(currentVisitStatus);
 
+      // Fetch actual data for step completion checks
+      const { data: careNeedsData } = await supabase
+        .from('care_needs_family')
+        .select('id')
+        .eq('profile_id', user.id)
+        .maybeSingle();
+
+      const { data: careRecipientData } = await supabase
+        .from('care_recipient_profiles')
+        .select('id, full_name')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      const { data: carePlansData } = await supabase
+        .from('care_plans')
+        .select('id, title')
+        .eq('family_id', user.id);
+      setCarePlans(carePlansData || []);
+
+      const { data: medicationsData } = await supabase
+        .from('medications')
+        .select('id')
+        .in('care_plan_id', (carePlansData || []).map(cp => cp.id));
+
+      const { data: mealPlansData } = await supabase
+        .from('meal_plans')
+        .select('id')
+        .in('care_plan_id', (carePlansData || []).map(cp => cp.id));
+
+      const { data: trialPayments } = await supabase
+        .from('payment_transactions')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('transaction_type', 'trial_day')
+        .eq('status', 'completed');
+
+      const hasTrialPayment = trialPayments && trialPayments.length > 0;
+      setTrialCompleted(hasTrialPayment);
+
       const { data: journeySteps } = await supabase
         .from('journey_steps')
         .select('*')
@@ -401,38 +506,31 @@ export const useEnhancedJourneyProgress = (): JourneyProgressData => {
         .eq('user_role', 'family')
         .eq('is_active', true);
 
-      const { data: careData } = await supabase
-        .from('care_plans')
-        .select('*')
-        .eq('family_id', user.id);
-
-      setCarePlans(careData || []);
-
       if (journeySteps) {
         const processedSteps = journeySteps.map(step => {
           const stepCategory = validateCategory(step.category);
           let isCompleted = false;
           let isAccessible = true;
 
-          // Enhanced step completion logic
+          // Enhanced step completion logic using actual data
           switch (step.step_number) {
             case 1: // Profile creation
-              isCompleted = !!profile?.full_name;
+              isCompleted = !!(user && profile?.full_name);
               break;
             case 2: // Care assessment
-              isCompleted = !!profile?.care_assessment_completed;
+              isCompleted = !!careNeedsData;
               break;
             case 3: // Care recipient profile
-              isCompleted = !!profile?.care_recipient_completed;
+              isCompleted = !!(careRecipientData && careRecipientData.full_name);
               break;
             case 4: // View caregiver matches
-              isCompleted = !!profile?.caregiver_matches_viewed;
+              isCompleted = !!careRecipientData;
               break;
             case 5: // Medication management
-              isCompleted = !!profile?.medication_setup_completed;
+              isCompleted = !!(medicationsData && medicationsData.length > 0);
               break;
             case 6: // Meal plans
-              isCompleted = !!profile?.meal_plans_completed;
+              isCompleted = !!(mealPlansData && mealPlansData.length > 0);
               break;
             case 7: // Schedule initial visit
               // Check both visit bookings and profile status
@@ -440,20 +538,18 @@ export const useEnhancedJourneyProgress = (): JourneyProgressData => {
                           (profile?.visit_scheduling_status === 'scheduled' || 
                            profile?.visit_scheduling_status === 'completed');
               break;
-            case 8: // Prepare for visit
-              isCompleted = currentVisitStatus === 'completed' || !!profile?.visit_prep_completed;
+            // Note: Step 8 removed as requested
+            case 8: // Schedule trial day (was step 9)
+              isCompleted = hasTrialPayment;
               break;
-            case 9: // Schedule trial
-              isCompleted = !!profile?.trial_scheduled;
+            case 9: // Pay for trial day (was step 10)
+              isCompleted = hasTrialPayment;
               break;
-            case 10: // Pay for trial
-              isCompleted = !!profile?.trial_payment_completed;
+            case 10: // Begin trial (was step 11)
+              isCompleted = hasTrialPayment;
               break;
-            case 11: // Begin trial
-              isCompleted = !!profile?.trial_started;
-              break;
-            case 12: // Choose subscription
-              isCompleted = !!profile?.subscription_selected;
+            case 11: // Rate & choose path (was step 12)
+              isCompleted = !!profile?.visit_notes && JSON.parse(profile.visit_notes || '{}')?.care_model;
               break;
             default:
               isCompleted = false;
@@ -487,7 +583,13 @@ export const useEnhancedJourneyProgress = (): JourneyProgressData => {
         });
 
         setSteps(processedSteps);
-        setPaths(journeyPaths || []);
+        
+        // Convert journey paths step_ids from JSON to number array
+        const convertedPaths = (journeyPaths || []).map(path => ({
+          ...path,
+          step_ids: Array.isArray(path.step_ids) ? path.step_ids : JSON.parse(path.step_ids as string)
+        }));
+        setPaths(convertedPaths);
 
         // Determine current stage
         const completedCount = processedSteps.filter(s => s.completed).length;
@@ -495,7 +597,7 @@ export const useEnhancedJourneyProgress = (): JourneyProgressData => {
           setCurrentStage('foundation');
         } else if (completedCount <= 7) {
           setCurrentStage('scheduling');
-        } else if (completedCount <= 11) {
+        } else if (completedCount <= 10) {
           setCurrentStage('trial');
         } else {
           setCurrentStage('conversion');

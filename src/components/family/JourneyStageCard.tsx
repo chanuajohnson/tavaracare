@@ -107,9 +107,9 @@ export const JourneyStageCard: React.FC<JourneyStageCardProps> = ({
     
     if (step.step_number === 7) {
       if (step.completed && visitDetails) {
-        return "Modify Visit";
+        return "Cancel Visit";  // Only show cancel option for completed visits
       }
-      return step.completed ? "Modify Visit" : "Schedule Visit";
+      return step.completed ? "Reschedule Visit" : "Schedule Visit";
     }
     
     return step.completed ? "Edit" : "Complete";
@@ -351,60 +351,30 @@ export const JourneyStageCard: React.FC<JourneyStageCardProps> = ({
                           </div>
                         )}
                         
-                        {/* Enhanced Step 7 Button Layout */}
-                        {step.step_number === 7 && step.completed && !isAnonymous ? (
-                          <div className="flex gap-2">
-                            <Button 
-                              variant="ghost" 
-                              size="sm" 
-                              className="text-xs px-2 py-1 h-auto min-h-[44px] text-blue-600 hover:text-blue-700"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                if (step.action) {
-                                  step.action();
-                                }
-                              }}
-                            >
-                              <span className={isMobile ? 'text-xs' : ''}>Modify Visit</span>
-                              <ArrowRight className="ml-1 h-3 w-3" />
-                            </Button>
-                            <Button 
-                              variant="ghost" 
-                              size="sm" 
-                              className="text-xs px-2 py-1 h-auto min-h-[44px] text-red-600 hover:text-red-700"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                if (step.cancelAction) {
-                                  step.cancelAction();
-                                }
-                              }}
-                            >
-                              <span className={isMobile ? 'text-xs' : ''}>Cancel Visit</span>
-                            </Button>
-                          </div>
-                        ) : (
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            className={`text-xs px-2 py-1 h-auto min-h-[44px] ${isMobile ? 'min-w-[44px]' : ''} ${
-                              !(step.accessible || isAnonymous)
-                                ? 'text-gray-400 cursor-not-allowed opacity-50'
+                        {/* Simplified Step 7 Button - Only Cancel for completed visits */}
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className={`text-xs px-2 py-1 h-auto min-h-[44px] ${isMobile ? 'min-w-[44px]' : ''} ${
+                            !(step.accessible || isAnonymous)
+                              ? 'text-gray-400 cursor-not-allowed opacity-50'
+                              : step.step_number === 7 && step.completed && visitDetails
+                                ? 'text-red-600 hover:text-red-700'
                                 : step.completed 
                                   ? 'text-blue-600 hover:text-blue-700' 
                                   : 'text-primary hover:text-primary-600'
-                            }`}
-                            disabled={!(step.accessible || isAnonymous)}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              if (step.action) {
-                                step.action();
-                              }
-                            }}
-                          >
-                            <span className={isMobile ? 'text-xs' : ''}>{getButtonText(step)}</span>
-                            <ArrowRight className="ml-1 h-3 w-3" />
-                          </Button>
-                        )}
+                          }`}
+                          disabled={!(step.accessible || isAnonymous)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (step.action) {
+                              step.action();
+                            }
+                          }}
+                        >
+                          <span className={isMobile ? 'text-xs' : ''}>{getButtonText(step)}</span>
+                          <ArrowRight className="ml-1 h-3 w-3" />
+                        </Button>
                       </div>
                     </div>
                   </div>
