@@ -4,7 +4,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { Shield, Sparkles, Users } from "lucide-react";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { Shield, Sparkles, Users, ChevronDown } from "lucide-react";
 import { SubscriptionFeatureLink } from "@/components/subscription/SubscriptionFeatureLink";
 import { MatchingTracker } from "@/components/tracking/MatchingTracker";
 import { useCaregiverMatches } from "@/hooks/useCaregiverMatches";
@@ -135,28 +136,87 @@ export const CaregiverMatchingModal = ({
                   transition={{ duration: 0.5 }}
                   className="space-y-6"
                 >
-                  {/* Premium Feature Notice */}
-                  <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
-                    <CardContent className="p-6">
-                      <div className="flex items-center space-x-3 mb-3">
-                        <Shield className="h-6 w-6 text-blue-600" />
-                        <h3 className="text-lg font-semibold text-blue-900">Premium Matching Service</h3>
-                      </div>
-                      <p className="text-blue-800 mb-4">
-                        You're viewing your best match. Unlock our full caregiver network with verified professionals, 
-                        background checks, and personalized matching based on your exact requirements.
-                      </p>
-                      <SubscriptionFeatureLink
-                        featureType="Full Caregiver Access"
-                        returnPath="/family/matching"
-                        referringPagePath={referringPagePath}
-                        referringPageLabel={referringPageLabel}
-                      >
-                        <Button className="bg-blue-600 hover:bg-blue-700 text-white">
-                          Unlock All Matches
-                        </Button>
-                      </SubscriptionFeatureLink>
-                    </CardContent>
+                  {/* Premium Feature Notice - Now as Magical Accordion */}
+                  <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200 relative overflow-hidden">
+                    {/* Magical background sparkles */}
+                    <div className="absolute inset-0 pointer-events-none">
+                      <Sparkles className="absolute top-4 right-4 h-4 w-4 text-blue-400 animate-pulse" />
+                      <Sparkles className="absolute bottom-4 left-4 h-3 w-3 text-purple-400 animate-pulse delay-300" />
+                      <Sparkles className="absolute top-1/2 right-1/4 h-2 w-2 text-pink-400 animate-pulse delay-600" />
+                    </div>
+                    
+                    <Accordion type="single" collapsible className="w-full">
+                      <AccordionItem value="premium-details" className="border-none">
+                        <AccordionTrigger className="hover:no-underline group p-6 pb-0">
+                          <div className="flex items-center space-x-3 w-full">
+                            <div className="relative">
+                              <Shield className="h-6 w-6 text-blue-600" />
+                              <Sparkles className="absolute -top-1 -right-1 h-3 w-3 text-blue-500 animate-pulse group-hover:animate-spin" />
+                            </div>
+                            <div className="text-left flex-1">
+                              <h3 className="text-lg font-semibold text-blue-900 group-hover:text-blue-700 transition-colors">
+                                Premium Matching Service ✨
+                              </h3>
+                              <p className="text-sm text-blue-700 opacity-80">
+                                Click to discover premium benefits
+                              </p>
+                            </div>
+                            <motion.div
+                              className="relative"
+                              whileHover={{ scale: 1.1 }}
+                              transition={{ duration: 0.2 }}
+                            >
+                              <ChevronDown className="h-5 w-5 text-blue-600" />
+                              <Sparkles className="absolute -top-2 -right-2 h-3 w-3 text-purple-400 animate-pulse opacity-0 group-hover:opacity-100 transition-opacity" />
+                            </motion.div>
+                          </div>
+                        </AccordionTrigger>
+                        
+                        <AccordionContent className="px-6 pb-6">
+                          <motion.div
+                            initial={{ opacity: 0, y: -10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.3 }}
+                            className="space-y-4 relative"
+                          >
+                            {/* Additional magical sparkles for content */}
+                            <div className="absolute inset-0 pointer-events-none">
+                              <Sparkles className="absolute top-2 right-8 h-3 w-3 text-yellow-400 animate-pulse delay-200" />
+                              <Sparkles className="absolute bottom-2 left-8 h-2 w-2 text-green-400 animate-pulse delay-500" />
+                            </div>
+                            
+                            <div className="relative bg-white/50 rounded-lg p-4 backdrop-blur-sm border border-blue-200/50">
+                              <p className="text-blue-800">
+                                You're viewing your best match. Unlock our full caregiver network with verified professionals, 
+                                background checks, and personalized matching based on your exact requirements.
+                              </p>
+                            </div>
+                            
+                            <motion.div
+                              whileHover={{ scale: 1.02 }}
+                              whileTap={{ scale: 0.98 }}
+                              transition={{ duration: 0.2 }}
+                            >
+                              <SubscriptionFeatureLink
+                                featureType="Full Caregiver Access"
+                                returnPath="/family/matching"
+                                referringPagePath={referringPagePath}
+                                referringPageLabel={referringPageLabel}
+                              >
+                                <Button className="bg-blue-600 hover:bg-blue-700 text-white w-full relative overflow-hidden group">
+                                  {/* Shimmer effect */}
+                                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
+                                  <span className="relative flex items-center justify-center gap-2">
+                                    Unlock All Matches
+                                    <Sparkles className="h-4 w-4 animate-pulse" />
+                                  </span>
+                                </Button>
+                              </SubscriptionFeatureLink>
+                            </motion.div>
+                          </motion.div>
+                        </AccordionContent>
+                      </AccordionItem>
+                    </Accordion>
                   </Card>
 
                   {/* Magical Caregiver Match - Enhanced with sparkles and glow */}
