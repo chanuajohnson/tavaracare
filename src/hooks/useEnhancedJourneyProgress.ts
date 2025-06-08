@@ -178,59 +178,13 @@ const getDummyJourneyData = (): { steps: JourneyStep[], paths: JourneyPath[] } =
       accessible: false,
       prerequisites: []
     },
-    {
-      id: 'dummy-8',
-      step_number: 8,
-      title: 'Schedule trial day (Optional)',
-      description: 'Choose a trial date with your matched caregiver. This is an optional step before choosing your care model.',
-      category: 'trial',
-      is_optional: true,
-      tooltip_content: 'Experience care with a trial day',
-      detailed_explanation: 'Test your caregiver match before committing',
-      time_estimate_minutes: 5,
-      link_path: '/family/trial',
-      icon_name: 'TestTube',
-      completed: false,
-      accessible: false,
-      prerequisites: []
-    },
-    {
-      id: 'dummy-9',
-      step_number: 9,
-      title: 'Pay for trial day (Optional)',
-      description: 'Pay a one-time fee of $320 TTD for an 8-hour caregiver experience.',
-      category: 'trial',
-      is_optional: true,
-      tooltip_content: 'Complete payment for trial',
-      detailed_explanation: 'Secure your trial day with payment',
-      time_estimate_minutes: 10,
-      link_path: '/family/trial-payment',
-      icon_name: 'CreditCard',
-      completed: false,
-      accessible: false,
-      prerequisites: []
-    },
-    {
-      id: 'dummy-10',
-      step_number: 10,
-      title: 'Begin your trial (Optional)',
-      description: 'Your caregiver begins the scheduled trial session.',
-      category: 'trial',
-      is_optional: true,
-      tooltip_content: 'Start your trial experience',
-      detailed_explanation: 'Experience personalized care during your trial',
-      time_estimate_minutes: 480,
-      link_path: '/family/trial-session',
-      icon_name: 'Play',
-      completed: false,
-      accessible: false,
-      prerequisites: []
-    },
+    // Note: Steps 8-10 (trial steps) are hidden for anonymous users
+    // They only show for authenticated users who explicitly choose trial path
     {
       id: 'dummy-11',
       step_number: 11,
-      title: 'Rate & Choose Your Path',
-      description: 'Decide between: Hire your caregiver ($40/hr) or Subscribe to Tavara ($45/hr) for full support tools. Can skip trial and go directly here after visit confirmation.',
+      title: 'Choose Your Care Model',
+      description: 'Decide between hiring directly ($40/hr) or subscribing to Tavara ($45/hr) for full support tools.',
       category: 'conversion',
       is_optional: false,
       tooltip_content: 'Choose your care model',
@@ -254,14 +208,14 @@ const getDummyJourneyData = (): { steps: JourneyStep[], paths: JourneyPath[] } =
       id: 'dummy-path-1',
       path_name: 'Quick Start Path',
       path_description: 'Get matched with a caregiver in 24-48 hours',
-      step_ids: [1, 2, 3, 4, 7],
+      step_ids: [1, 2, 3, 4, 7, 11], // Skip trial steps for default path
       path_color: '#10B981',
       is_recommended: true
     },
     {
       id: 'dummy-path-2',
-      path_name: 'Comprehensive Planning',
-      path_description: 'Take time to plan every detail of your care',
+      path_name: 'Trial Experience Path',
+      path_description: 'Try before you commit with our trial option',
       step_ids: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
       path_color: '#3B82F6',
       is_recommended: false

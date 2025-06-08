@@ -34,7 +34,7 @@ export const AdminUserManagement = () => {
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [roleFilter, setRoleFilter] = useState<string>(''); // Changed to empty string for default "all"
+  const [roleFilter, setRoleFilter] = useState<string>('');
 
   const fetchUsers = async () => {
     try {
@@ -59,59 +59,66 @@ export const AdminUserManagement = () => {
       }
 
       console.log('Profiles fetched:', profilesData?.length || 0);
-      setProfiles(profilesData || []);
+      const safeProfiles = Array.isArray(profilesData) ? profilesData : [];
+      setProfiles(safeProfiles);
 
-      // Call our edge function to get auth users
-      const response = await fetch(`https://cpdfmyemjrefnhddyrck.supabase.co/functions/v1/admin-users?action=list-users`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`,
-          'Content-Type': 'application/json',
-        },
-      });
+      let authUsers: AuthUser[] = [];
+      let usersWithProfiles: UserWithProfile[] = [];
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        console.error('Edge function error:', errorData);
-        throw new Error(errorData.error || 'Failed to fetch users');
+      try {
+        // Call our edge function to get auth users
+        const response = await fetch(`https://cpdfmyemjrefnhddyrck.supabase.co/functions/v1/admin-users?action=list-users`, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`,
+            'Content-Type': 'application/json',
+          },
+        });
+
+        if (response.ok) {
+          const responseData = await response.json();
+          console.log('Edge function response:', responseData);
+          
+          authUsers = Array.isArray(responseData.users) ? responseData.users : [];
+          console.log('Auth users fetched:', authUsers.length);
+
+          // Merge auth users with profiles
+          usersWithProfiles = authUsers.map((user: AuthUser) => {
+            const profile = safeProfiles.find(p => p.id === user.id);
+            return {
+              ...user,
+              profile
+            };
+          });
+
+          console.log('Merged users with profiles:', usersWithProfiles.length);
+          setUsers(usersWithProfiles);
+          toast.success(`Loaded ${usersWithProfiles.length} users successfully`);
+        } else {
+          throw new Error(`Edge function returned ${response.status}`);
+        }
+      } catch (edgeFunctionError: any) {
+        console.error('Edge function failed:', edgeFunctionError);
+        
+        // Fallback: Create minimal user objects from profiles if edge function fails
+        if (safeProfiles.length > 0) {
+          const fallbackUsers = safeProfiles.map(profile => ({
+            id: profile.id,
+            email: profile.email || 'Unknown',
+            created_at: new Date().toISOString(),
+            profile
+          }));
+          setUsers(fallbackUsers);
+          toast.info(`Using fallback data: ${fallbackUsers.length} users from profiles`);
+        } else {
+          throw new Error(`Edge function failed and no profile fallback: ${edgeFunctionError.message}`);
+        }
       }
-
-      const responseData = await response.json();
-      console.log('Edge function response:', responseData);
-      
-      const authUsers = responseData.users || [];
-      console.log('Auth users fetched:', authUsers.length);
-
-      // Merge auth users with profiles
-      const usersWithProfiles = authUsers.map((user: AuthUser) => {
-        const profile = profilesData?.find(p => p.id === user.id);
-        return {
-          ...user,
-          profile
-        };
-      });
-
-      console.log('Merged users with profiles:', usersWithProfiles.length);
-      setUsers(usersWithProfiles);
-
-      // Show success toast
-      toast.success(`Loaded ${usersWithProfiles.length} users successfully`);
 
     } catch (error: any) {
       console.error('Error fetching users:', error);
       toast.error(`Failed to load users: ${error.message}`);
-      
-      // Fallback: If edge function fails but we have profiles, create minimal user objects
-      if (profiles.length > 0) {
-        const fallbackUsers = profiles.map(profile => ({
-          id: profile.id,
-          email: profile.email || 'Unknown',
-          created_at: new Date().toISOString(),
-          profile
-        }));
-        setUsers(fallbackUsers);
-        toast.info(`Using fallback data: ${fallbackUsers.length} users from profiles`);
-      }
+      setUsers([]);
     } finally {
       setLoading(false);
     }
