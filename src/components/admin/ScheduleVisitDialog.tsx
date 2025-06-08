@@ -106,12 +106,26 @@ export const ScheduleVisitDialog: React.FC<ScheduleVisitDialogProps> = ({
   const createAdminSlot = async (date: Date, time: string) => {
     try {
       const dateStr = format(date, 'yyyy-MM-dd');
+      
+      // Convert time from HH:mm to HH:mm:ss format and calculate end time (2 hours later)
+      const timeWithSeconds = time.includes(':') && time.split(':').length === 2 ? `${time}:00` : time;
+      const startHour = parseInt(time.split(':')[0]);
+      const startMinute = parseInt(time.split(':')[1]);
+      const endHour = startHour + 2;
+      const endTimeWithSeconds = `${endHour.toString().padStart(2, '0')}:${startMinute.toString().padStart(2, '0')}:00`;
+      
+      console.log('Creating admin slot:', {
+        date: dateStr,
+        start_time: timeWithSeconds,
+        end_time: endTimeWithSeconds
+      });
+
       const { data, error } = await supabase
         .from('admin_availability_slots')
         .insert({
           date: dateStr,
-          start_time: time,
-          end_time: time,
+          start_time: timeWithSeconds,
+          end_time: endTimeWithSeconds,
           is_available: true,
           max_bookings: 1,
           current_bookings: 0,
@@ -122,10 +136,15 @@ export const ScheduleVisitDialog: React.FC<ScheduleVisitDialogProps> = ({
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error creating admin slot:', error);
+        throw error;
+      }
+      
+      console.log('Admin slot created successfully:', data);
       return data.id;
     } catch (error: any) {
-      console.error('Error creating admin slot:', error);
+      console.error('Error in createAdminSlot:', error);
       throw error;
     }
   };
@@ -163,8 +182,16 @@ export const ScheduleVisitDialog: React.FC<ScheduleVisitDialogProps> = ({
       
       // If no existing slot selected, create a new admin slot
       if (!slotId) {
+        console.log('No existing slot selected, creating new admin slot...');
         slotId = await createAdminSlot(formData.bookingDate, formData.bookingTime);
       }
+
+      console.log('Creating visit booking with slot ID:', slotId);
+
+      // Convert time to proper format for database
+      const timeWithSeconds = formData.bookingTime.includes(':') && formData.bookingTime.split(':').length === 2 
+        ? `${formData.bookingTime}:00` 
+        : formData.bookingTime;
 
       // Create the visit booking
       const { error: bookingError } = await supabase
@@ -173,7 +200,7 @@ export const ScheduleVisitDialog: React.FC<ScheduleVisitDialogProps> = ({
           user_id: formData.selectedUserId,
           availability_slot_id: slotId,
           booking_date: format(formData.bookingDate, 'yyyy-MM-dd'),
-          booking_time: formData.bookingTime,
+          booking_time: timeWithSeconds,
           visit_type: formData.visitType,
           status: 'confirmed',
           payment_status: 'not_required',
@@ -185,13 +212,18 @@ export const ScheduleVisitDialog: React.FC<ScheduleVisitDialogProps> = ({
           user_full_name: formData.userFullName,
         });
 
-      if (bookingError) throw bookingError;
+      if (bookingError) {
+        console.error('Error creating visit booking:', bookingError);
+        throw bookingError;
+      }
+
+      console.log('Visit booking created successfully');
 
       // Update the user's profile to reflect the scheduled visit
       const visitDetails = {
         visit_type: formData.visitType,
         visit_date: format(formData.bookingDate, 'yyyy-MM-dd'),
-        visit_time: formData.bookingTime,
+        visit_time: timeWithSeconds,
         scheduled_by: 'admin'
       };
 
@@ -200,12 +232,14 @@ export const ScheduleVisitDialog: React.FC<ScheduleVisitDialogProps> = ({
         .update({
           visit_scheduling_status: 'scheduled',
           visit_scheduled_date: format(formData.bookingDate, 'yyyy-MM-dd'),
-          visit_notes: JSON.stringify(visitDetails)
+          visit_notes: JSON.stringify(visitDetails),
+          ready_for_admin_scheduling: false // Clear the scheduling request flag
         })
         .eq('id', formData.selectedUserId);
 
       if (profileError) {
         console.error('Error updating user profile:', profileError);
+        // Don't throw error here as booking was successful
       }
 
       // Update slot booking count
@@ -221,7 +255,10 @@ export const ScheduleVisitDialog: React.FC<ScheduleVisitDialogProps> = ({
           .update({ current_bookings: slotData.current_bookings + 1 })
           .eq('id', slotId);
 
-        if (updateError) console.error('Error updating slot count:', updateError);
+        if (updateError) {
+          console.error('Error updating slot count:', updateError);
+          // Don't throw error here as booking was successful
+        }
       }
 
       toast.success('Visit scheduled successfully');
@@ -235,11 +272,17 @@ export const ScheduleVisitDialog: React.FC<ScheduleVisitDialogProps> = ({
     }
   };
 
+  // Updated time slots with proper seconds format
   const timeSlots = [
-    '09:00', '09:30', '10:00', '10:30', '11:00', '11:30',
-    '12:00', '12:30', '13:00', '13:30', '14:00', '14:30',
-    '15:00', '15:30', '16:00', '16:30', '17:00'
+    '09:00:00', '09:30:00', '10:00:00', '10:30:00', '11:00:00', '11:30:00',
+    '12:00:00', '12:30:00', '13:00:00', '13:30:00', '14:00:00', '14:30:00',
+    '15:00:00', '15:30:00', '16:00:00', '16:30:00', '17:00:00'
   ];
+
+  // Helper function to display time without seconds for UI
+  const displayTime = (time: string) => {
+    return time.substring(0, 5); // Remove seconds for display
+  };
 
   return (
     <Dialog open={true} onOpenChange={onClose}>
@@ -335,7 +378,7 @@ export const ScheduleVisitDialog: React.FC<ScheduleVisitDialogProps> = ({
                   <SelectContent>
                     {availableSlots.map(slot => (
                       <SelectItem key={slot.id} value={slot.id}>
-                        {slot.start_time} - {slot.end_time}
+                        {displayTime(slot.start_time)} - {displayTime(slot.end_time)}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -350,7 +393,7 @@ export const ScheduleVisitDialog: React.FC<ScheduleVisitDialogProps> = ({
                   </SelectTrigger>
                   <SelectContent>
                     {timeSlots.map(time => (
-                      <SelectItem key={time} value={time}>{time}</SelectItem>
+                      <SelectItem key={time} value={time}>{displayTime(time)}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
