@@ -12,7 +12,6 @@ import { ScheduleVisitDialog } from './ScheduleVisitDialog';
 interface PendingSchedulingRequest {
   id: string;
   full_name: string;
-  email: string;
   preferred_visit_type: 'virtual' | 'in_person';
   admin_scheduling_requested_at: string;
   visit_scheduling_status: string;
@@ -36,7 +35,7 @@ export const AdminSchedulingQueue: React.FC<AdminSchedulingQueueProps> = ({ onRe
       
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, full_name, email, preferred_visit_type, admin_scheduling_requested_at, visit_scheduling_status, phone_number')
+        .select('id, full_name, preferred_visit_type, admin_scheduling_requested_at, visit_scheduling_status, phone_number')
         .eq('ready_for_admin_scheduling', true)
         .eq('visit_scheduling_status', 'ready_to_schedule')
         .order('admin_scheduling_requested_at', { ascending: true });
@@ -178,7 +177,6 @@ export const AdminSchedulingQueue: React.FC<AdminSchedulingQueueProps> = ({ onRe
                             </div>
                             <div>
                               <div className="font-medium">{request.full_name}</div>
-                              <div className="text-sm text-gray-500">{request.email}</div>
                             </div>
                           </div>
                         </TableCell>
@@ -228,13 +226,11 @@ export const AdminSchedulingQueue: React.FC<AdminSchedulingQueueProps> = ({ onRe
       {/* Schedule Visit Dialog */}
       {selectedUser && (
         <ScheduleVisitDialog
-          open={showScheduleDialog}
-          onOpenChange={setShowScheduleDialog}
           onVisitScheduled={handleVisitScheduled}
           preselectedUser={{
             id: selectedUser.id,
             full_name: selectedUser.full_name,
-            email: selectedUser.email,
+            email: '', // Empty since we don't have email
             preferred_visit_type: selectedUser.preferred_visit_type
           }}
         />

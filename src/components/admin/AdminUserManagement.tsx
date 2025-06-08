@@ -22,7 +22,6 @@ interface Profile {
   id: string;
   role: string;
   full_name?: string;
-  email?: string;
 }
 
 interface UserWithProfile extends AuthUser {
@@ -104,7 +103,7 @@ export const AdminUserManagement = () => {
         if (safeProfiles.length > 0) {
           const fallbackUsers = safeProfiles.map(profile => ({
             id: profile.id,
-            email: profile.email || 'Unknown',
+            email: 'Unknown',
             created_at: new Date().toISOString(),
             profile
           }));
@@ -280,7 +279,7 @@ export const AdminUserManagement = () => {
                         {user.profile?.full_name || 'No name'}
                       </div>
                       <div className="text-sm text-gray-500">
-                        {user.email}
+                        {user.email || 'No email'}
                       </div>
                     </div>
                   </TableCell>
