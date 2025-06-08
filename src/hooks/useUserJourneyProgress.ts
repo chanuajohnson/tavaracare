@@ -1,6 +1,6 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
+import { useSharedFamilyJourneyData } from '@/hooks/useSharedFamilyJourneyData';
 import type { UserRole } from '@/types/userRoles';
 
 interface JourneyStep {
@@ -22,27 +22,46 @@ interface UserJourneyData {
 }
 
 export const useUserJourneyProgress = (userId: string, userRole: UserRole): UserJourneyData => {
+  // Use shared family data for family users
+  const familyProgress = useSharedFamilyJourneyData(userRole === 'family' ? userId : '');
+  
   const [loading, setLoading] = useState(true);
   const [steps, setSteps] = useState<JourneyStep[]>([]);
   const [journeyStage, setJourneyStage] = useState<string>('foundation');
 
+  // If this is a family user, return the shared family data
+  if (userRole === 'family') {
+    const convertedSteps = familyProgress.steps.map(step => ({
+      ...step,
+      link: step.id === 1 ? "/registration/family" :
+            step.id === 2 ? "/family/care-assessment" :
+            step.id === 3 ? "/family/story" :
+            step.id === 4 ? "/caregiver/matching" :
+            step.id === 5 ? "/family/care-management" :
+            step.id === 6 ? "/family/care-management" :
+            step.id === 7 ? "/family/schedule-visit" :
+            step.id === 8 ? "/family/schedule-visit" :
+            step.id === 9 ? "/family/schedule-visit" :
+            step.id === 10 ? "/family/schedule-visit" :
+            step.id === 11 ? "/family/schedule-visit" :
+            step.id === 12 ? "/family/schedule-visit" : "/dashboard"
+    }));
+
+    return {
+      steps: convertedSteps,
+      completionPercentage: familyProgress.completionPercentage,
+      nextStep: familyProgress.nextStep ? {
+        ...familyProgress.nextStep,
+        link: convertedSteps.find(s => s.id === familyProgress.nextStep?.id)?.link || "/dashboard"
+      } : undefined,
+      loading: familyProgress.loading,
+      journeyStage: familyProgress.journeyStage
+    };
+  }
+
+  // For non-family users, keep the existing logic
   const getStepsForRole = (role: UserRole): JourneyStep[] => {
     switch (role) {
-      case 'family':
-        return [
-          { id: 1, title: "Complete your profile", description: "Add your contact information and preferences", completed: false, link: "/registration/family", category: "foundation" },
-          { id: 2, title: "Complete initial care assessment", description: "Help us understand your care needs better", completed: false, link: "/family/care-assessment", category: "foundation" },
-          { id: 3, title: "Complete your loved one's Legacy Story", description: "Share their story to personalize care", completed: false, link: "/family/story", category: "foundation", optional: true },
-          { id: 4, title: "See your instant caregiver matches", description: "View personalized caregiver recommendations", completed: false, link: "/caregiver/matching", category: "foundation" },
-          { id: 5, title: "Set up medication management", description: "Add medications and schedules", completed: false, link: "/family/care-management", category: "foundation" },
-          { id: 6, title: "Set up meal management", description: "Plan meals and create grocery lists", completed: false, link: "/family/care-management", category: "foundation" },
-          { id: 7, title: "Schedule your Visit", description: "Meet your care coordinator", completed: false, link: "/family/schedule-visit", category: "scheduling" },
-          { id: 8, title: "Confirm Visit", description: "Confirm video link or complete payment", completed: false, link: "/family/schedule-visit", category: "scheduling" },
-          { id: 9, title: "Schedule Trial Day", description: "Choose a trial date with your caregiver", completed: false, link: "/family/schedule-visit", category: "trial", optional: true },
-          { id: 10, title: "Pay for Trial Day", description: "Pay trial fee for 8-hour experience", completed: false, link: "/family/schedule-visit", category: "trial", optional: true },
-          { id: 11, title: "Begin Your Trial", description: "Start your trial session", completed: false, link: "/family/schedule-visit", category: "trial", optional: true },
-          { id: 12, title: "Rate & Choose Your Path", description: "Decide between Direct Hire or Tavara Subscription", completed: false, link: "/family/schedule-visit", category: "conversion" }
-        ];
       case 'professional':
         return [
           { id: 1, title: "Create your account", description: "Set up your Tavara account", completed: true, link: "/auth" },
@@ -85,91 +104,7 @@ export const useUserJourneyProgress = (userId: string, userRole: UserRole): User
 
       let updatedSteps = getStepsForRole(userRole);
 
-      if (userRole === 'family') {
-        // Check care assessment
-        const { data: careAssessment } = await supabase
-          .from('care_needs_family')
-          .select('id')
-          .eq('profile_id', userId)
-          .maybeSingle();
-
-        // Check care recipient profile
-        const { data: careRecipient } = await supabase
-          .from('care_recipient_profiles')
-          .select('id, full_name')
-          .eq('user_id', userId)
-          .maybeSingle();
-
-        // Check care plans
-        const { data: carePlans } = await supabase
-          .from('care_plans')
-          .select('id')
-          .eq('family_id', userId);
-
-        // Check medications
-        const { data: medications } = await supabase
-          .from('medications')
-          .select('id')
-          .in('care_plan_id', (carePlans || []).map(cp => cp.id));
-
-        // Check meal plans
-        const { data: mealPlans } = await supabase
-          .from('meal_plans')
-          .select('id')
-          .in('care_plan_id', (carePlans || []).map(cp => cp.id));
-
-        // Check trial payments
-        const { data: trialPayments } = await supabase
-          .from('payment_transactions')
-          .select('*')
-          .eq('user_id', userId)
-          .eq('transaction_type', 'trial_day')
-          .eq('status', 'completed');
-
-        // Parse visit notes for care model
-        let visitNotes = null;
-        try {
-          visitNotes = profile?.visit_notes ? JSON.parse(profile.visit_notes) : null;
-        } catch (error) {
-          console.error('Error parsing visit notes:', error);
-        }
-
-        // Mark steps as completed
-        if (profile.full_name) updatedSteps[0].completed = true;
-        if (careAssessment) updatedSteps[1].completed = true;
-        if (careRecipient && careRecipient.full_name) updatedSteps[2].completed = true;
-        if (careRecipient) updatedSteps[3].completed = true;
-        if (medications && medications.length > 0) updatedSteps[4].completed = true;
-        if (mealPlans && mealPlans.length > 0) updatedSteps[5].completed = true;
-        if (profile.visit_scheduling_status === 'scheduled' || profile.visit_scheduling_status === 'completed') updatedSteps[6].completed = true;
-        if (profile.visit_scheduling_status === 'completed') updatedSteps[7].completed = true;
-        
-        const hasTrialPayment = trialPayments && trialPayments.length > 0;
-        if (hasTrialPayment) {
-          updatedSteps[8].completed = true;  // Schedule trial
-          updatedSteps[9].completed = true;  // Pay for trial
-          updatedSteps[10].completed = true; // Begin trial
-        }
-        
-        if (visitNotes?.care_model) updatedSteps[11].completed = true;
-
-        // Determine journey stage
-        const completedSteps = updatedSteps.filter(s => s.completed);
-        const foundationSteps = completedSteps.filter(s => s.category === 'foundation');
-        const schedulingSteps = completedSteps.filter(s => s.category === 'scheduling');
-        const trialSteps = completedSteps.filter(s => s.category === 'trial');
-        
-        if (trialSteps.length > 0 || visitNotes?.care_model) {
-          setJourneyStage('conversion');
-        } else if (schedulingSteps.length > 0) {
-          setJourneyStage('trial');
-        } else if (foundationSteps.length >= 4) {
-          setJourneyStage('scheduling');
-        } else {
-          setJourneyStage('foundation');
-        }
-
-      } else if (userRole === 'professional') {
+      if (userRole === 'professional') {
         // Check documents
         const { data: documents } = await supabase
           .from('professional_documents')
@@ -201,7 +136,7 @@ export const useUserJourneyProgress = (userId: string, userRole: UserRole): User
   };
 
   useEffect(() => {
-    if (userId && userRole) {
+    if (userId && userRole && userRole !== 'family') {
       checkStepCompletion();
     }
   }, [userId, userRole]);
