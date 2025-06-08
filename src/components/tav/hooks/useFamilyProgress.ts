@@ -19,7 +19,7 @@ export const useFamilyProgress = () => {
     // Override step 4 action to open modal
     steps: sharedData.steps?.map(step => ({
       ...step,
-      action: step.step_number === 4 
+      action: step.id === 4 
         ? () => setShowCaregiverMatchingModal(true)
         : step.action
     })) || []
