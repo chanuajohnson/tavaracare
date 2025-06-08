@@ -46,7 +46,16 @@ export const AdminSchedulingQueue: React.FC<AdminSchedulingQueueProps> = ({ onRe
       }
 
       console.log('Pending requests fetched:', data?.length || 0);
-      setPendingRequests(data || []);
+      
+      // Transform and validate the data with proper type casting
+      const transformedRequests = (data || []).map(request => ({
+        ...request,
+        preferred_visit_type: (request.preferred_visit_type === 'virtual' || request.preferred_visit_type === 'in_person') 
+          ? request.preferred_visit_type as 'virtual' | 'in_person'
+          : 'virtual' as 'virtual' | 'in_person' // fallback to virtual if invalid
+      }));
+      
+      setPendingRequests(transformedRequests);
     } catch (error: any) {
       console.error('Error in fetchPendingRequests:', error);
       toast.error(`Failed to load pending requests: ${error.message}`);
