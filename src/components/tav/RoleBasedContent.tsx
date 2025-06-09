@@ -153,7 +153,8 @@ export const RoleBasedContent: React.FC<RoleBasedContentProps> = ({
 
   // Family Journey Welcome Card
   const renderFamilyWelcomeCard = () => {
-    const { completionPercentage, nextStep, journeyStage } = familyProgress;
+    const { completionPercentage, nextStep } = familyProgress;
+    const journeyStage = progressContext?.journeyStage || 'foundation';
     
     return (
       <motion.div
