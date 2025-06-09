@@ -115,10 +115,10 @@ export const ProfessionalJourneyPreview: React.FC<ProfessionalJourneyPreviewProp
         </p>
       </div>
 
-      {/* Journey Steps */}
+      {/* Journey Steps - showing only first 4 for compact view */}
       <div className="bg-white rounded-lg p-3 border border-gray-200">
         <div className="flex justify-between items-center mb-2">
-          <span className="text-sm font-medium">Your Journey Steps</span>
+          <span className="text-sm font-medium">Journey Steps</span>
           <span className="text-sm text-primary font-semibold">{overallProgress}%</span>
         </div>
         
@@ -143,6 +143,11 @@ export const ProfessionalJourneyPreview: React.FC<ProfessionalJourneyPreviewProp
               </span>
             </div>
           ))}
+          {steps.length > 4 && (
+            <div className="text-xs text-gray-500 ml-6">
+              +{steps.length - 4} more steps...
+            </div>
+          )}
         </div>
       </div>
 
