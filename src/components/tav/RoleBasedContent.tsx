@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Heart, UserCog, Users, Globe, Shield, ArrowRight, Sparkles, Clock, CheckCircle2, Circle, X, Minimize2 } from 'lucide-react';
@@ -245,48 +244,6 @@ export const RoleBasedContent: React.FC<RoleBasedContentProps> = ({
         );
       }
 
-      // Add action and buttonText properties to steps for this component
-      const enhancedSteps = steps.map(step => ({
-        ...step,
-        action: () => {
-          if (step.id === 4) {
-            const canAccess = steps[0]?.completed && steps[1]?.completed && steps[2]?.completed;
-            if (!canAccess) return;
-          }
-          
-          if (step.id === 5) {
-            navigate('/family/care-management');
-            return;
-          }
-          
-          if (step.id === 6) {
-            navigate('/family/care-management');
-            return;
-          }
-          
-          if (step.id === 7) {
-            navigate('/family/schedule-visit');
-            return;
-          }
-          
-          // Default navigation
-          navigate('/dashboard/family');
-        },
-        buttonText: (() => {
-          const canAccessMatching = step.id !== 4 || (steps[0]?.completed && steps[1]?.completed && steps[2]?.completed);
-          
-          if (step.id === 4 && !canAccessMatching) {
-            return "Complete Above Steps";
-          }
-          
-          if (step.completed) {
-            return "View";
-          }
-          
-          return "Continue";
-        })()
-      }));
-
       return (
         <div className="space-y-4 p-4">
           <div className="flex items-center gap-3 mb-4">
@@ -314,12 +271,18 @@ export const RoleBasedContent: React.FC<RoleBasedContentProps> = ({
             care for your loved one.
           </p>
           
-          {/* Granular Steps Section */}
+          {/* Real Journey Steps Section */}
           <div className="space-y-2">
             <p className="text-xs font-medium text-blue-800 mb-2">Journey Steps:</p>
             <div className="space-y-1">
-              {enhancedSteps.map((step, index) => {
-                const canAccess = step.id !== 4 || (steps[0]?.completed && steps[1]?.completed && steps[2]?.completed);
+              {steps.map((step, index) => {
+                const getButtonText = (step: any) => {
+                  if (step.id === 4 && !step.accessible) {
+                    return "Complete Above Steps";
+                  }
+                  return step.completed ? "View" : "Continue";
+                };
+
                 return (
                   <div key={step.id} className="flex items-center gap-2 text-xs">
                     <div className="flex items-center gap-1 flex-1 min-w-0">
@@ -336,18 +299,18 @@ export const RoleBasedContent: React.FC<RoleBasedContentProps> = ({
                       variant="ghost"
                       size="sm"
                       className={`h-5 px-2 text-xs ${
-                        step.id === 4 && !canAccess 
+                        (step.id === 4 && !step.accessible)
                           ? 'text-gray-400 cursor-not-allowed' 
                           : 'text-blue-600 hover:text-blue-700'
                       }`}
-                      disabled={step.id === 4 && !canAccess}
+                      disabled={step.id === 4 && !step.accessible}
                       onClick={() => {
-                        if (step.action) {
+                        if (step.action && (step.accessible || step.id !== 4)) {
                           step.action();
                         }
                       }}
                     >
-                      {step.buttonText}
+                      {getButtonText(step)}
                     </Button>
                   </div>
                 );
@@ -371,9 +334,8 @@ export const RoleBasedContent: React.FC<RoleBasedContentProps> = ({
             size="sm" 
             className="w-full h-auto py-3"
             onClick={() => {
-              const enhancedNextStep = enhancedSteps.find(s => s.id === nextStep?.id);
-              if (enhancedNextStep?.action) {
-                enhancedNextStep.action();
+              if (nextStep && nextStep.action) {
+                nextStep.action();
               } else {
                 navigate('/dashboard/family');
               }
