@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -358,7 +357,7 @@ export const JourneyStageCard: React.FC<JourneyStageCardProps> = ({
                                 </span>
                                 {visitDetails.type === 'in_person' && (
                                   <span className="text-xs bg-green-100 text-green-800 px-1 py-0.5 rounded ml-1">
-                                    Paid
+                                    Payment Pending
                                   </span>
                                 )}
                               </div>
