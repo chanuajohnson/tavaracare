@@ -9,19 +9,11 @@ import {
   ChevronDown,
   Loader2,
   BarChart,
-  Users,
-  UserPlus,
-  Home,
-  HeartPulse,
-  BookOpen,
+  HelpCircle,
+  FileQuestion,
+  Phone,
   MessageSquare,
-  Calendar,
-  UserCircle,
-  LifeBuoy,
-  Building2,
-  FileText,
-  CreditCard,
-  Info,
+  X,
   Menu,
 } from 'lucide-react';
 import {
@@ -33,16 +25,37 @@ import {
   DropdownMenuGroup,
   DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu";
+import { Textarea } from "@/components/ui/textarea";
+import { FeedbackForm } from "@/components/ui/feedback-form";
 import { toast } from 'sonner';
 import { resetAuthState } from '@/lib/supabase';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useState } from 'react';
+import { useContactForm } from '@/hooks/useContactForm';
+import { useFeedbackForm } from '@/hooks/useFeedbackForm';
+import { useSupportActions } from '@/hooks/useSupportActions';
 
 export function Navigation() {
   const { user, signOut, isLoading, userRole } = useAuth();
   const location = useLocation();
   const isMobile = useIsMobile();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+
+  // Support functionality hooks
+  const {
+    isContactFormOpen,
+    setIsContactFormOpen,
+    isSubmitting,
+    contactFormData,
+    formErrors,
+    screenshotFile,
+    handleContactFormSubmit,
+    handleInputChange,
+    handleFileChange,
+  } = useContactForm();
+
+  const { isFeedbackFormOpen, setIsFeedbackFormOpen } = useFeedbackForm();
+  const { handleOpenWhatsApp, handleFAQClick } = useSupportActions();
 
   console.log('Navigation render -', { 
     user: !!user, 
@@ -105,116 +118,290 @@ export function Navigation() {
   const isAdmin = userRole === 'admin';
 
   return (
-    <nav className="bg-background border-b py-3 px-4 sm:px-6">
-      <div className="container mx-auto flex justify-between items-center">
-        <div className="flex items-center flex-col sm:flex-row">
-          <Link to="/" className="flex items-center">
-            <img 
-              src="/TAVARACARElogo.JPG"
-              alt="Tavara" 
-              className="h-6 w-auto sm:h-7"
-            />
-          </Link>
-          <span className="text-xs text-gray-600 italic sm:ml-2">It takes a village to care</span>
-        </div>
-        
-        {/* Mobile menu button */}
-        {isMobile && (
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            className="lg:hidden" 
-            onClick={() => setIsMenuOpen(!isMenuOpen)}
-          >
-            <Menu className="h-5 w-5" />
-          </Button>
-        )}
-        
-        <div className={`${isMobile ? (isMenuOpen ? "flex flex-col absolute top-16 left-0 right-0 bg-background border-b z-50 p-4 space-y-3" : "hidden") : "flex items-center gap-4"}`}>
-          {(!isMobile || isMenuOpen) && (
-            <>
-              <Link to="/about" className="text-gray-700 hover:text-primary">
-                About
-              </Link>
-              
-              <Link to="/features" className="text-gray-700 hover:text-primary">
-                Features
-              </Link>
-              
-              {isSpecificUser && (
-                <Link to="/admin/user-journey" className="flex items-center gap-1 text-indigo-600 hover:text-indigo-700">
-                  <BarChart className="h-4 w-4" />
-                  <span className="hidden sm:inline">User Journey</span>
+    <>
+      <nav className="sticky top-0 z-50 bg-background border-b py-3 px-4 sm:px-6">
+        <div className="container mx-auto flex justify-between items-center">
+          <div className="flex items-center flex-col sm:flex-row">
+            <Link to="/" className="flex items-center">
+              <img 
+                src="/TAVARACARElogo.JPG"
+                alt="Tavara" 
+                className="h-6 w-auto sm:h-7"
+              />
+            </Link>
+            <span className="text-xs text-gray-600 italic sm:ml-2">It takes a village to care</span>
+          </div>
+          
+          {/* Mobile menu button */}
+          {isMobile && (
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="lg:hidden" 
+              onClick={() => setIsMenuOpen(!isMenuOpen)}
+            >
+              <Menu className="h-5 w-5" />
+            </Button>
+          )}
+          
+          <div className={`${isMobile ? (isMenuOpen ? "flex flex-col absolute top-16 left-0 right-0 bg-background border-b z-50 p-4 space-y-3" : "hidden") : "flex items-center gap-4"}`}>
+            {(!isMobile || isMenuOpen) && (
+              <>
+                <Link to="/about" className="text-gray-700 hover:text-primary">
+                  About
                 </Link>
-              )}
-              
-              {user && dashboardPath ? (
-                <Link to={dashboardPath} className="flex items-center gap-1 text-gray-700 hover:text-primary">
-                  <LayoutDashboard className="h-4 w-4" />
-                  <span className={isMobile ? "inline" : "hidden sm:inline"}>
-                    {userRole ? `${userRole.charAt(0).toUpperCase() + userRole.slice(1)} Dashboard` : 'Dashboard'}
-                  </span>
+                
+                <Link to="/features" className="text-gray-700 hover:text-primary">
+                  Features
                 </Link>
-              ) : !user ? (
+                
+                {isSpecificUser && (
+                  <Link to="/admin/user-journey" className="flex items-center gap-1 text-indigo-600 hover:text-indigo-700">
+                    <BarChart className="h-4 w-4" />
+                    <span className="hidden sm:inline">User Journey</span>
+                  </Link>
+                )}
+                
+                {user && dashboardPath ? (
+                  <Link to={dashboardPath} className="flex items-center gap-1 text-gray-700 hover:text-primary">
+                    <LayoutDashboard className="h-4 w-4" />
+                    <span className={isMobile ? "inline" : "hidden sm:inline"}>
+                      {userRole ? `${userRole.charAt(0).toUpperCase() + userRole.slice(1)} Dashboard` : 'Dashboard'}
+                    </span>
+                  </Link>
+                ) : !user ? (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="sm" className="flex items-center gap-1">
+                        <LayoutDashboard className="h-4 w-4" />
+                        <span className={isMobile ? "inline" : "hidden sm:inline"}>Navigation</span>
+                        <ChevronDown className="h-3 w-3" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-56 bg-white border shadow-lg z-[100]">
+                      <DropdownMenuGroup>
+                        <DropdownMenuLabel>Dashboards</DropdownMenuLabel>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem>
+                          <Link to="/dashboard/family">Family Dashboard</Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem>
+                          <Link to="/dashboard/professional">Professional Dashboard</Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem>
+                          <Link to="/dashboard/community">Community Dashboard</Link>
+                        </DropdownMenuItem>
+                      </DropdownMenuGroup>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem>
+                        <Link to="/auth/register">Create Account</Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem>
+                        <Link to="/auth/reset-password">Forgot Password</Link>
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                ) : null}
+
+                {/* Help Support Menu */}
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" size="sm" className="flex items-center gap-1">
-                      <LayoutDashboard className="h-4 w-4" />
-                      <span className={isMobile ? "inline" : "hidden sm:inline"}>Navigation</span>
-                      <ChevronDown className="h-3 w-3" />
+                      <HelpCircle className="h-4 w-4" />
+                      <span className={isMobile ? "inline" : "hidden sm:inline"}>Support</span>
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-56">
-                    <DropdownMenuGroup>
-                      <DropdownMenuLabel>Dashboards</DropdownMenuLabel>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem>
-                        <Link to="/dashboard/family">Family Dashboard</Link>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem>
-                        <Link to="/dashboard/professional">Professional Dashboard</Link>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem>
-                        <Link to="/dashboard/community">Community Dashboard</Link>
-                      </DropdownMenuItem>
-                    </DropdownMenuGroup>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem>
-                      <Link to="/auth/register">Create Account</Link>
+                  <DropdownMenuContent align="end" className="w-56 bg-white border shadow-lg z-[100]">
+                    <DropdownMenuItem
+                      className="flex items-center gap-2 cursor-pointer"
+                      onClick={handleFAQClick}
+                    >
+                      <FileQuestion className="h-4 w-4" />
+                      <span>FAQ Section</span>
                     </DropdownMenuItem>
-                    <DropdownMenuItem>
-                      <Link to="/auth/reset-password">Forgot Password</Link>
+                    <DropdownMenuItem 
+                      className="flex items-center gap-2 cursor-pointer"
+                      onClick={handleOpenWhatsApp}
+                    >
+                      <Phone className="h-4 w-4" />
+                      <span>WhatsApp Support</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      className="flex items-center gap-2 cursor-pointer"
+                      onClick={() => setIsContactFormOpen(true)}
+                    >
+                      <FileQuestion className="h-4 w-4" />
+                      <span>Contact Support</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      className="flex items-center gap-2 cursor-pointer"
+                      onClick={() => setIsFeedbackFormOpen(true)}
+                    >
+                      <MessageSquare className="h-4 w-4" />
+                      <span>Give Feedback</span>
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
-              ) : null}
-              
-              {isLoading ? (
-                <Button variant="outline" size="sm" disabled className="flex items-center gap-2">
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  <span>Loading...</span>
-                </Button>
-              ) : user ? (
-                <Button 
-                  onClick={handleSignOut}
-                  size="sm"
-                  className="flex items-center gap-2 bg-primary-600 text-white hover:bg-primary-700 transition-colors"
-                >
-                  <LogOut className="h-4 w-4" />
-                  <span>{isMobile ? "Sign Out" : "Sign Out"}</span>
-                </Button>
-              ) : (
-                <Link to="/auth">
-                  <Button variant="default" size="sm" className="flex items-center gap-2">
-                    <LogIn className="h-4 w-4" />
-                    <span>Sign In</span>
+                
+                {isLoading ? (
+                  <Button variant="outline" size="sm" disabled className="flex items-center gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span>Loading...</span>
                   </Button>
-                </Link>
-              )}
-            </>
-          )}
+                ) : user ? (
+                  <Button 
+                    onClick={handleSignOut}
+                    size="sm"
+                    className="flex items-center gap-2 bg-primary-600 text-white hover:bg-primary-700 transition-colors"
+                  >
+                    <LogOut className="h-4 w-4" />
+                    <span>{isMobile ? "Sign Out" : "Sign Out"}</span>
+                  </Button>
+                ) : (
+                  <Link to="/auth">
+                    <Button variant="default" size="sm" className="flex items-center gap-2">
+                      <LogIn className="h-4 w-4" />
+                      <span>Sign In</span>
+                    </Button>
+                  </Link>
+                )}
+              </>
+            )}
+          </div>
         </div>
-      </div>
-    </nav>
+      </nav>
+
+      {/* Contact Form Modal */}
+      {isContactFormOpen && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-bold">Contact Support</h2>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setIsContactFormOpen(false)}
+                disabled={isSubmitting}
+              >
+                <X className="h-5 w-5" />
+              </Button>
+            </div>
+            <form onSubmit={handleContactFormSubmit}>
+              <div className="space-y-4">
+                <div>
+                  <label htmlFor="name" className="block text-sm font-medium mb-1">
+                    Name *
+                  </label>
+                  <input
+                    id="name"
+                    name="name"
+                    type="text"
+                    required
+                    value={contactFormData.name}
+                    onChange={handleInputChange}
+                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary ${
+                      formErrors.name ? 'border-red-500' : 'border-gray-300'
+                    }`}
+                    disabled={isSubmitting}
+                  />
+                  {formErrors.name && (
+                    <p className="text-sm text-red-600 mt-1">{formErrors.name}</p>
+                  )}
+                </div>
+                <div>
+                  <label htmlFor="email" className="block text-sm font-medium mb-1">
+                    Email *
+                  </label>
+                  <input
+                    id="email"
+                    name="email"
+                    type="email"
+                    required
+                    value={contactFormData.email}
+                    onChange={handleInputChange}
+                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary ${
+                      formErrors.email ? 'border-red-500' : 'border-gray-300'
+                    }`}
+                    disabled={isSubmitting}
+                  />
+                  {formErrors.email && (
+                    <p className="text-sm text-red-600 mt-1">{formErrors.email}</p>
+                  )}
+                </div>
+                <div>
+                  <label htmlFor="message" className="block text-sm font-medium mb-1">
+                    Message *
+                  </label>
+                  <Textarea
+                    id="message"
+                    name="message"
+                    required
+                    value={contactFormData.message}
+                    onChange={handleInputChange}
+                    className={`w-full min-h-[100px] ${
+                      formErrors.message ? 'border-red-500' : ''
+                    }`}
+                    disabled={isSubmitting}
+                  />
+                  {formErrors.message && (
+                    <p className="text-sm text-red-600 mt-1">{formErrors.message}</p>
+                  )}
+                </div>
+                <div>
+                  <label htmlFor="screenshot" className="block text-sm font-medium mb-1">
+                    Screenshot (optional)
+                  </label>
+                  <input
+                    id="screenshot"
+                    type="file"
+                    accept="image/*"
+                    onChange={handleFileChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+                    disabled={isSubmitting}
+                  />
+                  {screenshotFile && (
+                    <p className="text-sm text-green-600 mt-1">
+                      Screenshot attached: {screenshotFile.name}
+                    </p>
+                  )}
+                </div>
+              </div>
+              <div className="mt-6 flex gap-3">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setIsContactFormOpen(false)}
+                  disabled={isSubmitting}
+                  className="flex-1"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="flex-1"
+                >
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Sending...
+                    </>
+                  ) : (
+                    "Send Message"
+                  )}
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Feedback Form Modal */}
+      {isFeedbackFormOpen && (
+        <FeedbackForm 
+          onClose={() => setIsFeedbackFormOpen(false)}
+        />
+      )}
+    </>
   );
 };
