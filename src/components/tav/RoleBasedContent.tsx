@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Heart, UserCog, Users, Globe, Shield, ArrowRight, Sparkles, Clock, CheckCircle2, Circle, X, Minimize2, FileText, AlertCircle } from 'lucide-react';
+import { Heart, UserCog, Users, Globe, Shield, ArrowRight, Sparkles, Clock, CheckCircle2, Circle, X, Minimize2, FileText, AlertCircle, Star } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useReturningUser } from './hooks/useReturningUser';
 import { useFamilyProgress } from './hooks/useFamilyProgress';
@@ -107,13 +107,21 @@ export const RoleBasedContent: React.FC<RoleBasedContentProps> = ({
     };
   };
 
-  // Panel header with close/minimize controls for ALL users (including guests)
+  // Enhanced panel header with magical subtitle and close/minimize controls
   const renderPanelHeader = () => {
     return (
-      <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-white flex-shrink-0">
+      <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-gradient-to-r from-primary/5 to-blue-50 flex-shrink-0">
         <div className="flex items-center gap-3">
-          <Heart className="h-5 w-5 text-primary flex-shrink-0" />
-          <h3 className="text-lg font-semibold">TAV Assistant</h3>
+          <div className="relative">
+            <Heart className="h-5 w-5 text-primary flex-shrink-0" />
+            <div className="absolute -top-1 -right-1">
+              <Sparkles className="h-3 w-3 text-primary/60 animate-pulse" />
+            </div>
+          </div>
+          <div className="flex flex-col">
+            <h3 className="text-lg font-semibold text-gray-800">TAV Assistant</h3>
+            <p className="text-xs text-primary/70 font-medium">Your personal care coordinator</p>
+          </div>
         </div>
         <div className="flex items-center gap-2">
           {onMinimize && (
@@ -121,7 +129,7 @@ export const RoleBasedContent: React.FC<RoleBasedContentProps> = ({
               variant="ghost"
               size="sm"
               onClick={onMinimize}
-              className="h-8 w-8 p-0 hover:bg-gray-100"
+              className="h-8 w-8 p-0 hover:bg-white/50"
               title="Minimize panel"
             >
               <Minimize2 className="h-4 w-4" />
@@ -132,7 +140,7 @@ export const RoleBasedContent: React.FC<RoleBasedContentProps> = ({
               variant="ghost"
               size="sm"
               onClick={onClose}
-              className="h-8 w-8 p-0 hover:bg-gray-100"
+              className="h-8 w-8 p-0 hover:bg-white/50"
               title="Close panel"
             >
               <X className="h-4 w-4" />
@@ -140,6 +148,61 @@ export const RoleBasedContent: React.FC<RoleBasedContentProps> = ({
           )}
         </div>
       </div>
+    );
+  };
+
+  // Family Journey Welcome Card
+  const renderFamilyWelcomeCard = () => {
+    const { completionPercentage, nextStep, journeyStage } = familyProgress;
+    
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="mb-4 p-4 bg-gradient-to-br from-blue-50 via-primary/5 to-blue-100/50 rounded-xl border border-blue-200/50 relative overflow-hidden"
+      >
+        {/* Magical sparkle decorations */}
+        <div className="absolute top-2 right-2">
+          <Star className="h-3 w-3 text-blue-400/40 animate-pulse" />
+        </div>
+        <div className="absolute bottom-2 left-2">
+          <Sparkles className="h-2 w-2 text-primary/30 animate-pulse" style={{ animationDelay: '0.5s' }} />
+        </div>
+        <div className="absolute top-1/2 right-4">
+          <Sparkles className="h-2 w-2 text-blue-300/50 animate-pulse" style={{ animationDelay: '1s' }} />
+        </div>
+        
+        <div className="relative">
+          <div className="flex items-center gap-2 mb-2">
+            <Heart className="h-4 w-4 text-primary" />
+            <h4 className="text-sm font-semibold text-primary">Your Journey Ahead</h4>
+          </div>
+          
+          <p className="text-xs text-gray-700 leading-relaxed mb-3">
+            {journeyStage === 'foundation' && "Building your care foundation! Let's get everything set up perfectly."}
+            {journeyStage === 'scheduling' && "Great progress! Time to connect with our care coordinator."}
+            {journeyStage === 'trial' && "Exciting! Your trial experience is coming up."}
+            {journeyStage === 'conversion' && "Congratulations! Ready to choose your perfect care path."}
+            {!journeyStage && "I'm here to guide you through every step of your caregiving journey."}
+          </p>
+          
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="w-16 h-1.5 bg-blue-200 rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-gradient-to-r from-primary to-blue-500 rounded-full transition-all duration-500"
+                  style={{ width: `${completionPercentage}%` }}
+                />
+              </div>
+              <span className="text-xs font-medium text-primary">{completionPercentage}%</span>
+            </div>
+            
+            {nextStep && (
+              <span className="text-xs text-gray-600 font-medium">{nextStep.title}</span>
+            )}
+          </div>
+        </div>
+      </motion.div>
     );
   };
 
@@ -277,6 +340,9 @@ export const RoleBasedContent: React.FC<RoleBasedContentProps> = ({
             <h3 className="text-lg font-semibold leading-tight">Your Journey Ahead</h3>
           </div>
 
+          {/* Family Journey Welcome Card */}
+          {renderFamilyWelcomeCard()}
+
           {/* Contextual Form Guidance - MAGIC CONTEXTUAL AWARENESS */}
           {contextualGuidance && (
             <div className="bg-primary/5 rounded-lg p-3 border border-primary/20 mb-4">
@@ -313,21 +379,6 @@ export const RoleBasedContent: React.FC<RoleBasedContentProps> = ({
               </div>
             </div>
           )}
-          
-          <div className="bg-blue-50 rounded-lg p-3 border border-blue-200">
-            <div className="flex justify-between items-center mb-2">
-              <span className="text-sm font-medium">Progress</span>
-              <span className="text-sm text-blue-600 font-semibold">
-                {completionPercentage}%
-              </span>
-            </div>
-            <div className="w-full bg-blue-200 rounded-full h-2">
-              <div 
-                className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                style={{ width: `${completionPercentage}%` }}
-              />
-            </div>
-          </div>
           
           <p className="text-sm text-muted-foreground leading-relaxed">
             You're doing great! I'm here to guide you through each step of setting up 

@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, MessageCircle, Sparkles, Check, XIcon, ChevronLeft, ChevronRight, Maximize2 } from 'lucide-react';
+import { X, MessageCircle, Sparkles, Check, XIcon, ChevronLeft, ChevronRight, Maximize2, Star } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useTavaraState } from './hooks/useTavaraState';
@@ -374,7 +374,7 @@ export const TavaraAssistantPanel: React.FC = () => {
           )}
         </AnimatePresence>
 
-        {/* Magic floating button */}
+        {/* Enhanced Magic floating button with multiple sparkle layers */}
         <motion.button
           initial={{ scale: 0, rotate: -180 }}
           animate={{ scale: 1, rotate: 0 }}
@@ -391,9 +391,36 @@ export const TavaraAssistantPanel: React.FC = () => {
             isMobile ? 'w-14 h-14' : 'w-16 h-16'
           }`}
         >
-          {/* Pulsing ring effect */}
+          {/* Enhanced pulsing ring effects */}
           <div className="absolute inset-0 rounded-full bg-primary/30 animate-ping" />
           <div className="absolute inset-0 rounded-full bg-primary/20 animate-pulse" style={{ animationDelay: '0.5s' }} />
+          <div className="absolute inset-0 rounded-full bg-primary/10 animate-pulse" style={{ animationDelay: '1s' }} />
+          
+          {/* Rotating sparkle effects around the button */}
+          <div className="absolute -inset-2">
+            <motion.div
+              animate={{ rotate: 360 }}
+              transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
+              className="relative w-full h-full"
+            >
+              <Sparkles className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1 h-3 w-3 text-primary/60" />
+              <Star className="absolute right-0 top-1/2 transform translate-x-1 -translate-y-1/2 h-2 w-2 text-blue-400/70" />
+              <Sparkles className="absolute bottom-0 left-1/2 transform -translate-x-1/2 translate-y-1 h-2 w-2 text-primary/50" />
+              <Star className="absolute left-0 top-1/2 transform -translate-x-1 -translate-y-1/2 h-2 w-2 text-blue-300/60" />
+            </motion.div>
+          </div>
+          
+          {/* Counter-rotating inner sparkles */}
+          <div className="absolute -inset-1">
+            <motion.div
+              animate={{ rotate: -360 }}
+              transition={{ duration: 6, repeat: Infinity, ease: "linear" }}
+              className="relative w-full h-full"
+            >
+              <Sparkles className="absolute top-1 right-1 h-2 w-2 text-primary/40" />
+              <Star className="absolute bottom-1 left-1 h-2 w-2 text-blue-200/50" />
+            </motion.div>
+          </div>
           
           <div className="relative flex items-center justify-center h-full">
             <MessageCircle className={`${isMobile ? 'h-6 w-6' : 'h-7 w-7'}`} />
