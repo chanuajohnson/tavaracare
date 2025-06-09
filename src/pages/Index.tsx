@@ -1,7 +1,6 @@
-
 import { useState, useRef } from "react";
 import { motion } from "framer-motion";
-import { Users, UserCog, Heart, ArrowRight, Check, Vote, HelpCircle, Play, Pause, Volume2, VolumeX } from "lucide-react";
+import { Users, UserCog, Heart, ArrowRight, Check, Vote, HelpCircle, Play, Pause, Volume2, VolumeX, ChevronLeft, ChevronRight } from "lucide-react";
 import { useNavigate, Link } from "react-router-dom";
 import { toast } from "sonner";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
@@ -43,10 +42,19 @@ const communityRole = {
   features: ["Join care circles", "Share local resources", "Participate in community events", "Offer support services", "Connect with families", "Track community impact"]
 };
 
+// Video playlist configuration
+const videoSources = [
+  "/your-video.MP4",
+  "/your-video2.MP4", 
+  "/your-video3.MP4"
+];
+
 const Index = () => {
   const [selectedRole, setSelectedRole] = useState<string | null>(null);
   const [isPlaying, setIsPlaying] = useState(true);
   const [isMuted, setIsMuted] = useState(true);
+  const [currentVideoIndex, setCurrentVideoIndex] = useState(0);
+  const [isTransitioning, setIsTransitioning] = useState(false);
   const navigate = useNavigate();
   const comparisonRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -91,6 +99,42 @@ const Index = () => {
     }
   };
 
+  const handleVideoEnd = () => {
+    // Auto-advance to next video when current video ends
+    const nextIndex = (currentVideoIndex + 1) % videoSources.length;
+    changeVideo(nextIndex);
+  };
+
+  const changeVideo = (newIndex: number) => {
+    if (newIndex === currentVideoIndex || isTransitioning) return;
+    
+    setIsTransitioning(true);
+    setCurrentVideoIndex(newIndex);
+    
+    if (videoRef.current) {
+      videoRef.current.src = videoSources[newIndex];
+      videoRef.current.load();
+      
+      // Resume playing if it was playing before
+      if (isPlaying) {
+        videoRef.current.play().catch(console.error);
+      }
+    }
+    
+    // Reset transition state after a brief delay
+    setTimeout(() => setIsTransitioning(false), 300);
+  };
+
+  const goToPreviousVideo = () => {
+    const prevIndex = currentVideoIndex === 0 ? videoSources.length - 1 : currentVideoIndex - 1;
+    changeVideo(prevIndex);
+  };
+
+  const goToNextVideo = () => {
+    const nextIndex = (currentVideoIndex + 1) % videoSources.length;
+    changeVideo(nextIndex);
+  };
+
   const isDebug = new URLSearchParams(window.location.search).get('debug') === 'true';
 
   return (
@@ -103,13 +147,12 @@ const Index = () => {
           className="absolute inset-0 w-full h-full object-cover"
           autoPlay
           muted
-          loop
+          loop={false}
           playsInline
           preload="metadata"
+          onEnded={handleVideoEnd}
         >
-          {/* Updated video source to match actual file case */}
-          <source src="/your-video.MP4" type="video/mp4" />
-          <source src="/your-video.webm" type="video/webm" />
+          <source src={videoSources[currentVideoIndex]} type="video/mp4" />
           {/* Fallback image if video doesn't load */}
         </video>
 
@@ -118,20 +161,6 @@ const Index = () => {
 
         {/* Content Overlay */}
         <div className="relative z-10 flex flex-col items-center justify-center h-full text-center px-4">
-          {/* Logo */}
-          {/* Chan Commented out Logo <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8 }}
-            className="mb-8"
-          >
-            <img 
-              src="/TAVARACARElogo.png"
-              alt="Tavara" 
-              className="h-16 w-auto md:h-20 mx-auto"
-            />
-          </motion.div>  End Chan Commented out Logo */}
-
           {/* Main Heading */}
           <motion.h1
             initial={{ opacity: 0, y: 30 }}
@@ -199,6 +228,17 @@ const Index = () => {
 
         {/* Video Controls */}
         <div className="absolute bottom-4 right-4 z-20 flex gap-2">
+          {/* Previous Video Button */}
+          <button
+            onClick={goToPreviousVideo}
+            disabled={isTransitioning}
+            className="bg-black/50 hover:bg-black/70 text-white p-2 rounded-full transition-colors disabled:opacity-50"
+            aria-label="Previous video"
+          >
+            <ChevronLeft className="w-4 h-4" />
+          </button>
+          
+          {/* Play/Pause Button */}
           <button
             onClick={togglePlayPause}
             className="bg-black/50 hover:bg-black/70 text-white p-2 rounded-full transition-colors"
@@ -206,6 +246,8 @@ const Index = () => {
           >
             {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
           </button>
+          
+          {/* Mute Button */}
           <button
             onClick={toggleMute}
             className="bg-black/50 hover:bg-black/70 text-white p-2 rounded-full transition-colors"
@@ -213,6 +255,33 @@ const Index = () => {
           >
             {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
           </button>
+          
+          {/* Next Video Button */}
+          <button
+            onClick={goToNextVideo}
+            disabled={isTransitioning}
+            className="bg-black/50 hover:bg-black/70 text-white p-2 rounded-full transition-colors disabled:opacity-50"
+            aria-label="Next video"
+          >
+            <ChevronRight className="w-4 h-4" />
+          </button>
+        </div>
+
+        {/* Video Indicator Dots */}
+        <div className="absolute bottom-4 left-4 z-20 flex gap-2">
+          {videoSources.map((_, index) => (
+            <button
+              key={index}
+              onClick={() => changeVideo(index)}
+              disabled={isTransitioning}
+              className={`w-2 h-2 rounded-full transition-all duration-300 disabled:opacity-50 ${
+                index === currentVideoIndex 
+                  ? 'bg-white scale-125' 
+                  : 'bg-white/50 hover:bg-white/75'
+              }`}
+              aria-label={`Go to video ${index + 1}`}
+            />
+          ))}
         </div>
       </section>
 
