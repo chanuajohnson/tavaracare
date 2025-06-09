@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Heart, UserCog, Users, Globe, Shield, ArrowRight, Sparkles, Clock, CheckCircle2, Circle, X, Minimize2 } from 'lucide-react';
@@ -116,6 +117,37 @@ export const RoleBasedContent: React.FC<RoleBasedContentProps> = ({
         </div>
       </div>
     );
+  };
+
+  // Helper function to get step action based on step ID
+  const getStepAction = (stepId: number) => {
+    switch (stepId) {
+      case 1: // Complete Profile
+        return () => navigate('/dashboard/family');
+      case 2: // Care Assessment
+        return () => navigate('/family/care-assessment');
+      case 3: // Legacy Story
+        return () => navigate('/family/care-recipient');
+      case 4: // Caregiver Matches
+        return () => {
+          const canAccess = familyProgress.steps.find(s => s.id === 1)?.completed && 
+                           familyProgress.steps.find(s => s.id === 2)?.completed && 
+                           familyProgress.steps.find(s => s.id === 3)?.completed;
+          if (canAccess) {
+            navigate('/family/caregiver-matching');
+          }
+        };
+      case 5: // Medication Management
+        return () => navigate('/family/care-management');
+      case 6: // Meal Management
+        return () => navigate('/family/care-management');
+      case 7: // Schedule Visit
+        return () => navigate('/family/schedule-visit');
+      case 11: // Rate & Choose Path
+        return () => navigate('/family/care-model-selection');
+      default:
+        return () => navigate('/dashboard/family');
+    }
   };
 
   // Main content wrapper with improved scrolling
@@ -305,8 +337,9 @@ export const RoleBasedContent: React.FC<RoleBasedContentProps> = ({
                       }`}
                       disabled={step.id === 4 && !step.accessible}
                       onClick={() => {
-                        if (step.action && (step.accessible || step.id !== 4)) {
-                          step.action();
+                        const stepAction = getStepAction(step.id);
+                        if (stepAction && (step.accessible || step.id !== 4)) {
+                          stepAction();
                         }
                       }}
                     >
@@ -334,8 +367,11 @@ export const RoleBasedContent: React.FC<RoleBasedContentProps> = ({
             size="sm" 
             className="w-full h-auto py-3"
             onClick={() => {
-              if (nextStep && nextStep.action) {
-                nextStep.action();
+              if (nextStep) {
+                const stepAction = getStepAction(nextStep.id);
+                if (stepAction) {
+                  stepAction();
+                }
               } else {
                 navigate('/dashboard/family');
               }

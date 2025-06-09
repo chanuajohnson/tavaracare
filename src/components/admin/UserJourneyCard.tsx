@@ -64,7 +64,7 @@ export function UserJourneyCard({
                 <Badge variant={user.role === 'family' ? 'default' : user.role === 'professional' ? 'secondary' : 'outline'} className="text-xs">
                   {user.role}
                 </Badge>
-                {!user.email_confirmed_at && (
+                {!user.email_verified && (
                   <Badge variant="destructive" className="text-xs">Unverified</Badge>
                 )}
               </div>
@@ -105,7 +105,7 @@ export function UserJourneyCard({
 
         {/* Action Buttons */}
         <div className="flex gap-2 pt-2">
-          {!user.email_confirmed_at && (
+          {!user.email_verified && (
             <Button
               variant="outline"
               size="sm"
