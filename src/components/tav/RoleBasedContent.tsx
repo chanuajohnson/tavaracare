@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
-import { X, Minimize2, Sparkles, ArrowRight, CheckCircle, Clock, Target, Users, UserCog, Heart } from 'lucide-react';
+import { X, Minimize2, Sparkles, ArrowRight, CheckCircle, Clock, Target } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { AssistantNudge, ProgressContext } from './types';
@@ -164,7 +164,7 @@ export const RoleBasedContent: React.FC<RoleBasedContentProps> = ({
             </>
           )}
 
-          {/* Enhanced guest welcome message */}
+          {/* Guest welcome message */}
           {(!user || role === 'guest') && (
             <div className="space-y-4">
               <div className="bg-gradient-to-br from-primary/5 to-blue/5 rounded-xl p-4 border border-primary/20">
@@ -172,56 +172,18 @@ export const RoleBasedContent: React.FC<RoleBasedContentProps> = ({
                   <Sparkles className="h-4 w-4 text-primary" />
                   <h3 className="font-semibold text-primary">Welcome to Tavara!</h3>
                 </div>
-                <p className="text-sm text-gray-700 mb-4">
+                <p className="text-sm text-gray-700 mb-3">
                   I'm here to help you navigate your caregiving journey. Whether you're a family seeking care, 
                   a professional caregiver, or a community member wanting to help, I'll guide you every step of the way.
                 </p>
-                
-                {/* Sign In Button */}
-                <div className="space-y-3">
-                  <Button 
-                    size="sm" 
-                    className="w-full bg-primary hover:bg-primary-600 text-white"
-                    onClick={() => window.location.href = '/auth'}
-                  >
-                    Sign In
-                    <ArrowRight className="ml-1 h-3 w-3" />
-                  </Button>
-                  
-                  {/* Magical pathway nudge buttons */}
-                  <div className="pt-2 border-t border-gray-200">
-                    <p className="text-xs text-gray-600 mb-2 text-center">New to Tavara? Explore these paths:</p>
-                    <div className="grid grid-cols-1 gap-2">
-                      <Button 
-                        variant="outline"
-                        size="sm" 
-                        className="w-full text-xs h-8 justify-start"
-                        onClick={() => window.location.href = '/dashboard/family'}
-                      >
-                        <Users className="mr-2 h-3 w-3 text-primary" />
-                        Find Care Now
-                      </Button>
-                      <Button 
-                        variant="outline"
-                        size="sm" 
-                        className="w-full text-xs h-8 justify-start"
-                        onClick={() => window.location.href = '/dashboard/professional'}
-                      >
-                        <UserCog className="mr-2 h-3 w-3 text-primary" />
-                        Get Hired
-                      </Button>
-                      <Button 
-                        variant="outline"
-                        size="sm" 
-                        className="w-full text-xs h-8 justify-start"
-                        onClick={() => window.location.href = '/dashboard/community'}
-                      >
-                        <Heart className="mr-2 h-3 w-3 text-primary" />
-                        Join The Village
-                      </Button>
-                    </div>
-                  </div>
-                </div>
+                <Button 
+                  size="sm" 
+                  className="bg-primary hover:bg-primary-600 text-white"
+                  onClick={() => window.location.href = '/auth'}
+                >
+                  Get Started
+                  <ArrowRight className="ml-1 h-3 w-3" />
+                </Button>
               </div>
             </div>
           )}
