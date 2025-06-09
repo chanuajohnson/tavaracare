@@ -107,8 +107,8 @@ const Index = () => {
           playsInline
           poster="/lovable-uploads/12de91cf-3454-4e5d-9f29-b80cf84bb8c1.png"
         >
-          {/* Placeholder for video source - you'll need to add your video file */}
-          <source src="/your-video.mp4" type="video/mp4" />
+          {/* Updated video source to match actual file case */}
+          <source src="/your-video.MP4" type="video/mp4" />
           <source src="/your-video.webm" type="video/webm" />
           {/* Fallback image if video doesn't load */}
         </video>
@@ -126,7 +126,7 @@ const Index = () => {
             className="mb-8"
           >
             <img 
-              src="/TAVARACARElogo.png"
+              src="/TAVARACARElogo.JPG"
               alt="Tavara" 
               className="h-16 w-auto md:h-20 mx-auto"
             />
