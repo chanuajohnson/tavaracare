@@ -9,21 +9,23 @@ import { TellTheirStoryCard } from "./TellTheirStoryCard";
 
 export const FamilyDashboard = () => {
   return (
-    <div className="space-y-6">
-      {/* Profile Header */}
-      <FamilyProfileHeaderSection />
-      
-      {/* Shortcut Menu Bar */}
-      <FamilyShortcutMenuBar />
-      
-      {/* Enhanced Next Steps Panel - Dashboard Version (Limited Steps) */}
-      <EnhancedFamilyNextStepsPanel showAllSteps={false} />
-      
-      {/* Tell Their Story Card */}
-      <TellTheirStoryCard />
-      
-      {/* Caregiver Matches */}
-      <DashboardCaregiverMatches />
+    <div className="mobile-container mobile-viewport-fix">
+      <div className="mobile-card-spacing">
+        {/* Profile Header */}
+        <FamilyProfileHeaderSection />
+        
+        {/* Shortcut Menu Bar */}
+        <FamilyShortcutMenuBar />
+        
+        {/* Enhanced Next Steps Panel - Dashboard Version (Limited Steps) */}
+        <EnhancedFamilyNextStepsPanel showAllSteps={false} />
+        
+        {/* Tell Their Story Card */}
+        <TellTheirStoryCard />
+        
+        {/* Caregiver Matches */}
+        <DashboardCaregiverMatches />
+      </div>
     </div>
   );
 };

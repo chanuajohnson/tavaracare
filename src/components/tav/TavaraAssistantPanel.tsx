@@ -1,6 +1,7 @@
+
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, MessageCircle, Sparkles, Check, XIcon, ChevronLeft, ChevronRight, Maximize2 } from 'lucide-react';
+import { X, MessageCircle, Sparkles, Check, XIcon, ChevronLeft, ChevronRight, Maximize2, Star } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useTavaraState } from './hooks/useTavaraState';
@@ -64,7 +65,7 @@ export const TavaraAssistantPanel: React.FC = () => {
     }
   }, [user]);
 
-  // MAGIC AUTO-GREETING with journey stage awareness
+  // MAGIC AUTO-GREETING with form-aware context
   useEffect(() => {
     const sessionKey = `tavara_session_greeted`;
     const hasGreetedThisSession = sessionStorage.getItem(sessionKey);
@@ -75,7 +76,8 @@ export const TavaraAssistantPanel: React.FC = () => {
       isOpen: state.isOpen,
       currentRole: state.currentRole,
       pathname: location.pathname,
-      journeyStage: state.currentRole === 'family' ? familyJourneyProgress.journeyStage : null
+      journeyStage: state.currentRole === 'family' ? familyJourneyProgress.journeyStage : null,
+      currentForm: currentForm?.formId
     });
     
     // Show magic greeting if haven't greeted this session AND not already open
@@ -186,26 +188,30 @@ export const TavaraAssistantPanel: React.FC = () => {
 
   const progressContext = getProgressContext();
 
-  // Enhanced greeting message with journey stage context
+  // Enhanced greeting message with form detection context
   const getContextualGreeting = () => {
-    // For form-specific pages, use form context
+    // PRIORITY 1: For form-specific pages, use form's auto-greeting message
     if (currentForm?.autoGreetingMessage) {
+      console.log('TAV: Using form-specific greeting for', currentForm.formId);
       return currentForm.autoGreetingMessage;
     }
     
-    // For family users, add journey stage context
+    // PRIORITY 2: For family users, add journey stage context
     if (state.currentRole === 'family' && progressContext.journeyStage) {
       const stageMessage = JOURNEY_STAGE_MESSAGES[progressContext.journeyStage];
       if (stageMessage) {
+        console.log('TAV: Using journey stage greeting for', progressContext.journeyStage);
         return stageMessage;
       }
     }
     
-    // For initial greeting or pages without forms, use role-based or default
+    // PRIORITY 3: For initial greeting or pages without forms, use role-based or default
     if (state.currentRole && AUTO_GREET_MESSAGES[state.currentRole]) {
+      console.log('TAV: Using role-based greeting for', state.currentRole);
       return AUTO_GREET_MESSAGES[state.currentRole];
     }
     
+    console.log('TAV: Using default guest greeting');
     return AUTO_GREET_MESSAGES.guest;
   };
 
@@ -238,7 +244,7 @@ export const TavaraAssistantPanel: React.FC = () => {
     console.log('TAV: Rendering minimized panel');
     return (
       <div className={`fixed z-50 ${isMobile 
-        ? 'bottom-20 left-4' 
+        ? 'bottom-4 left-4' 
         : 'bottom-6 left-6'
       }`}>
         <motion.div
@@ -284,10 +290,10 @@ export const TavaraAssistantPanel: React.FC = () => {
   if (!state.isOpen && !state.isMinimized) {
     return (
       <div className={`fixed z-50 ${isMobile 
-        ? 'bottom-20 left-4' 
+        ? 'bottom-4 left-4' 
         : 'bottom-6 left-6'
       }`}>
-        {/* Enhanced journey-aware greeting bubble */}
+        {/* Enhanced form-aware greeting bubble */}
         <AnimatePresence>
           {showGreeting && (
             <motion.div
@@ -337,8 +343,19 @@ export const TavaraAssistantPanel: React.FC = () => {
                   {getContextualGreeting()}
                 </p>
                 
+                {/* Form context indicator */}
+                {currentForm && (
+                  <div className="bg-primary/5 rounded-lg p-2 border border-primary/20">
+                    <div className="flex items-center gap-2">
+                      <Sparkles className="h-3 w-3 text-primary" />
+                      <span className="text-xs font-medium text-primary">Form Assistant Ready</span>
+                    </div>
+                    <p className="text-xs text-gray-600 mt-1">I can help you fill out "{currentForm.formTitle}"</p>
+                  </div>
+                )}
+                
                 {/* Journey progress indicator for family users */}
-                {state.currentRole === 'family' && progressContext.completionPercentage > 0 && (
+                {state.currentRole === 'family' && progressContext.completionPercentage > 0 && !currentForm && (
                   <div className="bg-gray-50 rounded-lg p-2">
                     <div className="flex justify-between items-center mb-1">
                       <span className="text-xs font-medium text-gray-600">Journey Progress</span>
@@ -357,7 +374,7 @@ export const TavaraAssistantPanel: React.FC = () => {
           )}
         </AnimatePresence>
 
-        {/* Magic floating button */}
+        {/* Enhanced Magic floating button with multiple sparkle layers */}
         <motion.button
           initial={{ scale: 0, rotate: -180 }}
           animate={{ scale: 1, rotate: 0 }}
@@ -374,9 +391,36 @@ export const TavaraAssistantPanel: React.FC = () => {
             isMobile ? 'w-14 h-14' : 'w-16 h-16'
           }`}
         >
-          {/* Pulsing ring effect */}
+          {/* Enhanced pulsing ring effects */}
           <div className="absolute inset-0 rounded-full bg-primary/30 animate-ping" />
           <div className="absolute inset-0 rounded-full bg-primary/20 animate-pulse" style={{ animationDelay: '0.5s' }} />
+          <div className="absolute inset-0 rounded-full bg-primary/10 animate-pulse" style={{ animationDelay: '1s' }} />
+          
+          {/* Rotating sparkle effects around the button */}
+          <div className="absolute -inset-2">
+            <motion.div
+              animate={{ rotate: 360 }}
+              transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
+              className="relative w-full h-full"
+            >
+              <Sparkles className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1 h-3 w-3 text-primary/60" />
+              <Star className="absolute right-0 top-1/2 transform translate-x-1 -translate-y-1/2 h-2 w-2 text-blue-400/70" />
+              <Sparkles className="absolute bottom-0 left-1/2 transform -translate-x-1/2 translate-y-1 h-2 w-2 text-primary/50" />
+              <Star className="absolute left-0 top-1/2 transform -translate-x-1 -translate-y-1/2 h-2 w-2 text-blue-300/60" />
+            </motion.div>
+          </div>
+          
+          {/* Counter-rotating inner sparkles */}
+          <div className="absolute -inset-1">
+            <motion.div
+              animate={{ rotate: -360 }}
+              transition={{ duration: 6, repeat: Infinity, ease: "linear" }}
+              className="relative w-full h-full"
+            >
+              <Sparkles className="absolute top-1 right-1 h-2 w-2 text-primary/40" />
+              <Star className="absolute bottom-1 left-1 h-2 w-2 text-blue-200/50" />
+            </motion.div>
+          </div>
           
           <div className="relative flex items-center justify-center h-full">
             <MessageCircle className={`${isMobile ? 'h-6 w-6' : 'h-7 w-7'}`} />

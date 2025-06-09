@@ -16,12 +16,13 @@ export default function CareJourneyProgressPage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8 max-w-4xl">
+    <div className="min-h-screen bg-gray-50 mobile-viewport-fix">
+      <div className="mobile-container mobile-header-spacing mobile-footer-spacing py-4 sm:py-6 lg:py-8 max-w-4xl mx-auto">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
+          className="mobile-optimized"
         >
           {/* Breadcrumb */}
           <div className="mb-4 sm:mb-6">

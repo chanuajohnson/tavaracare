@@ -2,6 +2,7 @@
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/components/providers/AuthProvider';
+import { ErrorBoundary } from '@/components/common/ErrorBoundary';
 
 interface SubscriptionFeatureLinkProps {
   /**
@@ -57,6 +58,14 @@ export const SubscriptionFeatureLink = ({
 }: SubscriptionFeatureLinkProps) => {
   const { user, userRole } = useAuth();
   
+  // Prevent circular redirects
+  if (referringPagePath === returnPath) {
+    console.warn('SubscriptionFeatureLink: Potential circular redirect detected', {
+      referringPagePath,
+      returnPath
+    });
+  }
+  
   // Determine proper destination - features page or direct to subscription
   const destinationPath = directToSubscription ? "/subscription" : "/subscription/features";
   
@@ -89,24 +98,34 @@ export const SubscriptionFeatureLink = ({
   });
   
   return (
-    <Link
-      to={destinationPath}
-      state={{
-        featureType,
-        returnPath: safeReturnPath,
-        referringPagePath,
-        referringPageLabel,
-        directSubscription: directToSubscription,
-        fromProfessionalFeatures: isProfessionalFeature
-      }}
-      className={className}
-    >
+    <ErrorBoundary fallback={
       <Button 
-        className="w-full"
+        className={className || "w-full"}
         variant={variant}
+        onClick={() => console.warn('SubscriptionFeatureLink failed')}
       >
-        {children || (user ? "Upgrade to Access" : "Subscribe to Access")}
+        {children || "Access Feature"}
       </Button>
-    </Link>
+    }>
+      <Link
+        to={destinationPath}
+        state={{
+          featureType,
+          returnPath: safeReturnPath,
+          referringPagePath,
+          referringPageLabel,
+          directSubscription: directToSubscription,
+          fromProfessionalFeatures: isProfessionalFeature
+        }}
+        className={className}
+      >
+        <Button 
+          className="w-full"
+          variant={variant}
+        >
+          {children || (user ? "Upgrade to Access" : "Subscribe to Access")}
+        </Button>
+      </Link>
+    </ErrorBoundary>
   );
 };

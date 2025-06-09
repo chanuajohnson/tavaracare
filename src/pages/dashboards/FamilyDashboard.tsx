@@ -1,4 +1,3 @@
-
 import { motion } from "framer-motion";
 import { useEffect } from "react";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
@@ -9,7 +8,6 @@ import { UpvoteFeatureButton } from "@/components/features/UpvoteFeatureButton";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { EnhancedFamilyNextStepsPanel } from "@/components/family/EnhancedFamilyNextStepsPanel";
-import { DashboardCaregiverMatches } from "@/components/family/DashboardCaregiverMatches";
 import { CaregiverMatchingCard } from "@/components/family/CaregiverMatchingCard";
 import { FamilyShortcutMenuBar } from "@/components/family/FamilyShortcutMenuBar";
 import { TellTheirStoryCard } from "@/components/family/TellTheirStoryCard";
@@ -127,10 +125,12 @@ const FamilyDashboard = () => {
         {/* Caregiver Matching Card */}
         <CaregiverMatchingCard />
 
-        {/* Family Matches Section */}
+        {/* Family Matches Section - Temporarily hidden */}
+        {/* 
         <div className="mt-8">
           <DashboardCaregiverMatches />
         </div>
+        */}
 
         <div className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
