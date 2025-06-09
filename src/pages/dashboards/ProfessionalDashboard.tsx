@@ -4,11 +4,11 @@ import { useEffect, useState } from "react";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, FileText, UserCog, Building, Users, ChevronDown, ChevronUp } from "lucide-react";
+import { ArrowRight, FileText, UserCog, Building, Users, ChevronDown, ChevronUp, TrendingUp } from "lucide-react";
 import { UpvoteFeatureButton } from "@/components/features/UpvoteFeatureButton";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/components/providers/AuthProvider";
-import { NextStepsPanel } from "@/components/professional/NextStepsPanel";
+import { EnhancedProfessionalNextStepsPanel } from "@/components/professional/EnhancedProfessionalNextStepsPanel";
 import { DashboardFamilyMatches } from "@/components/professional/DashboardFamilyMatches";
 import { CaregiverMatchingCard } from "@/components/professional/CaregiverMatchingCard";
 import { ProfessionalShortcutMenuBar } from "@/components/professional/ProfessionalShortcutMenuBar";
@@ -55,10 +55,17 @@ const ProfessionalDashboard = () => {
           transition={{ duration: 0.5 }}
           className="space-y-6"
         >
-          <h1 className="text-3xl font-bold">Professional Dashboard</h1>
-          <p className="text-muted-foreground mt-2">
-            Manage your caregiving services and professional development.
-          </p>
+          <div className="flex items-center gap-3 mb-6">
+            <div className="p-2 bg-primary-100 rounded-lg">
+              <TrendingUp className="h-6 w-6 text-primary" />
+            </div>
+            <div>
+              <h1 className="text-3xl font-bold">Professional Dashboard</h1>
+              <p className="text-muted-foreground mt-1">
+                Track your journey to caregiving excellence and manage your professional development.
+              </p>
+            </div>
+          </div>
         </motion.div>
 
         {/* Quick Access Menu Bar - Only show when user is logged in */}
@@ -100,6 +107,11 @@ const ProfessionalDashboard = () => {
           </motion.div>
         ) : null}
 
+        {/* Enhanced Professional Journey Progress - Real Data */}
+        <div className="mt-8">
+          <EnhancedProfessionalNextStepsPanel />
+        </div>
+
         {/* Collapsible Caregiver Health Card - Only for logged-in users */}
         {user && (
           <motion.div
@@ -140,9 +152,8 @@ const ProfessionalDashboard = () => {
           </motion.div>
         )}
 
-        {/* Next Steps and Profile Management - side by side */}
+        {/* Profile Management and Features - side by side */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
-          <NextStepsPanel />
           
           {/* Profile Management Card */}
           <Card className="bg-white shadow-sm">
@@ -179,17 +190,8 @@ const ProfessionalDashboard = () => {
               </div>
             </CardContent>
           </Card>
-        </div>
 
-        <CaregiverMatchingCard />
-
-        {/* Family Matches Section */}
-        <div className="mt-8">
-          <DashboardFamilyMatches />
-        </div>
-
-        {/* Admin Assistant - Full Width */}
-        <div className="mt-8">
+          {/* Admin Assistant */}
           <Card className="bg-white shadow-sm">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -224,6 +226,13 @@ const ProfessionalDashboard = () => {
               </div>
             </CardContent>
           </Card>
+        </div>
+
+        <CaregiverMatchingCard />
+
+        {/* Family Matches Section */}
+        <div className="mt-8">
+          <DashboardFamilyMatches />
         </div>
 
         {/* Professional Agency */}
