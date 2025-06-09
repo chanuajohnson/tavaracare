@@ -12,7 +12,7 @@ import { ProfessionalJourneyWelcomeCard } from './components/ProfessionalJourney
 import { CommunityJourneyPreview } from './components/CommunityJourneyPreview';
 
 interface RoleBasedContentProps {
-  role: 'family' | 'professional' | 'community' | 'admin' | null;
+  role: 'family' | 'professional' | 'community' | 'admin' | 'guest' | null;
   nudges: AssistantNudge[];
   onNudgeClick: (nudge: AssistantNudge) => void;
   isLoading: boolean;
@@ -165,7 +165,7 @@ export const RoleBasedContent: React.FC<RoleBasedContentProps> = ({
           )}
 
           {/* Guest welcome message */}
-          {!user && (
+          {(!user || role === 'guest') && (
             <div className="space-y-4">
               <div className="bg-gradient-to-br from-primary/5 to-blue/5 rounded-xl p-4 border border-primary/20">
                 <div className="flex items-center gap-2 mb-2">

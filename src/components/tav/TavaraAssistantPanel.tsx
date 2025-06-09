@@ -93,7 +93,7 @@ export const TavaraAssistantPanel: React.FC = () => {
       };
     }
     
-    // Default fallback
+    // Default fallback for guest or other roles
     return {
       role: state.currentRole || 'guest',
       completionPercentage: 0,
