@@ -55,6 +55,10 @@ export const ProfessionalJourneyWelcomeCard: React.FC<ProfessionalJourneyWelcome
     }
   };
 
+  const journeyStage = progressContext.journeyStage || 'foundation';
+  const completedSteps = progressContext.completedSteps || 0;
+  const totalSteps = progressContext.totalSteps || 6;
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
@@ -74,12 +78,12 @@ export const ProfessionalJourneyWelcomeCard: React.FC<ProfessionalJourneyWelcome
           {/* Header with stage and progress */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <div className={`p-2 rounded-lg bg-gradient-to-r ${getStageColor(progressContext.journeyStage)} text-white`}>
-                {getStageIcon(progressContext.journeyStage)}
+              <div className={`p-2 rounded-lg bg-gradient-to-r ${getStageColor(journeyStage)} text-white`}>
+                {getStageIcon(journeyStage)}
               </div>
               <div>
                 <h3 className="font-semibold text-primary text-sm">Professional Journey</h3>
-                <p className="text-xs text-gray-600 capitalize">{progressContext.journeyStage} Stage</p>
+                <p className="text-xs text-gray-600 capitalize">{journeyStage} Stage</p>
               </div>
             </div>
             
@@ -89,7 +93,7 @@ export const ProfessionalJourneyWelcomeCard: React.FC<ProfessionalJourneyWelcome
                 <span className="text-lg font-bold text-primary">{progressContext.completionPercentage}%</span>
               </div>
               <p className="text-xs text-gray-500">
-                {progressContext.completedSteps || 0} of {progressContext.totalSteps || 6} steps
+                {completedSteps} of {totalSteps} steps
               </p>
             </div>
           </div>
@@ -101,7 +105,7 @@ export const ProfessionalJourneyWelcomeCard: React.FC<ProfessionalJourneyWelcome
               className="h-3 bg-gray-100"
             />
             <p className="text-xs text-gray-700 leading-relaxed">
-              {getStageMessage(progressContext.journeyStage, progressContext.completionPercentage)}
+              {getStageMessage(journeyStage, progressContext.completionPercentage)}
             </p>
           </div>
 

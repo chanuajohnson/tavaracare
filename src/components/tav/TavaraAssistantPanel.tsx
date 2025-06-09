@@ -157,10 +157,11 @@ export const TavaraAssistantPanel: React.FC = () => {
   };
 
   // Create comprehensive progress context based on user role with enhanced professional data
-  const getProgressContext = () => {
+  const getProgressContext = (): ProgressContext => {
     if (state.currentRole === 'professional') {
       const { overallProgress, nextStep, currentStage, completedSteps, totalSteps } = professionalProgress;
       return {
+        role: 'professional',
         completionPercentage: overallProgress || 0,
         currentStep: nextStep?.title || 'Complete your professional profile',
         nextAction: nextStep?.description || 'Add your experience and certifications',
@@ -171,6 +172,7 @@ export const TavaraAssistantPanel: React.FC = () => {
     } else if (state.currentRole === 'family') {
       const { completionPercentage, nextStep, journeyStage, careModel, trialCompleted } = familyJourneyProgress;
       return {
+        role: 'family',
         completionPercentage: completionPercentage || 0,
         currentStep: nextStep?.title || 'Complete your profile',
         nextAction: nextStep?.description || 'Add your care needs information',
@@ -182,6 +184,7 @@ export const TavaraAssistantPanel: React.FC = () => {
     
     // Default fallback
     return {
+      role: state.currentRole || 'guest',
       completionPercentage: 0,
       currentStep: 'Get Started',
       nextAction: 'Complete your registration',

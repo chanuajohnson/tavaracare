@@ -12,7 +12,7 @@ import { ProfessionalJourneyWelcomeCard } from './components/ProfessionalJourney
 import { CommunityJourneyPreview } from './components/CommunityJourneyPreview';
 
 interface RoleBasedContentProps {
-  role: 'family' | 'professional' | 'community' | null;
+  role: 'family' | 'professional' | 'community' | 'admin' | null;
   nudges: AssistantNudge[];
   onNudgeClick: (nudge: AssistantNudge) => void;
   isLoading: boolean;
@@ -124,7 +124,7 @@ export const RoleBasedContent: React.FC<RoleBasedContentProps> = ({
                       <CheckCircle className="h-3 w-3 text-primary" />
                     </div>
                     <div className="flex-1">
-                      <h4 className="font-medium text-sm text-primary">{nudge.title}</h4>
+                      <h4 className="font-medium text-sm text-primary">{nudge.title || 'Update Available'}</h4>
                       <p className="text-xs text-gray-700 mt-1">{nudge.message}</p>
                     </div>
                   </div>
@@ -143,18 +143,18 @@ export const RoleBasedContent: React.FC<RoleBasedContentProps> = ({
                     progressContext={progressContext}
                     onActionClick={handleJourneyAction}
                   />
-                  <ProfessionalJourneyPreview progressContext={progressContext} />
+                  <ProfessionalJourneyPreview />
                 </div>
               )}
 
               {/* Family-specific content */}
               {role === 'family' && (
-                <FamilyJourneyPreview progressContext={progressContext} />
+                <FamilyJourneyPreview />
               )}
 
               {/* Community-specific content */}
               {role === 'community' && (
-                <CommunityJourneyPreview />
+                <CommunityJourneyPreview onBack={() => {}} />
               )}
             </>
           )}
