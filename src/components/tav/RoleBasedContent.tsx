@@ -1,11 +1,12 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Heart, UserCog, Users, Globe, Shield, ArrowRight, Sparkles, Clock, CheckCircle2, Circle, X, Minimize2 } from 'lucide-react';
+import { Heart, UserCog, Users, Globe, Shield, ArrowRight, Sparkles, Clock, CheckCircle2, Circle, X, Minimize2, FileText, AlertCircle, Star } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useReturningUser } from './hooks/useReturningUser';
 import { useFamilyProgress } from './hooks/useFamilyProgress';
 import { useProfessionalProgress } from './hooks/useProfessionalProgress';
+import { useFormDetection } from './hooks/useFormDetection';
+import { usePageContext } from './hooks/usePageContext';
 import { motion } from 'framer-motion';
 import { FamilyJourneyPreview } from './components/FamilyJourneyPreview';
 import { ProfessionalJourneyPreview } from './components/ProfessionalJourneyPreview';
@@ -47,6 +48,10 @@ export const RoleBasedContent: React.FC<RoleBasedContentProps> = ({
   const { isReturningUser, lastRole, hasVisitedBefore, detectionMethod } = useReturningUser();
   const [previewState, setPreviewState] = useState<PreviewState>('selection');
   
+  // Get context awareness hooks
+  const { currentForm, isFormPage } = useFormDetection();
+  const pageContext = usePageContext();
+  
   // Get real progress data for logged-in users
   const familyProgress = useFamilyProgress();
   const professionalProgress = useProfessionalProgress();
@@ -83,13 +88,40 @@ export const RoleBasedContent: React.FC<RoleBasedContentProps> = ({
     setPreviewState('selection');
   };
 
-  // Panel header with close/minimize controls for ALL users (including guests)
+  // Enhanced contextual greeting based on form detection and page context
+  const getContextualFormGuidance = () => {
+    if (!currentForm) return null;
+
+    // Use auto-greeting from form detection if available
+    if (currentForm.autoGreetingMessage) {
+      return {
+        message: currentForm.autoGreetingMessage,
+        type: 'form-specific'
+      };
+    }
+
+    // Fallback contextual guidance
+    return {
+      message: `💙 I can help you with your ${currentForm.formTitle}. Let me guide you through each field!`,
+      type: 'general-form'
+    };
+  };
+
+  // Enhanced panel header with magical subtitle and close/minimize controls
   const renderPanelHeader = () => {
     return (
-      <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-white flex-shrink-0">
+      <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-gradient-to-r from-primary/5 to-blue-50 flex-shrink-0">
         <div className="flex items-center gap-3">
-          <Heart className="h-5 w-5 text-primary flex-shrink-0" />
-          <h3 className="text-lg font-semibold">TAV Assistant</h3>
+          <div className="relative">
+            <Heart className="h-5 w-5 text-primary flex-shrink-0" />
+            <div className="absolute -top-1 -right-1">
+              <Sparkles className="h-3 w-3 text-primary/60 animate-pulse" />
+            </div>
+          </div>
+          <div className="flex flex-col">
+            <h3 className="text-lg font-semibold text-gray-800">TAV Assistant</h3>
+            <p className="text-xs text-primary/70 font-medium">Your personal care coordinator</p>
+          </div>
         </div>
         <div className="flex items-center gap-2">
           {onMinimize && (
@@ -97,7 +129,7 @@ export const RoleBasedContent: React.FC<RoleBasedContentProps> = ({
               variant="ghost"
               size="sm"
               onClick={onMinimize}
-              className="h-8 w-8 p-0 hover:bg-gray-100"
+              className="h-8 w-8 p-0 hover:bg-white/50"
               title="Minimize panel"
             >
               <Minimize2 className="h-4 w-4" />
@@ -108,7 +140,7 @@ export const RoleBasedContent: React.FC<RoleBasedContentProps> = ({
               variant="ghost"
               size="sm"
               onClick={onClose}
-              className="h-8 w-8 p-0 hover:bg-gray-100"
+              className="h-8 w-8 p-0 hover:bg-white/50"
               title="Close panel"
             >
               <X className="h-4 w-4" />
@@ -116,6 +148,62 @@ export const RoleBasedContent: React.FC<RoleBasedContentProps> = ({
           )}
         </div>
       </div>
+    );
+  };
+
+  // Family Journey Welcome Card
+  const renderFamilyWelcomeCard = () => {
+    const { completionPercentage, nextStep } = familyProgress;
+    const journeyStage = progressContext?.journeyStage || 'foundation';
+    
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="mb-4 p-4 bg-gradient-to-br from-blue-50 via-primary/5 to-blue-100/50 rounded-xl border border-blue-200/50 relative overflow-hidden"
+      >
+        {/* Magical sparkle decorations */}
+        <div className="absolute top-2 right-2">
+          <Star className="h-3 w-3 text-blue-400/40 animate-pulse" />
+        </div>
+        <div className="absolute bottom-2 left-2">
+          <Sparkles className="h-2 w-2 text-primary/30 animate-pulse" style={{ animationDelay: '0.5s' }} />
+        </div>
+        <div className="absolute top-1/2 right-4">
+          <Sparkles className="h-2 w-2 text-blue-300/50 animate-pulse" style={{ animationDelay: '1s' }} />
+        </div>
+        
+        <div className="relative">
+          <div className="flex items-center gap-2 mb-2">
+            <Heart className="h-4 w-4 text-primary" />
+            <h4 className="text-sm font-semibold text-primary">Your Journey Ahead</h4>
+          </div>
+          
+          <p className="text-xs text-gray-700 leading-relaxed mb-3">
+            {journeyStage === 'foundation' && "Building your care foundation! Let's get everything set up perfectly."}
+            {journeyStage === 'scheduling' && "Great progress! Time to connect with our care coordinator."}
+            {journeyStage === 'trial' && "Exciting! Your trial experience is coming up."}
+            {journeyStage === 'conversion' && "Congratulations! Ready to choose your perfect care path."}
+            {!journeyStage && "I'm here to guide you through every step of your caregiving journey."}
+          </p>
+          
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="w-16 h-1.5 bg-blue-200 rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-gradient-to-r from-primary to-blue-500 rounded-full transition-all duration-500"
+                  style={{ width: `${completionPercentage}%` }}
+                />
+              </div>
+              <span className="text-xs font-medium text-primary">{completionPercentage}%</span>
+            </div>
+            
+            {nextStep && (
+              <span className="text-xs text-gray-600 font-medium">{nextStep.title}</span>
+            )}
+          </div>
+        </div>
+      </motion.div>
     );
   };
 
@@ -228,7 +316,8 @@ export const RoleBasedContent: React.FC<RoleBasedContentProps> = ({
     }
 
     if (role === 'family') {
-      const { steps, completionPercentage, nextStep, loading } = familyProgress;
+      const { steps, completionPercentage, nextStep, loading, formStatus } = familyProgress;
+      const contextualGuidance = getContextualFormGuidance();
 
       if (loading) {
         return (
@@ -245,81 +334,63 @@ export const RoleBasedContent: React.FC<RoleBasedContentProps> = ({
         );
       }
 
-      // Add action and buttonText properties to steps for this component
-      const enhancedSteps = steps.map(step => ({
-        ...step,
-        action: () => {
-          if (step.id === 4) {
-            const canAccess = steps[0]?.completed && steps[1]?.completed && steps[2]?.completed;
-            if (!canAccess) return;
-          }
-          
-          if (step.id === 5) {
-            navigate('/family/care-management');
-            return;
-          }
-          
-          if (step.id === 6) {
-            navigate('/family/care-management');
-            return;
-          }
-          
-          if (step.id === 7) {
-            navigate('/family/schedule-visit');
-            return;
-          }
-          
-          // Default navigation
-          navigate('/dashboard/family');
-        },
-        buttonText: (() => {
-          const canAccessMatching = step.id !== 4 || (steps[0]?.completed && steps[1]?.completed && steps[2]?.completed);
-          
-          if (step.id === 4 && !canAccessMatching) {
-            return "Complete Above Steps";
-          }
-          
-          if (step.completed) {
-            return "View";
-          }
-          
-          return "Continue";
-        })()
-      }));
-
       return (
         <div className="space-y-4 p-4">
           <div className="flex items-center gap-3 mb-4">
             <Users className="h-6 w-6 text-blue-600 flex-shrink-0" />
             <h3 className="text-lg font-semibold leading-tight">Your Journey Ahead</h3>
           </div>
-          
-          <div className="bg-blue-50 rounded-lg p-3 border border-blue-200">
-            <div className="flex justify-between items-center mb-2">
-              <span className="text-sm font-medium">Progress</span>
-              <span className="text-sm text-blue-600 font-semibold">
-                {completionPercentage}%
-              </span>
+
+          {/* Family Journey Welcome Card */}
+          {renderFamilyWelcomeCard()}
+
+          {/* Contextual Form Guidance - MAGIC CONTEXTUAL AWARENESS */}
+          {contextualGuidance && (
+            <div className="bg-primary/5 rounded-lg p-3 border border-primary/20 mb-4">
+              <div className="flex items-start gap-2">
+                <Sparkles className="h-4 w-4 text-primary flex-shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <p className="text-sm text-primary font-medium mb-1">Context-Aware Assistance</p>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    {contextualGuidance.message}
+                  </p>
+                  
+                  {/* Form Field Completion Status */}
+                  {formStatus && (
+                    <div className="mt-2 p-2 bg-white/50 rounded border">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-xs font-medium text-gray-600">Form Progress</span>
+                        <span className="text-xs font-bold text-primary">{formStatus.completionPercentage}%</span>
+                      </div>
+                      
+                      {formStatus.missingFields.length > 0 ? (
+                        <div className="flex items-center gap-1 text-xs text-amber-600">
+                          <AlertCircle className="h-3 w-3" />
+                          <span>{formStatus.missingFields.length} field{formStatus.missingFields.length !== 1 ? 's' : ''} need{formStatus.missingFields.length === 1 ? 's' : ''} completion</span>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-1 text-xs text-green-600">
+                          <CheckCircle2 className="h-3 w-3" />
+                          <span>All fields completed! 🎉</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
-            <div className="w-full bg-blue-200 rounded-full h-2">
-              <div 
-                className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                style={{ width: `${completionPercentage}%` }}
-              />
-            </div>
-          </div>
+          )}
           
           <p className="text-sm text-muted-foreground leading-relaxed">
             You're doing great! I'm here to guide you through each step of setting up 
             care for your loved one.
           </p>
           
-          {/* Granular Steps Section */}
+          {/* Real Journey Steps Section */}
           <div className="space-y-2">
             <p className="text-xs font-medium text-blue-800 mb-2">Journey Steps:</p>
             <div className="space-y-1">
-              {enhancedSteps.map((step, index) => {
-                const canAccess = step.id !== 4 || (steps[0]?.completed && steps[1]?.completed && steps[2]?.completed);
+              {steps.map((step, index) => {
                 return (
                   <div key={step.id} className="flex items-center gap-2 text-xs">
                     <div className="flex items-center gap-1 flex-1 min-w-0">
@@ -336,18 +407,18 @@ export const RoleBasedContent: React.FC<RoleBasedContentProps> = ({
                       variant="ghost"
                       size="sm"
                       className={`h-5 px-2 text-xs ${
-                        step.id === 4 && !canAccess 
+                        (!step.accessible)
                           ? 'text-gray-400 cursor-not-allowed' 
                           : 'text-blue-600 hover:text-blue-700'
                       }`}
-                      disabled={step.id === 4 && !canAccess}
+                      disabled={!step.accessible}
                       onClick={() => {
-                        if (step.action) {
+                        if (step.action && step.accessible) {
                           step.action();
                         }
                       }}
                     >
-                      {step.buttonText}
+                      {step.buttonText || (step.completed ? "View" : "Continue")}
                     </Button>
                   </div>
                 );
@@ -371,9 +442,8 @@ export const RoleBasedContent: React.FC<RoleBasedContentProps> = ({
             size="sm" 
             className="w-full h-auto py-3"
             onClick={() => {
-              const enhancedNextStep = enhancedSteps.find(s => s.id === nextStep?.id);
-              if (enhancedNextStep?.action) {
-                enhancedNextStep.action();
+              if (nextStep && nextStep.action) {
+                nextStep.action();
               } else {
                 navigate('/dashboard/family');
               }

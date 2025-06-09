@@ -38,22 +38,21 @@ const CommunityDashboard = () => {
     path: "/dashboard/community"
   }];
   
-  return <div className="min-h-screen bg-background">
+  return (
+    <div className="min-h-screen bg-background">
       {user && <CommunityShortcutMenuBar />}
       
       <div className="container px-4 py-8">
         <DashboardHeader breadcrumbItems={breadcrumbItems} />
 
-        <motion.div initial={{
-        opacity: 0,
-        y: 20
-      }} animate={{
-        opacity: 1,
-        y: 0
-      }} transition={{
-        duration: 0.5
-      }} className="space-y-6">
-          {!user ? <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 rounded-lg mb-8 border border-blue-100">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="space-y-6"
+        >
+          {!user ? (
+            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 rounded-lg mb-8 border border-blue-100">
               <h2 className="text-2xl font-bold mb-2">Join the Movement! 🌍 Supporting Care, Together.</h2>
               <p className="text-gray-600 mb-4">Help families, participate in care circles, and engage with the growing community</p>
               <div className="flex flex-wrap gap-3 mt-4">
@@ -73,7 +72,8 @@ const CommunityDashboard = () => {
                   </Button>
                 </Link>
               </div>
-            </div> : null}
+            </div>
+          ) : null}
 
           <h1 className="text-3xl font-bold">Community Dashboard</h1>
           <p className="text-muted-foreground mt-2">
@@ -82,7 +82,8 @@ const CommunityDashboard = () => {
         </motion.div>
 
         <div className="grid gap-6 mt-8">
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {/* First row: 3 equal cards */}
+          <div className="grid md:grid-cols-3 gap-6">
             <Card>
               <CardHeader>
                 <div className="mb-4">
@@ -121,7 +122,7 @@ const CommunityDashboard = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <Link to="/community/features-overview">
+                <Link to="/features#community-features">
                   <Button className="w-full flex items-center justify-center">
                     Find Circles
                     <ArrowRight className="ml-2 h-4 w-4" />
@@ -142,7 +143,7 @@ const CommunityDashboard = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <Link to="/community/features-overview">
+                <Link to="/features#community-features">
                   <Button className="w-full flex items-center justify-center">
                     View Events
                     <ArrowRight className="ml-2 h-4 w-4" />
@@ -151,7 +152,10 @@ const CommunityDashboard = () => {
                 <UpvoteFeatureButton featureTitle="Community Events" buttonText="Upvote this Feature" />
               </CardContent>
             </Card>
-            
+          </div>
+
+          {/* Second row: Support Network (1/3) + Tech Innovators Hub (2/3) */}
+          <div className="grid md:grid-cols-3 gap-6">
             <Card>
               <CardHeader>
                 <div className="mb-4">
@@ -163,7 +167,7 @@ const CommunityDashboard = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <Link to="/community/features-overview">
+                <Link to="/features#community-features">
                   <Button className="w-full flex items-center justify-center">
                     Get Involved
                     <ArrowRight className="ml-2 h-4 w-4" />
@@ -173,10 +177,14 @@ const CommunityDashboard = () => {
               </CardContent>
             </Card>
 
-            <TechInnovatorsHub />
+            <div className="md:col-span-2">
+              <TechInnovatorsHub />
+            </div>
           </div>
         </div>
       </div>
-    </div>;
+    </div>
+  );
 };
+
 export default CommunityDashboard;

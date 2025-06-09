@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { supabase } from '@/lib/supabase';
@@ -24,6 +25,8 @@ interface JourneyProgressData {
   carePlans: any[];
   showScheduleModal: boolean;
   setShowScheduleModal: (show: boolean) => void;
+  showCaregiverMatchingModal: boolean;
+  setShowCaregiverMatchingModal: (show: boolean) => void;
   journeyStage: 'foundation' | 'scheduling' | 'trial' | 'conversion';
   careModel: string | null;
   trialCompleted: boolean;
@@ -35,6 +38,7 @@ export const useFamilyJourneyProgress = (): JourneyProgressData => {
   const [loading, setLoading] = useState(true);
   const [carePlans, setCarePlans] = useState([]);
   const [showScheduleModal, setShowScheduleModal] = useState(false);
+  const [showCaregiverMatchingModal, setShowCaregiverMatchingModal] = useState(false);
   const [journeyStage, setJourneyStage] = useState<'foundation' | 'scheduling' | 'trial' | 'conversion'>('foundation');
   const [careModel, setCareModel] = useState<string | null>(null);
   const [trialCompleted, setTrialCompleted] = useState(false);
@@ -192,6 +196,10 @@ export const useFamilyJourneyProgress = (): JourneyProgressData => {
     if (step.id === 4) {
       const canAccessMatching = steps[0]?.completed && steps[1]?.completed && steps[2]?.completed;
       if (!canAccessMatching) return;
+      
+      // Show caregiver matching modal instead of navigating
+      setShowCaregiverMatchingModal(true);
+      return;
     }
     
     if (step.id === 5) {
@@ -455,6 +463,8 @@ export const useFamilyJourneyProgress = (): JourneyProgressData => {
     carePlans,
     showScheduleModal,
     setShowScheduleModal,
+    showCaregiverMatchingModal,
+    setShowCaregiverMatchingModal,
     journeyStage,
     careModel,
     trialCompleted

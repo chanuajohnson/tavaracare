@@ -37,7 +37,6 @@ export const ChatbotDemo: React.FC = () => {
         position="bottom-right"
         icon={<HelpCircle className="h-5 w-5" />}
         className="bg-primary-500 hover:bg-primary-600 text-white"
-        showMenu={true}
       />
     </div>
   );
