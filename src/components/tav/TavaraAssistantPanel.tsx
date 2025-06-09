@@ -10,7 +10,7 @@ import { RoleBasedContent } from './RoleBasedContent';
 import { assistantSupabase } from './assistantSupabase';
 import { ManualNudgeService } from './ManualNudgeService';
 import { useAuth } from '@/components/providers/AuthProvider';
-import { AssistantNudge } from './types';
+import { AssistantNudge, ProgressContext } from './types';
 import { useEnhancedProfessionalProgress } from '@/hooks/useEnhancedProfessionalProgress';
 import { useFamilyJourneyProgress } from '@/hooks/useFamilyJourneyProgress';
 import { useLocation } from 'react-router-dom';
@@ -64,6 +64,46 @@ export const TavaraAssistantPanel: React.FC = () => {
       fetchNudges();
     }
   }, [user]);
+
+  // Create comprehensive progress context based on user role with enhanced professional data
+  const getProgressContext = (): ProgressContext => {
+    if (state.currentRole === 'professional') {
+      const { overallProgress, nextStep, currentStage, completedSteps, totalSteps } = professionalProgress;
+      return {
+        role: 'professional',
+        completionPercentage: overallProgress || 0,
+        currentStep: nextStep?.title || 'Complete your professional profile',
+        nextAction: nextStep?.description || 'Add your experience and certifications',
+        journeyStage: currentStage || 'foundation',
+        completedSteps: completedSteps || 0,
+        totalSteps: totalSteps || 6
+      };
+    } else if (state.currentRole === 'family') {
+      const { completionPercentage, nextStep, journeyStage, careModel, trialCompleted } = familyJourneyProgress;
+      return {
+        role: 'family',
+        completionPercentage: completionPercentage || 0,
+        currentStep: nextStep?.title || 'Complete your profile',
+        nextAction: nextStep?.description || 'Add your care needs information',
+        journeyStage: journeyStage || 'foundation',
+        careModel,
+        trialCompleted,
+        completedSteps: 0,
+        totalSteps: 7
+      };
+    }
+    
+    // Default fallback
+    return {
+      role: state.currentRole || 'guest',
+      completionPercentage: 0,
+      currentStep: 'Get Started',
+      nextAction: 'Complete your registration',
+      journeyStage: 'foundation',
+      completedSteps: 0,
+      totalSteps: 1
+    };
+  };
 
   // MAGIC AUTO-GREETING with enhanced professional context
   useEffect(() => {
@@ -154,42 +194,6 @@ export const TavaraAssistantPanel: React.FC = () => {
     await assistantSupabase.markNudgeAsSeen(nudge.id);
     setNudges(prev => prev.filter(n => n.id !== nudge.id));
     markNudgesAsRead();
-  };
-
-  // Create comprehensive progress context based on user role with enhanced professional data
-  const getProgressContext = (): ProgressContext => {
-    if (state.currentRole === 'professional') {
-      const { overallProgress, nextStep, currentStage, completedSteps, totalSteps } = professionalProgress;
-      return {
-        role: 'professional',
-        completionPercentage: overallProgress || 0,
-        currentStep: nextStep?.title || 'Complete your professional profile',
-        nextAction: nextStep?.description || 'Add your experience and certifications',
-        journeyStage: currentStage || 'foundation',
-        completedSteps,
-        totalSteps
-      };
-    } else if (state.currentRole === 'family') {
-      const { completionPercentage, nextStep, journeyStage, careModel, trialCompleted } = familyJourneyProgress;
-      return {
-        role: 'family',
-        completionPercentage: completionPercentage || 0,
-        currentStep: nextStep?.title || 'Complete your profile',
-        nextAction: nextStep?.description || 'Add your care needs information',
-        journeyStage,
-        careModel,
-        trialCompleted
-      };
-    }
-    
-    // Default fallback
-    return {
-      role: state.currentRole || 'guest',
-      completionPercentage: 0,
-      currentStep: 'Get Started',
-      nextAction: 'Complete your registration',
-      journeyStage: 'foundation'
-    };
   };
 
   const progressContext = getProgressContext();

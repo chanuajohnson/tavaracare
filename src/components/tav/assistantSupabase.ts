@@ -17,6 +17,7 @@ export const assistantSupabase = {
       // Transform the data to match our AssistantNudge interface
       return (data || []).map(item => ({
         ...item,
+        title: item.title || 'Update Available', // Provide default title if missing
         context: typeof item.context === 'object' && item.context !== null
           ? item.context as { [key: string]: any; role?: string; progress_stage?: string; action_type?: string; }
           : {},
@@ -48,6 +49,7 @@ export const assistantSupabase = {
         .from('assistant_nudges')
         .insert({
           user_id: userId,
+          title: 'New Update',
           message,
           context,
           sender: 'TAV',

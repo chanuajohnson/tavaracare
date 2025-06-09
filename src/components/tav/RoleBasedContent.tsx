@@ -51,6 +51,11 @@ export const RoleBasedContent: React.FC<RoleBasedContentProps> = ({
     }
   };
 
+  const handleBack = () => {
+    // Simple back navigation - could be enhanced
+    window.history.back();
+  };
+
   return (
     <div className="flex flex-col h-full">
       {/* Header with sparkles and controls */}
@@ -143,18 +148,18 @@ export const RoleBasedContent: React.FC<RoleBasedContentProps> = ({
                     progressContext={progressContext}
                     onActionClick={handleJourneyAction}
                   />
-                  <ProfessionalJourneyPreview />
+                  <ProfessionalJourneyPreview onBack={handleBack} />
                 </div>
               )}
 
               {/* Family-specific content */}
               {role === 'family' && (
-                <FamilyJourneyPreview />
+                <FamilyJourneyPreview onBack={handleBack} />
               )}
 
               {/* Community-specific content */}
               {role === 'community' && (
-                <CommunityJourneyPreview onBack={() => {}} />
+                <CommunityJourneyPreview onBack={handleBack} />
               )}
             </>
           )}
@@ -206,7 +211,7 @@ export const RoleBasedContent: React.FC<RoleBasedContentProps> = ({
         </div>
 
         {/* Expandable chat section */}
-        <ExpandableChatSection role={role} />
+        <ExpandableChatSection role={role as 'family' | 'professional' | 'community' | null} />
       </div>
     </div>
   );
