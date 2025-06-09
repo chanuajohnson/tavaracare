@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -5,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { ChevronDown, ChevronUp, CheckCircle2, Circle, Clock, ArrowRight, Calendar, Video, Home } from "lucide-react";
 import { JourneyStepTooltip } from "./JourneyStepTooltip";
 import { SubscriptionTrackingButton } from "@/components/subscription/SubscriptionTrackingButton";
-import { useIsMobile } from "@/hooks/use-mobile";
+import { useIsMobile, useIsSmallMobile } from "@/hooks/use-mobile";
 import { useNavigate } from "react-router-dom";
 import * as LucideIcons from "lucide-react";
 
@@ -65,6 +66,7 @@ export const JourneyStageCard: React.FC<JourneyStageCardProps> = ({
 }) => {
   const [isExpanded, setIsExpanded] = useState(true);
   const isMobile = useIsMobile();
+  const isSmallMobile = useIsSmallMobile();
   const navigate = useNavigate();
   
   const completedSteps = steps.filter(step => step.completed).length;
@@ -79,7 +81,7 @@ export const JourneyStageCard: React.FC<JourneyStageCardProps> = ({
 
   const getIcon = (iconName: string) => {
     const IconComponent = (LucideIcons as any)[iconName];
-    return IconComponent ? <IconComponent className="h-4 w-4 sm:h-5 sm:w-5" /> : <Circle className="h-4 w-4 sm:h-5 sm:w-5" />;
+    return IconComponent ? <IconComponent className="mobile-icon-responsive" /> : <Circle className="mobile-icon-responsive" />;
   };
 
   const getButtonText = (step: JourneyStep) => {
@@ -148,13 +150,13 @@ export const JourneyStageCard: React.FC<JourneyStageCardProps> = ({
           : 'border-l-gray-300 bg-gray-50/50'
     }`}>
       <CardHeader 
-        className="pb-3 cursor-pointer"
+        className="mobile-padding-responsive cursor-pointer"
         onClick={() => setIsExpanded(!isExpanded)}
       >
-        <div className="flex items-center justify-between">
-          <div className="flex-1">
-            <CardTitle className={`flex items-center gap-3 ${isMobile ? 'text-base' : 'text-lg'}`}>
-              <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex-1 min-w-0">
+            <CardTitle className="journey-header-mobile">
+              <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
                 stageStatus === 'completed' 
                   ? 'bg-green-100 text-green-600'
                   : stageStatus === 'in-progress'
@@ -162,82 +164,89 @@ export const JourneyStageCard: React.FC<JourneyStageCardProps> = ({
                     : 'bg-gray-100 text-gray-400'
               }`}>
                 {stageStatus === 'completed' ? (
-                  <CheckCircle2 className="h-5 w-5" />
+                  <CheckCircle2 className="h-4 w-4 sm:h-5 sm:w-5" />
                 ) : (
-                  <Circle className="h-5 w-5" />
+                  <Circle className="h-4 w-4 sm:h-5 sm:w-5" />
                 )}
               </div>
-              <div className="flex-1">
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="font-semibold">{stageName}</span>
+              <div className="flex-1 min-w-0">
+                <div className="flex flex-wrap items-center gap-2 mb-1">
+                  <span className={`font-semibold ${isSmallMobile ? 'text-sm' : isMobile ? 'text-base' : 'text-lg'}`}>
+                    {stageName}
+                  </span>
                   <Badge variant={
                     stageStatus === 'completed' ? 'default' :
                     stageStatus === 'in-progress' ? 'secondary' : 'outline'
-                  } className="text-xs">
+                  } className="text-xs whitespace-nowrap">
                     {stageStatus === 'completed' ? 'Complete' :
                      stageStatus === 'in-progress' ? 'In Progress' : 'Not Started'}
                   </Badge>
                 </div>
-                <p className="text-xs text-gray-600 font-normal">{stageDescription}</p>
+                <p className="text-xs text-gray-600 font-normal truncate sm:text-clip">
+                  {stageDescription}
+                </p>
               </div>
             </CardTitle>
           </div>
           
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
             <div className="text-right">
-              <div className={`${isMobile ? 'text-lg' : 'text-xl'} font-bold ${
+              <div className={`font-bold ${isSmallMobile ? 'text-base' : isMobile ? 'text-lg' : 'text-xl'} ${
                 stageStatus === 'completed' ? 'text-green-600' :
                 stageStatus === 'in-progress' ? `text-${stageColor}-600` : 'text-gray-400'
               }`}>
                 {completionPercentage}%
               </div>
-              <div className="text-xs text-gray-500">
+              <div className="text-xs text-gray-500 whitespace-nowrap">
                 {completedSteps} of {totalSteps}
               </div>
             </div>
             
-            <div className={`${isMobile ? 'w-12 h-12' : 'w-14 h-14'} relative`}>
-              <svg className={`${isMobile ? 'w-12 h-12' : 'w-14 h-14'} transform -rotate-90`} viewBox="0 0 36 36">
-                <path
-                  className="text-gray-200"
-                  stroke="currentColor"
-                  strokeWidth="2.5"
-                  fill="transparent"
-                  d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                />
-                <path
-                  className={
-                    stageStatus === 'completed' ? 'text-green-500' :
-                    stageStatus === 'in-progress' ? `text-${stageColor}-500` : 'text-gray-300'
-                  }
-                  stroke="currentColor"
-                  strokeWidth="2.5"
-                  fill="transparent"
-                  strokeDasharray={`${completionPercentage}, 100`}
-                  d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                />
-              </svg>
+            {/* Enhanced Progress Circle with Better Mobile Sizing */}
+            <div className="progress-circle-container">
+              <div className={`relative ${isSmallMobile ? 'w-10 h-10' : isMobile ? 'w-12 h-12' : 'w-14 h-14'}`}>
+                <svg className="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
+                  <path
+                    className="text-gray-200"
+                    stroke="currentColor"
+                    strokeWidth="2.5"
+                    fill="transparent"
+                    d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                  />
+                  <path
+                    className={
+                      stageStatus === 'completed' ? 'text-green-500' :
+                      stageStatus === 'in-progress' ? `text-${stageColor}-500` : 'text-gray-300'
+                    }
+                    stroke="currentColor"
+                    strokeWidth="2.5"
+                    fill="transparent"
+                    strokeDasharray={`${completionPercentage}, 100`}
+                    d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                  />
+                </svg>
+              </div>
             </div>
             
             {isExpanded ? (
-              <ChevronUp className="h-5 w-5 text-gray-400" />
+              <ChevronUp className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400 flex-shrink-0" />
             ) : (
-              <ChevronDown className="h-5 w-5 text-gray-400" />
+              <ChevronDown className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400 flex-shrink-0" />
             )}
           </div>
         </div>
       </CardHeader>
       
       {isExpanded && (
-        <CardContent className="pt-0">
+        <CardContent className="pt-0 mobile-padding-responsive">
           {/* Subscription CTA */}
           {subscriptionCTA?.show && (
-            <div className={`mb-4 p-3 sm:p-4 rounded-lg bg-gradient-to-r from-${stageColor}-50 to-${stageColor}-100 border border-${stageColor}-200`}>
+            <div className={`mb-4 mobile-padding-responsive rounded-lg bg-gradient-to-r from-${stageColor}-50 to-${stageColor}-100 border border-${stageColor}-200`}>
               <div className="flex items-start gap-3">
                 <div className={`w-6 h-6 rounded-full bg-${stageColor}-500 flex items-center justify-center flex-shrink-0 mt-0.5`}>
                   <ArrowRight className="h-3 w-3 text-white" />
                 </div>
-                <div className="flex-1">
+                <div className="flex-1 min-w-0">
                   <h4 className="font-medium text-sm text-gray-800 mb-1">
                     {subscriptionCTA.title}
                   </h4>
@@ -248,7 +257,7 @@ export const JourneyStageCard: React.FC<JourneyStageCardProps> = ({
                     <Button
                       onClick={handleSubscriptionCTA}
                       variant="default"
-                      className="text-xs px-3 py-2 h-auto"
+                      className="mobile-button-responsive mobile-touch-target"
                     >
                       {subscriptionCTA.buttonText}
                     </Button>
@@ -259,7 +268,7 @@ export const JourneyStageCard: React.FC<JourneyStageCardProps> = ({
                       planId={subscriptionCTA.planId}
                       navigateTo={subscriptionCTA.navigateTo}
                       variant="default"
-                      className="text-xs px-3 py-2 h-auto"
+                      className="mobile-button-responsive mobile-touch-target"
                     >
                       {subscriptionCTA.buttonText}
                     </SubscriptionTrackingButton>
@@ -270,7 +279,7 @@ export const JourneyStageCard: React.FC<JourneyStageCardProps> = ({
           )}
           
           {/* Steps List */}
-          <div className="space-y-3">
+          <div className="mobile-card-spacing">
             {steps.map((step) => (
               <JourneyStepTooltip
                 key={step.id}
@@ -283,20 +292,20 @@ export const JourneyStageCard: React.FC<JourneyStageCardProps> = ({
                 category={step.category}
                 onTooltipView={() => trackStepAction(step.id, 'tooltip_viewed')}
               >
-                <div className={`flex items-start gap-3 p-3 rounded-lg transition-colors cursor-pointer ${
+                <div className={`flex items-start gap-3 mobile-padding-responsive rounded-lg transition-colors cursor-pointer ${
                   (step.accessible || isAnonymous) ? 'hover:bg-gray-50' : 'bg-gray-50'
                 }`}>
                   <div className="mt-0.5 flex-shrink-0">
                     {step.completed ? (
-                      <CheckCircle2 className="h-4 w-4 sm:h-5 sm:w-5 text-green-500" />
+                      <CheckCircle2 className="mobile-icon-responsive text-green-500" />
                     ) : (
-                      <Circle className={`h-4 w-4 sm:h-5 sm:w-5 ${(step.accessible || isAnonymous) ? 'text-gray-300' : 'text-gray-200'}`} />
+                      <Circle className={`mobile-icon-responsive ${(step.accessible || isAnonymous) ? 'text-gray-300' : 'text-gray-200'}`} />
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className={`${isMobile ? 'flex-col space-y-2' : 'flex items-start justify-between gap-4'}`}>
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
+                    <div className="mobile-flex-responsive items-start justify-between">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1 flex-wrap">
                           <div className={`${(step.accessible || isAnonymous) ? 'text-primary' : 'text-gray-300'} flex-shrink-0`}>
                             {getIcon(step.icon_name)}
                           </div>
@@ -306,11 +315,11 @@ export const JourneyStageCard: React.FC<JourneyStageCardProps> = ({
                               : (step.accessible || isAnonymous)
                                 ? 'text-gray-800' 
                                 : 'text-gray-400'
-                          }`}>
+                          } truncate sm:text-clip`}>
                             {step.title}
                           </p>
                           {step.is_optional && (
-                            <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded">Optional</span>
+                            <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded whitespace-nowrap">Optional</span>
                           )}
                         </div>
                         <p className={`text-xs mt-1 ${
@@ -322,7 +331,7 @@ export const JourneyStageCard: React.FC<JourneyStageCardProps> = ({
                         {/* Show admin scheduling status for Step 7 */}
                         {step.step_number === 7 && step.completed && !visitDetails && (
                           <div className="mt-2 p-2 bg-amber-50 border border-amber-200 rounded-lg">
-                            <div className="flex items-center gap-2 text-sm">
+                            <div className="flex items-center gap-2 text-sm flex-wrap">
                               <div className="flex items-center gap-1">
                                 <Calendar className="h-3 w-3 text-amber-600" />
                                 <span className="text-amber-800 font-medium">Admin Scheduling</span>
@@ -337,7 +346,7 @@ export const JourneyStageCard: React.FC<JourneyStageCardProps> = ({
                         {/* Show visit details for Step 7 if scheduled */}
                         {step.step_number === 7 && visitDetails && step.completed && (
                           <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded-lg">
-                            <div className="flex items-center gap-2 text-sm">
+                            <div className="flex items-center gap-2 text-sm flex-wrap">
                               <div className="flex items-center gap-1">
                                 {visitDetails.type === 'virtual' ? (
                                   <Video className="h-3 w-3 text-blue-600" />
@@ -363,11 +372,11 @@ export const JourneyStageCard: React.FC<JourneyStageCardProps> = ({
                           </div>
                         )}
                       </div>
-                      <div className={`flex items-center ${isMobile ? 'justify-between' : 'gap-2'} flex-shrink-0`}>
+                      <div className="flex items-center gap-2 flex-shrink-0">
                         {!step.completed && (
                           <div className="flex items-center text-xs text-gray-500 gap-1">
                             <Clock className="h-3 w-3" />
-                            <span>{getStepStatus(step)}</span>
+                            <span className="whitespace-nowrap">{getStepStatus(step)}</span>
                           </div>
                         )}
                         
@@ -375,7 +384,7 @@ export const JourneyStageCard: React.FC<JourneyStageCardProps> = ({
                         <Button 
                           variant="ghost" 
                           size="sm" 
-                          className={`text-xs px-2 py-1 h-auto min-h-[44px] ${isMobile ? 'min-w-[44px]' : ''} ${
+                          className={`mobile-button-responsive mobile-touch-target ${
                             !(step.accessible || isAnonymous)
                               ? 'text-gray-400 cursor-not-allowed opacity-50'
                               : step.step_number === 7 && step.completed && visitDetails
@@ -392,7 +401,7 @@ export const JourneyStageCard: React.FC<JourneyStageCardProps> = ({
                             }
                           }}
                         >
-                          <span className={isMobile ? 'text-xs' : ''}>{getButtonText(step)}</span>
+                          <span>{getButtonText(step)}</span>
                           <ArrowRight className="ml-1 h-3 w-3" />
                         </Button>
                       </div>

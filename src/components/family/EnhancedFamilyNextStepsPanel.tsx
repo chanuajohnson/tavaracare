@@ -1,3 +1,4 @@
+
 import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -11,7 +12,7 @@ import { CaregiverMatchingModal } from "./CaregiverMatchingModal";
 import { JourneyPathVisualization } from "./JourneyPathVisualization";
 import { JourneyStageCard } from "./JourneyStageCard";
 import { useEnhancedJourneyProgress } from "@/hooks/useEnhancedJourneyProgress";
-import { useIsMobile } from "@/hooks/use-mobile";
+import { useIsMobile, useIsSmallMobile } from "@/hooks/use-mobile";
 
 interface EnhancedFamilyNextStepsPanelProps {
   showAllSteps?: boolean;
@@ -22,6 +23,7 @@ export const EnhancedFamilyNextStepsPanel: React.FC<EnhancedFamilyNextStepsPanel
 }) => {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
+  const isSmallMobile = useIsSmallMobile();
   const { 
     steps, 
     paths,
@@ -155,16 +157,16 @@ export const EnhancedFamilyNextStepsPanel: React.FC<EnhancedFamilyNextStepsPanel
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="mb-6 sm:mb-8"
+        className="mb-4 sm:mb-6 lg:mb-8"
       >
         <Card className="border-l-4 border-l-primary">
-          <CardHeader className="pb-3 sm:pb-4 px-4 sm:px-6">
-            <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
-              <List className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
+          <CardHeader className="mobile-padding-responsive">
+            <CardTitle className="flex items-center gap-2 mobile-text-responsive font-semibold">
+              <List className="mobile-icon-responsive text-primary flex-shrink-0" />
               Your Care Journey Progress
             </CardTitle>
           </CardHeader>
-          <CardContent className="px-4 sm:px-6">
+          <CardContent className="mobile-padding-responsive">
             <div className="text-center py-6">
               <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto"></div>
               <p className="text-sm text-gray-500 mt-2">Loading progress...</p>
@@ -188,7 +190,7 @@ export const EnhancedFamilyNextStepsPanel: React.FC<EnhancedFamilyNextStepsPanel
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="mb-6 sm:mb-8 space-y-4 sm:space-y-6"
+        className="mb-4 sm:mb-6 lg:mb-8 mobile-card-spacing"
       >
         {/* Path Visualization - Only show on full page view and for logged-in users */}
         {showAllSteps && !isAnonymous && (
@@ -201,18 +203,18 @@ export const EnhancedFamilyNextStepsPanel: React.FC<EnhancedFamilyNextStepsPanel
 
         {/* Journey Overview Card with Demo Indicator for Anonymous Users */}
         <Card className={`border-l-4 border-l-primary ${isAnonymous ? 'bg-gradient-to-r from-blue-50/30 to-purple-50/30' : ''}`}>
-          <CardHeader className="pb-3 sm:pb-4 px-4 sm:px-6">
-            <div className={`${isMobile ? 'flex-col space-y-3' : 'flex items-center justify-between'}`}>
-              <div className="flex-1">
-                <CardTitle className={`flex items-center gap-2 ${isMobile ? 'text-lg' : 'text-xl'} mb-2`}>
-                  <List className={`${isMobile ? 'h-4 w-4' : 'h-5 w-5'} text-primary flex-shrink-0`} />
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className={isMobile ? 'text-base' : 'text-xl'}>
+          <CardHeader className="mobile-padding-responsive">
+            <div className="journey-header-mobile">
+              <div className="flex-1 min-w-0">
+                <CardTitle className="flex items-start gap-2 mobile-text-responsive font-semibold mb-2">
+                  <List className="mobile-icon-responsive text-primary flex-shrink-0 mt-0.5" />
+                  <div className="flex flex-col gap-2 min-w-0">
+                    <span className={isSmallMobile ? 'text-base' : isMobile ? 'text-lg' : 'text-xl'}>
                       {showAllSteps ? "🌿 Complete Care Journey" : "Your Care Journey Progress"}
                     </span>
                     {isAnonymous && (
-                      <div className="flex items-center gap-2">
-                        <span className="inline-flex items-center gap-1 bg-gradient-to-r from-blue-500 to-purple-500 text-white text-xs font-medium px-3 py-1 rounded-full">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="inline-flex items-center gap-1 bg-gradient-to-r from-blue-500 to-purple-500 text-white text-xs font-medium px-2 py-1 rounded-full">
                           <Sparkles className="h-3 w-3" />
                           DEMO
                         </span>
@@ -224,7 +226,7 @@ export const EnhancedFamilyNextStepsPanel: React.FC<EnhancedFamilyNextStepsPanel
                     )}
                   </div>
                 </CardTitle>
-                <p className="text-xs sm:text-sm text-gray-600">
+                <p className="text-xs sm:text-sm text-gray-600 mb-3">
                   {showAllSteps 
                     ? isAnonymous
                       ? "✨ Demo Experience - This shows how families complete their care journey with Tavara"
@@ -234,16 +236,18 @@ export const EnhancedFamilyNextStepsPanel: React.FC<EnhancedFamilyNextStepsPanel
                       : "Follow these stages to get matched with the right caregiver"
                   }
                 </p>
-                <div className="flex items-center gap-2 mt-2">
+                <div className="flex flex-wrap items-center gap-2">
                   <span className="text-xs text-gray-500">Current stage:</span>
                   <span className="text-xs font-medium capitalize bg-primary/10 text-primary px-2 py-1 rounded">
                     {currentStage}
                   </span>
                 </div>
               </div>
-              <div className={`flex items-center gap-3 ${isMobile ? 'justify-center' : 'ml-4'}`}>
-                <div className="text-right">
-                  <div className={`${isMobile ? 'text-2xl' : showAllSteps ? 'text-3xl' : 'text-2xl'} font-bold text-primary`}>
+              
+              {/* Enhanced Progress Circle Container with Better Mobile Positioning */}
+              <div className="journey-progress-container">
+                <div className="text-right flex-shrink-0">
+                  <div className={`font-bold text-primary ${isSmallMobile ? 'text-xl' : isMobile ? 'text-2xl' : showAllSteps ? 'text-3xl' : 'text-2xl'}`}>
                     {completionPercentage}%
                   </div>
                   <div className="text-xs text-gray-500">
@@ -253,24 +257,26 @@ export const EnhancedFamilyNextStepsPanel: React.FC<EnhancedFamilyNextStepsPanel
                     }
                   </div>
                 </div>
-                <div className={`${isMobile ? 'w-16 h-16' : showAllSteps ? 'w-20 h-20' : 'w-16 h-16'} relative`}>
-                  <svg className={`${isMobile ? 'w-16 h-16' : showAllSteps ? 'w-20 h-20' : 'w-16 h-16'} transform -rotate-90`} viewBox="0 0 36 36">
-                    <path
-                      className="text-gray-200"
-                      stroke="currentColor"
-                      strokeWidth="3"
-                      fill="transparent"
-                      d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                    />
-                    <path
-                      className="text-primary"
-                      stroke="currentColor"
-                      strokeWidth="3"
-                      fill="transparent"
-                      strokeDasharray={`${completionPercentage}, 100`}
-                      d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                    />
-                  </svg>
+                <div className="progress-circle-container">
+                  <div className={`relative ${isSmallMobile ? 'w-12 h-12' : isMobile ? 'w-14 h-14' : showAllSteps ? 'w-20 h-20' : 'w-16 h-16'}`}>
+                    <svg className="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
+                      <path
+                        className="text-gray-200"
+                        stroke="currentColor"
+                        strokeWidth="3"
+                        fill="transparent"
+                        d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                      />
+                      <path
+                        className="text-primary"
+                        stroke="currentColor"
+                        strokeWidth="3"
+                        fill="transparent"
+                        strokeDasharray={`${completionPercentage}, 100`}
+                        d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                      />
+                    </svg>
+                  </div>
                 </div>
               </div>
             </div>
@@ -278,7 +284,7 @@ export const EnhancedFamilyNextStepsPanel: React.FC<EnhancedFamilyNextStepsPanel
         </Card>
 
         {/* Stage-Based Progress Cards - Now filtered based on showAllSteps and pass visitDetails */}
-        <div className="space-y-4">
+        <div className="mobile-card-spacing">
           {stagesToDisplay.map((stage) => (
             stage.steps.length > 0 && (
               <JourneyStageCard
@@ -300,23 +306,23 @@ export const EnhancedFamilyNextStepsPanel: React.FC<EnhancedFamilyNextStepsPanel
         {!showAllSteps && (
           <div className="mt-4 sm:mt-6">
             {isAnonymous ? (
-              <div className="space-y-4">
-                <div className="bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 rounded-lg p-4">
-                  <div className="text-center space-y-3">
+              <div className="mobile-card-spacing">
+                <div className="bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 rounded-lg mobile-padding-responsive">
+                  <div className="text-center mobile-card-spacing">
                     <div className="flex items-center justify-center gap-2">
                       <Sparkles className="h-5 w-5 text-blue-500" />
-                      <h3 className="text-lg font-semibold text-gray-800">Ready for Your Real Care Journey?</h3>
+                      <h3 className="mobile-text-responsive font-semibold text-gray-800">Ready for Your Real Care Journey?</h3>
                     </div>
                     <p className="text-sm text-gray-600 max-w-md mx-auto">
                       This is a preview of your care journey. Choose a care plan to get matched with real caregivers in your area.
                     </p>
-                    <div className="flex flex-col sm:flex-row gap-2 justify-center">
+                    <div className="mobile-flex-responsive justify-center">
                       <Button
                         variant="default"
-                        className="bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white font-medium"
+                        className="bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white font-medium mobile-button-responsive mobile-touch-target"
                         onClick={() => navigate('/subscription/features')}
                       >
-                        <ArrowRight className="h-4 w-4 mr-2" />
+                        <ArrowRight className="mobile-icon-responsive mr-2" />
                         Choose Care Plan
                       </Button>
                     </div>
@@ -324,21 +330,21 @@ export const EnhancedFamilyNextStepsPanel: React.FC<EnhancedFamilyNextStepsPanel
                 </div>
                 <Button
                   variant="outline"
-                  className="w-full justify-between min-h-[44px] text-gray-600"
+                  className="w-full justify-between mobile-touch-target text-gray-600 mobile-button-responsive"
                   onClick={handleViewCompleteJourney}
                 >
                   <span className="text-sm">View Complete Demo Journey</span>
-                  <ArrowRight className="h-4 w-4" />
+                  <ArrowRight className="mobile-icon-responsive" />
                 </Button>
               </div>
             ) : (
               <Button
                 variant="outline"
-                className="w-full justify-between min-h-[44px] text-gray-600"
+                className="w-full justify-between mobile-touch-target text-gray-600 mobile-button-responsive"
                 onClick={handleViewCompleteJourney}
               >
                 <span className="text-sm">View Complete Journey</span>
-                <ArrowRight className="h-4 w-4" />
+                <ArrowRight className="mobile-icon-responsive" />
               </Button>
             )}
           </div>
