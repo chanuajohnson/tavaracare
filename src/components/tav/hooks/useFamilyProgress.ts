@@ -1,17 +1,149 @@
 
 import { useEnhancedJourneyProgress } from '@/hooks/useEnhancedJourneyProgress';
 import { useAuth } from '@/components/providers/AuthProvider';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { supabase } from '@/lib/supabase';
+
+// Form field completion tracking interface
+interface FormFieldStatus {
+  formId: string;
+  totalFields: number;
+  completedFields: number;
+  missingFields: string[];
+  completionPercentage: number;
+}
 
 // Export the enhanced family journey data as the family progress for TAV
 export const useFamilyProgress = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const userId = user?.id || '';
+  const [formStatus, setFormStatus] = useState<FormFieldStatus | null>(null);
   
   // Use the enhanced journey progress hook for real data
   const enhancedData = useEnhancedJourneyProgress();
-  
+
+  // Track form field completion for context awareness
+  useEffect(() => {
+    if (!userId) return;
+    
+    const checkFormCompletion = async () => {
+      const path = location.pathname;
+      
+      // Check profile completion on family registration/profile pages
+      if (path.includes('/registration/family') || path.includes('/dashboard/family')) {
+        try {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('full_name, phone_number, email')
+            .eq('id', userId)
+            .maybeSingle();
+
+          if (profile) {
+            const fields = ['full_name', 'phone_number', 'email'];
+            const completedFields = fields.filter(field => profile[field]).length;
+            const missingFields = fields.filter(field => !profile[field]);
+            
+            setFormStatus({
+              formId: 'family-profile',
+              totalFields: fields.length,
+              completedFields,
+              missingFields,
+              completionPercentage: Math.round((completedFields / fields.length) * 100)
+            });
+          }
+        } catch (error) {
+          console.error('Error checking profile completion:', error);
+        }
+      }
+      
+      // Check care assessment completion
+      else if (path.includes('/family/care-assessment')) {
+        try {
+          const { data: assessment } = await supabase
+            .from('care_needs_family')
+            .select('*')
+            .eq('profile_id', userId)
+            .maybeSingle();
+
+          const requiredFields = ['care_recipient_name', 'relationship_to_care_recipient', 'primary_care_needs'];
+          if (assessment) {
+            const completedFields = requiredFields.filter(field => assessment[field]).length;
+            const missingFields = requiredFields.filter(field => !assessment[field]);
+            
+            setFormStatus({
+              formId: 'care-assessment',
+              totalFields: requiredFields.length,
+              completedFields,
+              missingFields,
+              completionPercentage: Math.round((completedFields / requiredFields.length) * 100)
+            });
+          } else {
+            setFormStatus({
+              formId: 'care-assessment',
+              totalFields: requiredFields.length,
+              completedFields: 0,
+              missingFields: requiredFields,
+              completionPercentage: 0
+            });
+          }
+        } catch (error) {
+          console.error('Error checking assessment completion:', error);
+        }
+      }
+      
+      // Check story completion
+      else if (path.includes('/family/story')) {
+        try {
+          const { data: recipient } = await supabase
+            .from('care_recipient_profiles')
+            .select('full_name, story')
+            .eq('user_id', userId)
+            .maybeSingle();
+
+          const requiredFields = ['full_name'];
+          const optionalFields = ['story'];
+          
+          if (recipient) {
+            const completedRequired = requiredFields.filter(field => recipient[field]).length;
+            const completedOptional = optionalFields.filter(field => recipient[field]).length;
+            const totalCompleted = completedRequired + completedOptional;
+            const totalFields = requiredFields.length + optionalFields.length;
+            
+            setFormStatus({
+              formId: 'legacy-story',
+              totalFields,
+              completedFields: totalCompleted,
+              missingFields: [
+                ...requiredFields.filter(field => !recipient[field]),
+                ...optionalFields.filter(field => !recipient[field])
+              ],
+              completionPercentage: Math.round((totalCompleted / totalFields) * 100)
+            });
+          } else {
+            setFormStatus({
+              formId: 'legacy-story',
+              totalFields: 2,
+              completedFields: 0,
+              missingFields: ['full_name', 'story'],
+              completionPercentage: 0
+            });
+          }
+        } catch (error) {
+          console.error('Error checking story completion:', error);
+        }
+      }
+      
+      else {
+        setFormStatus(null);
+      }
+    };
+
+    checkFormCompletion();
+  }, [userId, location.pathname]);
+
   // Helper function to get proper button text for each step
   const getButtonText = (step: any) => {
     if (!step.accessible && step.id === 4) {
@@ -45,8 +177,10 @@ export const useFamilyProgress = () => {
 
   // Helper function to get step action - uses the enhanced data's step actions
   const getStepAction = (step: any) => {
-    if (step.action) {
-      return step.action;
+    // Use the action from enhanced data if available
+    const enhancedStep = enhancedData.steps.find(s => s.id === step.id);
+    if (enhancedStep?.action) {
+      return enhancedStep.action;
     }
     
     // Fallback actions if step doesn't have action property
@@ -100,6 +234,7 @@ export const useFamilyProgress = () => {
   
   return {
     ...enhancedData,
-    steps: enhancedSteps
+    steps: enhancedSteps,
+    formStatus // Add form completion status for contextual awareness
   };
 };

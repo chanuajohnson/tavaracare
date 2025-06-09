@@ -1,11 +1,12 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Heart, UserCog, Users, Globe, Shield, ArrowRight, Sparkles, Clock, CheckCircle2, Circle, X, Minimize2 } from 'lucide-react';
+import { Heart, UserCog, Users, Globe, Shield, ArrowRight, Sparkles, Clock, CheckCircle2, Circle, X, Minimize2, FileText, AlertCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useReturningUser } from './hooks/useReturningUser';
 import { useFamilyProgress } from './hooks/useFamilyProgress';
 import { useProfessionalProgress } from './hooks/useProfessionalProgress';
+import { useFormDetection } from './hooks/useFormDetection';
+import { usePageContext } from './hooks/usePageContext';
 import { motion } from 'framer-motion';
 import { FamilyJourneyPreview } from './components/FamilyJourneyPreview';
 import { ProfessionalJourneyPreview } from './components/ProfessionalJourneyPreview';
@@ -47,6 +48,10 @@ export const RoleBasedContent: React.FC<RoleBasedContentProps> = ({
   const { isReturningUser, lastRole, hasVisitedBefore, detectionMethod } = useReturningUser();
   const [previewState, setPreviewState] = useState<PreviewState>('selection');
   
+  // Get context awareness hooks
+  const { currentForm, isFormPage } = useFormDetection();
+  const pageContext = usePageContext();
+  
   // Get real progress data for logged-in users
   const familyProgress = useFamilyProgress();
   const professionalProgress = useProfessionalProgress();
@@ -81,6 +86,25 @@ export const RoleBasedContent: React.FC<RoleBasedContentProps> = ({
 
   const handleBackToSelection = () => {
     setPreviewState('selection');
+  };
+
+  // Enhanced contextual greeting based on form detection and page context
+  const getContextualFormGuidance = () => {
+    if (!currentForm) return null;
+
+    // Use auto-greeting from form detection if available
+    if (currentForm.autoGreetingMessage) {
+      return {
+        message: currentForm.autoGreetingMessage,
+        type: 'form-specific'
+      };
+    }
+
+    // Fallback contextual guidance
+    return {
+      message: `💙 I can help you with your ${currentForm.formTitle}. Let me guide you through each field!`,
+      type: 'general-form'
+    };
   };
 
   // Panel header with close/minimize controls for ALL users (including guests)
@@ -228,7 +252,8 @@ export const RoleBasedContent: React.FC<RoleBasedContentProps> = ({
     }
 
     if (role === 'family') {
-      const { steps, completionPercentage, nextStep, loading } = familyProgress;
+      const { steps, completionPercentage, nextStep, loading, formStatus } = familyProgress;
+      const contextualGuidance = getContextualFormGuidance();
 
       if (loading) {
         return (
@@ -251,6 +276,43 @@ export const RoleBasedContent: React.FC<RoleBasedContentProps> = ({
             <Users className="h-6 w-6 text-blue-600 flex-shrink-0" />
             <h3 className="text-lg font-semibold leading-tight">Your Journey Ahead</h3>
           </div>
+
+          {/* Contextual Form Guidance - MAGIC CONTEXTUAL AWARENESS */}
+          {contextualGuidance && (
+            <div className="bg-primary/5 rounded-lg p-3 border border-primary/20 mb-4">
+              <div className="flex items-start gap-2">
+                <Sparkles className="h-4 w-4 text-primary flex-shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <p className="text-sm text-primary font-medium mb-1">Context-Aware Assistance</p>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    {contextualGuidance.message}
+                  </p>
+                  
+                  {/* Form Field Completion Status */}
+                  {formStatus && (
+                    <div className="mt-2 p-2 bg-white/50 rounded border">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-xs font-medium text-gray-600">Form Progress</span>
+                        <span className="text-xs font-bold text-primary">{formStatus.completionPercentage}%</span>
+                      </div>
+                      
+                      {formStatus.missingFields.length > 0 ? (
+                        <div className="flex items-center gap-1 text-xs text-amber-600">
+                          <AlertCircle className="h-3 w-3" />
+                          <span>{formStatus.missingFields.length} field{formStatus.missingFields.length !== 1 ? 's' : ''} need{formStatus.missingFields.length === 1 ? 's' : ''} completion</span>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-1 text-xs text-green-600">
+                          <CheckCircle2 className="h-3 w-3" />
+                          <span>All fields completed! 🎉</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
           
           <div className="bg-blue-50 rounded-lg p-3 border border-blue-200">
             <div className="flex justify-between items-center mb-2">
