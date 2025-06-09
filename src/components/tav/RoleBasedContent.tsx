@@ -119,37 +119,6 @@ export const RoleBasedContent: React.FC<RoleBasedContentProps> = ({
     );
   };
 
-  // Helper function to get step action based on step ID
-  const getStepAction = (stepId: number) => {
-    switch (stepId) {
-      case 1: // Complete Profile
-        return () => navigate('/dashboard/family');
-      case 2: // Care Assessment
-        return () => navigate('/family/care-assessment');
-      case 3: // Legacy Story
-        return () => navigate('/family/care-recipient');
-      case 4: // Caregiver Matches
-        return () => {
-          const canAccess = familyProgress.steps.find(s => s.id === 1)?.completed && 
-                           familyProgress.steps.find(s => s.id === 2)?.completed && 
-                           familyProgress.steps.find(s => s.id === 3)?.completed;
-          if (canAccess) {
-            navigate('/family/caregiver-matching');
-          }
-        };
-      case 5: // Medication Management
-        return () => navigate('/family/care-management');
-      case 6: // Meal Management
-        return () => navigate('/family/care-management');
-      case 7: // Schedule Visit
-        return () => navigate('/family/schedule-visit');
-      case 11: // Rate & Choose Path
-        return () => navigate('/family/care-model-selection');
-      default:
-        return () => navigate('/dashboard/family');
-    }
-  };
-
   // Main content wrapper with improved scrolling
   const renderContent = () => {
     if (role === 'guest') {
@@ -308,13 +277,6 @@ export const RoleBasedContent: React.FC<RoleBasedContentProps> = ({
             <p className="text-xs font-medium text-blue-800 mb-2">Journey Steps:</p>
             <div className="space-y-1">
               {steps.map((step, index) => {
-                const getButtonText = (step: any) => {
-                  if (step.id === 4 && !step.accessible) {
-                    return "Complete Above Steps";
-                  }
-                  return step.completed ? "View" : "Continue";
-                };
-
                 return (
                   <div key={step.id} className="flex items-center gap-2 text-xs">
                     <div className="flex items-center gap-1 flex-1 min-w-0">
@@ -331,19 +293,18 @@ export const RoleBasedContent: React.FC<RoleBasedContentProps> = ({
                       variant="ghost"
                       size="sm"
                       className={`h-5 px-2 text-xs ${
-                        (step.id === 4 && !step.accessible)
+                        (!step.accessible)
                           ? 'text-gray-400 cursor-not-allowed' 
                           : 'text-blue-600 hover:text-blue-700'
                       }`}
-                      disabled={step.id === 4 && !step.accessible}
+                      disabled={!step.accessible}
                       onClick={() => {
-                        const stepAction = getStepAction(step.id);
-                        if (stepAction && (step.accessible || step.id !== 4)) {
-                          stepAction();
+                        if (step.action && step.accessible) {
+                          step.action();
                         }
                       }}
                     >
-                      {getButtonText(step)}
+                      {step.buttonText || (step.completed ? "View" : "Continue")}
                     </Button>
                   </div>
                 );
@@ -367,11 +328,8 @@ export const RoleBasedContent: React.FC<RoleBasedContentProps> = ({
             size="sm" 
             className="w-full h-auto py-3"
             onClick={() => {
-              if (nextStep) {
-                const stepAction = getStepAction(nextStep.id);
-                if (stepAction) {
-                  stepAction();
-                }
+              if (nextStep && nextStep.action) {
+                nextStep.action();
               } else {
                 navigate('/dashboard/family');
               }

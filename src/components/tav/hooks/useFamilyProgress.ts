@@ -1,70 +1,105 @@
 
-import { useSharedFamilyJourneyData } from '@/hooks/useSharedFamilyJourneyData';
+import { useEnhancedJourneyProgress } from '@/hooks/useEnhancedJourneyProgress';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { useNavigate } from 'react-router-dom';
-import { useState } from 'react';
 
-// Export the shared family journey data as the family progress for TAV
+// Export the enhanced family journey data as the family progress for TAV
 export const useFamilyProgress = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const userId = user?.id || '';
-  const [showCaregiverMatchingModal, setShowCaregiverMatchingModal] = useState(false);
   
-  const sharedData = useSharedFamilyJourneyData(userId);
+  // Use the enhanced journey progress hook for real data
+  const enhancedData = useEnhancedJourneyProgress();
   
-  // Enhanced step action handlers that match the family dashboard
-  const getStepAction = (stepId: number) => {
-    switch (stepId) {
-      case 1: // Complete Profile
+  // Helper function to get proper button text for each step
+  const getButtonText = (step: any) => {
+    if (!step.accessible && step.id === 4) {
+      return "Complete Above Steps";
+    }
+    
+    switch (step.step_number || step.id) {
+      case 1:
+        return step.completed ? "Edit Profile" : "Complete Profile";
+      case 2:
+        return step.completed ? "Edit Assessment" : "Start Assessment";
+      case 3:
+        return step.completed ? "Edit Story" : "Create Story";
+      case 4:
+        return step.completed ? "View Matches" : "View Matches";
+      case 5:
+        return step.completed ? "Edit Medications" : "Add Medications";
+      case 6:
+        return step.completed ? "Edit Meals" : "Add Meals";
+      case 7:
+        if (step.completed && enhancedData.visitDetails) {
+          return "Cancel Visit";
+        }
+        return step.completed ? "Visit Scheduled" : "Schedule Visit";
+      case 11:
+        return step.completed ? "Edit Selection" : "Choose Path";
+      default:
+        return step.completed ? "View" : "Continue";
+    }
+  };
+
+  // Helper function to get step action - uses the enhanced data's step actions
+  const getStepAction = (step: any) => {
+    if (step.action) {
+      return step.action;
+    }
+    
+    // Fallback actions if step doesn't have action property
+    switch (step.step_number || step.id) {
+      case 1:
         return () => navigate('/dashboard/family');
-      case 2: // Care Assessment
+      case 2:
         return () => navigate('/family/care-assessment');
-      case 3: // Legacy Story
+      case 3:
         return () => navigate('/family/care-recipient');
-      case 4: // Caregiver Matches
+      case 4:
+        return () => enhancedData.setShowCaregiverMatchingModal(true);
+      case 5:
         return () => {
-          const canAccess = sharedData.steps.find(s => s.id === 1)?.completed && 
-                           sharedData.steps.find(s => s.id === 2)?.completed && 
-                           sharedData.steps.find(s => s.id === 3)?.completed;
-          if (canAccess) {
-            navigate('/family/caregiver-matching');
+          if (enhancedData.carePlans.length > 0) {
+            navigate(`/family/care-management/${enhancedData.carePlans[0].id}/medications`);
+          } else {
+            navigate('/family/care-management/create');
           }
         };
-      case 5: // Medication Management
-        return () => navigate('/family/care-management');
-      case 6: // Meal Management
-        return () => navigate('/family/care-management');
-      case 7: // Schedule Visit
-        return () => navigate('/family/schedule-visit');
-      case 8: // Schedule Trial (Optional)
-        return () => navigate('/family/trial-scheduling');
-      case 9: // Pay for Trial (Optional)
-        return () => navigate('/family/trial-payment');
-      case 10: // Begin Trial (Optional)
-        return () => navigate('/family/trial-day');
-      case 11: // Rate & Choose Path
+      case 6:
+        return () => {
+          if (enhancedData.carePlans.length > 0) {
+            navigate(`/family/care-management/${enhancedData.carePlans[0].id}/meals`);
+          } else {
+            navigate('/family/care-management/create');
+          }
+        };
+      case 7:
+        return () => {
+          if (step.completed && enhancedData.visitDetails) {
+            enhancedData.setShowCancelVisitModal(true);
+          } else {
+            enhancedData.setShowScheduleModal(true);
+          }
+        };
+      case 11:
         return () => navigate('/family/care-model-selection');
       default:
         return () => navigate('/dashboard/family');
     }
   };
 
-  // Add proper action handlers to the steps
-  const enhancedSteps = sharedData.steps.map(step => ({
+  // Add proper action handlers and button text to the steps
+  const enhancedSteps = enhancedData.steps.map(step => ({
     ...step,
-    action: getStepAction(step.id),
-    accessible: step.id === 4 
-      ? sharedData.steps.find(s => s.id === 1)?.completed && 
-        sharedData.steps.find(s => s.id === 2)?.completed && 
-        sharedData.steps.find(s => s.id === 3)?.completed
-      : step.accessible
+    action: getStepAction(step),
+    buttonText: getButtonText(step),
+    accessible: step.accessible !== undefined ? step.accessible : true
   }));
   
   return {
-    ...sharedData,
-    steps: enhancedSteps,
-    showCaregiverMatchingModal,
-    setShowCaregiverMatchingModal
+    ...enhancedData,
+    steps: enhancedSteps
   };
 };
