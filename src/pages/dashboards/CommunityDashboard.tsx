@@ -82,7 +82,8 @@ const CommunityDashboard = () => {
         </motion.div>
 
         <div className="grid gap-6 mt-8">
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {/* First row: 3 equal cards */}
+          <div className="grid md:grid-cols-3 gap-6">
             <Card>
               <CardHeader>
                 <div className="mb-4">
@@ -151,7 +152,10 @@ const CommunityDashboard = () => {
                 <UpvoteFeatureButton featureTitle="Community Events" buttonText="Upvote this Feature" />
               </CardContent>
             </Card>
-            
+          </div>
+
+          {/* Second row: Support Network (1/3) + Tech Innovators Hub (2/3) */}
+          <div className="grid md:grid-cols-3 gap-6">
             <Card>
               <CardHeader>
                 <div className="mb-4">
@@ -173,7 +177,9 @@ const CommunityDashboard = () => {
               </CardContent>
             </Card>
 
-            <TechInnovatorsHub />
+            <div className="md:col-span-2">
+              <TechInnovatorsHub />
+            </div>
           </div>
         </div>
       </div>
