@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -45,7 +46,6 @@ export const ScheduleVisitDialog: React.FC<ScheduleVisitDialogProps> = ({
     bookingTime: '',
     selectedSlotId: '',
     visitType: preselectedUser?.preferred_visit_type || 'virtual' as 'virtual' | 'in_person',
-    paymentStatus: 'payment_pending' as 'payment_pending' | 'paid' | 'not_required',
     familyAddress: '',
     familyPhone: '',
     adminNotes: ''
@@ -105,10 +105,11 @@ export const ScheduleVisitDialog: React.FC<ScheduleVisitDialogProps> = ({
   };
 
   const findMatchingSlot = (selectedTime: string) => {
-    const selectedTimeObj = selectedTime.substring(0, 5);
+    // Convert selected time to compare with slot times
+    const selectedTimeObj = selectedTime.substring(0, 5); // Get HH:mm format
     
     return availableSlots.find(slot => {
-      const slotStartTime = slot.start_time.substring(0, 5);
+      const slotStartTime = slot.start_time.substring(0, 5); // Get HH:mm format
       return slotStartTime === selectedTimeObj && slot.current_bookings < slot.max_bookings;
     });
   };
@@ -117,6 +118,7 @@ export const ScheduleVisitDialog: React.FC<ScheduleVisitDialogProps> = ({
     try {
       const dateStr = format(date, 'yyyy-MM-dd');
       
+      // Check if a slot already exists for this date and time
       const { data: existingSlots, error: checkError } = await supabase
         .from('admin_availability_slots')
         .select('id, current_bookings, max_bookings')
@@ -138,6 +140,7 @@ export const ScheduleVisitDialog: React.FC<ScheduleVisitDialogProps> = ({
         }
       }
       
+      // Convert time from HH:mm:ss to calculate end time (2 hours later)
       const [hours, minutes] = time.split(':').map(Number);
       const endHour = hours + 2;
       const endTimeWithSeconds = `${endHour.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:00`;
@@ -178,24 +181,10 @@ export const ScheduleVisitDialog: React.FC<ScheduleVisitDialogProps> = ({
   };
 
   const handleDateChange = (date: Date | undefined) => {
-    setFormData(prev => ({ 
-      ...prev, 
-      bookingDate: date, 
-      selectedSlotId: '', 
-      bookingTime: '',
-      paymentStatus: prev.visitType === 'virtual' ? 'not_required' : 'payment_pending'
-    }));
+    setFormData(prev => ({ ...prev, bookingDate: date, selectedSlotId: '', bookingTime: '' }));
     if (date) {
       fetchAvailableSlots(date);
     }
-  };
-
-  const handleVisitTypeChange = (visitType: 'virtual' | 'in_person') => {
-    setFormData(prev => ({
-      ...prev,
-      visitType,
-      paymentStatus: visitType === 'virtual' ? 'not_required' : 'payment_pending'
-    }));
   };
 
   const handleSlotSelection = (slotId: string) => {
@@ -210,6 +199,7 @@ export const ScheduleVisitDialog: React.FC<ScheduleVisitDialogProps> = ({
   };
 
   const handleTimeSelection = (time: string) => {
+    // Clear selected slot when manually selecting time
     setFormData(prev => ({
       ...prev,
       bookingTime: time,
@@ -230,9 +220,11 @@ export const ScheduleVisitDialog: React.FC<ScheduleVisitDialogProps> = ({
     try {
       let slotId = formData.selectedSlotId;
       
+      // If no existing slot selected, try to find a matching one or create new
       if (!slotId) {
         console.log('No existing slot selected, checking for matching slots...');
         
+        // First, try to find a matching available slot
         const matchingSlot = findMatchingSlot(formData.bookingTime);
         if (matchingSlot) {
           console.log('Found matching available slot:', matchingSlot.id);
@@ -245,6 +237,7 @@ export const ScheduleVisitDialog: React.FC<ScheduleVisitDialogProps> = ({
 
       console.log('Creating visit booking with slot ID:', slotId);
 
+      // Create the visit booking
       const { error: bookingError } = await supabase
         .from('visit_bookings')
         .insert({
@@ -254,7 +247,7 @@ export const ScheduleVisitDialog: React.FC<ScheduleVisitDialogProps> = ({
           booking_time: formData.bookingTime,
           visit_type: formData.visitType,
           status: 'confirmed',
-          payment_status: formData.paymentStatus,
+          payment_status: 'not_required',
           admin_status: 'confirmed',
           family_address: formData.familyAddress || null,
           family_phone: formData.familyPhone || null,
@@ -270,11 +263,11 @@ export const ScheduleVisitDialog: React.FC<ScheduleVisitDialogProps> = ({
 
       console.log('Visit booking created successfully');
 
+      // Update the user's profile to reflect the scheduled visit
       const visitDetails = {
         visit_type: formData.visitType,
         visit_date: format(formData.bookingDate, 'yyyy-MM-dd'),
         visit_time: formData.bookingTime,
-        payment_status: formData.paymentStatus,
         scheduled_by: 'admin'
       };
 
@@ -292,6 +285,7 @@ export const ScheduleVisitDialog: React.FC<ScheduleVisitDialogProps> = ({
         console.error('Error updating user profile:', profileError);
       }
 
+      // Update slot booking count only if we used an existing slot
       if (formData.selectedSlotId || findMatchingSlot(formData.bookingTime)) {
         const { data: slotData } = await supabase
           .from('admin_availability_slots')
@@ -322,14 +316,16 @@ export const ScheduleVisitDialog: React.FC<ScheduleVisitDialogProps> = ({
     }
   };
 
+  // Updated time slots with proper seconds format
   const timeSlots = [
     '09:00:00', '09:30:00', '10:00:00', '10:30:00', '11:00:00', '11:30:00',
     '12:00:00', '12:30:00', '13:00:00', '13:30:00', '14:00:00', '14:30:00',
     '15:00:00', '15:30:00', '16:00:00', '16:30:00', '17:00:00'
   ];
 
+  // Helper function to display time without seconds for UI
   const displayTime = (time: string) => {
-    return time.substring(0, 5);
+    return time.substring(0, 5); // Remove seconds for display
   };
 
   return (
@@ -470,7 +466,7 @@ export const ScheduleVisitDialog: React.FC<ScheduleVisitDialogProps> = ({
             <Label>Visit Type</Label>
             <Select 
               value={formData.visitType} 
-              onValueChange={handleVisitTypeChange}
+              onValueChange={(value: 'virtual' | 'in_person') => setFormData(prev => ({ ...prev, visitType: value }))}
             >
               <SelectTrigger>
                 <SelectValue />
@@ -478,24 +474,6 @@ export const ScheduleVisitDialog: React.FC<ScheduleVisitDialogProps> = ({
               <SelectContent>
                 <SelectItem value="virtual">Virtual</SelectItem>
                 <SelectItem value="in_person">In-Person</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-2">
-            <Label>Payment Status</Label>
-            <Select 
-              value={formData.paymentStatus} 
-              onValueChange={(value: 'payment_pending' | 'paid' | 'not_required') => 
-                setFormData(prev => ({ ...prev, paymentStatus: value }))}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="payment_pending">Payment Pending</SelectItem>
-                <SelectItem value="paid">Paid</SelectItem>
-                <SelectItem value="not_required">Not Required</SelectItem>
               </SelectContent>
             </Select>
           </div>

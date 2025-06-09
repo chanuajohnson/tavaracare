@@ -50,7 +50,6 @@ interface JourneyStageCardProps {
     date: string;
     time: string;
     type: 'virtual' | 'in_person';
-    payment_status?: 'payment_pending' | 'paid' | 'not_required';
   };
 }
 
@@ -132,33 +131,6 @@ export const JourneyStageCard: React.FC<JourneyStageCardProps> = ({
     return 'Locked';
   };
 
-  const getPaymentStatusBadge = () => {
-    if (!visitDetails?.payment_status) return null;
-
-    switch (visitDetails.payment_status) {
-      case 'payment_pending':
-        return (
-          <span className="text-xs bg-amber-100 text-amber-800 px-2 py-0.5 rounded ml-1">
-            Payment Pending
-          </span>
-        );
-      case 'paid':
-        return (
-          <span className="text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded ml-1">
-            Paid
-          </span>
-        );
-      case 'not_required':
-        return (
-          <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded ml-1">
-            Free
-          </span>
-        );
-      default:
-        return null;
-    }
-  };
-
   const handleSubscriptionCTA = () => {
     if (isAnonymous) {
       navigate('/auth');
@@ -230,6 +202,7 @@ export const JourneyStageCard: React.FC<JourneyStageCardProps> = ({
               </div>
             </div>
             
+            {/* Enhanced Progress Circle with Better Mobile Sizing */}
             <div className="progress-circle-container">
               <div className={`relative ${isSmallMobile ? 'w-10 h-10' : isMobile ? 'w-12 h-12' : 'w-14 h-14'}`}>
                 <svg className="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
@@ -383,7 +356,11 @@ export const JourneyStageCard: React.FC<JourneyStageCardProps> = ({
                                 <span className="text-blue-800 font-medium">
                                   {visitDetails.type === 'virtual' ? 'Virtual Visit' : 'Home Visit'}
                                 </span>
-                                {getPaymentStatusBadge()}
+                                {visitDetails.type === 'in_person' && (
+                                  <span className="text-xs bg-green-100 text-green-800 px-1 py-0.5 rounded ml-1">
+                                    Paid
+                                  </span>
+                                )}
                               </div>
                               <div className="flex items-center gap-1">
                                 <Calendar className="h-3 w-3 text-blue-600" />
@@ -403,6 +380,7 @@ export const JourneyStageCard: React.FC<JourneyStageCardProps> = ({
                           </div>
                         )}
                         
+                        {/* Simplified Step 7 Button - Only Cancel for completed visits */}
                         <Button 
                           variant="ghost" 
                           size="sm" 
