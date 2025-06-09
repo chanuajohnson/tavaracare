@@ -119,7 +119,7 @@ const Index = () => {
         {/* Content Overlay */}
         <div className="relative z-10 flex flex-col items-center justify-center h-full text-center px-4">
           {/* Logo */}
-          <motion.div
+          {/* Chan Commented out Logo <motion.div
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8 }}
@@ -130,7 +130,7 @@ const Index = () => {
               alt="Tavara" 
               className="h-16 w-auto md:h-20 mx-auto"
             />
-          </motion.div>
+          </motion.div>  End Chan Commented out Logo */}
 
           {/* Main Heading */}
           <motion.h1
