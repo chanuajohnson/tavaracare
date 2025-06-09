@@ -31,7 +31,7 @@ export const Fab = ({
       onClick={onClick}
       size="icon"
       className={cn(
-        "fixed z-50 rounded-full w-14 h-14 shadow-lg flex items-center justify-center transition-all hover:scale-105",
+        "fixed z-40 rounded-full w-14 h-14 shadow-lg flex items-center justify-center transition-all hover:scale-105",
         positionClasses[position],
         className
       )}

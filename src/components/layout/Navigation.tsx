@@ -119,7 +119,7 @@ export function Navigation() {
 
   return (
     <>
-      <nav className="bg-background border-b py-3 px-4 sm:px-6">
+      <nav className="sticky top-0 z-50 bg-background border-b py-3 px-4 sm:px-6">
         <div className="container mx-auto flex justify-between items-center">
           <div className="flex items-center flex-col sm:flex-row">
             <Link to="/" className="flex items-center">
@@ -178,7 +178,7 @@ export function Navigation() {
                         <ChevronDown className="h-3 w-3" />
                       </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-56">
+                    <DropdownMenuContent align="end" className="w-56 bg-white border shadow-lg z-[100]">
                       <DropdownMenuGroup>
                         <DropdownMenuLabel>Dashboards</DropdownMenuLabel>
                         <DropdownMenuSeparator />
@@ -211,7 +211,7 @@ export function Navigation() {
                       <span className={isMobile ? "inline" : "hidden sm:inline"}>Support</span>
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuContent align="end" className="w-56 bg-white border shadow-lg z-[100]">
                     <DropdownMenuItem
                       className="flex items-center gap-2 cursor-pointer"
                       onClick={handleFAQClick}
