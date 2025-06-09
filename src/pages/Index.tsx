@@ -126,7 +126,7 @@ const Index = () => {
             className="mb-8"
           >
             <img 
-              src="/TAVARACARElogo.JPG"
+              src="/TAVARACARElogo.png"
               alt="Tavara" 
               className="h-16 w-auto md:h-20 mx-auto"
             />
