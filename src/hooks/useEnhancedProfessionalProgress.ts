@@ -241,8 +241,8 @@ export const useEnhancedProfessionalProgress = (): ProfessionalProgressData => {
           case 4: // Availability
             completed = !!(profile?.availability && profile.availability.length > 0);
             break;
-          case 5: // Training modules
-            completed = !!(profile?.has_training);
+          case 5: // Training modules - check if professional_type is set and certifications exist
+            completed = !!(profile?.professional_type && profile?.certifications && profile.certifications.length > 0);
             break;
           case 6: // Assignments
             completed = (assignments?.length || 0) > 0;
