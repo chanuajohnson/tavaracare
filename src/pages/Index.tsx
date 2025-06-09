@@ -5,7 +5,6 @@ import { useNavigate, Link } from "react-router-dom";
 import { toast } from "sonner";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Fab } from "@/components/ui/fab";
 import { EnvironmentInfo } from "@/components/debug/EnvironmentInfo";
 import { SupabaseDebugger } from "@/components/debug/SupabaseDebugger";
 
@@ -298,12 +297,6 @@ const Index = () => {
           </motion.div>
         </div> */}
       </div>
-      
-      <Fab
-        position="bottom-right"
-        icon={<HelpCircle className="h-5 w-5" />}
-        className="bg-primary-500 hover:bg-primary-600 text-white"
-      />
       
       {isDebug && (
         <div className="mt-12 space-y-6 border-t pt-8">
