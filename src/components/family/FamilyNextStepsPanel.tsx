@@ -1,10 +1,10 @@
-
 import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { CheckCircle2, Circle, List, ArrowRight, Clock } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { ScheduleVisitModal } from "./ScheduleVisitModal";
+import { CaregiverMatchingModal } from "./CaregiverMatchingModal";
 import { useFamilyJourneyProgress } from "@/hooks/useFamilyJourneyProgress";
 
 export const FamilyNextStepsPanel = () => {
@@ -15,7 +15,9 @@ export const FamilyNextStepsPanel = () => {
     nextStep, 
     loading, 
     showScheduleModal, 
-    setShowScheduleModal 
+    setShowScheduleModal,
+    showCaregiverMatchingModal,
+    setShowCaregiverMatchingModal
   } = useFamilyJourneyProgress();
 
   // Show only the first 7 steps in the dashboard panel for cleaner UI
@@ -171,6 +173,14 @@ export const FamilyNextStepsPanel = () => {
       <ScheduleVisitModal 
         open={showScheduleModal}
         onOpenChange={setShowScheduleModal}
+      />
+
+      {/* Caregiver Matching Modal */}
+      <CaregiverMatchingModal
+        open={showCaregiverMatchingModal}
+        onOpenChange={setShowCaregiverMatchingModal}
+        referringPagePath="/dashboard/family"
+        referringPageLabel="Family Dashboard"
       />
     </>
   );
