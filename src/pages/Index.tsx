@@ -105,7 +105,7 @@ const Index = () => {
           muted
           loop
           playsInline
-          poster="/lovable-uploads/12de91cf-3454-4e5d-9f29-b80cf84bb8c1.png"
+          preload="metadata"
         >
           {/* Updated video source to match actual file case */}
           <source src="/your-video.MP4" type="video/mp4" />
