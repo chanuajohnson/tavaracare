@@ -2,7 +2,7 @@
 import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { CheckCircle2, Circle, List, ArrowRight, Clock } from "lucide-react";
+import { CheckCircle2, Circle, List, ArrowRight, Clock, Shield } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useState, useEffect } from "react";
@@ -13,6 +13,7 @@ export const NextStepsPanel = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
+  const [verificationStatus, setVerificationStatus] = useState<string>('not_started');
   const [steps, setSteps] = useState([
     { 
       id: 1, 
@@ -33,26 +34,33 @@ export const NextStepsPanel = () => {
       title: "Upload certifications & documents", 
       description: "Verify your credentials", 
       completed: false, 
-      link: "/professional/profile" 
+      link: "/professional/profile?tab=documents" 
     },
     { 
       id: 4, 
+      title: "Submit Certificate of Character", 
+      description: "Upload background check from T&T Police", 
+      completed: false, 
+      link: "/professional/profile?tab=documents" 
+    },
+    { 
+      id: 5, 
       title: "Set your availability preferences", 
       description: "Configure your work schedule", 
       completed: false, 
       link: "/professional/profile" 
     },
     { 
-      id: 5, 
+      id: 6, 
       title: "Complete training modules", 
       description: "Enhance your skills", 
       completed: false, 
       link: "/professional/training" 
     },
     { 
-      id: 6, 
-      title: "Schedule orientation session", 
-      description: "Complete your onboarding", 
+      id: 7, 
+      title: "Get verified & start assignments", 
+      description: "Earn your badge and begin caregiving", 
       completed: false, 
       link: "/professional/profile" 
     }
@@ -73,15 +81,23 @@ export const NextStepsPanel = () => {
       // Check user profile completion from profiles table
       const { data: profile } = await supabase
         .from('profiles')
-        .select('professional_type, years_of_experience, certifications, availability')
+        .select('professional_type, years_of_experience, certifications, availability, background_check_status')
         .eq('id', user.id)
         .maybeSingle();
 
       // Check for uploaded documents
       const { data: documents } = await supabase
         .from('professional_documents')
-        .select('id')
+        .select('id, document_type, verification_status')
         .eq('user_id', user.id);
+
+      // Check for background check documents specifically
+      const backgroundCheckDocs = documents?.filter(doc => doc.document_type === 'background_check') || [];
+      const hasVerifiedBackgroundCheck = backgroundCheckDocs.some(doc => doc.verification_status === 'verified');
+      const hasBackgroundCheckDoc = backgroundCheckDocs.length > 0;
+
+      const backgroundCheckStatus = profile?.background_check_status || 'not_started';
+      setVerificationStatus(backgroundCheckStatus);
 
       const updatedSteps = [...steps];
       
@@ -93,17 +109,31 @@ export const NextStepsPanel = () => {
         updatedSteps[1].completed = true;
       }
       
-      // Step 3: Upload documents - check if any documents exist
-      if (documents && documents.length > 0) {
+      // Step 3: Upload documents - check if any non-background check documents exist
+      const otherDocs = documents?.filter(doc => doc.document_type !== 'background_check') || [];
+      if (otherDocs.length > 0) {
         updatedSteps[2].completed = true;
       }
       
-      // Step 4: Availability - check if availability is set
-      if (profile && profile.availability && profile.availability.length > 0) {
+      // Step 4: Background check - check if background check document uploaded
+      if (hasBackgroundCheckDoc) {
         updatedSteps[3].completed = true;
       }
       
-      // Steps 5 and 6 will be completed based on future implementations
+      // Step 5: Availability - check if availability is set
+      if (profile && profile.availability && profile.availability.length > 0) {
+        updatedSteps[4].completed = true;
+      }
+      
+      // Step 6: Training modules - check if professional_type is set and certifications exist
+      if (profile && profile.professional_type && profile.certifications && profile.certifications.length > 0) {
+        updatedSteps[5].completed = true;
+      }
+      
+      // Step 7: Verified and assignments - check if background check is verified
+      if (hasVerifiedBackgroundCheck) {
+        updatedSteps[6].completed = true;
+      }
       
       setSteps(updatedSteps);
     } catch (error) {
@@ -121,24 +151,33 @@ export const NextStepsPanel = () => {
       if (step.id === 1) return "Account Created";
       if (step.id === 2) return "Edit Profile";
       if (step.id === 3) return "View Documents";
-      if (step.id === 4) return "Edit Availability";
-      if (step.id === 5) return "Continue Training";
-      if (step.id === 6) return "Reschedule";
+      if (step.id === 4) return verificationStatus === 'verified' ? "✓ Verified" : "View Status";
+      if (step.id === 5) return "Edit Availability";
+      if (step.id === 6) return "Continue Training";
+      if (step.id === 7) return "View Assignments";
       return "Edit";
     }
     
     if (step.id === 1) return "Complete";
     if (step.id === 2) return "Complete Profile";
     if (step.id === 3) return "Upload Docs";
-    if (step.id === 4) return "Set Availability";
-    if (step.id === 5) return "Start Training";
-    if (step.id === 6) return "Schedule";
+    if (step.id === 4) return "Upload Certificate";
+    if (step.id === 5) return "Set Availability";
+    if (step.id === 6) return "Start Training";
+    if (step.id === 7) return "Get Verified";
     
     return "Complete";
   };
 
-  const getButtonIcon = (step: any) => {
-    return <ArrowRight className="ml-1 h-3 w-3" />;
+  const getStepIcon = (step: any) => {
+    if (step.id === 4) {
+      return <Shield className="h-5 w-5 text-primary" />;
+    }
+    return step.completed ? (
+      <CheckCircle2 className="h-5 w-5 text-green-500" />
+    ) : (
+      <Circle className="h-5 w-5 text-gray-300" />
+    );
   };
 
   const handleStepClick = (step: any) => {
@@ -202,16 +241,15 @@ export const NextStepsPanel = () => {
             {steps.map((step) => (
               <li key={step.id} className="flex items-start gap-3">
                 <div className="mt-0.5">
-                  {step.completed ? (
-                    <CheckCircle2 className="h-5 w-5 text-green-500" />
-                  ) : (
-                    <Circle className="h-5 w-5 text-gray-300" />
-                  )}
+                  {getStepIcon(step)}
                 </div>
                 <div className="flex-1">
                   <div className="flex justify-between items-start">
                     <p className={`font-medium ${step.completed ? 'text-gray-500 line-through' : 'text-gray-800'}`}>
                       {step.title}
+                      {step.id === 4 && verificationStatus === 'verified' && (
+                        <span className="ml-2 text-green-600 text-sm">✓ Badge Earned</span>
+                      )}
                     </p>
                     {!step.completed && (
                       <div className="flex items-center text-xs text-gray-500 gap-1">
@@ -234,7 +272,7 @@ export const NextStepsPanel = () => {
                   disabled={step.id === 1 && step.completed}
                 >
                   {getButtonText(step)}
-                  {step.id !== 1 && getButtonIcon(step)}
+                  {step.id !== 1 && <ArrowRight className="ml-1 h-3 w-3" />}
                 </Button>
               </li>
             ))}

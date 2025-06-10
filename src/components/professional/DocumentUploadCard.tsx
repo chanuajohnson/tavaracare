@@ -1,9 +1,8 @@
-
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Upload, FileText, Check, X } from 'lucide-react';
+import { Upload, FileText, Check, X, Download, Eye, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/components/providers/AuthProvider';
@@ -19,6 +18,15 @@ interface DocumentUploadCardProps {
   onUploadSuccess?: () => void;
 }
 
+interface UploadedDocument {
+  id: string;
+  file_name: string;
+  file_path: string;
+  verification_status: string;
+  document_subtype?: string;
+  created_at: string;
+}
+
 export const DocumentUploadCard: React.FC<DocumentUploadCardProps> = ({
   title,
   description,
@@ -31,8 +39,37 @@ export const DocumentUploadCard: React.FC<DocumentUploadCardProps> = ({
 }) => {
   const { user } = useAuth();
   const [isUploading, setIsUploading] = useState(false);
-  const [uploadedFiles, setUploadedFiles] = useState<string[]>([]);
+  const [existingDocuments, setExistingDocuments] = useState<UploadedDocument[]>([]);
+  const [loadingDocuments, setLoadingDocuments] = useState(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (user) {
+      fetchExistingDocuments();
+    }
+  }, [user, documentType]);
+
+  const fetchExistingDocuments = async () => {
+    if (!user) return;
+
+    try {
+      setLoadingDocuments(true);
+      const { data, error } = await supabase
+        .from('professional_documents')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('document_type', documentType)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setExistingDocuments(data || []);
+    } catch (error: any) {
+      console.error('Error fetching documents:', error);
+      toast.error('Failed to load existing documents');
+    } finally {
+      setLoadingDocuments(false);
+    }
+  };
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
@@ -60,16 +97,37 @@ export const DocumentUploadCard: React.FC<DocumentUploadCardProps> = ({
 
         if (uploadError) throw uploadError;
 
+        // Determine verification status and document subtype for background checks
+        let verificationStatus = 'not_started';
+        let documentSubtype = '';
+
+        if (documentType === 'background_check') {
+          // Check if it's likely a receipt/proof vs actual certificate
+          const isReceipt = file.name.toLowerCase().includes('receipt') || 
+                           file.name.toLowerCase().includes('proof') ||
+                           file.name.toLowerCase().includes('application');
+          
+          if (isReceipt) {
+            verificationStatus = 'in_progress';
+            documentSubtype = 'application_receipt';
+          } else {
+            verificationStatus = 'verified';
+            documentSubtype = 'certificate';
+          }
+        }
+
         // Save to database
         const { error: dbError } = await supabase
           .from('professional_documents')
           .insert({
             user_id: user.id,
             document_type: documentType,
+            document_subtype: documentSubtype,
             file_name: file.name,
             file_path: fileName,
             file_size: file.size,
-            mime_type: file.type
+            mime_type: file.type,
+            verification_status: verificationStatus
           });
 
         if (dbError) throw dbError;
@@ -78,9 +136,9 @@ export const DocumentUploadCard: React.FC<DocumentUploadCardProps> = ({
       });
 
       const uploadedFileNames = await Promise.all(uploadPromises);
-      setUploadedFiles(prev => [...prev, ...uploadedFileNames]);
       
       toast.success(`Successfully uploaded ${uploadedFileNames.length} ${documentType} file(s)`);
+      await fetchExistingDocuments(); // Refresh the list
       onUploadSuccess?.();
     } catch (error: any) {
       console.error('Upload error:', error);
@@ -90,6 +148,70 @@ export const DocumentUploadCard: React.FC<DocumentUploadCardProps> = ({
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
+    }
+  };
+
+  const downloadDocument = async (document: UploadedDocument) => {
+    try {
+      const { data, error } = await supabase.storage
+        .from('professional-documents')
+        .download(document.file_path);
+
+      if (error) throw error;
+
+      // Create download link
+      const url = URL.createObjectURL(data);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = document.file_name;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      toast.success('Document downloaded successfully');
+    } catch (error: any) {
+      console.error('Download error:', error);
+      toast.error('Failed to download document');
+    }
+  };
+
+  const deleteDocument = async (document: UploadedDocument) => {
+    try {
+      // Delete from storage
+      const { error: storageError } = await supabase.storage
+        .from('professional-documents')
+        .remove([document.file_path]);
+
+      if (storageError) throw storageError;
+
+      // Delete from database
+      const { error: dbError } = await supabase
+        .from('professional_documents')
+        .delete()
+        .eq('id', document.id);
+
+      if (dbError) throw dbError;
+
+      toast.success('Document deleted successfully');
+      await fetchExistingDocuments(); // Refresh the list
+      onUploadSuccess?.();
+    } catch (error: any) {
+      console.error('Delete error:', error);
+      toast.error('Failed to delete document');
+    }
+  };
+
+  const getVerificationBadge = (status: string) => {
+    switch (status) {
+      case 'verified':
+        return <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs bg-green-100 text-green-800"><Check className="h-3 w-3" /> Verified</span>;
+      case 'in_progress':
+        return <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs bg-yellow-100 text-yellow-800"><Eye className="h-3 w-3" /> In Progress</span>;
+      case 'rejected':
+        return <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs bg-red-100 text-red-800"><X className="h-3 w-3" /> Rejected</span>;
+      default:
+        return <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs bg-gray-100 text-gray-800">Not Started</span>;
     }
   };
 
@@ -139,15 +261,52 @@ export const DocumentUploadCard: React.FC<DocumentUploadCardProps> = ({
             </Button>
           </div>
 
-          {uploadedFiles.length > 0 && (
-            <div className="space-y-2">
-              <h4 className="text-sm font-medium text-green-600">Recently Uploaded:</h4>
-              {uploadedFiles.map((fileName, index) => (
-                <div key={index} className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Check className="h-4 w-4 text-green-500" />
-                  {fileName}
+          {/* Existing Documents List */}
+          {loadingDocuments ? (
+            <div className="text-center py-4">
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto"></div>
+              <p className="text-sm text-muted-foreground mt-2">Loading documents...</p>
+            </div>
+          ) : existingDocuments.length > 0 ? (
+            <div className="space-y-3">
+              <h4 className="text-sm font-medium text-gray-700">Uploaded Documents:</h4>
+              {existingDocuments.map((doc) => (
+                <div key={doc.id} className="flex items-center justify-between p-3 border rounded-lg bg-gray-50">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <FileText className="h-4 w-4 text-gray-500" />
+                      <span className="text-sm font-medium">{doc.file_name}</span>
+                      {getVerificationBadge(doc.verification_status)}
+                    </div>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Uploaded: {new Date(doc.created_at).toLocaleDateString()}
+                      {doc.document_subtype && ` • ${doc.document_subtype.replace('_', ' ')}`}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      onClick={() => downloadDocument(doc)}
+                      className="h-8 w-8 p-0"
+                    >
+                      <Download className="h-4 w-4" />
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      onClick={() => deleteDocument(doc)}
+                      className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
               ))}
+            </div>
+          ) : (
+            <div className="text-center py-4 text-sm text-muted-foreground">
+              No documents uploaded yet
             </div>
           )}
         </div>

@@ -24,12 +24,14 @@ interface ProfessionalProgressData {
   completedSteps: number;
   totalSteps: number;
   loading: boolean;
+  verificationStatus?: string;
 }
 
 export const useProfessionalProgress = (): ProfessionalProgressData => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
+  const [verificationStatus, setVerificationStatus] = useState<string>('not_started');
   const [steps, setSteps] = useState<ProfessionalStep[]>([
     { 
       id: 1, 
@@ -60,6 +62,15 @@ export const useProfessionalProgress = (): ProfessionalProgressData => {
     },
     { 
       id: 4, 
+      title: "Submit Certificate of Character", 
+      description: "Upload your background check from Trinidad & Tobago Police", 
+      completed: false, 
+      link: "/professional/profile?tab=documents",
+      stage: "qualification",
+      category: "background_check"
+    },
+    { 
+      id: 5, 
       title: "Set your availability preferences", 
       description: "Configure your work schedule and location preferences", 
       completed: false, 
@@ -68,7 +79,7 @@ export const useProfessionalProgress = (): ProfessionalProgressData => {
       category: "availability"
     },
     { 
-      id: 5, 
+      id: 6, 
       title: "Complete training modules", 
       description: "Enhance your skills with our professional development courses", 
       completed: false, 
@@ -77,9 +88,9 @@ export const useProfessionalProgress = (): ProfessionalProgressData => {
       category: "training"
     },
     { 
-      id: 6, 
-      title: "Start receiving assignments", 
-      description: "Get matched with families and begin your caregiving journey", 
+      id: 7, 
+      title: "Get verified and start receiving assignments", 
+      description: "Earn your verification badge and begin your caregiving journey", 
       completed: false, 
       link: "/professional/profile?tab=assignments",
       stage: "active",
@@ -96,18 +107,20 @@ export const useProfessionalProgress = (): ProfessionalProgressData => {
       if (step.id === 1) return "✓ Account Created";
       if (step.id === 2) return "View Profile";
       if (step.id === 3) return "View Documents";
-      if (step.id === 4) return "Edit Availability";
-      if (step.id === 5) return "Continue Training";
-      if (step.id === 6) return "View Assignments";
+      if (step.id === 4) return verificationStatus === 'verified' ? "✓ Verified" : "View Status";
+      if (step.id === 5) return "Edit Availability";
+      if (step.id === 6) return "Continue Training";
+      if (step.id === 7) return "View Assignments";
       return "✓ Complete";
     }
     
     if (step.id === 1) return "Complete Setup";
     if (step.id === 2) return "Complete Profile";
     if (step.id === 3) return "Upload Documents";
-    if (step.id === 4) return "Set Availability";
-    if (step.id === 5) return "Start Training";
-    if (step.id === 6) return "Get Assignments";
+    if (step.id === 4) return "Upload Certificate";
+    if (step.id === 5) return "Set Availability";
+    if (step.id === 6) return "Start Training";
+    if (step.id === 7) return "Get Verified";
     
     return "Complete";
   };
@@ -121,21 +134,29 @@ export const useProfessionalProgress = (): ProfessionalProgressData => {
       // Check user profile completion - enhanced checks
       const { data: profile } = await supabase
         .from('profiles')
-        .select('professional_type, years_of_experience, certifications, availability')
+        .select('professional_type, years_of_experience, certifications, availability, background_check_status')
         .eq('id', user.id)
         .maybeSingle();
 
       // Check for uploaded documents
       const { data: documents } = await supabase
         .from('professional_documents')
-        .select('id')
+        .select('id, document_type, verification_status')
         .eq('user_id', user.id);
+
+      // Check for background check documents specifically
+      const backgroundCheckDocs = documents?.filter(doc => doc.document_type === 'background_check') || [];
+      const hasVerifiedBackgroundCheck = backgroundCheckDocs.some(doc => doc.verification_status === 'verified');
+      const hasBackgroundCheckDoc = backgroundCheckDocs.length > 0;
 
       // Check care team assignments
       const { data: assignments } = await supabase
         .from('care_team_members')
         .select('id')
         .eq('caregiver_id', user.id);
+
+      const backgroundCheckStatus = profile?.background_check_status || 'not_started';
+      setVerificationStatus(backgroundCheckStatus);
 
       const updatedSteps = steps.map(step => ({
         ...step,
@@ -151,24 +172,30 @@ export const useProfessionalProgress = (): ProfessionalProgressData => {
         updatedSteps[1].completed = true;
       }
       
-      // Step 3: Upload documents - check if any documents exist
-      if (documents && documents.length > 0) {
+      // Step 3: Upload documents - check if any non-background check documents exist
+      const otherDocs = documents?.filter(doc => doc.document_type !== 'background_check') || [];
+      if (otherDocs.length > 0) {
         updatedSteps[2].completed = true;
       }
       
-      // Step 4: Availability - check if availability is set
-      if (profile && profile.availability && profile.availability.length > 0) {
+      // Step 4: Background check - check if background check document uploaded
+      if (hasBackgroundCheckDoc) {
         updatedSteps[3].completed = true;
       }
       
-      // Step 5: Training modules - check if professional_type is set and certifications exist
-      if (profile && profile.professional_type && profile.certifications && profile.certifications.length > 0) {
+      // Step 5: Availability - check if availability is set
+      if (profile && profile.availability && profile.availability.length > 0) {
         updatedSteps[4].completed = true;
       }
       
-      // Step 6: Assignments - check if user has any care team assignments
-      if (assignments && assignments.length > 0) {
+      // Step 6: Training modules - check if professional_type is set and certifications exist
+      if (profile && profile.professional_type && profile.certifications && profile.certifications.length > 0) {
         updatedSteps[5].completed = true;
+      }
+      
+      // Step 7: Verified and assignments - check if background check is verified
+      if (hasVerifiedBackgroundCheck) {
+        updatedSteps[6].completed = true;
       }
       
       setSteps(updatedSteps);
@@ -193,7 +220,7 @@ export const useProfessionalProgress = (): ProfessionalProgressData => {
   // Determine current stage based on completed steps
   const getCurrentStage = () => {
     if (completionPercentage === 100) return 'active';
-    if (completedSteps >= 4) return 'matching';
+    if (completedSteps >= 5) return 'matching';
     if (completedSteps >= 2) return 'qualification';
     return 'foundation';
   };
@@ -205,6 +232,7 @@ export const useProfessionalProgress = (): ProfessionalProgressData => {
     currentStage: getCurrentStage(),
     completedSteps,
     totalSteps,
-    loading
+    loading,
+    verificationStatus
   };
 };
