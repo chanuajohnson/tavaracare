@@ -71,6 +71,17 @@ export const useUserSpecificProgress = (userId: string, userRole: string): UserS
             medications: medications.data || [],
             mealPlans: mealPlans.data || []
           };
+        } else if (userRole === 'professional') {
+          // Use the same comprehensive logic as useEnhancedProfessionalProgress
+          const [documents, assignments] = await Promise.all([
+            supabase.from('professional_documents').select('*').eq('user_id', userId),
+            supabase.from('care_team_members').select('*').eq('caregiver_id', userId)
+          ]);
+          
+          completionData = {
+            documents: documents.data || [],
+            assignments: assignments.data || []
+          };
         }
 
         // Process steps with completion status
@@ -108,9 +119,31 @@ export const useUserSpecificProgress = (userId: string, userRole: string): UserS
                 completed = false;
             }
           } else if (userRole === 'professional') {
-            // Use onboarding_progress field for professional users
-            const onboardingProgress = profile?.onboarding_progress || {};
-            completed = onboardingProgress[step.step_number.toString()] === true;
+            // Use the same completion logic as useEnhancedProfessionalProgress
+            switch (step.step_number) {
+              case 1: // Account creation
+                completed = !!userId; // Always true for existing users
+                break;
+              case 2: // Professional profile
+                completed = !!(profile?.professional_type && profile?.years_of_experience);
+                break;
+              case 3: // Documents upload
+                completed = ((completionData as any).documents?.length || 0) > 0;
+                break;
+              case 4: // Availability
+                completed = !!(profile?.availability && profile.availability.length > 0);
+                break;
+              case 5: // Training modules - check certifications
+                completed = !!(profile?.professional_type && profile?.certifications && profile.certifications.length > 0);
+                break;
+              case 6: // Assignments
+                completed = ((completionData as any).assignments?.length || 0) > 0;
+                break;
+              default:
+                // Fallback to onboarding_progress if available
+                const onboardingProgress = profile?.onboarding_progress || {};
+                completed = onboardingProgress[step.step_number.toString()] === true;
+            }
           } else if (userRole === 'community') {
             // Basic completion logic for community users
             switch (step.step_number) {
