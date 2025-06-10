@@ -10,8 +10,6 @@ import { Button } from "@/components/ui/button";
 import { TrainingProgramSection } from "./TrainingProgramSection";
 import { TrainingModulesSection } from "./TrainingModulesSection";
 import { TrainingProgressTracker } from "./TrainingProgressTracker";
-import { CertificateUpload } from "./CertificateUpload";
-import { VerificationStatusCard } from "./VerificationStatusCard";
 
 export const ProfessionalProfileHub = () => {
   const { user } = useAuth();
@@ -74,11 +72,6 @@ export const ProfessionalProfileHub = () => {
           <p className="text-gray-600 mt-2">Manage your professional profile and access resources</p>
         </motion.div>
 
-        {/* Verification Status - Show prominently at top */}
-        <div className="mb-6">
-          <VerificationStatusCard onStatusChange={() => {}} />
-        </div>
-
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="overview" className="flex items-center gap-2">
@@ -121,10 +114,6 @@ export const ProfessionalProfileHub = () => {
                     <label className="text-sm font-medium text-gray-500">Years of Experience</label>
                     <p className="text-lg">{profileData?.years_of_experience || "Not specified"}</p>
                   </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-500">Background Check Status</label>
-                    <p className="text-lg capitalize">{profileData?.background_check_status?.replace('_', ' ') || "Not started"}</p>
-                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -133,13 +122,13 @@ export const ProfessionalProfileHub = () => {
           <TabsContent value="documents" className="mt-6">
             <Card>
               <CardHeader>
-                <CardTitle>Professional Documents & Verification</CardTitle>
+                <CardTitle>Professional Documents</CardTitle>
                 <CardDescription>
-                  Upload and manage your professional certifications and background check documents
+                  Manage your certifications and professional documents
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <CertificateUpload onUploadSuccess={fetchProfileData} />
+                <p className="text-gray-600">Document management coming soon...</p>
               </CardContent>
             </Card>
           </TabsContent>
