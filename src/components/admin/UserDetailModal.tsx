@@ -25,11 +25,12 @@ export function UserDetailModal({ user, open, onOpenChange, onRefresh }: UserDet
   const [userPhoneNumber, setUserPhoneNumber] = React.useState<string | null>(null);
   const [showTemplateSelector, setShowTemplateSelector] = React.useState(false);
   
-  // Always call the hook with consistent parameters to avoid hooks violations
-  const { steps, completionPercentage, nextStep, loading } = useUserJourneyProgress(
-    user?.id || 'placeholder-id', 
-    user?.role || 'family'
-  );
+  // Stabilize the parameters to prevent hooks violations
+  const userId = React.useMemo(() => user?.id || '', [user?.id]);
+  const userRole = React.useMemo(() => user?.role || 'family', [user?.role]);
+  
+  // Always call the hook with stable parameters
+  const { steps, completionPercentage, nextStep, loading } = useUserJourneyProgress(userId, userRole);
 
   // Initialize phone number state when user changes
   React.useEffect(() => {
