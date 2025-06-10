@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -8,7 +9,7 @@ import { Separator } from "@/components/ui/separator";
 import { User, Mail, MapPin, Calendar, CheckCircle2, Clock, Send, ArrowRight, Circle } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
-import { useUserJourneyProgress } from "@/hooks/useUserJourneyProgress";
+import { useUserSpecificProgress } from "@/hooks/useUserSpecificProgress";
 import { UserWithProgress } from "@/types/adminTypes";
 import { PhoneNumberEditor } from "./PhoneNumberEditor";
 import { TemplateSelector } from "./TemplateSelector";
@@ -29,8 +30,8 @@ export function UserDetailModal({ user, open, onOpenChange, onRefresh }: UserDet
   const userId = React.useMemo(() => user?.id || '', [user?.id]);
   const userRole = React.useMemo(() => user?.role || 'family', [user?.role]);
   
-  // Always call the hook with stable parameters
-  const { steps, completionPercentage, nextStep, loading } = useUserJourneyProgress(userId, userRole);
+  // Use the fixed hook that properly handles professional users
+  const { steps, completionPercentage, nextStep, loading } = useUserSpecificProgress(userId, userRole);
 
   // Initialize phone number state when user changes
   React.useEffect(() => {
@@ -267,7 +268,7 @@ export function UserDetailModal({ user, open, onOpenChange, onRefresh }: UserDet
                             <Circle className="h-4 w-4 text-gray-300" />
                           )}
                           <span className={`text-sm flex-1 ${isCurrent ? 'font-medium text-blue-700' : ''}`}>
-                            {step.id}. {step.title}
+                            {step.step_number}. {step.title}
                           </span>
                           <span className="text-xs text-muted-foreground">
                             {step.description}

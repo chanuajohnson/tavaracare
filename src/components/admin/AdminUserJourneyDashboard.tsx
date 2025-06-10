@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -160,6 +161,12 @@ export function AdminUserJourneyDashboard() {
     }
   };
 
+  // Handle role filter click from statistics cards
+  const handleRoleFilterClick = (role: string) => {
+    setRoleFilter(role);
+    setSelectedUsers([]); // Clear selection when filtering
+  };
+
   if (loading) {
     return (
       <div className="space-y-6">
@@ -173,10 +180,16 @@ export function AdminUserJourneyDashboard() {
 
   return (
     <div className="space-y-6">
-      {/* Role Statistics */}
+      {/* Role Statistics - Now clickable for filtering */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         {Object.entries(roleStats).map(([role, stats]) => (
-          <Card key={role}>
+          <Card 
+            key={role} 
+            className={`cursor-pointer transition-all hover:shadow-md ${
+              roleFilter === role ? 'ring-2 ring-primary' : ''
+            }`}
+            onClick={() => handleRoleFilterClick(role)}
+          >
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
@@ -199,6 +212,11 @@ export function AdminUserJourneyDashboard() {
                   {stats.stalled}
                 </div>
               </div>
+              {roleFilter === role && (
+                <div className="mt-2 text-xs text-primary font-medium">
+                  Currently filtering by {role}
+                </div>
+              )}
             </CardContent>
           </Card>
         ))}
@@ -220,6 +238,11 @@ export function AdminUserJourneyDashboard() {
           <CardTitle className="flex items-center gap-2">
             <Users className="h-5 w-5" />
             User Journey Management
+            {roleFilter !== 'all' && (
+              <Badge variant="outline" className="ml-2">
+                Filtered by: {roleFilter}
+              </Badge>
+            )}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -257,6 +280,15 @@ export function AdminUserJourneyDashboard() {
                   : 'Select All'
                 }
               </Button>
+              {roleFilter !== 'all' && (
+                <Button
+                  variant="outline"
+                  onClick={() => handleRoleFilterClick('all')}
+                  className="flex items-center gap-2"
+                >
+                  Clear Filter
+                </Button>
+              )}
             </div>
           </div>
 
