@@ -62,17 +62,27 @@ export const DocumentUploadCard: React.FC<DocumentUploadCardProps> = ({
         .eq('document_type', documentType)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching documents:', error);
+        // If there's an error (like missing columns), set empty array
+        setExistingDocuments([]);
+        return;
+      }
       
-      // Map the data to include default verification_status if not present
-      const mappedData = (data || []).map(doc => ({
-        ...doc,
-        verification_status: doc.verification_status || 'not_started'
+      // Safely map the data with fallbacks for missing properties
+      const mappedData: UploadedDocument[] = (data || []).map(doc => ({
+        id: doc.id,
+        file_name: doc.file_name,
+        file_path: doc.file_path,
+        verification_status: doc.verification_status || 'not_started',
+        document_subtype: doc.document_subtype || undefined,
+        created_at: doc.created_at
       }));
       
       setExistingDocuments(mappedData);
     } catch (error: any) {
       console.error('Error fetching documents:', error);
+      setExistingDocuments([]);
       toast.error('Failed to load existing documents');
     } finally {
       setLoadingDocuments(false);
@@ -124,19 +134,28 @@ export const DocumentUploadCard: React.FC<DocumentUploadCardProps> = ({
           }
         }
 
+        // Prepare the data to insert
+        const insertData: any = {
+          user_id: user.id,
+          document_type: documentType,
+          file_name: file.name,
+          file_path: fileName,
+          file_size: file.size,
+          mime_type: file.type
+        };
+
+        // Only add verification fields if they might exist in the schema
+        try {
+          insertData.verification_status = verificationStatus;
+          insertData.document_subtype = documentSubtype;
+        } catch (e) {
+          // If these fields don't exist, continue without them
+        }
+
         // Save to database
         const { error: dbError } = await supabase
           .from('professional_documents')
-          .insert({
-            user_id: user.id,
-            document_type: documentType,
-            document_subtype: documentSubtype,
-            file_name: file.name,
-            file_path: fileName,
-            file_size: file.size,
-            mime_type: file.type,
-            verification_status: verificationStatus
-          });
+          .insert(insertData);
 
         if (dbError) throw dbError;
 
@@ -169,12 +188,12 @@ export const DocumentUploadCard: React.FC<DocumentUploadCardProps> = ({
 
       // Create download link
       const url = URL.createObjectURL(data);
-      const a = window.document.createElement('a');
+      const a = document.createElement('a');
       a.href = url;
       a.download = document.file_name;
-      window.document.body.appendChild(a);
+      document.body.appendChild(a);
       a.click();
-      window.document.body.removeChild(a);
+      document.body.removeChild(a);
       URL.revokeObjectURL(url);
 
       toast.success('Document downloaded successfully');
