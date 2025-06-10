@@ -29,16 +29,15 @@ export const VerificationStatusCard: React.FC<VerificationStatusCardProps> = ({ 
       setLoading(true);
       const { data: profile, error } = await supabase
         .from('profiles')
-        .select('*')
+        .select('background_check_status, verification_badge_earned_at')
         .eq('id', user.id)
         .maybeSingle();
 
       if (error) throw error;
 
       if (profile) {
-        // Use fallback values if the new columns don't exist yet
-        const status = (profile as any).background_check_status || 'not_started';
-        const badgeDate = (profile as any).verification_badge_earned_at || null;
+        const status = profile.background_check_status || 'not_started';
+        const badgeDate = profile.verification_badge_earned_at || null;
         
         setVerificationStatus(status);
         setBadgeEarnedAt(badgeDate);

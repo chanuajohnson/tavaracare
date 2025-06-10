@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -54,10 +55,9 @@ export const DocumentUploadCard: React.FC<DocumentUploadCardProps> = ({
 
     try {
       setLoadingDocuments(true);
-      // Select only columns that definitely exist
       const { data, error } = await supabase
         .from('professional_documents')
-        .select('id, file_name, file_path, created_at, document_type, user_id')
+        .select('id, file_name, file_path, created_at, document_type, user_id, verification_status, document_subtype')
         .eq('user_id', user.id)
         .eq('document_type', documentType)
         .order('created_at', { ascending: false });
@@ -73,8 +73,8 @@ export const DocumentUploadCard: React.FC<DocumentUploadCardProps> = ({
         id: doc.id,
         file_name: doc.file_name,
         file_path: doc.file_path,
-        verification_status: 'not_started', // Default fallback
-        document_subtype: undefined,
+        verification_status: doc.verification_status || 'not_started',
+        document_subtype: doc.document_subtype || undefined,
         created_at: doc.created_at
       }));
       
@@ -123,7 +123,7 @@ export const DocumentUploadCard: React.FC<DocumentUploadCardProps> = ({
 
         if (uploadError) throw uploadError;
 
-        // Insert basic document record without new columns
+        // Insert document record with verification_status
         const { error: dbError } = await supabase
           .from('professional_documents')
           .insert({
@@ -132,7 +132,8 @@ export const DocumentUploadCard: React.FC<DocumentUploadCardProps> = ({
             file_name: file.name,
             file_path: fileName,
             file_size: file.size,
-            mime_type: file.type
+            mime_type: file.type,
+            verification_status: 'not_started'
           });
 
         if (dbError) throw dbError;
@@ -143,7 +144,7 @@ export const DocumentUploadCard: React.FC<DocumentUploadCardProps> = ({
       const uploadedFileNames = await Promise.all(uploadPromises);
       
       toast.success(`Successfully uploaded ${uploadedFileNames.length} ${documentType} file(s)`);
-      await fetchExistingDocuments(); // Refresh the list
+      await fetchExistingDocuments();
       onUploadSuccess?.();
     } catch (error: any) {
       console.error('Upload error:', error);
@@ -164,7 +165,6 @@ export const DocumentUploadCard: React.FC<DocumentUploadCardProps> = ({
 
       if (error) throw error;
 
-      // Create download link
       const url = URL.createObjectURL(data);
       const a = window.document.createElement('a');
       a.href = url;
@@ -183,14 +183,12 @@ export const DocumentUploadCard: React.FC<DocumentUploadCardProps> = ({
 
   const deleteDocument = async (document: UploadedDocument) => {
     try {
-      // Delete from storage
       const { error: storageError } = await supabase.storage
         .from('professional-documents')
         .remove([document.file_path]);
 
       if (storageError) throw storageError;
 
-      // Delete from database
       const { error: dbError } = await supabase
         .from('professional_documents')
         .delete()
@@ -199,7 +197,7 @@ export const DocumentUploadCard: React.FC<DocumentUploadCardProps> = ({
       if (dbError) throw dbError;
 
       toast.success('Document deleted successfully');
-      await fetchExistingDocuments(); // Refresh the list
+      await fetchExistingDocuments();
       onUploadSuccess?.();
     } catch (error: any) {
       console.error('Delete error:', error);
@@ -266,7 +264,6 @@ export const DocumentUploadCard: React.FC<DocumentUploadCardProps> = ({
             </Button>
           </div>
 
-          {/* Existing Documents List */}
           {loadingDocuments ? (
             <div className="text-center py-4">
               <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto"></div>
