@@ -29,11 +29,15 @@ export const useUserSpecificProgress = (userId: string, userRole: string): UserS
   const [steps, setSteps] = useState<JourneyStep[]>([]);
 
   useEffect(() => {
-    if (!userId || !userRole) return;
+    if (!userId || !userRole) {
+      console.log('useUserSpecificProgress: Missing userId or userRole', { userId, userRole });
+      return;
+    }
     
     const fetchUserProgress = async () => {
       try {
         setLoading(true);
+        console.log('🔍 useUserSpecificProgress: Starting fetch for', { userId, userRole });
         
         // Fetch journey steps for the user role
         const { data: journeySteps, error: stepsError } = await supabase
@@ -43,14 +47,32 @@ export const useUserSpecificProgress = (userId: string, userRole: string): UserS
           .eq('is_active', true)
           .order('order_index');
 
-        if (stepsError) throw stepsError;
+        if (stepsError) {
+          console.error('❌ Error fetching journey steps:', stepsError);
+          throw stepsError;
+        }
+
+        console.log('📋 Journey steps fetched:', journeySteps?.length || 0, 'steps');
 
         // Get user profile data for completion checking
-        const { data: profile } = await supabase
+        const { data: profile, error: profileError } = await supabase
           .from('profiles')
           .select('*')
           .eq('id', userId)
           .maybeSingle();
+
+        if (profileError) {
+          console.error('❌ Error fetching profile:', profileError);
+          throw profileError;
+        }
+
+        console.log('👤 Profile data:', {
+          hasProfile: !!profile,
+          professionalType: profile?.professional_type,
+          yearsExperience: profile?.years_of_experience,
+          certificationsCount: profile?.certifications?.length || 0,
+          availabilityCount: profile?.availability?.length || 0
+        });
 
         // Get additional completion data based on user role
         let completionData = {};
@@ -72,21 +94,40 @@ export const useUserSpecificProgress = (userId: string, userRole: string): UserS
             mealPlans: mealPlans.data || []
           };
         } else if (userRole === 'professional') {
+          console.log('🔍 Fetching professional-specific data...');
+          
           // Use the same comprehensive logic as useEnhancedProfessionalProgress
-          const [documents, assignments] = await Promise.all([
+          const [documentsResult, assignmentsResult] = await Promise.all([
             supabase.from('professional_documents').select('*').eq('user_id', userId),
             supabase.from('care_team_members').select('*').eq('caregiver_id', userId)
           ]);
           
+          if (documentsResult.error) {
+            console.error('❌ Error fetching documents:', documentsResult.error);
+          }
+          if (assignmentsResult.error) {
+            console.error('❌ Error fetching assignments:', assignmentsResult.error);
+          }
+          
+          const documents = documentsResult.data || [];
+          const assignments = assignmentsResult.data || [];
+          
+          console.log('📄 Professional data fetched:', {
+            documentsCount: documents.length,
+            assignmentsCount: assignments.length
+          });
+          
           completionData = {
-            documents: documents.data || [],
-            assignments: assignments.data || []
+            documents,
+            assignments
           };
         }
 
         // Process steps with completion status
         const processedSteps = journeySteps?.map(step => {
           let completed = false;
+          
+          console.log(`🔍 Checking step ${step.step_number}: ${step.title}`);
           
           // Check completion based on step number and user role
           if (userRole === 'family') {
@@ -123,26 +164,40 @@ export const useUserSpecificProgress = (userId: string, userRole: string): UserS
             switch (step.step_number) {
               case 1: // Account creation
                 completed = !!userId; // Always true for existing users
+                console.log(`✅ Step 1 (Account): ${completed}`);
                 break;
               case 2: // Professional profile
                 completed = !!(profile?.professional_type && profile?.years_of_experience);
+                console.log(`🔍 Step 2 (Profile): ${completed}`, {
+                  professionalType: profile?.professional_type,
+                  yearsExperience: profile?.years_of_experience
+                });
                 break;
               case 3: // Documents upload
-                completed = ((completionData as any).documents?.length || 0) > 0;
+                const documentsCount = ((completionData as any).documents?.length || 0);
+                completed = documentsCount > 0;
+                console.log(`📄 Step 3 (Documents): ${completed} (count: ${documentsCount})`);
                 break;
               case 4: // Availability
-                completed = !!(profile?.availability && profile.availability.length > 0);
+                const availabilityCount = profile?.availability?.length || 0;
+                completed = availabilityCount > 0;
+                console.log(`📅 Step 4 (Availability): ${completed} (count: ${availabilityCount})`);
                 break;
               case 5: // Training modules - check certifications
-                completed = !!(profile?.professional_type && profile?.certifications && profile.certifications.length > 0);
+                const certificationsCount = profile?.certifications?.length || 0;
+                completed = !!(profile?.professional_type && certificationsCount > 0);
+                console.log(`🎓 Step 5 (Certifications): ${completed} (count: ${certificationsCount})`);
                 break;
               case 6: // Assignments
-                completed = ((completionData as any).assignments?.length || 0) > 0;
+                const assignmentsCount = ((completionData as any).assignments?.length || 0);
+                completed = assignmentsCount > 0;
+                console.log(`💼 Step 6 (Assignments): ${completed} (count: ${assignmentsCount})`);
                 break;
               default:
                 // Fallback to onboarding_progress if available
                 const onboardingProgress = profile?.onboarding_progress || {};
                 completed = onboardingProgress[step.step_number.toString()] === true;
+                console.log(`🔄 Step ${step.step_number} (Fallback): ${completed}`);
             }
           } else if (userRole === 'community') {
             // Basic completion logic for community users
@@ -161,6 +216,8 @@ export const useUserSpecificProgress = (userId: string, userRole: string): UserS
             }
           }
 
+          console.log(`✅ Step ${step.step_number} final result: ${completed}`);
+
           // Ensure category is valid, fallback to 'foundation' if not
           const validCategory = isValidCategory(step.category) ? step.category : 'foundation';
 
@@ -176,10 +233,16 @@ export const useUserSpecificProgress = (userId: string, userRole: string): UserS
           };
         }) || [];
 
+        console.log('📊 Final processed steps:', processedSteps.map(s => ({
+          step: s.step_number,
+          title: s.title,
+          completed: s.completed
+        })));
+
         setSteps(processedSteps);
         
       } catch (error) {
-        console.error("Error fetching user-specific progress:", error);
+        console.error("❌ Error fetching user-specific progress:", error);
       } finally {
         setLoading(false);
       }
@@ -191,6 +254,13 @@ export const useUserSpecificProgress = (userId: string, userRole: string): UserS
   const completedSteps = steps.filter(step => step.completed).length;
   const completionPercentage = steps.length > 0 ? Math.round((completedSteps / steps.length) * 100) : 0;
   const nextStep = steps.find(step => !step.completed && step.accessible);
+
+  console.log('📈 Final calculation:', {
+    completedSteps,
+    totalSteps: steps.length,
+    completionPercentage,
+    nextStep: nextStep?.title
+  });
 
   return {
     steps,
