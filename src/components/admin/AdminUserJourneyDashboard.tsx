@@ -208,7 +208,7 @@ export function AdminUserJourneyDashboard() {
             onClick={(event) => handleRoleFilterClick(role, event)}
             style={{ userSelect: 'none' }}
           >
-            <CardContent className="p-4 pointer-events-none">
+            <CardContent className="p-4">
               <div className="flex items-center justify-between pointer-events-none">
                 <div className="pointer-events-none">
                   <p className="text-sm font-medium text-muted-foreground capitalize pointer-events-none">
