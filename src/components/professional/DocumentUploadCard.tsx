@@ -54,9 +54,10 @@ export const DocumentUploadCard: React.FC<DocumentUploadCardProps> = ({
 
     try {
       setLoadingDocuments(true);
+      // Select only columns that definitely exist
       const { data, error } = await supabase
         .from('professional_documents')
-        .select('id, file_name, file_path, verification_status, document_subtype, created_at')
+        .select('id, file_name, file_path, created_at, document_type, user_id')
         .eq('user_id', user.id)
         .eq('document_type', documentType)
         .order('created_at', { ascending: false });
@@ -67,13 +68,13 @@ export const DocumentUploadCard: React.FC<DocumentUploadCardProps> = ({
         return;
       }
       
-      // Safely map the data with fallbacks for missing properties
+      // Map the data with fallbacks for missing properties
       const mappedData: UploadedDocument[] = (data || []).map(doc => ({
         id: doc.id,
         file_name: doc.file_name,
         file_path: doc.file_path,
-        verification_status: doc.verification_status || 'not_started',
-        document_subtype: doc.document_subtype || undefined,
+        verification_status: 'not_started', // Default fallback
+        document_subtype: undefined,
         created_at: doc.created_at
       }));
       
@@ -122,26 +123,7 @@ export const DocumentUploadCard: React.FC<DocumentUploadCardProps> = ({
 
         if (uploadError) throw uploadError;
 
-        // Determine verification status and document subtype for background checks
-        let verificationStatus = 'not_started';
-        let documentSubtype = '';
-
-        if (documentType === 'background_check') {
-          // Check if it's likely a receipt/proof vs actual certificate
-          const isReceipt = file.name.toLowerCase().includes('receipt') || 
-                           file.name.toLowerCase().includes('proof') ||
-                           file.name.toLowerCase().includes('application');
-          
-          if (isReceipt) {
-            verificationStatus = 'in_progress';
-            documentSubtype = 'application_receipt';
-          } else {
-            verificationStatus = 'verified';
-            documentSubtype = 'certificate';
-          }
-        }
-
-        // Save to database
+        // Insert basic document record without new columns
         const { error: dbError } = await supabase
           .from('professional_documents')
           .insert({
@@ -150,9 +132,7 @@ export const DocumentUploadCard: React.FC<DocumentUploadCardProps> = ({
             file_name: file.name,
             file_path: fileName,
             file_size: file.size,
-            mime_type: file.type,
-            verification_status: verificationStatus,
-            document_subtype: documentSubtype
+            mime_type: file.type
           });
 
         if (dbError) throw dbError;
@@ -236,7 +216,7 @@ export const DocumentUploadCard: React.FC<DocumentUploadCardProps> = ({
       case 'rejected':
         return <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs bg-red-100 text-red-800"><X className="h-3 w-3" /> Rejected</span>;
       default:
-        return <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs bg-gray-100 text-gray-800">Not Started</span>;
+        return <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs bg-gray-100 text-gray-800">Pending Review</span>;
     }
   };
 
