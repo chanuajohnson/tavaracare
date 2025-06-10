@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -22,7 +23,7 @@ interface UploadedDocument {
   id: string;
   file_name: string;
   file_path: string;
-  verification_status: string;
+  verification_status?: string;
   document_subtype?: string;
   created_at: string;
 }
@@ -56,13 +57,20 @@ export const DocumentUploadCard: React.FC<DocumentUploadCardProps> = ({
       setLoadingDocuments(true);
       const { data, error } = await supabase
         .from('professional_documents')
-        .select('*')
+        .select('id, file_name, file_path, verification_status, document_subtype, created_at')
         .eq('user_id', user.id)
         .eq('document_type', documentType)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setExistingDocuments(data || []);
+      
+      // Map the data to include default verification_status if not present
+      const mappedData = (data || []).map(doc => ({
+        ...doc,
+        verification_status: doc.verification_status || 'not_started'
+      }));
+      
+      setExistingDocuments(mappedData);
     } catch (error: any) {
       console.error('Error fetching documents:', error);
       toast.error('Failed to load existing documents');
@@ -161,12 +169,12 @@ export const DocumentUploadCard: React.FC<DocumentUploadCardProps> = ({
 
       // Create download link
       const url = URL.createObjectURL(data);
-      const a = document.createElement('a');
+      const a = window.document.createElement('a');
       a.href = url;
       a.download = document.file_name;
-      document.body.appendChild(a);
+      window.document.body.appendChild(a);
       a.click();
-      document.body.removeChild(a);
+      window.document.body.removeChild(a);
       URL.revokeObjectURL(url);
 
       toast.success('Document downloaded successfully');
@@ -202,7 +210,7 @@ export const DocumentUploadCard: React.FC<DocumentUploadCardProps> = ({
     }
   };
 
-  const getVerificationBadge = (status: string) => {
+  const getVerificationBadge = (status?: string) => {
     switch (status) {
       case 'verified':
         return <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs bg-green-100 text-green-800"><Check className="h-3 w-3" /> Verified</span>;

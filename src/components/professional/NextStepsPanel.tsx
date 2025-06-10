@@ -81,7 +81,7 @@ export const NextStepsPanel = () => {
       // Check user profile completion from profiles table
       const { data: profile } = await supabase
         .from('profiles')
-        .select('professional_type, years_of_experience, certifications, availability, background_check_status')
+        .select('*')
         .eq('id', user.id)
         .maybeSingle();
 
@@ -91,12 +91,19 @@ export const NextStepsPanel = () => {
         .select('id, document_type, verification_status')
         .eq('user_id', user.id);
 
+      // Handle the case where new columns might not exist yet
+      const profileData = profile || {};
+      const docsData = documents || [];
+
       // Check for background check documents specifically
-      const backgroundCheckDocs = documents?.filter(doc => doc.document_type === 'background_check') || [];
-      const hasVerifiedBackgroundCheck = backgroundCheckDocs.some(doc => doc.verification_status === 'verified');
+      const backgroundCheckDocs = docsData.filter((doc: any) => doc.document_type === 'background_check');
+      const hasVerifiedBackgroundCheck = backgroundCheckDocs.some((doc: any) => 
+        (doc as any).verification_status === 'verified'
+      );
       const hasBackgroundCheckDoc = backgroundCheckDocs.length > 0;
 
-      const backgroundCheckStatus = profile?.background_check_status || 'not_started';
+      // Use fallback for background_check_status if column doesn't exist yet
+      const backgroundCheckStatus = (profileData as any).background_check_status || 'not_started';
       setVerificationStatus(backgroundCheckStatus);
 
       const updatedSteps = [...steps];
@@ -105,12 +112,12 @@ export const NextStepsPanel = () => {
       updatedSteps[0].completed = true;
       
       // Step 2: Complete professional profile - check if professional details are filled
-      if (profile && profile.professional_type && profile.years_of_experience) {
+      if (profileData && (profileData as any).professional_type && (profileData as any).years_of_experience) {
         updatedSteps[1].completed = true;
       }
       
       // Step 3: Upload documents - check if any non-background check documents exist
-      const otherDocs = documents?.filter(doc => doc.document_type !== 'background_check') || [];
+      const otherDocs = docsData.filter((doc: any) => doc.document_type !== 'background_check');
       if (otherDocs.length > 0) {
         updatedSteps[2].completed = true;
       }
@@ -121,12 +128,12 @@ export const NextStepsPanel = () => {
       }
       
       // Step 5: Availability - check if availability is set
-      if (profile && profile.availability && profile.availability.length > 0) {
+      if (profileData && (profileData as any).availability && (profileData as any).availability.length > 0) {
         updatedSteps[4].completed = true;
       }
       
       // Step 6: Training modules - check if professional_type is set and certifications exist
-      if (profile && profile.professional_type && profile.certifications && profile.certifications.length > 0) {
+      if (profileData && (profileData as any).professional_type && (profileData as any).certifications && (profileData as any).certifications.length > 0) {
         updatedSteps[5].completed = true;
       }
       
