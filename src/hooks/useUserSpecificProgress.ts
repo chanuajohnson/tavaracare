@@ -107,6 +107,25 @@ export const useUserSpecificProgress = (userId: string, userRole: string): UserS
               default:
                 completed = false;
             }
+          } else if (userRole === 'professional') {
+            // Use onboarding_progress field for professional users
+            const onboardingProgress = profile?.onboarding_progress || {};
+            completed = onboardingProgress[step.step_number.toString()] === true;
+          } else if (userRole === 'community') {
+            // Basic completion logic for community users
+            switch (step.step_number) {
+              case 1:
+                completed = !!(profile?.full_name);
+                break;
+              case 2:
+                completed = !!(profile?.location);
+                break;
+              case 3:
+                completed = !!(profile?.phone_number);
+                break;
+              default:
+                completed = false;
+            }
           }
 
           // Ensure category is valid, fallback to 'foundation' if not
