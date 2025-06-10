@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import { supabase } from '@/lib/supabase';
 import { BulkActionPanel } from './BulkActionPanel';
 import { RoleBasedUserGrid } from './RoleBasedUserGrid';
@@ -188,7 +189,7 @@ export function AdminUserJourneyDashboard() {
             className={`cursor-pointer transition-all hover:shadow-md ${
               roleFilter === role ? 'ring-2 ring-primary' : ''
             }`}
-            onClick={() => handleRoleFilterClick(role)}
+            onClick={() => handleRoleFilterClick(roleFilter === role ? 'all' : role)}
           >
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
@@ -214,7 +215,7 @@ export function AdminUserJourneyDashboard() {
               </div>
               {roleFilter === role && (
                 <div className="mt-2 text-xs text-primary font-medium">
-                  Currently filtering by {role}
+                  Click to clear filter
                 </div>
               )}
             </CardContent>

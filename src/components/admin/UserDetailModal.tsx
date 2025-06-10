@@ -52,7 +52,7 @@ export function UserDetailModal({ user, open, onOpenChange, onRefresh }: UserDet
           userEmail: user.email,
           userName: user.full_name || 'User',
           userRole: user.role,
-          currentStep: nextStep?.id || steps.length,
+          currentStep: nextStep?.step_number || steps.length,
           stepType
         }
       });
@@ -100,9 +100,9 @@ export function UserDetailModal({ user, open, onOpenChange, onRefresh }: UserDet
 
   const advanceUserStep = async () => {
     try {
-      const currentStepId = nextStep?.id || steps.length;
+      const currentStepNumber = nextStep?.step_number || steps.length;
       const totalSteps = steps.length;
-      const newStep = Math.min(currentStepId + 1, totalSteps);
+      const newStep = Math.min(currentStepNumber + 1, totalSteps);
       
       const { error } = await supabase
         .from('user_journey_progress')
@@ -253,7 +253,7 @@ export function UserDetailModal({ user, open, onOpenChange, onRefresh }: UserDet
                 ) : (
                   <div className="space-y-2">
                     {steps.map((step) => {
-                      const isCurrent = nextStep?.id === step.id;
+                      const isCurrent = nextStep?.step_number === step.step_number;
                       
                       return (
                         <div key={step.id} className={`flex items-center gap-2 p-2 rounded ${
@@ -387,7 +387,7 @@ export function UserDetailModal({ user, open, onOpenChange, onRefresh }: UserDet
         userPhone={userPhoneNumber || ''}
         userProgress={{
           completion_percentage: completionPercentage,
-          current_step: nextStep?.id,
+          current_step: nextStep?.step_number,
           next_step: nextStep
         }}
         onSendMessage={handleWhatsAppMessage}
