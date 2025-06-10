@@ -25,8 +25,9 @@ export function UserDetailModal({ user, open, onOpenChange, onRefresh }: UserDet
   const [userPhoneNumber, setUserPhoneNumber] = React.useState<string | null>(null);
   const [showTemplateSelector, setShowTemplateSelector] = React.useState(false);
   
+  // Always call the hook with consistent parameters to avoid hooks violations
   const { steps, completionPercentage, nextStep, loading } = useUserJourneyProgress(
-    user?.id || '', 
+    user?.id || 'placeholder-id', 
     user?.role || 'family'
   );
 
@@ -35,6 +36,7 @@ export function UserDetailModal({ user, open, onOpenChange, onRefresh }: UserDet
     setUserPhoneNumber(user?.phone_number || null);
   }, [user?.phone_number]);
 
+  // Early return after all hooks are called
   if (!user) return null;
 
   const sendNudgeEmail = async (stepType: string) => {
