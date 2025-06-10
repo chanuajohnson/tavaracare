@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -64,7 +63,6 @@ export const DocumentUploadCard: React.FC<DocumentUploadCardProps> = ({
 
       if (error) {
         console.error('Error fetching documents:', error);
-        // If there's an error (like missing columns), set empty array
         setExistingDocuments([]);
         return;
       }
@@ -89,6 +87,10 @@ export const DocumentUploadCard: React.FC<DocumentUploadCardProps> = ({
     }
   };
 
+  const checkForDuplicates = (fileName: string): boolean => {
+    return existingDocuments.some(doc => doc.file_name === fileName);
+  };
+
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
     if (!files || !user) return;
@@ -97,6 +99,11 @@ export const DocumentUploadCard: React.FC<DocumentUploadCardProps> = ({
 
     try {
       const uploadPromises = Array.from(files).map(async (file) => {
+        // Check for duplicates
+        if (checkForDuplicates(file.name)) {
+          throw new Error(`File "${file.name}" already exists. Please rename the file or delete the existing one first.`);
+        }
+
         // Validate file type
         if (!allowedTypes.includes(file.type)) {
           throw new Error(`File ${file.name} is not a valid format. Please upload ${allowedTypes.join(', ')} files.`);
@@ -134,28 +141,19 @@ export const DocumentUploadCard: React.FC<DocumentUploadCardProps> = ({
           }
         }
 
-        // Prepare the data to insert
-        const insertData: any = {
-          user_id: user.id,
-          document_type: documentType,
-          file_name: file.name,
-          file_path: fileName,
-          file_size: file.size,
-          mime_type: file.type
-        };
-
-        // Only add verification fields if they might exist in the schema
-        try {
-          insertData.verification_status = verificationStatus;
-          insertData.document_subtype = documentSubtype;
-        } catch (e) {
-          // If these fields don't exist, continue without them
-        }
-
         // Save to database
         const { error: dbError } = await supabase
           .from('professional_documents')
-          .insert(insertData);
+          .insert({
+            user_id: user.id,
+            document_type: documentType,
+            file_name: file.name,
+            file_path: fileName,
+            file_size: file.size,
+            mime_type: file.type,
+            verification_status: verificationStatus,
+            document_subtype: documentSubtype
+          });
 
         if (dbError) throw dbError;
 
@@ -188,12 +186,12 @@ export const DocumentUploadCard: React.FC<DocumentUploadCardProps> = ({
 
       // Create download link
       const url = URL.createObjectURL(data);
-      const a = document.createElement('a');
+      const a = window.document.createElement('a');
       a.href = url;
       a.download = document.file_name;
-      document.body.appendChild(a);
+      window.document.body.appendChild(a);
       a.click();
-      document.body.removeChild(a);
+      window.document.body.removeChild(a);
       URL.revokeObjectURL(url);
 
       toast.success('Document downloaded successfully');
