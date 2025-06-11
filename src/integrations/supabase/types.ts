@@ -2212,6 +2212,7 @@ export type Database = {
       professional_documents: {
         Row: {
           created_at: string
+          document_subtype: string | null
           document_type: string
           file_name: string
           file_path: string
@@ -2220,9 +2221,13 @@ export type Database = {
           mime_type: string | null
           updated_at: string
           user_id: string
+          verification_status: string | null
+          verified_at: string | null
+          verified_by: string | null
         }
         Insert: {
           created_at?: string
+          document_subtype?: string | null
           document_type?: string
           file_name: string
           file_path: string
@@ -2231,9 +2236,13 @@ export type Database = {
           mime_type?: string | null
           updated_at?: string
           user_id: string
+          verification_status?: string | null
+          verified_at?: string | null
+          verified_by?: string | null
         }
         Update: {
           created_at?: string
+          document_subtype?: string | null
           document_type?: string
           file_name?: string
           file_path?: string
@@ -2242,6 +2251,9 @@ export type Database = {
           mime_type?: string | null
           updated_at?: string
           user_id?: string
+          verification_status?: string | null
+          verified_at?: string | null
+          verified_by?: string | null
         }
         Relationships: []
       }
@@ -2292,6 +2304,7 @@ export type Database = {
           avatar_url: string | null
           background_check: boolean | null
           background_check_proof_url: string | null
+          background_check_status: string | null
           bio: string | null
           budget_preferences: string | null
           care_recipient_name: string | null
@@ -2358,6 +2371,7 @@ export type Database = {
           specialized_care: string[] | null
           tech_interests: string[] | null
           updated_at: string | null
+          verification_badge_earned_at: string | null
           visit_notes: string | null
           visit_payment_reference: string | null
           visit_payment_status: string | null
@@ -2378,6 +2392,7 @@ export type Database = {
           avatar_url?: string | null
           background_check?: boolean | null
           background_check_proof_url?: string | null
+          background_check_status?: string | null
           bio?: string | null
           budget_preferences?: string | null
           care_recipient_name?: string | null
@@ -2444,6 +2459,7 @@ export type Database = {
           specialized_care?: string[] | null
           tech_interests?: string[] | null
           updated_at?: string | null
+          verification_badge_earned_at?: string | null
           visit_notes?: string | null
           visit_payment_reference?: string | null
           visit_payment_status?: string | null
@@ -2464,6 +2480,7 @@ export type Database = {
           avatar_url?: string | null
           background_check?: boolean | null
           background_check_proof_url?: string | null
+          background_check_status?: string | null
           bio?: string | null
           budget_preferences?: string | null
           care_recipient_name?: string | null
@@ -2530,6 +2547,7 @@ export type Database = {
           specialized_care?: string[] | null
           tech_interests?: string[] | null
           updated_at?: string | null
+          verification_badge_earned_at?: string | null
           visit_notes?: string | null
           visit_payment_reference?: string | null
           visit_payment_status?: string | null
