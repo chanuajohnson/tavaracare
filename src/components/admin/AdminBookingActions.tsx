@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -100,14 +99,19 @@ export const AdminBookingActions: React.FC<AdminBookingActionsProps> = ({
     });
     
     try {
+      // Prepare the update data with proper UUID handling
+      const updateData = {
+        admin_notes: adminNotes.trim() || null,
+        admin_status: adminStatus,
+        nurse_assigned: nurseAssigned.trim() || null, // Convert empty string to null for UUID field
+        updated_at: new Date().toISOString()
+      };
+
+      console.log('Prepared update data:', updateData);
+
       const { error } = await supabase
         .from('visit_bookings')
-        .update({
-          admin_notes: adminNotes,
-          admin_status: adminStatus,
-          nurse_assigned: nurseAssigned,
-          updated_at: new Date().toISOString()
-        })
+        .update(updateData)
         .eq('id', booking.id);
 
       if (error) {
