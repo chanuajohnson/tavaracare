@@ -306,11 +306,6 @@ export const AdminBookingActions: React.FC<AdminBookingActionsProps> = ({
                     {nurses.map((nurse) => (
                       <SelectItem key={nurse.id} value={nurse.id}>
                         {nurse.full_name}
-                        {nurse.email && (
-                          <span className="text-muted-foreground text-xs ml-2">
-                            ({nurse.email})
-                          </span>
-                        )}
                       </SelectItem>
                     ))}
                   </SelectContent>

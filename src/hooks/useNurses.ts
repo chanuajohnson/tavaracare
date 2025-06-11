@@ -5,7 +5,6 @@ import { supabase } from '@/lib/supabase';
 interface Nurse {
   id: string;
   full_name: string;
-  email?: string;
 }
 
 export const useNurses = () => {
@@ -19,7 +18,7 @@ export const useNurses = () => {
         setLoading(true);
         const { data, error } = await supabase
           .from('profiles')
-          .select('id, full_name, email')
+          .select('id, full_name')
           .eq('role', 'professional')
           .order('full_name');
 
