@@ -22,6 +22,7 @@ import {
 import { format } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from "sonner";
+import { useNurses } from '@/hooks/useNurses';
 
 type AdminStatus = 'pending' | 'confirmed' | 'cancelled' | 'completed' | 'locked';
 
@@ -59,6 +60,7 @@ export const AdminBookingActions: React.FC<AdminBookingActionsProps> = ({
   const [adminStatus, setAdminStatus] = useState<AdminStatus>(booking.admin_status);
   const [nurseAssigned, setNurseAssigned] = useState(booking.nurse_assigned || '');
   const [loading, setLoading] = useState(false);
+  const { nurses, loading: nursesLoading } = useNurses();
 
   const handleStatusUpdate = async (newStatus: AdminStatus) => {
     setLoading(true);
@@ -141,6 +143,9 @@ export const AdminBookingActions: React.FC<AdminBookingActionsProps> = ({
       default: return 'bg-gray-100 text-gray-800 border-gray-200';
     }
   };
+
+  // Find the currently assigned nurse to display their name
+  const assignedNurse = nurses.find(nurse => nurse.id === nurseAssigned);
 
   return (
     <>
@@ -286,12 +291,30 @@ export const AdminBookingActions: React.FC<AdminBookingActionsProps> = ({
 
               <div>
                 <Label htmlFor="nurse-assigned">Nurse Assigned</Label>
-                <Input
-                  id="nurse-assigned"
-                  value={nurseAssigned}
-                  onChange={(e) => setNurseAssigned(e.target.value)}
-                  placeholder="Enter nurse name"
-                />
+                <Select 
+                  value={nurseAssigned} 
+                  onValueChange={setNurseAssigned}
+                  disabled={nursesLoading}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder={nursesLoading ? "Loading nurses..." : "Select a nurse"}>
+                      {assignedNurse ? assignedNurse.full_name : "Select a nurse"}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">No nurse assigned</SelectItem>
+                    {nurses.map((nurse) => (
+                      <SelectItem key={nurse.id} value={nurse.id}>
+                        {nurse.full_name}
+                        {nurse.email && (
+                          <span className="text-muted-foreground text-xs ml-2">
+                            ({nurse.email})
+                          </span>
+                        )}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               <div>
