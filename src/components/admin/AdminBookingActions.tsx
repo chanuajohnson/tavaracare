@@ -58,7 +58,7 @@ export const AdminBookingActions: React.FC<AdminBookingActionsProps> = ({
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [adminNotes, setAdminNotes] = useState(booking.admin_notes || '');
   const [adminStatus, setAdminStatus] = useState<AdminStatus>(booking.admin_status);
-  const [nurseAssigned, setNurseAssigned] = useState(booking.nurse_assigned || '');
+  const [nurseAssigned, setNurseAssigned] = useState(booking.nurse_assigned || 'unassigned');
   const [loading, setLoading] = useState(false);
   const { nurses, loading: nursesLoading } = useNurses();
 
@@ -105,7 +105,7 @@ export const AdminBookingActions: React.FC<AdminBookingActionsProps> = ({
       const updateData = {
         admin_notes: adminNotes.trim() || null,
         admin_status: adminStatus,
-        nurse_assigned: nurseAssigned.trim() || null, // Convert empty string to null for UUID field
+        nurse_assigned: nurseAssigned === 'unassigned' ? null : nurseAssigned, // Convert 'unassigned' to null for UUID field
         updated_at: new Date().toISOString()
       };
 
@@ -298,11 +298,11 @@ export const AdminBookingActions: React.FC<AdminBookingActionsProps> = ({
                 >
                   <SelectTrigger>
                     <SelectValue placeholder={nursesLoading ? "Loading nurses..." : "Select a nurse"}>
-                      {assignedNurse ? assignedNurse.full_name : "Select a nurse"}
+                      {nurseAssigned === 'unassigned' ? "No nurse assigned" : (assignedNurse ? assignedNurse.full_name : "Select a nurse")}
                     </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">No nurse assigned</SelectItem>
+                    <SelectItem value="unassigned">No nurse assigned</SelectItem>
                     {nurses.map((nurse) => (
                       <SelectItem key={nurse.id} value={nurse.id}>
                         {nurse.full_name}
