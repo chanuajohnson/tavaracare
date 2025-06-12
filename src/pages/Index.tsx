@@ -104,9 +104,9 @@ const Index = () => {
       // Filter videos based on admin preferences
       const adminActiveVideos = allVideoSources.filter(videoPath => {
         const filename = videoPath.split('/').pop();
-        // If no preferences saved, default to only your-video2.MP4
+        // If no preferences saved, use all videos
         if (Object.keys(preferences).length === 0) {
-          return filename === 'your-video2.MP4';
+          return true;
         }
         // Otherwise, use admin preferences (default to true if not specified)
         return preferences[filename || ''] !== false;
@@ -116,8 +116,8 @@ const Index = () => {
       
       // Ensure we have at least one video
       if (adminActiveVideos.length === 0) {
-        console.log('No active videos from admin, defaulting to your-video2.MP4');
-        setActiveVideos(['/your-video2.MP4']);
+        console.log('No active videos from admin, using all videos');
+        setActiveVideos(allVideoSources);
       } else {
         setActiveVideos(adminActiveVideos);
       }
@@ -126,9 +126,9 @@ const Index = () => {
       setCurrentVideoIndex(0);
       
     } catch (error) {
-      console.log('Error loading video preferences, using default:', error);
-      // Fallback to only your-video2.MP4
-      setActiveVideos(['/your-video2.MP4']);
+      console.log('Error loading video preferences, using all videos:', error);
+      // Fallback to all videos
+      setActiveVideos(allVideoSources);
       setCurrentVideoIndex(0);
     }
   };
@@ -143,19 +143,39 @@ const Index = () => {
     return activeVideoRef === 'primary' ? secondaryVideoRef.current : primaryVideoRef.current;
   };
 
-  // Preload the next video
+  // Preload the next video in sequence
   useEffect(() => {
-    if (activeVideos.length === 0) return;
+    if (activeVideos.length <= 1) return;
     
     const nextVideoIndex = (currentVideoIndex + 1) % activeVideos.length;
     const inactiveVideo = getInactiveVideoRef();
     
-    if (inactiveVideo && inactiveVideo.src !== activeVideos[nextVideoIndex]) {
-      inactiveVideo.src = activeVideos[nextVideoIndex];
-      inactiveVideo.load();
-      inactiveVideo.muted = isMuted;
+    if (inactiveVideo && activeVideos[nextVideoIndex]) {
+      // Only update if different video
+      if (inactiveVideo.src !== activeVideos[nextVideoIndex]) {
+        console.log(`Preloading next video: ${activeVideos[nextVideoIndex]}`);
+        inactiveVideo.src = activeVideos[nextVideoIndex];
+        inactiveVideo.load();
+        inactiveVideo.muted = isMuted;
+      }
     }
   }, [currentVideoIndex, activeVideoRef, isMuted, activeVideos]);
+
+  // Initialize first video when activeVideos changes
+  useEffect(() => {
+    if (activeVideos.length > 0) {
+      const currentVideo = getCurrentVideoRef();
+      if (currentVideo && currentVideo.src !== activeVideos[currentVideoIndex]) {
+        console.log(`Setting initial video: ${activeVideos[currentVideoIndex]}`);
+        currentVideo.src = activeVideos[currentVideoIndex];
+        currentVideo.load();
+        currentVideo.muted = isMuted;
+        if (isPlaying) {
+          currentVideo.play().catch(console.error);
+        }
+      }
+    }
+  }, [activeVideos]);
 
   // Smooth zoom transition function
   const performZoomTransition = async (callback: () => Promise<void>) => {
@@ -261,14 +281,14 @@ const Index = () => {
   };
 
   const switchToNextVideo = async () => {
-    if (activeVideos.length === 0) return;
+    if (activeVideos.length <= 1) return;
     
     const nextIndex = (currentVideoIndex + 1) % activeVideos.length;
     const inactiveVideo = getInactiveVideoRef();
     
     console.log(`Switching from video ${currentVideoIndex} to ${nextIndex} (${activeVideos[nextIndex]})`);
     
-    if (inactiveVideo) {
+    if (inactiveVideo && activeVideos[nextIndex]) {
       // Ensure the inactive video is ready and start playing
       inactiveVideo.currentTime = 0;
       if (isPlaying) {
@@ -285,7 +305,7 @@ const Index = () => {
       
       // Pause the previously active video after a brief delay
       setTimeout(() => {
-        const nowInactiveVideo = getCurrentVideoRef();
+        const nowInactiveVideo = activeVideoRef === 'primary' ? secondaryVideoRef.current : primaryVideoRef.current;
         if (nowInactiveVideo) {
           nowInactiveVideo.pause();
         }
@@ -302,13 +322,14 @@ const Index = () => {
   };
 
   const changeVideo = async (newIndex: number) => {
-    if (newIndex === currentVideoIndex || activeVideos.length === 0) return;
+    if (newIndex === currentVideoIndex || activeVideos.length === 0 || !activeVideos[newIndex]) return;
     
     await performZoomTransition(async () => {
       const inactiveVideo = getInactiveVideoRef();
       
-      if (inactiveVideo) {
+      if (inactiveVideo && activeVideos[newIndex]) {
         // Set the new video source on the inactive video
+        console.log(`Changing to video: ${activeVideos[newIndex]}`);
         inactiveVideo.src = activeVideos[newIndex];
         inactiveVideo.load();
         inactiveVideo.muted = isMuted;
@@ -332,7 +353,7 @@ const Index = () => {
             
             // Pause the previously active video
             setTimeout(() => {
-              const nowInactiveVideo = getCurrentVideoRef();
+              const nowInactiveVideo = activeVideoRef === 'primary' ? secondaryVideoRef.current : primaryVideoRef.current;
               if (nowInactiveVideo) {
                 nowInactiveVideo.pause();
               }
@@ -348,13 +369,13 @@ const Index = () => {
   };
 
   const goToPreviousVideo = () => {
-    if (activeVideos.length === 0) return;
+    if (activeVideos.length <= 1) return;
     const prevIndex = currentVideoIndex === 0 ? activeVideos.length - 1 : currentVideoIndex - 1;
     changeVideo(prevIndex);
   };
 
   const goToNextVideo = () => {
-    if (activeVideos.length === 0) return;
+    if (activeVideos.length <= 1) return;
     const nextIndex = (currentVideoIndex + 1) % activeVideos.length;
     changeVideo(nextIndex);
   };
@@ -390,7 +411,9 @@ const Index = () => {
           onEnded={handleVideoEnd}
           aria-label="Background video showing care and community"
         >
-          <source src={activeVideos[currentVideoIndex]} type="video/mp4" />
+          {activeVideos[currentVideoIndex] && (
+            <source src={activeVideos[currentVideoIndex]} type="video/mp4" />
+          )}
           Your browser does not support the video tag.
         </video>
 
@@ -407,7 +430,9 @@ const Index = () => {
           onEnded={handleVideoEnd}
           aria-label="Background video showing care and community"
         >
-          <source src={activeVideos[(currentVideoIndex + 1) % activeVideos.length]} type="video/mp4" />
+          {activeVideos[(currentVideoIndex + 1) % activeVideos.length] && (
+            <source src={activeVideos[(currentVideoIndex + 1) % activeVideos.length]} type="video/mp4" />
+          )}
           Your browser does not support the video tag.
         </video>
 
