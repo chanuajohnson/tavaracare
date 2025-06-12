@@ -26,7 +26,7 @@ export class ProfileService {
         throw error;
       }
       
-      return data ? adaptProfileFromDb(data) : null;
+      return data ? adaptProfileFromDb(data as DbProfile) : null;
     } catch (error) {
       console.error("[ProfileService] getProfile exception:", error);
       throw error;
@@ -89,7 +89,7 @@ export class ProfileService {
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .insert([profile as any]) // Cast to any to fix type error
+        .insert([profile])
         .select()
         .single();
       
@@ -102,7 +102,7 @@ export class ProfileService {
         throw new Error(`Inserted profile with ID ${profile.id} not found`);
       }
       
-      return adaptProfileFromDb(data);
+      return adaptProfileFromDb(data as DbProfile);
     } catch (error) {
       console.error("[ProfileService] insertProfile exception:", error);
       throw error;
@@ -116,7 +116,7 @@ export class ProfileService {
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .update(updates as any) // Cast to any to fix type error
+        .update(updates)
         .eq('id', id)
         .select()
         .single();
@@ -130,7 +130,7 @@ export class ProfileService {
         throw new Error(`Updated profile with ID ${id} not found`);
       }
       
-      return adaptProfileFromDb(data);
+      return adaptProfileFromDb(data as DbProfile);
     } catch (error) {
       console.error("[ProfileService] updateProfile exception:", error);
       throw error;
@@ -153,7 +153,7 @@ export class ProfileService {
         throw error;
       }
       
-      return (data || []).map(item => adaptProfileFromDb(item));
+      return (data || []).map(item => adaptProfileFromDb(item as DbProfile));
     } catch (error) {
       console.error("[ProfileService] getProfilesByRole exception:", error);
       throw error;

@@ -17,6 +17,8 @@ interface BaseProfileFields {
   avatarUrl?: string;
   phoneNumber?: string;
   address?: string;
+  bio?: string;
+  lastLoginAt?: string;
 }
 
 /**
@@ -31,6 +33,8 @@ interface DbBaseProfileFields {
   avatar_url?: string;
   phone_number?: string;
   address?: string;
+  bio?: string;
+  last_login_at?: string;
 }
 
 /**
