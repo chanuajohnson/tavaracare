@@ -51,36 +51,6 @@
     @apply relative after:absolute after:bottom-0 after:left-0 after:h-[2px] after:w-0 after:bg-primary-500 after:transition-all after:duration-300 hover:after:w-full;
   }
   
-  /* Enhanced video full coverage utilities */
-  .hero-video-container {
-    @apply relative h-screen w-full overflow-hidden bg-black;
-  }
-  
-  .hero-video-base {
-    @apply absolute inset-0 w-full h-full;
-    object-fit: cover;
-    object-position: center;
-    min-width: 100%;
-    min-height: 100%;
-    width: 100vw;
-    height: 100vh;
-  }
-  
-  .hero-video-fill {
-    @apply hero-video-base;
-    object-fit: fill; /* Stretches to fit exactly */
-  }
-  
-  .hero-video-cover {
-    @apply hero-video-base;
-    object-fit: cover; /* Maintains aspect ratio, covers container */
-  }
-  
-  .hero-video-cover-scaled {
-    @apply hero-video-base;
-    object-fit: cover;
-  }
-  
   /* Enhanced Mobile safe area utilities */
   .safe-bottom {
     padding-bottom: env(safe-area-inset-bottom, 0px);
@@ -219,29 +189,4 @@
     font-size: 16px !important;
     transform: translateZ(0);
   }
-}
-
-/* Simplified video full coverage - no aggressive scaling */
-.video-full-coverage {
-  position: absolute !important;
-  top: 50% !important;
-  left: 50% !important;
-  min-width: 100% !important;
-  min-height: 100% !important;
-  width: auto !important;
-  height: auto !important;
-  transform: translate(-50%, -50%) !important;
-  object-fit: cover !important;
-  object-position: center !important;
-}
-
-/* Emergency fallback for videos that still show black bars - uses fill to stretch */
-.video-full-coverage-fill {
-  position: absolute !important;
-  top: 0 !important;
-  left: 0 !important;
-  width: 100% !important;
-  height: 100% !important;
-  object-fit: fill !important;
-  object-position: center !important;
 }

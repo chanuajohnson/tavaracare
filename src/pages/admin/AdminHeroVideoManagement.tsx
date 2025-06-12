@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -116,18 +117,6 @@ export default function AdminHeroVideoManagement() {
       preferences[video.filename] = video.isActive;
     });
     
-    // CRITICAL FIX: Ensure minimum 2 videos are always active
-    const activeCount = Object.values(preferences).filter(Boolean).length;
-    if (activeCount < 2) {
-      toast.error('At least 2 videos must be active to prevent transition issues. Enabling all videos.');
-      // Force all videos to be active
-      updatedVideos.forEach(video => {
-        preferences[video.filename] = true;
-        video.isActive = true;
-      });
-      setPublicVideos([...updatedVideos]);
-    }
-    
     localStorage.setItem('heroVideoPreferences', JSON.stringify(preferences));
     
     // Trigger a refresh of the hero video on the main page
@@ -142,14 +131,6 @@ export default function AdminHeroVideoManagement() {
         ? { ...video, isActive: !video.isActive }
         : video
     );
-    
-    // Check if we would have less than 2 active videos
-    const wouldBeActiveCount = updatedVideos.filter(v => v.isActive).length;
-    
-    if (wouldBeActiveCount < 2) {
-      toast.error('At least 2 videos must remain active to prevent transition issues.');
-      return;
-    }
     
     setPublicVideos(updatedVideos);
     savePublicVideoPreferences(updatedVideos);
@@ -315,12 +296,6 @@ export default function AdminHeroVideoManagement() {
             <Upload className="h-4 w-4" />
             Uploaded Videos: {activeDatabaseVideosCount}/{videos.length}
           </Badge>
-          {activePublicVideosCount < 2 && (
-            <Badge variant="destructive" className="flex items-center gap-2">
-              <AlertCircle className="h-4 w-4" />
-              Warning: Less than 2 videos active
-            </Badge>
-          )}
         </div>
       </div>
 
@@ -344,8 +319,7 @@ export default function AdminHeroVideoManagement() {
                 Public Video Files
               </CardTitle>
               <p className="text-sm text-muted-foreground">
-                Control which videos from the public folder are displayed in the hero section. 
-                <strong className="text-red-600"> At least 2 videos must remain active to prevent transition issues.</strong>
+                Control which videos from the public folder are displayed in the hero section.
               </p>
             </CardHeader>
             <CardContent>
@@ -388,7 +362,6 @@ export default function AdminHeroVideoManagement() {
                           <Switch
                             checked={video.isActive}
                             onCheckedChange={() => togglePublicVideo(video.filename)}
-                            disabled={video.isActive && activePublicVideosCount <= 2}
                           />
                         </div>
                       </div>

@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Users, UserCog, Heart, ArrowRight, Check, Vote, HelpCircle, Play, Pause, ChevronLeft, ChevronRight } from "lucide-react";
+import { Users, UserCog, Heart, ArrowRight, Check, Vote, HelpCircle, Play, Pause, Volume2, VolumeX, ChevronLeft, ChevronRight } from "lucide-react";
 import { useNavigate, Link } from "react-router-dom";
 import { toast } from "sonner";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
@@ -54,11 +54,11 @@ const allVideoSources = [
 const Index = () => {
   const [selectedRole, setSelectedRole] = useState<string | null>(null);
   const [isPlaying, setIsPlaying] = useState(true);
+  const [isMuted, setIsMuted] = useState(true);
   const [currentVideoIndex, setCurrentVideoIndex] = useState(0);
   const [activeVideoRef, setActiveVideoRef] = useState<'primary' | 'secondary'>('primary');
   const [isTransitioning, setIsTransitioning] = useState(false);
-  const [activeVideos, setActiveVideos] = useState<string[]>([]);
-  const [videosLoaded, setVideosLoaded] = useState(false);
+  const [activeVideos, setActiveVideos] = useState<string[]>(allVideoSources);
   const navigate = useNavigate();
   const comparisonRef = useRef<HTMLDivElement>(null);
   const primaryVideoRef = useRef<HTMLVideoElement>(null);
@@ -67,76 +67,28 @@ const Index = () => {
   // Load active videos from admin settings on component mount
   useEffect(() => {
     loadActiveVideos();
-    
-    // Listen for admin preference updates
-    const handlePreferencesUpdate = (event: CustomEvent) => {
-      console.log('Hero video preferences updated:', event.detail);
-      loadActiveVideos();
-    };
-
-    window.addEventListener('heroVideoPreferencesUpdated', handlePreferencesUpdate as EventListener);
-    
-    return () => {
-      window.removeEventListener('heroVideoPreferencesUpdated', handlePreferencesUpdate as EventListener);
-    };
   }, []);
 
-  const loadActiveVideos = () => {
+  const loadActiveVideos = async () => {
     try {
-      // Read admin preferences from localStorage
-      const savedPreferences = localStorage.getItem('heroVideoPreferences');
-      let preferences: Record<string, boolean> = {};
-      
-      if (savedPreferences) {
-        try {
-          preferences = JSON.parse(savedPreferences);
-          console.log('Loaded video preferences:', preferences);
-        } catch (error) {
-          console.error('Error parsing video preferences:', error);
-        }
+      // Check if there are any video preferences stored
+      const { data: videoSettings, error } = await supabase
+        .from('hero_videos')
+        .select('file_path, is_active')
+        .eq('is_active', true);
+
+      if (error) {
+        console.log('No database video settings found, using all static videos');
+        return;
       }
 
-      // Filter videos based on admin preferences
-      let adminActiveVideos = allVideoSources.filter(videoPath => {
-        const filename = videoPath.split('/').pop();
-        return preferences[filename || ''] !== false;
-      });
-
-      console.log('Admin active videos before minimum check:', adminActiveVideos);
-      
-      // CRITICAL FIX: Ensure minimum 2 videos are always active to prevent transition issues
-      if (adminActiveVideos.length < 2) {
-        console.log('Less than 2 videos active, using all videos as fallback to prevent transition issues');
-        adminActiveVideos = allVideoSources;
-        
-        // Update localStorage to reflect this fallback
-        const fallbackPreferences: Record<string, boolean> = {};
-        allVideoSources.forEach(videoPath => {
-          const filename = videoPath.split('/').pop();
-          if (filename) {
-            fallbackPreferences[filename] = true;
-          }
-        });
-        localStorage.setItem('heroVideoPreferences', JSON.stringify(fallbackPreferences));
-        
-        // Notify admin panel of the change
-        window.dispatchEvent(new CustomEvent('heroVideoPreferencesUpdated', { 
-          detail: { preferences: fallbackPreferences, forcedUpdate: true } 
-        }));
+      // If database has active videos, combine with static videos that are enabled
+      if (videoSettings && videoSettings.length > 0) {
+        const dbVideos = videoSettings.map(v => v.file_path);
+        setActiveVideos([...allVideoSources, ...dbVideos]);
       }
-
-      setActiveVideos(adminActiveVideos);
-      setCurrentVideoIndex(0);
-      setVideosLoaded(true);
-      
-      console.log('Final active videos:', adminActiveVideos);
-      
     } catch (error) {
-      console.log('Error loading video preferences, using all videos:', error);
-      // Fallback to all videos
-      setActiveVideos(allVideoSources);
-      setCurrentVideoIndex(0);
-      setVideosLoaded(true);
+      console.log('Using default video configuration:', error);
     }
   };
 
@@ -152,7 +104,7 @@ const Index = () => {
 
   // Preload the next video
   useEffect(() => {
-    if (activeVideos.length === 0 || !videosLoaded) return;
+    if (activeVideos.length === 0) return;
     
     const nextVideoIndex = (currentVideoIndex + 1) % activeVideos.length;
     const inactiveVideo = getInactiveVideoRef();
@@ -160,47 +112,9 @@ const Index = () => {
     if (inactiveVideo && inactiveVideo.src !== activeVideos[nextVideoIndex]) {
       inactiveVideo.src = activeVideos[nextVideoIndex];
       inactiveVideo.load();
-      inactiveVideo.muted = true;
-      
-      // Ensure inactive video is hidden
-      inactiveVideo.style.opacity = '0';
-      inactiveVideo.style.visibility = 'hidden';
+      inactiveVideo.muted = isMuted;
     }
-  }, [currentVideoIndex, activeVideoRef, activeVideos, videosLoaded]);
-
-  // Initialize first video properly
-  useEffect(() => {
-    if (activeVideos.length > 0 && videosLoaded) {
-      const currentVideo = getCurrentVideoRef();
-      if (currentVideo && currentVideo.src !== activeVideos[currentVideoIndex]) {
-        currentVideo.src = activeVideos[currentVideoIndex];
-        currentVideo.load();
-        currentVideo.muted = true;
-        currentVideo.style.opacity = '1';
-        currentVideo.style.visibility = 'visible';
-        
-        // Start playing immediately
-        if (isPlaying) {
-          currentVideo.play().catch(console.error);
-        }
-      }
-    }
-  }, [activeVideos, videosLoaded, currentVideoIndex]);
-
-  // Simple crossfade transition function
-  const performSimpleTransition = async (callback: () => Promise<void>) => {
-    if (isTransitioning) return;
-    
-    setIsTransitioning(true);
-    
-    // Execute the callback (video switching logic)
-    await callback();
-    
-    // Simple delay to ensure smooth transition
-    setTimeout(() => {
-      setIsTransitioning(false);
-    }, 300);
-  };
+  }, [currentVideoIndex, activeVideoRef, isMuted, activeVideos]);
 
   const handleRoleSelect = (roleId: string) => {
     if (roleId === "community") {
@@ -236,21 +150,29 @@ const Index = () => {
     }
   };
 
-  const switchToNextVideo = async () => {
-    if (activeVideos.length === 0) return;
+  const toggleMute = () => {
+    const currentVideo = getCurrentVideoRef();
+    const inactiveVideo = getInactiveVideoRef();
     
-    // Calculate next index
+    if (currentVideo) {
+      currentVideo.muted = !isMuted;
+    }
+    if (inactiveVideo) {
+      inactiveVideo.muted = !isMuted;
+    }
+    setIsMuted(!isMuted);
+  };
+
+  const switchToNextVideo = async () => {
+    if (isTransitioning || activeVideos.length === 0) return;
+    
+    setIsTransitioning(true);
     const nextIndex = (currentVideoIndex + 1) % activeVideos.length;
     const inactiveVideo = getInactiveVideoRef();
-    const currentVideo = getCurrentVideoRef();
     
-    console.log(`Switching from video ${currentVideoIndex} to ${nextIndex} (${activeVideos[nextIndex]})`);
-    
-    if (inactiveVideo && currentVideo) {
-      // Ensure the inactive video is ready
+    if (inactiveVideo) {
+      // Ensure the inactive video is ready and start playing
       inactiveVideo.currentTime = 0;
-      
-      // Start playing the new video first
       if (isPlaying) {
         try {
           await inactiveVideo.play();
@@ -259,96 +181,62 @@ const Index = () => {
         }
       }
       
-      // Simple crossfade transition
-      inactiveVideo.style.opacity = '1';
-      inactiveVideo.style.visibility = 'visible';
+      // Switch the active video reference
+      setActiveVideoRef(prev => prev === 'primary' ? 'secondary' : 'primary');
+      setCurrentVideoIndex(nextIndex);
       
-      // Fade out current video
-      currentVideo.style.opacity = '0';
-      
-      // Switch the active video reference after a brief delay
+      // Pause the previously active video after a brief delay
       setTimeout(() => {
-        setActiveVideoRef(prev => prev === 'primary' ? 'secondary' : 'primary');
-        setCurrentVideoIndex(nextIndex);
-        
-        // Hide and pause the now inactive video
-        currentVideo.pause();
-        currentVideo.style.visibility = 'hidden';
-      }, 150);
+        const nowInactiveVideo = getCurrentVideoRef();
+        if (nowInactiveVideo) {
+          nowInactiveVideo.pause();
+        }
+        setIsTransitioning(false);
+      }, 100);
     }
   };
 
   const handleVideoEnd = () => {
-    console.log(`Video ${currentVideoIndex} ended, starting transition logic`);
-    
-    // CRITICAL FIX: Check if we have multiple videos before attempting transition
-    if (activeVideos.length < 2) {
-      console.log('Only one video available, restarting current video without transition');
-      const currentVideo = getCurrentVideoRef();
-      if (currentVideo) {
-        currentVideo.currentTime = 0;
-        if (isPlaying) {
-          currentVideo.play().catch(console.error);
-        }
-      }
-      return;
-    }
-    
-    console.log('Multiple videos available, starting simple transition');
-    performSimpleTransition(async () => {
-      await switchToNextVideo();
-    });
+    switchToNextVideo();
   };
 
   const changeVideo = async (newIndex: number) => {
-    if (newIndex === currentVideoIndex || activeVideos.length === 0) return;
+    if (newIndex === currentVideoIndex || isTransitioning || activeVideos.length === 0) return;
     
-    await performSimpleTransition(async () => {
-      const inactiveVideo = getInactiveVideoRef();
-      const currentVideo = getCurrentVideoRef();
+    setIsTransitioning(true);
+    const inactiveVideo = getInactiveVideoRef();
+    
+    if (inactiveVideo) {
+      // Set the new video source on the inactive video
+      inactiveVideo.src = activeVideos[newIndex];
+      inactiveVideo.load();
+      inactiveVideo.muted = isMuted;
       
-      if (inactiveVideo && currentVideo) {
-        // Set the new video source on the inactive video
-        inactiveVideo.src = activeVideos[newIndex];
-        inactiveVideo.load();
-        inactiveVideo.muted = true;
+      // Wait for the video to be ready
+      inactiveVideo.addEventListener('loadeddata', async () => {
+        inactiveVideo.currentTime = 0;
+        if (isPlaying) {
+          try {
+            await inactiveVideo.play();
+          } catch (error) {
+            console.error('Error playing new video:', error);
+          }
+        }
         
-        // Wait for the video to be ready
-        await new Promise<void>((resolve) => {
-          const handleLoadedData = async () => {
-            inactiveVideo.removeEventListener('loadeddata', handleLoadedData);
-            inactiveVideo.currentTime = 0;
-            
-            if (isPlaying) {
-              try {
-                await inactiveVideo.play();
-              } catch (error) {
-                console.error('Error playing new video:', error);
-              }
-            }
-            
-            // Simple crossfade
-            inactiveVideo.style.opacity = '1';
-            inactiveVideo.style.visibility = 'visible';
-            currentVideo.style.opacity = '0';
-            
-            // Switch the active video
-            setTimeout(() => {
-              setActiveVideoRef(prev => prev === 'primary' ? 'secondary' : 'primary');
-              setCurrentVideoIndex(newIndex);
-              
-              // Hide the previously active video
-              currentVideo.pause();
-              currentVideo.style.visibility = 'hidden';
-            }, 150);
-            
-            resolve();
-          };
-          
-          inactiveVideo.addEventListener('loadeddata', handleLoadedData);
-        });
-      }
-    });
+        // Switch the active video
+        setActiveVideoRef(prev => prev === 'primary' ? 'secondary' : 'primary');
+        setCurrentVideoIndex(newIndex);
+        
+        // Pause the previously active video
+        setTimeout(() => {
+          const nowInactiveVideo = getCurrentVideoRef();
+          if (nowInactiveVideo) {
+            nowInactiveVideo.pause();
+          }
+          setIsTransitioning(false);
+        }, 100);
+      }, { once: true });
+    }
   };
 
   const goToPreviousVideo = () => {
@@ -365,36 +253,34 @@ const Index = () => {
 
   const isDebug = new URLSearchParams(window.location.search).get('debug') === 'true';
 
-  if (activeVideos.length === 0 || !videosLoaded) {
+  if (activeVideos.length === 0) {
     return (
-      <div className="min-h-screen w-full flex items-center justify-center bg-black">
+      <div className="min-h-screen w-full flex items-center justify-center bg-gray-900">
         <div className="text-white text-center">
-          <h1 className="text-4xl font-bold mb-4">Loading Videos...</h1>
-          <p className="text-xl">Please wait while we prepare your experience.</p>
+          <h1 className="text-4xl font-bold mb-4">No Active Videos</h1>
+          <p className="text-xl">Please contact administrator to configure hero videos.</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen w-full bg-black">
+    <div className="min-h-screen w-full">
       {/* Hero Video Section */}
-      <section className="hero-video-container bg-black">
+      <section className="relative h-screen w-full overflow-hidden">
         {/* Primary Video */}
         <video
           ref={primaryVideoRef}
-          className="video-full-coverage transition-opacity duration-300"
+          className={`absolute inset-0 w-full h-full object-fill transition-opacity duration-500 ${
+            activeVideoRef === 'primary' ? 'opacity-100 z-10' : 'opacity-0 z-0'
+          }`}
           autoPlay
-          muted={true}
+          muted={isMuted}
           loop={false}
           playsInline
-          preload="auto"
+          preload="metadata"
           onEnded={handleVideoEnd}
           aria-label="Background video showing care and community"
-          style={{ 
-            opacity: activeVideoRef === 'primary' ? 1 : 0,
-            visibility: activeVideoRef === 'primary' ? 'visible' : 'hidden'
-          }}
         >
           <source src={activeVideos[currentVideoIndex]} type="video/mp4" />
           Your browser does not support the video tag.
@@ -403,18 +289,14 @@ const Index = () => {
         {/* Secondary Video */}
         <video
           ref={secondaryVideoRef}
-          className="video-full-coverage transition-opacity duration-300"
-          autoPlay
-          muted={true}
+          className={`absolute inset-0 w-full h-full object-fill transition-opacity duration-500 ${
+            activeVideoRef === 'secondary' ? 'opacity-100 z-10' : 'opacity-0 z-0'
+          }`}
+          muted={isMuted}
           loop={false}
           playsInline
-          preload="auto"
-          onEnded={handleVideoEnd}
+          preload="metadata"
           aria-label="Background video showing care and community"
-          style={{ 
-            opacity: activeVideoRef === 'secondary' ? 1 : 0,
-            visibility: activeVideoRef === 'secondary' ? 'visible' : 'hidden'
-          }}
         >
           <source src={activeVideos[(currentVideoIndex + 1) % activeVideos.length]} type="video/mp4" />
           Your browser does not support the video tag.
@@ -496,18 +378,17 @@ const Index = () => {
 
         {/* Video Controls */}
         <div className="absolute bottom-4 right-4 z-30 flex gap-2">
-          {/* Previous Video Button - only show if more than one video */}
-          {activeVideos.length > 1 && (
-            <button
-              onClick={goToPreviousVideo}
-              disabled={isTransitioning}
-              className="bg-black/50 hover:bg-black/70 text-white p-2 rounded-full transition-colors disabled:opacity-50"
-              aria-label="Previous video"
-            >
-              <ChevronLeft className="w-4 h-4" />
-            </button>
-          )}
+          {/* Previous Video Button */}
+          <button
+            onClick={goToPreviousVideo}
+            disabled={isTransitioning}
+            className="bg-black/50 hover:bg-black/70 text-white p-2 rounded-full transition-colors disabled:opacity-50"
+            aria-label="Previous video"
+          >
+            <ChevronLeft className="w-4 h-4" />
+          </button>
           
+          {/* Play/Pause Button */}
           <button
             onClick={togglePlayPause}
             className="bg-black/50 hover:bg-black/70 text-white p-2 rounded-full transition-colors"
@@ -516,37 +397,42 @@ const Index = () => {
             {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
           </button>
           
-          {/* Next Video Button - only show if more than one video */}
-          {activeVideos.length > 1 && (
-            <button
-              onClick={goToNextVideo}
-              disabled={isTransitioning}
-              className="bg-black/50 hover:bg-black/70 text-white p-2 rounded-full transition-colors disabled:opacity-50"
-              aria-label="Next video"
-            >
-              <ChevronRight className="w-4 h-4" />
-            </button>
-          )}
+          {/* Mute Button */}
+          <button
+            onClick={toggleMute}
+            className="bg-black/50 hover:bg-black/70 text-white p-2 rounded-full transition-colors"
+            aria-label={isMuted ? "Unmute video" : "Mute video"}
+          >
+            {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+          </button>
+          
+          {/* Next Video Button */}
+          <button
+            onClick={goToNextVideo}
+            disabled={isTransitioning}
+            className="bg-black/50 hover:bg-black/70 text-white p-2 rounded-full transition-colors disabled:opacity-50"
+            aria-label="Next video"
+          >
+            <ChevronRight className="w-4 h-4" />
+          </button>
         </div>
 
-        {/* Video Indicator Dots - only show if more than one video */}
-        {activeVideos.length > 1 && (
-          <div className="absolute bottom-4 left-4 z-30 flex gap-2">
-            {activeVideos.map((_, index) => (
-              <button
-                key={index}
-                onClick={() => changeVideo(index)}
-                disabled={isTransitioning}
-                className={`w-2 h-2 rounded-full transition-all duration-300 disabled:opacity-50 ${
-                  index === currentVideoIndex 
-                    ? 'bg-white scale-125' 
-                    : 'bg-white/50 hover:bg-white/75'
-                }`}
-                aria-label={`Go to video ${index + 1}`}
-              />
-            ))}
-          </div>
-        )}
+        {/* Video Indicator Dots */}
+        <div className="absolute bottom-4 left-4 z-30 flex gap-2">
+          {activeVideos.map((_, index) => (
+            <button
+              key={index}
+              onClick={() => changeVideo(index)}
+              disabled={isTransitioning}
+              className={`w-2 h-2 rounded-full transition-all duration-300 disabled:opacity-50 ${
+                index === currentVideoIndex 
+                  ? 'bg-white scale-125' 
+                  : 'bg-white/50 hover:bg-white/75'
+              }`}
+              aria-label={`Go to video ${index + 1}`}
+            />
+          ))}
+        </div>
       </section>
 
       {/* Main Content - Roles Section */}
