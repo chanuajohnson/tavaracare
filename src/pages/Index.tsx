@@ -8,7 +8,6 @@ import { Button } from "@/components/ui/button";
 import { EnvironmentInfo } from "@/components/debug/EnvironmentInfo";
 import { SupabaseDebugger } from "@/components/debug/SupabaseDebugger";
 import { supabase } from '@/integrations/supabase/client';
-import { useIsMobile } from '@/hooks/use-mobile';
 
 const roles = [
   {
@@ -66,7 +65,6 @@ const Index = () => {
   const primaryVideoRef = useRef<HTMLVideoElement>(null);
   const secondaryVideoRef = useRef<HTMLVideoElement>(null);
   const zoomTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const isMobile = useIsMobile();
 
   // Load active videos from admin settings on component mount
   useEffect(() => {
@@ -106,9 +104,9 @@ const Index = () => {
       // Filter videos based on admin preferences
       const adminActiveVideos = allVideoSources.filter(videoPath => {
         const filename = videoPath.split('/').pop();
-        // If no preferences saved, use all videos
+        // If no preferences saved, default to only your-video2.MP4
         if (Object.keys(preferences).length === 0) {
-          return true;
+          return filename === 'your-video2.MP4';
         }
         // Otherwise, use admin preferences (default to true if not specified)
         return preferences[filename || ''] !== false;
@@ -118,8 +116,8 @@ const Index = () => {
       
       // Ensure we have at least one video
       if (adminActiveVideos.length === 0) {
-        console.log('No active videos from admin, using all videos');
-        setActiveVideos(allVideoSources);
+        console.log('No active videos from admin, defaulting to your-video2.MP4');
+        setActiveVideos(['/your-video2.MP4']);
       } else {
         setActiveVideos(adminActiveVideos);
       }
@@ -128,9 +126,9 @@ const Index = () => {
       setCurrentVideoIndex(0);
       
     } catch (error) {
-      console.log('Error loading video preferences, using all videos:', error);
-      // Fallback to all videos
-      setActiveVideos(allVideoSources);
+      console.log('Error loading video preferences, using default:', error);
+      // Fallback to only your-video2.MP4
+      setActiveVideos(['/your-video2.MP4']);
       setCurrentVideoIndex(0);
     }
   };
@@ -145,165 +143,74 @@ const Index = () => {
     return activeVideoRef === 'primary' ? secondaryVideoRef.current : primaryVideoRef.current;
   };
 
-  // Add video event listeners for better state management
+  // Preload the next video
   useEffect(() => {
-    const currentVideo = getCurrentVideoRef();
-    if (!currentVideo) return;
-
-    const handlePlay = () => {
-      console.log('Video play event detected');
-      setIsPlaying(true);
-    };
-
-    const handlePause = () => {
-      console.log('Video pause event detected');
-      setIsPlaying(false);
-    };
-
-    const handlePlaying = () => {
-      console.log('Video playing event detected');
-      setIsPlaying(true);
-    };
-
-    const handleWaiting = () => {
-      console.log('Video waiting event detected');
-    };
-
-    const handleCanPlay = () => {
-      console.log('Video can play event detected');
-    };
-
-    // Add event listeners
-    currentVideo.addEventListener('play', handlePlay);
-    currentVideo.addEventListener('pause', handlePause);
-    currentVideo.addEventListener('playing', handlePlaying);
-    currentVideo.addEventListener('waiting', handleWaiting);
-    currentVideo.addEventListener('canplay', handleCanPlay);
-
-    return () => {
-      // Clean up event listeners
-      currentVideo.removeEventListener('play', handlePlay);
-      currentVideo.removeEventListener('pause', handlePause);
-      currentVideo.removeEventListener('playing', handlePlaying);
-      currentVideo.removeEventListener('waiting', handleWaiting);
-      currentVideo.removeEventListener('canplay', handleCanPlay);
-    };
-  }, [activeVideoRef]);
-
-  // Preload the next video in sequence
-  useEffect(() => {
-    if (activeVideos.length <= 1) return;
+    if (activeVideos.length === 0) return;
     
     const nextVideoIndex = (currentVideoIndex + 1) % activeVideos.length;
     const inactiveVideo = getInactiveVideoRef();
     
-    if (inactiveVideo && activeVideos[nextVideoIndex]) {
-      // Only update if different video
-      if (inactiveVideo.src !== activeVideos[nextVideoIndex]) {
-        console.log(`Preloading next video: ${activeVideos[nextVideoIndex]}`);
-        inactiveVideo.src = activeVideos[nextVideoIndex];
-        inactiveVideo.load();
-        inactiveVideo.muted = isMuted;
-      }
+    if (inactiveVideo && inactiveVideo.src !== activeVideos[nextVideoIndex]) {
+      inactiveVideo.src = activeVideos[nextVideoIndex];
+      inactiveVideo.load();
+      inactiveVideo.muted = isMuted;
     }
   }, [currentVideoIndex, activeVideoRef, isMuted, activeVideos]);
 
-  // Initialize first video when activeVideos changes
-  useEffect(() => {
-    if (activeVideos.length > 0) {
-      const currentVideo = getCurrentVideoRef();
-      if (currentVideo && currentVideo.src !== activeVideos[currentVideoIndex]) {
-        console.log(`Setting initial video: ${activeVideos[currentVideoIndex]}`);
-        currentVideo.src = activeVideos[currentVideoIndex];
-        currentVideo.load();
-        currentVideo.muted = isMuted;
-        if (isPlaying) {
-          // Use a small delay to ensure video is ready
-          setTimeout(() => {
-            currentVideo.play().catch(error => {
-              console.error('Error playing initial video:', error);
-            });
-          }, 100);
-        }
-      }
-    }
-  }, [activeVideos]);
-
-  // Mobile-optimized transition function
-  const performTransition = async (callback: () => Promise<void>) => {
+  // Smooth zoom transition function
+  const performZoomTransition = async (callback: () => Promise<void>) => {
     if (isZoomTransition || isTransitioning) return;
     
     setIsZoomTransition(true);
     setIsTransitioning(true);
     
-    console.log(`Starting ${isMobile ? 'fade' : 'zoom'} transition...`);
+    console.log('Starting zoom transition...');
     
-    if (isMobile) {
-      // Simple fade transition for mobile
-      const currentVideo = getCurrentVideoRef();
-      if (currentVideo) {
-        currentVideo.style.opacity = '0.7';
-      }
-      
-      // Wait for fade effect
-      await new Promise(resolve => {
-        zoomTimeoutRef.current = setTimeout(resolve, 200);
-      });
-      
-      // Execute callback
-      await callback();
-      
-      // Fade back in
-      const newCurrentVideo = getCurrentVideoRef();
-      if (newCurrentVideo) {
-        newCurrentVideo.style.opacity = '1';
-      }
-      
-      // Complete transition
-      await new Promise(resolve => {
-        zoomTimeoutRef.current = setTimeout(resolve, 200);
-      });
-      
-    } else {
-      // Desktop zoom transition
-      const currentVideo = getCurrentVideoRef();
-      if (currentVideo) {
-        currentVideo.classList.add('video-zoom-transition', 'video-zoom-in');
-      }
-      
-      await new Promise(resolve => {
-        zoomTimeoutRef.current = setTimeout(resolve, 500);
-      });
-      
-      await callback();
-      
-      await new Promise(resolve => {
-        zoomTimeoutRef.current = setTimeout(resolve, 300);
-      });
-      
-      const newCurrentVideo = getCurrentVideoRef();
-      if (newCurrentVideo) {
-        newCurrentVideo.classList.remove('video-zoom-in');
-        newCurrentVideo.classList.add('video-zoom-normal');
-      }
-      
-      if (currentVideo && currentVideo !== newCurrentVideo) {
-        currentVideo.classList.remove('video-zoom-transition', 'video-zoom-in', 'video-zoom-normal');
-      }
-      
-      await new Promise(resolve => {
-        zoomTimeoutRef.current = setTimeout(resolve, 400);
-      });
-      
-      if (newCurrentVideo) {
-        newCurrentVideo.classList.remove('video-zoom-transition', 'video-zoom-normal');
-      }
+    // Start zoom-in effect
+    const currentVideo = getCurrentVideoRef();
+    if (currentVideo) {
+      currentVideo.classList.add('video-zoom-transition', 'video-zoom-in');
+    }
+    
+    // Wait for zoom-in to reach peak (about 500ms into the animation)
+    await new Promise(resolve => {
+      zoomTimeoutRef.current = setTimeout(resolve, 500);
+    });
+    
+    // Execute the callback (video switching logic)
+    await callback();
+    
+    // Wait a bit more at the peak for cinematic effect
+    await new Promise(resolve => {
+      zoomTimeoutRef.current = setTimeout(resolve, 300);
+    });
+    
+    // Start zoom-out effect with new video
+    const newCurrentVideo = getCurrentVideoRef();
+    if (newCurrentVideo) {
+      newCurrentVideo.classList.remove('video-zoom-in');
+      newCurrentVideo.classList.add('video-zoom-normal');
+    }
+    
+    // Clean up old video zoom classes
+    if (currentVideo && currentVideo !== newCurrentVideo) {
+      currentVideo.classList.remove('video-zoom-transition', 'video-zoom-in', 'video-zoom-normal');
+    }
+    
+    // Complete transition after zoom-out
+    await new Promise(resolve => {
+      zoomTimeoutRef.current = setTimeout(resolve, 400);
+    });
+    
+    // Clean up classes
+    if (newCurrentVideo) {
+      newCurrentVideo.classList.remove('video-zoom-transition', 'video-zoom-normal');
     }
     
     setIsZoomTransition(false);
     setIsTransitioning(false);
     
-    console.log(`${isMobile ? 'Fade' : 'Zoom'} transition completed`);
+    console.log('Zoom transition completed');
   };
 
   const handleRoleSelect = (roleId: string) => {
@@ -331,22 +238,18 @@ const Index = () => {
   const togglePlayPause = () => {
     const currentVideo = getCurrentVideoRef();
     if (currentVideo) {
-      console.log('Toggle play/pause - current state:', isPlaying);
       if (isPlaying) {
         currentVideo.pause();
       } else {
-        currentVideo.play().catch(error => {
-          console.error('Error playing video:', error);
-        });
+        currentVideo.play();
       }
+      setIsPlaying(!isPlaying);
     }
   };
 
   const toggleMute = () => {
     const currentVideo = getCurrentVideoRef();
     const inactiveVideo = getInactiveVideoRef();
-    
-    console.log('Toggle mute - current state:', isMuted);
     
     if (currentVideo) {
       currentVideo.muted = !isMuted;
@@ -358,106 +261,100 @@ const Index = () => {
   };
 
   const switchToNextVideo = async () => {
-    if (activeVideos.length <= 1) return;
+    if (activeVideos.length === 0) return;
     
     const nextIndex = (currentVideoIndex + 1) % activeVideos.length;
-    const currentActiveVideo = getCurrentVideoRef();
-    const nextActiveVideo = getInactiveVideoRef();
+    const inactiveVideo = getInactiveVideoRef();
     
     console.log(`Switching from video ${currentVideoIndex} to ${nextIndex} (${activeVideos[nextIndex]})`);
     
-    if (nextActiveVideo && activeVideos[nextIndex]) {
-      try {
-        nextActiveVideo.currentTime = 0;
-        setActiveVideoRef(prev => prev === 'primary' ? 'secondary' : 'primary');
-        setCurrentVideoIndex(nextIndex);
-        
-        if (isPlaying) {
-          await nextActiveVideo.play();
-          console.log('Next video started playing successfully');
-        }
-        
-        setTimeout(() => {
-          if (currentActiveVideo) {
-            currentActiveVideo.pause();
-            console.log('Previous video paused');
-          }
-        }, 200);
-        
-      } catch (error) {
-        console.error('Error switching to next video:', error);
-        if (currentActiveVideo && isPlaying) {
-          currentActiveVideo.play().catch(e => console.error('Error resuming current video:', e));
+    if (inactiveVideo) {
+      // Ensure the inactive video is ready and start playing
+      inactiveVideo.currentTime = 0;
+      if (isPlaying) {
+        try {
+          await inactiveVideo.play();
+        } catch (error) {
+          console.error('Error playing next video:', error);
         }
       }
+      
+      // Switch the active video reference
+      setActiveVideoRef(prev => prev === 'primary' ? 'secondary' : 'primary');
+      setCurrentVideoIndex(nextIndex);
+      
+      // Pause the previously active video after a brief delay
+      setTimeout(() => {
+        const nowInactiveVideo = getCurrentVideoRef();
+        if (nowInactiveVideo) {
+          nowInactiveVideo.pause();
+        }
+      }, 100);
     }
   };
 
   const handleVideoEnd = () => {
-    console.log(`Video ${currentVideoIndex} ended, starting transition`);
+    console.log(`Video ${currentVideoIndex} ended, starting zoom transition`);
     
-    performTransition(async () => {
+    performZoomTransition(async () => {
       await switchToNextVideo();
     });
   };
 
   const changeVideo = async (newIndex: number) => {
-    if (newIndex === currentVideoIndex || activeVideos.length === 0 || !activeVideos[newIndex]) return;
+    if (newIndex === currentVideoIndex || activeVideos.length === 0) return;
     
-    await performTransition(async () => {
+    await performZoomTransition(async () => {
       const inactiveVideo = getInactiveVideoRef();
       
-      if (inactiveVideo && activeVideos[newIndex]) {
-        try {
-          console.log(`Changing to video: ${activeVideos[newIndex]}`);
-          inactiveVideo.src = activeVideos[newIndex];
-          inactiveVideo.load();
-          inactiveVideo.muted = isMuted;
-          
-          await new Promise<void>((resolve) => {
-            const handleLoadedData = async () => {
-              inactiveVideo.removeEventListener('loadeddata', handleLoadedData);
-              inactiveVideo.currentTime = 0;
-              
-              setActiveVideoRef(prev => prev === 'primary' ? 'secondary' : 'primary');
-              setCurrentVideoIndex(newIndex);
-              
-              if (isPlaying) {
-                try {
-                  await inactiveVideo.play();
-                  console.log('Manual video change - new video playing');
-                } catch (error) {
-                  console.error('Error playing new video:', error);
-                }
+      if (inactiveVideo) {
+        // Set the new video source on the inactive video
+        inactiveVideo.src = activeVideos[newIndex];
+        inactiveVideo.load();
+        inactiveVideo.muted = isMuted;
+        
+        // Wait for the video to be ready
+        await new Promise<void>((resolve) => {
+          const handleLoadedData = async () => {
+            inactiveVideo.removeEventListener('loadeddata', handleLoadedData);
+            inactiveVideo.currentTime = 0;
+            if (isPlaying) {
+              try {
+                await inactiveVideo.play();
+              } catch (error) {
+                console.error('Error playing new video:', error);
               }
-              
-              setTimeout(() => {
-                const nowInactiveVideo = activeVideoRef === 'primary' ? secondaryVideoRef.current : primaryVideoRef.current;
-                if (nowInactiveVideo) {
-                  nowInactiveVideo.pause();
-                }
-              }, 100);
-              
-              resolve();
-            };
+            }
             
-            inactiveVideo.addEventListener('loadeddata', handleLoadedData);
-          });
-        } catch (error) {
-          console.error('Error in changeVideo:', error);
-        }
+            // Switch the active video
+            setActiveVideoRef(prev => prev === 'primary' ? 'secondary' : 'primary');
+            setCurrentVideoIndex(newIndex);
+            
+            // Pause the previously active video
+            setTimeout(() => {
+              const nowInactiveVideo = getCurrentVideoRef();
+              if (nowInactiveVideo) {
+                nowInactiveVideo.pause();
+              }
+            }, 100);
+            
+            resolve();
+          };
+          
+          inactiveVideo.addEventListener('loadeddata', handleLoadedData);
+        });
       }
     });
   };
 
   const goToPreviousVideo = () => {
-    if (activeVideos.length <= 1) return;
+    if (activeVideos.length === 0) return;
     const prevIndex = currentVideoIndex === 0 ? activeVideos.length - 1 : currentVideoIndex - 1;
     changeVideo(prevIndex);
   };
 
   const goToNextVideo = () => {
-    if (activeVideos.length <= 1) return;
+    if (activeVideos.length === 0) return;
     const nextIndex = (currentVideoIndex + 1) % activeVideos.length;
     changeVideo(nextIndex);
   };
@@ -493,9 +390,7 @@ const Index = () => {
           onEnded={handleVideoEnd}
           aria-label="Background video showing care and community"
         >
-          {activeVideos[currentVideoIndex] && (
-            <source src={activeVideos[currentVideoIndex]} type="video/mp4" />
-          )}
+          <source src={activeVideos[currentVideoIndex]} type="video/mp4" />
           Your browser does not support the video tag.
         </video>
 
@@ -512,9 +407,7 @@ const Index = () => {
           onEnded={handleVideoEnd}
           aria-label="Background video showing care and community"
         >
-          {activeVideos[(currentVideoIndex + 1) % activeVideos.length] && (
-            <source src={activeVideos[(currentVideoIndex + 1) % activeVideos.length]} type="video/mp4" />
-          )}
+          <source src={activeVideos[(currentVideoIndex + 1) % activeVideos.length]} type="video/mp4" />
           Your browser does not support the video tag.
         </video>
 
