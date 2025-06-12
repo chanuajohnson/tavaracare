@@ -58,11 +58,13 @@ const Index = () => {
   const [currentVideoIndex, setCurrentVideoIndex] = useState(0);
   const [activeVideoRef, setActiveVideoRef] = useState<'primary' | 'secondary'>('primary');
   const [isTransitioning, setIsTransitioning] = useState(false);
+  const [isZoomTransition, setIsZoomTransition] = useState(false);
   const [activeVideos, setActiveVideos] = useState<string[]>([]);
   const navigate = useNavigate();
   const comparisonRef = useRef<HTMLDivElement>(null);
   const primaryVideoRef = useRef<HTMLVideoElement>(null);
   const secondaryVideoRef = useRef<HTMLVideoElement>(null);
+  const zoomTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Load active videos from admin settings on component mount
   useEffect(() => {
@@ -78,6 +80,9 @@ const Index = () => {
     
     return () => {
       window.removeEventListener('heroVideoPreferencesUpdated', handlePreferencesUpdate as EventListener);
+      if (zoomTimeoutRef.current) {
+        clearTimeout(zoomTimeoutRef.current);
+      }
     };
   }, []);
 
@@ -152,6 +157,62 @@ const Index = () => {
     }
   }, [currentVideoIndex, activeVideoRef, isMuted, activeVideos]);
 
+  // Smooth zoom transition function
+  const performZoomTransition = async (callback: () => Promise<void>) => {
+    if (isZoomTransition || isTransitioning) return;
+    
+    setIsZoomTransition(true);
+    setIsTransitioning(true);
+    
+    console.log('Starting zoom transition...');
+    
+    // Start zoom-in effect
+    const currentVideo = getCurrentVideoRef();
+    if (currentVideo) {
+      currentVideo.classList.add('video-zoom-transition', 'video-zoom-in');
+    }
+    
+    // Wait for zoom-in to reach peak (about 500ms into the animation)
+    await new Promise(resolve => {
+      zoomTimeoutRef.current = setTimeout(resolve, 500);
+    });
+    
+    // Execute the callback (video switching logic)
+    await callback();
+    
+    // Wait a bit more at the peak for cinematic effect
+    await new Promise(resolve => {
+      zoomTimeoutRef.current = setTimeout(resolve, 300);
+    });
+    
+    // Start zoom-out effect with new video
+    const newCurrentVideo = getCurrentVideoRef();
+    if (newCurrentVideo) {
+      newCurrentVideo.classList.remove('video-zoom-in');
+      newCurrentVideo.classList.add('video-zoom-normal');
+    }
+    
+    // Clean up old video zoom classes
+    if (currentVideo && currentVideo !== newCurrentVideo) {
+      currentVideo.classList.remove('video-zoom-transition', 'video-zoom-in', 'video-zoom-normal');
+    }
+    
+    // Complete transition after zoom-out
+    await new Promise(resolve => {
+      zoomTimeoutRef.current = setTimeout(resolve, 400);
+    });
+    
+    // Clean up classes
+    if (newCurrentVideo) {
+      newCurrentVideo.classList.remove('video-zoom-transition', 'video-zoom-normal');
+    }
+    
+    setIsZoomTransition(false);
+    setIsTransitioning(false);
+    
+    console.log('Zoom transition completed');
+  };
+
   const handleRoleSelect = (roleId: string) => {
     if (roleId === "community") {
       const role = communityRole;
@@ -200,9 +261,8 @@ const Index = () => {
   };
 
   const switchToNextVideo = async () => {
-    if (isTransitioning || activeVideos.length === 0) return;
+    if (activeVideos.length === 0) return;
     
-    setIsTransitioning(true);
     const nextIndex = (currentVideoIndex + 1) % activeVideos.length;
     const inactiveVideo = getInactiveVideoRef();
     
@@ -229,55 +289,62 @@ const Index = () => {
         if (nowInactiveVideo) {
           nowInactiveVideo.pause();
         }
-        setIsTransitioning(false);
       }, 100);
-    } else {
-      setIsTransitioning(false);
     }
   };
 
   const handleVideoEnd = () => {
-    console.log(`Video ${currentVideoIndex} ended, switching to next video`);
-    switchToNextVideo();
+    console.log(`Video ${currentVideoIndex} ended, starting zoom transition`);
+    
+    performZoomTransition(async () => {
+      await switchToNextVideo();
+    });
   };
 
   const changeVideo = async (newIndex: number) => {
-    if (newIndex === currentVideoIndex || isTransitioning || activeVideos.length === 0) return;
+    if (newIndex === currentVideoIndex || activeVideos.length === 0) return;
     
-    setIsTransitioning(true);
-    const inactiveVideo = getInactiveVideoRef();
-    
-    if (inactiveVideo) {
-      // Set the new video source on the inactive video
-      inactiveVideo.src = activeVideos[newIndex];
-      inactiveVideo.load();
-      inactiveVideo.muted = isMuted;
+    await performZoomTransition(async () => {
+      const inactiveVideo = getInactiveVideoRef();
       
-      // Wait for the video to be ready
-      inactiveVideo.addEventListener('loadeddata', async () => {
-        inactiveVideo.currentTime = 0;
-        if (isPlaying) {
-          try {
-            await inactiveVideo.play();
-          } catch (error) {
-            console.error('Error playing new video:', error);
-          }
-        }
+      if (inactiveVideo) {
+        // Set the new video source on the inactive video
+        inactiveVideo.src = activeVideos[newIndex];
+        inactiveVideo.load();
+        inactiveVideo.muted = isMuted;
         
-        // Switch the active video
-        setActiveVideoRef(prev => prev === 'primary' ? 'secondary' : 'primary');
-        setCurrentVideoIndex(newIndex);
-        
-        // Pause the previously active video
-        setTimeout(() => {
-          const nowInactiveVideo = getCurrentVideoRef();
-          if (nowInactiveVideo) {
-            nowInactiveVideo.pause();
-          }
-          setIsTransitioning(false);
-        }, 100);
-      }, { once: true });
-    }
+        // Wait for the video to be ready
+        await new Promise<void>((resolve) => {
+          const handleLoadedData = async () => {
+            inactiveVideo.removeEventListener('loadeddata', handleLoadedData);
+            inactiveVideo.currentTime = 0;
+            if (isPlaying) {
+              try {
+                await inactiveVideo.play();
+              } catch (error) {
+                console.error('Error playing new video:', error);
+              }
+            }
+            
+            // Switch the active video
+            setActiveVideoRef(prev => prev === 'primary' ? 'secondary' : 'primary');
+            setCurrentVideoIndex(newIndex);
+            
+            // Pause the previously active video
+            setTimeout(() => {
+              const nowInactiveVideo = getCurrentVideoRef();
+              if (nowInactiveVideo) {
+                nowInactiveVideo.pause();
+              }
+            }, 100);
+            
+            resolve();
+          };
+          
+          inactiveVideo.addEventListener('loadeddata', handleLoadedData);
+        });
+      }
+    });
   };
 
   const goToPreviousVideo = () => {
