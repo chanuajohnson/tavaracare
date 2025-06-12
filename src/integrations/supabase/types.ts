@@ -1416,6 +1416,68 @@ export type Database = {
           },
         ]
       }
+      hero_videos: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          display_order: number | null
+          duration_seconds: number | null
+          file_name: string
+          file_path: string
+          file_size: number | null
+          id: string
+          is_active: boolean | null
+          mime_type: string | null
+          thumbnail_path: string | null
+          title: string
+          updated_at: string | null
+          upload_status: string | null
+          uploaded_by: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          display_order?: number | null
+          duration_seconds?: number | null
+          file_name: string
+          file_path: string
+          file_size?: number | null
+          id?: string
+          is_active?: boolean | null
+          mime_type?: string | null
+          thumbnail_path?: string | null
+          title: string
+          updated_at?: string | null
+          upload_status?: string | null
+          uploaded_by?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          display_order?: number | null
+          duration_seconds?: number | null
+          file_name?: string
+          file_path?: string
+          file_size?: number | null
+          id?: string
+          is_active?: boolean | null
+          mime_type?: string | null
+          thumbnail_path?: string | null
+          title?: string
+          updated_at?: string | null
+          upload_status?: string | null
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hero_videos_uploaded_by_fkey"
+            columns: ["uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       holidays: {
         Row: {
           created_at: string | null

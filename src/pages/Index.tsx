@@ -43,11 +43,11 @@ const communityRole = {
   features: ["Join care circles", "Share local resources", "Participate in community events", "Offer support services", "Connect with families", "Track community impact"]
 };
 
-// Video playlist configuration
+// Video playlist configuration - Fixed file extensions
 const videoSources = [
-  "/your-video.mp4",
-  "/your-video2.mp4", 
-  "/your-video3.mp4"
+  "/your-video.MP4",
+  "/your-video2.MP4", 
+  "/your-video3.MP4"
 ];
 
 const Index = () => {
@@ -89,13 +89,13 @@ const Index = () => {
       const role = communityRole;
       setSelectedRole(roleId);
       navigate(role.path);
-      toast.success(`Welcome to the ${role.title} Dashboard! Sign in to access all features.`);
+      toast.success(`Welcome to the ${role.title} registration! Please complete the form to get started.`);
     } else {
       const role = roles.find(r => r.id === roleId);
       if (role) {
         setSelectedRole(roleId);
         navigate(role.path);
-        toast.success(`Welcome to the ${role.title} Dashboard! Sign in to access all features.`);
+        toast.success(`Welcome to the ${role.title} registration! Please complete the form to get started.`);
       }
     }
   };
