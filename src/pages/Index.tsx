@@ -1,4 +1,3 @@
-
 import { useState, useRef, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Users, UserCog, Heart, ArrowRight, Check, Vote, HelpCircle, Play, Pause, ChevronLeft, ChevronRight } from "lucide-react";
@@ -102,26 +101,40 @@ const Index = () => {
         }
       }
 
-      // Filter videos based on admin preferences - default to ALL videos being active
-      const adminActiveVideos = allVideoSources.filter(videoPath => {
+      // Filter videos based on admin preferences
+      let adminActiveVideos = allVideoSources.filter(videoPath => {
         const filename = videoPath.split('/').pop();
-        // Default to true if no preferences saved OR if not explicitly set to false
         return preferences[filename || ''] !== false;
       });
 
-      console.log('Admin active videos:', adminActiveVideos);
+      console.log('Admin active videos before minimum check:', adminActiveVideos);
       
-      // Always ensure we have all videos if no specific preferences
-      if (adminActiveVideos.length === 0 || Object.keys(preferences).length === 0) {
-        console.log('Using all videos as default');
-        setActiveVideos(allVideoSources);
-      } else {
-        setActiveVideos(adminActiveVideos);
+      // CRITICAL FIX: Ensure minimum 2 videos are always active to prevent transition issues
+      if (adminActiveVideos.length < 2) {
+        console.log('Less than 2 videos active, using all videos as fallback to prevent transition issues');
+        adminActiveVideos = allVideoSources;
+        
+        // Update localStorage to reflect this fallback
+        const fallbackPreferences: Record<string, boolean> = {};
+        allVideoSources.forEach(videoPath => {
+          const filename = videoPath.split('/').pop();
+          if (filename) {
+            fallbackPreferences[filename] = true;
+          }
+        });
+        localStorage.setItem('heroVideoPreferences', JSON.stringify(fallbackPreferences));
+        
+        // Notify admin panel of the change
+        window.dispatchEvent(new CustomEvent('heroVideoPreferencesUpdated', { 
+          detail: { preferences: fallbackPreferences, forcedUpdate: true } 
+        }));
       }
 
-      // Reset video index
+      setActiveVideos(adminActiveVideos);
       setCurrentVideoIndex(0);
       setVideosLoaded(true);
+      
+      console.log('Final active videos:', adminActiveVideos);
       
     } catch (error) {
       console.log('Error loading video preferences, using all videos:', error);
@@ -272,7 +285,7 @@ const Index = () => {
   const switchToNextVideo = async () => {
     if (activeVideos.length === 0) return;
     
-    // Fix the index calculation to properly cycle through all videos
+    // FIXED: Proper index calculation to cycle through all videos
     const nextIndex = (currentVideoIndex + 1) % activeVideos.length;
     const inactiveVideo = getInactiveVideoRef();
     
@@ -309,8 +322,22 @@ const Index = () => {
   };
 
   const handleVideoEnd = () => {
-    console.log(`Video ${currentVideoIndex} ended, starting zoom transition`);
+    console.log(`Video ${currentVideoIndex} ended, starting transition logic`);
     
+    // CRITICAL FIX: Check if we have multiple videos before attempting transition
+    if (activeVideos.length < 2) {
+      console.log('Only one video available, restarting current video without transition');
+      const currentVideo = getCurrentVideoRef();
+      if (currentVideo) {
+        currentVideo.currentTime = 0;
+        if (isPlaying) {
+          currentVideo.play().catch(console.error);
+        }
+      }
+      return;
+    }
+    
+    console.log('Multiple videos available, starting zoom transition');
     performZoomTransition(async () => {
       await switchToNextVideo();
     });
