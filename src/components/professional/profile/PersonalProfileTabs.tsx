@@ -2,7 +2,7 @@
 import React from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { CertificateUpload } from "../CertificateUpload";
+import { BackgroundCheckCard } from "../BackgroundCheckCard";
 import { FileText, Settings, User } from "lucide-react";
 
 interface PersonalProfileTabsProps {
@@ -67,17 +67,18 @@ export const PersonalProfileTabs: React.FC<PersonalProfileTabsProps> = ({
       </TabsContent>
 
       <TabsContent value="documents" className="mt-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Professional Documents</CardTitle>
-            <CardDescription>
-              Upload and manage your professional certifications and documents
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <CertificateUpload onUploadSuccess={onCertificateUploadSuccess} />
-          </CardContent>
-        </Card>
+        <div className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Professional Documents</CardTitle>
+              <CardDescription>
+                Upload and manage your professional certifications and documents
+              </CardDescription>
+            </CardHeader>
+          </Card>
+          
+          <BackgroundCheckCard onUploadSuccess={onCertificateUploadSuccess} />
+        </div>
       </TabsContent>
 
       <TabsContent value="settings" className="mt-6">
