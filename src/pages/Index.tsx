@@ -1,4 +1,3 @@
-
 import { useState, useRef, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Users, UserCog, Heart, ArrowRight, Check, Vote, HelpCircle, Play, Pause, ChevronLeft, ChevronRight } from "lucide-react";
@@ -191,11 +190,11 @@ const Index = () => {
     }
   };
 
-  // Handle immediate video playback when data is loaded
-  const handleVideoLoadedData = (video: HTMLVideoElement) => {
+  // Handle immediate video playback when video can play
+  const handleVideoCanPlay = (video: HTMLVideoElement) => {
     if (isPlaying) {
       video.play().catch(error => {
-        console.error('Error playing video on loaded data:', error);
+        console.error('Error playing video on can play:', error);
       });
     }
   };
@@ -382,19 +381,20 @@ const Index = () => {
 
   return (
     <div className="min-h-screen w-full">
-      {/* Hero Video Section with seamless background */}
-      <section className="relative h-screen w-full overflow-hidden bg-black">
+      {/* Hero Video Section - NO background color for seamless video display */}
+      <section className="relative h-screen w-full overflow-hidden">
         {/* Primary Video */}
         <video
           ref={primaryVideoRef}
-          className={`absolute inset-0 w-full h-full video-ultra-scale transition-opacity duration-0 opacity-100 z-10`}
+          className="absolute inset-0 w-full h-full video-ultra-scale opacity-100 z-10"
           autoPlay
           muted={true}
           loop={false}
           playsInline
           preload="auto"
+          poster={activeVideos[currentVideoIndex]}
           onEnded={handleVideoEnd}
-          onLoadedData={() => handleVideoLoadedData(primaryVideoRef.current!)}
+          onCanPlay={() => handleVideoCanPlay(primaryVideoRef.current!)}
           onError={(e) => console.error('Primary video error:', e)}
           aria-label="Background video showing care and community"
         >
@@ -405,14 +405,15 @@ const Index = () => {
         {/* Secondary Video */}
         <video
           ref={secondaryVideoRef}
-          className={`absolute inset-0 w-full h-full video-ultra-scale transition-opacity duration-0 ${
+          className={`absolute inset-0 w-full h-full video-ultra-scale ${
             activeVideoRef === 'secondary' ? 'opacity-100 z-10' : 'opacity-0 z-0'
           }`}
           muted={true}
           loop={false}
           playsInline
           preload="auto"
-          onLoadedData={() => handleVideoLoadedData(secondaryVideoRef.current!)}
+          poster={activeVideos[(currentVideoIndex + 1) % activeVideos.length]}
+          onCanPlay={() => handleVideoCanPlay(secondaryVideoRef.current!)}
           onError={(e) => console.error('Secondary video error:', e)}
           aria-label="Background video showing care and community"
         >
