@@ -1,7 +1,6 @@
-
 import { useState, useRef, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Users, UserCog, Heart, ArrowRight, Check, Vote, HelpCircle, Play, Pause, Volume2, VolumeX, ChevronLeft, ChevronRight } from "lucide-react";
+import { Users, UserCog, Heart, ArrowRight, Check, Vote, HelpCircle, Play, Pause, ChevronLeft, ChevronRight } from "lucide-react";
 import { useNavigate, Link } from "react-router-dom";
 import { toast } from "sonner";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
@@ -55,7 +54,6 @@ const allVideoSources = [
 const Index = () => {
   const [selectedRole, setSelectedRole] = useState<string | null>(null);
   const [isPlaying, setIsPlaying] = useState(true);
-  const [isMuted, setIsMuted] = useState(true);
   const [currentVideoIndex, setCurrentVideoIndex] = useState(0);
   const [activeVideoRef, setActiveVideoRef] = useState<'primary' | 'secondary'>('primary');
   const [isTransitioning, setIsTransitioning] = useState(false);
@@ -145,10 +143,10 @@ const Index = () => {
     if (inactiveVideo && inactiveVideo.src !== activeVideos[nextVideoIndex]) {
       inactiveVideo.src = activeVideos[nextVideoIndex];
       inactiveVideo.load();
-      inactiveVideo.muted = isMuted;
+      inactiveVideo.muted = true;
       applyVideoScaling(inactiveVideo);
     }
-  }, [currentVideoIndex, activeVideoRef, isMuted, activeVideos]);
+  }, [currentVideoIndex, activeVideoRef, activeVideos]);
 
   // Apply scaling to primary video on mount
   useEffect(() => {
@@ -189,19 +187,6 @@ const Index = () => {
       }
       setIsPlaying(!isPlaying);
     }
-  };
-
-  const toggleMute = () => {
-    const currentVideo = getCurrentVideoRef();
-    const inactiveVideo = getInactiveVideoRef();
-    
-    if (currentVideo) {
-      currentVideo.muted = !isMuted;
-    }
-    if (inactiveVideo) {
-      inactiveVideo.muted = !isMuted;
-    }
-    setIsMuted(!isMuted);
   };
 
   const switchToNextVideo = async () => {
@@ -253,7 +238,7 @@ const Index = () => {
       // Set the new video source on the inactive video
       inactiveVideo.src = activeVideos[newIndex];
       inactiveVideo.load();
-      inactiveVideo.muted = isMuted;
+      inactiveVideo.muted = true;
       applyVideoScaling(inactiveVideo);
       
       // Wait for the video to be ready
@@ -319,7 +304,7 @@ const Index = () => {
             activeVideoRef === 'primary' ? 'opacity-100 z-10' : 'opacity-0 z-0'
           }`}
           autoPlay
-          muted={isMuted}
+          muted={true}
           loop={false}
           playsInline
           preload="metadata"
@@ -336,7 +321,7 @@ const Index = () => {
           className={`absolute inset-0 w-full h-full video-ultra-scale transition-opacity duration-500 ${
             activeVideoRef === 'secondary' ? 'opacity-100 z-10' : 'opacity-0 z-0'
           }`}
-          muted={isMuted}
+          muted={true}
           loop={false}
           playsInline
           preload="metadata"
@@ -439,15 +424,6 @@ const Index = () => {
             aria-label={isPlaying ? "Pause video" : "Play video"}
           >
             {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
-          </button>
-          
-          {/* Mute Button */}
-          <button
-            onClick={toggleMute}
-            className="bg-black/50 hover:bg-black/70 text-white p-2 rounded-full transition-colors"
-            aria-label={isMuted ? "Unmute video" : "Mute video"}
-          >
-            {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
           </button>
           
           {/* Next Video Button */}
