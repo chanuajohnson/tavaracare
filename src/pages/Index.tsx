@@ -57,7 +57,7 @@ const Index = () => {
   const [currentVideoIndex, setCurrentVideoIndex] = useState(0);
   const [activeVideoRef, setActiveVideoRef] = useState<'primary' | 'secondary'>('primary');
   const [isTransitioning, setIsTransitioning] = useState(false);
-  const [activeVideos, setActiveVideos] = useState<string[]>([]);
+  const [activeVideos, setActiveVideos] = useState<string[]>(allVideoSources);
   const navigate = useNavigate();
   const comparisonRef = useRef<HTMLDivElement>(null);
   const primaryVideoRef = useRef<HTMLVideoElement>(null);
@@ -118,17 +118,26 @@ const Index = () => {
       // Combine active static and database videos
       const allActiveVideos = [...activeStaticVideos, ...activeDatabaseVideos];
       
-      console.log('Loaded active videos:', allActiveVideos);
-      setActiveVideos(allActiveVideos);
-
-      // Handle edge case: if currently playing video is no longer active
-      if (allActiveVideos.length > 0 && currentVideoIndex >= allActiveVideos.length) {
-        setCurrentVideoIndex(0);
+      // Only update if we have videos (never set to empty array)
+      if (allActiveVideos.length > 0) {
+        console.log('Loaded active videos:', allActiveVideos);
+        
+        // Check if current video is still in the active list
+        const currentVideoPath = activeVideos[currentVideoIndex];
+        const newCurrentIndex = allActiveVideos.indexOf(currentVideoPath);
+        
+        setActiveVideos(allActiveVideos);
+        
+        // If current video is no longer active, smoothly transition to first active video
+        if (newCurrentIndex === -1 && allActiveVideos.length > 0) {
+          setCurrentVideoIndex(0);
+        } else if (newCurrentIndex !== -1) {
+          setCurrentVideoIndex(newCurrentIndex);
+        }
       }
     } catch (error) {
-      console.log('Error loading active videos, using defaults:', error);
-      // Fallback to all static videos if there's an error
-      setActiveVideos(allVideoSources);
+      console.log('Error loading active videos, keeping current videos:', error);
+      // Don't change activeVideos on error - keep current state
     }
   };
 
@@ -360,7 +369,7 @@ const Index = () => {
   return (
     <div className="min-h-screen w-full">
       {/* Hero Video Section with seamless background */}
-      <section className="relative h-screen w-full overflow-hidden bg-black">
+      <section className="relative h-screen w-full overflow-hidden">
         {/* Primary Video */}
         <video
           ref={primaryVideoRef}
