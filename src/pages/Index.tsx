@@ -1,3 +1,4 @@
+
 import { useState, useRef, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Users, UserCog, Heart, ArrowRight, Check, Vote, HelpCircle, Play, Pause, ChevronLeft, ChevronRight } from "lucide-react";
@@ -78,6 +79,21 @@ const Index = () => {
     return () => {
       window.removeEventListener('heroVideoPreferencesUpdated', handlePreferencesUpdate as EventListener);
     };
+  }, []);
+
+  // Start playing immediately when component mounts
+  useEffect(() => {
+    const startPlayback = () => {
+      const primaryVideo = primaryVideoRef.current;
+      if (primaryVideo && isPlaying) {
+        primaryVideo.play().catch(error => {
+          console.error('Error starting initial video playback:', error);
+        });
+      }
+    };
+
+    // Start playback as soon as possible
+    startPlayback();
   }, []);
 
   const loadActiveVideos = async () => {
@@ -172,6 +188,15 @@ const Index = () => {
       handleMetadata();
     } else {
       video.addEventListener('loadedmetadata', handleMetadata, { once: true });
+    }
+  };
+
+  // Handle immediate video playback when data is loaded
+  const handleVideoLoadedData = (video: HTMLVideoElement) => {
+    if (isPlaying) {
+      video.play().catch(error => {
+        console.error('Error playing video on loaded data:', error);
+      });
     }
   };
 
@@ -355,33 +380,21 @@ const Index = () => {
 
   const isDebug = new URLSearchParams(window.location.search).get('debug') === 'true';
 
-  if (activeVideos.length === 0) {
-    return (
-      <div className="min-h-screen w-full flex items-center justify-center bg-gray-900">
-        <div className="text-white text-center">
-          <h1 className="text-4xl font-bold mb-4">No Active Videos</h1>
-          <p className="text-xl">Please contact administrator to configure hero videos.</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen w-full">
       {/* Hero Video Section with seamless background */}
-      <section className="relative h-screen w-full overflow-hidden">
+      <section className="relative h-screen w-full overflow-hidden bg-black">
         {/* Primary Video */}
         <video
           ref={primaryVideoRef}
-          className={`absolute inset-0 w-full h-full video-ultra-scale transition-opacity duration-300 ${
-            activeVideoRef === 'primary' ? 'opacity-100 z-10' : 'opacity-0 z-0'
-          }`}
+          className={`absolute inset-0 w-full h-full video-ultra-scale transition-opacity duration-0 opacity-100 z-10`}
           autoPlay
           muted={true}
           loop={false}
           playsInline
-          preload="metadata"
+          preload="auto"
           onEnded={handleVideoEnd}
+          onLoadedData={() => handleVideoLoadedData(primaryVideoRef.current!)}
           onError={(e) => console.error('Primary video error:', e)}
           aria-label="Background video showing care and community"
         >
@@ -392,13 +405,14 @@ const Index = () => {
         {/* Secondary Video */}
         <video
           ref={secondaryVideoRef}
-          className={`absolute inset-0 w-full h-full video-ultra-scale transition-opacity duration-300 ${
+          className={`absolute inset-0 w-full h-full video-ultra-scale transition-opacity duration-0 ${
             activeVideoRef === 'secondary' ? 'opacity-100 z-10' : 'opacity-0 z-0'
           }`}
           muted={true}
           loop={false}
           playsInline
-          preload="metadata"
+          preload="auto"
+          onLoadedData={() => handleVideoLoadedData(secondaryVideoRef.current!)}
           onError={(e) => console.error('Secondary video error:', e)}
           aria-label="Background video showing care and community"
         >
