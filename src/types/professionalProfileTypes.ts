@@ -9,7 +9,7 @@ export interface ProfessionalProfileFields {
   certifications?: string[];
   services?: string[];
   hourlyRate?: string;
-  availability?: string;
+  availability?: string[];  // Changed from string to string[] to match database
   location?: string;
   legallyAuthorized?: boolean;
   backgroundCheckStatus?: string;
@@ -33,7 +33,7 @@ export interface DbProfessionalProfileFields {
   certifications?: string[];
   services?: string[];
   hourly_rate?: string;
-  availability?: string;
+  availability?: string[];  // Changed from string to string[] to match database
   location?: string;
   legally_authorized?: boolean;
   background_check_status?: string;
