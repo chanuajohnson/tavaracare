@@ -40,103 +40,50 @@ import CaregiverHealthPage from '@/pages/caregiver/CaregiverHealthPage';
 
 export function AppRoutes() {
   return (
-    <Routes>
-      {/* Redirect handlers */}
-      <Route path="/index-static" element={<IndexStatic />} />
-      <Route path="/dashboard/*" element={<RedirectHandler />} />
-      
-      {/* Main routes */}
-      <Route path="/" element={<Index />} />
-      <Route path="/about" element={<AboutPage />} />
-      
-      {/* Auth routes */}
-      <Route path="/auth" element={<AuthPage />} />
-      <Route path="/auth/register" element={<AuthPage />} />
-      <Route path="/auth/reset-password" element={<ResetPassword />} />
-      <Route path="/auth/reset-password/confirm" element={<ResetPasswordConfirm />} />
-      
-      {/* Registration routes */}
-      <Route path="/registration/family" element={<FamilyRegistration />} />
-      <Route path="/registration/professional" element={<ProfessionalRegistration />} />
-      <Route path="/registration/community" element={<CommunityRegistration />} />
-      
-      {/* Protected dashboard routes */}
-      <Route 
-        path="/dashboard/family" 
-        element={
-          <RouteValidator requiredRole="family">
-            <FamilyDashboard />
-          </RouteValidator>
-        } 
-      />
-      <Route 
-        path="/dashboard/professional" 
-        element={
-          <RouteValidator requiredRole="professional">
-            <ProfessionalDashboard />
-          </RouteValidator>
-        } 
-      />
-      <Route 
-        path="/dashboard/community" 
-        element={
-          <RouteValidator requiredRole="community">
-            <CommunityDashboard />
-          </RouteValidator>
-        } 
-      />
-      <Route 
-        path="/dashboard/admin" 
-        element={
-          <RouteValidator requiredRole="admin">
-            <AdminDashboard />
-          </RouteValidator>
-        } 
-      />
-      
-      {/* Admin routes */}
-      <Route 
-        path="/admin/hero-videos" 
-        element={
-          <RouteValidator requiredRole="admin">
-            <AdminHeroVideoManagement />
-          </RouteValidator>
-        } 
-      />
-      <Route 
-        path="/admin/visit-schedule" 
-        element={
-          <RouteValidator requiredRole="admin">
-            <AdminVisitSchedulePage />
-          </RouteValidator>
-        } 
-      />
-      <Route 
-        path="/admin/feedback" 
-        element={
-          <RouteValidator requiredRole="admin">
-            <FeedbackManagementPage />
-          </RouteValidator>
-        } 
-      />
-      <Route 
-        path="/admin/user-journey" 
-        element={
-          <RouteValidator requiredRole="admin">
-            <UserJourneyPage />
-          </RouteValidator>
-        } 
-      />
-      
-      {/* Feature routes */}
-      <Route path="/features" element={<FeaturesPage />} />
-      
-      {/* Other routes */}
-      <Route path="/caregiver-matching" element={<CaregiverMatchingPage />} />
-      <Route path="/caregiver-health" element={<CaregiverHealthPage />} />
-      
-      {/* 404 route */}
-      <Route path="*" element={<NotFound />} />
-    </Routes>
+    <>
+      <RouteValidator />
+      <Routes>
+        {/* Redirect handlers */}
+        <Route path="/index-static" element={<IndexStatic />} />
+        <Route path="/dashboard/*" element={<RedirectHandler />} />
+        
+        {/* Main routes */}
+        <Route path="/" element={<Index />} />
+        <Route path="/about" element={<AboutPage />} />
+        
+        {/* Auth routes */}
+        <Route path="/auth" element={<AuthPage />} />
+        <Route path="/auth/register" element={<AuthPage />} />
+        <Route path="/auth/reset-password" element={<ResetPassword />} />
+        <Route path="/auth/reset-password/confirm" element={<ResetPasswordConfirm />} />
+        
+        {/* Registration routes */}
+        <Route path="/registration/family" element={<FamilyRegistration />} />
+        <Route path="/registration/professional" element={<ProfessionalRegistration />} />
+        <Route path="/registration/community" element={<CommunityRegistration />} />
+        
+        {/* Protected dashboard routes */}
+        <Route path="/dashboard/family" element={<FamilyDashboard />} />
+        <Route path="/dashboard/professional" element={<ProfessionalDashboard />} />
+        <Route path="/dashboard/community" element={<CommunityDashboard />} />
+        <Route path="/dashboard/admin" element={<AdminDashboard />} />
+        
+        {/* Admin routes */}
+        <Route path="/admin/hero-videos" element={<AdminHeroVideoManagement />} />
+        <Route path="/admin/visit-schedule" element={<AdminVisitSchedulePage />} />
+        <Route path="/admin/feedback" element={<FeedbackManagementPage />} />
+        <Route path="/admin/user-journey" element={<UserJourneyPage />} />
+        
+        {/* Feature routes */}
+        <Route path="/features" element={<FeaturesPage />} />
+        
+        {/* Other routes */}
+        <Route path="/caregiver-matching" element={<CaregiverMatchingPage />} />
+        <Route path="/caregiver-health" element={<CaregiverHealthPage />} />
+        
+        {/* 404 route */}
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    </>
   );
 }

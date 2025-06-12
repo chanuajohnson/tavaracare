@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -34,7 +33,7 @@ interface HeroVideo {
   is_active: boolean;
   display_order: number;
   mime_type?: string;
-  upload_status: 'pending' | 'processing' | 'completed' | 'failed';
+  upload_status: string; // Changed from union type to string to match database
   uploaded_by?: string;
   created_at: string;
   updated_at: string;
