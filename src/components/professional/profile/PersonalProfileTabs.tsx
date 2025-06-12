@@ -2,8 +2,8 @@
 import React from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { BackgroundCheckCard } from "../BackgroundCheckCard";
-import { FileText, Settings, User } from "lucide-react";
+import { CertificateUpload } from "../CertificateUpload";
+import { FileText, Settings, User, Shield, CheckCircle } from "lucide-react";
 
 interface PersonalProfileTabsProps {
   activeTab: string;
@@ -20,7 +20,7 @@ export const PersonalProfileTabs: React.FC<PersonalProfileTabsProps> = ({
 }) => {
   return (
     <Tabs value={activeTab} onValueChange={onTabChange} className="w-full">
-      <TabsList className="grid w-full grid-cols-3">
+      <TabsList className="grid w-full grid-cols-4">
         <TabsTrigger value="overview" className="flex items-center gap-2">
           <User className="h-4 w-4" />
           Overview
@@ -28,6 +28,10 @@ export const PersonalProfileTabs: React.FC<PersonalProfileTabsProps> = ({
         <TabsTrigger value="documents" className="flex items-center gap-2">
           <FileText className="h-4 w-4" />
           Documents
+        </TabsTrigger>
+        <TabsTrigger value="admin-assist" className="flex items-center gap-2">
+          <Shield className="h-4 w-4" />
+          Admin Assist
         </TabsTrigger>
         <TabsTrigger value="settings" className="flex items-center gap-2">
           <Settings className="h-4 w-4" />
@@ -67,18 +71,76 @@ export const PersonalProfileTabs: React.FC<PersonalProfileTabsProps> = ({
       </TabsContent>
 
       <TabsContent value="documents" className="mt-6">
-        <div className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Professional Documents</CardTitle>
-              <CardDescription>
-                Upload and manage your professional certifications and documents
-              </CardDescription>
-            </CardHeader>
-          </Card>
-          
-          <BackgroundCheckCard onUploadSuccess={onCertificateUploadSuccess} />
-        </div>
+        <Card>
+          <CardHeader>
+            <CardTitle>Professional Documents</CardTitle>
+            <CardDescription>
+              Upload and manage your professional certifications and documents
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <CertificateUpload onUploadSuccess={onCertificateUploadSuccess} />
+          </CardContent>
+        </Card>
+      </TabsContent>
+
+      <TabsContent value="admin-assist" className="mt-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Shield className="h-5 w-5 text-primary" />
+              Administrative Assistance
+            </CardTitle>
+            <CardDescription>
+              Tools and resources to help with administrative tasks
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="flex items-center gap-3">
+                    <div className="bg-primary/10 p-3 rounded-full">
+                      <FileText className="h-6 w-6 text-primary" />
+                    </div>
+                    <div>
+                      <h3 className="font-medium">Care Plan Documentation</h3>
+                      <p className="text-sm text-muted-foreground">Generate care reports</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="flex items-center gap-3">
+                    <div className="bg-primary/10 p-3 rounded-full">
+                      <CheckCircle className="h-6 w-6 text-primary" />
+                    </div>
+                    <div>
+                      <h3 className="font-medium">Compliance Tracking</h3>
+                      <p className="text-sm text-muted-foreground">Monitor compliance status</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="flex items-center gap-3">
+                    <div className="bg-primary/10 p-3 rounded-full">
+                      <Settings className="h-6 w-6 text-primary" />
+                    </div>
+                    <div>
+                      <h3 className="font-medium">Task Management</h3>
+                      <p className="text-sm text-muted-foreground">Organize admin tasks</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </CardContent>
+        </Card>
       </TabsContent>
 
       <TabsContent value="settings" className="mt-6">
