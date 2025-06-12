@@ -143,6 +143,51 @@ const Index = () => {
     return activeVideoRef === 'primary' ? secondaryVideoRef.current : primaryVideoRef.current;
   };
 
+  // Add video event listeners for better state management
+  useEffect(() => {
+    const currentVideo = getCurrentVideoRef();
+    if (!currentVideo) return;
+
+    const handlePlay = () => {
+      console.log('Video play event detected');
+      setIsPlaying(true);
+    };
+
+    const handlePause = () => {
+      console.log('Video pause event detected');
+      setIsPlaying(false);
+    };
+
+    const handlePlaying = () => {
+      console.log('Video playing event detected');
+      setIsPlaying(true);
+    };
+
+    const handleWaiting = () => {
+      console.log('Video waiting event detected');
+    };
+
+    const handleCanPlay = () => {
+      console.log('Video can play event detected');
+    };
+
+    // Add event listeners
+    currentVideo.addEventListener('play', handlePlay);
+    currentVideo.addEventListener('pause', handlePause);
+    currentVideo.addEventListener('playing', handlePlaying);
+    currentVideo.addEventListener('waiting', handleWaiting);
+    currentVideo.addEventListener('canplay', handleCanPlay);
+
+    return () => {
+      // Clean up event listeners
+      currentVideo.removeEventListener('play', handlePlay);
+      currentVideo.removeEventListener('pause', handlePause);
+      currentVideo.removeEventListener('playing', handlePlaying);
+      currentVideo.removeEventListener('waiting', handleWaiting);
+      currentVideo.removeEventListener('canplay', handleCanPlay);
+    };
+  }, [activeVideoRef]);
+
   // Preload the next video in sequence
   useEffect(() => {
     if (activeVideos.length <= 1) return;
@@ -171,7 +216,12 @@ const Index = () => {
         currentVideo.load();
         currentVideo.muted = isMuted;
         if (isPlaying) {
-          currentVideo.play().catch(console.error);
+          // Use a small delay to ensure video is ready
+          setTimeout(() => {
+            currentVideo.play().catch(error => {
+              console.error('Error playing initial video:', error);
+            });
+          }, 100);
         }
       }
     }
@@ -258,18 +308,22 @@ const Index = () => {
   const togglePlayPause = () => {
     const currentVideo = getCurrentVideoRef();
     if (currentVideo) {
+      console.log('Toggle play/pause - current state:', isPlaying);
       if (isPlaying) {
         currentVideo.pause();
       } else {
-        currentVideo.play();
+        currentVideo.play().catch(error => {
+          console.error('Error playing video:', error);
+        });
       }
-      setIsPlaying(!isPlaying);
     }
   };
 
   const toggleMute = () => {
     const currentVideo = getCurrentVideoRef();
     const inactiveVideo = getInactiveVideoRef();
+    
+    console.log('Toggle mute - current state:', isMuted);
     
     if (currentVideo) {
       currentVideo.muted = !isMuted;
@@ -284,32 +338,42 @@ const Index = () => {
     if (activeVideos.length <= 1) return;
     
     const nextIndex = (currentVideoIndex + 1) % activeVideos.length;
-    const inactiveVideo = getInactiveVideoRef();
+    
+    // Capture current refs before state changes to avoid race conditions
+    const currentActiveVideo = getCurrentVideoRef();
+    const nextActiveVideo = getInactiveVideoRef();
     
     console.log(`Switching from video ${currentVideoIndex} to ${nextIndex} (${activeVideos[nextIndex]})`);
     
-    if (inactiveVideo && activeVideos[nextIndex]) {
-      // Ensure the inactive video is ready and start playing
-      inactiveVideo.currentTime = 0;
-      if (isPlaying) {
-        try {
-          await inactiveVideo.play();
-        } catch (error) {
-          console.error('Error playing next video:', error);
+    if (nextActiveVideo && activeVideos[nextIndex]) {
+      try {
+        // Ensure the next video is ready and start playing
+        nextActiveVideo.currentTime = 0;
+        
+        // Switch the active video reference first
+        setActiveVideoRef(prev => prev === 'primary' ? 'secondary' : 'primary');
+        setCurrentVideoIndex(nextIndex);
+        
+        if (isPlaying) {
+          await nextActiveVideo.play();
+          console.log('Next video started playing successfully');
+        }
+        
+        // Pause the previously active video after a brief delay
+        setTimeout(() => {
+          if (currentActiveVideo) {
+            currentActiveVideo.pause();
+            console.log('Previous video paused');
+          }
+        }, 200);
+        
+      } catch (error) {
+        console.error('Error switching to next video:', error);
+        // Try to resume the current video if switching fails
+        if (currentActiveVideo && isPlaying) {
+          currentActiveVideo.play().catch(e => console.error('Error resuming current video:', e));
         }
       }
-      
-      // Switch the active video reference
-      setActiveVideoRef(prev => prev === 'primary' ? 'secondary' : 'primary');
-      setCurrentVideoIndex(nextIndex);
-      
-      // Pause the previously active video after a brief delay
-      setTimeout(() => {
-        const nowInactiveVideo = activeVideoRef === 'primary' ? secondaryVideoRef.current : primaryVideoRef.current;
-        if (nowInactiveVideo) {
-          nowInactiveVideo.pause();
-        }
-      }, 100);
     }
   };
 
@@ -328,42 +392,48 @@ const Index = () => {
       const inactiveVideo = getInactiveVideoRef();
       
       if (inactiveVideo && activeVideos[newIndex]) {
-        // Set the new video source on the inactive video
-        console.log(`Changing to video: ${activeVideos[newIndex]}`);
-        inactiveVideo.src = activeVideos[newIndex];
-        inactiveVideo.load();
-        inactiveVideo.muted = isMuted;
-        
-        // Wait for the video to be ready
-        await new Promise<void>((resolve) => {
-          const handleLoadedData = async () => {
-            inactiveVideo.removeEventListener('loadeddata', handleLoadedData);
-            inactiveVideo.currentTime = 0;
-            if (isPlaying) {
-              try {
-                await inactiveVideo.play();
-              } catch (error) {
-                console.error('Error playing new video:', error);
-              }
-            }
-            
-            // Switch the active video
-            setActiveVideoRef(prev => prev === 'primary' ? 'secondary' : 'primary');
-            setCurrentVideoIndex(newIndex);
-            
-            // Pause the previously active video
-            setTimeout(() => {
-              const nowInactiveVideo = activeVideoRef === 'primary' ? secondaryVideoRef.current : primaryVideoRef.current;
-              if (nowInactiveVideo) {
-                nowInactiveVideo.pause();
-              }
-            }, 100);
-            
-            resolve();
-          };
+        try {
+          // Set the new video source on the inactive video
+          console.log(`Changing to video: ${activeVideos[newIndex]}`);
+          inactiveVideo.src = activeVideos[newIndex];
+          inactiveVideo.load();
+          inactiveVideo.muted = isMuted;
           
-          inactiveVideo.addEventListener('loadeddata', handleLoadedData);
-        });
+          // Wait for the video to be ready
+          await new Promise<void>((resolve) => {
+            const handleLoadedData = async () => {
+              inactiveVideo.removeEventListener('loadeddata', handleLoadedData);
+              inactiveVideo.currentTime = 0;
+              
+              // Switch the active video
+              setActiveVideoRef(prev => prev === 'primary' ? 'secondary' : 'primary');
+              setCurrentVideoIndex(newIndex);
+              
+              if (isPlaying) {
+                try {
+                  await inactiveVideo.play();
+                  console.log('Manual video change - new video playing');
+                } catch (error) {
+                  console.error('Error playing new video:', error);
+                }
+              }
+              
+              // Pause the previously active video
+              setTimeout(() => {
+                const nowInactiveVideo = activeVideoRef === 'primary' ? secondaryVideoRef.current : primaryVideoRef.current;
+                if (nowInactiveVideo) {
+                  nowInactiveVideo.pause();
+                }
+              }, 100);
+              
+              resolve();
+            };
+            
+            inactiveVideo.addEventListener('loadeddata', handleLoadedData);
+          });
+        } catch (error) {
+          console.error('Error in changeVideo:', error);
+        }
       }
     });
   };
