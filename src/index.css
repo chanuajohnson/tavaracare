@@ -51,6 +51,38 @@
     @apply relative after:absolute after:bottom-0 after:left-0 after:h-[2px] after:w-0 after:bg-primary-500 after:transition-all after:duration-300 hover:after:w-full;
   }
   
+  /* Enhanced video full coverage utilities */
+  .hero-video-container {
+    @apply relative h-screen w-full overflow-hidden;
+  }
+  
+  .hero-video-base {
+    @apply absolute inset-0 w-full h-full;
+    object-fit: cover;
+    object-position: center;
+    min-width: 100%;
+    min-height: 100%;
+    width: 100vw;
+    height: 100vh;
+    transform: scale(1.01); /* Slight scale to eliminate any edge gaps */
+  }
+  
+  .hero-video-fill {
+    @apply hero-video-base;
+    object-fit: fill; /* Stretches to fit exactly */
+  }
+  
+  .hero-video-cover {
+    @apply hero-video-base;
+    object-fit: cover; /* Maintains aspect ratio, covers container */
+  }
+  
+  .hero-video-cover-scaled {
+    @apply hero-video-base;
+    object-fit: cover;
+    transform: scale(1.02); /* Slightly larger scale to ensure no gaps */
+  }
+  
   /* Enhanced Mobile safe area utilities */
   .safe-bottom {
     padding-bottom: env(safe-area-inset-bottom, 0px);
@@ -189,4 +221,31 @@
     font-size: 16px !important;
     transform: translateZ(0);
   }
+}
+
+/* Video-specific full coverage styles */
+@media (orientation: portrait) {
+  .hero-video-cover-scaled {
+    transform: scale(1.05); /* Larger scale for portrait mode */
+  }
+}
+
+@media (orientation: landscape) {
+  .hero-video-cover-scaled {
+    transform: scale(1.02); /* Smaller scale for landscape mode */
+  }
+}
+
+/* Force full coverage on all screen sizes */
+.video-full-coverage {
+  position: absolute !important;
+  top: 50% !important;
+  left: 50% !important;
+  min-width: 100% !important;
+  min-height: 100% !important;
+  width: auto !important;
+  height: auto !important;
+  transform: translate(-50%, -50%) scale(1.02) !important;
+  object-fit: cover !important;
+  object-position: center !important;
 }

@@ -1,4 +1,3 @@
-
 import { useState, useRef, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Users, UserCog, Heart, ArrowRight, Check, Vote, HelpCircle, Play, Pause, Volume2, VolumeX, ChevronLeft, ChevronRight } from "lucide-react";
@@ -273,11 +272,11 @@ const Index = () => {
   return (
     <div className="min-h-screen w-full">
       {/* Hero Video Section */}
-      <section className="relative h-screen w-full overflow-hidden">
+      <section className="hero-video-container">
         {/* Primary Video */}
         <video
           ref={primaryVideoRef}
-          className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-500 ${
+          className={`video-full-coverage transition-opacity duration-500 ${
             activeVideoRef === 'primary' ? 'opacity-100 z-10' : 'opacity-0 z-0'
           }`}
           autoPlay
@@ -287,7 +286,6 @@ const Index = () => {
           preload="metadata"
           onEnded={handleVideoEnd}
           aria-label="Background video showing care and community"
-          style={{ minWidth: '100%', minHeight: '100%' }}
         >
           <source src={activeVideos[currentVideoIndex]} type="video/mp4" />
           Your browser does not support the video tag.
@@ -296,7 +294,7 @@ const Index = () => {
         {/* Secondary Video */}
         <video
           ref={secondaryVideoRef}
-          className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-500 ${
+          className={`video-full-coverage transition-opacity duration-500 ${
             activeVideoRef === 'secondary' ? 'opacity-100 z-10' : 'opacity-0 z-0'
           }`}
           muted={isMuted}
@@ -305,7 +303,6 @@ const Index = () => {
           preload="metadata"
           onEnded={handleVideoEnd}
           aria-label="Background video showing care and community"
-          style={{ minWidth: '100%', minHeight: '100%' }}
         >
           <source src={activeVideos[(currentVideoIndex + 1) % activeVideos.length]} type="video/mp4" />
           Your browser does not support the video tag.
