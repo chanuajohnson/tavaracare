@@ -1,3 +1,4 @@
+
 import { useState, useRef, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Users, UserCog, Heart, ArrowRight, Check, Vote, HelpCircle, Play, Pause, ChevronLeft, ChevronRight } from "lucide-react";
@@ -58,6 +59,7 @@ const Index = () => {
   const [activeVideoRef, setActiveVideoRef] = useState<'primary' | 'secondary'>('primary');
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [activeVideos, setActiveVideos] = useState<string[]>(allVideoSources);
+  const [videoLoadStates, setVideoLoadStates] = useState<{[key: string]: boolean}>({});
   const navigate = useNavigate();
   const comparisonRef = useRef<HTMLDivElement>(null);
   const primaryVideoRef = useRef<HTMLVideoElement>(null);
@@ -101,39 +103,34 @@ const Index = () => {
     return activeVideoRef === 'primary' ? secondaryVideoRef.current : primaryVideoRef.current;
   };
 
-  // Detect video aspect ratio and apply appropriate scaling
+  // Enhanced video scaling with better error handling
   const applyVideoScaling = (video: HTMLVideoElement) => {
-    video.addEventListener('loadedmetadata', () => {
+    const handleMetadata = () => {
       const aspectRatio = video.videoWidth / video.videoHeight;
       
       // Remove existing scaling classes
       video.classList.remove('video-ultra-scale', 'video-portrait-scale', 'video-landscape-scale', 'video-fallback-fill');
       
       if (aspectRatio < 1) {
-        // Portrait video
         video.classList.add('video-portrait-scale');
       } else if (aspectRatio > 1.7) {
-        // Ultra-wide landscape video
         video.classList.add('video-landscape-scale');
       } else {
-        // Standard video
         video.classList.add('video-ultra-scale');
       }
       
-      // Add fallback if scaling doesn't work
-      setTimeout(() => {
-        const rect = video.getBoundingClientRect();
-        const viewportWidth = window.innerWidth;
-        const viewportHeight = window.innerHeight;
-        
-        if (rect.width < viewportWidth * 0.98 || rect.height < viewportHeight * 0.98) {
-          video.classList.add('video-fallback-fill');
-        }
-      }, 100);
-    });
+      // Mark video as loaded for this source
+      setVideoLoadStates(prev => ({ ...prev, [video.src]: true }));
+    };
+
+    if (video.videoWidth > 0) {
+      handleMetadata();
+    } else {
+      video.addEventListener('loadedmetadata', handleMetadata, { once: true });
+    }
   };
 
-  // Preload the next video
+  // Enhanced video preloading with better state management
   useEffect(() => {
     if (activeVideos.length === 0) return;
     
@@ -141,10 +138,16 @@ const Index = () => {
     const inactiveVideo = getInactiveVideoRef();
     
     if (inactiveVideo && inactiveVideo.src !== activeVideos[nextVideoIndex]) {
+      console.log(`Preloading video: ${activeVideos[nextVideoIndex]}`);
       inactiveVideo.src = activeVideos[nextVideoIndex];
-      inactiveVideo.load();
       inactiveVideo.muted = true;
+      inactiveVideo.load();
       applyVideoScaling(inactiveVideo);
+      
+      // Handle load errors
+      inactiveVideo.addEventListener('error', (e) => {
+        console.error(`Error loading video ${activeVideos[nextVideoIndex]}:`, e);
+      }, { once: true });
     }
   }, [currentVideoIndex, activeVideoRef, activeVideos]);
 
@@ -179,92 +182,158 @@ const Index = () => {
 
   const togglePlayPause = () => {
     const currentVideo = getCurrentVideoRef();
-    if (currentVideo) {
+    if (currentVideo && !isTransitioning) {
       if (isPlaying) {
         currentVideo.pause();
+        setIsPlaying(false);
       } else {
-        currentVideo.play();
+        currentVideo.play().catch(error => {
+          console.error('Error playing video:', error);
+        });
+        setIsPlaying(true);
       }
-      setIsPlaying(!isPlaying);
     }
   };
 
+  // Simplified video switching with better error handling
   const switchToNextVideo = async () => {
     if (isTransitioning || activeVideos.length === 0) return;
     
+    console.log('Switching to next video...');
     setIsTransitioning(true);
+    
     const nextIndex = (currentVideoIndex + 1) % activeVideos.length;
     const inactiveVideo = getInactiveVideoRef();
+    const currentVideo = getCurrentVideoRef();
     
     if (inactiveVideo) {
-      // Ensure the inactive video is ready and start playing
-      inactiveVideo.currentTime = 0;
-      applyVideoScaling(inactiveVideo);
-      
-      if (isPlaying) {
-        try {
-          await inactiveVideo.play();
-        } catch (error) {
-          console.error('Error playing next video:', error);
+      try {
+        // Ensure the inactive video is ready
+        if (inactiveVideo.readyState >= 2) { // HAVE_CURRENT_DATA
+          inactiveVideo.currentTime = 0;
+          
+          // Only play if we were playing before
+          if (isPlaying) {
+            await inactiveVideo.play();
+          }
+          
+          // Immediate switch with opacity transition
+          setActiveVideoRef(prev => prev === 'primary' ? 'secondary' : 'primary');
+          setCurrentVideoIndex(nextIndex);
+          
+          // Pause the now-inactive video after a brief delay
+          setTimeout(() => {
+            if (currentVideo && currentVideo !== inactiveVideo) {
+              currentVideo.pause();
+            }
+            setIsTransitioning(false);
+          }, 50);
+        } else {
+          // Video not ready, wait for it
+          const handleCanPlay = async () => {
+            try {
+              inactiveVideo.currentTime = 0;
+              if (isPlaying) {
+                await inactiveVideo.play();
+              }
+              setActiveVideoRef(prev => prev === 'primary' ? 'secondary' : 'primary');
+              setCurrentVideoIndex(nextIndex);
+              
+              setTimeout(() => {
+                if (currentVideo && currentVideo !== inactiveVideo) {
+                  currentVideo.pause();
+                }
+                setIsTransitioning(false);
+              }, 50);
+            } catch (error) {
+              console.error('Error in delayed video switch:', error);
+              setIsTransitioning(false);
+            }
+          };
+          
+          inactiveVideo.addEventListener('canplay', handleCanPlay, { once: true });
+          
+          // Fallback timeout
+          setTimeout(() => {
+            if (isTransitioning) {
+              console.log('Video switch timeout, forcing transition');
+              setIsTransitioning(false);
+            }
+          }, 2000);
         }
-      }
-      
-      // Switch the active video reference
-      setActiveVideoRef(prev => prev === 'primary' ? 'secondary' : 'primary');
-      setCurrentVideoIndex(nextIndex);
-      
-      // Pause the previously active video after a brief delay
-      setTimeout(() => {
-        const nowInactiveVideo = getCurrentVideoRef();
-        if (nowInactiveVideo) {
-          nowInactiveVideo.pause();
-        }
+      } catch (error) {
+        console.error('Error switching video:', error);
         setIsTransitioning(false);
-      }, 100);
+      }
+    } else {
+      setIsTransitioning(false);
     }
   };
 
   const handleVideoEnd = () => {
+    console.log('Video ended, switching to next');
     switchToNextVideo();
   };
 
+  // Enhanced video change with better loading
   const changeVideo = async (newIndex: number) => {
     if (newIndex === currentVideoIndex || isTransitioning || activeVideos.length === 0) return;
     
+    console.log(`Changing to video index: ${newIndex}`);
     setIsTransitioning(true);
+    
     const inactiveVideo = getInactiveVideoRef();
+    const currentVideo = getCurrentVideoRef();
     
     if (inactiveVideo) {
-      // Set the new video source on the inactive video
-      inactiveVideo.src = activeVideos[newIndex];
-      inactiveVideo.load();
-      inactiveVideo.muted = true;
-      applyVideoScaling(inactiveVideo);
-      
-      // Wait for the video to be ready
-      inactiveVideo.addEventListener('loadeddata', async () => {
-        inactiveVideo.currentTime = 0;
-        if (isPlaying) {
+      try {
+        // Set the new video source
+        inactiveVideo.src = activeVideos[newIndex];
+        inactiveVideo.muted = true;
+        inactiveVideo.load();
+        applyVideoScaling(inactiveVideo);
+        
+        const handleCanPlay = async () => {
           try {
-            await inactiveVideo.play();
+            inactiveVideo.currentTime = 0;
+            if (isPlaying) {
+              await inactiveVideo.play();
+            }
+            
+            // Switch active video
+            setActiveVideoRef(prev => prev === 'primary' ? 'secondary' : 'primary');
+            setCurrentVideoIndex(newIndex);
+            
+            // Pause old video
+            setTimeout(() => {
+              if (currentVideo && currentVideo !== inactiveVideo) {
+                currentVideo.pause();
+              }
+              setIsTransitioning(false);
+            }, 50);
           } catch (error) {
-            console.error('Error playing new video:', error);
+            console.error('Error in video change:', error);
+            setIsTransitioning(false);
           }
+        };
+        
+        if (inactiveVideo.readyState >= 2) {
+          handleCanPlay();
+        } else {
+          inactiveVideo.addEventListener('canplay', handleCanPlay, { once: true });
+          
+          // Fallback timeout
+          setTimeout(() => {
+            if (isTransitioning) {
+              console.log('Video change timeout, forcing transition');
+              setIsTransitioning(false);
+            }
+          }, 3000);
         }
-        
-        // Switch the active video
-        setActiveVideoRef(prev => prev === 'primary' ? 'secondary' : 'primary');
-        setCurrentVideoIndex(newIndex);
-        
-        // Pause the previously active video
-        setTimeout(() => {
-          const nowInactiveVideo = getCurrentVideoRef();
-          if (nowInactiveVideo) {
-            nowInactiveVideo.pause();
-          }
-          setIsTransitioning(false);
-        }, 100);
-      }, { once: true });
+      } catch (error) {
+        console.error('Error changing video:', error);
+        setIsTransitioning(false);
+      }
     }
   };
 
@@ -296,11 +365,11 @@ const Index = () => {
   return (
     <div className="min-h-screen w-full">
       {/* Hero Video Section */}
-      <section className="relative h-screen w-full overflow-hidden">
+      <section className="relative h-screen w-full overflow-hidden bg-black">
         {/* Primary Video */}
         <video
           ref={primaryVideoRef}
-          className={`absolute inset-0 w-full h-full video-ultra-scale transition-opacity duration-500 ${
+          className={`absolute inset-0 w-full h-full video-ultra-scale transition-opacity duration-300 ${
             activeVideoRef === 'primary' ? 'opacity-100 z-10' : 'opacity-0 z-0'
           }`}
           autoPlay
@@ -309,6 +378,7 @@ const Index = () => {
           playsInline
           preload="metadata"
           onEnded={handleVideoEnd}
+          onError={(e) => console.error('Primary video error:', e)}
           aria-label="Background video showing care and community"
         >
           <source src={activeVideos[currentVideoIndex]} type="video/mp4" />
@@ -318,13 +388,14 @@ const Index = () => {
         {/* Secondary Video */}
         <video
           ref={secondaryVideoRef}
-          className={`absolute inset-0 w-full h-full video-ultra-scale transition-opacity duration-500 ${
+          className={`absolute inset-0 w-full h-full video-ultra-scale transition-opacity duration-300 ${
             activeVideoRef === 'secondary' ? 'opacity-100 z-10' : 'opacity-0 z-0'
           }`}
           muted={true}
           loop={false}
           playsInline
           preload="metadata"
+          onError={(e) => console.error('Secondary video error:', e)}
           aria-label="Background video showing care and community"
         >
           <source src={activeVideos[(currentVideoIndex + 1) % activeVideos.length]} type="video/mp4" />
@@ -420,7 +491,8 @@ const Index = () => {
           {/* Play/Pause Button */}
           <button
             onClick={togglePlayPause}
-            className="bg-black/50 hover:bg-black/70 text-white p-2 rounded-full transition-colors"
+            disabled={isTransitioning}
+            className="bg-black/50 hover:bg-black/70 text-white p-2 rounded-full transition-colors disabled:opacity-50"
             aria-label={isPlaying ? "Pause video" : "Play video"}
           >
             {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
