@@ -58,7 +58,7 @@ const Index = () => {
   const [currentVideoIndex, setCurrentVideoIndex] = useState(0);
   const [activeVideoRef, setActiveVideoRef] = useState<'primary' | 'secondary'>('primary');
   const [isTransitioning, setIsTransitioning] = useState(false);
-  const [activeVideos, setActiveVideos] = useState<string[]>(allVideoSources);
+  const [activeVideos, setActiveVideos] = useState<string[]>([]);
   const navigate = useNavigate();
   const comparisonRef = useRef<HTMLDivElement>(null);
   const primaryVideoRef = useRef<HTMLVideoElement>(null);
@@ -67,28 +67,64 @@ const Index = () => {
   // Load active videos from admin settings on component mount
   useEffect(() => {
     loadActiveVideos();
+    
+    // Listen for admin preference updates
+    const handlePreferencesUpdate = (event: CustomEvent) => {
+      console.log('Hero video preferences updated:', event.detail);
+      loadActiveVideos();
+    };
+
+    window.addEventListener('heroVideoPreferencesUpdated', handlePreferencesUpdate as EventListener);
+    
+    return () => {
+      window.removeEventListener('heroVideoPreferencesUpdated', handlePreferencesUpdate as EventListener);
+    };
   }, []);
 
-  const loadActiveVideos = async () => {
+  const loadActiveVideos = () => {
     try {
-      // Check if there are any video preferences stored
-      const { data: videoSettings, error } = await supabase
-        .from('hero_videos')
-        .select('file_path, is_active')
-        .eq('is_active', true);
-
-      if (error) {
-        console.log('No database video settings found, using all static videos');
-        return;
+      // Read admin preferences from localStorage
+      const savedPreferences = localStorage.getItem('heroVideoPreferences');
+      let preferences: Record<string, boolean> = {};
+      
+      if (savedPreferences) {
+        try {
+          preferences = JSON.parse(savedPreferences);
+          console.log('Loaded video preferences:', preferences);
+        } catch (error) {
+          console.error('Error parsing video preferences:', error);
+        }
       }
 
-      // If database has active videos, combine with static videos that are enabled
-      if (videoSettings && videoSettings.length > 0) {
-        const dbVideos = videoSettings.map(v => v.file_path);
-        setActiveVideos([...allVideoSources, ...dbVideos]);
+      // Filter videos based on admin preferences
+      const adminActiveVideos = allVideoSources.filter(videoPath => {
+        const filename = videoPath.split('/').pop();
+        // If no preferences saved, default to only your-video2.MP4
+        if (Object.keys(preferences).length === 0) {
+          return filename === 'your-video2.MP4';
+        }
+        // Otherwise, use admin preferences (default to true if not specified)
+        return preferences[filename || ''] !== false;
+      });
+
+      console.log('Admin active videos:', adminActiveVideos);
+      
+      // Ensure we have at least one video
+      if (adminActiveVideos.length === 0) {
+        console.log('No active videos from admin, defaulting to your-video2.MP4');
+        setActiveVideos(['/your-video2.MP4']);
+      } else {
+        setActiveVideos(adminActiveVideos);
       }
+
+      // Reset video index if current index is out of bounds
+      setCurrentVideoIndex(0);
+      
     } catch (error) {
-      console.log('Using default video configuration:', error);
+      console.log('Error loading video preferences, using default:', error);
+      // Fallback to only your-video2.MP4
+      setActiveVideos(['/your-video2.MP4']);
+      setCurrentVideoIndex(0);
     }
   };
 
@@ -384,17 +420,18 @@ const Index = () => {
 
         {/* Video Controls */}
         <div className="absolute bottom-4 right-4 z-30 flex gap-2">
-          {/* Previous Video Button */}
-          <button
-            onClick={goToPreviousVideo}
-            disabled={isTransitioning}
-            className="bg-black/50 hover:bg-black/70 text-white p-2 rounded-full transition-colors disabled:opacity-50"
-            aria-label="Previous video"
-          >
-            <ChevronLeft className="w-4 h-4" />
-          </button>
+          {/* Previous Video Button - only show if more than one video */}
+          {activeVideos.length > 1 && (
+            <button
+              onClick={goToPreviousVideo}
+              disabled={isTransitioning}
+              className="bg-black/50 hover:bg-black/70 text-white p-2 rounded-full transition-colors disabled:opacity-50"
+              aria-label="Previous video"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+          )}
           
-          {/* Play/Pause Button */}
           <button
             onClick={togglePlayPause}
             className="bg-black/50 hover:bg-black/70 text-white p-2 rounded-full transition-colors"
@@ -403,7 +440,6 @@ const Index = () => {
             {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
           </button>
           
-          {/* Mute Button */}
           <button
             onClick={toggleMute}
             className="bg-black/50 hover:bg-black/70 text-white p-2 rounded-full transition-colors"
@@ -412,33 +448,37 @@ const Index = () => {
             {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
           </button>
           
-          {/* Next Video Button */}
-          <button
-            onClick={goToNextVideo}
-            disabled={isTransitioning}
-            className="bg-black/50 hover:bg-black/70 text-white p-2 rounded-full transition-colors disabled:opacity-50"
-            aria-label="Next video"
-          >
-            <ChevronRight className="w-4 h-4" />
-          </button>
+          {/* Next Video Button - only show if more than one video */}
+          {activeVideos.length > 1 && (
+            <button
+              onClick={goToNextVideo}
+              disabled={isTransitioning}
+              className="bg-black/50 hover:bg-black/70 text-white p-2 rounded-full transition-colors disabled:opacity-50"
+              aria-label="Next video"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          )}
         </div>
 
-        {/* Video Indicator Dots */}
-        <div className="absolute bottom-4 left-4 z-30 flex gap-2">
-          {activeVideos.map((_, index) => (
-            <button
-              key={index}
-              onClick={() => changeVideo(index)}
-              disabled={isTransitioning}
-              className={`w-2 h-2 rounded-full transition-all duration-300 disabled:opacity-50 ${
-                index === currentVideoIndex 
-                  ? 'bg-white scale-125' 
-                  : 'bg-white/50 hover:bg-white/75'
-              }`}
-              aria-label={`Go to video ${index + 1}`}
-            />
-          ))}
-        </div>
+        {/* Video Indicator Dots - only show if more than one video */}
+        {activeVideos.length > 1 && (
+          <div className="absolute bottom-4 left-4 z-30 flex gap-2">
+            {activeVideos.map((_, index) => (
+              <button
+                key={index}
+                onClick={() => changeVideo(index)}
+                disabled={isTransitioning}
+                className={`w-2 h-2 rounded-full transition-all duration-300 disabled:opacity-50 ${
+                  index === currentVideoIndex 
+                    ? 'bg-white scale-125' 
+                    : 'bg-white/50 hover:bg-white/75'
+                }`}
+                aria-label={`Go to video ${index + 1}`}
+              />
+            ))}
+          </div>
+        )}
       </section>
 
       {/* Main Content - Roles Section */}
