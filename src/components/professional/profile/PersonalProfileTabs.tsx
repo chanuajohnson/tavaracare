@@ -20,22 +20,22 @@ export const PersonalProfileTabs: React.FC<PersonalProfileTabsProps> = ({
 }) => {
   return (
     <Tabs value={activeTab} onValueChange={onTabChange} className="w-full">
-      <TabsList className="grid w-full grid-cols-4">
-        <TabsTrigger value="overview" className="flex items-center gap-2">
-          <User className="h-4 w-4" />
-          Overview
+      <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 gap-1 h-auto p-1">
+        <TabsTrigger value="overview" className="flex items-center gap-1 md:gap-2 px-2 py-2 text-xs md:text-sm min-h-[44px]">
+          <User className="h-3 w-3 md:h-4 md:w-4 flex-shrink-0" />
+          <span className="hidden sm:inline">Overview</span>
         </TabsTrigger>
-        <TabsTrigger value="documents" className="flex items-center gap-2">
-          <FileText className="h-4 w-4" />
-          Documents
+        <TabsTrigger value="documents" className="flex items-center gap-1 md:gap-2 px-2 py-2 text-xs md:text-sm min-h-[44px]">
+          <FileText className="h-3 w-3 md:h-4 md:w-4 flex-shrink-0" />
+          <span className="hidden sm:inline">Documents</span>
         </TabsTrigger>
-        <TabsTrigger value="admin-assist" className="flex items-center gap-2">
-          <Shield className="h-4 w-4" />
-          Admin Assist
+        <TabsTrigger value="admin-assist" className="flex items-center gap-1 md:gap-2 px-2 py-2 text-xs md:text-sm min-h-[44px]">
+          <Shield className="h-3 w-3 md:h-4 md:w-4 flex-shrink-0" />
+          <span className="hidden sm:inline">Admin Assist</span>
         </TabsTrigger>
-        <TabsTrigger value="settings" className="flex items-center gap-2">
-          <Settings className="h-4 w-4" />
-          Settings
+        <TabsTrigger value="settings" className="flex items-center gap-1 md:gap-2 px-2 py-2 text-xs md:text-sm min-h-[44px]">
+          <Settings className="h-3 w-3 md:h-4 md:w-4 flex-shrink-0" />
+          <span className="hidden sm:inline">Settings</span>
         </TabsTrigger>
       </TabsList>
 

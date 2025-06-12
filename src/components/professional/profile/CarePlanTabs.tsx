@@ -26,7 +26,7 @@ export const CarePlanTabs = ({
 }: CarePlanTabsProps) => {
   return (
     <HorizontalTabs value={activeTab} onValueChange={onTabChange} className="w-full">
-      <HorizontalTabsList className="grid w-full grid-cols-3 lg:grid-cols-3">
+      <HorizontalTabsList className="grid w-full grid-cols-3">
         <HorizontalTabsTrigger value="schedule" className="flex items-center gap-2">
           <Calendar className="h-4 w-4" />
           <span className="hidden sm:inline">Schedule</span>
