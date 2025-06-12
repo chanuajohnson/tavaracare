@@ -1,3 +1,4 @@
+
 import { useState, useRef, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Users, UserCog, Heart, ArrowRight, Check, Vote, HelpCircle, Play, Pause, Volume2, VolumeX, ChevronLeft, ChevronRight } from "lucide-react";
@@ -102,6 +103,38 @@ const Index = () => {
     return activeVideoRef === 'primary' ? secondaryVideoRef.current : primaryVideoRef.current;
   };
 
+  // Detect video aspect ratio and apply appropriate scaling
+  const applyVideoScaling = (video: HTMLVideoElement) => {
+    video.addEventListener('loadedmetadata', () => {
+      const aspectRatio = video.videoWidth / video.videoHeight;
+      
+      // Remove existing scaling classes
+      video.classList.remove('video-ultra-scale', 'video-portrait-scale', 'video-landscape-scale', 'video-fallback-fill');
+      
+      if (aspectRatio < 1) {
+        // Portrait video
+        video.classList.add('video-portrait-scale');
+      } else if (aspectRatio > 1.7) {
+        // Ultra-wide landscape video
+        video.classList.add('video-landscape-scale');
+      } else {
+        // Standard video
+        video.classList.add('video-ultra-scale');
+      }
+      
+      // Add fallback if scaling doesn't work
+      setTimeout(() => {
+        const rect = video.getBoundingClientRect();
+        const viewportWidth = window.innerWidth;
+        const viewportHeight = window.innerHeight;
+        
+        if (rect.width < viewportWidth * 0.98 || rect.height < viewportHeight * 0.98) {
+          video.classList.add('video-fallback-fill');
+        }
+      }, 100);
+    });
+  };
+
   // Preload the next video
   useEffect(() => {
     if (activeVideos.length === 0) return;
@@ -113,8 +146,16 @@ const Index = () => {
       inactiveVideo.src = activeVideos[nextVideoIndex];
       inactiveVideo.load();
       inactiveVideo.muted = isMuted;
+      applyVideoScaling(inactiveVideo);
     }
   }, [currentVideoIndex, activeVideoRef, isMuted, activeVideos]);
+
+  // Apply scaling to primary video on mount
+  useEffect(() => {
+    if (primaryVideoRef.current) {
+      applyVideoScaling(primaryVideoRef.current);
+    }
+  }, []);
 
   const handleRoleSelect = (roleId: string) => {
     if (roleId === "community") {
@@ -173,6 +214,8 @@ const Index = () => {
     if (inactiveVideo) {
       // Ensure the inactive video is ready and start playing
       inactiveVideo.currentTime = 0;
+      applyVideoScaling(inactiveVideo);
+      
       if (isPlaying) {
         try {
           await inactiveVideo.play();
@@ -211,6 +254,7 @@ const Index = () => {
       inactiveVideo.src = activeVideos[newIndex];
       inactiveVideo.load();
       inactiveVideo.muted = isMuted;
+      applyVideoScaling(inactiveVideo);
       
       // Wait for the video to be ready
       inactiveVideo.addEventListener('loadeddata', async () => {
@@ -271,7 +315,7 @@ const Index = () => {
         {/* Primary Video */}
         <video
           ref={primaryVideoRef}
-          className={`absolute inset-0 w-full h-full object-fill transition-opacity duration-500 ${
+          className={`absolute inset-0 w-full h-full video-ultra-scale transition-opacity duration-500 ${
             activeVideoRef === 'primary' ? 'opacity-100 z-10' : 'opacity-0 z-0'
           }`}
           autoPlay
@@ -289,7 +333,7 @@ const Index = () => {
         {/* Secondary Video */}
         <video
           ref={secondaryVideoRef}
-          className={`absolute inset-0 w-full h-full object-fill transition-opacity duration-500 ${
+          className={`absolute inset-0 w-full h-full video-ultra-scale transition-opacity duration-500 ${
             activeVideoRef === 'secondary' ? 'opacity-100 z-10' : 'opacity-0 z-0'
           }`}
           muted={isMuted}

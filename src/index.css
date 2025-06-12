@@ -160,6 +160,103 @@
   .mobile-icon-responsive {
     @apply h-4 w-4 sm:h-5 sm:w-5;
   }
+
+  /* Ultra-Aggressive Video Scaling Classes */
+  .video-ultra-scale {
+    object-fit: cover;
+    transform: scale(1.45);
+    transform-origin: center;
+    min-width: 145%;
+    min-height: 145%;
+  }
+  
+  .video-portrait-scale {
+    object-fit: cover;
+    transform: scale(1.5);
+    transform-origin: center;
+    min-width: 150%;
+    min-height: 150%;
+  }
+  
+  .video-landscape-scale {
+    object-fit: cover;
+    transform: scale(1.4);
+    transform-origin: center;
+    min-width: 140%;
+    min-height: 140%;
+  }
+  
+  .video-fallback-fill {
+    object-fit: fill;
+    transform: scale(1.2);
+    transform-origin: center;
+    width: 120%;
+    height: 120%;
+    position: absolute;
+    top: -10%;
+    left: -10%;
+  }
+  
+  /* Responsive Video Scaling */
+  @media (max-width: 768px) {
+    .video-ultra-scale {
+      transform: scale(1.5);
+      min-width: 150%;
+      min-height: 150%;
+    }
+    
+    .video-portrait-scale {
+      transform: scale(1.6);
+      min-width: 160%;
+      min-height: 160%;
+    }
+    
+    .video-landscape-scale {
+      transform: scale(1.45);
+      min-width: 145%;
+      min-height: 145%;
+    }
+  }
+  
+  @media (min-width: 769px) and (max-width: 1024px) {
+    .video-ultra-scale {
+      transform: scale(1.45);
+      min-width: 145%;
+      min-height: 145%;
+    }
+    
+    .video-portrait-scale {
+      transform: scale(1.5);
+      min-width: 150%;
+      min-height: 150%;
+    }
+    
+    .video-landscape-scale {
+      transform: scale(1.4);
+      min-width: 140%;
+      min-height: 140%;
+    }
+  }
+  
+  @media (min-width: 1025px) {
+    .video-ultra-scale {
+      transform: scale(1.4);
+      min-width: 140%;
+      min-height: 140%;
+    }
+    
+    .video-portrait-scale {
+      transform: scale(1.45);
+      min-width: 145%;
+      min-height: 145%;
+    }
+    
+    .video-landscape-scale {
+      transform: scale(1.35);
+      min-width: 135%;
+      min-height: 135%;
+    }
+  }
 }
 
 /* Enhanced mobile viewport handling */
