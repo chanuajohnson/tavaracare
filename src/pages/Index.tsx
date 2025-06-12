@@ -59,6 +59,7 @@ const Index = () => {
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [isZoomTransition, setIsZoomTransition] = useState(false);
   const [activeVideos, setActiveVideos] = useState<string[]>([]);
+  const [videosLoaded, setVideosLoaded] = useState(false);
   const navigate = useNavigate();
   const comparisonRef = useRef<HTMLDivElement>(null);
   const primaryVideoRef = useRef<HTMLVideoElement>(null);
@@ -103,9 +104,9 @@ const Index = () => {
       // Filter videos based on admin preferences
       const adminActiveVideos = allVideoSources.filter(videoPath => {
         const filename = videoPath.split('/').pop();
-        // If no preferences saved, default to only your-video2.MP4
+        // If no preferences saved, default to all videos
         if (Object.keys(preferences).length === 0) {
-          return filename === 'your-video2.MP4';
+          return true;
         }
         // Otherwise, use admin preferences (default to true if not specified)
         return preferences[filename || ''] !== false;
@@ -113,22 +114,24 @@ const Index = () => {
 
       console.log('Admin active videos:', adminActiveVideos);
       
-      // Ensure we have at least one video
+      // Ensure we have at least one video - use first available if none selected
       if (adminActiveVideos.length === 0) {
-        console.log('No active videos from admin, defaulting to your-video2.MP4');
-        setActiveVideos(['/your-video2.MP4']);
+        console.log('No active videos from admin, defaulting to first video');
+        setActiveVideos([allVideoSources[0]]);
       } else {
         setActiveVideos(adminActiveVideos);
       }
 
       // Reset video index if current index is out of bounds
       setCurrentVideoIndex(0);
+      setVideosLoaded(true);
       
     } catch (error) {
-      console.log('Error loading video preferences, using default:', error);
-      // Fallback to only your-video2.MP4
-      setActiveVideos(['/your-video2.MP4']);
+      console.log('Error loading video preferences, using first video:', error);
+      // Fallback to first video only
+      setActiveVideos([allVideoSources[0]]);
       setCurrentVideoIndex(0);
+      setVideosLoaded(true);
     }
   };
 
@@ -144,7 +147,7 @@ const Index = () => {
 
   // Preload the next video
   useEffect(() => {
-    if (activeVideos.length === 0) return;
+    if (activeVideos.length === 0 || !videosLoaded) return;
     
     const nextVideoIndex = (currentVideoIndex + 1) % activeVideos.length;
     const inactiveVideo = getInactiveVideoRef();
@@ -153,8 +156,30 @@ const Index = () => {
       inactiveVideo.src = activeVideos[nextVideoIndex];
       inactiveVideo.load();
       inactiveVideo.muted = true; // Videos are permanently muted
+      
+      // Ensure inactive video is completely hidden
+      inactiveVideo.style.opacity = '0';
+      inactiveVideo.style.visibility = 'hidden';
     }
-  }, [currentVideoIndex, activeVideoRef, activeVideos]);
+  }, [currentVideoIndex, activeVideoRef, activeVideos, videosLoaded]);
+
+  // Initialize first video properly
+  useEffect(() => {
+    if (activeVideos.length > 0 && videosLoaded) {
+      const currentVideo = getCurrentVideoRef();
+      if (currentVideo && currentVideo.src !== activeVideos[currentVideoIndex]) {
+        currentVideo.src = activeVideos[currentVideoIndex];
+        currentVideo.load();
+        currentVideo.muted = true;
+        currentVideo.style.opacity = '1';
+        currentVideo.style.visibility = 'visible';
+        
+        if (isPlaying) {
+          currentVideo.play().catch(console.error);
+        }
+      }
+    }
+  }, [activeVideos, videosLoaded, currentVideoIndex]);
 
   // Smooth zoom transition function
   const performZoomTransition = async (callback: () => Promise<void>) => {
@@ -257,6 +282,9 @@ const Index = () => {
     if (inactiveVideo) {
       // Ensure the inactive video is ready and start playing
       inactiveVideo.currentTime = 0;
+      inactiveVideo.style.opacity = '1';
+      inactiveVideo.style.visibility = 'visible';
+      
       if (isPlaying) {
         try {
           await inactiveVideo.play();
@@ -269,11 +297,13 @@ const Index = () => {
       setActiveVideoRef(prev => prev === 'primary' ? 'secondary' : 'primary');
       setCurrentVideoIndex(nextIndex);
       
-      // Pause the previously active video after a brief delay
+      // Hide the previously active video after a brief delay
       setTimeout(() => {
-        const nowInactiveVideo = getCurrentVideoRef();
+        const nowInactiveVideo = activeVideoRef === 'primary' ? secondaryVideoRef.current : primaryVideoRef.current;
         if (nowInactiveVideo) {
           nowInactiveVideo.pause();
+          nowInactiveVideo.style.opacity = '0';
+          nowInactiveVideo.style.visibility = 'hidden';
         }
       }, 100);
     }
@@ -304,6 +334,9 @@ const Index = () => {
           const handleLoadedData = async () => {
             inactiveVideo.removeEventListener('loadeddata', handleLoadedData);
             inactiveVideo.currentTime = 0;
+            inactiveVideo.style.opacity = '1';
+            inactiveVideo.style.visibility = 'visible';
+            
             if (isPlaying) {
               try {
                 await inactiveVideo.play();
@@ -316,11 +349,13 @@ const Index = () => {
             setActiveVideoRef(prev => prev === 'primary' ? 'secondary' : 'primary');
             setCurrentVideoIndex(newIndex);
             
-            // Pause the previously active video
+            // Hide the previously active video
             setTimeout(() => {
-              const nowInactiveVideo = getCurrentVideoRef();
+              const nowInactiveVideo = activeVideoRef === 'primary' ? secondaryVideoRef.current : primaryVideoRef.current;
               if (nowInactiveVideo) {
                 nowInactiveVideo.pause();
+                nowInactiveVideo.style.opacity = '0';
+                nowInactiveVideo.style.visibility = 'hidden';
               }
             }, 100);
             
@@ -347,12 +382,12 @@ const Index = () => {
 
   const isDebug = new URLSearchParams(window.location.search).get('debug') === 'true';
 
-  if (activeVideos.length === 0) {
+  if (activeVideos.length === 0 || !videosLoaded) {
     return (
       <div className="min-h-screen w-full flex items-center justify-center bg-gray-900">
         <div className="text-white text-center">
-          <h1 className="text-4xl font-bold mb-4">No Active Videos</h1>
-          <p className="text-xl">Please contact administrator to configure hero videos.</p>
+          <h1 className="text-4xl font-bold mb-4">Loading Videos...</h1>
+          <p className="text-xl">Please wait while we prepare your experience.</p>
         </div>
       </div>
     );
@@ -375,6 +410,10 @@ const Index = () => {
           preload="metadata"
           onEnded={handleVideoEnd}
           aria-label="Background video showing care and community"
+          style={{ 
+            opacity: activeVideoRef === 'primary' ? 1 : 0,
+            visibility: activeVideoRef === 'primary' ? 'visible' : 'hidden'
+          }}
         >
           <source src={activeVideos[currentVideoIndex]} type="video/mp4" />
           Your browser does not support the video tag.
@@ -392,6 +431,10 @@ const Index = () => {
           preload="metadata"
           onEnded={handleVideoEnd}
           aria-label="Background video showing care and community"
+          style={{ 
+            opacity: activeVideoRef === 'secondary' ? 1 : 0,
+            visibility: activeVideoRef === 'secondary' ? 'visible' : 'hidden'
+          }}
         >
           <source src={activeVideos[(currentVideoIndex + 1) % activeVideos.length]} type="video/mp4" />
           Your browser does not support the video tag.
