@@ -1,7 +1,6 @@
 
 import { Profile } from "../types/profile";
 import type { DbProfile, DbProfileInsert } from "../types/profile";
-import { fromJson, toJson } from "../utils/json";
 
 /**
  * Adapts a frontend Profile to a database-ready object
@@ -25,7 +24,9 @@ export function adaptProfileToDb(profile: Partial<Profile>): DbProfileInsert {
     other_special_needs: profile.otherSpecialNeeds,
     caregiver_type: profile.caregiverType,
     preferred_contact_method: profile.preferredContactMethod,
-    care_schedule: profile.careSchedule,
+    care_schedule: Array.isArray(profile.careSchedule) 
+      ? profile.careSchedule.join(',') 
+      : profile.careSchedule, // Convert array to string if needed
     budget_preferences: profile.budgetPreferences,
     caregiver_preferences: profile.caregiverPreferences,
     additional_notes: profile.additionalNotes,
@@ -81,7 +82,7 @@ export function adaptProfileFromDb(dbProfile: DbProfile): Profile {
     otherSpecialNeeds: dbProfile.other_special_needs,
     caregiverType: dbProfile.caregiver_type,
     preferredContactMethod: dbProfile.preferred_contact_method,
-    careSchedule: dbProfile.care_schedule,
+    careSchedule: dbProfile.care_schedule, // Keep as string from database
     budgetPreferences: dbProfile.budget_preferences,
     caregiverPreferences: dbProfile.caregiver_preferences,
     additionalNotes: dbProfile.additional_notes,
