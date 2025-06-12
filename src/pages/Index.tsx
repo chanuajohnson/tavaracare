@@ -57,7 +57,7 @@ const Index = () => {
   const [currentVideoIndex, setCurrentVideoIndex] = useState(0);
   const [activeVideoRef, setActiveVideoRef] = useState<'primary' | 'secondary'>('primary');
   const [isTransitioning, setIsTransitioning] = useState(false);
-  const [activeVideos, setActiveVideos] = useState<string[]>(allVideoSources);
+  const [activeVideos, setActiveVideos] = useState<string[]>([]);
   const navigate = useNavigate();
   const comparisonRef = useRef<HTMLDivElement>(null);
   const primaryVideoRef = useRef<HTMLVideoElement>(null);
@@ -66,28 +66,69 @@ const Index = () => {
   // Load active videos from admin settings on component mount
   useEffect(() => {
     loadActiveVideos();
+    
+    // Listen for admin preference updates
+    const handlePreferencesUpdate = (event: CustomEvent) => {
+      console.log('Admin video preferences updated, reloading videos...');
+      loadActiveVideos();
+    };
+
+    window.addEventListener('heroVideoPreferencesUpdated', handlePreferencesUpdate as EventListener);
+    
+    return () => {
+      window.removeEventListener('heroVideoPreferencesUpdated', handlePreferencesUpdate as EventListener);
+    };
   }, []);
 
   const loadActiveVideos = async () => {
     try {
-      // Check if there are any video preferences stored
-      const { data: videoSettings, error } = await supabase
-        .from('hero_videos')
-        .select('file_path, is_active')
-        .eq('is_active', true);
-
-      if (error) {
-        console.log('No database video settings found, using all static videos');
-        return;
+      // Load video preferences from localStorage (set by admin)
+      const savedPreferences = localStorage.getItem('heroVideoPreferences');
+      let preferences: Record<string, boolean> = {};
+      
+      if (savedPreferences) {
+        try {
+          preferences = JSON.parse(savedPreferences);
+        } catch (error) {
+          console.error('Error parsing video preferences:', error);
+        }
       }
 
-      // If database has active videos, combine with static videos that are enabled
-      if (videoSettings && videoSettings.length > 0) {
-        const dbVideos = videoSettings.map(v => v.file_path);
-        setActiveVideos([...allVideoSources, ...dbVideos]);
+      // Filter static videos based on admin preferences
+      const activeStaticVideos = allVideoSources.filter(videoPath => {
+        const filename = videoPath.replace('/', ''); // Remove leading slash to match admin keys
+        return preferences[filename] !== false; // Default to true unless explicitly disabled
+      });
+
+      // Check database videos (uploaded videos)
+      let activeDatabaseVideos: string[] = [];
+      try {
+        const { data: videoSettings, error } = await supabase
+          .from('hero_videos')
+          .select('file_path, is_active')
+          .eq('is_active', true);
+
+        if (!error && videoSettings && videoSettings.length > 0) {
+          activeDatabaseVideos = videoSettings.map(v => v.file_path);
+        }
+      } catch (error) {
+        console.log('No database video settings found or error:', error);
+      }
+
+      // Combine active static and database videos
+      const allActiveVideos = [...activeStaticVideos, ...activeDatabaseVideos];
+      
+      console.log('Loaded active videos:', allActiveVideos);
+      setActiveVideos(allActiveVideos);
+
+      // Handle edge case: if currently playing video is no longer active
+      if (allActiveVideos.length > 0 && currentVideoIndex >= allActiveVideos.length) {
+        setCurrentVideoIndex(0);
       }
     } catch (error) {
-      console.log('Using default video configuration:', error);
+      console.log('Error loading active videos, using defaults:', error);
+      // Fallback to all static videos if there's an error
+      setActiveVideos(allVideoSources);
     }
   };
 
