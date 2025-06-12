@@ -16,7 +16,7 @@ const roles = [
     description: "Coordinate care for your loved ones",
     icon: Users,
     color: "bg-primary-100",
-    path: "/registration/family",
+    path: "/dashboard/family",
     cta: "Find Care Now",
     features: ["Create and manage care plans", "Find qualified caregivers", "Track medications and appointments", "Coordinate with care team", "Monitor care activities", "Access care logs and reports"]
   },
@@ -26,7 +26,7 @@ const roles = [
     description: "Provide care services and expertise",
     icon: UserCog,
     color: "bg-primary-200",
-    path: "/registration/professional",
+    path: "/dashboard/professional",
     cta: "Get Hired",
     features: ["Showcase qualifications", "Find care opportunities", "Manage client relationships", "Track care delivery", "Access training resources", "Professional development"]
   }
@@ -38,7 +38,7 @@ const communityRole = {
   description: "Support and contribute to care networks",
   icon: Heart,
   color: "bg-primary-300",
-  path: "/registration/community",
+  path: "/dashboard/community",
   cta: "Join the Village",
   features: ["Join care circles", "Share local resources", "Participate in community events", "Offer support services", "Connect with families", "Track community impact"]
 };
