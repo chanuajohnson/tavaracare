@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -23,6 +22,7 @@ import {
 import { format } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from "sonner";
+import { useNurses } from '@/hooks/useNurses';
 
 type AdminStatus = 'pending' | 'confirmed' | 'cancelled' | 'completed' | 'locked';
 
@@ -58,11 +58,14 @@ export const AdminBookingActions: React.FC<AdminBookingActionsProps> = ({
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [adminNotes, setAdminNotes] = useState(booking.admin_notes || '');
   const [adminStatus, setAdminStatus] = useState<AdminStatus>(booking.admin_status);
-  const [nurseAssigned, setNurseAssigned] = useState(booking.nurse_assigned || '');
+  const [nurseAssigned, setNurseAssigned] = useState(booking.nurse_assigned || 'unassigned');
   const [loading, setLoading] = useState(false);
+  const { nurses, loading: nursesLoading } = useNurses();
 
   const handleStatusUpdate = async (newStatus: AdminStatus) => {
     setLoading(true);
+    console.log('Updating booking status:', { bookingId: booking.id, currentStatus: booking.admin_status, newStatus });
+    
     try {
       const { error } = await supabase
         .from('visit_bookings')
@@ -72,13 +75,17 @@ export const AdminBookingActions: React.FC<AdminBookingActionsProps> = ({
         })
         .eq('id', booking.id);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Database error updating booking status:', error);
+        throw new Error(`Database error: ${error.message}`);
+      }
 
+      console.log('Booking status updated successfully');
       toast.success(`Booking ${newStatus} successfully`);
       onBookingUpdate();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error updating booking status:', error);
-      toast.error('Failed to update booking status');
+      toast.error(`Failed to update booking status: ${error.message || 'Unknown error'}`);
     } finally {
       setLoading(false);
     }
@@ -86,25 +93,41 @@ export const AdminBookingActions: React.FC<AdminBookingActionsProps> = ({
 
   const handleDetailedUpdate = async () => {
     setLoading(true);
+    console.log('Updating booking details:', { 
+      bookingId: booking.id, 
+      adminStatus, 
+      adminNotes, 
+      nurseAssigned 
+    });
+    
     try {
+      // Prepare the update data with proper UUID handling
+      const updateData = {
+        admin_notes: adminNotes.trim() || null,
+        admin_status: adminStatus,
+        nurse_assigned: nurseAssigned === 'unassigned' ? null : nurseAssigned, // Convert 'unassigned' to null for UUID field
+        updated_at: new Date().toISOString()
+      };
+
+      console.log('Prepared update data:', updateData);
+
       const { error } = await supabase
         .from('visit_bookings')
-        .update({
-          admin_notes: adminNotes,
-          admin_status: adminStatus,
-          nurse_assigned: nurseAssigned,
-          updated_at: new Date().toISOString()
-        })
+        .update(updateData)
         .eq('id', booking.id);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Database error updating booking details:', error);
+        throw new Error(`Database error: ${error.message}`);
+      }
 
+      console.log('Booking details updated successfully');
       toast.success('Booking updated successfully');
       setEditDialogOpen(false);
       onBookingUpdate();
-    } catch (error) {
-      console.error('Error updating booking:', error);
-      toast.error('Failed to update booking');
+    } catch (error: any) {
+      console.error('Error updating booking details:', error);
+      toast.error(`Failed to update booking: ${error.message || 'Unknown error'}`);
     } finally {
       setLoading(false);
     }
@@ -120,6 +143,9 @@ export const AdminBookingActions: React.FC<AdminBookingActionsProps> = ({
       default: return 'bg-gray-100 text-gray-800 border-gray-200';
     }
   };
+
+  // Find the currently assigned nurse to display their name
+  const assignedNurse = nurses.find(nurse => nurse.id === nurseAssigned);
 
   return (
     <>
@@ -265,12 +291,25 @@ export const AdminBookingActions: React.FC<AdminBookingActionsProps> = ({
 
               <div>
                 <Label htmlFor="nurse-assigned">Nurse Assigned</Label>
-                <Input
-                  id="nurse-assigned"
-                  value={nurseAssigned}
-                  onChange={(e) => setNurseAssigned(e.target.value)}
-                  placeholder="Enter nurse name"
-                />
+                <Select 
+                  value={nurseAssigned} 
+                  onValueChange={setNurseAssigned}
+                  disabled={nursesLoading}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder={nursesLoading ? "Loading nurses..." : "Select a nurse"}>
+                      {nurseAssigned === 'unassigned' ? "No nurse assigned" : (assignedNurse ? assignedNurse.full_name : "Select a nurse")}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="unassigned">No nurse assigned</SelectItem>
+                    {nurses.map((nurse) => (
+                      <SelectItem key={nurse.id} value={nurse.id}>
+                        {nurse.full_name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               <div>

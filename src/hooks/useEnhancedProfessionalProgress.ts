@@ -90,11 +90,16 @@ export const useEnhancedProfessionalProgress = (): ProfessionalProgressData => {
   const [currentStages, setCurrentStages] = useState<ProfessionalJourneyStage[]>(stages);
 
   const handleStepAction = (step: ProfessionalStep) => {
+    if (!user) {
+      // Redirect non-registered users to auth/registration
+      navigate('/auth?redirect=/registration/professional');
+      return;
+    }
+
     if (step.modalAction) {
       // Handle modal actions for interactive steps
       switch (step.modalAction) {
         case 'document_upload':
-          // Navigate to profile with document upload focus
           navigate('/professional/profile?tab=documents&action=upload');
           break;
         case 'training_modules':
@@ -112,6 +117,19 @@ export const useEnhancedProfessionalProgress = (): ProfessionalProgressData => {
   };
 
   const getButtonText = (step: ProfessionalStep) => {
+    if (!user) {
+      // For non-registered users, show engaging call-to-action
+      switch (step.id) {
+        case 1: return "Get Started";
+        case 2: return "Complete Profile";
+        case 3: return "Upload Documents";
+        case 4: return "Set Availability";
+        case 5: return "Start Training";
+        case 6: return "Get Assignments";
+        default: return "Start Journey";
+      }
+    }
+
     if (step.completed) {
       switch (step.id) {
         case 1: return "✓ Account Created";
@@ -196,8 +214,46 @@ export const useEnhancedProfessionalProgress = (): ProfessionalProgressData => {
     }
   ];
 
+  // Create dummy data for non-registered users
+  const getDummyProgressData = () => {
+    const dummySteps: ProfessionalStep[] = baseSteps.map(baseStep => {
+      // Make first 3 steps completed for demo
+      const completed = baseStep.id <= 3;
+
+      return {
+        ...baseStep,
+        completed,
+        action: () => handleStepAction({ ...baseStep, completed, action: () => {}, buttonText: '' }),
+        buttonText: getButtonText({ ...baseStep, completed, action: () => {}, buttonText: '' })
+      };
+    });
+
+    // Calculate stage completion for dummy data
+    const dummyStages = stages.map(stage => {
+      const stageSteps = dummySteps.filter(step => step.stage === stage.id);
+      const completedStageSteps = stageSteps.filter(step => step.completed);
+      const completionPercentage = stageSteps.length > 0 ? 
+        Math.round((completedStageSteps.length / stageSteps.length) * 100) : 0;
+      
+      return {
+        ...stage,
+        completionPercentage,
+        isCompleted: completionPercentage === 100,
+        isActive: completionPercentage > 0 && completionPercentage < 100
+      };
+    });
+
+    return { steps: dummySteps, stages: dummyStages };
+  };
+
   const checkStepCompletion = async () => {
-    if (!user) return { steps: [], stages: currentStages };
+    if (!user) {
+      // Return dummy data for non-registered users
+      const { steps: dummySteps, stages: dummyStages } = getDummyProgressData();
+      setCurrentStages(dummyStages);
+      setLoading(false);
+      return { steps: dummySteps, stages: dummyStages };
+    }
     
     try {
       setLoading(true);
@@ -290,7 +346,13 @@ export const useEnhancedProfessionalProgress = (): ProfessionalProgressData => {
   };
 
   useEffect(() => {
-    if (user) {
+    if (!user) {
+      // For non-registered users, immediately show dummy data
+      const { steps: dummySteps, stages: dummyStages } = getDummyProgressData();
+      setSteps(dummySteps);
+      setCurrentStages(dummyStages);
+      setLoading(false);
+    } else {
       refreshProgress();
     }
   }, [user]);
