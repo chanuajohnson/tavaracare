@@ -1,3 +1,4 @@
+
 import { useState, useRef, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Users, UserCog, Heart, ArrowRight, Check, Vote, HelpCircle, Play, Pause, ChevronLeft, ChevronRight } from "lucide-react";
@@ -101,35 +102,31 @@ const Index = () => {
         }
       }
 
-      // Filter videos based on admin preferences
+      // Filter videos based on admin preferences - default to ALL videos being active
       const adminActiveVideos = allVideoSources.filter(videoPath => {
         const filename = videoPath.split('/').pop();
-        // If no preferences saved, default to all videos
-        if (Object.keys(preferences).length === 0) {
-          return true;
-        }
-        // Otherwise, use admin preferences (default to true if not specified)
+        // Default to true if no preferences saved OR if not explicitly set to false
         return preferences[filename || ''] !== false;
       });
 
       console.log('Admin active videos:', adminActiveVideos);
       
-      // Ensure we have at least one video - use first available if none selected
-      if (adminActiveVideos.length === 0) {
-        console.log('No active videos from admin, defaulting to first video');
-        setActiveVideos([allVideoSources[0]]);
+      // Always ensure we have all videos if no specific preferences
+      if (adminActiveVideos.length === 0 || Object.keys(preferences).length === 0) {
+        console.log('Using all videos as default');
+        setActiveVideos(allVideoSources);
       } else {
         setActiveVideos(adminActiveVideos);
       }
 
-      // Reset video index if current index is out of bounds
+      // Reset video index
       setCurrentVideoIndex(0);
       setVideosLoaded(true);
       
     } catch (error) {
-      console.log('Error loading video preferences, using first video:', error);
-      // Fallback to first video only
-      setActiveVideos([allVideoSources[0]]);
+      console.log('Error loading video preferences, using all videos:', error);
+      // Fallback to all videos
+      setActiveVideos(allVideoSources);
       setCurrentVideoIndex(0);
       setVideosLoaded(true);
     }
@@ -155,7 +152,7 @@ const Index = () => {
     if (inactiveVideo && inactiveVideo.src !== activeVideos[nextVideoIndex]) {
       inactiveVideo.src = activeVideos[nextVideoIndex];
       inactiveVideo.load();
-      inactiveVideo.muted = true; // Videos are permanently muted
+      inactiveVideo.muted = true;
       
       // Ensure inactive video is completely hidden
       inactiveVideo.style.opacity = '0';
@@ -174,6 +171,7 @@ const Index = () => {
         currentVideo.style.opacity = '1';
         currentVideo.style.visibility = 'visible';
         
+        // Start playing immediately
         if (isPlaying) {
           currentVideo.play().catch(console.error);
         }
@@ -274,6 +272,7 @@ const Index = () => {
   const switchToNextVideo = async () => {
     if (activeVideos.length === 0) return;
     
+    // Fix the index calculation to properly cycle through all videos
     const nextIndex = (currentVideoIndex + 1) % activeVideos.length;
     const inactiveVideo = getInactiveVideoRef();
     
@@ -327,7 +326,7 @@ const Index = () => {
         // Set the new video source on the inactive video
         inactiveVideo.src = activeVideos[newIndex];
         inactiveVideo.load();
-        inactiveVideo.muted = true; // Videos are permanently muted
+        inactiveVideo.muted = true;
         
         // Wait for the video to be ready
         await new Promise<void>((resolve) => {
@@ -384,7 +383,7 @@ const Index = () => {
 
   if (activeVideos.length === 0 || !videosLoaded) {
     return (
-      <div className="min-h-screen w-full flex items-center justify-center bg-gray-900">
+      <div className="min-h-screen w-full flex items-center justify-center bg-black">
         <div className="text-white text-center">
           <h1 className="text-4xl font-bold mb-4">Loading Videos...</h1>
           <p className="text-xl">Please wait while we prepare your experience.</p>
@@ -394,20 +393,20 @@ const Index = () => {
   }
 
   return (
-    <div className="min-h-screen w-full">
+    <div className="min-h-screen w-full bg-black">
       {/* Hero Video Section */}
-      <section className="hero-video-container">
+      <section className="hero-video-container bg-black">
         {/* Primary Video */}
         <video
           ref={primaryVideoRef}
-          className={`video-full-coverage transition-opacity duration-500 ${
+          className={`video-full-coverage transition-opacity duration-300 ${
             activeVideoRef === 'primary' ? 'opacity-100 z-10' : 'opacity-0 z-0'
           }`}
           autoPlay
           muted={true}
           loop={false}
           playsInline
-          preload="metadata"
+          preload="auto"
           onEnded={handleVideoEnd}
           aria-label="Background video showing care and community"
           style={{ 
@@ -422,13 +421,14 @@ const Index = () => {
         {/* Secondary Video */}
         <video
           ref={secondaryVideoRef}
-          className={`video-full-coverage transition-opacity duration-500 ${
+          className={`video-full-coverage transition-opacity duration-300 ${
             activeVideoRef === 'secondary' ? 'opacity-100 z-10' : 'opacity-0 z-0'
           }`}
+          autoPlay
           muted={true}
           loop={false}
           playsInline
-          preload="metadata"
+          preload="auto"
           onEnded={handleVideoEnd}
           aria-label="Background video showing care and community"
           style={{ 
