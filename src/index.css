@@ -161,14 +161,14 @@
     @apply h-4 w-4 sm:h-5 sm:w-5;
   }
 
-  /* Enhanced Video Scaling Classes with Black Background */
+  /* Seamless Video Scaling Classes - NO background colors */
   .video-ultra-scale {
     object-fit: cover;
     transform: scale(1.45);
     transform-origin: center;
     min-width: 145%;
     min-height: 145%;
-    background-color: #000;
+    will-change: opacity;
   }
   
   .video-portrait-scale {
@@ -177,7 +177,7 @@
     transform-origin: center;
     min-width: 150%;
     min-height: 150%;
-    background-color: #000;
+    will-change: opacity;
   }
   
   .video-landscape-scale {
@@ -186,7 +186,7 @@
     transform-origin: center;
     min-width: 140%;
     min-height: 140%;
-    background-color: #000;
+    will-change: opacity;
   }
   
   .video-fallback-fill {
@@ -198,7 +198,7 @@
     position: absolute;
     top: -10%;
     left: -10%;
-    background-color: #000;
+    will-change: opacity;
   }
   
   /* Responsive Video Scaling with 300ms max transitions */
@@ -207,21 +207,18 @@
       transform: scale(1.5);
       min-width: 150%;
       min-height: 150%;
-      transition: opacity 0.3s ease-in-out;
     }
     
     .video-portrait-scale {
       transform: scale(1.6);
       min-width: 160%;
       min-height: 160%;
-      transition: opacity 0.3s ease-in-out;
     }
     
     .video-landscape-scale {
       transform: scale(1.45);
       min-width: 145%;
       min-height: 145%;
-      transition: opacity 0.3s ease-in-out;
     }
   }
   
@@ -230,21 +227,18 @@
       transform: scale(1.45);
       min-width: 145%;
       min-height: 145%;
-      transition: opacity 0.3s ease-in-out;
     }
     
     .video-portrait-scale {
       transform: scale(1.5);
       min-width: 150%;
       min-height: 150%;
-      transition: opacity 0.3s ease-in-out;
     }
     
     .video-landscape-scale {
       transform: scale(1.4);
       min-width: 140%;
       min-height: 140%;
-      transition: opacity 0.3s ease-in-out;
     }
   }
   
@@ -253,21 +247,18 @@
       transform: scale(1.4);
       min-width: 140%;
       min-height: 140%;
-      transition: opacity 0.3s ease-in-out;
     }
     
     .video-portrait-scale {
       transform: scale(1.45);
       min-width: 145%;
       min-height: 145%;
-      transition: opacity 0.3s ease-in-out;
     }
     
     .video-landscape-scale {
       transform: scale(1.35);
       min-width: 135%;
       min-height: 135%;
-      transition: opacity 0.3s ease-in-out;
     }
   }
 }
