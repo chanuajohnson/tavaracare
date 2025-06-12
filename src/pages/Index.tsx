@@ -1,4 +1,3 @@
-
 import { useState, useRef, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Users, UserCog, Heart, ArrowRight, Check, Vote, HelpCircle, Play, Pause, Volume2, VolumeX, ChevronLeft, ChevronRight } from "lucide-react";
@@ -226,7 +225,7 @@ const Index = () => {
         {/* Primary Video */}
         <video
           ref={primaryVideoRef}
-          className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-500 ${
+          className={`absolute inset-0 w-full h-full object-fill transition-opacity duration-500 ${
             activeVideoRef === 'primary' ? 'opacity-100 z-10' : 'opacity-0 z-0'
           }`}
           autoPlay
@@ -244,7 +243,7 @@ const Index = () => {
         {/* Secondary Video */}
         <video
           ref={secondaryVideoRef}
-          className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-500 ${
+          className={`absolute inset-0 w-full h-full object-fill transition-opacity duration-500 ${
             activeVideoRef === 'secondary' ? 'opacity-100 z-10' : 'opacity-0 z-0'
           }`}
           muted={isMuted}
