@@ -7,10 +7,14 @@ import { MessageSquare, Users, Calendar, TrendingUp, BarChart, Clock, Video } fr
 import { AdminUserManagement } from "@/components/admin/AdminUserManagement";
 import { FeatureInterestTracker } from "@/components/admin/FeatureInterestTracker";
 import { FeedbackManagement } from "@/components/admin/FeedbackManagement";
+import { AdminProfileHeaderSection } from "@/components/admin/AdminProfileHeaderSection";
 import { supabase } from '@/integrations/supabase/client';
+import { motion } from "framer-motion";
+import { useAuth } from "@/components/providers/AuthProvider";
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [pendingSchedulingCount, setPendingSchedulingCount] = useState(0);
 
   const fetchPendingSchedulingCount = async () => {
@@ -59,6 +63,18 @@ export default function AdminDashboard() {
 
   return (
     <div className="container mx-auto px-4 py-8">
+      {/* Admin Profile Header */}
+      {user && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="mb-8"
+        >
+          <AdminProfileHeaderSection />
+        </motion.div>
+      )}
+
       <div className="mb-8">
         <h1 className="text-3xl font-bold mb-2">Admin Dashboard</h1>
         <p className="text-muted-foreground">
