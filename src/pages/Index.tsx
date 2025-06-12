@@ -7,6 +7,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/com
 import { Button } from "@/components/ui/button";
 import { EnvironmentInfo } from "@/components/debug/EnvironmentInfo";
 import { SupabaseDebugger } from "@/components/debug/SupabaseDebugger";
+import { supabase } from '@/integrations/supabase/client';
 
 const roles = [
   {
@@ -42,11 +43,12 @@ const communityRole = {
   features: ["Join care circles", "Share local resources", "Participate in community events", "Offer support services", "Connect with families", "Track community impact"]
 };
 
-// Video playlist configuration - Fixed file extensions
-const videoSources = [
+// All available videos - admin can control which ones are active
+const allVideoSources = [
   "/your-video.MP4",
   "/your-video2.MP4", 
-  "/your-video3.MP4"
+  "/your-video3.MP4",
+  "/your-video4.MP4"
 ];
 
 const Index = () => {
@@ -56,10 +58,39 @@ const Index = () => {
   const [currentVideoIndex, setCurrentVideoIndex] = useState(0);
   const [activeVideoRef, setActiveVideoRef] = useState<'primary' | 'secondary'>('primary');
   const [isTransitioning, setIsTransitioning] = useState(false);
+  const [activeVideos, setActiveVideos] = useState<string[]>(allVideoSources);
   const navigate = useNavigate();
   const comparisonRef = useRef<HTMLDivElement>(null);
   const primaryVideoRef = useRef<HTMLVideoElement>(null);
   const secondaryVideoRef = useRef<HTMLVideoElement>(null);
+
+  // Load active videos from admin settings on component mount
+  useEffect(() => {
+    loadActiveVideos();
+  }, []);
+
+  const loadActiveVideos = async () => {
+    try {
+      // Check if there are any video preferences stored
+      const { data: videoSettings, error } = await supabase
+        .from('hero_videos')
+        .select('file_path, is_active')
+        .eq('is_active', true);
+
+      if (error) {
+        console.log('No database video settings found, using all static videos');
+        return;
+      }
+
+      // If database has active videos, combine with static videos that are enabled
+      if (videoSettings && videoSettings.length > 0) {
+        const dbVideos = videoSettings.map(v => v.file_path);
+        setActiveVideos([...allVideoSources, ...dbVideos]);
+      }
+    } catch (error) {
+      console.log('Using default video configuration:', error);
+    }
+  };
 
   // Get the currently active video ref
   const getCurrentVideoRef = () => {
@@ -73,15 +104,17 @@ const Index = () => {
 
   // Preload the next video
   useEffect(() => {
-    const nextVideoIndex = (currentVideoIndex + 1) % videoSources.length;
+    if (activeVideos.length === 0) return;
+    
+    const nextVideoIndex = (currentVideoIndex + 1) % activeVideos.length;
     const inactiveVideo = getInactiveVideoRef();
     
-    if (inactiveVideo && inactiveVideo.src !== videoSources[nextVideoIndex]) {
-      inactiveVideo.src = videoSources[nextVideoIndex];
+    if (inactiveVideo && inactiveVideo.src !== activeVideos[nextVideoIndex]) {
+      inactiveVideo.src = activeVideos[nextVideoIndex];
       inactiveVideo.load();
       inactiveVideo.muted = isMuted;
     }
-  }, [currentVideoIndex, activeVideoRef, isMuted]);
+  }, [currentVideoIndex, activeVideoRef, isMuted, activeVideos]);
 
   const handleRoleSelect = (roleId: string) => {
     if (roleId === "community") {
@@ -131,10 +164,10 @@ const Index = () => {
   };
 
   const switchToNextVideo = async () => {
-    if (isTransitioning) return;
+    if (isTransitioning || activeVideos.length === 0) return;
     
     setIsTransitioning(true);
-    const nextIndex = (currentVideoIndex + 1) % videoSources.length;
+    const nextIndex = (currentVideoIndex + 1) % activeVideos.length;
     const inactiveVideo = getInactiveVideoRef();
     
     if (inactiveVideo) {
@@ -168,14 +201,14 @@ const Index = () => {
   };
 
   const changeVideo = async (newIndex: number) => {
-    if (newIndex === currentVideoIndex || isTransitioning) return;
+    if (newIndex === currentVideoIndex || isTransitioning || activeVideos.length === 0) return;
     
     setIsTransitioning(true);
     const inactiveVideo = getInactiveVideoRef();
     
     if (inactiveVideo) {
       // Set the new video source on the inactive video
-      inactiveVideo.src = videoSources[newIndex];
+      inactiveVideo.src = activeVideos[newIndex];
       inactiveVideo.load();
       inactiveVideo.muted = isMuted;
       
@@ -207,16 +240,29 @@ const Index = () => {
   };
 
   const goToPreviousVideo = () => {
-    const prevIndex = currentVideoIndex === 0 ? videoSources.length - 1 : currentVideoIndex - 1;
+    if (activeVideos.length === 0) return;
+    const prevIndex = currentVideoIndex === 0 ? activeVideos.length - 1 : currentVideoIndex - 1;
     changeVideo(prevIndex);
   };
 
   const goToNextVideo = () => {
-    const nextIndex = (currentVideoIndex + 1) % videoSources.length;
+    if (activeVideos.length === 0) return;
+    const nextIndex = (currentVideoIndex + 1) % activeVideos.length;
     changeVideo(nextIndex);
   };
 
   const isDebug = new URLSearchParams(window.location.search).get('debug') === 'true';
+
+  if (activeVideos.length === 0) {
+    return (
+      <div className="min-h-screen w-full flex items-center justify-center bg-gray-900">
+        <div className="text-white text-center">
+          <h1 className="text-4xl font-bold mb-4">No Active Videos</h1>
+          <p className="text-xl">Please contact administrator to configure hero videos.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen w-full">
@@ -236,7 +282,7 @@ const Index = () => {
           onEnded={handleVideoEnd}
           aria-label="Background video showing care and community"
         >
-          <source src={videoSources[currentVideoIndex]} type="video/mp4" />
+          <source src={activeVideos[currentVideoIndex]} type="video/mp4" />
           Your browser does not support the video tag.
         </video>
 
@@ -252,7 +298,7 @@ const Index = () => {
           preload="metadata"
           aria-label="Background video showing care and community"
         >
-          <source src={videoSources[(currentVideoIndex + 1) % videoSources.length]} type="video/mp4" />
+          <source src={activeVideos[(currentVideoIndex + 1) % activeVideos.length]} type="video/mp4" />
           Your browser does not support the video tag.
         </video>
 
@@ -373,7 +419,7 @@ const Index = () => {
 
         {/* Video Indicator Dots */}
         <div className="absolute bottom-4 left-4 z-30 flex gap-2">
-          {videoSources.map((_, index) => (
+          {activeVideos.map((_, index) => (
             <button
               key={index}
               onClick={() => changeVideo(index)}
