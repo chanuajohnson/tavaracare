@@ -16,6 +16,7 @@ import FeedbackManagementPage from "@/pages/admin/FeedbackManagementPage";
 import FeaturesPage from "@/pages/features/FeaturesPage";
 import AboutPage from "@/pages/about/AboutPage";
 import FAQPage from "@/pages/support/FAQPage";
+import PrivacyPolicyPage from "@/pages/legal/PrivacyPolicyPage";
 import NotFound from "@/pages/NotFound";
 import SupabaseDebugPage from "@/pages/debug/SupabaseDebugPage";
 
@@ -72,6 +73,7 @@ export const AppRoutes = () => {
       <Route path="/features" element={<FeaturesPage />} />
       <Route path="/about" element={<AboutPage />} />
       <Route path="/faq" element={<FAQPage />} />
+      <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
       
       {/* Registration Routes */}
       <Route path="/registration/family" element={<FamilyRegistration />} />

@@ -187,13 +187,16 @@ export const Footer: React.FC = () => {
                 © 2025 Tavara Care. All rights reserved.
               </p>
               <div className="flex gap-6 text-sm">
-                <Link to="/about" className="text-gray-400 hover:text-primary-400 transition-colors">
+                <Link to="/privacy-policy" className="text-gray-400 hover:text-primary-400 transition-colors">
+                  AI Use & Transparency
+                </Link>
+                <Link to="/privacy-policy" className="text-gray-400 hover:text-primary-400 transition-colors">
                   Privacy
                 </Link>
-                <Link to="/about" className="text-gray-400 hover:text-primary-400 transition-colors">
+                <Link to="/privacy-policy" className="text-gray-400 hover:text-primary-400 transition-colors">
                   Terms
                 </Link>
-                <Link to="/about" className="text-gray-400 hover:text-primary-400 transition-colors">
+                <Link to="/privacy-policy" className="text-gray-400 hover:text-primary-400 transition-colors">
                   Cookies
                 </Link>
               </div>
