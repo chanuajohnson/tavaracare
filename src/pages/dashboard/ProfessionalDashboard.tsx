@@ -5,7 +5,6 @@ import { EnhancedProfessionalNextStepsPanel } from "@/components/professional/En
 import { CaregiverHealthCard } from "@/components/professional/CaregiverHealthCard";
 import { TrainingProgressTracker } from "@/components/professional/TrainingProgressTracker";
 import { ProfessionalShortcutMenuBar } from "@/components/professional/ProfessionalShortcutMenuBar";
-import { ProfessionalProfileHeaderSection } from "@/components/professional/ProfessionalProfileHeaderSection";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -47,22 +46,10 @@ const ProfessionalDashboard = () => {
         
         <DashboardHeader breadcrumbItems={breadcrumbItems} />
 
-        {/* Professional Profile Header */}
-        {user && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            className="mb-8"
-          >
-            <ProfessionalProfileHeaderSection />
-          </motion.div>
-        )}
-
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.1 }}
+          transition={{ duration: 0.5 }}
           className="mb-8"
         >
           <div className="flex items-center gap-3 mb-4">

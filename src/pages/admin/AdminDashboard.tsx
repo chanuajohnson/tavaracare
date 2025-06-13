@@ -3,18 +3,14 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { MessageSquare, Users, Calendar, TrendingUp, BarChart, Clock, Video } from "lucide-react";
+import { MessageSquare, Users, Calendar, TrendingUp, BarChart, Clock } from "lucide-react";
 import { AdminUserManagement } from "@/components/admin/AdminUserManagement";
 import { FeatureInterestTracker } from "@/components/admin/FeatureInterestTracker";
 import { FeedbackManagement } from "@/components/admin/FeedbackManagement";
-import { AdminProfileHeaderSection } from "@/components/admin/AdminProfileHeaderSection";
 import { supabase } from '@/integrations/supabase/client';
-import { motion } from "framer-motion";
-import { useAuth } from "@/components/providers/AuthProvider";
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
-  const { user } = useAuth();
   const [pendingSchedulingCount, setPendingSchedulingCount] = useState(0);
 
   const fetchPendingSchedulingCount = async () => {
@@ -40,10 +36,6 @@ export default function AdminDashboard() {
     return () => clearInterval(interval);
   }, []);
 
-  const handleHeroVideoManagementClick = () => {
-    navigate('/admin/hero-videos');
-  };
-
   const handleVisitScheduleClick = () => {
     // Navigate directly to the queue tab if there are pending requests
     if (pendingSchedulingCount > 0) {
@@ -63,18 +55,6 @@ export default function AdminDashboard() {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      {/* Admin Profile Header */}
-      {user && (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="mb-8"
-        >
-          <AdminProfileHeaderSection />
-        </motion.div>
-      )}
-
       <div className="mb-8">
         <h1 className="text-3xl font-bold mb-2">Admin Dashboard</h1>
         <p className="text-muted-foreground">
@@ -83,16 +63,7 @@ export default function AdminDashboard() {
       </div>
 
       {/* Quick Actions */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
-        <Button
-          onClick={handleHeroVideoManagementClick}
-          className="h-20 flex flex-col items-center justify-center gap-2"
-          variant="outline"
-        >
-          <Video className="h-6 w-6" />
-          <span className="text-sm font-medium">Hero Video Management</span>
-        </Button>
-
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         <Button
           onClick={handleVisitScheduleClick}
           className="h-20 flex flex-col items-center justify-center gap-2 relative"

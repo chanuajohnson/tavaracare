@@ -1416,68 +1416,6 @@ export type Database = {
           },
         ]
       }
-      hero_videos: {
-        Row: {
-          created_at: string | null
-          description: string | null
-          display_order: number | null
-          duration_seconds: number | null
-          file_name: string
-          file_path: string
-          file_size: number | null
-          id: string
-          is_active: boolean | null
-          mime_type: string | null
-          thumbnail_path: string | null
-          title: string
-          updated_at: string | null
-          upload_status: string | null
-          uploaded_by: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          description?: string | null
-          display_order?: number | null
-          duration_seconds?: number | null
-          file_name: string
-          file_path: string
-          file_size?: number | null
-          id?: string
-          is_active?: boolean | null
-          mime_type?: string | null
-          thumbnail_path?: string | null
-          title: string
-          updated_at?: string | null
-          upload_status?: string | null
-          uploaded_by?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          description?: string | null
-          display_order?: number | null
-          duration_seconds?: number | null
-          file_name?: string
-          file_path?: string
-          file_size?: number | null
-          id?: string
-          is_active?: boolean | null
-          mime_type?: string | null
-          thumbnail_path?: string | null
-          title?: string
-          updated_at?: string | null
-          upload_status?: string | null
-          uploaded_by?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "hero_videos_uploaded_by_fkey"
-            columns: ["uploaded_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       holidays: {
         Row: {
           created_at: string | null
@@ -2274,7 +2212,6 @@ export type Database = {
       professional_documents: {
         Row: {
           created_at: string
-          document_subtype: string | null
           document_type: string
           file_name: string
           file_path: string
@@ -2283,13 +2220,9 @@ export type Database = {
           mime_type: string | null
           updated_at: string
           user_id: string
-          verification_status: string | null
-          verified_at: string | null
-          verified_by: string | null
         }
         Insert: {
           created_at?: string
-          document_subtype?: string | null
           document_type?: string
           file_name: string
           file_path: string
@@ -2298,13 +2231,9 @@ export type Database = {
           mime_type?: string | null
           updated_at?: string
           user_id: string
-          verification_status?: string | null
-          verified_at?: string | null
-          verified_by?: string | null
         }
         Update: {
           created_at?: string
-          document_subtype?: string | null
           document_type?: string
           file_name?: string
           file_path?: string
@@ -2313,9 +2242,6 @@ export type Database = {
           mime_type?: string | null
           updated_at?: string
           user_id?: string
-          verification_status?: string | null
-          verified_at?: string | null
-          verified_by?: string | null
         }
         Relationships: []
       }
@@ -2366,7 +2292,6 @@ export type Database = {
           avatar_url: string | null
           background_check: boolean | null
           background_check_proof_url: string | null
-          background_check_status: string | null
           bio: string | null
           budget_preferences: string | null
           care_recipient_name: string | null
@@ -2433,7 +2358,6 @@ export type Database = {
           specialized_care: string[] | null
           tech_interests: string[] | null
           updated_at: string | null
-          verification_badge_earned_at: string | null
           visit_notes: string | null
           visit_payment_reference: string | null
           visit_payment_status: string | null
@@ -2454,7 +2378,6 @@ export type Database = {
           avatar_url?: string | null
           background_check?: boolean | null
           background_check_proof_url?: string | null
-          background_check_status?: string | null
           bio?: string | null
           budget_preferences?: string | null
           care_recipient_name?: string | null
@@ -2521,7 +2444,6 @@ export type Database = {
           specialized_care?: string[] | null
           tech_interests?: string[] | null
           updated_at?: string | null
-          verification_badge_earned_at?: string | null
           visit_notes?: string | null
           visit_payment_reference?: string | null
           visit_payment_status?: string | null
@@ -2542,7 +2464,6 @@ export type Database = {
           avatar_url?: string | null
           background_check?: boolean | null
           background_check_proof_url?: string | null
-          background_check_status?: string | null
           bio?: string | null
           budget_preferences?: string | null
           care_recipient_name?: string | null
@@ -2609,7 +2530,6 @@ export type Database = {
           specialized_care?: string[] | null
           tech_interests?: string[] | null
           updated_at?: string | null
-          verification_badge_earned_at?: string | null
           visit_notes?: string | null
           visit_payment_reference?: string | null
           visit_payment_status?: string | null
