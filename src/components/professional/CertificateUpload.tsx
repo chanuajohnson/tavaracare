@@ -6,7 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Upload, FileText, Mail, MessageCircle, Check, Award, Shield } from 'lucide-react';
+import { Upload, FileText, Mail, MessageCircle, Check, Award } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/components/providers/AuthProvider';
@@ -67,21 +67,6 @@ export const CertificateUpload: React.FC<CertificateUploadProps> = ({ onUploadSu
 
   return (
     <div className="space-y-6">
-      {/* Background Check Section - First and Most Prominent */}
-      <div className="bg-amber-50 border-2 border-amber-200 rounded-lg p-4 mb-6">
-        <div className="flex items-center gap-2 mb-2">
-          <Shield className="h-5 w-5 text-amber-600" />
-          <p className="text-sm font-medium text-amber-800">
-            Important: Background Check Required
-          </p>
-        </div>
-        <p className="text-sm text-amber-700">
-          All professionals must provide either a Certificate of Character from T&T Police or proof of application. This is mandatory for platform verification.
-        </p>
-      </div>
-
-      <BackgroundCheckCard onUploadSuccess={handleUploadSuccess} />
-
       {/* Valid Identification Section */}
       <Card>
         <CardHeader>
@@ -185,6 +170,9 @@ export const CertificateUpload: React.FC<CertificateUploadProps> = ({ onUploadSu
           )}
         </CardContent>
       </Card>
+
+      {/* Background Check Section */}
+      <BackgroundCheckCard onUploadSuccess={handleUploadSuccess} />
     </div>
   );
 };
