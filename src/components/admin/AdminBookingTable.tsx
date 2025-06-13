@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -9,6 +8,7 @@ import { AdminBookingActions } from './AdminBookingActions';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from "sonner";
+import { useNurses } from '@/hooks/useNurses';
 
 type AdminStatus = 'pending' | 'confirmed' | 'cancelled' | 'completed' | 'locked';
 
@@ -42,6 +42,16 @@ export const AdminBookingTable: React.FC<AdminBookingTableProps> = ({
   const [sortField, setSortField] = useState<keyof VisitBooking>('booking_date');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const { nurses, loading: nursesLoading } = useNurses();
+
+  // Helper function to get nurse name from UUID
+  const getNurseName = (nurseId?: string): string => {
+    if (!nurseId) return 'Unassigned';
+    if (nursesLoading) return 'Loading...';
+    
+    const nurse = nurses.find(n => n.id === nurseId);
+    return nurse ? nurse.full_name : 'Unknown Nurse';
+  };
 
   const handleSort = (field: keyof VisitBooking) => {
     if (sortField === field) {
@@ -361,15 +371,13 @@ export const AdminBookingTable: React.FC<AdminBookingTableProps> = ({
                     
                     <TableCell>
                       <div className="text-sm">
-                        {booking.nurse_assigned ? (
-                          <span className="text-green-700 font-medium">
-                            {booking.nurse_assigned}
-                          </span>
-                        ) : (
-                          <span className="text-gray-500 italic">
-                            Unassigned
-                          </span>
-                        )}
+                        <span className={
+                          booking.nurse_assigned && !nursesLoading && nurses.find(n => n.id === booking.nurse_assigned)
+                            ? "text-green-700 font-medium"
+                            : "text-gray-500 italic"
+                        }>
+                          {getNurseName(booking.nurse_assigned)}
+                        </span>
                       </div>
                     </TableCell>
 

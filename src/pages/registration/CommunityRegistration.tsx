@@ -492,7 +492,7 @@ export default function CommunityRegistration() {
                         <FormItem>
                           <FormLabel>Phone Number</FormLabel>
                           <FormControl>
-                            <Input placeholder="Your phone number" {...field} />
+                            <Input placeholder="e.g., +1 868 123 4567 or 868-123-4567" {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
