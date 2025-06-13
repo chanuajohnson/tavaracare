@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -381,15 +382,12 @@ export const DashboardFamilyMatches = () => {
                     <Avatar className="h-16 w-16 border-2 border-primary/20">
                       <AvatarImage src={family.avatar_url || undefined} />
                       <AvatarFallback className="bg-primary-100 text-primary-800 text-xl">
-                        FU
+                        {family.full_name.split(' ')[0][0] || 'F'}
                       </AvatarFallback>
                     </Avatar>
                     
                     <div className="mt-2 text-center sm:text-left">
-                      <h3 className="font-semibold">Family User</h3>
-                      <div className="text-xs text-blue-600 mt-1">
-                        * Name protected until subscription
-                      </div>
+                      <h3 className="font-semibold">{family.full_name}</h3>
                       <div className="flex items-center justify-center sm:justify-start gap-1 text-sm text-gray-500">
                         <MapPin className="h-3.5 w-3.5" />
                         <span>{family.location}</span>

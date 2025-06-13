@@ -44,15 +44,15 @@ export function UserJourneyCard({
     >
       <CardHeader className="pb-2">
         <div className="flex items-start justify-between">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 flex-1">
             <Checkbox
               checked={selected}
               onCheckedChange={onSelect}
               onClick={(e) => e.stopPropagation()}
             />
             <Avatar className="h-10 w-10">
-              <AvatarImage src={user.avatar_url || undefined} />
-              <AvatarFallback className="bg-primary/10 text-primary font-medium">
+              <AvatarImage src={user.avatar_url} />
+              <AvatarFallback className="bg-blue-100 text-blue-700">
                 {user.full_name ? getInitials(user.full_name) : <User className="h-4 w-4" />}
               </AvatarFallback>
             </Avatar>
@@ -60,75 +60,70 @@ export function UserJourneyCard({
               <h3 className="font-medium text-sm truncate">
                 {user.full_name || 'Unnamed User'}
               </h3>
-              <div className="flex items-center gap-2 mt-1">
-                <Badge variant={user.role === 'family' ? 'default' : user.role === 'professional' ? 'secondary' : 'outline'} className="text-xs">
+              <div className="flex items-center gap-1 mt-1">
+                <Badge variant="outline" className="text-xs">
                   {user.role}
                 </Badge>
-                {!user.email_verified && (
-                  <Badge variant="destructive" className="text-xs">Unverified</Badge>
+                {user.email_verified ? (
+                  <Badge variant="default" className="text-xs bg-green-100 text-green-700">
+                    Verified
+                  </Badge>
+                ) : (
+                  <Badge variant="secondary" className="text-xs">
+                    Unverified
+                  </Badge>
                 )}
               </div>
             </div>
           </div>
         </div>
       </CardHeader>
-      
-      <CardContent className="space-y-3">
-        {/* User Details */}
-        <div className="space-y-2">
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+
+      <CardContent className="space-y-4">
+        {/* Contact Info */}
+        <div className="space-y-1 text-xs text-muted-foreground">
+          <div className="flex items-center gap-2 truncate">
             <Mail className="h-3 w-3" />
             <span className="truncate">{user.email}</span>
           </div>
-          {user.phone_number && (
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <span>📞</span>
-              <span>{user.phone_number}</span>
-            </div>
-          )}
+          <div className="flex items-center gap-2">
+            <Calendar className="h-3 w-3" />
+            <span>Joined {new Date(user.created_at).toLocaleDateString()}</span>
+          </div>
           {user.location && (
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <div className="flex items-center gap-2 truncate">
               <MapPin className="h-3 w-3" />
               <span className="truncate">{user.location}</span>
             </div>
           )}
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <Calendar className="h-3 w-3" />
-            <span>Joined {daysSinceCreated} days ago</span>
-          </div>
         </div>
 
-        {/* Journey Progress */}
-        <div className="pt-2 border-t">
+        {/* Journey Progress - Using the reusable component */}
+        <div className="space-y-2">
           <MiniJourneyProgress userId={user.id} userRole={user.role} />
+          
+          {daysSinceCreated > 0 && (
+            <div className="text-xs text-muted-foreground">
+              {daysSinceCreated === 1 ? 'Joined 1 day ago' : `Joined ${daysSinceCreated} days ago`}
+            </div>
+          )}
         </div>
 
-        {/* Action Buttons */}
-        <div className="flex gap-2 pt-2">
+        {/* Quick Actions */}
+        <div className="flex gap-2">
           {!user.email_verified && (
             <Button
-              variant="outline"
-              size="sm"
               onClick={(e) => {
                 e.stopPropagation();
                 onResendVerification();
               }}
+              size="sm"
+              variant="outline"
               className="text-xs flex-1"
             >
               Resend Verification
             </Button>
           )}
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={(e) => {
-              e.stopPropagation();
-              onRefresh();
-            }}
-            className="text-xs"
-          >
-            Refresh
-          </Button>
         </div>
       </CardContent>
     </Card>

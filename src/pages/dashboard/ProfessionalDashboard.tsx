@@ -1,16 +1,15 @@
 
 import { motion } from "framer-motion";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
-import { EnhancedProfessionalNextStepsPanel } from "@/components/professional/EnhancedProfessionalNextStepsPanel";
+import { NextStepsPanel } from "@/components/professional/NextStepsPanel";
 import { CaregiverHealthCard } from "@/components/professional/CaregiverHealthCard";
 import { TrainingProgressTracker } from "@/components/professional/TrainingProgressTracker";
 import { ProfessionalShortcutMenuBar } from "@/components/professional/ProfessionalShortcutMenuBar";
-import { ProfessionalProfileHeaderSection } from "@/components/professional/ProfessionalProfileHeaderSection";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
-import { Users, Briefcase, ChevronDown, ChevronUp, TrendingUp, Target } from "lucide-react";
+import { Users, Briefcase, ChevronDown, ChevronUp } from "lucide-react";
 import { UserJourneyTracker } from "@/components/tracking/UserJourneyTracker";
 import { useJourneyTracking } from "@/hooks/useJourneyTracking";
 import { useState } from "react";
@@ -45,48 +44,31 @@ const ProfessionalDashboard = () => {
           additionalData={{ section: "professional_dashboard" }}
         />
         
-        <DashboardHeader breadcrumbItems={breadcrumbItems} />
-
-        {/* Professional Profile Header */}
-        {user && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            className="mb-8"
-          >
-            <ProfessionalProfileHeaderSection />
-          </motion.div>
-        )}
+        <DashboardHeader
+          breadcrumbItems={breadcrumbItems}
+        />
 
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.1 }}
+          transition={{ duration: 0.5 }}
           className="mb-8"
         >
-          <div className="flex items-center gap-3 mb-4">
-            <div className="p-2 bg-primary-100 rounded-lg">
-              <TrendingUp className="h-6 w-6 text-primary" />
-            </div>
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">Professional Dashboard</h1>
-              <p className="text-gray-600 mt-1">Track your journey to caregiving excellence</p>
-            </div>
-          </div>
+          <h1 className="text-3xl font-bold text-gray-900">Professional Dashboard</h1>
+          <p className="text-gray-600 mt-2">Welcome to your professional caregiving hub</p>
         </motion.div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2 space-y-6">
-            {/* Enhanced Next Steps Panel with Real Data */}
-            <EnhancedProfessionalNextStepsPanel />
+            {/* Next Steps Panel */}
+            <NextStepsPanel />
             
             {/* Collapsible Caregiver Health Card - Only for logged-in users */}
             {user && (
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: 0.3 }}
+                transition={{ duration: 0.5, delay: 0.2 }}
               >
                 <Card className="border-l-4 border-l-primary-300">
                   <CardHeader className="pb-2">
@@ -120,26 +102,26 @@ const ProfessionalDashboard = () => {
               </motion.div>
             )}
 
-            {/* Professional Agency Card */}
+            {/* Professional Agency Card - Updated redirect */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.4 }}
+              transition={{ duration: 0.5, delay: 0.3 }}
             >
               <Card className="border-l-4 border-l-blue-500">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-xl">
                     <Briefcase className="h-5 w-5 text-blue-600" />
-                    Professional Agency Network
+                    Professional Agency
                   </CardTitle>
                   <CardDescription>
-                    Connect with Tavara's professional network and access exclusive opportunities
+                    Connect with Tavara's professional network and access agency features
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <p className="text-gray-600 mb-4">
                     Join our professional agency network for enhanced opportunities, 
-                    training programs, and direct placement services with verified families.
+                    training programs, and direct placement services.
                   </p>
                   <Link to="/features">
                     <Button className="bg-blue-600 hover:bg-blue-700 text-white">
@@ -155,12 +137,12 @@ const ProfessionalDashboard = () => {
             {/* Training Progress Tracker - Only for logged-in users */}
             {user && <TrainingProgressTracker />}
             
-            {/* Admin Assistant Card */}
+            {/* Admin Assistant Card - Updated redirect */}
             {user && (
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: 0.5 }}
+                transition={{ duration: 0.5, delay: 0.4 }}
               >
                 <Card className="border-l-4 border-l-green-500">
                   <CardHeader>
@@ -169,59 +151,18 @@ const ProfessionalDashboard = () => {
                       Admin Assistant
                     </CardTitle>
                     <CardDescription>
-                      Get help with platform features and administrative tasks
+                      Get help with platform features and training resources
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
                     <p className="text-gray-600 mb-4">
-                      Access administrative tools, training materials, and get assistance 
-                      with platform features to streamline your professional workflow.
+                      Access administrative tools, training materials, and get assistance with platform features.
                     </p>
                     <Link to="/professional/profile?tab=admin-assistant">
-                      <Button className="bg-green-600 hover:green-700 text-white w-full">
+                      <Button className="bg-green-600 hover:bg-green-700 text-white w-full">
                         Access Admin Assistant
                       </Button>
                     </Link>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            )}
-
-            {/* Professional Insights Card */}
-            {user && (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: 0.6 }}
-              >
-                <Card className="border-l-4 border-l-purple-500 bg-gradient-to-br from-purple-50 to-indigo-50">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-xl">
-                      <Target className="h-5 w-5 text-purple-600" />
-                      Professional Insights
-                    </CardTitle>
-                    <CardDescription className="text-purple-700">
-                      Track your progress and discover growth opportunities
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-3">
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm text-gray-600">Profile Strength</span>
-                        <span className="text-sm font-medium text-purple-600">Building...</span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm text-gray-600">Match Potential</span>
-                        <span className="text-sm font-medium text-purple-600">Growing</span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm text-gray-600">Career Stage</span>
-                        <span className="text-sm font-medium text-purple-600">Foundation</span>
-                      </div>
-                    </div>
-                    <Button variant="outline" className="w-full mt-4 border-purple-200 text-purple-700 hover:bg-purple-50">
-                      View Detailed Insights
-                    </Button>
                   </CardContent>
                 </Card>
               </motion.div>

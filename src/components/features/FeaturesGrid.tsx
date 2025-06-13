@@ -25,16 +25,14 @@ interface Feature {
 const FeatureCategory = ({ 
   title, 
   description, 
-  children,
-  id
+  children 
 }: { 
   title: string; 
   description?: string; 
-  children: React.ReactNode;
-  id?: string;
+  children: React.ReactNode 
 }) => {
   return (
-    <Card className="w-full col-span-full mb-6" id={id}>
+    <Card className="w-full col-span-full mb-6">
       <CardHeader>
         <CardTitle className="text-xl">{title}</CardTitle>
         {description && <CardDescription>{description}</CardDescription>}
@@ -353,7 +351,6 @@ const FeaturesGrid = () => {
       <FeatureCategory 
         title="Community Features" 
         description="Tools for community engagement and support"
-        id="community-features"
       >
         {getFeaturesByCategory('Community Tools').map((feature) => (
           <DatabaseFeatureCard key={feature.id} feature={feature} />
@@ -373,7 +370,7 @@ const FeaturesGrid = () => {
           ))}
       </FeatureCategory>
 
-      <div className="col-span-full" id="tech-innovators-hub">
+      <div className="col-span-full">
         <TechInnovatorsHub />
       </div>
     </div>

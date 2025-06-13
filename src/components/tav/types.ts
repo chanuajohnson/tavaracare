@@ -9,7 +9,6 @@ export interface TavaraState {
 export interface AssistantNudge {
   id: string;
   user_id?: string;
-  title: string;
   message: string;
   context: {
     role?: string;
@@ -30,8 +29,4 @@ export interface ProgressContext {
   totalSteps: number;
   nextAction?: string;
   isStalled?: boolean;
-  journeyStage?: string;
-  completedSteps?: number;
-  careModel?: string;
-  trialCompleted?: boolean;
 }

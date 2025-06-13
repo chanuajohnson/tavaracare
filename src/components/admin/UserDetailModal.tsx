@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -9,7 +8,7 @@ import { Separator } from "@/components/ui/separator";
 import { User, Mail, MapPin, Calendar, CheckCircle2, Clock, Send, ArrowRight, Circle } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
-import { useUserSpecificProgress } from "@/hooks/useUserSpecificProgress";
+import { useUserJourneyProgress } from "@/hooks/useUserJourneyProgress";
 import { UserWithProgress } from "@/types/adminTypes";
 import { PhoneNumberEditor } from "./PhoneNumberEditor";
 import { TemplateSelector } from "./TemplateSelector";
@@ -26,19 +25,16 @@ export function UserDetailModal({ user, open, onOpenChange, onRefresh }: UserDet
   const [userPhoneNumber, setUserPhoneNumber] = React.useState<string | null>(null);
   const [showTemplateSelector, setShowTemplateSelector] = React.useState(false);
   
-  // Stabilize the parameters to prevent hooks violations
-  const userId = React.useMemo(() => user?.id || '', [user?.id]);
-  const userRole = React.useMemo(() => user?.role || 'family', [user?.role]);
-  
-  // Use the fixed hook that properly handles professional users
-  const { steps, completionPercentage, nextStep, loading } = useUserSpecificProgress(userId, userRole);
+  const { steps, completionPercentage, nextStep, loading } = useUserJourneyProgress(
+    user?.id || '', 
+    user?.role || 'family'
+  );
 
   // Initialize phone number state when user changes
   React.useEffect(() => {
     setUserPhoneNumber(user?.phone_number || null);
   }, [user?.phone_number]);
 
-  // Early return after all hooks are called
   if (!user) return null;
 
   const sendNudgeEmail = async (stepType: string) => {
@@ -52,7 +48,7 @@ export function UserDetailModal({ user, open, onOpenChange, onRefresh }: UserDet
           userEmail: user.email,
           userName: user.full_name || 'User',
           userRole: user.role,
-          currentStep: nextStep?.step_number || steps.length,
+          currentStep: nextStep?.id || steps.length,
           stepType
         }
       });
@@ -100,9 +96,9 @@ export function UserDetailModal({ user, open, onOpenChange, onRefresh }: UserDet
 
   const advanceUserStep = async () => {
     try {
-      const currentStepNumber = nextStep?.step_number || steps.length;
+      const currentStepId = nextStep?.id || steps.length;
       const totalSteps = steps.length;
-      const newStep = Math.min(currentStepNumber + 1, totalSteps);
+      const newStep = Math.min(currentStepId + 1, totalSteps);
       
       const { error } = await supabase
         .from('user_journey_progress')
@@ -253,7 +249,7 @@ export function UserDetailModal({ user, open, onOpenChange, onRefresh }: UserDet
                 ) : (
                   <div className="space-y-2">
                     {steps.map((step) => {
-                      const isCurrent = nextStep?.step_number === step.step_number;
+                      const isCurrent = nextStep?.id === step.id;
                       
                       return (
                         <div key={step.id} className={`flex items-center gap-2 p-2 rounded ${
@@ -268,7 +264,7 @@ export function UserDetailModal({ user, open, onOpenChange, onRefresh }: UserDet
                             <Circle className="h-4 w-4 text-gray-300" />
                           )}
                           <span className={`text-sm flex-1 ${isCurrent ? 'font-medium text-blue-700' : ''}`}>
-                            {step.step_number}. {step.title}
+                            {step.id}. {step.title}
                           </span>
                           <span className="text-xs text-muted-foreground">
                             {step.description}
@@ -387,7 +383,7 @@ export function UserDetailModal({ user, open, onOpenChange, onRefresh }: UserDet
         userPhone={userPhoneNumber || ''}
         userProgress={{
           completion_percentage: completionPercentage,
-          current_step: nextStep?.step_number,
+          current_step: nextStep?.id,
           next_step: nextStep
         }}
         onSendMessage={handleWhatsAppMessage}

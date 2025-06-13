@@ -1,30 +1,15 @@
-
 import { useEffect } from "react";
 import FeaturesGrid from "@/components/features/FeaturesGrid";
 import { Breadcrumb } from "@/components/ui/breadcrumbs/Breadcrumb";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useLocation } from "react-router-dom";
 import { PageViewTracker } from "@/components/tracking/PageViewTracker";
-
 const FeaturesPage = () => {
-  const { clearLastAction } = useAuth();
+  // Get both clearLastAction and the state we need to check
+  const {
+    clearLastAction
+  } = useAuth();
   const location = useLocation();
-
-  // Handle hash navigation for section scrolling
-  useEffect(() => {
-    if (location.hash) {
-      // Wait for the page to render, then scroll to the section
-      setTimeout(() => {
-        const element = document.getElementById(location.hash.substring(1));
-        if (element) {
-          element.scrollIntoView({ 
-            behavior: 'smooth', 
-            block: 'start' 
-          });
-        }
-      }, 500);
-    }
-  }, [location.hash]);
 
   // Only clear pending actions when visiting the features page directly
   // and only if there's actually something to clear
@@ -45,9 +30,7 @@ const FeaturesPage = () => {
       console.log('[FeaturesPage] No last action to clear or coming from navigation - skipping');
     }
   }, [clearLastAction, location.pathname]);
-
-  return (
-    <div className="min-h-screen bg-gray-50">
+  return <div className="min-h-screen bg-gray-50">
       <PageViewTracker actionType="features_page_view" />
       
       <div className="container px-4 py-12 mx-auto">
@@ -61,8 +44,6 @@ const FeaturesPage = () => {
 
         <FeaturesGrid />
       </div>
-    </div>
-  );
+    </div>;
 };
-
 export default FeaturesPage;

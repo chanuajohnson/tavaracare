@@ -75,7 +75,7 @@ export const useSharedFamilyJourneyData = (userId: string): SharedFamilyJourneyD
       category: 'foundation',
       accessible: true
     },
-    // Scheduling Step (7) - Renumbered from original
+    // Scheduling Steps (7-8) - Note: NO Step 8, this is Step 7
     { 
       id: 7, 
       title: "Schedule Your Tavara.Care Visit", 
@@ -84,9 +84,17 @@ export const useSharedFamilyJourneyData = (userId: string): SharedFamilyJourneyD
       category: 'scheduling',
       accessible: true
     },
-    // Trial Steps (8-10) - Renumbered
     { 
       id: 8, 
+      title: "Confirm Visit", 
+      description: "Confirm the video link or complete payment for in-person visit.", 
+      completed: false, 
+      category: 'scheduling',
+      accessible: false
+    },
+    // Trial Steps (9-11) - Optional path
+    { 
+      id: 9, 
       title: "Schedule Trial Day (Optional)", 
       description: "Choose a trial date with your matched caregiver. This is an optional step before choosing your care model.", 
       completed: false, 
@@ -95,7 +103,7 @@ export const useSharedFamilyJourneyData = (userId: string): SharedFamilyJourneyD
       accessible: false
     },
     { 
-      id: 9, 
+      id: 10, 
       title: "Pay for Trial Day (Optional)", 
       description: "Pay a one-time fee of $320 TTD for an 8-hour caregiver experience.", 
       completed: false, 
@@ -104,7 +112,7 @@ export const useSharedFamilyJourneyData = (userId: string): SharedFamilyJourneyD
       accessible: false
     },
     { 
-      id: 10, 
+      id: 11, 
       title: "Begin Your Trial (Optional)", 
       description: "Your caregiver begins the scheduled trial session.", 
       completed: false, 
@@ -112,9 +120,9 @@ export const useSharedFamilyJourneyData = (userId: string): SharedFamilyJourneyD
       category: 'trial',
       accessible: false
     },
-    // Conversion Step (11) - Renumbered from 12
+    // Conversion Step (12) - This is actually step 12 in the new numbering
     { 
-      id: 11, 
+      id: 12, 
       title: "Rate & Choose Your Path", 
       description: "Decide between: Hire your caregiver ($40/hr) or Subscribe to Tavara ($45/hr) for full support tools. Can skip trial and go directly here after visit confirmation.", 
       completed: false, 
@@ -211,16 +219,19 @@ export const useSharedFamilyJourneyData = (userId: string): SharedFamilyJourneyD
           case 7: // Schedule visit
             completed = profile?.visit_scheduling_status === 'scheduled' || profile?.visit_scheduling_status === 'completed';
             break;
-          case 8: // Schedule trial day
+          case 8: // Confirm visit
+            completed = profile?.visit_scheduling_status === 'completed';
+            break;
+          case 9: // Schedule trial day
             completed = hasTrialPayment;
             break;
-          case 9: // Pay for trial day
+          case 10: // Pay for trial day
             completed = hasTrialPayment;
             break;
-          case 10: // Begin trial
+          case 11: // Begin trial
             completed = hasTrialPayment;
             break;
-          case 11: // Rate & choose path
+          case 12: // Rate & choose path
             completed = !!visitNotes?.care_model;
             break;
         }

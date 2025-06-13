@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import { supabase } from '@/lib/supabase';
 import { BulkActionPanel } from './BulkActionPanel';
 import { RoleBasedUserGrid } from './RoleBasedUserGrid';
@@ -161,27 +160,6 @@ export function AdminUserJourneyDashboard() {
     }
   };
 
-  // Enhanced role filter click handler with debugging
-  const handleRoleFilterClick = (role: string, event?: React.MouseEvent) => {
-    console.log('Role filter clicked:', { role, currentFilter: roleFilter, event });
-    
-    // Prevent any event propagation issues
-    if (event) {
-      event.preventDefault();
-      event.stopPropagation();
-    }
-    
-    // Toggle logic: if clicking the same role, clear filter; otherwise set the new role
-    const newFilter = roleFilter === role ? 'all' : role;
-    console.log('Setting role filter to:', newFilter);
-    
-    setRoleFilter(newFilter);
-    setSelectedUsers([]); // Clear selection when filtering
-    
-    // Debug log the filter change
-    console.log('Role filter updated from', roleFilter, 'to', newFilter);
-  };
-
   if (loading) {
     return (
       <div className="space-y-6">
@@ -195,48 +173,32 @@ export function AdminUserJourneyDashboard() {
 
   return (
     <div className="space-y-6">
-      {/* Role Statistics - Enhanced clickable cards */}
+      {/* Role Statistics */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         {Object.entries(roleStats).map(([role, stats]) => (
-          <Card 
-            key={role} 
-            className={`cursor-pointer transition-all duration-200 hover:shadow-lg hover:scale-[1.02] select-none ${
-              roleFilter === role 
-                ? 'ring-2 ring-primary bg-primary/5 shadow-md' 
-                : 'hover:shadow-md'
-            }`}
-            onClick={(event) => handleRoleFilterClick(role, event)}
-            style={{ userSelect: 'none' }}
-          >
+          <Card key={role}>
             <CardContent className="p-4">
-              <div className="flex items-center justify-between pointer-events-none">
-                <div className="pointer-events-none">
-                  <p className="text-sm font-medium text-muted-foreground capitalize pointer-events-none">
-                    {role}
-                  </p>
-                  <p className="text-2xl font-bold pointer-events-none">{stats.total}</p>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground capitalize">{role}</p>
+                  <p className="text-2xl font-bold">{stats.total}</p>
                 </div>
-                <Users className="h-8 w-8 text-muted-foreground pointer-events-none" />
+                <Users className="h-8 w-8 text-muted-foreground" />
               </div>
-              <div className="mt-2 grid grid-cols-3 gap-2 text-xs pointer-events-none">
-                <div className="text-green-600 pointer-events-none">
-                  <UserCheck className="h-3 w-3 inline mr-1 pointer-events-none" />
-                  <span className="pointer-events-none">{stats.verified}</span>
+              <div className="mt-2 grid grid-cols-3 gap-2 text-xs">
+                <div className="text-green-600">
+                  <UserCheck className="h-3 w-3 inline mr-1" />
+                  {stats.verified}
                 </div>
-                <div className="text-blue-600 pointer-events-none">
-                  <TrendingUp className="h-3 w-3 inline mr-1 pointer-events-none" />
-                  <span className="pointer-events-none">{stats.active}</span>
+                <div className="text-blue-600">
+                  <TrendingUp className="h-3 w-3 inline mr-1" />
+                  {stats.active}
                 </div>
-                <div className="text-amber-600 pointer-events-none">
-                  <Clock className="h-3 w-3 inline mr-1 pointer-events-none" />
-                  <span className="pointer-events-none">{stats.stalled}</span>
+                <div className="text-amber-600">
+                  <Clock className="h-3 w-3 inline mr-1" />
+                  {stats.stalled}
                 </div>
               </div>
-              {roleFilter === role && (
-                <div className="mt-2 text-xs text-primary font-medium pointer-events-none">
-                  Click to clear filter
-                </div>
-              )}
             </CardContent>
           </Card>
         ))}
@@ -258,11 +220,6 @@ export function AdminUserJourneyDashboard() {
           <CardTitle className="flex items-center gap-2">
             <Users className="h-5 w-5" />
             User Journey Management
-            {roleFilter !== 'all' && (
-              <Badge variant="outline" className="ml-2">
-                Filtered by: {roleFilter}
-              </Badge>
-            )}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -281,10 +238,7 @@ export function AdminUserJourneyDashboard() {
             <div className="flex gap-2">
               <select
                 value={roleFilter}
-                onChange={(e) => {
-                  console.log('Dropdown filter change:', e.target.value);
-                  setRoleFilter(e.target.value);
-                }}
+                onChange={(e) => setRoleFilter(e.target.value)}
                 className="px-3 py-2 border rounded-md"
               >
                 <option value="all">All Roles</option>
@@ -303,18 +257,6 @@ export function AdminUserJourneyDashboard() {
                   : 'Select All'
                 }
               </Button>
-              {roleFilter !== 'all' && (
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    console.log('Clear filter button clicked');
-                    handleRoleFilterClick('all');
-                  }}
-                  className="flex items-center gap-2"
-                >
-                  Clear Filter
-                </Button>
-              )}
             </div>
           </div>
 
