@@ -13,8 +13,6 @@ import { CarePlanSelector } from "@/components/professional/profile/CarePlanSele
 import { AdminAssistantCard } from "@/components/professional/profile/AdminAssistantCard";
 import { ActionCardsGrid } from "@/components/professional/profile/ActionCardsGrid";
 import { CarePlanTabs } from "@/components/professional/profile/CarePlanTabs";
-import { PersonalProfileTabs } from "@/components/professional/profile/PersonalProfileTabs";
-import { Separator } from "@/components/ui/separator";
 import { Award } from "lucide-react";
 import { toast } from "sonner";
 
@@ -90,19 +88,24 @@ const ProfessionalProfileHub = () => {
   const [careTeamMembers, setCareTeamMembers] = useState<CareTeamMember[]>([]);
   const [isTrainingExpanded, setIsTrainingExpanded] = useState(false);
   
-  // Get initial tab from URL params, default to "overview" for personal profile
+  // Get initial tab from URL params, with different defaults based on care plan assignments
   const tabFromUrl = searchParams.get('tab');
-  const [activePersonalTab, setActivePersonalTab] = useState(tabFromUrl || "overview");
-  const [activeCareTab, setActiveCareTab] = useState("schedule");
+  const hasCarePlans = carePlanAssignments.length > 0;
+  const defaultTab = hasCarePlans ? "schedule" : "documents";
+  const [activeTab, setActiveTab] = useState(tabFromUrl || defaultTab);
 
-  // Update active tab when URL changes
+  // Update default tab when care plan assignments change
   useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const tab = urlParams.get('tab');
-    if (tab) {
-      setActivePersonalTab(tab);
+    if (!tabFromUrl) {
+      const newDefaultTab = carePlanAssignments.length > 0 ? "schedule" : "documents";
+      setActiveTab(newDefaultTab);
     }
-  }, [searchParams]);
+  }, [carePlanAssignments.length, tabFromUrl]);
+
+  const breadcrumbItems = [
+    { label: "Professional Dashboard", path: "/dashboard/professional" },
+    { label: "Profile Hub", path: "/professional/profile" },
+  ];
 
   useEffect(() => {
     if (user) {
@@ -134,10 +137,13 @@ const ProfessionalProfileHub = () => {
     }
   }, [selectedCarePlanId]);
 
-  const breadcrumbItems = [
-    { label: "Professional Dashboard", path: "/dashboard/professional" },
-    { label: "Profile Hub", path: "/professional/profile" },
-  ];
+  // Update active tab when URL changes
+  useEffect(() => {
+    const urlTab = searchParams.get('tab');
+    if (urlTab && urlTab !== activeTab) {
+      setActiveTab(urlTab);
+    }
+  }, [searchParams]);
 
   const fetchProfessionalProfile = async () => {
     try {
@@ -332,9 +338,8 @@ const ProfessionalProfileHub = () => {
   const selectedCarePlan = carePlanAssignments.find(assignment => assignment.carePlanId === selectedCarePlanId);
 
   const handleCertificateUploadSuccess = () => {
-    toast.success("Document uploaded successfully!");
-    // Refresh profile data to update any verification status
-    fetchProfessionalProfile();
+    toast.success("Document uploaded successfully! Redirecting to documents tab...");
+    setActiveTab("documents");
   };
 
   if (loading) {
@@ -371,61 +376,28 @@ const ProfessionalProfileHub = () => {
             carePlanAssignments={carePlanAssignments} 
           />
 
-          {/* Personal Profile Section - Always Visible */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Personal Profile</CardTitle>
-              <CardDescription>
-                Manage your professional documents, settings, and personal information
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <PersonalProfileTabs
-                activeTab={activePersonalTab}
-                onTabChange={setActivePersonalTab}
-                profile={profile}
-                onCertificateUploadSuccess={handleCertificateUploadSuccess}
-              />
-            </CardContent>
-          </Card>
-
-          {/* Care Plan Management Section - Only if assignments exist */}
+          {/* Care Plan Selection - Only show if user has assignments */}
           {carePlanAssignments.length > 0 && (
-            <>
-              <Separator className="my-8" />
-              
-              <div className="space-y-6">
-                <div>
-                  <h2 className="text-2xl font-bold">Care Plan Management</h2>
-                  <p className="text-muted-foreground">
-                    Manage your assigned care plans and team responsibilities
-                  </p>
-                </div>
-
-                {/* Care Plan Selection */}
-                <CarePlanSelector 
-                  carePlanAssignments={carePlanAssignments}
-                  selectedCarePlanId={selectedCarePlanId}
-                  onSelectCarePlan={setSelectedCarePlanId}
-                />
-
-                {/* Care Plan Tabs */}
-                {selectedCarePlanId && (
-                  <CarePlanTabs 
-                    activeTab={activeCareTab}
-                    onTabChange={setActiveCareTab}
-                    selectedCarePlanId={selectedCarePlanId}
-                    selectedCarePlan={selectedCarePlan}
-                    loading={loading}
-                    onCertificateUploadSuccess={handleCertificateUploadSuccess}
-                  />
-                )}
-              </div>
-            </>
+            <CarePlanSelector 
+              carePlanAssignments={carePlanAssignments}
+              selectedCarePlanId={selectedCarePlanId}
+              onSelectCarePlan={setSelectedCarePlanId}
+            />
           )}
 
-          {/* Admin Assistant Card - Full Width */}
-          <AdminAssistantCard />
+          {/* Tabs for Different Views - Show for all users */}
+          <CarePlanTabs 
+            activeTab={activeTab}
+            onTabChange={setActiveTab}
+            selectedCarePlanId={selectedCarePlanId}
+            selectedCarePlan={selectedCarePlan}
+            loading={loading}
+            onCertificateUploadSuccess={handleCertificateUploadSuccess}
+            showCarePlanTabs={carePlanAssignments.length > 0}
+          />
+
+          {/* Admin Assistant Card - Only show for users with care plans */}
+          {carePlanAssignments.length > 0 && <AdminAssistantCard />}
 
           {/* Action Cards */}
           <ActionCardsGrid 
