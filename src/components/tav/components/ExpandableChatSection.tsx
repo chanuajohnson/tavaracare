@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MessageCircle, ChevronDown, ChevronUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -11,6 +11,23 @@ interface ExpandableChatSectionProps {
 
 export const ExpandableChatSection: React.FC<ExpandableChatSectionProps> = ({ role }) => {
   const [isExpanded, setIsExpanded] = useState(false);
+  const expandableContentRef = useRef<HTMLDivElement>(null);
+
+  // Auto-scroll to show the chat input when expanded
+  useEffect(() => {
+    if (isExpanded && expandableContentRef.current) {
+      // Use a small delay to ensure the animation has started
+      const scrollTimeout = setTimeout(() => {
+        expandableContentRef.current?.scrollIntoView({
+          behavior: 'smooth',
+          block: 'end',
+          inline: 'nearest'
+        });
+      }, 100);
+
+      return () => clearTimeout(scrollTimeout);
+    }
+  }, [isExpanded]);
 
   return (
     <div className="border-t border-gray-200 mt-4">
@@ -36,6 +53,7 @@ export const ExpandableChatSection: React.FC<ExpandableChatSectionProps> = ({ ro
       <AnimatePresence>
         {isExpanded && (
           <motion.div
+            ref={expandableContentRef}
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
