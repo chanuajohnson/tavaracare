@@ -1,8 +1,9 @@
+
 import React from 'react';
 
 const PrivacyPolicyPage: React.FC = () => {
   return (
-    <div className="min-h-screen bg-gray-50 py-12">
+    <div className="min-h-screen bg-gray-50 py-12" style={{ scrollBehavior: 'smooth' }}>
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-4xl">
         <div className="bg-white rounded-lg shadow-lg p-8 sm:p-12">
           {/* Header */}
@@ -24,7 +25,7 @@ const PrivacyPolicyPage: React.FC = () => {
           </div>
 
           {/* Privacy Policy Section */}
-          <section className="mb-12">
+          <section id="privacy" className="mb-12">
             <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center">
               <span className="mr-3">🛡️</span>
               Privacy Policy
@@ -90,7 +91,7 @@ const PrivacyPolicyPage: React.FC = () => {
           </section>
 
           {/* Terms of Service Section */}
-          <section className="mb-12">
+          <section id="terms" className="mb-12">
             <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center">
               <span className="mr-3">📜</span>
               Terms of Service
@@ -142,7 +143,7 @@ const PrivacyPolicyPage: React.FC = () => {
           </section>
 
           {/* Cookies Policy Section */}
-          <section className="mb-12">
+          <section id="cookies" className="mb-12">
             <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center">
               <span className="mr-3">🍪</span>
               Cookies Policy
@@ -170,7 +171,7 @@ const PrivacyPolicyPage: React.FC = () => {
           </section>
 
           {/* AI Use & Transparency Section */}
-          <section className="mb-12">
+          <section id="ai-use" className="mb-12">
             <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center">
               <span className="mr-3">🤖</span>
               AI Use & Transparency
