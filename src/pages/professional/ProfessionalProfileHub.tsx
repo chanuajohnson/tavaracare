@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useSearchParams } from "react-router-dom";
@@ -89,17 +88,19 @@ const ProfessionalProfileHub = () => {
   const [careTeamMembers, setCareTeamMembers] = useState<CareTeamMember[]>([]);
   const [isTrainingExpanded, setIsTrainingExpanded] = useState(false);
   
-  // Get initial tab from URL params, default to "schedule"
+  // Get initial tab from URL params, with different defaults based on care plan assignments
   const tabFromUrl = searchParams.get('tab');
-  const [activeTab, setActiveTab] = useState(tabFromUrl || "schedule");
+  const hasCarePlans = carePlanAssignments.length > 0;
+  const defaultTab = hasCarePlans ? "schedule" : "documents";
+  const [activeTab, setActiveTab] = useState(tabFromUrl || defaultTab);
 
-  // Update active tab when URL changes
+  // Update default tab when care plan assignments change
   useEffect(() => {
-    const urlTab = searchParams.get('tab');
-    if (urlTab && urlTab !== activeTab) {
-      setActiveTab(urlTab);
+    if (!tabFromUrl) {
+      const newDefaultTab = carePlanAssignments.length > 0 ? "schedule" : "documents";
+      setActiveTab(newDefaultTab);
     }
-  }, [searchParams]);
+  }, [carePlanAssignments.length, tabFromUrl]);
 
   const breadcrumbItems = [
     { label: "Professional Dashboard", path: "/dashboard/professional" },
@@ -375,27 +376,28 @@ const ProfessionalProfileHub = () => {
             carePlanAssignments={carePlanAssignments} 
           />
 
-          {/* Care Plan Selection */}
-          <CarePlanSelector 
-            carePlanAssignments={carePlanAssignments}
-            selectedCarePlanId={selectedCarePlanId}
-            onSelectCarePlan={setSelectedCarePlanId}
-          />
-
-          {/* Tabs for Different Views */}
-          {selectedCarePlanId && (
-            <CarePlanTabs 
-              activeTab={activeTab}
-              onTabChange={setActiveTab}
+          {/* Care Plan Selection - Only show if user has assignments */}
+          {carePlanAssignments.length > 0 && (
+            <CarePlanSelector 
+              carePlanAssignments={carePlanAssignments}
               selectedCarePlanId={selectedCarePlanId}
-              selectedCarePlan={selectedCarePlan}
-              loading={loading}
-              onCertificateUploadSuccess={handleCertificateUploadSuccess}
+              onSelectCarePlan={setSelectedCarePlanId}
             />
           )}
 
-          {/* Admin Assistant Card - Full Width */}
-          <AdminAssistantCard />
+          {/* Tabs for Different Views - Show for all users */}
+          <CarePlanTabs 
+            activeTab={activeTab}
+            onTabChange={setActiveTab}
+            selectedCarePlanId={selectedCarePlanId}
+            selectedCarePlan={selectedCarePlan}
+            loading={loading}
+            onCertificateUploadSuccess={handleCertificateUploadSuccess}
+            showCarePlanTabs={carePlanAssignments.length > 0}
+          />
+
+          {/* Admin Assistant Card - Only show for users with care plans */}
+          {carePlanAssignments.length > 0 && <AdminAssistantCard />}
 
           {/* Action Cards */}
           <ActionCardsGrid 

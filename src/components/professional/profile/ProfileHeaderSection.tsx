@@ -1,6 +1,5 @@
 
 import React from "react";
-import { Link } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -47,6 +46,11 @@ export const ProfileHeaderSection = ({ profile, user, carePlanAssignments }: Pro
     return typeMap[type] || 'Care Professional';
   };
 
+  const handleEditProfile = () => {
+    // Redirect to registration page for profile editing
+    window.location.href = '/registration/professional';
+  };
+
   return (
     <div className="flex flex-col lg:flex-row gap-6">
       {/* Profile Overview Card */}
@@ -81,12 +85,10 @@ export const ProfileHeaderSection = ({ profile, user, carePlanAssignments }: Pro
                 )}
               </div>
             </div>
-            <Link to="/professional/profile/edit">
-              <Button variant="outline" size="sm">
-                <Settings className="h-4 w-4 mr-2" />
-                Edit Profile
-              </Button>
-            </Link>
+            <Button variant="outline" size="sm" onClick={handleEditProfile}>
+              <Settings className="h-4 w-4 mr-2" />
+              Edit Profile
+            </Button>
           </div>
         </CardHeader>
         <CardContent>

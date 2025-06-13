@@ -12,10 +12,11 @@ import { CertificateUpload } from "@/components/professional/CertificateUpload";
 interface CarePlanTabsProps {
   activeTab: string;
   onTabChange: (tab: string) => void;
-  selectedCarePlanId: string;
-  selectedCarePlan: any;
+  selectedCarePlanId?: string;
+  selectedCarePlan?: any;
   loading: boolean;
   onCertificateUploadSuccess: () => void;
+  showCarePlanTabs?: boolean;
 }
 
 export const CarePlanTabs = ({ 
@@ -24,68 +25,93 @@ export const CarePlanTabs = ({
   selectedCarePlanId, 
   selectedCarePlan, 
   loading,
-  onCertificateUploadSuccess 
+  onCertificateUploadSuccess,
+  showCarePlanTabs = true
 }: CarePlanTabsProps) => {
+  const carePlanTabs = [
+    {
+      value: "schedule",
+      icon: Calendar,
+      label: "Schedule"
+    },
+    {
+      value: "medications", 
+      icon: Pill,
+      label: "Medications"
+    },
+    {
+      value: "meals",
+      icon: ChefHat, 
+      label: "Meal Planning"
+    }
+  ];
+
+  const adminTabs = [
+    {
+      value: "admin-assist",
+      icon: Shield,
+      label: "Admin Assist"
+    },
+    {
+      value: "documents",
+      icon: FileText,
+      label: "Documents"
+    }
+  ];
+
+  const tabsToShow = showCarePlanTabs ? [...carePlanTabs, ...adminTabs] : adminTabs;
+  const gridCols = showCarePlanTabs ? "grid-cols-5" : "grid-cols-2";
+
   return (
     <HorizontalTabs value={activeTab} onValueChange={onTabChange} className="w-full">
-      <HorizontalTabsList className="grid w-full grid-cols-5 lg:grid-cols-5">
-        <HorizontalTabsTrigger value="schedule" className="flex items-center gap-2">
-          <Calendar className="h-4 w-4" />
-          <span className="hidden sm:inline">Schedule</span>
-        </HorizontalTabsTrigger>
-        <HorizontalTabsTrigger value="medications" className="flex items-center gap-2">
-          <Pill className="h-4 w-4" />
-          <span className="hidden sm:inline">Medications</span>
-        </HorizontalTabsTrigger>
-        <HorizontalTabsTrigger value="meals" className="flex items-center gap-2">
-          <ChefHat className="h-4 w-4" />
-          <span className="hidden sm:inline">Meal Planning</span>
-        </HorizontalTabsTrigger>
-        <HorizontalTabsTrigger value="admin-assist" className="flex items-center gap-2">
-          <Shield className="h-4 w-4" />
-          <span className="hidden sm:inline">Admin Assist</span>
-        </HorizontalTabsTrigger>
-        <HorizontalTabsTrigger value="documents" className="flex items-center gap-2">
-          <FileText className="h-4 w-4" />
-          <span className="hidden sm:inline">Documents</span>
-        </HorizontalTabsTrigger>
+      <HorizontalTabsList className={`grid w-full lg:${gridCols} ${gridCols}`}>
+        {tabsToShow.map((tab) => (
+          <HorizontalTabsTrigger key={tab.value} value={tab.value} className="flex items-center gap-2">
+            <tab.icon className="h-4 w-4" />
+            <span className="hidden sm:inline">{tab.label}</span>
+          </HorizontalTabsTrigger>
+        ))}
       </HorizontalTabsList>
 
-      <HorizontalTabsContent value="schedule" className="space-y-6">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Calendar className="h-5 w-5 text-primary" />
-              Upcoming Schedule
-              {selectedCarePlan && (
-                <Badge variant="outline" className="ml-2">
-                  {selectedCarePlan.carePlan?.title}
-                </Badge>
-              )}
-            </CardTitle>
-            <CardDescription>
-              Your upcoming shifts and care plan schedule
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ProfessionalScheduleView 
-              carePlanId={selectedCarePlanId}
-              loading={loading}
+      {showCarePlanTabs && (
+        <>
+          <HorizontalTabsContent value="schedule" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Calendar className="h-5 w-5 text-primary" />
+                  Upcoming Schedule
+                  {selectedCarePlan && (
+                    <Badge variant="outline" className="ml-2">
+                      {selectedCarePlan.carePlan?.title}
+                    </Badge>
+                  )}
+                </CardTitle>
+                <CardDescription>
+                  Your upcoming shifts and care plan schedule
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ProfessionalScheduleView 
+                  carePlanId={selectedCarePlanId || ''}
+                  loading={loading}
+                />
+              </CardContent>
+            </Card>
+          </HorizontalTabsContent>
+
+          <HorizontalTabsContent value="medications" className="space-y-6">
+            <MedicationDashboard />
+          </HorizontalTabsContent>
+
+          <HorizontalTabsContent value="meals" className="space-y-6">
+            <CarePlanMealPlanner 
+              carePlanId={selectedCarePlanId || ''}
+              carePlanTitle={selectedCarePlan?.carePlan?.title || 'Care Plan'}
             />
-          </CardContent>
-        </Card>
-      </HorizontalTabsContent>
-
-      <HorizontalTabsContent value="medications" className="space-y-6">
-        <MedicationDashboard />
-      </HorizontalTabsContent>
-
-      <HorizontalTabsContent value="meals" className="space-y-6">
-        <CarePlanMealPlanner 
-          carePlanId={selectedCarePlanId}
-          carePlanTitle={selectedCarePlan?.carePlan?.title || 'Care Plan'}
-        />
-      </HorizontalTabsContent>
+          </HorizontalTabsContent>
+        </>
+      )}
 
       <HorizontalTabsContent value="admin-assist" className="space-y-6">
         <Card>

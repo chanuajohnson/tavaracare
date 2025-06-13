@@ -172,18 +172,53 @@ export const RoleBasedContent: React.FC<RoleBasedContentProps> = ({
                   <Sparkles className="h-4 w-4 text-primary" />
                   <h3 className="font-semibold text-primary">Welcome to Tavara!</h3>
                 </div>
-                <p className="text-sm text-gray-700 mb-3">
+                <p className="text-sm text-gray-700 mb-4">
                   I'm here to help you navigate your caregiving journey. Whether you're a family seeking care, 
                   a professional caregiver, or a community member wanting to help, I'll guide you every step of the way.
                 </p>
-                <Button 
-                  size="sm" 
-                  className="bg-primary hover:bg-primary-600 text-white"
-                  onClick={() => window.location.href = '/auth'}
-                >
-                  Get Started
-                  <ArrowRight className="ml-1 h-3 w-3" />
-                </Button>
+                
+                {/* Sign In Button */}
+                <div className="mb-3">
+                  <Button 
+                    size="sm" 
+                    className="bg-primary hover:bg-primary-600 text-white w-full"
+                    onClick={() => window.location.href = '/auth'}
+                  >
+                    Sign In
+                    <ArrowRight className="ml-1 h-3 w-3" />
+                  </Button>
+                </div>
+                
+                {/* Pathway Buttons for First-Time Visitors */}
+                <div className="space-y-2">
+                  <p className="text-xs text-gray-600 text-center mb-2">Or explore as a guest:</p>
+                  <div className="grid grid-cols-1 gap-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="text-xs h-8 border-primary/20 hover:bg-primary/5"
+                      onClick={() => window.location.href = '/dashboard/family'}
+                    >
+                      Find Care Now
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="text-xs h-8 border-primary/20 hover:bg-primary/5"
+                      onClick={() => window.location.href = '/dashboard/professional'}
+                    >
+                      Get Hired
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="text-xs h-8 border-primary/20 hover:bg-primary/5"
+                      onClick={() => window.location.href = '/dashboard/community'}
+                    >
+                      Join The Village
+                    </Button>
+                  </div>
+                </div>
               </div>
             </div>
           )}
