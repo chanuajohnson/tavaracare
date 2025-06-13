@@ -1,3 +1,4 @@
+
 import { useState, useRef, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Users, UserCog, Heart, ArrowRight, Check, Vote, HelpCircle, Play, Pause, ChevronLeft, ChevronRight } from "lucide-react";
@@ -381,7 +382,7 @@ const Index = () => {
 
   return (
     <div className="min-h-screen w-full">
-      {/* Hero Video Section */}
+      {/* Hero Video Section - No top padding, starts immediately */}
       <section className="relative h-screen w-full overflow-hidden">
         {/* Primary Video */}
         <video
@@ -548,8 +549,8 @@ const Index = () => {
         </div>
       </section>
 
-      {/* Main Content - Roles Section */}
-      <div className="bg-gradient-to-b from-white to-primary-100">
+      {/* Main Content - No top gradient, white background only */}
+      <div className="bg-white">
         <div className="container px-4 py-16 mx-auto">
           <div ref={comparisonRef} className="mb-16">
             <motion.div
