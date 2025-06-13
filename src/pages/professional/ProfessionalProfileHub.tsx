@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useSearchParams } from "react-router-dom";
@@ -14,6 +13,8 @@ import { CarePlanSelector } from "@/components/professional/profile/CarePlanSele
 import { AdminAssistantCard } from "@/components/professional/profile/AdminAssistantCard";
 import { ActionCardsGrid } from "@/components/professional/profile/ActionCardsGrid";
 import { CarePlanTabs } from "@/components/professional/profile/CarePlanTabs";
+import { PersonalProfileTabs } from "@/components/professional/profile/PersonalProfileTabs";
+import { Separator } from "@/components/ui/separator";
 import { Award } from "lucide-react";
 import { toast } from "sonner";
 
@@ -89,22 +90,19 @@ const ProfessionalProfileHub = () => {
   const [careTeamMembers, setCareTeamMembers] = useState<CareTeamMember[]>([]);
   const [isTrainingExpanded, setIsTrainingExpanded] = useState(false);
   
-  // Get initial tab from URL params, default to "schedule"
+  // Get initial tab from URL params, default to "overview" for personal profile
   const tabFromUrl = searchParams.get('tab');
-  const [activeTab, setActiveTab] = useState(tabFromUrl || "schedule");
+  const [activePersonalTab, setActivePersonalTab] = useState(tabFromUrl || "overview");
+  const [activeCareTab, setActiveCareTab] = useState("schedule");
 
   // Update active tab when URL changes
   useEffect(() => {
-    const urlTab = searchParams.get('tab');
-    if (urlTab && urlTab !== activeTab) {
-      setActiveTab(urlTab);
+    const urlParams = new URLSearchParams(window.location.search);
+    const tab = urlParams.get('tab');
+    if (tab) {
+      setActivePersonalTab(tab);
     }
   }, [searchParams]);
-
-  const breadcrumbItems = [
-    { label: "Professional Dashboard", path: "/dashboard/professional" },
-    { label: "Profile Hub", path: "/professional/profile" },
-  ];
 
   useEffect(() => {
     if (user) {
@@ -136,13 +134,10 @@ const ProfessionalProfileHub = () => {
     }
   }, [selectedCarePlanId]);
 
-  // Update active tab when URL changes
-  useEffect(() => {
-    const urlTab = searchParams.get('tab');
-    if (urlTab && urlTab !== activeTab) {
-      setActiveTab(urlTab);
-    }
-  }, [searchParams]);
+  const breadcrumbItems = [
+    { label: "Professional Dashboard", path: "/dashboard/professional" },
+    { label: "Profile Hub", path: "/professional/profile" },
+  ];
 
   const fetchProfessionalProfile = async () => {
     try {
@@ -337,8 +332,9 @@ const ProfessionalProfileHub = () => {
   const selectedCarePlan = carePlanAssignments.find(assignment => assignment.carePlanId === selectedCarePlanId);
 
   const handleCertificateUploadSuccess = () => {
-    toast.success("Document uploaded successfully! Redirecting to documents tab...");
-    setActiveTab("documents");
+    toast.success("Document uploaded successfully!");
+    // Refresh profile data to update any verification status
+    fetchProfessionalProfile();
   };
 
   if (loading) {
@@ -375,23 +371,57 @@ const ProfessionalProfileHub = () => {
             carePlanAssignments={carePlanAssignments} 
           />
 
-          {/* Care Plan Selection */}
-          <CarePlanSelector 
-            carePlanAssignments={carePlanAssignments}
-            selectedCarePlanId={selectedCarePlanId}
-            onSelectCarePlan={setSelectedCarePlanId}
-          />
+          {/* Personal Profile Section - Always Visible */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Personal Profile</CardTitle>
+              <CardDescription>
+                Manage your professional documents, settings, and personal information
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <PersonalProfileTabs
+                activeTab={activePersonalTab}
+                onTabChange={setActivePersonalTab}
+                profile={profile}
+                onCertificateUploadSuccess={handleCertificateUploadSuccess}
+              />
+            </CardContent>
+          </Card>
 
-          {/* Tabs for Different Views */}
-          {selectedCarePlanId && (
-            <CarePlanTabs 
-              activeTab={activeTab}
-              onTabChange={setActiveTab}
-              selectedCarePlanId={selectedCarePlanId}
-              selectedCarePlan={selectedCarePlan}
-              loading={loading}
-              onCertificateUploadSuccess={handleCertificateUploadSuccess}
-            />
+          {/* Care Plan Management Section - Only if assignments exist */}
+          {carePlanAssignments.length > 0 && (
+            <>
+              <Separator className="my-8" />
+              
+              <div className="space-y-6">
+                <div>
+                  <h2 className="text-2xl font-bold">Care Plan Management</h2>
+                  <p className="text-muted-foreground">
+                    Manage your assigned care plans and team responsibilities
+                  </p>
+                </div>
+
+                {/* Care Plan Selection */}
+                <CarePlanSelector 
+                  carePlanAssignments={carePlanAssignments}
+                  selectedCarePlanId={selectedCarePlanId}
+                  onSelectCarePlan={setSelectedCarePlanId}
+                />
+
+                {/* Care Plan Tabs */}
+                {selectedCarePlanId && (
+                  <CarePlanTabs 
+                    activeTab={activeCareTab}
+                    onTabChange={setActiveCareTab}
+                    selectedCarePlanId={selectedCarePlanId}
+                    selectedCarePlan={selectedCarePlan}
+                    loading={loading}
+                    onCertificateUploadSuccess={handleCertificateUploadSuccess}
+                  />
+                )}
+              </div>
+            </>
           )}
 
           {/* Admin Assistant Card - Full Width */}

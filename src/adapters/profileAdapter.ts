@@ -1,7 +1,6 @@
 
 import { Profile } from "../types/profile";
 import type { DbProfile, DbProfileInsert } from "../types/profile";
-import { fromJson, toJson } from "../utils/json";
 
 /**
  * Adapts a frontend Profile to a database-ready object
@@ -14,6 +13,7 @@ export function adaptProfileToDb(profile: Partial<Profile>): DbProfileInsert {
     avatar_url: profile.avatarUrl,
     phone_number: profile.phoneNumber,
     address: profile.address,
+    bio: profile.bio,
     
     // Family-specific fields
     care_recipient_name: profile.careRecipientName,
@@ -24,40 +24,24 @@ export function adaptProfileToDb(profile: Partial<Profile>): DbProfileInsert {
     other_special_needs: profile.otherSpecialNeeds,
     caregiver_type: profile.caregiverType,
     preferred_contact_method: profile.preferredContactMethod,
-    care_schedule: profile.careSchedule,
+    care_schedule: Array.isArray(profile.careSchedule) 
+      ? profile.careSchedule.join(',') 
+      : profile.careSchedule, // Convert array to string if needed
     budget_preferences: profile.budgetPreferences,
     caregiver_preferences: profile.caregiverPreferences,
     additional_notes: profile.additionalNotes,
     
     // Professional-specific fields
     professional_type: profile.professionalType,
-    license_number: profile.licenseNumber,
     certifications: profile.certifications,
-    other_certification: profile.otherCertification,
-    certification_proof_url: profile.certificationProofUrl,
-    care_services: profile.careServices,
-    languages: profile.languages,
+    services: profile.services,
     years_of_experience: profile.yearsOfExperience,
-    work_type: profile.workType,
     availability: profile.availability,
-    background_check: profile.backgroundCheck,
-    background_check_proof_url: profile.backgroundCheckProofUrl,
     legally_authorized: profile.legallyAuthorized,
-    expected_rate: profile.expectedRate,
-    payment_methods: profile.paymentMethods,
-    bio: profile.bio,
-    why_choose_caregiving: profile.whyChooseCaregiving,
-    preferred_work_locations: profile.preferredWorkLocations,
-    commute_mode: profile.commuteMode,
-    list_in_directory: profile.listInDirectory,
-    enable_job_alerts: profile.enableJobAlerts,
-    job_notification_method: profile.jobNotificationMethod,
-    job_matching_criteria: profile.jobMatchingCriteria,
-    custom_availability_alerts: profile.customAvailabilityAlerts,
-    has_training: profile.hasTraining,
+    hourly_rate: profile.hourlyRate,
+    location: profile.location,
     
     // Community-specific fields
-    location: profile.location,
     website: profile.website,
     community_roles: profile.communityRoles,
     contribution_interests: profile.contributionInterests,
@@ -86,6 +70,8 @@ export function adaptProfileFromDb(dbProfile: DbProfile): Profile {
     avatarUrl: dbProfile.avatar_url,
     phoneNumber: dbProfile.phone_number,
     address: dbProfile.address,
+    bio: dbProfile.bio,
+    lastLoginAt: dbProfile.last_login_at,
     
     // Family-specific fields
     careRecipientName: dbProfile.care_recipient_name,
@@ -96,40 +82,22 @@ export function adaptProfileFromDb(dbProfile: DbProfile): Profile {
     otherSpecialNeeds: dbProfile.other_special_needs,
     caregiverType: dbProfile.caregiver_type,
     preferredContactMethod: dbProfile.preferred_contact_method,
-    careSchedule: dbProfile.care_schedule,
+    careSchedule: dbProfile.care_schedule, // Keep as string from database
     budgetPreferences: dbProfile.budget_preferences,
     caregiverPreferences: dbProfile.caregiver_preferences,
     additionalNotes: dbProfile.additional_notes,
     
     // Professional-specific fields
     professionalType: dbProfile.professional_type,
-    licenseNumber: dbProfile.license_number,
     certifications: dbProfile.certifications,
-    otherCertification: dbProfile.other_certification,
-    certificationProofUrl: dbProfile.certification_proof_url,
-    careServices: dbProfile.care_services,
-    languages: dbProfile.languages,
+    services: dbProfile.services,
     yearsOfExperience: dbProfile.years_of_experience,
-    workType: dbProfile.work_type,
     availability: dbProfile.availability,
-    backgroundCheck: dbProfile.background_check,
-    backgroundCheckProofUrl: dbProfile.background_check_proof_url,
     legallyAuthorized: dbProfile.legally_authorized,
-    expectedRate: dbProfile.expected_rate,
-    paymentMethods: dbProfile.payment_methods,
-    bio: dbProfile.bio,
-    whyChooseCaregiving: dbProfile.why_choose_caregiving,
-    preferredWorkLocations: dbProfile.preferred_work_locations,
-    commuteMode: dbProfile.commute_mode,
-    listInDirectory: dbProfile.list_in_directory,
-    enableJobAlerts: dbProfile.enable_job_alerts,
-    jobNotificationMethod: dbProfile.job_notification_method,
-    jobMatchingCriteria: dbProfile.job_matching_criteria,
-    customAvailabilityAlerts: dbProfile.custom_availability_alerts,
-    hasTraining: dbProfile.has_training,
+    hourlyRate: dbProfile.hourly_rate,
+    location: dbProfile.location,
     
     // Community-specific fields
-    location: dbProfile.location,
     website: dbProfile.website,
     communityRoles: dbProfile.community_roles,
     contributionInterests: dbProfile.contribution_interests,

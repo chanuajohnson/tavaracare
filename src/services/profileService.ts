@@ -89,7 +89,7 @@ export class ProfileService {
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .insert([profile as any]) // Cast to any to fix type error
+        .insert(profile)  // Remove array wrapper - insert expects single object
         .select()
         .single();
       
@@ -116,7 +116,7 @@ export class ProfileService {
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .update(updates as any) // Cast to any to fix type error
+        .update(updates)
         .eq('id', id)
         .select()
         .single();

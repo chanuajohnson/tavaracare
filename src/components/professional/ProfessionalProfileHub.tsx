@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useAuth } from "@/components/providers/AuthProvider";
@@ -147,85 +148,60 @@ export const ProfessionalProfileHub = () => {
           </TabsContent>
           
           <TabsContent value="admin-assistant" className="mt-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Administrative Assistant</CardTitle>
-                <CardDescription>
-                  Tools and resources to help with administrative tasks
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-6">
-                  {/* Training Section */}
-                  <div className="border rounded-lg p-6 bg-gradient-to-r from-blue-50 to-indigo-50">
-                    <div 
-                      className="flex items-center justify-between cursor-pointer"
-                      onClick={() => setIsTrainingExpanded(!isTrainingExpanded)}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="bg-blue-500 text-white p-2 rounded-lg">
-                          <Award className="h-5 w-5" />
-                        </div>
-                        <div>
-                          <h3 className="text-lg font-semibold text-gray-900">Professional Training</h3>
-                          <p className="text-sm text-gray-600">Access training modules and track your progress</p>
-                        </div>
-                      </div>
-                      {isTrainingExpanded ? (
-                        <ChevronUp className="h-5 w-5 text-gray-500" />
-                      ) : (
-                        <ChevronDown className="h-5 w-5 text-gray-500" />
-                      )}
+            <div className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Users className="h-5 w-5" />
+                    Admin Assistant
+                  </CardTitle>
+                  <CardDescription>
+                    Access administrative tools and training resources
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-gray-600 mb-4">
+                    Get help with platform features, access training materials, and administrative tools.
+                  </p>
+                </CardContent>
+              </Card>
+
+              {/* Collapsible Training Section with Training Progress */}
+              <Card className="cursor-pointer" onClick={() => setIsTrainingExpanded(!isTrainingExpanded)}>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Award className="h-5 w-5 text-primary-600" />
+                      <CardTitle>Comprehensive Training Program</CardTitle>
                     </div>
-                    
-                    {isTrainingExpanded && (
-                      <motion.div
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: "auto" }}
-                        exit={{ opacity: 0, height: 0 }}
-                        transition={{ duration: 0.3 }}
-                        className="mt-6 space-y-6"
-                      >
-                        <TrainingProgressTracker />
-                        <TrainingProgramSection />
-                        <TrainingModulesSection />
-                      </motion.div>
-                    )}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="p-1 h-8 w-8"
+                    >
+                      {isTrainingExpanded ? (
+                        <ChevronUp className="h-4 w-4" />
+                      ) : (
+                        <ChevronDown className="h-4 w-4" />
+                      )}
+                    </Button>
                   </div>
-
-                  {/* Other Admin Tools */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <Card>
-                      <CardContent className="pt-6">
-                        <div className="flex items-center gap-3">
-                          <div className="bg-green-500 text-white p-2 rounded-lg">
-                            <FileText className="h-5 w-5" />
-                          </div>
-                          <div>
-                            <h4 className="font-medium">Care Documentation</h4>
-                            <p className="text-sm text-gray-600">Generate care reports and notes</p>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-
-                    <Card>
-                      <CardContent className="pt-6">
-                        <div className="flex items-center gap-3">
-                          <div className="bg-purple-500 text-white p-2 rounded-lg">
-                            <Users className="h-5 w-5" />
-                          </div>
-                          <div>
-                            <h4 className="font-medium">Team Coordination</h4>
-                            <p className="text-sm text-gray-600">Coordinate with care team members</p>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+                  <CardDescription>
+                    A three-step approach blending self-paced learning, hands-on experience, and career development
+                  </CardDescription>
+                </CardHeader>
+                {isTrainingExpanded && (
+                  <CardContent>
+                    <div className="space-y-8">
+                      {/* Training Progress is now inside the expandable section */}
+                      <TrainingProgressTracker />
+                      <TrainingProgramSection />
+                      <TrainingModulesSection />
+                    </div>
+                  </CardContent>
+                )}
+              </Card>
+            </div>
           </TabsContent>
         </Tabs>
       </div>

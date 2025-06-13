@@ -10,6 +10,7 @@ import { Link } from "react-router-dom";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { TechInnovatorsHub } from "@/components/features/TechInnovatorsHub";
 import { CommunityShortcutMenuBar } from "@/components/community/CommunityShortcutMenuBar";
+import { CommunityProfileHeaderSection } from "@/components/community/CommunityProfileHeaderSection";
 
 const CommunityDashboard = () => {
   const { user } = useAuth();
@@ -45,10 +46,22 @@ const CommunityDashboard = () => {
       <div className="container px-4 py-8">
         <DashboardHeader breadcrumbItems={breadcrumbItems} />
 
+        {/* Community Profile Header */}
+        {user && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            className="mb-8"
+          >
+            <CommunityProfileHeaderSection />
+          </motion.div>
+        )}
+
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
+          transition={{ duration: 0.5, delay: 0.1 }}
           className="space-y-6"
         >
           {!user ? (
