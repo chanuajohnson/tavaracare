@@ -1,210 +1,559 @@
-
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
+import { useSearchParams } from "react-router-dom";
 import { useAuth } from "@/components/providers/AuthProvider";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/lib/supabase";
-import { User, FileText, Settings, Users, Award, ChevronDown, ChevronUp } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { TrainingProgramSection } from "./TrainingProgramSection";
-import { TrainingModulesSection } from "./TrainingModulesSection";
-import { TrainingProgressTracker } from "./TrainingProgressTracker";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
+import { TrainingProgramSection } from "@/components/professional/TrainingProgramSection";
+import { TrainingModulesSection } from "@/components/professional/TrainingModulesSection";
+import { TrainingProgressTracker } from "@/components/professional/TrainingProgressTracker";
+import { ProfileHeaderSection } from "@/components/professional/profile/ProfileHeaderSection";
+import { CarePlanSelector } from "@/components/professional/profile/CarePlanSelector";
+import { AdminAssistantCard } from "@/components/professional/profile/AdminAssistantCard";
+import { ActionCardsGrid } from "@/components/professional/profile/ActionCardsGrid";
+import { CarePlanTabs } from "@/components/professional/profile/CarePlanTabs";
+import { CertificateUpload } from "@/components/professional/CertificateUpload";
+import { HorizontalScrollTabs } from "@/components/ui/horizontal-scroll-tabs";
+import { Award, FileText, Shield } from "lucide-react";
+import { toast } from "sonner";
 
-export const ProfessionalProfileHub = () => {
+// Types for the data structures
+interface ProfessionalDetails {
+  full_name: string;
+  professional_type: string;
+  avatar_url: string | null;
+}
+
+interface CareTeamAssignment {
+  id: string;
+  care_plan_id: string;
+  family_id: string;
+  role: string;
+  status: string;
+  notes: string;
+  created_at: string;
+  care_plans?: {
+    id: string;
+    title: string;
+    description: string;
+    status: string;
+    family_id: string;
+    profiles?: {
+      id: string;
+      full_name: string;
+      avatar_url: string | null;
+      phone_number: string;
+    };
+  };
+}
+
+interface CarePlanAssignment {
+  id: string;
+  carePlanId: string;
+  familyId: string;
+  role: string;
+  status: string;
+  notes: string;
+  createdAt: string;
+  carePlan?: {
+    id: string;
+    title: string;
+    description: string;
+    status: string;
+    familyId: string;
+    familyProfile?: {
+      id: string;
+      fullName: string;
+      avatarUrl: string | null;
+      phoneNumber: string;
+    };
+  };
+}
+
+interface CareTeamMember {
+  id: string;
+  carePlanId: string;
+  caregiverId: string;
+  role: string;
+  status: string;
+  professionalDetails?: ProfessionalDetails;
+}
+
+const ProfessionalProfileHub = () => {
   const { user } = useAuth();
-  const [profileData, setProfileData] = useState<any>(null);
+  const [searchParams] = useSearchParams();
+  const [profile, setProfile] = useState<any>(null);
+  const [carePlanAssignments, setCarePlanAssignments] = useState<CarePlanAssignment[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState("overview");
+  const [selectedCarePlanId, setSelectedCarePlanId] = useState<string | null>(null);
+  const [careTeamMembers, setCareTeamMembers] = useState<CareTeamMember[]>([]);
   const [isTrainingExpanded, setIsTrainingExpanded] = useState(false);
+  
+  // Get initial tab from URL params, default to "documents" for users with no care plans, "schedule" for others
+  const tabFromUrl = searchParams.get('tab');
+  const hasCarePlans = carePlanAssignments.length > 0;
+  const defaultTab = hasCarePlans ? "schedule" : "documents";
+  const [activeTab, setActiveTab] = useState(tabFromUrl || defaultTab);
 
-  // Check URL params for tab
+  // Update active tab when URL changes or care plan status changes
   useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const tab = urlParams.get('tab');
-    if (tab) {
-      setActiveTab(tab);
+    const urlTab = searchParams.get('tab');
+    if (urlTab && urlTab !== activeTab) {
+      setActiveTab(urlTab);
+    } else if (!urlTab) {
+      // Set default tab based on care plan status
+      const newDefaultTab = hasCarePlans ? "schedule" : "documents";
+      if (activeTab !== newDefaultTab) {
+        setActiveTab(newDefaultTab);
+      }
     }
-  }, []);
+  }, [searchParams, hasCarePlans]);
+
+  const breadcrumbItems = [
+    { label: "Professional Dashboard", path: "/dashboard/professional" },
+    { label: "Profile Hub", path: "/professional/profile" },
+  ];
 
   useEffect(() => {
     if (user) {
-      fetchProfileData();
+      Promise.all([
+        fetchProfessionalProfile(),
+        fetchCarePlanAssignments()
+      ]).finally(() => {
+        setLoading(false);
+      });
     }
   }, [user]);
 
-  const fetchProfileData = async () => {
+  // Set default selected care plan when assignments are loaded
+  useEffect(() => {
+    if (carePlanAssignments.length > 0 && !selectedCarePlanId) {
+      const firstActivePlan = carePlanAssignments.find(assignment => 
+        assignment.status === 'active' && assignment.carePlan?.status === 'active'
+      );
+      if (firstActivePlan) {
+        setSelectedCarePlanId(firstActivePlan.carePlanId);
+      }
+    }
+  }, [carePlanAssignments, selectedCarePlanId]);
+
+  // Fetch care team members when selected care plan changes
+  useEffect(() => {
+    if (selectedCarePlanId) {
+      fetchCareTeamMembers(selectedCarePlanId);
+    }
+  }, [selectedCarePlanId]);
+
+  // Update active tab when URL changes
+  useEffect(() => {
+    const urlTab = searchParams.get('tab');
+    if (urlTab && urlTab !== activeTab) {
+      setActiveTab(urlTab);
+    }
+  }, [searchParams]);
+
+  const fetchProfessionalProfile = async () => {
     try {
-      setLoading(true);
-      
-      const { data: profile } = await supabase
+      console.log("Fetching professional profile for user:", user?.id);
+      const { data, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', user?.id)
-        .maybeSingle();
+        .single();
 
-      setProfileData(profile);
+      if (error) {
+        console.error("Error fetching profile:", error);
+        toast.error("Failed to load profile");
+        return;
+      }
+
+      console.log("Professional profile data:", data);
+      setProfile(data);
     } catch (error) {
-      console.error("Error fetching profile data:", error);
-    } finally {
-      setLoading(false);
+      console.error("Error in fetchProfessionalProfile:", error);
+      toast.error("Failed to load profile");
     }
+  };
+
+  const fetchCarePlanAssignments = async () => {
+    try {
+      console.log("Fetching care plan assignments for professional:", user?.id);
+      
+      // First, get all care team assignments for this professional
+      const { data: rawAssignments, error: assignmentsError } = await supabase
+        .from('care_team_members')
+        .select('*')
+        .eq('caregiver_id', user?.id);
+
+      if (assignmentsError) {
+        throw assignmentsError;
+      }
+
+      console.log("Raw care team assignments:", rawAssignments);
+      console.log("Total care team assignments found:", rawAssignments?.length || 0);
+
+      if (!rawAssignments || rawAssignments.length === 0) {
+        console.log("No care team assignments found for professional");
+        setCarePlanAssignments([]);
+        return;
+      }
+
+      // Extract unique care plan IDs
+      const carePlanIds = [...new Set(rawAssignments.map(assignment => assignment.care_plan_id))];
+      console.log("Care plan IDs to fetch:", carePlanIds);
+      console.log("Number of care plan IDs to fetch:", carePlanIds.length);
+
+      // Fetch care plan details
+      const { data: carePlansData, error: carePlansError } = await supabase
+        .from('care_plans')
+        .select('*')
+        .in('id', carePlanIds);
+
+      if (carePlansError) {
+        throw carePlansError;
+      }
+
+      console.log("Raw care plans data:", carePlansData);
+      console.log("Number of care plans retrieved:", carePlansData?.length || 0);
+
+      // Extract unique family IDs from care plans
+      const familyIds = [...new Set(carePlansData?.map(plan => plan.family_id) || [])];
+      console.log("Family IDs to fetch:", familyIds);
+
+      // Fetch family profiles
+      const { data: familyProfilesData, error: familyProfilesError } = await supabase
+        .from('profiles')
+        .select('id, full_name, avatar_url, phone_number')
+        .in('id', familyIds);
+
+      if (familyProfilesError) {
+        throw familyProfilesError;
+      }
+
+      console.log("Raw family profiles data:", familyProfilesData);
+
+      // Transform the data to match our expected structure
+      const transformedAssignments: CarePlanAssignment[] = rawAssignments.map(assignment => {
+        const carePlan = carePlansData?.find(plan => plan.id === assignment.care_plan_id);
+        const familyProfile = familyProfilesData?.find(profile => profile.id === carePlan?.family_id);
+
+        return {
+          id: assignment.id,
+          carePlanId: assignment.care_plan_id,
+          familyId: assignment.family_id,
+          role: assignment.role,
+          status: assignment.status,
+          notes: assignment.notes || '',
+          createdAt: assignment.created_at,
+          carePlan: carePlan ? {
+            id: carePlan.id,
+            title: carePlan.title,
+            description: carePlan.description,
+            status: carePlan.status,
+            familyId: carePlan.family_id,
+            familyProfile: familyProfile ? {
+              id: familyProfile.id,
+              fullName: familyProfile.full_name,
+              avatarUrl: familyProfile.avatar_url,
+              phoneNumber: familyProfile.phone_number
+            } : undefined
+          } : undefined
+        };
+      });
+
+      console.log("Transformed care plans:", transformedAssignments);
+      console.log("Number of transformed care plans:", transformedAssignments.length);
+      
+      setCarePlanAssignments(transformedAssignments);
+    } catch (error) {
+      console.error("Error fetching care plan assignments:", error);
+      toast.error("Failed to load care plan assignments");
+    }
+  };
+
+  const fetchCareTeamMembers = async (carePlanId: string) => {
+    try {
+      console.log("Fetching team members for care plan:", carePlanId);
+      
+      const { data, error } = await supabase
+        .from('care_team_members')
+        .select(`
+          id,
+          care_plan_id,
+          caregiver_id,
+          role,
+          status,
+          profiles:profiles!care_team_members_caregiver_id_fkey(
+            full_name,
+            professional_type,
+            avatar_url
+          )
+        `)
+        .eq('care_plan_id', carePlanId)
+        .eq('status', 'active');
+
+      if (error) {
+        throw error;
+      }
+
+      console.log("Team members for plan", carePlanId + ":", data);
+      console.log("Number of team members for plan", carePlanId + ":", data?.length || 0);
+
+      // Transform to expected structure
+      const transformedMembers: CareTeamMember[] = (data || []).map(member => ({
+        id: member.id,
+        carePlanId: member.care_plan_id,
+        caregiverId: member.caregiver_id,
+        role: member.role,
+        status: member.status,
+        professionalDetails: member.profiles ? {
+          full_name: member.profiles.full_name,
+          professional_type: member.profiles.professional_type,
+          avatar_url: member.profiles.avatar_url
+        } : undefined
+      }));
+
+      setCareTeamMembers(transformedMembers);
+    } catch (error) {
+      console.error("Error fetching care team members:", error);
+      toast.error("Failed to load care team members");
+    }
+  };
+
+  const getInitials = (name: string) => {
+    if (!name) return "?";
+    return name.split(' ')
+      .filter(part => part.length > 0)
+      .map(n => n[0])
+      .join('')
+      .toUpperCase();
+  };
+
+  const getProfessionalTypeLabel = (type: string) => {
+    const typeMap: Record<string, string> = {
+      'cna': 'Certified Nursing Assistant',
+      'lpn': 'Licensed Practical Nurse',
+      'rn': 'Registered Nurse',
+      'gapp': 'General Adult Patient Provider',
+      'companion': 'Companion Caregiver',
+      'home_health_aide': 'Home Health Aide',
+      'other': 'Care Professional'
+    };
+    return typeMap[type] || 'Care Professional';
+  };
+
+  const selectedCarePlan = carePlanAssignments.find(assignment => assignment.carePlanId === selectedCarePlanId);
+
+  const handleCertificateUploadSuccess = () => {
+    toast.success("Document uploaded successfully! Redirecting to documents tab...");
+    setActiveTab("documents");
+  };
+
+  // Render simplified tabs for users with no care plans
+  const renderNoCarePlanTabs = () => {
+    const tabs = [
+      {
+        id: "documents",
+        label: "Documents",
+        icon: <FileText className="h-4 w-4" />,
+      },
+      {
+        id: "admin-assistant",
+        label: "Admin Assistant", 
+        icon: <Shield className="h-4 w-4" />,
+      },
+    ];
+
+    return (
+      <Card>
+        <CardContent className="p-0">
+          <HorizontalScrollTabs
+            tabs={tabs}
+            activeTab={activeTab}
+            onTabChange={setActiveTab}
+          />
+          <div className="p-6">
+            {activeTab === "documents" && (
+              <div className="space-y-6">
+                <div className="text-center space-y-2">
+                  <h3 className="text-lg font-semibold">Upload Your Professional Documents</h3>
+                  <p className="text-muted-foreground">
+                    Complete your profile by uploading your certifications and required documents to get matched with care opportunities.
+                  </p>
+                </div>
+                <CertificateUpload onUploadSuccess={handleCertificateUploadSuccess} />
+              </div>
+            )}
+            
+            {activeTab === "admin-assistant" && (
+              <div className="space-y-6">
+                <div className="text-center space-y-2">
+                  <h3 className="text-lg font-semibold flex items-center justify-center gap-2">
+                    <Shield className="h-5 w-5 text-primary" />
+                    Administrative Assistance
+                  </h3>
+                  <p className="text-muted-foreground">
+                    Tools and resources to help with administrative tasks
+                  </p>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <Card>
+                    <CardContent className="pt-6">
+                      <div className="flex items-center gap-3">
+                        <div className="bg-primary/10 p-3 rounded-full">
+                          <FileText className="h-6 w-6 text-primary" />
+                        </div>
+                        <div>
+                          <h3 className="font-medium">Care Plan Documentation</h3>
+                          <p className="text-sm text-muted-foreground">Generate care reports</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                  
+                  <Card>
+                    <CardContent className="pt-6">
+                      <div className="flex items-center gap-3">
+                        <div className="bg-primary/10 p-3 rounded-full">
+                          <Shield className="h-6 w-6 text-primary" />
+                        </div>
+                        <div>
+                          <h3 className="font-medium">Compliance Tracking</h3>
+                          <p className="text-sm text-muted-foreground">Monitor compliance status</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardContent className="pt-6">
+                      <div className="flex items-center gap-3">
+                        <div className="bg-primary/10 p-3 rounded-full">
+                          <Shield className="h-6 w-6 text-primary" />
+                        </div>
+                        <div>
+                          <h3 className="font-medium">Task Management</h3>
+                          <p className="text-sm text-muted-foreground">Organize admin tasks</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+    );
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      <div className="min-h-screen bg-background">
+        <div className="container px-4 py-8">
+          <DashboardHeader breadcrumbItems={breadcrumbItems} />
+          <div className="flex items-center justify-center min-h-[400px]">
+            <div className="animate-pulse space-y-4">
+              <div className="h-8 bg-gray-200 rounded w-64"></div>
+              <div className="h-4 bg-gray-200 rounded w-48"></div>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background">
       <div className="container px-4 py-8">
+        <DashboardHeader breadcrumbItems={breadcrumbItems} />
+
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
-          className="mb-8"
+          className="space-y-6"
         >
-          <h1 className="text-3xl font-bold text-gray-900">Professional Profile Hub</h1>
-          <p className="text-gray-600 mt-2">Manage your professional profile and access resources</p>
-        </motion.div>
+          {/* Profile Header Section */}
+          <ProfileHeaderSection 
+            profile={profile} 
+            user={user} 
+            carePlanAssignments={carePlanAssignments} 
+          />
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="overview" className="flex items-center gap-2">
-              <User className="h-4 w-4" />
-              Overview
-            </TabsTrigger>
-            <TabsTrigger value="documents" className="flex items-center gap-2">
-              <FileText className="h-4 w-4" />
-              Documents
-            </TabsTrigger>
-            <TabsTrigger value="settings" className="flex items-center gap-2">
-              <Settings className="h-4 w-4" />
-              Settings
-            </TabsTrigger>
-            <TabsTrigger value="admin-assistant" className="flex items-center gap-2">
-              <Users className="h-4 w-4" />
-              Admin Assistant
-            </TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="overview" className="mt-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Profile Overview</CardTitle>
-                <CardDescription>
-                  Your professional profile information
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div>
-                    <label className="text-sm font-medium text-gray-500">Full Name</label>
-                    <p className="text-lg">{profileData?.full_name || "Not provided"}</p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-500">Professional Type</label>
-                    <p className="text-lg">{profileData?.professional_type || "Not specified"}</p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-500">Years of Experience</label>
-                    <p className="text-lg">{profileData?.years_of_experience || "Not specified"}</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-          
-          <TabsContent value="documents" className="mt-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Professional Documents</CardTitle>
-                <CardDescription>
-                  Manage your certifications and professional documents
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="text-gray-600">Document management coming soon...</p>
-              </CardContent>
-            </Card>
-          </TabsContent>
-          
-          <TabsContent value="settings" className="mt-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Profile Settings</CardTitle>
-                <CardDescription>
-                  Configure your professional profile settings
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="text-gray-600">Settings management coming soon...</p>
-              </CardContent>
-            </Card>
-          </TabsContent>
-          
-          <TabsContent value="admin-assistant" className="mt-6">
-            <div className="space-y-6">
+          {/* Conditional rendering based on care plan assignments */}
+          {hasCarePlans ? (
+            <>
+              {/* Care Plan Selection - only for users with care plans */}
+              <CarePlanSelector 
+                carePlanAssignments={carePlanAssignments}
+                selectedCarePlanId={selectedCarePlanId}
+                onSelectCarePlan={setSelectedCarePlanId}
+              />
+
+              {/* Tabs for Different Views - only for users with care plans */}
+              {selectedCarePlanId && (
+                <CarePlanTabs 
+                  activeTab={activeTab}
+                  onTabChange={setActiveTab}
+                  selectedCarePlanId={selectedCarePlanId}
+                  selectedCarePlan={selectedCarePlan}
+                  loading={loading}
+                  onCertificateUploadSuccess={handleCertificateUploadSuccess}
+                />
+              )}
+
+              {/* Admin Assistant Card - Full Width - only for users with care plans */}
+              <AdminAssistantCard />
+            </>
+          ) : (
+            <>
+              {/* Simplified tabs for users with no care plans */}
+              {renderNoCarePlanTabs()}
+            </>
+          )}
+
+          {/* Action Cards */}
+          <ActionCardsGrid 
+            isTrainingExpanded={isTrainingExpanded}
+            onToggleTraining={() => setIsTrainingExpanded(!isTrainingExpanded)}
+          />
+
+          {/* Training Content - Expandable Section with Training Progress */}
+          {isTrainingExpanded && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.3 }}
+              className="overflow-hidden"
+            >
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    <Users className="h-5 w-5" />
-                    Admin Assistant
+                    <Award className="h-5 w-5 text-primary-600" />
+                    Comprehensive Training Program
                   </CardTitle>
-                  <CardDescription>
-                    Access administrative tools and training resources
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-gray-600 mb-4">
-                    Get help with platform features, access training materials, and administrative tools.
-                  </p>
-                </CardContent>
-              </Card>
-
-              {/* Collapsible Training Section with Training Progress */}
-              <Card className="cursor-pointer" onClick={() => setIsTrainingExpanded(!isTrainingExpanded)}>
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Award className="h-5 w-5 text-primary-600" />
-                      <CardTitle>Comprehensive Training Program</CardTitle>
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="p-1 h-8 w-8"
-                    >
-                      {isTrainingExpanded ? (
-                        <ChevronUp className="h-4 w-4" />
-                      ) : (
-                        <ChevronDown className="h-4 w-4" />
-                      )}
-                    </Button>
-                  </div>
                   <CardDescription>
                     A three-step approach blending self-paced learning, hands-on experience, and career development
                   </CardDescription>
                 </CardHeader>
-                {isTrainingExpanded && (
-                  <CardContent>
-                    <div className="space-y-8">
-                      {/* Training Progress is now inside the expandable section */}
-                      <TrainingProgressTracker />
-                      <TrainingProgramSection />
-                      <TrainingModulesSection />
-                    </div>
-                  </CardContent>
-                )}
+                <CardContent>
+                  <div className="space-y-8">
+                    {/* Training Progress Tracker - Now inside the expandable section */}
+                    <TrainingProgressTracker />
+                    <TrainingProgramSection />
+                    <TrainingModulesSection />
+                  </div>
+                </CardContent>
               </Card>
-            </div>
-          </TabsContent>
-        </Tabs>
+            </motion.div>
+          )}
+        </motion.div>
       </div>
     </div>
   );
 };
+
+export default ProfessionalProfileHub;
