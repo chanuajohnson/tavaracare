@@ -202,11 +202,12 @@ export const Footer: React.FC = () => {
         </div>
       </footer>
 
-      {/* Feedback Form Modal */}
-      <FeedbackForm 
-        isOpen={isFeedbackFormOpen}
-        onClose={() => setIsFeedbackFormOpen(false)}
-      />
+      {/* Feedback Form Modal - Only render when open */}
+      {isFeedbackFormOpen && (
+        <FeedbackForm 
+          onClose={() => setIsFeedbackFormOpen(false)}
+        />
+      )}
     </>
   );
 };
