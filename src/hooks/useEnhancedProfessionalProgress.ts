@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { supabase } from '@/lib/supabase';
@@ -111,6 +110,11 @@ export const useEnhancedProfessionalProgress = (): ProfessionalProgressData => {
     }
   };
 
+  const handleDemoStepAction = () => {
+    // For non-logged-in users, redirect to auth page
+    navigate('/auth');
+  };
+
   const getButtonText = (step: ProfessionalStep) => {
     if (step.completed) {
       switch (step.id) {
@@ -195,6 +199,54 @@ export const useEnhancedProfessionalProgress = (): ProfessionalProgressData => {
       isInteractive: false
     }
   ];
+
+  // Generate demo data for non-logged-in users
+  const generateDemoData = () => {
+    const demoSteps: ProfessionalStep[] = baseSteps.map(baseStep => {
+      let completed = false;
+
+      // Set demo completion status - first 2 steps completed
+      switch (baseStep.id) {
+        case 1: // Account creation
+          completed = true;
+          break;
+        case 2: // Professional profile
+          completed = true;
+          break;
+        case 3: // Documents upload - this will be the "next" step
+        case 4: // Availability
+        case 5: // Training modules
+        case 6: // Assignments
+        default:
+          completed = false;
+          break;
+      }
+
+      return {
+        ...baseStep,
+        completed,
+        action: handleDemoStepAction, // All demo actions redirect to auth
+        buttonText: getButtonText({ ...baseStep, completed, action: () => {}, buttonText: '' })
+      };
+    });
+
+    // Calculate demo stage completion
+    const demoStages = currentStages.map(stage => {
+      const stageSteps = demoSteps.filter(step => step.stage === stage.id);
+      const completedStageSteps = stageSteps.filter(step => step.completed);
+      const completionPercentage = stageSteps.length > 0 ? 
+        Math.round((completedStageSteps.length / stageSteps.length) * 100) : 0;
+      
+      return {
+        ...stage,
+        completionPercentage,
+        isCompleted: completionPercentage === 100,
+        isActive: completionPercentage > 0 && completionPercentage < 100
+      };
+    });
+
+    return { steps: demoSteps, stages: demoStages };
+  };
 
   const checkStepCompletion = async () => {
     if (!user) return { steps: [], stages: currentStages };
@@ -284,13 +336,29 @@ export const useEnhancedProfessionalProgress = (): ProfessionalProgressData => {
   const [steps, setSteps] = useState<ProfessionalStep[]>([]);
 
   const refreshProgress = async () => {
+    if (!user) {
+      // For non-logged-in users, provide demo data immediately
+      const { steps: demoSteps, stages: demoStages } = generateDemoData();
+      setSteps(demoSteps);
+      setCurrentStages(demoStages);
+      setLoading(false);
+      return;
+    }
+
     const { steps: newSteps, stages: newStages } = await checkStepCompletion();
     setSteps(newSteps);
     setCurrentStages(newStages);
   };
 
   useEffect(() => {
-    if (user) {
+    if (!user) {
+      // For non-logged-in users, provide demo data immediately
+      const { steps: demoSteps, stages: demoStages } = generateDemoData();
+      setSteps(demoSteps);
+      setCurrentStages(demoStages);
+      setLoading(false);
+    } else {
+      // For logged-in users, fetch real data
       refreshProgress();
     }
   }, [user]);
