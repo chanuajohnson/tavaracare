@@ -4,10 +4,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Edit, Phone, Mail, MapPin, User, Heart, Briefcase, Users } from "lucide-react";
+import { Edit, Phone, Mail, MapPin, User, Heart, Briefcase, Users, Save, X } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { profileService } from "@/services/profileService";
+import { Textarea } from "@/components/ui/textarea";
 import type { Profile } from "@/types/profile";
 import type { UserRole } from "@/types/userRoles";
 
@@ -25,6 +26,9 @@ export const ProfileHeaderSection = ({
   const { user } = useAuth();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isEditingBio, setIsEditingBio] = useState(false);
+  const [bioText, setBioText] = useState("");
+  const [isSavingBio, setIsSavingBio] = useState(false);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -36,6 +40,7 @@ export const ProfileHeaderSection = ({
       try {
         const profileData = await profileService.getProfile(user.id);
         setProfile(profileData);
+        setBioText(profileData?.bio || "");
       } catch (error) {
         console.error("Error fetching profile:", error);
       } finally {
@@ -45,6 +50,29 @@ export const ProfileHeaderSection = ({
 
     fetchProfile();
   }, [user?.id]);
+
+  const handleSaveBio = async () => {
+    if (!user?.id || !profile) return;
+    
+    setIsSavingBio(true);
+    try {
+      const updatedProfile = await profileService.saveProfile({
+        ...profile,
+        bio: bioText
+      });
+      setProfile(updatedProfile);
+      setIsEditingBio(false);
+    } catch (error) {
+      console.error("Error saving bio:", error);
+    } finally {
+      setIsSavingBio(false);
+    }
+  };
+
+  const handleCancelBio = () => {
+    setBioText(profile?.bio || "");
+    setIsEditingBio(false);
+  };
 
   if (!user || isLoading) {
     return null;
@@ -209,6 +237,67 @@ export const ProfileHeaderSection = ({
             </div>
           </div>
         </div>
+
+        {/* Bio Section - Only for Admin Users */}
+        {role === 'admin' && (
+          <div className="mt-6 pt-4 border-t border-gray-200">
+            <div className="flex items-center justify-between mb-3">
+              <h4 className="font-medium text-gray-900">About</h4>
+              {!isEditingBio && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setIsEditingBio(true)}
+                  className="gap-2"
+                >
+                  <Edit className="h-4 w-4" />
+                  Edit Bio
+                </Button>
+              )}
+            </div>
+            
+            {isEditingBio ? (
+              <div className="space-y-3">
+                <Textarea
+                  value={bioText}
+                  onChange={(e) => setBioText(e.target.value)}
+                  placeholder="Share your background, experience, and role at Tavara Care..."
+                  className="min-h-[100px]"
+                />
+                <div className="flex gap-2">
+                  <Button
+                    onClick={handleSaveBio}
+                    disabled={isSavingBio}
+                    size="sm"
+                    className="gap-2"
+                  >
+                    <Save className="h-4 w-4" />
+                    {isSavingBio ? 'Saving...' : 'Save'}
+                  </Button>
+                  <Button
+                    onClick={handleCancelBio}
+                    variant="outline"
+                    size="sm"
+                    className="gap-2"
+                  >
+                    <X className="h-4 w-4" />
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="prose max-w-none">
+                {profile?.bio ? (
+                  <p className="text-gray-700 leading-relaxed">{profile.bio}</p>
+                ) : (
+                  <p className="text-gray-500 italic">
+                    No bio added yet. Click "Edit Bio" to add your background and experience.
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+        )}
       </CardContent>
     </Card>
   );
