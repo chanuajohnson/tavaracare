@@ -17,7 +17,7 @@ import ResetPasswordConfirm from '@/pages/auth/reset-password/ResetPasswordConfi
 
 // Dashboard pages
 import FamilyDashboard from '@/pages/dashboards/FamilyDashboard';
-import ProfessionalDashboard from '@/pages/dashboards/ProfessionalDashboard';
+import ProfessionalDashboard from '@/pages/dashboard/ProfessionalDashboard';
 import CommunityDashboard from '@/pages/dashboards/CommunityDashboard';
 
 // Admin pages
