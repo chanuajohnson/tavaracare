@@ -1,4 +1,3 @@
-
 import React from 'react';
 
 const PrivacyPolicyPage: React.FC = () => {
@@ -84,7 +83,7 @@ const PrivacyPolicyPage: React.FC = () => {
                   <li>Opt out of non-essential communications</li>
                 </ul>
                 <p className="text-gray-700 mt-4">
-                  Email us at <a href="mailto:TavaraCare@gmail.com" className="text-primary-600 hover:text-primary-700 underline">TavaraCare@gmail.com</a> to exercise these rights.
+                  Email us at <a href="mailto:admin@tavara.care" className="text-primary-600 hover:text-primary-700 underline">admin@tavara.care</a> to exercise these rights.
                 </p>
               </div>
             </div>
@@ -232,7 +231,7 @@ const PrivacyPolicyPage: React.FC = () => {
             <p className="text-gray-700 mb-4">We're here to talk.</p>
             <div className="space-y-2">
               <p className="text-gray-700">
-                📧 Email: <a href="mailto:TavaraCare@gmail.com" className="text-primary-600 hover:text-primary-700 underline">TavaraCare@gmail.com</a>
+                📧 Email: <a href="mailto:admin@tavara.care" className="text-primary-600 hover:text-primary-700 underline">admin@tavara.care</a>
               </p>
               <p className="text-gray-700">📍 Port of Spain, Trinidad & Tobago</p>
             </div>

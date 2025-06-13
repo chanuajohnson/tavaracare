@@ -105,10 +105,10 @@ export const Footer: React.FC = () => {
               <div className="flex items-center gap-3">
                 <Mail className="h-5 w-5 text-primary-400 flex-shrink-0" />
                 <a 
-                  href="mailto:TavaraCare@gmail.com" 
+                  href="mailto:admin@tavara.care" 
                   className="text-gray-300 hover:text-primary-400 transition-colors"
                 >
-                  TavaraCare@gmail.com
+                  admin@tavara.care
                 </a>
               </div>
               <div className="flex items-center gap-3">
