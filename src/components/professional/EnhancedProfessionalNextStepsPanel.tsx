@@ -208,29 +208,6 @@ export const EnhancedProfessionalNextStepsPanel = () => {
           )}
         </CardContent>
       </Card>
-
-      {/* Quick Actions */}
-      {nextStep && (
-        <Card className="bg-gradient-to-r from-primary-50 to-blue-50 border-primary-200">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h4 className="font-medium text-primary-800">Ready to continue?</h4>
-                <p className="text-sm text-primary-600 mt-1">
-                  Complete "{nextStep.title}" to advance your professional journey
-                </p>
-              </div>
-              <Button 
-                onClick={nextStep.action}
-                className="bg-primary hover:bg-primary-600 text-white"
-              >
-                Continue Journey
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
     </motion.div>
   );
 };
