@@ -3,19 +3,35 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { Facebook, Instagram, Youtube, Mail, Phone, MapPin } from 'lucide-react';
 import { useFeedbackForm } from '@/hooks/useFeedbackForm';
-import { useChat } from '@/components/chatbot/ChatProvider';
 import { FeedbackForm } from '@/components/ui/feedback-form';
 
 export const Footer: React.FC = () => {
   const { isFeedbackFormOpen, setIsFeedbackFormOpen } = useFeedbackForm();
-  const { openFullScreenChat } = useChat();
+  
+  // Safely try to use the chat context with error handling
+  let openFullScreenChat: (() => void) | null = null;
+  
+  try {
+    const { useChat } = require('@/components/chatbot/ChatProvider');
+    const chatContext = useChat();
+    openFullScreenChat = chatContext.openFullScreenChat;
+  } catch (error) {
+    console.warn('ChatProvider not available in Footer component');
+    openFullScreenChat = null;
+  }
 
   const handleFeedbackClick = () => {
     setIsFeedbackFormOpen(true);
   };
 
   const handleTAVChatClick = () => {
-    openFullScreenChat();
+    if (openFullScreenChat) {
+      openFullScreenChat();
+    } else {
+      // Fallback: redirect to a chat page or show a message
+      console.warn('Chat functionality not available');
+      // Could redirect to a dedicated chat page or show a toast message
+    }
   };
 
   return (
