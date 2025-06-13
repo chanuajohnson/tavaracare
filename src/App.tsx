@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { SessionContextProvider } from '@supabase/auth-helpers-react'
+import { SessionContextProvider } from '@supabase/auth-helpers-react';
 import { supabase } from '@/integrations/supabase/client';
 import { AppProviders } from '@/components/providers/AppProviders';
 import { AppRoutes } from '@/components/routing/AppRoutes';

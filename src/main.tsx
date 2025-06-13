@@ -4,11 +4,23 @@ import { createRoot } from 'react-dom/client';
 import App from './App.tsx';
 import './index.css';
 
-// Set a flag to indicate React is initialized
-// This helps prevent errors with forwardRef being used before React is ready
-if (window.React === undefined) {
+// Ensure React is properly available globally before any components render
+if (typeof window !== 'undefined') {
   window.React = React;
+  window.reactInitialized = true;
 }
-window.reactInitialized = true;
 
-createRoot(document.getElementById("root")!).render(<App />);
+// Get the root element
+const rootElement = document.getElementById("root");
+
+if (!rootElement) {
+  throw new Error("Root element not found");
+}
+
+// Create and render the app
+const root = createRoot(rootElement);
+root.render(
+  <React.StrictMode>
+    <App />
+  </React.StrictMode>
+);
