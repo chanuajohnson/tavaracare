@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Facebook, Instagram, Youtube, Mail, Phone, MapPin } from 'lucide-react';
@@ -26,7 +27,7 @@ export const Footer: React.FC = () => {
           <div className="lg:col-span-2">
             <h3 className="text-2xl font-bold mb-4 text-primary-400">Tavara Care</h3>
             <p className="text-lg mb-4 text-primary-200 font-medium">
-              Compassionately designed. Intelligently supported.
+              It takes a village to care
             </p>
             <p className="text-gray-300 leading-relaxed">
               Your trusted platform for coordinated care, caregiver well-being, and connected 

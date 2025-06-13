@@ -1,4 +1,3 @@
-
 import React from 'react';
 
 const PrivacyPolicyPage: React.FC = () => {
@@ -187,12 +186,14 @@ const PrivacyPolicyPage: React.FC = () => {
                   Where We Use AI
                 </h3>
                 <ul className="list-disc list-inside space-y-2 text-gray-700 ml-4">
+                  <li>TAV, our AI-powered assistant, helps guide users through onboarding, support questions, and care coordination flows. TAV is designed to feel human, compassionate, and warm—offering assistance while keeping your experience smooth and respectful.</li>
                   <li>Some imagery on our site is AI-generated for illustrative or educational purposes</li>
                   <li>Certain messages (like chatbot replies or support answers) are created with the help of AI tools</li>
                   <li>Our onboarding and care matching flows may use AI to assist, not replace, human care</li>
                 </ul>
               </div>
 
+              {/* Our Human Commitment */}
               <div className="mt-8">
                 <h3 className="text-xl font-semibold text-gray-900 mb-4 flex items-center">
                   <span className="mr-3">🙋</span>
@@ -205,6 +206,7 @@ const PrivacyPolicyPage: React.FC = () => {
                 </ul>
               </div>
 
+              {/* Bios, Illustrations & Content */}
               <div className="mt-8">
                 <h3 className="text-xl font-semibold text-gray-900 mb-4 flex items-center">
                   <span className="mr-3">🧬</span>
