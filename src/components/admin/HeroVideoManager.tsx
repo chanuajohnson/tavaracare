@@ -96,7 +96,11 @@ export const HeroVideoManager: React.FC = () => {
         toast.error('Failed to load uploaded videos');
       }
 
-      const databaseVideos: DatabaseVideo[] = dbVideos || [];
+      // Map database videos to include the type property
+      const databaseVideos: DatabaseVideo[] = (dbVideos || []).map(video => ({
+        ...video,
+        type: 'database' as const
+      }));
       
       // Combine and sort all videos
       const allVideos: VideoItem[] = [
@@ -216,7 +220,8 @@ export const HeroVideoManager: React.FC = () => {
     if (video.type === 'static') {
       return video.path;
     } else {
-      return `${supabase.supabaseUrl}/storage/v1/object/public/hero-videos/${video.file_path}`;
+      // Use the hardcoded Supabase URL since supabaseUrl is protected
+      return `https://cpdfmyemjrefnhddyrck.supabase.co/storage/v1/object/public/hero-videos/${video.file_path}`;
     }
   };
 
