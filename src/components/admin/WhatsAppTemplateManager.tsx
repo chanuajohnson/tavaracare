@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -30,6 +31,7 @@ interface TemplateFormData {
   message_type: 'whatsapp' | 'email' | 'both';
 }
 
+// Filter out any empty strings and ensure all stages are valid
 const TEMPLATE_STAGES = [
   'welcome',
   'step_1',
@@ -41,7 +43,7 @@ const TEMPLATE_STAGES = [
   'stalled',
   'financial_proposal',
   'custom'
-];
+].filter(stage => stage && stage.trim() !== '');
 
 const SAMPLE_USER_DATA = {
   family: {
@@ -95,19 +97,33 @@ export function WhatsAppTemplateManager() {
 
       if (error) throw error;
       
-      // Type the response properly to match our interface
-      const typedTemplates = (data || []).map(item => ({
-        id: item.id,
-        name: item.name,
-        role: item.role as 'family' | 'professional' | 'community',
-        stage: item.stage,
-        message_template: item.message_template,
-        message_type: item.message_type as 'whatsapp' | 'email' | 'both',
-        created_at: item.created_at,
-        updated_at: item.updated_at
-      }));
+      // Filter out any templates with empty or invalid data
+      const validTemplates = (data || [])
+        .filter(item => 
+          item.id && 
+          item.name && 
+          item.role && 
+          item.stage && 
+          item.message_template &&
+          item.message_type &&
+          item.name.trim() !== '' &&
+          item.role.trim() !== '' &&
+          item.stage.trim() !== '' &&
+          item.message_template.trim() !== '' &&
+          item.message_type.trim() !== ''
+        )
+        .map(item => ({
+          id: item.id,
+          name: item.name,
+          role: item.role as 'family' | 'professional' | 'community',
+          stage: item.stage,
+          message_template: item.message_template,
+          message_type: item.message_type as 'whatsapp' | 'email' | 'both',
+          created_at: item.created_at,
+          updated_at: item.updated_at
+        }));
       
-      setTemplates(typedTemplates);
+      setTemplates(validTemplates);
     } catch (error: any) {
       console.error('Error fetching templates:', error);
       toast.error('Failed to load templates');
@@ -232,6 +248,11 @@ export function WhatsAppTemplateManager() {
     return matchesSearch && matchesRole && matchesStage;
   });
 
+  // Get unique stages from templates, filtering out empty values
+  const availableStages = Array.from(
+    new Set([...TEMPLATE_STAGES, ...templates.map(t => t.stage)])
+  ).filter(stage => stage && stage.trim() !== '');
+
   const getDefaultTemplate = (stage: string, role: string): string => {
     const templates = {
       welcome: `Hi [Name]! 👋 Welcome to Tavara Care! I'm Chan, and I'm excited to help you on your ${role} journey. You're [X]% complete - let's get you connected with the right care solutions! Need help? Just reply! 💙`,
@@ -303,7 +324,7 @@ export function WhatsAppTemplateManager() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Stages</SelectItem>
-                  {TEMPLATE_STAGES.map(stage => (
+                  {availableStages.map(stage => (
                     <SelectItem key={stage} value={stage}>
                       {stage.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
                     </SelectItem>
