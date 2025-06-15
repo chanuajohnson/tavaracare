@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -9,6 +8,7 @@ import { FeatureInterestTracker } from "@/components/admin/FeatureInterestTracke
 import { FeedbackManagement } from "@/components/admin/FeedbackManagement";
 import { WhatsAppTemplateManager } from "@/components/admin/WhatsAppTemplateManager";
 import { NudgeSystem } from "@/components/admin/NudgeSystem";
+import { ErrorBoundary } from "@/components/common/ErrorBoundary";
 import { supabase } from '@/integrations/supabase/client';
 
 export default function AdminDashboard() {
@@ -178,18 +178,10 @@ export default function AdminDashboard() {
         {/* User Management */}
         <AdminUserManagement />
 
-        {/* WhatsApp Template Manager */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <MessageSquare className="h-5 w-5" />
-              WhatsApp Message Templates
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <WhatsAppTemplateManager />
-          </CardContent>
-        </Card>
+        {/* WhatsApp Template Manager - Wrapped in ErrorBoundary but no additional Card */}
+        <ErrorBoundary>
+          <WhatsAppTemplateManager />
+        </ErrorBoundary>
 
         {/* Feature Interest Tracking */}
         <Card>
