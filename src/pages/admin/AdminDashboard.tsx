@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -6,17 +7,11 @@ import { MessageSquare, Users, Calendar, TrendingUp, BarChart, Clock, Video } fr
 import { AdminUserManagement } from "@/components/admin/AdminUserManagement";
 import { FeatureInterestTracker } from "@/components/admin/FeatureInterestTracker";
 import { FeedbackManagement } from "@/components/admin/FeedbackManagement";
-import { WhatsAppTemplateManager } from "@/components/admin/WhatsAppTemplateManager";
-import { NudgeSystem } from "@/components/admin/NudgeSystem";
-import { ErrorBoundary } from "@/components/common/ErrorBoundary";
 import { supabase } from '@/integrations/supabase/client';
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
   const [pendingSchedulingCount, setPendingSchedulingCount] = useState(0);
-  const [showNudgeSystem, setShowNudgeSystem] = useState(false);
-  const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
-  const [users, setUsers] = useState<any[]>([]);
 
   const fetchPendingSchedulingCount = async () => {
     try {
@@ -62,20 +57,6 @@ export default function AdminDashboard() {
     navigate('/admin/user-journey');
   };
 
-  const handleWhatsAppNudgeClick = () => {
-    setShowNudgeSystem(true);
-  };
-
-  const handleNudgeSystemClose = () => {
-    setShowNudgeSystem(false);
-    setSelectedUsers([]);
-  };
-
-  const refreshUserData = () => {
-    // This function will be called to refresh user data when needed
-    console.log('Refreshing user data...');
-  };
-
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="mb-8">
@@ -86,7 +67,7 @@ export default function AdminDashboard() {
       </div>
 
       {/* Quick Actions */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
         <Button
           onClick={handleHeroVideoClick}
           className="h-20 flex flex-col items-center justify-center gap-2"
@@ -108,15 +89,6 @@ export default function AdminDashboard() {
               {pendingSchedulingCount}
             </div>
           )}
-        </Button>
-
-        <Button
-          onClick={handleWhatsAppNudgeClick}
-          className="h-20 flex flex-col items-center justify-center gap-2"
-          variant="outline"
-        >
-          <MessageSquare className="h-6 w-6" />
-          <span className="text-sm font-medium">WhatsApp Nudge System</span>
         </Button>
         
         <Button
@@ -178,11 +150,6 @@ export default function AdminDashboard() {
         {/* User Management */}
         <AdminUserManagement />
 
-        {/* WhatsApp Template Manager - Wrapped in ErrorBoundary but no additional Card */}
-        <ErrorBoundary>
-          <WhatsAppTemplateManager />
-        </ErrorBoundary>
-
         {/* Feature Interest Tracking */}
         <Card>
           <CardHeader>
@@ -203,15 +170,6 @@ export default function AdminDashboard() {
           </CardContent>
         </Card>
       </div>
-
-      {/* Nudge System Modal */}
-      <NudgeSystem
-        open={showNudgeSystem}
-        onOpenChange={setShowNudgeSystem}
-        selectedUsers={selectedUsers}
-        users={users}
-        onRefresh={refreshUserData}
-      />
     </div>
   );
 }

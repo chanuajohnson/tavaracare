@@ -30,7 +30,6 @@ interface TemplateFormData {
   message_type: 'whatsapp' | 'email' | 'both';
 }
 
-// Standardized template stages with strict filtering - NEVER allow empty strings
 const TEMPLATE_STAGES = [
   'welcome',
   'step_1',
@@ -42,9 +41,7 @@ const TEMPLATE_STAGES = [
   'stalled',
   'financial_proposal',
   'custom'
-].filter(stage => stage && typeof stage === 'string' && stage.trim() !== '');
-
-console.log('TEMPLATE_STAGES initialized:', TEMPLATE_STAGES);
+];
 
 const SAMPLE_USER_DATA = {
   family: {
@@ -68,26 +65,6 @@ const SAMPLE_USER_DATA = {
     current_step: 2,
     next_step: 'Set Availability'
   }
-};
-
-// Enhanced validation helper functions
-const isValidRole = (role: any): role is 'family' | 'professional' | 'community' => {
-  return role && typeof role === 'string' && ['family', 'professional', 'community'].includes(role);
-};
-
-const isValidStage = (stage: any): boolean => {
-  return stage && typeof stage === 'string' && stage.trim() !== '' && TEMPLATE_STAGES.includes(stage);
-};
-
-const isValidMessageType = (type: any): type is 'whatsapp' | 'email' | 'both' => {
-  return type && typeof type === 'string' && ['whatsapp', 'email', 'both'].includes(type);
-};
-
-// Strict array filtering - ensures no empty strings ever pass through
-const strictFilterArray = (arr: string[], name: string): string[] => {
-  const filtered = arr.filter(item => item && typeof item === 'string' && item.trim() !== '');
-  console.log(`${name} filtered from ${arr.length} to ${filtered.length}:`, filtered);
-  return filtered;
 };
 
 export function WhatsAppTemplateManager() {
@@ -118,54 +95,22 @@ export function WhatsAppTemplateManager() {
 
       if (error) throw error;
       
-      console.log('Raw database data:', data);
+      // Type the response properly to match our interface
+      const typedTemplates = (data || []).map(item => ({
+        id: item.id,
+        name: item.name,
+        role: item.role as 'family' | 'professional' | 'community',
+        stage: item.stage,
+        message_template: item.message_template,
+        message_type: item.message_type as 'whatsapp' | 'email' | 'both',
+        created_at: item.created_at,
+        updated_at: item.updated_at
+      }));
       
-      // Enhanced database validation with strict filtering and detailed logging
-      const validTemplates = (data || [])
-        .filter(item => {
-          if (!item) {
-            console.log('Filtered out null/undefined item');
-            return false;
-          }
-          if (!item.id) {
-            console.log('Filtered out item without id:', item);
-            return false;
-          }
-          if (!item.name || typeof item.name !== 'string' || item.name.trim() === '') {
-            console.log('Filtered out item with invalid name:', item);
-            return false;
-          }
-          if (!isValidRole(item.role)) {
-            console.log('Filtered out item with invalid role:', item);
-            return false;
-          }
-          if (!isValidStage(item.stage)) {
-            console.log('Filtered out item with invalid stage:', item);
-            return false;
-          }
-          if (!isValidMessageType(item.message_type)) {
-            console.log('Filtered out item with invalid message_type:', item);
-            return false;
-          }
-          return true;
-        })
-        .map(item => ({
-          id: item.id,
-          name: item.name.trim(),
-          role: item.role as 'family' | 'professional' | 'community',
-          stage: item.stage.trim(),
-          message_template: item.message_template || '',
-          message_type: item.message_type as 'whatsapp' | 'email' | 'both',
-          created_at: item.created_at,
-          updated_at: item.updated_at
-        }));
-      
-      console.log(`Database validation: ${validTemplates.length} valid templates out of ${data?.length || 0} total records`);
-      setTemplates(validTemplates);
+      setTemplates(typedTemplates);
     } catch (error: any) {
       console.error('Error fetching templates:', error);
       toast.error('Failed to load templates');
-      setTemplates([]);
     } finally {
       setLoading(false);
     }
@@ -176,11 +121,7 @@ export function WhatsAppTemplateManager() {
   }, []);
 
   const generatePreviewMessage = (template: WhatsAppTemplate, userRole: 'family' | 'professional' | 'community') => {
-    if (!template || !template.message_template) return '';
-    
     const sampleUser = SAMPLE_USER_DATA[userRole];
-    if (!sampleUser) return template.message_template;
-    
     let message = template.message_template;
     
     // Replace placeholders with sample data
@@ -196,40 +137,14 @@ export function WhatsAppTemplateManager() {
 
   const saveTemplate = async () => {
     try {
-      // Validate form data before saving
-      if (!templateForm.name || !templateForm.name.trim()) {
-        toast.error('Template name is required');
-        return;
-      }
-      
-      if (!templateForm.message_template || !templateForm.message_template.trim()) {
-        toast.error('Message template is required');
-        return;
-      }
-      
-      if (!isValidRole(templateForm.role)) {
-        toast.error('Invalid role selected');
-        return;
-      }
-      
-      if (!isValidStage(templateForm.stage)) {
-        toast.error('Invalid stage selected');
-        return;
-      }
-      
-      if (!isValidMessageType(templateForm.message_type)) {
-        toast.error('Invalid message type selected');
-        return;
-      }
-
       if (editingTemplate) {
         const { error } = await supabase
           .from('nudge_templates')
           .update({
-            name: templateForm.name.trim(),
+            name: templateForm.name,
             role: templateForm.role,
             stage: templateForm.stage,
-            message_template: templateForm.message_template.trim(),
+            message_template: templateForm.message_template,
             message_type: templateForm.message_type,
             updated_at: new Date().toISOString()
           })
@@ -241,10 +156,10 @@ export function WhatsAppTemplateManager() {
         const { error } = await supabase
           .from('nudge_templates')
           .insert({
-            name: templateForm.name.trim(),
+            name: templateForm.name,
             role: templateForm.role,
             stage: templateForm.stage,
-            message_template: templateForm.message_template.trim(),
+            message_template: templateForm.message_template,
             message_type: templateForm.message_type
           });
 
@@ -263,7 +178,7 @@ export function WhatsAppTemplateManager() {
   };
 
   const deleteTemplate = async (templateId: string) => {
-    if (!templateId || !confirm('Are you sure you want to delete this template?')) return;
+    if (!confirm('Are you sure you want to delete this template?')) return;
 
     try {
       const { error } = await supabase
@@ -291,15 +206,13 @@ export function WhatsAppTemplateManager() {
   };
 
   const openEditDialog = (template: WhatsAppTemplate) => {
-    if (!template) return;
-    
     setEditingTemplate(template);
     setTemplateForm({
-      name: template.name || '',
-      role: template.role || 'family',
-      stage: template.stage || 'welcome',
-      message_template: template.message_template || '',
-      message_type: template.message_type || 'whatsapp'
+      name: template.name,
+      role: template.role,
+      stage: template.stage,
+      message_template: template.message_template,
+      message_type: template.message_type
     });
     setShowTemplateDialog(true);
   };
@@ -311,10 +224,8 @@ export function WhatsAppTemplateManager() {
   };
 
   const filteredTemplates = templates.filter(template => {
-    if (!template) return false;
-    
-    const matchesSearch = (template.name && template.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
-                         (template.message_template && template.message_template.toLowerCase().includes(searchTerm.toLowerCase()));
+    const matchesSearch = template.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         template.message_template.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesRole = filterRole === 'all' || template.role === filterRole;
     const matchesStage = filterStage === 'all' || template.stage === filterStage;
     
@@ -322,8 +233,6 @@ export function WhatsAppTemplateManager() {
   });
 
   const getDefaultTemplate = (stage: string, role: string): string => {
-    if (!stage || !role) return '';
-    
     const templates = {
       welcome: `Hi [Name]! 👋 Welcome to Tavara Care! I'm Chan, and I'm excited to help you on your ${role} journey. You're [X]% complete - let's get you connected with the right care solutions! Need help? Just reply! 💙`,
       step_1: `Hi [Name]! 💙 This is Chan from Tavara Care. I noticed you're on step [CurrentStep] of your ${role} journey: [StepTitle]. Your next step is: [NextStep]. Need any assistance? We're here to help!`,
@@ -333,17 +242,6 @@ export function WhatsAppTemplateManager() {
     
     return templates[stage as keyof typeof templates] || `Hi [Name]! This is Chan from Tavara Care. Hope you're doing well on your ${role} journey! 💙`;
   };
-
-  // Strictly filtered arrays for Select components - GUARANTEED no empty strings
-  const validRoles = strictFilterArray(['family', 'professional', 'community'], 'validRoles');
-  const validStages = strictFilterArray(TEMPLATE_STAGES, 'validStages');
-  const validMessageTypes = strictFilterArray(['whatsapp', 'email', 'both'], 'validMessageTypes');
-
-  // Get unique stages from templates for filter - with strict validation
-  const templateStages = Array.from(new Set(templates.map(t => t.stage).filter(stage => stage && stage.trim() !== '')));
-  const validTemplateStages = strictFilterArray(templateStages, 'validTemplateStages');
-
-  console.log('Render arrays:', { validRoles, validStages, validMessageTypes, validTemplateStages });
 
   return (
     <div className="space-y-6">
@@ -386,15 +284,13 @@ export function WhatsAppTemplateManager() {
               <label className="text-sm font-medium">Filter by Role</label>
               <Select value={filterRole} onValueChange={setFilterRole}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Select role filter" />
+                  <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Roles</SelectItem>
-                  {validRoles.map(role => (
-                    <SelectItem key={role} value={role}>
-                      {role.charAt(0).toUpperCase() + role.slice(1)}
-                    </SelectItem>
-                  ))}
+                  <SelectItem value="family">Family</SelectItem>
+                  <SelectItem value="professional">Professional</SelectItem>
+                  <SelectItem value="community">Community</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -403,11 +299,11 @@ export function WhatsAppTemplateManager() {
               <label className="text-sm font-medium">Filter by Stage</label>
               <Select value={filterStage} onValueChange={setFilterStage}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Select stage filter" />
+                  <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Stages</SelectItem>
-                  {validTemplateStages.map(stage => (
+                  {TEMPLATE_STAGES.map(stage => (
                     <SelectItem key={stage} value={stage}>
                       {stage.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
                     </SelectItem>
@@ -519,14 +415,12 @@ export function WhatsAppTemplateManager() {
                   onValueChange={(value: 'family' | 'professional' | 'community') => setTemplateForm(prev => ({...prev, role: value}))}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Select user role" />
+                    <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {validRoles.map(role => (
-                      <SelectItem key={role} value={role}>
-                        {role.charAt(0).toUpperCase() + role.slice(1)}
-                      </SelectItem>
-                    ))}
+                    <SelectItem value="family">Family</SelectItem>
+                    <SelectItem value="professional">Professional</SelectItem>
+                    <SelectItem value="community">Community</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -546,10 +440,10 @@ export function WhatsAppTemplateManager() {
                   }}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Select journey stage" />
+                    <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {validStages.map(stage => (
+                    {TEMPLATE_STAGES.map(stage => (
                       <SelectItem key={stage} value={stage}>
                         {stage.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
                       </SelectItem>
@@ -565,16 +459,12 @@ export function WhatsAppTemplateManager() {
                   onValueChange={(value: 'whatsapp' | 'email' | 'both') => setTemplateForm(prev => ({...prev, message_type: value}))}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Select message type" />
+                    <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {validMessageTypes.map(type => (
-                      <SelectItem key={type} value={type}>
-                        {type === 'whatsapp' ? 'WhatsApp Only' : 
-                         type === 'email' ? 'Email Only' : 
-                         'Both WhatsApp & Email'}
-                      </SelectItem>
-                    ))}
+                    <SelectItem value="whatsapp">WhatsApp Only</SelectItem>
+                    <SelectItem value="email">Email Only</SelectItem>
+                    <SelectItem value="both">Both WhatsApp & Email</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
