@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -31,7 +30,7 @@ interface TemplateFormData {
   message_type: 'whatsapp' | 'email' | 'both';
 }
 
-// Standardized template stages with strict filtering
+// Standardized template stages with strict filtering - NEVER allow empty strings
 const TEMPLATE_STAGES = [
   'welcome',
   'step_1',
@@ -43,7 +42,9 @@ const TEMPLATE_STAGES = [
   'stalled',
   'financial_proposal',
   'custom'
-].filter(stage => stage && stage.trim() !== ''); // Consistent strict filtering
+].filter(stage => stage && typeof stage === 'string' && stage.trim() !== '');
+
+console.log('TEMPLATE_STAGES initialized:', TEMPLATE_STAGES);
 
 const SAMPLE_USER_DATA = {
   family: {
@@ -69,7 +70,7 @@ const SAMPLE_USER_DATA = {
   }
 };
 
-// Validation helper functions
+// Enhanced validation helper functions
 const isValidRole = (role: any): role is 'family' | 'professional' | 'community' => {
   return role && typeof role === 'string' && ['family', 'professional', 'community'].includes(role);
 };
@@ -80,6 +81,13 @@ const isValidStage = (stage: any): boolean => {
 
 const isValidMessageType = (type: any): type is 'whatsapp' | 'email' | 'both' => {
   return type && typeof type === 'string' && ['whatsapp', 'email', 'both'].includes(type);
+};
+
+// Strict array filtering - ensures no empty strings ever pass through
+const strictFilterArray = (arr: string[], name: string): string[] => {
+  const filtered = arr.filter(item => item && typeof item === 'string' && item.trim() !== '');
+  console.log(`${name} filtered from ${arr.length} to ${filtered.length}:`, filtered);
+  return filtered;
 };
 
 export function WhatsAppTemplateManager() {
@@ -110,18 +118,36 @@ export function WhatsAppTemplateManager() {
 
       if (error) throw error;
       
-      // Enhanced database validation with strict filtering
+      console.log('Raw database data:', data);
+      
+      // Enhanced database validation with strict filtering and detailed logging
       const validTemplates = (data || [])
         .filter(item => {
-          // Strict validation: must have all required fields and valid values
-          return item && 
-                 item.id && 
-                 item.name && 
-                 typeof item.name === 'string' && 
-                 item.name.trim() !== '' &&
-                 isValidRole(item.role) &&
-                 isValidStage(item.stage) &&
-                 isValidMessageType(item.message_type);
+          if (!item) {
+            console.log('Filtered out null/undefined item');
+            return false;
+          }
+          if (!item.id) {
+            console.log('Filtered out item without id:', item);
+            return false;
+          }
+          if (!item.name || typeof item.name !== 'string' || item.name.trim() === '') {
+            console.log('Filtered out item with invalid name:', item);
+            return false;
+          }
+          if (!isValidRole(item.role)) {
+            console.log('Filtered out item with invalid role:', item);
+            return false;
+          }
+          if (!isValidStage(item.stage)) {
+            console.log('Filtered out item with invalid stage:', item);
+            return false;
+          }
+          if (!isValidMessageType(item.message_type)) {
+            console.log('Filtered out item with invalid message_type:', item);
+            return false;
+          }
+          return true;
         })
         .map(item => ({
           id: item.id,
@@ -134,12 +160,12 @@ export function WhatsAppTemplateManager() {
           updated_at: item.updated_at
         }));
       
-      console.log(`Loaded ${validTemplates.length} valid templates out of ${data?.length || 0} total records`);
+      console.log(`Database validation: ${validTemplates.length} valid templates out of ${data?.length || 0} total records`);
       setTemplates(validTemplates);
     } catch (error: any) {
       console.error('Error fetching templates:', error);
       toast.error('Failed to load templates');
-      setTemplates([]); // Ensure we always have a valid array
+      setTemplates([]);
     } finally {
       setLoading(false);
     }
@@ -308,10 +334,16 @@ export function WhatsAppTemplateManager() {
     return templates[stage as keyof typeof templates] || `Hi [Name]! This is Chan from Tavara Care. Hope you're doing well on your ${role} journey! 💙`;
   };
 
-  // Valid roles and stages for Select components (with defensive filtering)
-  const validRoles = ['family', 'professional', 'community'].filter(role => role && role.trim() !== '');
-  const validStages = TEMPLATE_STAGES.filter(stage => stage && stage.trim() !== '');
-  const validMessageTypes = ['whatsapp', 'email', 'both'].filter(type => type && type.trim() !== '');
+  // Strictly filtered arrays for Select components - GUARANTEED no empty strings
+  const validRoles = strictFilterArray(['family', 'professional', 'community'], 'validRoles');
+  const validStages = strictFilterArray(TEMPLATE_STAGES, 'validStages');
+  const validMessageTypes = strictFilterArray(['whatsapp', 'email', 'both'], 'validMessageTypes');
+
+  // Get unique stages from templates for filter - with strict validation
+  const templateStages = Array.from(new Set(templates.map(t => t.stage).filter(stage => stage && stage.trim() !== '')));
+  const validTemplateStages = strictFilterArray(templateStages, 'validTemplateStages');
+
+  console.log('Render arrays:', { validRoles, validStages, validMessageTypes, validTemplateStages });
 
   return (
     <div className="space-y-6">
@@ -375,7 +407,7 @@ export function WhatsAppTemplateManager() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Stages</SelectItem>
-                  {validStages.map(stage => (
+                  {validTemplateStages.map(stage => (
                     <SelectItem key={stage} value={stage}>
                       {stage.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
                     </SelectItem>
