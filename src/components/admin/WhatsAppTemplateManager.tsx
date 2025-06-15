@@ -31,6 +31,7 @@ interface TemplateFormData {
   message_type: 'whatsapp' | 'email' | 'both';
 }
 
+// Standardized template stages with strict filtering
 const TEMPLATE_STAGES = [
   'welcome',
   'step_1',
@@ -42,7 +43,7 @@ const TEMPLATE_STAGES = [
   'stalled',
   'financial_proposal',
   'custom'
-];
+].filter(stage => stage && stage.trim() !== ''); // Consistent strict filtering
 
 const SAMPLE_USER_DATA = {
   family: {
@@ -66,6 +67,19 @@ const SAMPLE_USER_DATA = {
     current_step: 2,
     next_step: 'Set Availability'
   }
+};
+
+// Validation helper functions
+const isValidRole = (role: any): role is 'family' | 'professional' | 'community' => {
+  return role && typeof role === 'string' && ['family', 'professional', 'community'].includes(role);
+};
+
+const isValidStage = (stage: any): boolean => {
+  return stage && typeof stage === 'string' && stage.trim() !== '' && TEMPLATE_STAGES.includes(stage);
+};
+
+const isValidMessageType = (type: any): type is 'whatsapp' | 'email' | 'both' => {
+  return type && typeof type === 'string' && ['whatsapp', 'email', 'both'].includes(type);
 };
 
 export function WhatsAppTemplateManager() {
@@ -96,24 +110,36 @@ export function WhatsAppTemplateManager() {
 
       if (error) throw error;
       
-      // Type the response properly to match our interface and filter out any invalid entries
-      const typedTemplates = (data || [])
-        .filter(item => item.id && item.name && item.role && item.stage) // Filter out incomplete records
+      // Enhanced database validation with strict filtering
+      const validTemplates = (data || [])
+        .filter(item => {
+          // Strict validation: must have all required fields and valid values
+          return item && 
+                 item.id && 
+                 item.name && 
+                 typeof item.name === 'string' && 
+                 item.name.trim() !== '' &&
+                 isValidRole(item.role) &&
+                 isValidStage(item.stage) &&
+                 isValidMessageType(item.message_type);
+        })
         .map(item => ({
           id: item.id,
-          name: item.name,
+          name: item.name.trim(),
           role: item.role as 'family' | 'professional' | 'community',
-          stage: item.stage,
+          stage: item.stage.trim(),
           message_template: item.message_template || '',
           message_type: item.message_type as 'whatsapp' | 'email' | 'both',
           created_at: item.created_at,
           updated_at: item.updated_at
         }));
       
-      setTemplates(typedTemplates);
+      console.log(`Loaded ${validTemplates.length} valid templates out of ${data?.length || 0} total records`);
+      setTemplates(validTemplates);
     } catch (error: any) {
       console.error('Error fetching templates:', error);
       toast.error('Failed to load templates');
+      setTemplates([]); // Ensure we always have a valid array
     } finally {
       setLoading(false);
     }
@@ -124,7 +150,11 @@ export function WhatsAppTemplateManager() {
   }, []);
 
   const generatePreviewMessage = (template: WhatsAppTemplate, userRole: 'family' | 'professional' | 'community') => {
+    if (!template || !template.message_template) return '';
+    
     const sampleUser = SAMPLE_USER_DATA[userRole];
+    if (!sampleUser) return template.message_template;
+    
     let message = template.message_template;
     
     // Replace placeholders with sample data
@@ -140,14 +170,40 @@ export function WhatsAppTemplateManager() {
 
   const saveTemplate = async () => {
     try {
+      // Validate form data before saving
+      if (!templateForm.name || !templateForm.name.trim()) {
+        toast.error('Template name is required');
+        return;
+      }
+      
+      if (!templateForm.message_template || !templateForm.message_template.trim()) {
+        toast.error('Message template is required');
+        return;
+      }
+      
+      if (!isValidRole(templateForm.role)) {
+        toast.error('Invalid role selected');
+        return;
+      }
+      
+      if (!isValidStage(templateForm.stage)) {
+        toast.error('Invalid stage selected');
+        return;
+      }
+      
+      if (!isValidMessageType(templateForm.message_type)) {
+        toast.error('Invalid message type selected');
+        return;
+      }
+
       if (editingTemplate) {
         const { error } = await supabase
           .from('nudge_templates')
           .update({
-            name: templateForm.name,
+            name: templateForm.name.trim(),
             role: templateForm.role,
             stage: templateForm.stage,
-            message_template: templateForm.message_template,
+            message_template: templateForm.message_template.trim(),
             message_type: templateForm.message_type,
             updated_at: new Date().toISOString()
           })
@@ -159,10 +215,10 @@ export function WhatsAppTemplateManager() {
         const { error } = await supabase
           .from('nudge_templates')
           .insert({
-            name: templateForm.name,
+            name: templateForm.name.trim(),
             role: templateForm.role,
             stage: templateForm.stage,
-            message_template: templateForm.message_template,
+            message_template: templateForm.message_template.trim(),
             message_type: templateForm.message_type
           });
 
@@ -181,7 +237,7 @@ export function WhatsAppTemplateManager() {
   };
 
   const deleteTemplate = async (templateId: string) => {
-    if (!confirm('Are you sure you want to delete this template?')) return;
+    if (!templateId || !confirm('Are you sure you want to delete this template?')) return;
 
     try {
       const { error } = await supabase
@@ -209,13 +265,15 @@ export function WhatsAppTemplateManager() {
   };
 
   const openEditDialog = (template: WhatsAppTemplate) => {
+    if (!template) return;
+    
     setEditingTemplate(template);
     setTemplateForm({
-      name: template.name,
-      role: template.role,
-      stage: template.stage,
-      message_template: template.message_template,
-      message_type: template.message_type
+      name: template.name || '',
+      role: template.role || 'family',
+      stage: template.stage || 'welcome',
+      message_template: template.message_template || '',
+      message_type: template.message_type || 'whatsapp'
     });
     setShowTemplateDialog(true);
   };
@@ -227,8 +285,10 @@ export function WhatsAppTemplateManager() {
   };
 
   const filteredTemplates = templates.filter(template => {
-    const matchesSearch = template.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         template.message_template.toLowerCase().includes(searchTerm.toLowerCase());
+    if (!template) return false;
+    
+    const matchesSearch = (template.name && template.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
+                         (template.message_template && template.message_template.toLowerCase().includes(searchTerm.toLowerCase()));
     const matchesRole = filterRole === 'all' || template.role === filterRole;
     const matchesStage = filterStage === 'all' || template.stage === filterStage;
     
@@ -236,6 +296,8 @@ export function WhatsAppTemplateManager() {
   });
 
   const getDefaultTemplate = (stage: string, role: string): string => {
+    if (!stage || !role) return '';
+    
     const templates = {
       welcome: `Hi [Name]! 👋 Welcome to Tavara Care! I'm Chan, and I'm excited to help you on your ${role} journey. You're [X]% complete - let's get you connected with the right care solutions! Need help? Just reply! 💙`,
       step_1: `Hi [Name]! 💙 This is Chan from Tavara Care. I noticed you're on step [CurrentStep] of your ${role} journey: [StepTitle]. Your next step is: [NextStep]. Need any assistance? We're here to help!`,
@@ -245,6 +307,11 @@ export function WhatsAppTemplateManager() {
     
     return templates[stage as keyof typeof templates] || `Hi [Name]! This is Chan from Tavara Care. Hope you're doing well on your ${role} journey! 💙`;
   };
+
+  // Valid roles and stages for Select components (with defensive filtering)
+  const validRoles = ['family', 'professional', 'community'].filter(role => role && role.trim() !== '');
+  const validStages = TEMPLATE_STAGES.filter(stage => stage && stage.trim() !== '');
+  const validMessageTypes = ['whatsapp', 'email', 'both'].filter(type => type && type.trim() !== '');
 
   return (
     <div className="space-y-6">
@@ -291,9 +358,11 @@ export function WhatsAppTemplateManager() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Roles</SelectItem>
-                  <SelectItem value="family">Family</SelectItem>
-                  <SelectItem value="professional">Professional</SelectItem>
-                  <SelectItem value="community">Community</SelectItem>
+                  {validRoles.map(role => (
+                    <SelectItem key={role} value={role}>
+                      {role.charAt(0).toUpperCase() + role.slice(1)}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -306,7 +375,7 @@ export function WhatsAppTemplateManager() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Stages</SelectItem>
-                  {TEMPLATE_STAGES.filter(stage => stage).map(stage => (
+                  {validStages.map(stage => (
                     <SelectItem key={stage} value={stage}>
                       {stage.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
                     </SelectItem>
@@ -421,9 +490,11 @@ export function WhatsAppTemplateManager() {
                     <SelectValue placeholder="Select user role" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="family">Family</SelectItem>
-                    <SelectItem value="professional">Professional</SelectItem>
-                    <SelectItem value="community">Community</SelectItem>
+                    {validRoles.map(role => (
+                      <SelectItem key={role} value={role}>
+                        {role.charAt(0).toUpperCase() + role.slice(1)}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -446,7 +517,7 @@ export function WhatsAppTemplateManager() {
                     <SelectValue placeholder="Select journey stage" />
                   </SelectTrigger>
                   <SelectContent>
-                    {TEMPLATE_STAGES.filter(stage => stage && stage.trim() !== '').map(stage => (
+                    {validStages.map(stage => (
                       <SelectItem key={stage} value={stage}>
                         {stage.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
                       </SelectItem>
@@ -465,9 +536,13 @@ export function WhatsAppTemplateManager() {
                     <SelectValue placeholder="Select message type" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="whatsapp">WhatsApp Only</SelectItem>
-                    <SelectItem value="email">Email Only</SelectItem>
-                    <SelectItem value="both">Both WhatsApp & Email</SelectItem>
+                    {validMessageTypes.map(type => (
+                      <SelectItem key={type} value={type}>
+                        {type === 'whatsapp' ? 'WhatsApp Only' : 
+                         type === 'email' ? 'Email Only' : 
+                         'Both WhatsApp & Email'}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
