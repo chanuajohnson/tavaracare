@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -95,17 +96,19 @@ export function WhatsAppTemplateManager() {
 
       if (error) throw error;
       
-      // Type the response properly to match our interface
-      const typedTemplates = (data || []).map(item => ({
-        id: item.id,
-        name: item.name,
-        role: item.role as 'family' | 'professional' | 'community',
-        stage: item.stage,
-        message_template: item.message_template,
-        message_type: item.message_type as 'whatsapp' | 'email' | 'both',
-        created_at: item.created_at,
-        updated_at: item.updated_at
-      }));
+      // Type the response properly to match our interface and filter out any invalid entries
+      const typedTemplates = (data || [])
+        .filter(item => item.id && item.name && item.role && item.stage) // Filter out incomplete records
+        .map(item => ({
+          id: item.id,
+          name: item.name,
+          role: item.role as 'family' | 'professional' | 'community',
+          stage: item.stage,
+          message_template: item.message_template || '',
+          message_type: item.message_type as 'whatsapp' | 'email' | 'both',
+          created_at: item.created_at,
+          updated_at: item.updated_at
+        }));
       
       setTemplates(typedTemplates);
     } catch (error: any) {
@@ -284,7 +287,7 @@ export function WhatsAppTemplateManager() {
               <label className="text-sm font-medium">Filter by Role</label>
               <Select value={filterRole} onValueChange={setFilterRole}>
                 <SelectTrigger>
-                  <SelectValue />
+                  <SelectValue placeholder="Select role filter" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Roles</SelectItem>
@@ -299,11 +302,11 @@ export function WhatsAppTemplateManager() {
               <label className="text-sm font-medium">Filter by Stage</label>
               <Select value={filterStage} onValueChange={setFilterStage}>
                 <SelectTrigger>
-                  <SelectValue />
+                  <SelectValue placeholder="Select stage filter" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Stages</SelectItem>
-                  {TEMPLATE_STAGES.map(stage => (
+                  {TEMPLATE_STAGES.filter(stage => stage).map(stage => (
                     <SelectItem key={stage} value={stage}>
                       {stage.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
                     </SelectItem>
@@ -415,7 +418,7 @@ export function WhatsAppTemplateManager() {
                   onValueChange={(value: 'family' | 'professional' | 'community') => setTemplateForm(prev => ({...prev, role: value}))}
                 >
                   <SelectTrigger>
-                    <SelectValue />
+                    <SelectValue placeholder="Select user role" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="family">Family</SelectItem>
@@ -440,10 +443,10 @@ export function WhatsAppTemplateManager() {
                   }}
                 >
                   <SelectTrigger>
-                    <SelectValue />
+                    <SelectValue placeholder="Select journey stage" />
                   </SelectTrigger>
                   <SelectContent>
-                    {TEMPLATE_STAGES.map(stage => (
+                    {TEMPLATE_STAGES.filter(stage => stage && stage.trim() !== '').map(stage => (
                       <SelectItem key={stage} value={stage}>
                         {stage.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
                       </SelectItem>
@@ -459,7 +462,7 @@ export function WhatsAppTemplateManager() {
                   onValueChange={(value: 'whatsapp' | 'email' | 'both') => setTemplateForm(prev => ({...prev, message_type: value}))}
                 >
                   <SelectTrigger>
-                    <SelectValue />
+                    <SelectValue placeholder="Select message type" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="whatsapp">WhatsApp Only</SelectItem>
