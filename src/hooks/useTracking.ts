@@ -87,6 +87,25 @@ const isCaregiverMatchingAction = (actionType: string): boolean => {
 };
 
 /**
+ * Send event to Google Analytics
+ */
+const sendToGoogleAnalytics = (actionType: TrackingActionType, additionalData: any) => {
+  if (typeof window !== 'undefined' && window.gtag) {
+    window.gtag('event', actionType, {
+      event_category: 'user_engagement',
+      event_label: additionalData.user_role || 'anonymous',
+      value: 1,
+      custom_parameters: {
+        user_role: additionalData.user_role,
+        profile_complete: additionalData.user_profile_complete,
+        page_path: window.location.pathname,
+        ...additionalData
+      }
+    });
+  }
+};
+
+/**
  * Hook for tracking user engagement across the platform
  */
 export function useTracking(options: TrackingOptions = {}) {
@@ -130,6 +149,9 @@ export function useTracking(options: TrackingOptions = {}) {
         user_role: user?.role || 'anonymous',
         user_profile_complete: isProfileComplete || false,
       };
+      
+      // Send to Google Analytics
+      sendToGoogleAnalytics(actionType, enhancedData);
       
       // Record the tracking event in Supabase
       const { error } = await supabase.from('cta_engagement_tracking').insert({
