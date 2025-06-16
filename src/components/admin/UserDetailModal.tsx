@@ -24,6 +24,20 @@ interface UserDetailModalProps {
   onRefresh: () => void;
 }
 
+// Normalized step interface for consistent display
+interface NormalizedStep {
+  id: string;
+  step_number: number;
+  title: string;
+  description: string;
+  completed: boolean;
+}
+
+interface NormalizedNextStep {
+  step_number: number;
+  title: string;
+}
+
 export function UserDetailModal({ user, open, onOpenChange, onRefresh }: UserDetailModalProps) {
   const [sending, setSending] = React.useState(false);
   const [userPhoneNumber, setUserPhoneNumber] = React.useState<string | null>(null);
@@ -41,26 +55,58 @@ export function UserDetailModal({ user, open, onOpenChange, onRefresh }: UserDet
     userRole
   );
 
-  // Choose the appropriate progress data based on user role
-  const progressData = userRole === 'family' 
-    ? familyProgress 
-    : userRole === 'professional'
-    ? {
+  // Normalize the progress data to have consistent step_number properties
+  const progressData = React.useMemo(() => {
+    if (userRole === 'family') {
+      return {
+        loading: familyProgress.loading,
+        completionPercentage: familyProgress.completionPercentage,
+        nextStep: familyProgress.nextStep ? {
+          step_number: familyProgress.nextStep.id,
+          title: familyProgress.nextStep.title
+        } as NormalizedNextStep : undefined,
+        steps: familyProgress.steps.map(step => ({
+          id: step.id.toString(),
+          step_number: step.id,
+          title: step.title,
+          description: step.description,
+          completed: step.completed
+        })) as NormalizedStep[]
+      };
+    } else if (userRole === 'professional') {
+      return {
         loading: professionalProgress.loading,
         completionPercentage: professionalProgress.completionPercentage,
         nextStep: professionalProgress.nextStep ? {
           step_number: professionalProgress.nextStep.id,
           title: professionalProgress.nextStep.title
-        } : undefined,
+        } as NormalizedNextStep : undefined,
         steps: professionalProgress.steps.map(step => ({
           id: step.id.toString(),
           step_number: step.id,
           title: step.title,
           description: step.description,
           completed: step.completed
-        }))
-      }
-    : otherProgress;
+        })) as NormalizedStep[]
+      };
+    } else {
+      return {
+        loading: otherProgress.loading,
+        completionPercentage: otherProgress.completionPercentage,
+        nextStep: otherProgress.nextStep ? {
+          step_number: otherProgress.nextStep.step_number,
+          title: otherProgress.nextStep.title
+        } as NormalizedNextStep : undefined,
+        steps: otherProgress.steps.map(step => ({
+          id: step.id,
+          step_number: step.step_number,
+          title: step.title,
+          description: step.description,
+          completed: step.completed
+        })) as NormalizedStep[]
+      };
+    }
+  }, [userRole, familyProgress, professionalProgress, otherProgress]);
 
   const { loading, completionPercentage, nextStep, steps } = progressData;
 
