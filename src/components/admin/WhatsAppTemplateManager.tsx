@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -8,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { MessageSquare, Plus, Edit3, Trash2, Eye, Search, Filter } from "lucide-react";
+import { MessageSquare, Plus, Edit3, Trash2, Eye, Search, Filter, Sparkles } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 
@@ -58,7 +57,7 @@ const SAMPLE_USER_DATA = {
     role: 'professional', 
     completion_percentage: 80,
     current_step: 4,
-    next_step: 'Background Check'
+    next_step: 'Complete Background Check'
   },
   community: {
     full_name: 'Elena Rodriguez',
@@ -67,6 +66,99 @@ const SAMPLE_USER_DATA = {
     current_step: 2,
     next_step: 'Set Availability'
   }
+};
+
+// Professional templates for each stage
+const PROFESSIONAL_TEMPLATES = {
+  welcome: `Hi [Name]! 👋 Welcome to Tavara Care! I'm Chan, and I'm thrilled you've joined our professional caregiver community. 
+
+Your expertise and compassion are exactly what families in our community need. You're starting an amazing journey that will make a real difference in people's lives! 💙
+
+Let's get your professional profile set up so you can start connecting with families who need your specific skills. Ready to begin? 🚀
+
+Any questions? Just reply! I'm here to help every step of the way.`,
+
+  step_1: `Hi [Name]! 💙 This is Chan from Tavara Care. 
+
+I hope you're settling in well! I noticed you're [X]% through your professional setup. Your next step is: [NextStep]
+
+Building a strong professional profile is key to connecting with the right families. The more complete your profile, the better we can match you with opportunities that fit your skills and schedule perfectly! 
+
+Need any help getting this step done? I'm here to support you! 🤝`,
+
+  step_2: `Hi [Name]! 🌟 Chan here from Tavara Care.
+
+Great progress on your professional journey! You're [X]% complete. Your experience and background make you exactly the kind of caregiver families are looking for.
+
+Your next step: [NextStep] - this helps families understand your expertise and builds trust right from the start.
+
+The families in our community are amazing, and I can't wait for them to see what you bring to caregiving! 
+
+Any questions about this step? Just reply! 💪`,
+
+  step_3: `Hi [Name]! 📋 Chan from Tavara Care here.
+
+You're doing fantastic! [X]% complete on your professional setup. I can see you're serious about providing excellent care - that's exactly what makes Tavara special.
+
+Next up: [NextStep] - this step helps families feel confident and secure choosing you as their caregiver. It's all about building that trust!
+
+Once this is complete, you'll be so much closer to receiving your first family matches. Exciting! 
+
+Need help with documentation or have questions? I'm here! 🤝`,
+
+  step_4: `Hi [Name]! ⏰ Chan here from Tavara Care.
+
+You're [X]% through your professional journey - almost there! Families are going to love working with someone as dedicated as you.
+
+Your next step: [NextStep] - this helps us match you with families whose schedules align perfectly with yours. No more guessing or awkward scheduling conversations!
+
+Professional caregivers like you who complete their full profiles get 3x more quality matches. You're so close! 
+
+Questions about availability settings? Just reply! 💙`,
+
+  step_5: `Hi [Name]! 🎓 Chan from Tavara Care.
+
+Amazing progress! You're [X]% complete and really showing your commitment to professional excellence. 
+
+Your next step: [NextStep] - these certifications and training modules set you apart and show families you're continuously growing your expertise.
+
+The families we work with specifically look for caregivers who invest in their professional development. You're exactly what they're hoping to find!
+
+Ready to complete this step? I'm here if you need support! 🌟`,
+
+  step_6: `Hi [Name]! 🎉 Chan from Tavara Care.
+
+WOW! You're [X]% complete - you're officially ready to start receiving family assignments! 
+
+Your dedication to completing your professional profile shows exactly the kind of caregiver you are. Families are going to feel so grateful to have you on their care team.
+
+Keep an eye out for your first family matches - they're coming soon! In the meantime, feel free to explore your professional dashboard.
+
+Welcome to the Tavara family of professional caregivers! 💙`,
+
+  stalled: `Hi [Name]! 🤝 Chan from Tavara Care.
+
+I wanted to check in - you made excellent progress on your professional setup ([X]% complete!), but I noticed it's been a while since your last update.
+
+I know life gets busy, especially for someone dedicated to caregiving like you. Is there anything I can help you with to get back on track?
+
+Families are actively looking for professionals with your background. Don't let this opportunity slip away - you're so close to being fully set up!
+
+What's the biggest challenge right now? Just reply and let me know how I can help! 💪`,
+
+  financial_proposal: `Hi [Name]! 💼 Chan from Tavara Care.
+
+Exciting news! I have information about our professional caregiver compensation and benefit packages ready for you.
+
+This includes:
+• Competitive hourly rates
+• Flexible scheduling options  
+• Professional development opportunities
+• Support and community
+
+As a qualified professional caregiver, you deserve to understand exactly how our partnership will benefit you financially and professionally.
+
+When would be a good time to discuss this? I can walk you through everything! 💙`
 };
 
 export function WhatsAppTemplateManager() {
@@ -149,6 +241,44 @@ export function WhatsAppTemplateManager() {
     message = message.replace(/\[CurrentStep\]/g, sampleUser.current_step.toString());
     
     return message;
+  };
+
+  const createProfessionalTemplates = async () => {
+    try {
+      const professionalTemplates = Object.entries(PROFESSIONAL_TEMPLATES).map(([stage, message]) => ({
+        name: `Professional ${stage.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}`,
+        role: 'professional' as const,
+        stage,
+        message_template: message,
+        message_type: 'whatsapp' as const
+      }));
+
+      for (const template of professionalTemplates) {
+        // Check if template already exists
+        const { data: existing } = await supabase
+          .from('nudge_templates')
+          .select('id')
+          .eq('role', template.role)
+          .eq('stage', template.stage)
+          .single();
+
+        if (!existing) {
+          const { error } = await supabase
+            .from('nudge_templates')
+            .insert(template);
+
+          if (error) {
+            console.error(`Error creating ${template.stage} template:`, error);
+          }
+        }
+      }
+
+      toast.success(`Created professional templates for all stages!`);
+      fetchTemplates();
+    } catch (error: any) {
+      console.error('Error creating professional templates:', error);
+      toast.error('Failed to create professional templates');
+    }
   };
 
   const saveTemplate = async () => {
@@ -254,6 +384,10 @@ export function WhatsAppTemplateManager() {
   ).filter(stage => stage && stage.trim() !== '');
 
   const getDefaultTemplate = (stage: string, role: string): string => {
+    if (role === 'professional' && PROFESSIONAL_TEMPLATES[stage as keyof typeof PROFESSIONAL_TEMPLATES]) {
+      return PROFESSIONAL_TEMPLATES[stage as keyof typeof PROFESSIONAL_TEMPLATES];
+    }
+    
     const templates = {
       welcome: `Hi [Name]! 👋 Welcome to Tavara Care! I'm Chan, and I'm excited to help you on your ${role} journey. You're [X]% complete - let's get you connected with the right care solutions! Need help? Just reply! 💙`,
       step_1: `Hi [Name]! 💙 This is Chan from Tavara Care. I noticed you're on step [CurrentStep] of your ${role} journey: [StepTitle]. Your next step is: [NextStep]. Need any assistance? We're here to help!`,
@@ -272,10 +406,20 @@ export function WhatsAppTemplateManager() {
           <h2 className="text-2xl font-bold text-gray-900">WhatsApp Template Manager</h2>
           <p className="text-gray-600">Create and manage contextual WhatsApp message templates</p>
         </div>
-        <Button onClick={openCreateDialog} className="flex items-center gap-2">
-          <Plus className="h-4 w-4" />
-          Create Template
-        </Button>
+        <div className="flex gap-2">
+          <Button 
+            onClick={createProfessionalTemplates} 
+            variant="outline"
+            className="flex items-center gap-2 bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100"
+          >
+            <Sparkles className="h-4 w-4" />
+            Create All Professional Templates
+          </Button>
+          <Button onClick={openCreateDialog} className="flex items-center gap-2">
+            <Plus className="h-4 w-4" />
+            Create Template
+          </Button>
+        </div>
       </div>
 
       {/* Filters */}
@@ -347,9 +491,14 @@ export function WhatsAppTemplateManager() {
           <div className="col-span-full text-center py-8">
             <MessageSquare className="h-12 w-12 text-gray-400 mx-auto mb-4" />
             <p className="text-gray-500">No templates found</p>
-            <Button onClick={openCreateDialog} className="mt-4">
-              Create Your First Template
-            </Button>
+            <div className="flex gap-2 justify-center mt-4">
+              <Button onClick={createProfessionalTemplates} variant="outline">
+                Create Professional Templates
+              </Button>
+              <Button onClick={openCreateDialog}>
+                Create Custom Template
+              </Button>
+            </div>
           </div>
         ) : (
           filteredTemplates.map((template) => (
