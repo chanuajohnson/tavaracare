@@ -124,6 +124,12 @@ export function useTracking(options: TrackingOptions = {}) {
       return;
     }
     
+    // Skip tracking for admin users
+    if (user?.role === 'admin') {
+      console.log('[Tracking disabled for admin user]', actionType, additionalData);
+      return;
+    }
+    
     // Skip tracking for caregiver matching related events
     if (isCaregiverMatchingAction(actionType)) {
       console.log('[Tracking disabled for caregiver matching]', actionType, additionalData);
