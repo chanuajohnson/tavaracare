@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from "@/components/ui/sonner";
 import { Layout } from './components/layout/Layout';
 import { AuthProvider } from './components/providers/AuthProvider';
+import { TavaraStateProvider } from './components/tav/hooks/TavaraStateContext';
 import { ScrollToTop } from './components/common/ScrollToTop';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
 import { AppRoutes } from './components/routing/AppRoutes';
@@ -25,17 +26,19 @@ function App() {
       <QueryClientProvider client={queryClient}>
         <Router>
           <AuthProvider>
-            <Layout>
-              <ScrollToTop />
-              <React.Suspense fallback={
-                <div className="min-h-screen flex items-center justify-center">
-                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-                </div>
-              }>
-                <AppRoutes />
-              </React.Suspense>
-            </Layout>
-            <Toaster />
+            <TavaraStateProvider>
+              <Layout>
+                <ScrollToTop />
+                <React.Suspense fallback={
+                  <div className="min-h-screen flex items-center justify-center">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+                  </div>
+                }>
+                  <AppRoutes />
+                </React.Suspense>
+              </Layout>
+              <Toaster />
+            </TavaraStateProvider>
           </AuthProvider>
         </Router>
       </QueryClientProvider>
