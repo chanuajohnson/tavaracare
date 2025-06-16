@@ -22,6 +22,11 @@ interface AnalyticsData {
   };
 }
 
+interface AdditionalDataType {
+  user_role?: string;
+  [key: string]: any;
+}
+
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'];
 
 export default function PlatformAnalyticsPage() {
@@ -48,9 +53,10 @@ export default function PlatformAnalyticsPage() {
         .lte('created_at', endDate.toISOString());
 
       // Filter out admin users from the data
-      const nonAdminEngagements = engagementData?.filter(item => 
-        item.additional_data?.user_role !== 'admin'
-      ) || [];
+      const nonAdminEngagements = engagementData?.filter(item => {
+        const additionalData = item.additional_data as AdditionalDataType;
+        return additionalData?.user_role !== 'admin';
+      }) || [];
 
       // Process engagement trends
       const engagementTrends = processEngagementTrends(nonAdminEngagements, startDate, endDate);
@@ -105,7 +111,8 @@ export default function PlatformAnalyticsPage() {
     const roleCounts: { [key: string]: number } = {};
     
     data.forEach(item => {
-      const role = item.additional_data?.user_role || 'anonymous';
+      const additionalData = item.additional_data as AdditionalDataType;
+      const role = additionalData?.user_role || 'anonymous';
       if (role !== 'admin') { // Double check to exclude admin
         roleCounts[role] = (roleCounts[role] || 0) + 1;
       }
