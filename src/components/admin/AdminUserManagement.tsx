@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Trash2, Search, Filter, Shield, Grid3X3, List } from "lucide-react";
+import { Trash2, Search, Filter, Shield, Grid3X3, List, Users } from "lucide-react";
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from "sonner";
 import { RoleBasedUserGrid } from './RoleBasedUserGrid';
@@ -213,6 +213,14 @@ export const AdminUserManagement = () => {
     }
   };
 
+  // Handle role filter clicks from statistics cards
+  const handleRoleFilterClick = (role: string) => {
+    const newFilter = roleFilter === role ? 'all' : role;
+    setRoleFilter(newFilter);
+    setSelectedUsers([]); // Clear selection when filtering
+    console.log('Role filter updated to:', newFilter);
+  };
+
   useEffect(() => {
     fetchUsers();
   }, []);
@@ -249,6 +257,15 @@ export const AdminUserManagement = () => {
       case 'community': return 'bg-purple-100 text-purple-800';
       default: return 'bg-gray-100 text-gray-800';
     }
+  };
+
+  // Calculate role statistics
+  const roleStats = {
+    total: users.length,
+    admin: profiles.filter(p => p.role === 'admin').length,
+    professional: profiles.filter(p => p.role === 'professional').length,
+    family: profiles.filter(p => p.role === 'family').length,
+    community: profiles.filter(p => p.role === 'community').length
   };
 
   if (loading) {
@@ -323,31 +340,90 @@ export const AdminUserManagement = () => {
           </Button>
         </div>
 
-        {/* Stats */}
+        {/* Clickable Statistics Cards */}
         <div className="grid grid-cols-4 gap-4">
-          <div className="text-center p-3 bg-gray-50 rounded">
-            <div className="text-2xl font-bold">{users.length}</div>
-            <div className="text-sm text-gray-600">Total Users</div>
-          </div>
-          <div className="text-center p-3 bg-red-50 rounded">
-            <div className="text-2xl font-bold text-red-600">
-              {profiles.filter(p => p.role === 'admin').length}
-            </div>
-            <div className="text-sm text-gray-600">Admins</div>
-          </div>
-          <div className="text-center p-3 bg-blue-50 rounded">
-            <div className="text-2xl font-bold text-blue-600">
-              {profiles.filter(p => p.role === 'professional').length}
-            </div>
-            <div className="text-sm text-gray-600">Professionals</div>
-          </div>
-          <div className="text-center p-3 bg-green-50 rounded">
-            <div className="text-2xl font-bold text-green-600">
-              {profiles.filter(p => p.role === 'family').length}
-            </div>
-            <div className="text-sm text-gray-600">Families</div>
-          </div>
+          <Card 
+            className={`cursor-pointer transition-all hover:shadow-md ${roleFilter === 'all' ? 'ring-2 ring-blue-500 bg-blue-50' : ''}`}
+            onClick={() => handleRoleFilterClick('all')}
+          >
+            <CardContent className="text-center p-3 bg-gray-50 rounded">
+              <div className="flex items-center justify-center gap-2 mb-1">
+                <Users className="h-4 w-4 text-gray-600" />
+                <div className="text-2xl font-bold">{roleStats.total}</div>
+              </div>
+              <div className="text-sm text-gray-600">Total Users</div>
+              {roleFilter === 'all' && (
+                <Badge variant="outline" className="mt-1 text-xs">Active Filter</Badge>
+              )}
+            </CardContent>
+          </Card>
+          
+          <Card 
+            className={`cursor-pointer transition-all hover:shadow-md ${roleFilter === 'admin' ? 'ring-2 ring-red-500 bg-red-50' : ''}`}
+            onClick={() => handleRoleFilterClick('admin')}
+          >
+            <CardContent className="text-center p-3 bg-red-50 rounded">
+              <div className="flex items-center justify-center gap-2 mb-1">
+                <Shield className="h-4 w-4 text-red-600" />
+                <div className="text-2xl font-bold text-red-600">{roleStats.admin}</div>
+              </div>
+              <div className="text-sm text-gray-600">Admins</div>
+              {roleFilter === 'admin' && (
+                <Badge variant="outline" className="mt-1 text-xs">Active Filter</Badge>
+              )}
+            </CardContent>
+          </Card>
+          
+          <Card 
+            className={`cursor-pointer transition-all hover:shadow-md ${roleFilter === 'professional' ? 'ring-2 ring-blue-500 bg-blue-50' : ''}`}
+            onClick={() => handleRoleFilterClick('professional')}
+          >
+            <CardContent className="text-center p-3 bg-blue-50 rounded">
+              <div className="flex items-center justify-center gap-2 mb-1">
+                <Users className="h-4 w-4 text-blue-600" />
+                <div className="text-2xl font-bold text-blue-600">{roleStats.professional}</div>
+              </div>
+              <div className="text-sm text-gray-600">Professionals</div>
+              {roleFilter === 'professional' && (
+                <Badge variant="outline" className="mt-1 text-xs">Active Filter</Badge>
+              )}
+            </CardContent>
+          </Card>
+          
+          <Card 
+            className={`cursor-pointer transition-all hover:shadow-md ${roleFilter === 'family' ? 'ring-2 ring-green-500 bg-green-50' : ''}`}
+            onClick={() => handleRoleFilterClick('family')}
+          >
+            <CardContent className="text-center p-3 bg-green-50 rounded">
+              <div className="flex items-center justify-center gap-2 mb-1">
+                <Users className="h-4 w-4 text-green-600" />
+                <div className="text-2xl font-bold text-green-600">{roleStats.family}</div>
+              </div>
+              <div className="text-sm text-gray-600">Families</div>
+              {roleFilter === 'family' && (
+                <Badge variant="outline" className="mt-1 text-xs">Active Filter</Badge>
+              )}
+            </CardContent>
+          </Card>
         </div>
+
+        {/* Active Filter Indicator */}
+        {roleFilter !== 'all' && (
+          <div className="flex items-center gap-2 p-2 bg-blue-50 border border-blue-200 rounded">
+            <Filter className="h-4 w-4 text-blue-600" />
+            <span className="text-sm text-blue-700">
+              Filtering by: <strong className="capitalize">{roleFilter}</strong>
+            </span>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={() => setRoleFilter('all')}
+              className="ml-auto text-blue-600 hover:text-blue-700"
+            >
+              Clear Filter
+            </Button>
+          </div>
+        )}
 
         {/* Users Display - Grid or Table view */}
         {viewMode === 'grid' ? (
