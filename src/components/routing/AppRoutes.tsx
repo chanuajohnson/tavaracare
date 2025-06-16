@@ -14,7 +14,6 @@ import HeroVideoManagementPage from "@/pages/admin/HeroVideoManagementPage";
 import UserJourneyPage from "@/pages/admin/UserJourneyPage";
 import FeedbackManagementPage from "@/pages/admin/FeedbackManagementPage";
 import WhatsAppNudgePage from "@/pages/admin/WhatsAppNudgePage";
-import PlatformAnalytics from "@/pages/admin/PlatformAnalytics";
 import FeaturesPage from "@/pages/features/FeaturesPage";
 import AboutPage from "@/pages/about/AboutPage";
 import FAQPage from "@/pages/support/FAQPage";
@@ -128,7 +127,6 @@ export const AppRoutes = () => {
       <Route path="/admin/user-journey" element={<UserJourneyPage />} />
       <Route path="/admin/feedback" element={<FeedbackManagementPage />} />
       <Route path="/admin/whatsapp-nudge" element={<WhatsAppNudgePage />} />
-      <Route path="/admin/platform-analytics" element={<PlatformAnalytics />} />
       
       {/* Legacy Routes */}
       <Route path="/legacy/stories" element={<LegacyStoriesPage />} />

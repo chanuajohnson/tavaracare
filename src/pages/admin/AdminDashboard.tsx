@@ -61,10 +61,6 @@ export default function AdminDashboard() {
     navigate('/admin/whatsapp-nudge');
   };
 
-  const handlePlatformAnalyticsClick = () => {
-    navigate('/admin/platform-analytics');
-  };
-
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="mb-8">
@@ -127,9 +123,9 @@ export default function AdminDashboard() {
         </Button>
         
         <Button
-          onClick={handlePlatformAnalyticsClick}
           className="h-20 flex flex-col items-center justify-center gap-2"
           variant="outline"
+          disabled
         >
           <BarChart className="h-6 w-6" />
           <span className="text-sm font-medium">Platform Analytics</span>
