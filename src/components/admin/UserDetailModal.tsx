@@ -10,9 +10,12 @@ import { User, Mail, MapPin, Calendar, CheckCircle2, Clock, Send, ArrowRight, Ci
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import { useUserSpecificProgress } from "@/hooks/useUserSpecificProgress";
+import { useSharedFamilyJourneyData } from "@/hooks/useSharedFamilyJourneyData";
+import { useSpecificUserProfessionalProgress } from "@/hooks/useSpecificUserProfessionalProgress";
 import { UserWithProgress } from "@/types/adminTypes";
 import { PhoneNumberEditor } from "./PhoneNumberEditor";
 import { TemplateSelector } from "./TemplateSelector";
+import type { UserRole } from "@/types/userRoles";
 
 interface UserDetailModalProps {
   user: UserWithProgress | null;
@@ -28,10 +31,38 @@ export function UserDetailModal({ user, open, onOpenChange, onRefresh }: UserDet
   
   // Stabilize the parameters to prevent hooks violations
   const userId = React.useMemo(() => user?.id || '', [user?.id]);
-  const userRole = React.useMemo(() => user?.role || 'family', [user?.role]);
+  const userRole = React.useMemo(() => user?.role as UserRole || 'family', [user?.role]);
   
-  // Use the fixed hook that properly handles professional users
-  const { steps, completionPercentage, nextStep, loading } = useUserSpecificProgress(userId, userRole);
+  // Use role-specific hooks for proper journey data
+  const familyProgress = useSharedFamilyJourneyData(userRole === 'family' ? userId : '');
+  const professionalProgress = useSpecificUserProfessionalProgress(userRole === 'professional' ? userId : '');
+  const otherProgress = useUserSpecificProgress(
+    userRole !== 'family' && userRole !== 'professional' ? userId : '', 
+    userRole
+  );
+
+  // Choose the appropriate progress data based on user role
+  const progressData = userRole === 'family' 
+    ? familyProgress 
+    : userRole === 'professional'
+    ? {
+        loading: professionalProgress.loading,
+        completionPercentage: professionalProgress.completionPercentage,
+        nextStep: professionalProgress.nextStep ? {
+          step_number: professionalProgress.nextStep.id,
+          title: professionalProgress.nextStep.title
+        } : undefined,
+        steps: professionalProgress.steps.map(step => ({
+          id: step.id.toString(),
+          step_number: step.id,
+          title: step.title,
+          description: step.description,
+          completed: step.completed
+        }))
+      }
+    : otherProgress;
+
+  const { loading, completionPercentage, nextStep, steps } = progressData;
 
   // Initialize phone number state when user changes
   React.useEffect(() => {
