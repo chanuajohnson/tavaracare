@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { ensureUserProfile, updateUserProfile } from "@/lib/profile-utils";
 import { UserRole } from "@/types/database";
+import { clearAllAuthFlowFlags } from "@/utils/authFlowUtils";
 
 export default function AuthPage() {
   const [isLoading, setIsLoading] = useState(false);
@@ -58,11 +59,8 @@ if (action === 'verification-pending') {
 
       console.log("[AuthPage] Login successful:", data.session ? "Has session" : "No session");
       
-      // Clear the skipPostLoginRedirect flag to allow normal redirection
-      if (sessionStorage.getItem('skipPostLoginRedirect')) {
-        console.log("[AuthPage] Clearing skipPostLoginRedirect flag after successful login");
-        sessionStorage.removeItem('skipPostLoginRedirect');
-      }
+      // Clear all auth flow flags to allow normal redirection after successful login
+      clearAllAuthFlowFlags();
       
     } catch (error: any) {
       console.error("[AuthPage] Login error:", error);
@@ -131,11 +129,8 @@ if (action === 'verification-pending') {
           }
         });
         
-        // Clear the skipPostLoginRedirect flag to allow normal redirection
-        if (sessionStorage.getItem('skipPostLoginRedirect')) {
-          console.log("[AuthPage] Clearing skipPostLoginRedirect flag after successful signup");
-          sessionStorage.removeItem('skipPostLoginRedirect');
-        }
+        // Clear all auth flow flags to allow normal redirection after successful signup
+        clearAllAuthFlowFlags();
         
         const accountType = role === "admin" ? "administrator" : role;
         toast.success(`${accountType} account created successfully! You'll be redirected to your dashboard shortly.`);

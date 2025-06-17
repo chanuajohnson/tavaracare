@@ -4,6 +4,7 @@ import { User } from '@supabase/supabase-js';
 import { UserRole } from '@/types/database';
 import { startTransition } from 'react';
 import { ensureUserProfile } from '@/lib/profile-utils';
+import { shouldSkipRedirectForCurrentFlow } from '@/utils/authFlowUtils';
 
 export const useAuthRedirection = (
   user: User | null,
@@ -30,9 +31,9 @@ export const useAuthRedirection = (
       return;
     }
 
-    const skipRedirect = sessionStorage.getItem('skipPostLoginRedirect');
-    if (skipRedirect) {
-      console.log('[AuthProvider] Skipping post-login redirect due to skipPostLoginRedirect flag');
+    // Use the new specific auth flow flags instead of the old broad flag
+    if (shouldSkipRedirectForCurrentFlow()) {
+      console.log('[AuthProvider] Skipping post-login redirect due to specific auth flow flags');
       return;
     }
     
