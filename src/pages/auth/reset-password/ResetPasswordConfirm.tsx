@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react';
 import { LoadingState } from '@/components/auth/reset-password/LoadingState';
 import { ErrorState } from '@/components/auth/reset-password/ErrorState';
-import { PasswordResetForm } from '@/components/auth/reset-password/PasswordResetForm';
+import PasswordResetForm from '@/components/auth/reset-password/PasswordResetForm';
 import { extractResetTokens } from '@/utils/authResetUtils';
 import { supabase } from '@/integrations/supabase/client';
 import { VALIDATION_TIMEOUT_MS, logResetAttempt } from '@/utils/passwordResetUtils';

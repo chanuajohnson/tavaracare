@@ -16,7 +16,7 @@ const FamilyRegistration = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <ConversationalFormChat userRole="family" />
+      <ConversationalFormChat role="family" />
     </div>
   );
 };
