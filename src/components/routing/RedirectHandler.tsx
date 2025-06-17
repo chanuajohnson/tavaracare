@@ -1,10 +1,10 @@
-
 import { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { ensureUserProfile } from '@/lib/profile-utils';
 import { UserRole } from '@/types/database';
 import { toast } from 'sonner';
+import { clearAllAuthFlowFlags } from '@/utils/authFlowUtils';
 
 const REDIRECT_TIMEOUT = 10000; // Increased to 10 seconds for email verification
 const VALID_ROUTES = [
@@ -82,7 +82,6 @@ export function RedirectHandler() {
       console.error('[RedirectHandler] Error processing redirects:', error);
       clearTimeout(timeoutId);
       setIsProcessing(false);
-      // Fallback to home on error
       navigate('/', { replace: true });
     }
   }, [location, navigate]);
@@ -286,6 +285,9 @@ export function RedirectHandler() {
     try {
       // Clear the hash from URL
       window.history.replaceState({}, '', window.location.pathname);
+      
+      // Clear all auth flow flags since this is a successful email verification
+      clearAllAuthFlowFlags();
       
       // Get user role from multiple sources with fallbacks
       let userRole: UserRole | null = null;
