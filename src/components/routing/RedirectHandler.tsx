@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabase';
 import { ensureUserProfile } from '@/lib/profile-utils';
 import { UserRole } from '@/types/database';
 import { toast } from 'sonner';
-import { setAuthFlowFlag, clearAuthFlowFlag, AUTH_FLOW_FLAGS } from '@/utils/authFlowUtils';
+import { setAuthFlowFlag, clearAuthFlowFlag, AUTH_FLOW_FLAGS, hasAuthFlowFlag } from '@/utils/authFlowUtils';
 
 const REDIRECT_TIMEOUT = 10000; // Increased to 10 seconds for email verification
 const VALID_ROUTES = [
@@ -26,7 +26,13 @@ export function RedirectHandler() {
       search: location.search,
       hash: location.hash,
       hostname: window.location.hostname,
-      isLovablePreview: window.location.hostname.includes('lovable.app')
+      isLovablePreview: window.location.hostname.includes('lovable.app'),
+      currentSkipFlags: {
+        emailVerification: hasAuthFlowFlag(AUTH_FLOW_FLAGS.SKIP_EMAIL_VERIFICATION_REDIRECT),
+        passwordReset: hasAuthFlowFlag(AUTH_FLOW_FLAGS.SKIP_PASSWORD_RESET_REDIRECT),
+        registration: hasAuthFlowFlag(AUTH_FLOW_FLAGS.SKIP_REGISTRATION_REDIRECT),
+        careAssessment: hasAuthFlowFlag(AUTH_FLOW_FLAGS.SKIP_CARE_ASSESSMENT_REDIRECT)
+      }
     });
     
     // Check if this is an asset request - don't process assets
@@ -200,6 +206,7 @@ export function RedirectHandler() {
       console.log('[RedirectHandler] Processing email confirmation');
       
       // Set flag to prevent AuthProvider from interfering with email verification redirect
+      console.log('[RedirectHandler] SETTING SKIP_EMAIL_VERIFICATION_REDIRECT flag');
       setAuthFlowFlag(AUTH_FLOW_FLAGS.SKIP_EMAIL_VERIFICATION_REDIRECT);
       
       // Extract tokens from hash or query string
@@ -224,7 +231,8 @@ export function RedirectHandler() {
         hasRefreshToken: !!refreshToken,
         hasTokenHash: !!tokenHash,
         type,
-        fullHash: location.hash
+        fullHash: location.hash,
+        skipFlagActive: hasAuthFlowFlag(AUTH_FLOW_FLAGS.SKIP_EMAIL_VERIFICATION_REDIRECT)
       });
 
       // Handle different token types
@@ -295,6 +303,9 @@ export function RedirectHandler() {
   const handleSuccessfulEmailVerification = async (user: any) => {
     try {
       console.log('[RedirectHandler] Starting handleSuccessfulEmailVerification for user:', user.id);
+      console.log('[RedirectHandler] Flag state before processing:', {
+        emailVerificationFlag: hasAuthFlowFlag(AUTH_FLOW_FLAGS.SKIP_EMAIL_VERIFICATION_REDIRECT)
+      });
       
       // Clear the hash from URL
       window.history.replaceState({}, '', window.location.pathname);
@@ -338,6 +349,10 @@ export function RedirectHandler() {
         
         if (targetDashboard) {
           console.log('[RedirectHandler] Email verification complete, redirecting to dashboard:', targetDashboard);
+          console.log('[RedirectHandler] Flag state before navigation:', {
+            emailVerificationFlag: hasAuthFlowFlag(AUTH_FLOW_FLAGS.SKIP_EMAIL_VERIFICATION_REDIRECT)
+          });
+          
           toast.success(`Welcome! Your ${userRole} account has been verified successfully.`);
           
           // Navigate to dashboard first
@@ -345,9 +360,12 @@ export function RedirectHandler() {
           
           // Clear the flag after navigation to allow normal AuthProvider behavior
           setTimeout(() => {
+            console.log('[RedirectHandler] Clearing email verification redirect flag after successful navigation');
             clearAuthFlowFlag(AUTH_FLOW_FLAGS.SKIP_EMAIL_VERIFICATION_REDIRECT);
-            console.log('[RedirectHandler] Cleared email verification redirect flag after successful navigation');
-          }, 100);
+            console.log('[RedirectHandler] Flag cleared. Final state:', {
+              emailVerificationFlag: hasAuthFlowFlag(AUTH_FLOW_FLAGS.SKIP_EMAIL_VERIFICATION_REDIRECT)
+            });
+          }, 200); // Increased delay to ensure navigation completes
           
           return;
         }

@@ -76,7 +76,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const passwordResetCompleteRef = useRef(false);
   
   useEffect(() => {
-    console.log('[App] Route changed to:', location.pathname);
+    console.log('[AuthProvider] Route changed to:', location.pathname);
     
     // Check if we're on the reset password page
     if (isPasswordResetConfirmRoute) {
@@ -162,16 +162,32 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   // Handle post-login redirection only when appropriate
   useEffect(() => {
+    // DEFENSIVE CHECK: Double-check skip flags before any redirect logic
+    const skipEmailVerification = hasAuthFlowFlag(AUTH_FLOW_FLAGS.SKIP_EMAIL_VERIFICATION_REDIRECT);
+    const skipRedirectForFlow = shouldSkipRedirectForCurrentFlow();
+    
+    console.log('[AuthProvider] Redirect check:', {
+      isLoading,
+      hasUser: !!user,
+      isPasswordResetRoute: isPasswordResetConfirmRoute,
+      isPasswordRecovery: isPasswordRecoveryRef.current,
+      skipEmailVerification,
+      skipRedirectForFlow,
+      location: location.pathname
+    });
+    
     const shouldSkipRedirect = 
       isLoading || 
       !user || 
       isPasswordResetConfirmRoute || 
       isPasswordRecoveryRef.current ||
-      shouldSkipRedirectForCurrentFlow(); // Use the new utility function
+      skipRedirectForFlow;
     
     if (shouldSkipRedirect) {
-      if (shouldSkipRedirectForCurrentFlow()) {
-        console.log('[AuthProvider] Skipping post-login redirect due to auth flow flags');
+      if (skipEmailVerification) {
+        console.log('[AuthProvider] SKIPPING post-login redirect - email verification flag is active');
+      } else if (skipRedirectForFlow) {
+        console.log('[AuthProvider] SKIPPING post-login redirect due to other auth flow flags');
       }
       return;
     }
@@ -198,6 +214,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, newSession) => {
       console.log('[AuthProvider] Auth state changed:', event, newSession ? 'Has session' : 'No session');
       
+      // DEFENSIVE CHECK: Log flag state during auth state changes
+      const skipEmailVerification = hasAuthFlowFlag(AUTH_FLOW_FLAGS.SKIP_EMAIL_VERIFICATION_REDIRECT);
+      console.log('[AuthProvider] Auth state change - skip email verification flag:', skipEmailVerification);
+      
       // Track password recovery state globally
       if (event === 'PASSWORD_RECOVERY') {
         console.log('[AuthProvider] Password recovery detected - preventing redirects');
@@ -213,7 +233,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
       // Don't process auth state changes when on the reset password page or during specific flows
       if (isPasswordResetConfirmRoute || shouldSkipRedirectForCurrentFlow()) {
-        console.log('[AuthProvider] Ignoring auth state change on reset password page or due to auth flow flags');
+        console.log('[AuthProvider] IGNORING auth state change - reset password page or auth flow flags active');
         return;
       }
       
@@ -227,7 +247,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           }
           
           if (event === 'SIGNED_IN' && !isPasswordResetConfirmRoute && !passwordResetCompleteRef.current) {
-            toast.success('You have successfully logged in!');
+            // DEFENSIVE CHECK: Only show toast if not during email verification
+            if (!skipEmailVerification) {
+              toast.success('You have successfully logged in!');
+            }
           }
         }
       } else if (event === 'SIGNED_OUT') {
