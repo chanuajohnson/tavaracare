@@ -1,3 +1,4 @@
+
 import { createContext, useContext, useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { Session, User } from '@supabase/supabase-js';
@@ -73,6 +74,21 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const isPasswordResetConfirmRoute = location.pathname.includes('/auth/reset-password/confirm');
   const isPasswordRecoveryRef = useRef(false);
   const passwordResetCompleteRef = useRef(false);
+
+  // Helper function to check for redirect lock
+  const hasRedirectLock = () => {
+    return sessionStorage.getItem('TAVARA_REDIRECT_LOCK') === 'true';
+  };
+
+  // Helper function to set redirect lock
+  const setRedirectLock = () => {
+    sessionStorage.setItem('TAVARA_REDIRECT_LOCK', 'true');
+  };
+
+  // Helper function to clear redirect lock
+  const clearRedirectLock = () => {
+    sessionStorage.removeItem('TAVARA_REDIRECT_LOCK');
+  };
   
   useEffect(() => {
     console.log('[AuthProvider] Route changed to:', location.pathname);
@@ -161,32 +177,38 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   // Handle post-login redirection only when appropriate
   useEffect(() => {
-    // DEFENSIVE CHECK: Double-check skip flags before any redirect logic
+    // CRITICAL: Check skip flags first
     const skipEmailVerification = hasAuthFlowFlag(AUTH_FLOW_FLAGS.SKIP_EMAIL_VERIFICATION_REDIRECT);
     const skipRedirectForFlow = shouldSkipRedirectForCurrentFlow();
     
     console.log('[AuthProvider] Redirect check:', {
       isLoading,
       hasUser: !!user,
+      hasSession: !!session,
       isPasswordResetRoute: isPasswordResetConfirmRoute,
       isPasswordRecovery: isPasswordRecoveryRef.current,
       skipEmailVerification,
       skipRedirectForFlow,
+      hasRedirectLock: hasRedirectLock(),
       location: location.pathname
     });
     
     const shouldSkipRedirect = 
       isLoading || 
       !user || 
+      !session ||
       isPasswordResetConfirmRoute || 
       isPasswordRecoveryRef.current ||
-      skipRedirectForFlow;
+      skipRedirectForFlow ||
+      hasRedirectLock();
     
     if (shouldSkipRedirect) {
       if (skipEmailVerification) {
         console.log('[AuthProvider] SKIPPING post-login redirect - email verification flag is active');
       } else if (skipRedirectForFlow) {
         console.log('[AuthProvider] SKIPPING post-login redirect due to other auth flow flags');
+      } else if (hasRedirectLock()) {
+        console.log('[AuthProvider] SKIPPING post-login redirect - redirect lock is active');
       }
       return;
     }
@@ -194,10 +216,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     console.log('[AuthProvider] User loaded. Handling redirection...');
     
     if (!initialRedirectionDoneRef.current || location.pathname === '/auth') {
+      // Set redirect lock before handling redirection
+      setRedirectLock();
+      
       handlePostLoginRedirection();
       initialRedirectionDoneRef.current = true;
+      
+      // Clear redirect lock after a delay
+      setTimeout(() => {
+        clearRedirectLock();
+      }, 2000);
     }
-  }, [isLoading, user, userRole, location.pathname, isPasswordResetConfirmRoute]);
+  }, [isLoading, user, session, userRole, location.pathname, isPasswordResetConfirmRoute]);
 
   useEffect(() => {
     console.log('[AuthProvider] Initial auth check started');
@@ -213,10 +243,26 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, newSession) => {
       console.log('[AuthProvider] Auth state changed:', event, newSession ? 'Has session' : 'No session');
       
-      // DEFENSIVE CHECK: Log flag state during auth state changes
+      // CRITICAL FIX: Always update session and user state first
+      setSession(newSession);
+      setUser(newSession?.user || null);
+
+      // CRITICAL: Check skip flags IMMEDIATELY after setting session/user
       const skipEmailVerification = hasAuthFlowFlag(AUTH_FLOW_FLAGS.SKIP_EMAIL_VERIFICATION_REDIRECT);
-      console.log('[AuthProvider] Auth state change - skip email verification flag:', skipEmailVerification);
+      const skipRedirectForFlow = shouldSkipRedirectForCurrentFlow();
       
+      console.log('[AuthProvider] Auth state change - skip flags:', {
+        skipEmailVerification,
+        skipRedirectForFlow,
+        hasRedirectLock: hasRedirectLock()
+      });
+
+      // EARLY RETURN: If email verification or other flows are active, ONLY update state
+      if (skipEmailVerification || skipRedirectForFlow || hasRedirectLock()) {
+        console.log('[AuthProvider] Auth state updated, but SKIPPING all redirect logic - verification or redirect lock active');
+        return;
+      }
+
       // Track password recovery state globally
       if (event === 'PASSWORD_RECOVERY') {
         console.log('[AuthProvider] Password recovery detected - preventing redirects');
@@ -230,16 +276,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         passwordResetCompleteRef.current = false;
       }
 
-      // CRITICAL FIX: Always update session and user state first
-      setSession(newSession);
-      setUser(newSession?.user || null);
-
-      // Then check if we should skip redirect logic
-      if (isPasswordResetConfirmRoute || shouldSkipRedirectForCurrentFlow()) {
-        console.log('[AuthProvider] Session/user updated, but SKIPPING redirect logic - reset password page or auth flow flags active');
-        return;
-      }
-      
+      // Only proceed with role/toast logic if NOT during special flows
       if (!isPasswordRecoveryRef.current && (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED')) {
         if (newSession?.user) {
           if (newSession.user.user_metadata?.role) {
@@ -247,10 +284,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           }
           
           if (event === 'SIGNED_IN' && !isPasswordResetConfirmRoute && !passwordResetCompleteRef.current) {
-            // DEFENSIVE CHECK: Only show toast if not during email verification
-            if (!skipEmailVerification) {
-              toast.success('You have successfully logged in!');
-            }
+            toast.success('You have successfully logged in!');
           }
         }
       } else if (event === 'SIGNED_OUT') {
