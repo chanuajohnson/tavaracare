@@ -231,14 +231,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         passwordResetCompleteRef.current = false;
       }
 
-      // Don't process auth state changes when on the reset password page or during specific flows
-      if (isPasswordResetConfirmRoute || shouldSkipRedirectForCurrentFlow()) {
-        console.log('[AuthProvider] IGNORING auth state change - reset password page or auth flow flags active');
-        return;
-      }
-      
+      // CRITICAL FIX: Always update session and user state first
       setSession(newSession);
       setUser(newSession?.user || null);
+
+      // Then check if we should skip redirect logic
+      if (isPasswordResetConfirmRoute || shouldSkipRedirectForCurrentFlow()) {
+        console.log('[AuthProvider] Session/user updated, but SKIPPING redirect logic - reset password page or auth flow flags active');
+        return;
+      }
       
       if (!isPasswordRecoveryRef.current && (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED')) {
         if (newSession?.user) {
