@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -80,10 +81,23 @@ if (action === 'verification-pending') {
 
       const fullName = `${firstName} ${lastName}`;
 
+      // Set up proper redirect URL for email verification
+      const currentDomain = window.location.hostname;
+      const baseDomain = currentDomain.includes('preview--') 
+        ? currentDomain.replace('preview--', '') 
+        : currentDomain;
+      
+      const protocol = window.location.protocol;
+      const port = window.location.port ? `:${window.location.port}` : '';
+      const baseUrl = `${protocol}//${baseDomain}${port}`;
+      
+      console.log("[AuthPage] Using email redirect URL:", baseUrl);
+
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
+          emailRedirectTo: baseUrl, // This ensures users go through RedirectHandler after email verification
           data: {
             role,
             full_name: fullName,
@@ -127,8 +141,11 @@ if (action === 'verification-pending') {
         toast.success(`${accountType} account created successfully! You'll be redirected to your dashboard shortly.`);
         return true;
       } else {
-        console.log("[AuthPage] No session after signup - auto-confirm may be disabled");
+        console.log("[AuthPage] No session after signup - email verification required");
         localStorage.setItem('registeringAs', role);
+        localStorage.setItem('registrationRole', role);
+        
+        toast.success("Account created successfully! Please check your email and click the verification link to complete your registration.");
         return true;
       }
 

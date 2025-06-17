@@ -1,8 +1,10 @@
+
 import { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { ensureUserProfile } from '@/lib/profile-utils';
 import { UserRole } from '@/types/database';
+import { toast } from 'sonner';
 
 const REDIRECT_TIMEOUT = 2000; // Reduced to 2 seconds for faster fallback
 const VALID_ROUTES = [
@@ -43,7 +45,9 @@ export function RedirectHandler() {
     const hasRedirectData = location.hash || 
                            location.search.includes('route=') || 
                            location.hash.includes('access_token=') ||
-                           location.search.includes('access_token=');
+                           location.search.includes('access_token=') ||
+                           location.search.includes('token_hash=') ||
+                           location.search.includes('type=signup');
     
     if (!hasRedirectData) {
       console.log('[RedirectHandler] No redirect data found, skipping processing');
@@ -136,9 +140,9 @@ export function RedirectHandler() {
         return;
       }
 
-      // Handle email confirmation tokens in search params
-      if (location.search && location.search.includes('access_token=')) {
-        console.log('[RedirectHandler] Email confirmation tokens detected in search');
+      // Handle email confirmation tokens in search params (most common for signup verification)
+      if (location.search && (location.search.includes('access_token=') || location.search.includes('token_hash='))) {
+        console.log('[RedirectHandler] Email confirmation tokens detected in search params');
         await handleEmailConfirmation(location.search.substring(1));
         clearTimeout(timeoutId);
         setIsProcessing(false);
@@ -195,14 +199,43 @@ export function RedirectHandler() {
       const accessToken = params.get('access_token');
       const refreshToken = params.get('refresh_token');
       const type = params.get('type');
+      const tokenHash = params.get('token_hash');
 
       console.log('[RedirectHandler] Email confirmation params:', { 
         hasAccessToken: !!accessToken, 
         hasRefreshToken: !!refreshToken,
+        hasTokenHash: !!tokenHash,
         type 
       });
 
+      // Handle different token types
+      if (tokenHash && type) {
+        console.log('[RedirectHandler] Processing token hash verification');
+        
+        // Use verifyOtp for token hash verification
+        const { data, error } = await supabase.auth.verifyOtp({
+          token_hash: tokenHash,
+          type: type as any
+        });
+
+        if (error) {
+          console.error('[RedirectHandler] Error verifying token hash:', error);
+          toast.error('Email verification failed. Please try signing up again.');
+          window.history.replaceState({}, '', window.location.pathname);
+          navigate('/auth', { replace: true });
+          return;
+        }
+
+        if (data.user) {
+          console.log('[RedirectHandler] Token hash verification successful for user:', data.user.id);
+          await handleSuccessfulEmailVerification(data.user);
+          return;
+        }
+      }
+
       if (accessToken && refreshToken) {
+        console.log('[RedirectHandler] Processing access token verification');
+        
         // Set the session with the tokens
         const { data, error } = await supabase.auth.setSession({
           access_token: accessToken,
@@ -211,7 +244,7 @@ export function RedirectHandler() {
 
         if (error) {
           console.error('[RedirectHandler] Error setting session:', error);
-          // Clear hash and go to auth page on error
+          toast.error('Email verification failed. Please try signing up again.');
           window.history.replaceState({}, '', window.location.pathname);
           navigate('/auth', { replace: true });
           return;
@@ -219,47 +252,88 @@ export function RedirectHandler() {
 
         if (data.user) {
           console.log('[RedirectHandler] Session established for user:', data.user.id);
-          
-          // Ensure user profile exists with role from metadata
-          if (data.user.user_metadata?.role) {
-            await ensureUserProfile(data.user.id, data.user.user_metadata.role);
-          }
-
-          // Clear the hash from URL
-          window.history.replaceState({}, '', window.location.pathname);
-          
-          // Determine the user's role and redirect to appropriate dashboard
-          const userRole = data.user.user_metadata?.role as UserRole;
-          
-          if (userRole) {
-            const dashboardRoutes: Record<UserRole, string> = {
-              'family': '/dashboard/family',
-              'professional': '/dashboard/professional',
-              'community': '/dashboard/community',
-              'admin': '/dashboard/admin'
-            };
-            
-            const targetDashboard = dashboardRoutes[userRole];
-            
-            if (targetDashboard) {
-              console.log('[RedirectHandler] Email confirmation complete, redirecting to dashboard:', targetDashboard);
-              navigate(targetDashboard, { replace: true });
-              return;
-            }
-          }
-          
-          // Fallback to home if no role detected
-          console.log('[RedirectHandler] No role detected, redirecting to home');
-          navigate('/', { replace: true });
+          await handleSuccessfulEmailVerification(data.user);
+          return;
         }
-      } else {
-        console.warn('[RedirectHandler] Missing tokens in email confirmation');
-        navigate('/auth', { replace: true });
       }
+
+      console.warn('[RedirectHandler] Missing or invalid tokens in email confirmation');
+      toast.error('Email verification failed. Please try signing up again.');
+      navigate('/auth', { replace: true });
+      
     } catch (error) {
       console.error('[RedirectHandler] Error in handleEmailConfirmation:', error);
-      // Clear hash and go to auth page on error
+      toast.error('Email verification failed. Please try signing up again.');
       window.history.replaceState({}, '', window.location.pathname);
+      navigate('/auth', { replace: true });
+    }
+  };
+
+  const handleSuccessfulEmailVerification = async (user: any) => {
+    try {
+      // Clear the hash from URL
+      window.history.replaceState({}, '', window.location.pathname);
+      
+      // Get user role from multiple sources with fallbacks
+      let userRole: UserRole | null = null;
+      
+      // First, try user metadata
+      if (user.user_metadata?.role) {
+        userRole = user.user_metadata.role as UserRole;
+        console.log('[RedirectHandler] Role found in user metadata:', userRole);
+      }
+      
+      // Fallback to localStorage registration intent
+      if (!userRole) {
+        const storedRole = localStorage.getItem('registeringAs') || localStorage.getItem('registrationRole');
+        if (storedRole) {
+          userRole = storedRole as UserRole;
+          console.log('[RedirectHandler] Role found in localStorage:', userRole);
+        }
+      }
+      
+      // Ensure user profile exists with the determined role
+      if (userRole) {
+        console.log('[RedirectHandler] Ensuring user profile exists with role:', userRole);
+        await ensureUserProfile(user.id, userRole);
+        
+        // Update user metadata to include role if missing
+        if (!user.user_metadata?.role) {
+          await supabase.auth.updateUser({
+            data: { role: userRole }
+          });
+        }
+        
+        // Clean up localStorage
+        localStorage.removeItem('registeringAs');
+        localStorage.removeItem('registrationRole');
+        
+        // Determine target dashboard
+        const dashboardRoutes: Record<UserRole, string> = {
+          'family': '/dashboard/family',
+          'professional': '/dashboard/professional',
+          'community': '/dashboard/community',
+          'admin': '/dashboard/admin'
+        };
+        
+        const targetDashboard = dashboardRoutes[userRole];
+        
+        if (targetDashboard) {
+          console.log('[RedirectHandler] Email verification complete, redirecting to dashboard:', targetDashboard);
+          toast.success(`Welcome! Your ${userRole} account has been verified successfully.`);
+          navigate(targetDashboard, { replace: true });
+          return;
+        }
+      }
+      
+      // Fallback if no role could be determined
+      console.warn('[RedirectHandler] No role detected after email verification, redirecting to home');
+      toast.success('Email verified successfully! Please complete your profile.');
+      navigate('/', { replace: true });
+      
+    } catch (error) {
+      console.error('[RedirectHandler] Error in handleSuccessfulEmailVerification:', error);
+      toast.error('Email verification completed, but there was an issue. Please try logging in.');
       navigate('/auth', { replace: true });
     }
   };
@@ -270,7 +344,7 @@ export function RedirectHandler() {
       <div className="fixed inset-0 bg-white flex items-center justify-center z-50">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-sm text-gray-600">Processing redirect...</p>
+          <p className="text-sm text-gray-600">Processing email verification...</p>
           <p className="text-xs text-gray-400 mt-2">Environment: {window.location.hostname.includes('lovable.app') ? 'Lovable Preview' : 'Production'}</p>
         </div>
       </div>
