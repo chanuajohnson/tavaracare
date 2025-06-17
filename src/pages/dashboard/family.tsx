@@ -4,7 +4,6 @@ import { useAuth } from "@/components/providers/AuthProvider";
 import { useNavigate } from 'react-router-dom';
 import { ScheduleVisitModal } from "@/components/family/ScheduleVisitModal";
 import { CancelVisitModal } from "@/components/family/CancelVisitModal";
-import { CaregiverMatchingModal } from "@/components/family/CaregiverMatchingModal";
 import { useEnhancedJourneyProgress } from "@/hooks/useEnhancedJourneyProgress";
 import { FamilyDashboard } from "@/components/family/FamilyDashboard";
 
@@ -16,8 +15,6 @@ export default function FamilyDashboardPage() {
     setShowScheduleModal,
     showCancelVisitModal,
     setShowCancelVisitModal,
-    showCaregiverMatchingModal,
-    setShowCaregiverMatchingModal,
     visitDetails,
     onVisitScheduled,
     onVisitCancelled
@@ -68,13 +65,6 @@ export default function FamilyDashboardPage() {
         onOpenChange={setShowCancelVisitModal}
         visitDetails={visitDetails}
         onCancel={onVisitCancelled}
-      />
-
-      <CaregiverMatchingModal
-        open={showCaregiverMatchingModal}
-        onOpenChange={setShowCaregiverMatchingModal}
-        referringPagePath="/dashboard/family"
-        referringPageLabel="Family Dashboard"
       />
     </div>
   );

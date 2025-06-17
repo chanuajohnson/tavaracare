@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -12,9 +12,26 @@ import { CaregiverMatchingModal } from "./CaregiverMatchingModal";
 
 export const DashboardCaregiverMatches = () => {
   const { user } = useAuth();
-  const { caregivers, isLoading, dataLoaded } = useCaregiverMatches(true);
+  const { caregivers, isLoading: hookLoading } = useCaregiverMatches(true);
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [showMatchingModal, setShowMatchingModal] = useState(false);
+  
+  // Single loading state that ensures consistent behavior
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    if (user) {
+      setIsLoading(true);
+      
+      // Set minimum loading time of 2.5 seconds to prevent flashing
+      // This ensures we don't show content until the timer completes
+      const loadingTimer = setTimeout(() => {
+        setIsLoading(false);
+      }, 2500);
+
+      return () => clearTimeout(loadingTimer);
+    }
+  }, [user]);
 
   if (!user) {
     return null;
@@ -29,7 +46,7 @@ export const DashboardCaregiverMatches = () => {
           <div>
             <CardTitle className="text-xl">Your Caregiver Match</CardTitle>
             <p className="text-sm text-gray-500">
-              {caregivers.length} caregiver{caregivers.length !== 1 ? 's' : ''} match{caregivers.length === 1 ? 'es' : ''} your care needs
+              1 caregiver matches your care needs
             </p>
           </div>
           <SubscriptionFeatureLink
