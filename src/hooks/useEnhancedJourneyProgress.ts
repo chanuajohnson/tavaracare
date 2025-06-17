@@ -265,10 +265,10 @@ export const useEnhancedJourneyProgress = (): JourneyProgressData => {
         // For authenticated users, calculate real progress
         const userId = user.id;
 
-        // Fetch user profile data with strict requirements
+        // Fetch user profile data with only existing columns
         const { data: profile } = await supabase
           .from('profiles')
-          .select('full_name, phone_number, email, location')
+          .select('full_name, phone_number, location')
           .eq('id', userId)
           .maybeSingle();
 
@@ -314,10 +314,12 @@ export const useEnhancedJourneyProgress = (): JourneyProgressData => {
 
         setVisitDetails(visitBookings?.[0] || null);
 
-        // Parse care model from visit notes if available
+        // Parse care model from visit notes if available (checking if profile has visit_notes)
         let visitNotes = null;
         try {
-          visitNotes = profile?.visit_notes ? JSON.parse(profile.visit_notes) : null;
+          if (profile && 'visit_notes' in profile && profile.visit_notes) {
+            visitNotes = JSON.parse(profile.visit_notes);
+          }
         } catch (error) {
           console.error('Error parsing visit notes:', error);
         }
