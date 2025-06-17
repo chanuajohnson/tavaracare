@@ -302,7 +302,7 @@ export const useEnhancedJourneyProgress = (): JourneyProgressData => {
   }, [user, refreshTrigger]);
 
   const handleAnonymousStepAction = (step: JourneyStep) => {
-    if (step.step_number === 4) {
+    if (step.step_number === 5) {
       // For caregiver matches, show modal
       setShowCaregiverMatchingModal(true);
     } else {
