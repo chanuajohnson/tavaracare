@@ -212,8 +212,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
 
       // Don't process auth state changes when on the reset password page or during specific flows
-      if (isPasswordResetConfirmRoute || hasAuthFlowFlag(AUTH_FLOW_FLAGS.SKIP_PASSWORD_RESET_REDIRECT)) {
-        console.log('[AuthProvider] Ignoring auth state change on reset password page or due to flow flag');
+      if (isPasswordResetConfirmRoute || shouldSkipRedirectForCurrentFlow()) {
+        console.log('[AuthProvider] Ignoring auth state change on reset password page or due to auth flow flags');
         return;
       }
       
