@@ -1,10 +1,9 @@
-
 import { useLocation } from 'react-router-dom';
 import { User } from '@supabase/supabase-js';
 import { UserRole } from '@/types/database';
 import { startTransition } from 'react';
 import { ensureUserProfile } from '@/lib/profile-utils';
-import { shouldSkipRedirectForCurrentFlow } from '@/utils/authFlowUtils';
+import { shouldSkipRedirectForCurrentFlow, hasAuthFlowFlag, AUTH_FLOW_FLAGS } from '@/utils/authFlowUtils';
 
 export const useAuthRedirection = (
   user: User | null,
@@ -28,6 +27,13 @@ export const useAuthRedirection = (
     // Skip redirect on family-specific pages like care assessment
     if (location.pathname.startsWith('/family/')) {
       console.log('[AuthProvider] On family page, skipping redirection');
+      return;
+    }
+
+    // CRITICAL FIX: Check for email verification flag specifically
+    const skipEmailVerification = hasAuthFlowFlag(AUTH_FLOW_FLAGS.SKIP_EMAIL_VERIFICATION_REDIRECT);
+    if (skipEmailVerification) {
+      console.log('[AuthProvider] SKIPPING handlePostLoginRedirection - email verification redirect flag is active');
       return;
     }
 

@@ -358,14 +358,14 @@ export function RedirectHandler() {
           // Navigate to dashboard first
           navigate(targetDashboard, { replace: true });
           
-          // Clear the flag after navigation to allow normal AuthProvider behavior
+          // FIXED: Increase timeout to prevent race condition with AuthProvider
           setTimeout(() => {
             console.log('[RedirectHandler] Clearing email verification redirect flag after successful navigation');
             clearAuthFlowFlag(AUTH_FLOW_FLAGS.SKIP_EMAIL_VERIFICATION_REDIRECT);
             console.log('[RedirectHandler] Flag cleared. Final state:', {
               emailVerificationFlag: hasAuthFlowFlag(AUTH_FLOW_FLAGS.SKIP_EMAIL_VERIFICATION_REDIRECT)
             });
-          }, 200); // Increased delay to ensure navigation completes
+          }, 1000); // CRITICAL FIX: Increased from 200ms to 1000ms to prevent race condition
           
           return;
         }
