@@ -48,17 +48,39 @@ export function RedirectHandler() {
       return;
     }
     
-    // Only process if we have something to redirect
+    // CRITICAL FIX: Improved email verification token detection
+    const hasEmailVerificationTokens = location.hash && (
+      location.hash.includes('access_token=') || 
+      location.hash.includes('token_hash=') ||
+      location.search.includes('access_token=') ||
+      location.search.includes('token_hash=')
+    );
+    
+    // Improved redirect data detection
     const hasRedirectData = location.hash || 
                            location.search.includes('route=') || 
-                           location.hash.includes('access_token=') ||
-                           location.search.includes('access_token=') ||
-                           location.search.includes('token_hash=') ||
+                           hasEmailVerificationTokens ||
                            location.search.includes('type=signup');
+    
+    console.log('[RedirectHandler] Redirect data detection:', {
+      hasRedirectData,
+      hasEmailVerificationTokens,
+      hash: location.hash,
+      search: location.search
+    });
     
     if (!hasRedirectData) {
       console.log('[RedirectHandler] No redirect data found, skipping processing');
       return;
+    }
+    
+    // CRITICAL: Set email verification flag IMMEDIATELY when tokens are detected
+    if (hasEmailVerificationTokens) {
+      console.log('[RedirectHandler] EMAIL VERIFICATION TOKENS DETECTED - Setting skip flag IMMEDIATELY');
+      setAuthFlowFlag(AUTH_FLOW_FLAGS.SKIP_EMAIL_VERIFICATION_REDIRECT);
+      console.log('[RedirectHandler] Flag set. Current state:', {
+        emailVerificationFlag: hasAuthFlowFlag(AUTH_FLOW_FLAGS.SKIP_EMAIL_VERIFICATION_REDIRECT)
+      });
     }
     
     // Set processing state
@@ -97,6 +119,24 @@ export function RedirectHandler() {
 
   const processRedirects = async (timeoutId: NodeJS.Timeout) => {
     try {
+      // PRIORITY 1: Handle email confirmation with authentication tokens (highest priority)
+      if (location.hash && location.hash.includes('access_token=')) {
+        console.log('[RedirectHandler] PRIORITY: Email confirmation tokens detected in hash');
+        await handleEmailConfirmation();
+        clearTimeout(timeoutId);
+        setIsProcessing(false);
+        return;
+      }
+
+      // PRIORITY 1: Handle email confirmation tokens in search params (also highest priority)
+      if (location.search && (location.search.includes('access_token=') || location.search.includes('token_hash='))) {
+        console.log('[RedirectHandler] PRIORITY: Email confirmation tokens detected in search params');
+        await handleEmailConfirmation(location.search.substring(1));
+        clearTimeout(timeoutId);
+        setIsProcessing(false);
+        return;
+      }
+
       // Handle legacy query parameter redirects (from old 404.html)
       const params = new URLSearchParams(location.search);
       const routeParam = params.get('route');
@@ -149,24 +189,6 @@ export function RedirectHandler() {
         }
       }
 
-      // Handle email confirmation with authentication tokens (hash format)
-      if (location.hash && location.hash.includes('access_token=')) {
-        console.log('[RedirectHandler] Email confirmation tokens detected in hash');
-        await handleEmailConfirmation();
-        clearTimeout(timeoutId);
-        setIsProcessing(false);
-        return;
-      }
-
-      // Handle email confirmation tokens in search params (most common for signup verification)
-      if (location.search && (location.search.includes('access_token=') || location.search.includes('token_hash='))) {
-        console.log('[RedirectHandler] Email confirmation tokens detected in search params');
-        await handleEmailConfirmation(location.search.substring(1));
-        clearTimeout(timeoutId);
-        setIsProcessing(false);
-        return;
-      }
-
       // If no special redirects needed, clear processing
       clearTimeout(timeoutId);
       setIsProcessing(false);
@@ -203,11 +225,10 @@ export function RedirectHandler() {
 
   const handleEmailConfirmation = async (queryString?: string) => {
     try {
-      console.log('[RedirectHandler] Processing email confirmation');
-      
-      // Set flag to prevent AuthProvider from interfering with email verification redirect
-      console.log('[RedirectHandler] SETTING SKIP_EMAIL_VERIFICATION_REDIRECT flag');
-      setAuthFlowFlag(AUTH_FLOW_FLAGS.SKIP_EMAIL_VERIFICATION_REDIRECT);
+      console.log('[RedirectHandler] Processing email confirmation - FLAG SHOULD ALREADY BE SET');
+      console.log('[RedirectHandler] Current flag state:', {
+        emailVerificationFlag: hasAuthFlowFlag(AUTH_FLOW_FLAGS.SKIP_EMAIL_VERIFICATION_REDIRECT)
+      });
       
       // Extract tokens from hash or query string
       let params: URLSearchParams;
@@ -358,14 +379,14 @@ export function RedirectHandler() {
           // Navigate to dashboard first
           navigate(targetDashboard, { replace: true });
           
-          // FIXED: Increase timeout to prevent race condition with AuthProvider
+          // CRITICAL FIX: Increase timeout significantly to prevent race condition
           setTimeout(() => {
             console.log('[RedirectHandler] Clearing email verification redirect flag after successful navigation');
             clearAuthFlowFlag(AUTH_FLOW_FLAGS.SKIP_EMAIL_VERIFICATION_REDIRECT);
             console.log('[RedirectHandler] Flag cleared. Final state:', {
               emailVerificationFlag: hasAuthFlowFlag(AUTH_FLOW_FLAGS.SKIP_EMAIL_VERIFICATION_REDIRECT)
             });
-          }, 1000); // CRITICAL FIX: Increased from 200ms to 1000ms to prevent race condition
+          }, 2000); // INCREASED: From 1000ms to 2000ms for extra safety
           
           return;
         }
