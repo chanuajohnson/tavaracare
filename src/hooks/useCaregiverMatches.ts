@@ -52,14 +52,16 @@ export const useCaregiverMatches = (showOnlyBestMatch: boolean = true) => {
   const [error, setError] = useState<string | null>(null);
   const { trackEngagement } = useTracking();
   
-  // Use ref to prevent multiple simultaneous requests only
+  // Use ref to prevent multiple simultaneous requests
   const loadingRef = useRef(false);
   // Cache processed caregivers to prevent regeneration
   const processedCaregiversRef = useRef<Caregiver[] | null>(null);
+  // Track if data has been loaded for this user
+  const dataLoadedRef = useRef(false);
 
   const loadCaregivers = useCallback(async () => {
-    // Only prevent multiple simultaneous calls, not legitimate reloads
-    if (loadingRef.current || !user) {
+    // Prevent multiple simultaneous calls and duplicate loads
+    if (loadingRef.current || !user || dataLoadedRef.current) {
       return;
     }
     
@@ -78,6 +80,7 @@ export const useCaregiverMatches = (showOnlyBestMatch: boolean = true) => {
         setCaregivers(finalCaregivers);
         setIsLoading(false);
         loadingRef.current = false;
+        dataLoadedRef.current = true;
         return;
       }
 
@@ -102,6 +105,7 @@ export const useCaregiverMatches = (showOnlyBestMatch: boolean = true) => {
           view_context: showOnlyBestMatch ? 'dashboard_widget' : 'matching_page',
           error: professionalError.message
         });
+        dataLoadedRef.current = true;
         return;
       }
 
@@ -117,6 +121,7 @@ export const useCaregiverMatches = (showOnlyBestMatch: boolean = true) => {
           caregiver_count: fallbackCaregivers.length,
           view_context: showOnlyBestMatch ? 'dashboard_widget' : 'matching_page',
         });
+        dataLoadedRef.current = true;
         return;
       }
 
@@ -187,6 +192,7 @@ export const useCaregiverMatches = (showOnlyBestMatch: boolean = true) => {
       });
       
       setCaregivers(finalCaregivers);
+      dataLoadedRef.current = true;
     } catch (error) {
       console.error("Error loading caregivers:", error);
       setError(error instanceof Error ? error.message : "Unknown error");
@@ -204,6 +210,7 @@ export const useCaregiverMatches = (showOnlyBestMatch: boolean = true) => {
         view_context: showOnlyBestMatch ? 'dashboard_widget' : 'matching_page',
         error: error instanceof Error ? error.message : "Unknown error"
       });
+      dataLoadedRef.current = true;
     } finally {
       setIsLoading(false);
       loadingRef.current = false;
@@ -211,7 +218,7 @@ export const useCaregiverMatches = (showOnlyBestMatch: boolean = true) => {
   }, [user?.id, trackEngagement, showOnlyBestMatch]);
   
   useEffect(() => {
-    if (user) {
+    if (user && !dataLoadedRef.current) {
       console.log('useCaregiverMatches effect triggered for user:', user.id);
       // Small delay to prevent rapid successive calls
       const timer = setTimeout(() => {
@@ -220,7 +227,13 @@ export const useCaregiverMatches = (showOnlyBestMatch: boolean = true) => {
       
       return () => clearTimeout(timer);
     }
-  }, [user, loadCaregivers]);
+  }, [user?.id, showOnlyBestMatch]); // Removed loadCaregivers to prevent infinite loop
+
+  // Reset data loaded flag when user changes
+  useEffect(() => {
+    dataLoadedRef.current = false;
+    processedCaregiversRef.current = null;
+  }, [user?.id]);
 
   return {
     caregivers,
