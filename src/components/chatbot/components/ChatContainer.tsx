@@ -1,5 +1,5 @@
 
-import React, { Suspense } from 'react';
+import React, { Suspense, useRef, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from "@/hooks/use-mobile";
 
@@ -30,11 +30,29 @@ export const ChatContainer: React.FC<ChatContainerProps> = ({
 }) => {
   const isMobile = useIsMobile();
   const responsiveWidth = isMobile ? "100%" : width;
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Auto-scroll to bottom when component mounts to show input field
+  useEffect(() => {
+    const scrollToBottom = () => {
+      if (containerRef.current) {
+        containerRef.current.scrollTop = containerRef.current.scrollHeight;
+      }
+    };
+
+    // Use requestAnimationFrame to ensure DOM is fully rendered
+    const timeoutId = setTimeout(() => {
+      requestAnimationFrame(scrollToBottom);
+    }, 100);
+
+    return () => clearTimeout(timeoutId);
+  }, []);
 
   return (
     <div 
+      ref={containerRef}
       className={cn(
-        "bg-background border rounded-lg shadow-xl flex flex-col z-40",
+        "bg-background border rounded-lg shadow-xl flex flex-col z-40 overflow-auto",
         isMobile ? "h-[calc(100vh-140px)] max-w-[100vw]" : "h-[500px]", // Adjusted height for mobile and max width
         className
       )}

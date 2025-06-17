@@ -11,6 +11,7 @@ import { useAuthNavigation } from '@/hooks/auth/useAuthNavigation';
 import { useProfileCompletion } from '@/hooks/auth/useProfileCompletion';
 import { useAuthRedirection } from '@/hooks/auth/useAuthRedirection';
 import { useFeatureUpvote } from '@/hooks/auth/useFeatureUpvote';
+import { shouldSkipRedirectForCurrentFlow, AUTH_FLOW_FLAGS, hasAuthFlowFlag } from '@/utils/authFlowUtils';
 
 interface AuthContextType {
   session: Session | null;
@@ -73,9 +74,24 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const isPasswordResetConfirmRoute = location.pathname.includes('/auth/reset-password/confirm');
   const isPasswordRecoveryRef = useRef(false);
   const passwordResetCompleteRef = useRef(false);
+
+  // Helper function to check for redirect lock
+  const hasRedirectLock = () => {
+    return sessionStorage.getItem('TAVARA_REDIRECT_LOCK') === 'true';
+  };
+
+  // Helper function to set redirect lock
+  const setRedirectLock = () => {
+    sessionStorage.setItem('TAVARA_REDIRECT_LOCK', 'true');
+  };
+
+  // Helper function to clear redirect lock
+  const clearRedirectLock = () => {
+    sessionStorage.removeItem('TAVARA_REDIRECT_LOCK');
+  };
   
   useEffect(() => {
-    console.log('[App] Route changed to:', location.pathname);
+    console.log('[AuthProvider] Route changed to:', location.pathname);
     
     // Check if we're on the reset password page
     if (isPasswordResetConfirmRoute) {
@@ -161,24 +177,57 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   // Handle post-login redirection only when appropriate
   useEffect(() => {
+    // CRITICAL: Check skip flags first
+    const skipEmailVerification = hasAuthFlowFlag(AUTH_FLOW_FLAGS.SKIP_EMAIL_VERIFICATION_REDIRECT);
+    const skipRedirectForFlow = shouldSkipRedirectForCurrentFlow();
+    
+    console.log('[AuthProvider] Redirect check:', {
+      isLoading,
+      hasUser: !!user,
+      hasSession: !!session,
+      isPasswordResetRoute: isPasswordResetConfirmRoute,
+      isPasswordRecovery: isPasswordRecoveryRef.current,
+      skipEmailVerification,
+      skipRedirectForFlow,
+      hasRedirectLock: hasRedirectLock(),
+      location: location.pathname
+    });
+    
     const shouldSkipRedirect = 
       isLoading || 
       !user || 
+      !session ||
       isPasswordResetConfirmRoute || 
       isPasswordRecoveryRef.current ||
-      sessionStorage.getItem('skipPostLoginRedirect');
+      skipRedirectForFlow ||
+      hasRedirectLock();
     
     if (shouldSkipRedirect) {
+      if (skipEmailVerification) {
+        console.log('[AuthProvider] SKIPPING post-login redirect - email verification flag is active');
+      } else if (skipRedirectForFlow) {
+        console.log('[AuthProvider] SKIPPING post-login redirect due to other auth flow flags');
+      } else if (hasRedirectLock()) {
+        console.log('[AuthProvider] SKIPPING post-login redirect - redirect lock is active');
+      }
       return;
     }
     
     console.log('[AuthProvider] User loaded. Handling redirection...');
     
     if (!initialRedirectionDoneRef.current || location.pathname === '/auth') {
+      // Set redirect lock before handling redirection
+      setRedirectLock();
+      
       handlePostLoginRedirection();
       initialRedirectionDoneRef.current = true;
+      
+      // Clear redirect lock after a delay
+      setTimeout(() => {
+        clearRedirectLock();
+      }, 2000);
     }
-  }, [isLoading, user, userRole, location.pathname, isPasswordResetConfirmRoute]);
+  }, [isLoading, user, session, userRole, location.pathname, isPasswordResetConfirmRoute]);
 
   useEffect(() => {
     console.log('[AuthProvider] Initial auth check started');
@@ -194,6 +243,26 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, newSession) => {
       console.log('[AuthProvider] Auth state changed:', event, newSession ? 'Has session' : 'No session');
       
+      // CRITICAL FIX: Always update session and user state first
+      setSession(newSession);
+      setUser(newSession?.user || null);
+
+      // CRITICAL: Check skip flags IMMEDIATELY after setting session/user
+      const skipEmailVerification = hasAuthFlowFlag(AUTH_FLOW_FLAGS.SKIP_EMAIL_VERIFICATION_REDIRECT);
+      const skipRedirectForFlow = shouldSkipRedirectForCurrentFlow();
+      
+      console.log('[AuthProvider] Auth state change - skip flags:', {
+        skipEmailVerification,
+        skipRedirectForFlow,
+        hasRedirectLock: hasRedirectLock()
+      });
+
+      // EARLY RETURN: If email verification or other flows are active, ONLY update state
+      if (skipEmailVerification || skipRedirectForFlow || hasRedirectLock()) {
+        console.log('[AuthProvider] Auth state updated, but SKIPPING all redirect logic - verification or redirect lock active');
+        return;
+      }
+
       // Track password recovery state globally
       if (event === 'PASSWORD_RECOVERY') {
         console.log('[AuthProvider] Password recovery detected - preventing redirects');
@@ -207,15 +276,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         passwordResetCompleteRef.current = false;
       }
 
-      // Don't process auth state changes when on the reset password page
-      if (isPasswordResetConfirmRoute || sessionStorage.getItem('skipPostLoginRedirect')) {
-        console.log('[AuthProvider] Ignoring auth state change on reset password page or due to skip flag');
-        return;
-      }
-      
-      setSession(newSession);
-      setUser(newSession?.user || null);
-      
+      // Only proceed with role/toast logic if NOT during special flows
       if (!isPasswordRecoveryRef.current && (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED')) {
         if (newSession?.user) {
           if (newSession.user.user_metadata?.role) {
@@ -238,8 +299,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
     });
 
-    // Only run initial session check if not on the password reset page
-    if (!isPasswordResetConfirmRoute && !sessionStorage.getItem('skipPostLoginRedirect')) {
+    // Only run initial session check if not on the password reset page and not during specific flows
+    if (!isPasswordResetConfirmRoute && !shouldSkipRedirectForCurrentFlow()) {
       supabase.auth.getSession().then(({ data: { session: initialSession } }) => {
         setSession(initialSession);
         setUser(initialSession?.user || null);
