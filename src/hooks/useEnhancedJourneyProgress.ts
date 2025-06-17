@@ -248,6 +248,41 @@ export const useEnhancedJourneyProgress = (): JourneyProgressData => {
 
   const isAnonymous = !user;
 
+  // Helper function to create action handlers for steps
+  const createStepAction = (stepId: string, stepNumber: number) => {
+    return () => {
+      switch (stepNumber) {
+        case 1:
+          navigate('/dashboard/family');
+          break;
+        case 2:
+          navigate('/family/care-assessment');
+          break;
+        case 3:
+          navigate('/family/care-recipient');
+          break;
+        case 4:
+          // Open caregiver matching modal for viewing matches
+          setShowCaregiverMatchingModal(true);
+          break;
+        case 5:
+          navigate('/family/medications');
+          break;
+        case 6:
+          navigate('/family/meal-plans');
+          break;
+        case 7:
+          setShowScheduleModal(true);
+          break;
+        case 11:
+          navigate('/family/care-model-selection');
+          break;
+        default:
+          console.log(`No action defined for step ${stepNumber}`);
+      }
+    };
+  };
+
   useEffect(() => {
     const loadJourneyData = async () => {
       setLoading(true);
@@ -255,7 +290,11 @@ export const useEnhancedJourneyProgress = (): JourneyProgressData => {
       if (!user) {
         // Use dummy data for anonymous users
         const { steps: dummySteps, paths: dummyPaths } = getDummyJourneyData();
-        setSteps(dummySteps);
+        const stepsWithActions = dummySteps.map(step => ({
+          ...step,
+          action: createStepAction(step.id, step.step_number)
+        }));
+        setSteps(stepsWithActions);
         setPaths(dummyPaths);
         setLoading(false);
         return;
@@ -353,7 +392,8 @@ export const useEnhancedJourneyProgress = (): JourneyProgressData => {
             icon_name: 'User',
             completed: stepCompletions[1],
             accessible: true,
-            prerequisites: []
+            prerequisites: [],
+            action: createStepAction('1', 1)
           },
           {
             id: '2',
@@ -369,7 +409,8 @@ export const useEnhancedJourneyProgress = (): JourneyProgressData => {
             icon_name: 'ClipboardList',
             completed: stepCompletions[2],
             accessible: stepCompletions[1], // Only accessible after profile completion
-            prerequisites: ['1']
+            prerequisites: ['1'],
+            action: createStepAction('2', 2)
           },
           {
             id: '3',
@@ -385,7 +426,8 @@ export const useEnhancedJourneyProgress = (): JourneyProgressData => {
             icon_name: 'Heart',
             completed: stepCompletions[3],
             accessible: stepCompletions[2], // Only accessible after assessment
-            prerequisites: ['2']
+            prerequisites: ['2'],
+            action: createStepAction('3', 3)
           },
           {
             id: '4',
@@ -401,7 +443,8 @@ export const useEnhancedJourneyProgress = (): JourneyProgressData => {
             icon_name: 'Users',
             completed: stepCompletions[4],
             accessible: stepCompletions[3], // Only accessible after care recipient profile
-            prerequisites: ['3']
+            prerequisites: ['3'],
+            action: createStepAction('4', 4)
           },
           {
             id: '5',
@@ -417,7 +460,8 @@ export const useEnhancedJourneyProgress = (): JourneyProgressData => {
             icon_name: 'Pill',
             completed: stepCompletions[5],
             accessible: stepCompletions[4] || stepCompletions[3], // Accessible after foundation
-            prerequisites: ['4']
+            prerequisites: ['4'],
+            action: createStepAction('5', 5)
           },
           {
             id: '6',
@@ -433,7 +477,8 @@ export const useEnhancedJourneyProgress = (): JourneyProgressData => {
             icon_name: 'Utensils',
             completed: stepCompletions[6],
             accessible: stepCompletions[4] || stepCompletions[3], // Accessible after foundation
-            prerequisites: ['4']
+            prerequisites: ['4'],
+            action: createStepAction('6', 6)
           },
           {
             id: '7',
@@ -449,7 +494,8 @@ export const useEnhancedJourneyProgress = (): JourneyProgressData => {
             icon_name: 'Calendar',
             completed: stepCompletions[7],
             accessible: stepCompletions[4] || stepCompletions[3], // Accessible after foundation
-            prerequisites: ['4']
+            prerequisites: ['4'],
+            action: createStepAction('7', 7)
           },
           {
             id: '11',
@@ -465,7 +511,8 @@ export const useEnhancedJourneyProgress = (): JourneyProgressData => {
             icon_name: 'Settings',
             completed: stepCompletions[11],
             accessible: stepCompletions[7], // Only accessible after visit scheduling
-            prerequisites: ['7']
+            prerequisites: ['7'],
+            action: createStepAction('11', 11)
           }
         ];
 
@@ -504,7 +551,12 @@ export const useEnhancedJourneyProgress = (): JourneyProgressData => {
         // Fallback to empty progress on error
         const { steps: emptySteps, paths: emptyPaths } = getDummyJourneyData();
         // Mark all as not completed for error state
-        const errorSteps = emptySteps.map(step => ({ ...step, completed: false, accessible: step.step_number === 1 }));
+        const errorSteps = emptySteps.map(step => ({ 
+          ...step, 
+          completed: false, 
+          accessible: step.step_number === 1,
+          action: createStepAction(step.id, step.step_number)
+        }));
         setSteps(errorSteps);
         setPaths(emptyPaths);
       } finally {
