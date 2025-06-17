@@ -6,7 +6,7 @@ import { ensureUserProfile } from '@/lib/profile-utils';
 import { UserRole } from '@/types/database';
 import { toast } from 'sonner';
 
-const REDIRECT_TIMEOUT = 2000; // Reduced to 2 seconds for faster fallback
+const REDIRECT_TIMEOUT = 10000; // Increased to 10 seconds for email verification
 const VALID_ROUTES = [
   '/', '/auth', '/features', '/about', '/faq',
   '/registration/family', '/registration/professional', '/registration/community',
@@ -59,11 +59,21 @@ export function RedirectHandler() {
     
     // Set up timeout fallback
     const timeoutId = setTimeout(() => {
-      console.warn('[RedirectHandler] Redirect timeout - falling back to home');
+      console.warn('[RedirectHandler] Redirect timeout - checking if session was established');
       setIsProcessing(false);
-      if (location.pathname !== '/') {
-        navigate('/', { replace: true });
-      }
+      
+      // Check if a session was established during the timeout
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        if (session?.user) {
+          console.log('[RedirectHandler] Session found after timeout, attempting role-based redirect');
+          handleSuccessfulEmailVerification(session.user);
+        } else {
+          console.warn('[RedirectHandler] No session found, redirecting to home');
+          if (location.pathname !== '/') {
+            navigate('/', { replace: true });
+          }
+        }
+      });
     }, REDIRECT_TIMEOUT);
     
     try {
@@ -131,7 +141,7 @@ export function RedirectHandler() {
         }
       }
 
-      // Handle email confirmation with authentication tokens (legacy approach)
+      // Handle email confirmation with authentication tokens (hash format)
       if (location.hash && location.hash.includes('access_token=')) {
         console.log('[RedirectHandler] Email confirmation tokens detected in hash');
         await handleEmailConfirmation();
@@ -167,7 +177,6 @@ export function RedirectHandler() {
       return true;
     }
     
-    // Check dynamic routes
     const dynamicRoutes = [
       /^\/family\/.*$/,
       /^\/professional\/.*$/,
@@ -193,7 +202,10 @@ export function RedirectHandler() {
       if (queryString) {
         params = new URLSearchParams(queryString);
       } else {
-        params = new URLSearchParams(location.hash.substring(1));
+        // Parse the hash - remove the # and parse the fragment
+        const hashFragment = location.hash.substring(1);
+        console.log('[RedirectHandler] Hash fragment:', hashFragment);
+        params = new URLSearchParams(hashFragment);
       }
       
       const accessToken = params.get('access_token');
@@ -205,7 +217,8 @@ export function RedirectHandler() {
         hasAccessToken: !!accessToken, 
         hasRefreshToken: !!refreshToken,
         hasTokenHash: !!tokenHash,
-        type 
+        type,
+        fullHash: location.hash
       });
 
       // Handle different token types
@@ -251,7 +264,7 @@ export function RedirectHandler() {
         }
 
         if (data.user) {
-          console.log('[RedirectHandler] Session established for user:', data.user.id);
+          console.log('[RedirectHandler] Session established for user:', data.user.id, 'with metadata:', data.user.user_metadata);
           await handleSuccessfulEmailVerification(data.user);
           return;
         }
@@ -297,13 +310,6 @@ export function RedirectHandler() {
         console.log('[RedirectHandler] Ensuring user profile exists with role:', userRole);
         await ensureUserProfile(user.id, userRole);
         
-        // Update user metadata to include role if missing
-        if (!user.user_metadata?.role) {
-          await supabase.auth.updateUser({
-            data: { role: userRole }
-          });
-        }
-        
         // Clean up localStorage
         localStorage.removeItem('registeringAs');
         localStorage.removeItem('registrationRole');
@@ -345,7 +351,7 @@ export function RedirectHandler() {
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
           <p className="text-sm text-gray-600">Processing email verification...</p>
-          <p className="text-xs text-gray-400 mt-2">Environment: {window.location.hostname.includes('lovable.app') ? 'Lovable Preview' : 'Production'}</p>
+          <p className="text-xs text-gray-400 mt-2">This may take a few moments...</p>
         </div>
       </div>
     );
