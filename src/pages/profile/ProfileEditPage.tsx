@@ -10,12 +10,19 @@ import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { ArrowLeft, Save, Lock } from 'lucide-react';
 import { toast } from 'sonner';
+import { UserRole } from '@/types/userRoles';
+
+interface ProfileData {
+  full_name: string;
+  phone_number: string;
+  role: UserRole;
+}
 
 export default function ProfileEditPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
-  const [profile, setProfile] = useState({
+  const [profile, setProfile] = useState<ProfileData>({
     full_name: '',
     phone_number: '',
     role: 'family'
@@ -48,7 +55,7 @@ export default function ProfileEditPage() {
         setProfile({
           full_name: data.full_name || '',
           phone_number: data.phone_number || '',
-          role: data.role || 'family'
+          role: (data.role as UserRole) || 'family'
         });
       }
     } catch (error) {
@@ -119,6 +126,21 @@ export default function ProfileEditPage() {
     }
   };
 
+  const getRoleDisplayName = (role: UserRole): string => {
+    switch (role) {
+      case 'family':
+        return 'Family Member';
+      case 'professional':
+        return 'Care Professional';
+      case 'community':
+        return 'Community Member';
+      case 'admin':
+        return 'Administrator';
+      default:
+        return 'Family Member';
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white shadow">
@@ -185,7 +207,7 @@ export default function ProfileEditPage() {
                 <Input
                   id="role"
                   type="text"
-                  value="Family Member"
+                  value={getRoleDisplayName(profile.role)}
                   disabled
                   className="bg-gray-50"
                 />
