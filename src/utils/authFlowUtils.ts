@@ -3,7 +3,8 @@
 export const AUTH_FLOW_FLAGS = {
   SKIP_PASSWORD_RESET_REDIRECT: 'skipPasswordResetRedirect',
   SKIP_REGISTRATION_REDIRECT: 'skipRegistrationRedirect',
-  SKIP_CARE_ASSESSMENT_REDIRECT: 'skipCareAssessmentRedirect'
+  SKIP_CARE_ASSESSMENT_REDIRECT: 'skipCareAssessmentRedirect',
+  SKIP_EMAIL_VERIFICATION_REDIRECT: 'skipEmailVerificationRedirect'
 } as const;
 
 export const setAuthFlowFlag = (flag: string) => {

@@ -4,7 +4,7 @@ import { supabase } from '@/lib/supabase';
 import { ensureUserProfile } from '@/lib/profile-utils';
 import { UserRole } from '@/types/database';
 import { toast } from 'sonner';
-import { clearAllAuthFlowFlags } from '@/utils/authFlowUtils';
+import { clearAllAuthFlowFlags, setAuthFlowFlag, clearAuthFlowFlag, AUTH_FLOW_FLAGS } from '@/utils/authFlowUtils';
 
 const REDIRECT_TIMEOUT = 10000; // Increased to 10 seconds for email verification
 const VALID_ROUTES = [
@@ -195,6 +195,9 @@ export function RedirectHandler() {
     try {
       console.log('[RedirectHandler] Processing email confirmation');
       
+      // Set flag to prevent AuthProvider from interfering with email verification redirect
+      setAuthFlowFlag(AUTH_FLOW_FLAGS.SKIP_EMAIL_VERIFICATION_REDIRECT);
+      
       // Extract tokens from hash or query string
       let params: URLSearchParams;
       
@@ -233,6 +236,7 @@ export function RedirectHandler() {
         if (error) {
           console.error('[RedirectHandler] Error verifying token hash:', error);
           toast.error('Email verification failed. Please try signing up again.');
+          clearAuthFlowFlag(AUTH_FLOW_FLAGS.SKIP_EMAIL_VERIFICATION_REDIRECT);
           window.history.replaceState({}, '', window.location.pathname);
           navigate('/auth', { replace: true });
           return;
@@ -257,6 +261,7 @@ export function RedirectHandler() {
         if (error) {
           console.error('[RedirectHandler] Error setting session:', error);
           toast.error('Email verification failed. Please try signing up again.');
+          clearAuthFlowFlag(AUTH_FLOW_FLAGS.SKIP_EMAIL_VERIFICATION_REDIRECT);
           window.history.replaceState({}, '', window.location.pathname);
           navigate('/auth', { replace: true });
           return;
@@ -271,11 +276,13 @@ export function RedirectHandler() {
 
       console.warn('[RedirectHandler] Missing or invalid tokens in email confirmation');
       toast.error('Email verification failed. Please try signing up again.');
+      clearAuthFlowFlag(AUTH_FLOW_FLAGS.SKIP_EMAIL_VERIFICATION_REDIRECT);
       navigate('/auth', { replace: true });
       
     } catch (error) {
       console.error('[RedirectHandler] Error in handleEmailConfirmation:', error);
       toast.error('Email verification failed. Please try signing up again.');
+      clearAuthFlowFlag(AUTH_FLOW_FLAGS.SKIP_EMAIL_VERIFICATION_REDIRECT);
       window.history.replaceState({}, '', window.location.pathname);
       navigate('/auth', { replace: true });
     }
@@ -329,7 +336,16 @@ export function RedirectHandler() {
         if (targetDashboard) {
           console.log('[RedirectHandler] Email verification complete, redirecting to dashboard:', targetDashboard);
           toast.success(`Welcome! Your ${userRole} account has been verified successfully.`);
+          
+          // Navigate to dashboard first
           navigate(targetDashboard, { replace: true });
+          
+          // Clear the flag after navigation to allow normal AuthProvider behavior
+          setTimeout(() => {
+            clearAuthFlowFlag(AUTH_FLOW_FLAGS.SKIP_EMAIL_VERIFICATION_REDIRECT);
+            console.log('[RedirectHandler] Cleared email verification redirect flag');
+          }, 100);
+          
           return;
         }
       }
@@ -337,11 +353,15 @@ export function RedirectHandler() {
       // Fallback if no role could be determined
       console.warn('[RedirectHandler] No role detected after email verification, redirecting to home');
       toast.success('Email verified successfully! Please complete your profile.');
+      
+      // Clear flag and redirect to home
+      clearAuthFlowFlag(AUTH_FLOW_FLAGS.SKIP_EMAIL_VERIFICATION_REDIRECT);
       navigate('/', { replace: true });
       
     } catch (error) {
       console.error('[RedirectHandler] Error in handleSuccessfulEmailVerification:', error);
       toast.error('Email verification completed, but there was an issue. Please try logging in.');
+      clearAuthFlowFlag(AUTH_FLOW_FLAGS.SKIP_EMAIL_VERIFICATION_REDIRECT);
       navigate('/auth', { replace: true });
     }
   };
