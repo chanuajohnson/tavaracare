@@ -317,7 +317,7 @@ export const useEnhancedJourneyProgress = (): JourneyProgressData => {
         // Parse care model from visit notes if available (checking if profile has visit_notes)
         let visitNotes = null;
         try {
-          if (profile && 'visit_notes' in profile && profile.visit_notes) {
+          if (profile && 'visit_notes' in profile && profile.visit_notes && typeof profile.visit_notes === 'string') {
             visitNotes = JSON.parse(profile.visit_notes);
           }
         } catch (error) {
@@ -328,7 +328,7 @@ export const useEnhancedJourneyProgress = (): JourneyProgressData => {
         // Calculate step completion with STRICT requirements for new users
         const stepCompletions = {
           1: !!(profile?.full_name && profile?.phone_number), // STRICT: Require both name AND phone
-          2: !!(careAssessment && careAssessment.care_recipient_name),
+          2: !!(careAssessment && Object.keys(careAssessment).length > 2), // Check if assessment has meaningful data beyond id and profile_id
           3: !!(careRecipient && careRecipient.full_name),
           4: false, // Viewing matches doesn't mark as completed
           5: !!(medications && medications.length > 0),
