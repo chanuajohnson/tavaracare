@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useAuth } from "@/components/providers/AuthProvider";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
-import { Brain, User, Phone, Heart, AlertCircle, Calendar, Brain, Home, Car, Sparkles } from "lucide-react";
+import { Brain, User, Phone, Heart, AlertCircle, Calendar, Home, Car, Sparkles } from "lucide-react";
 
 interface CareNeedsFormData {
   // Header fields
