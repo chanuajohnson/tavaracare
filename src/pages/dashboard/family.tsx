@@ -29,6 +29,15 @@ export default function FamilyDashboardPage() {
     }
   }, [user, navigate]);
 
+  // Add debugging for journey progress
+  useEffect(() => {
+    console.log('FamilyDashboardPage: Current journey progress status loaded, loading =', loading);
+    
+    return () => {
+      console.log('FamilyDashboardPage: Component unmounting');
+    };
+  }, [loading]);
+
   if (loading) {
     return (
       <div className="flex justify-center items-center h-screen">

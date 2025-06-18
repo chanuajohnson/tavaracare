@@ -71,14 +71,14 @@ const getDummyJourneyData = (): { steps: JourneyStep[], paths: JourneyPath[] } =
     {
       id: 'dummy-1',
       step_number: 1,
-      title: 'Create your family profile',
-      description: 'Tell us about your care needs',
+      title: 'Create your account',
+      description: 'Set up your Tavara account',
       category: 'foundation',
       is_optional: false,
-      tooltip_content: 'Start by creating your family profile to get personalized care recommendations',
-      detailed_explanation: 'Your profile helps us understand your unique care situation',
-      time_estimate_minutes: 10,
-      link_path: '/registration/family',
+      tooltip_content: 'Start by creating your account with Tavara',
+      detailed_explanation: 'Your account lets you access all of our care services',
+      time_estimate_minutes: 5,
+      link_path: '/profile/edit',
       icon_name: 'User',
       completed: true,
       accessible: true,
@@ -87,8 +87,24 @@ const getDummyJourneyData = (): { steps: JourneyStep[], paths: JourneyPath[] } =
     {
       id: 'dummy-2',
       step_number: 2,
-      title: 'Complete care assessment',
-      description: 'Detail your care requirements',
+      title: 'Complete your registration',
+      description: 'Tell us about your care needs',
+      category: 'foundation',
+      is_optional: false,
+      tooltip_content: 'Complete your family registration to get personalized care',
+      detailed_explanation: 'Your registration helps us understand your unique care situation',
+      time_estimate_minutes: 10,
+      link_path: '/registration/family',
+      icon_name: 'ClipboardCheck',
+      completed: false,
+      accessible: true,
+      prerequisites: []
+    },
+    {
+      id: 'dummy-3',
+      step_number: 3,
+      title: 'Complete Initial Care Assessment',
+      description: 'Help us understand your care needs better',
       category: 'foundation',
       is_optional: false,
       tooltip_content: 'Help us understand the specific care needs',
@@ -96,31 +112,31 @@ const getDummyJourneyData = (): { steps: JourneyStep[], paths: JourneyPath[] } =
       time_estimate_minutes: 15,
       link_path: '/family/care-assessment',
       icon_name: 'ClipboardList',
-      completed: true,
-      accessible: true,
-      prerequisites: []
-    },
-    {
-      id: 'dummy-3',
-      step_number: 3,
-      title: 'Create care recipient profile',
-      description: 'Tell us about your loved one',
-      category: 'foundation',
-      is_optional: false,
-      tooltip_content: 'Share details about the person receiving care',
-      detailed_explanation: 'This helps caregivers provide personalized, compassionate care',
-      time_estimate_minutes: 15,
-      link_path: '/family/care-recipient',
-      icon_name: 'Heart',
-      completed: true,
+      completed: false,
       accessible: true,
       prerequisites: []
     },
     {
       id: 'dummy-4',
       step_number: 4,
-      title: 'View caregiver matches',
-      description: 'See caregivers who match your needs',
+      title: 'Complete Your Loved One\'s Legacy Story',
+      description: 'Honor the voices, memories, and wisdom of those we care for',
+      category: 'foundation',
+      is_optional: false,
+      tooltip_content: 'Share details about the person receiving care',
+      detailed_explanation: 'This helps caregivers provide personalized, compassionate care',
+      time_estimate_minutes: 15,
+      link_path: '/family/story',
+      icon_name: 'Heart',
+      completed: false,
+      accessible: true,
+      prerequisites: []
+    },
+    {
+      id: 'dummy-5',
+      step_number: 5,
+      title: 'See Your Instant Caregiver Matches',
+      description: 'View caregivers who match your needs',
       category: 'foundation',
       is_optional: false,
       tooltip_content: 'Browse qualified caregivers in your area',
@@ -133,10 +149,10 @@ const getDummyJourneyData = (): { steps: JourneyStep[], paths: JourneyPath[] } =
       prerequisites: []
     },
     {
-      id: 'dummy-5',
-      step_number: 5,
-      title: 'Set up medication management',
-      description: 'Track medications and schedules',
+      id: 'dummy-6',
+      step_number: 6,
+      title: 'Set Up Medication Management',
+      description: 'Add medications and set up schedules',
       category: 'scheduling',
       is_optional: false,
       tooltip_content: 'Create a medication plan for your loved one',
@@ -149,10 +165,10 @@ const getDummyJourneyData = (): { steps: JourneyStep[], paths: JourneyPath[] } =
       prerequisites: []
     },
     {
-      id: 'dummy-6',
-      step_number: 6,
-      title: 'Create meal plans',
-      description: 'Plan nutritious meals',
+      id: 'dummy-7',
+      step_number: 7,
+      title: 'Set Up Meal Management',
+      description: 'Plan meals and create grocery lists',
       category: 'scheduling',
       is_optional: true,
       tooltip_content: 'Develop meal plans tailored to dietary needs',
@@ -165,8 +181,8 @@ const getDummyJourneyData = (): { steps: JourneyStep[], paths: JourneyPath[] } =
       prerequisites: []
     },
     {
-      id: 'dummy-7',
-      step_number: 7,
+      id: 'dummy-8',
+      step_number: 8,
       title: 'Schedule initial visit',
       description: 'Meet your care coordinator',
       category: 'scheduling',
@@ -180,11 +196,11 @@ const getDummyJourneyData = (): { steps: JourneyStep[], paths: JourneyPath[] } =
       accessible: false,
       prerequisites: []
     },
-    // Note: Steps 8-10 (trial steps) are hidden for anonymous users
+    // Note: Steps 9-11 (trial steps) are hidden for anonymous users
     // They only show for authenticated users who explicitly choose trial path
     {
-      id: 'dummy-11',
-      step_number: 11,
+      id: 'dummy-12',
+      step_number: 12,
       title: 'Choose Your Care Model',
       description: 'Decide between hiring directly ($40/hr) or subscribing to Tavara ($45/hr) for full support tools.',
       category: 'conversion',
@@ -200,17 +216,18 @@ const getDummyJourneyData = (): { steps: JourneyStep[], paths: JourneyPath[] } =
     }
   ];
 
-  // Complete steps 1-3 for demo
+  // For anonymous users, only mark the first step as completed
   dummySteps[0].completed = true;
-  dummySteps[1].completed = true;
-  dummySteps[2].completed = true;
+  dummySteps[1].completed = false;
+  dummySteps[2].completed = false;
+  dummySteps[3].completed = false;
 
   const dummyPaths: JourneyPath[] = [
     {
       id: 'dummy-path-1',
       path_name: 'Quick Start Path',
       path_description: 'Get matched with a caregiver in 24-48 hours',
-      step_ids: [1, 2, 3, 4, 7, 11], // Skip trial steps for default path
+      step_ids: [1, 2, 3, 4, 7, 12], // Skip trial steps for default path
       path_color: '#10B981',
       is_recommended: true
     },
@@ -313,20 +330,32 @@ export const useEnhancedJourneyProgress = (): JourneyProgressData => {
   // Helper function to determine step accessibility
   const determineStepAccessibility = (stepNumber: number, completedSteps: Set<number>, profileData: any, visitBookingData: any) => {
     switch (stepNumber) {
-      case 4: // Caregiver matches - need steps 1-3 completed
-        return [1, 2, 3].every(num => completedSteps.has(num));
-      case 7: // Schedule initial visit - need step 4 completed
-        return completedSteps.has(4);
-      case 8: // Schedule trial - need step 7 completed (admin has scheduled visit)
+      case 1: // Create account - always accessible
+        return true;
+      case 2: // Complete registration - accessible after account creation
+        return true;
+      case 3: // Care assessment - accessible after registration
+        return completedSteps.has(2);
+      case 4: // Legacy story / Care recipient profile
+        return completedSteps.has(2);
+      case 5: // Caregiver matches - need steps 2, 3, 4 completed
+        return [2, 3, 4].every(num => completedSteps.has(num));
+      case 6: // Medication management - accessible after matching
+        return completedSteps.has(5);
+      case 7: // Meal management - accessible after matching
+        return completedSteps.has(5);
+      case 8: // Schedule initial visit - need step 5 completed (view matches)
+        return completedSteps.has(5);
+      case 9: // Schedule trial - need step 8 completed (admin has scheduled visit)
         const hasAdminScheduledVisit = visitBookingData || 
           (profileData?.visit_scheduling_status && 
            ['scheduled', 'completed'].includes(profileData.visit_scheduling_status));
         return hasAdminScheduledVisit;
-      case 9: // Pay for trial - need step 8 completed
-        return completedSteps.has(8);
-      case 10: // Begin trial - need step 9 completed
+      case 10: // Pay for trial - need step 9 completed
         return completedSteps.has(9);
-      case 11: // Choose path - need step 7 completed (can skip trial)
+      case 11: // Begin trial - need step 10 completed
+        return completedSteps.has(10);
+      case 12: // Choose path - need step 8 completed (can skip trial)
         const hasVisitScheduled = visitBookingData || 
           (profileData?.visit_scheduling_status && 
            ['scheduled', 'completed'].includes(profileData.visit_scheduling_status));
@@ -421,6 +450,14 @@ export const useEnhancedJourneyProgress = (): JourneyProgressData => {
       setVisitStatus(currentVisitStatus);
       
       // Fetch actual data for step completion checks
+      const { data: registrationData } = await supabase
+        .from('chatbot_progress')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('role', 'family')
+        .eq('section_status', 'completed')
+        .maybeSingle();
+      
       const { data: careNeedsData } = await supabase
         .from('care_needs_family')
         .select('id')
@@ -481,39 +518,43 @@ export const useEnhancedJourneyProgress = (): JourneyProgressData => {
           
           // Enhanced step completion logic using actual data
           switch (step.step_number) {
-            case 1: // Profile creation
-              isCompleted = !!(user && profile?.full_name);
+            case 1: // Account creation - just check if user exists
+              isCompleted = !!user;
               break;
-            case 2: // Care assessment
+            case 2: // Complete registration - check for full registration form submission
+              isCompleted = !!(registrationData || 
+                              (profile?.full_name && profile?.phone_number));
+              break;
+            case 3: // Care assessment
               isCompleted = !!careNeedsData;
               break;
-            case 3: // Care recipient profile
+            case 4: // Legacy story / Care recipient profile
               isCompleted = !!(careRecipientData && careRecipientData.full_name);
               break;
-            case 4: // View caregiver matches
-              isCompleted = !!careRecipientData;
+            case 5: // View caregiver matches
+              isCompleted = false; // This can only be marked complete by user action
               break;
-            case 5: // Medication management
+            case 6: // Medication management
               isCompleted = !!(medicationsData && medicationsData.length > 0);
               break;
-            case 6: // Meal plans
+            case 7: // Meal management
               isCompleted = !!(mealPlansData && mealPlansData.length > 0);
               break;
-            case 7: // Schedule initial visit - completed when admin has scheduled
+            case 8: // Schedule initial visit - completed when admin has scheduled
               isCompleted = !!latestVisitBooking || 
                           (profile?.visit_scheduling_status === 'scheduled' || 
                            profile?.visit_scheduling_status === 'completed');
               break;
-            case 8: // Schedule trial day
+            case 9: // Schedule trial day
               isCompleted = hasTrialPayment;
               break;
-            case 9: // Pay for trial day
+            case 10: // Pay for trial day
               isCompleted = hasTrialPayment;
               break;
-            case 10: // Begin trial
+            case 11: // Begin trial
               isCompleted = hasTrialPayment;
               break;
-            case 11: // Rate & choose path
+            case 12: // Rate & choose path
               isCompleted = !!profile?.visit_notes && JSON.parse(profile.visit_notes || '{}')?.care_model;
               break;
             default:
@@ -599,37 +640,45 @@ export const useEnhancedJourneyProgress = (): JourneyProgressData => {
       trackStepAction(step.id, 'step_action_clicked');
     }
     
-    if (step.step_number === 4) {
-      // For caregiver matches, show modal instead of navigating
-      setShowCaregiverMatchingModal(true);
-      return;
-    }
-    
-    if (step.step_number === 5) {
-      if (carePlans.length > 0) {
-        navigate(`/family/care-management/${carePlans[0].id}/medications`);
-      } else {
-        navigate('/family/care-management/create');
-      }
-      return;
-    }
-    
-    if (step.step_number === 6) {
-      if (carePlans.length > 0) {
-        navigate(`/family/care-management/${carePlans[0].id}/meals`);
-      } else {
-        navigate('/family/care-management/create');
-      }
-      return;
-    }
-    
-    if (step.step_number === 7) {
-      setShowScheduleModal(true);
-      return;
-    }
-    
-    if (step.link_path) {
-      navigate(step.link_path);
+    // Handle specific step actions based on step number and completion status
+    switch (step.step_number) {
+      case 1: // Account creation/profile edit
+        navigate('/profile/edit');
+        return;
+      case 2: // Complete registration
+        navigate('/registration/family');
+        return;
+      case 3: // Care assessment
+        navigate('/family/care-assessment');
+        return;
+      case 4: // Legacy story
+        navigate('/family/story');
+        return;
+      case 5: // For caregiver matches
+        setShowCaregiverMatchingModal(true);
+        return;
+      case 6: // Medication management
+        if (carePlans.length > 0) {
+          navigate(`/family/care-management/${carePlans[0].id}/medications`);
+        } else {
+          navigate('/family/care-management/create');
+        }
+        return;
+      case 7: // Meal management
+        if (carePlans.length > 0) {
+          navigate(`/family/care-management/${carePlans[0].id}/meals`);
+        } else {
+          navigate('/family/care-management/create');
+        }
+        return;
+      case 8: // Schedule visit
+        setShowScheduleModal(true);
+        return;
+      default:
+        // For other steps, use the link_path if available
+        if (step.link_path) {
+          navigate(step.link_path);
+        }
     }
   };
 
