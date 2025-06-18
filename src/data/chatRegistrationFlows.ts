@@ -24,6 +24,9 @@ interface RegistrationSection {
   questions: RegistrationQuestion[];
 }
 
+// Type alias for compatibility with existing imports
+export type ChatRegistrationQuestion = RegistrationQuestion;
+
 export const familyRegistrationFlow: RegistrationSection[] = [
   {
     id: "personal_info",
@@ -699,5 +702,21 @@ export const communityRegistrationFlow: RegistrationSection[] = [
     ]
   }
 ];
+
+/**
+ * Get registration flow by role
+ */
+export const getRegistrationFlowByRole = (role: string): { sections: RegistrationSection[] } => {
+  switch (role.toLowerCase()) {
+    case 'family':
+      return { sections: familyRegistrationFlow };
+    case 'professional':
+      return { sections: professionalRegistrationFlow };
+    case 'community':
+      return { sections: communityRegistrationFlow };
+    default:
+      throw new Error(`Unknown role: ${role}`);
+  }
+};
 
 export type { RegistrationSection, RegistrationQuestion, RegistrationOption };
