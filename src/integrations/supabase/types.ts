@@ -328,15 +328,21 @@ export type Database = {
           assistance_naps: boolean | null
           assistance_oral_care: boolean | null
           assistance_toileting: boolean | null
+          care_location: string | null
+          care_recipient_name: string | null
+          checkin_preference: string | null
+          chronic_illness_type: string | null
           cognitive_notes: string | null
           communication_method: string | null
           created_at: string | null
+          cultural_preferences: string | null
           daily_report_required: boolean | null
           dementia_redirection: boolean | null
           diagnosed_conditions: string | null
           emergency_contact_name: string | null
           emergency_contact_phone: string | null
           emergency_contact_relationship: string | null
+          emergency_plan: string | null
           equipment_use: boolean | null
           escort_to_appointments: boolean | null
           fall_monitoring: boolean | null
@@ -344,6 +350,7 @@ export type Database = {
           gentle_engagement: boolean | null
           grocery_runs: boolean | null
           id: string
+          known_allergies: string | null
           laundry_support: boolean | null
           meal_prep: boolean | null
           memory_reminders: boolean | null
@@ -351,8 +358,11 @@ export type Database = {
           preferred_days: string[] | null
           preferred_time_end: string | null
           preferred_time_start: string | null
+          primary_contact_name: string | null
+          primary_contact_phone: string | null
           profile_id: string | null
           tidy_room: boolean | null
+          triggers_soothing_techniques: string | null
           updated_at: string | null
           vitals_check: boolean | null
           wandering_prevention: boolean | null
@@ -371,15 +381,21 @@ export type Database = {
           assistance_naps?: boolean | null
           assistance_oral_care?: boolean | null
           assistance_toileting?: boolean | null
+          care_location?: string | null
+          care_recipient_name?: string | null
+          checkin_preference?: string | null
+          chronic_illness_type?: string | null
           cognitive_notes?: string | null
           communication_method?: string | null
           created_at?: string | null
+          cultural_preferences?: string | null
           daily_report_required?: boolean | null
           dementia_redirection?: boolean | null
           diagnosed_conditions?: string | null
           emergency_contact_name?: string | null
           emergency_contact_phone?: string | null
           emergency_contact_relationship?: string | null
+          emergency_plan?: string | null
           equipment_use?: boolean | null
           escort_to_appointments?: boolean | null
           fall_monitoring?: boolean | null
@@ -387,6 +403,7 @@ export type Database = {
           gentle_engagement?: boolean | null
           grocery_runs?: boolean | null
           id?: string
+          known_allergies?: string | null
           laundry_support?: boolean | null
           meal_prep?: boolean | null
           memory_reminders?: boolean | null
@@ -394,8 +411,11 @@ export type Database = {
           preferred_days?: string[] | null
           preferred_time_end?: string | null
           preferred_time_start?: string | null
+          primary_contact_name?: string | null
+          primary_contact_phone?: string | null
           profile_id?: string | null
           tidy_room?: boolean | null
+          triggers_soothing_techniques?: string | null
           updated_at?: string | null
           vitals_check?: boolean | null
           wandering_prevention?: boolean | null
@@ -414,15 +434,21 @@ export type Database = {
           assistance_naps?: boolean | null
           assistance_oral_care?: boolean | null
           assistance_toileting?: boolean | null
+          care_location?: string | null
+          care_recipient_name?: string | null
+          checkin_preference?: string | null
+          chronic_illness_type?: string | null
           cognitive_notes?: string | null
           communication_method?: string | null
           created_at?: string | null
+          cultural_preferences?: string | null
           daily_report_required?: boolean | null
           dementia_redirection?: boolean | null
           diagnosed_conditions?: string | null
           emergency_contact_name?: string | null
           emergency_contact_phone?: string | null
           emergency_contact_relationship?: string | null
+          emergency_plan?: string | null
           equipment_use?: boolean | null
           escort_to_appointments?: boolean | null
           fall_monitoring?: boolean | null
@@ -430,6 +456,7 @@ export type Database = {
           gentle_engagement?: boolean | null
           grocery_runs?: boolean | null
           id?: string
+          known_allergies?: string | null
           laundry_support?: boolean | null
           meal_prep?: boolean | null
           memory_reminders?: boolean | null
@@ -437,8 +464,11 @@ export type Database = {
           preferred_days?: string[] | null
           preferred_time_end?: string | null
           preferred_time_start?: string | null
+          primary_contact_name?: string | null
+          primary_contact_phone?: string | null
           profile_id?: string | null
           tidy_room?: boolean | null
+          triggers_soothing_techniques?: string | null
           updated_at?: string | null
           vitals_check?: boolean | null
           wandering_prevention?: boolean | null
