@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { supabase } from '@/lib/supabase';
@@ -338,8 +339,8 @@ export const useEnhancedJourneyProgress = (): JourneyProgressData => {
         return completedSteps.has(2);
       case 6: // Legacy story - accessible after registration (step 2)
         return completedSteps.has(2);
-      case 7: // Caregiver matches - accessible after registration (step 2) and care assessment (step 5)
-        return completedSteps.has(2) && completedSteps.has(5);
+      case 7: // Caregiver matches - accessible after registration (step 2) AND care assessment (step 5) OR legacy story (step 6)
+        return completedSteps.has(2) && (completedSteps.has(5) || completedSteps.has(6));
       case 8: // Medication management - accessible after caregiver matches (step 7)
         return completedSteps.has(7);
       case 9: // Meal management - accessible after caregiver matches (step 7)
@@ -418,12 +419,20 @@ export const useEnhancedJourneyProgress = (): JourneyProgressData => {
     try {
       setLoading(true);
       
+      console.log('DEBUG: Journey Progress - Fetching data for user ID:', user.id);
+      
       // Fetch user profile data
-      const { data: profile } = await supabase
+      const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', user.id)
         .single();
+      
+      if (profileError) {
+        console.error('DEBUG: Error fetching profile:', profileError);
+      } else {
+        console.log('DEBUG: Profile data found:', profile);
+      }
       
       // Fetch active (non-cancelled) visit bookings for this user
       const { data: visitBookings } = await supabase
@@ -450,7 +459,7 @@ export const useEnhancedJourneyProgress = (): JourneyProgressData => {
       setVisitStatus(currentVisitStatus);
       
       // Fetch actual data for step completion checks
-      const { data: registrationData } = await supabase
+      const { data: registrationData, error: regError } = await supabase
         .from('chatbot_progress')
         .select('*')
         .eq('user_id', user.id)
@@ -458,23 +467,31 @@ export const useEnhancedJourneyProgress = (): JourneyProgressData => {
         .eq('section_status', 'completed')
         .maybeSingle();
       
-      const { data: careNeedsData } = await supabase
+      console.log('DEBUG: Registration/chatbot data:', registrationData, 'Error:', regError);
+      
+      const { data: careNeedsData, error: careNeedsError } = await supabase
         .from('care_needs_family')
         .select('id')
         .eq('profile_id', user.id)
         .maybeSingle();
       
-      const { data: careRecipientData } = await supabase
+      console.log('DEBUG: Care needs data:', careNeedsData, 'Error:', careNeedsError);
+      
+      const { data: careRecipientData, error: careRecipientError } = await supabase
         .from('care_recipient_profiles')
         .select('id, full_name')
         .eq('user_id', user.id)
         .maybeSingle();
+      
+      console.log('DEBUG: Care recipient data:', careRecipientData, 'Error:', careRecipientError);
       
       const { data: carePlansData } = await supabase
         .from('care_plans')
         .select('id, title')
         .eq('family_id', user.id);
       setCarePlans(carePlansData || []);
+      
+      console.log('DEBUG: Care plans data:', carePlansData);
       
       const { data: medicationsData } = await supabase
         .from('medications')
@@ -520,6 +537,7 @@ export const useEnhancedJourneyProgress = (): JourneyProgressData => {
           switch (step.step_number) {
             case 1: // Account creation - just check if user exists
               isCompleted = !!user;
+              console.log('DEBUG: Step 1 (Account) completion:', isCompleted);
               break;
             case 2: // Complete registration - check for ACTUAL profile data completion
               // Check for essential family registration fields that indicate form completion
@@ -533,38 +551,60 @@ export const useEnhancedJourneyProgress = (): JourneyProgressData => {
               
               // Mark complete if either the profile form was filled out OR chatbot was completed
               isCompleted = !!(hasEssentialProfileData || hasChatbotCompletion);
+              console.log('DEBUG: Step 2 (Registration) completion:', isCompleted, {
+                hasEssentialProfileData,
+                hasChatbotCompletion,
+                profileFields: {
+                  care_recipient_name: profile?.care_recipient_name,
+                  relationship: profile?.relationship,
+                  care_types: profile?.care_types
+                }
+              });
               break;
             case 5: // Care assessment (step 5 in database)
               isCompleted = !!careNeedsData;
+              console.log('DEBUG: Step 5 (Care Assessment) completion:', isCompleted);
               break;
             case 6: // Legacy story / Care recipient profile (step 6 in database)
               isCompleted = !!(careRecipientData && careRecipientData.full_name);
+              console.log('DEBUG: Step 6 (Legacy Story) completion:', isCompleted, {
+                careRecipientData,
+                hasFullName: careRecipientData?.full_name
+              });
               break;
             case 7: // View caregiver matches (step 7 in database)
               isCompleted = false; // This can only be marked complete by user action
+              console.log('DEBUG: Step 7 (Caregiver Matches) completion:', isCompleted);
               break;
             case 8: // Medication management
               isCompleted = !!(medicationsData && medicationsData.length > 0);
+              console.log('DEBUG: Step 8 (Medications) completion:', isCompleted);
               break;
             case 9: // Meal management
               isCompleted = !!(mealPlansData && mealPlansData.length > 0);
+              console.log('DEBUG: Step 9 (Meal Plans) completion:', isCompleted);
               break;
             case 10: // Schedule initial visit - completed when admin has scheduled
               isCompleted = !!latestVisitBooking || 
                           (profile?.visit_scheduling_status === 'scheduled' || 
                            profile?.visit_scheduling_status === 'completed');
+              console.log('DEBUG: Step 10 (Schedule Visit) completion:', isCompleted);
               break;
             case 11: // Schedule trial day
               isCompleted = hasTrialPayment;
+              console.log('DEBUG: Step 11 (Schedule Trial) completion:', isCompleted);
               break;
             case 12: // Pay for trial day
               isCompleted = hasTrialPayment;
+              console.log('DEBUG: Step 12 (Pay Trial) completion:', isCompleted);
               break;
             case 13: // Begin trial
               isCompleted = hasTrialPayment;
+              console.log('DEBUG: Step 13 (Begin Trial) completion:', isCompleted);
               break;
             case 14: // Rate & choose path
               isCompleted = !!profile?.visit_notes && JSON.parse(profile.visit_notes || '{}')?.care_model;
+              console.log('DEBUG: Step 14 (Choose Path) completion:', isCompleted);
               break;
             default:
               isCompleted = false;
@@ -575,11 +615,15 @@ export const useEnhancedJourneyProgress = (): JourneyProgressData => {
           }
         });
         
+        console.log('DEBUG: Completed steps set:', Array.from(completedStepsSet));
+        
         // Now process steps with completion and accessibility
         const updatedSteps = journeySteps.map(step => {
           const stepCategory = validateCategory(step.category);
           const isCompleted = completedStepsSet.has(step.step_number);
           const isAccessible = determineStepAccessibility(step.step_number, completedStepsSet, profile, latestVisitBooking);
+          
+          console.log(`DEBUG: Step ${step.step_number} - Completed: ${isCompleted}, Accessible: ${isAccessible}`);
           
           const processedStep: JourneyStep = {
             id: step.id,
@@ -658,10 +702,20 @@ export const useEnhancedJourneyProgress = (): JourneyProgressData => {
         navigate('/registration/family');
         return;
       case 5: // Care assessment (step 5 in database)
-        navigate('/family/care-assessment');
+        // If data exists, edit existing; otherwise create new
+        if (step.completed) {
+          navigate('/family/care-assessment?mode=edit');
+        } else {
+          navigate('/family/care-assessment');
+        }
         return;
       case 6: // Legacy story (step 6 in database)
-        navigate('/family/story');
+        // If data exists, edit existing; otherwise create new
+        if (step.completed) {
+          navigate('/family/story?mode=edit');
+        } else {
+          navigate('/family/story');
+        }
         return;
       case 7: // Caregiver matches (step 7 in database)
         setShowCaregiverMatchingModal(true);
