@@ -10,9 +10,39 @@ export default function CareJourneyProgressPage() {
     { label: "Care Journey Progress", href: "/family/care-journey-progress" }
   ];
 
-  // Scroll to top when page loads
+  // Handle hash navigation and scroll to section
   useEffect(() => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    const handleHashNavigation = () => {
+      const hash = window.location.hash;
+      if (hash) {
+        // Remove the # from the hash
+        const elementId = hash.substring(1);
+        // Small delay to ensure the page has rendered
+        setTimeout(() => {
+          const element = document.getElementById(elementId);
+          if (element) {
+            element.scrollIntoView({ 
+              behavior: 'smooth',
+              block: 'start',
+              inline: 'nearest'
+            });
+          }
+        }, 100);
+      } else {
+        // Scroll to top if no hash
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    };
+
+    // Handle initial load
+    handleHashNavigation();
+
+    // Handle hash changes (if user navigates using browser back/forward)
+    window.addEventListener('hashchange', handleHashNavigation);
+
+    return () => {
+      window.removeEventListener('hashchange', handleHashNavigation);
+    };
   }, []);
 
   return (

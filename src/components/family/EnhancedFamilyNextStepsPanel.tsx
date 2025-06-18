@@ -283,22 +283,23 @@ export const EnhancedFamilyNextStepsPanel: React.FC<EnhancedFamilyNextStepsPanel
           </CardHeader>
         </Card>
 
-        {/* Stage-Based Progress Cards - Now filtered based on showAllSteps and pass visitDetails */}
+        {/* Stage-Based Progress Cards - Now with unique IDs for anchor navigation */}
         <div className="mobile-card-spacing">
           {stagesToDisplay.map((stage) => (
             stage.steps.length > 0 && (
-              <JourneyStageCard
-                key={stage.key}
-                stageName={stage.name}
-                stageKey={stage.key}
-                stageDescription={stage.description}
-                steps={showAllSteps ? stage.steps : stage.steps}
-                stageColor={stage.color}
-                subscriptionCTA={stage.subscriptionCTA}
-                trackStepAction={trackStepAction}
-                isAnonymous={isAnonymous}
-                visitDetails={visitDetails}
-              />
+              <div key={stage.key} id={stage.key}>
+                <JourneyStageCard
+                  stageName={stage.name}
+                  stageKey={stage.key}
+                  stageDescription={stage.description}
+                  steps={showAllSteps ? stage.steps : stage.steps}
+                  stageColor={stage.color}
+                  subscriptionCTA={stage.subscriptionCTA}
+                  trackStepAction={trackStepAction}
+                  isAnonymous={isAnonymous}
+                  visitDetails={visitDetails}
+                />
+              </div>
             )
           ))}
         </div>
