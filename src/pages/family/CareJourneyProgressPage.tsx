@@ -10,32 +10,59 @@ export default function CareJourneyProgressPage() {
     { label: "Care Journey Progress", href: "/family/care-journey-progress" }
   ];
 
-  // Handle hash navigation and scroll to section
+  // Enhanced hash navigation with multiple retry attempts
   useEffect(() => {
+    const scrollToElement = (elementId: string, attempt: number = 1) => {
+      console.log(`[CareJourneyProgress] Scroll attempt ${attempt} for element: ${elementId}`);
+      
+      const element = document.getElementById(elementId);
+      if (element) {
+        console.log(`[CareJourneyProgress] Element found on attempt ${attempt}, scrolling...`);
+        element.scrollIntoView({ 
+          behavior: 'smooth',
+          block: 'start',
+          inline: 'nearest'
+        });
+        return true; // Success
+      } else {
+        console.log(`[CareJourneyProgress] Element not found on attempt ${attempt}`);
+        return false; // Element not found
+      }
+    };
+
     const handleHashNavigation = () => {
       const hash = window.location.hash;
+      console.log(`[CareJourneyProgress] Hash navigation triggered: ${hash}`);
+      
       if (hash) {
-        // Remove the # from the hash
         const elementId = hash.substring(1);
-        // Small delay to ensure the page has rendered
-        setTimeout(() => {
-          const element = document.getElementById(elementId);
-          if (element) {
-            element.scrollIntoView({ 
-              behavior: 'smooth',
-              block: 'start',
-              inline: 'nearest'
-            });
-          }
-        }, 100);
+        console.log(`[CareJourneyProgress] Looking for element with ID: ${elementId}`);
+        
+        // Multiple retry attempts with increasing delays
+        const retryAttempts = [100, 300, 500, 1000, 1500];
+        
+        retryAttempts.forEach((delay, index) => {
+          setTimeout(() => {
+            const success = scrollToElement(elementId, index + 1);
+            if (success) {
+              console.log(`[CareJourneyProgress] Successfully scrolled to ${elementId} on attempt ${index + 1}`);
+            } else if (index === retryAttempts.length - 1) {
+              console.warn(`[CareJourneyProgress] Failed to find element ${elementId} after all attempts`);
+              // Log all available elements with IDs for debugging
+              const allElementsWithIds = document.querySelectorAll('[id]');
+              console.log('[CareJourneyProgress] Available elements with IDs:', 
+                Array.from(allElementsWithIds).map(el => el.id));
+            }
+          }, delay);
+        });
       } else {
-        // Scroll to top if no hash
+        console.log('[CareJourneyProgress] No hash, scrolling to top');
         window.scrollTo({ top: 0, behavior: 'smooth' });
       }
     };
 
-    // Handle initial load
-    handleHashNavigation();
+    // Handle initial load with a small delay to ensure component is mounted
+    setTimeout(handleHashNavigation, 50);
 
     // Handle hash changes (if user navigates using browser back/forward)
     window.addEventListener('hashchange', handleHashNavigation);
