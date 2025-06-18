@@ -521,9 +521,10 @@ export const useEnhancedJourneyProgress = (): JourneyProgressData => {
             case 1: // Account creation - just check if user exists
               isCompleted = !!user;
               break;
-            case 2: // Complete registration - check for full registration form submission
-              isCompleted = !!(registrationData || 
-                              (profile?.full_name && profile?.phone_number));
+            case 2: // Complete registration - check for ACTUAL registration form submission
+              // Only mark complete if they've actually submitted the family registration form
+              // Check for either chatbot completion OR care assessment data (fallback)
+              isCompleted = !!(registrationData || careNeedsData);
               break;
             case 3: // Care assessment
               isCompleted = !!careNeedsData;
