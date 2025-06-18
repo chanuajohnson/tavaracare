@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { supabase } from '@/lib/supabase';
@@ -521,10 +522,18 @@ export const useEnhancedJourneyProgress = (): JourneyProgressData => {
             case 1: // Account creation - just check if user exists
               isCompleted = !!user;
               break;
-            case 2: // Complete registration - check for ACTUAL registration form submission
-              // Only mark complete if they've actually submitted the family registration form
-              // Check for either chatbot completion OR care assessment data (fallback)
-              isCompleted = !!(registrationData || careNeedsData);
+            case 2: // Complete registration - check for ACTUAL profile data completion
+              // Check for essential family registration fields that indicate form completion
+              const hasEssentialProfileData = profile && 
+                profile.care_recipient_name && 
+                profile.relationship && 
+                (profile.care_types && profile.care_types.length > 0);
+              
+              // Also check for chatbot completion as fallback
+              const hasChatbotCompletion = registrationData || careNeedsData;
+              
+              // Mark complete if either the profile form was filled out OR chatbot was completed
+              isCompleted = !!(hasEssentialProfileData || hasChatbotCompletion);
               break;
             case 3: // Care assessment
               isCompleted = !!careNeedsData;

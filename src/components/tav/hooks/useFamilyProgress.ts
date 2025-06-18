@@ -154,16 +154,18 @@ export const useFamilyProgress = () => {
       case 1:
         return step.completed ? "Edit Profile" : "Complete Profile";
       case 2:
-        return step.completed ? "Edit Assessment" : "Start Assessment";
+        return step.completed ? "Edit Registration" : "Complete Registration";
       case 3:
-        return step.completed ? "Edit Story" : "Create Story";
+        return step.completed ? "Edit Assessment" : "Start Assessment";
       case 4:
-        return step.completed ? "View Matches" : "View Matches";
+        return step.completed ? "Edit Story" : "Create Story";
       case 5:
-        return step.completed ? "Edit Medications" : "Add Medications";
+        return step.completed ? "View Matches" : "View Matches";
       case 6:
-        return step.completed ? "Edit Meals" : "Add Meals";
+        return step.completed ? "Edit Medications" : "Add Medications";
       case 7:
+        return step.completed ? "Edit Meals" : "Add Meals";
+      case 8:
         if (step.completed && enhancedData.visitDetails) {
           return "Cancel Visit";
         }
@@ -188,12 +190,14 @@ export const useFamilyProgress = () => {
       case 1:
         return () => navigate('/dashboard/family');
       case 2:
-        return () => navigate('/family/care-assessment');
+        return () => navigate('/registration/family');
       case 3:
-        return () => navigate('/family/care-recipient');
+        return () => navigate('/family/care-assessment');
       case 4:
-        return () => enhancedData.setShowCaregiverMatchingModal(true);
+        return () => navigate('/family/care-recipient');
       case 5:
+        return () => enhancedData.setShowCaregiverMatchingModal(true);
+      case 6:
         return () => {
           if (enhancedData.carePlans.length > 0) {
             navigate(`/family/care-management/${enhancedData.carePlans[0].id}/medications`);
@@ -201,7 +205,7 @@ export const useFamilyProgress = () => {
             navigate('/family/care-management/create');
           }
         };
-      case 6:
+      case 7:
         return () => {
           if (enhancedData.carePlans.length > 0) {
             navigate(`/family/care-management/${enhancedData.carePlans[0].id}/meals`);
@@ -209,7 +213,7 @@ export const useFamilyProgress = () => {
             navigate('/family/care-management/create');
           }
         };
-      case 7:
+      case 8:
         return () => {
           if (step.completed && enhancedData.visitDetails) {
             enhancedData.setShowCancelVisitModal(true);
