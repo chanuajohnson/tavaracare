@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { supabase } from '@/lib/supabase';
@@ -335,28 +334,28 @@ export const useEnhancedJourneyProgress = (): JourneyProgressData => {
         return true;
       case 2: // Complete registration - accessible after account creation
         return true;
-      case 3: // Care assessment - accessible after registration
+      case 5: // Care assessment - accessible after registration (step 2)
         return completedSteps.has(2);
-      case 4: // Legacy story / Care recipient profile
+      case 6: // Legacy story - accessible after registration (step 2)
         return completedSteps.has(2);
-      case 5: // Caregiver matches - need steps 2, 3, 4 completed
-        return [2, 3, 4].every(num => completedSteps.has(num));
-      case 6: // Medication management - accessible after matching
-        return completedSteps.has(5);
-      case 7: // Meal management - accessible after matching
-        return completedSteps.has(5);
-      case 8: // Schedule initial visit - need step 5 completed (view matches)
-        return completedSteps.has(5);
-      case 9: // Schedule trial - need step 8 completed (admin has scheduled visit)
+      case 7: // Caregiver matches - accessible after registration (step 2) and care assessment (step 5)
+        return completedSteps.has(2) && completedSteps.has(5);
+      case 8: // Medication management - accessible after caregiver matches (step 7)
+        return completedSteps.has(7);
+      case 9: // Meal management - accessible after caregiver matches (step 7)
+        return completedSteps.has(7);
+      case 10: // Schedule initial visit - accessible after caregiver matches (step 7)
+        return completedSteps.has(7);
+      case 11: // Schedule trial - need step 10 completed (admin has scheduled visit)
         const hasAdminScheduledVisit = visitBookingData || 
           (profileData?.visit_scheduling_status && 
            ['scheduled', 'completed'].includes(profileData.visit_scheduling_status));
         return hasAdminScheduledVisit;
-      case 10: // Pay for trial - need step 9 completed
-        return completedSteps.has(9);
-      case 11: // Begin trial - need step 10 completed
-        return completedSteps.has(10);
-      case 12: // Choose path - need step 8 completed (can skip trial)
+      case 12: // Pay for trial - need step 11 completed
+        return completedSteps.has(11);
+      case 13: // Begin trial - need step 12 completed
+        return completedSteps.has(12);
+      case 14: // Choose path - accessible after visit scheduled (step 10)
         const hasVisitScheduled = visitBookingData || 
           (profileData?.visit_scheduling_status && 
            ['scheduled', 'completed'].includes(profileData.visit_scheduling_status));
@@ -535,36 +534,36 @@ export const useEnhancedJourneyProgress = (): JourneyProgressData => {
               // Mark complete if either the profile form was filled out OR chatbot was completed
               isCompleted = !!(hasEssentialProfileData || hasChatbotCompletion);
               break;
-            case 3: // Care assessment
+            case 5: // Care assessment (step 5 in database)
               isCompleted = !!careNeedsData;
               break;
-            case 4: // Legacy story / Care recipient profile
+            case 6: // Legacy story / Care recipient profile (step 6 in database)
               isCompleted = !!(careRecipientData && careRecipientData.full_name);
               break;
-            case 5: // View caregiver matches
+            case 7: // View caregiver matches (step 7 in database)
               isCompleted = false; // This can only be marked complete by user action
               break;
-            case 6: // Medication management
+            case 8: // Medication management
               isCompleted = !!(medicationsData && medicationsData.length > 0);
               break;
-            case 7: // Meal management
+            case 9: // Meal management
               isCompleted = !!(mealPlansData && mealPlansData.length > 0);
               break;
-            case 8: // Schedule initial visit - completed when admin has scheduled
+            case 10: // Schedule initial visit - completed when admin has scheduled
               isCompleted = !!latestVisitBooking || 
                           (profile?.visit_scheduling_status === 'scheduled' || 
                            profile?.visit_scheduling_status === 'completed');
               break;
-            case 9: // Schedule trial day
+            case 11: // Schedule trial day
               isCompleted = hasTrialPayment;
               break;
-            case 10: // Pay for trial day
+            case 12: // Pay for trial day
               isCompleted = hasTrialPayment;
               break;
-            case 11: // Begin trial
+            case 13: // Begin trial
               isCompleted = hasTrialPayment;
               break;
-            case 12: // Rate & choose path
+            case 14: // Rate & choose path
               isCompleted = !!profile?.visit_notes && JSON.parse(profile.visit_notes || '{}')?.care_model;
               break;
             default:
@@ -597,10 +596,10 @@ export const useEnhancedJourneyProgress = (): JourneyProgressData => {
             completed: isCompleted,
             accessible: isAccessible,
             prerequisites: (step.prerequisites as string[]) || [],
-            action: step.step_number === 7 && extractedVisitDetails ? 
+            action: step.step_number === 10 && extractedVisitDetails ? 
               () => setShowCancelVisitModal(true) : 
               () => handleStepAction(processedStep),
-            cancelAction: step.step_number === 7 && extractedVisitDetails ? 
+            cancelAction: step.step_number === 10 && extractedVisitDetails ? 
               () => setShowCancelVisitModal(true) : 
               undefined
           };
@@ -658,30 +657,30 @@ export const useEnhancedJourneyProgress = (): JourneyProgressData => {
       case 2: // Complete registration
         navigate('/registration/family');
         return;
-      case 3: // Care assessment
+      case 5: // Care assessment (step 5 in database)
         navigate('/family/care-assessment');
         return;
-      case 4: // Legacy story
+      case 6: // Legacy story (step 6 in database)
         navigate('/family/story');
         return;
-      case 5: // For caregiver matches
+      case 7: // Caregiver matches (step 7 in database)
         setShowCaregiverMatchingModal(true);
         return;
-      case 6: // Medication management
+      case 8: // Medication management
         if (carePlans.length > 0) {
           navigate(`/family/care-management/${carePlans[0].id}/medications`);
         } else {
           navigate('/family/care-management/create');
         }
         return;
-      case 7: // Meal management
+      case 9: // Meal management
         if (carePlans.length > 0) {
           navigate(`/family/care-management/${carePlans[0].id}/meals`);
         } else {
           navigate('/family/care-management/create');
         }
         return;
-      case 8: // Schedule visit
+      case 10: // Schedule visit
         setShowScheduleModal(true);
         return;
       default:
