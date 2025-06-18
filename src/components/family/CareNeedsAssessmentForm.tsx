@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useAuth } from "@/components/providers/AuthProvider";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
-import { Clock, User, Phone, Heart, AlertCircle, Calendar, Brain, Home, Car, Sparkles } from "lucide-react";
+import { Brain, User, Phone, Heart, AlertCircle, Calendar, Brain, Home, Car, Sparkles } from "lucide-react";
 
 interface CareNeedsFormData {
   // Header fields
@@ -18,9 +18,6 @@ interface CareNeedsFormData {
   primary_contact_name: string;
   primary_contact_phone: string;
   care_location: string;
-  preferred_time_start: string;
-  preferred_time_end: string;
-  preferred_days: string[];
   
   // Daily Living Tasks (ADLs)
   assistance_bathing: boolean;
@@ -79,9 +76,6 @@ const initialFormData: CareNeedsFormData = {
   primary_contact_name: "",
   primary_contact_phone: "",
   care_location: "",
-  preferred_time_start: "",
-  preferred_time_end: "",
-  preferred_days: [],
   assistance_bathing: false,
   assistance_dressing: false,
   assistance_toileting: false,
@@ -119,16 +113,6 @@ const initialFormData: CareNeedsFormData = {
   additional_notes: ""
 };
 
-const daysOfWeek = [
-  { value: "monday", label: "Monday" },
-  { value: "tuesday", label: "Tuesday" },
-  { value: "wednesday", label: "Wednesday" },
-  { value: "thursday", label: "Thursday" },
-  { value: "friday", label: "Friday" },
-  { value: "saturday", label: "Saturday" },
-  { value: "sunday", label: "Sunday" }
-];
-
 export const CareNeedsAssessmentForm = () => {
   const { user } = useAuth();
   const [formData, setFormData] = useState<CareNeedsFormData>(initialFormData);
@@ -163,7 +147,6 @@ export const CareNeedsAssessmentForm = () => {
         setFormData({
           ...initialFormData,
           ...data,
-          preferred_days: data.preferred_days || [],
         });
       }
     } catch (error) {
@@ -197,9 +180,6 @@ export const CareNeedsAssessmentForm = () => {
         primary_contact_name: formData.primary_contact_name,
         primary_contact_phone: formData.primary_contact_phone,
         care_location: formData.care_location,
-        preferred_time_start: formData.preferred_time_start || null,
-        preferred_time_end: formData.preferred_time_end || null,
-        preferred_days: formData.preferred_days,
         
         // Daily Living Tasks
         assistance_bathing: formData.assistance_bathing,
@@ -292,15 +272,6 @@ export const CareNeedsAssessmentForm = () => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  const handleDayToggle = (day: string, checked: boolean) => {
-    setFormData(prev => ({
-      ...prev,
-      preferred_days: checked 
-        ? [...prev.preferred_days, day]
-        : prev.preferred_days.filter(d => d !== day)
-    }));
-  };
-
   if (loading) {
     return (
       <div className="container mx-auto px-4 py-8">
@@ -381,41 +352,6 @@ export const CareNeedsAssessmentForm = () => {
                       placeholder="Address where care will be provided"
                       required
                     />
-                  </div>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="preferred_time_start">Preferred Shift Start Time</Label>
-                    <Input
-                      id="preferred_time_start"
-                      type="time"
-                      value={formData.preferred_time_start}
-                      onChange={(e) => updateFormData('preferred_time_start', e.target.value)}
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="preferred_time_end">Preferred Shift End Time</Label>
-                    <Input
-                      id="preferred_time_end"
-                      type="time"
-                      value={formData.preferred_time_end}
-                      onChange={(e) => updateFormData('preferred_time_end', e.target.value)}
-                    />
-                  </div>
-                </div>
-                <div>
-                  <Label>Days of Week</Label>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mt-2">
-                    {daysOfWeek.map(day => (
-                      <div key={day.value} className="flex items-center space-x-2">
-                        <Checkbox
-                          id={day.value}
-                          checked={formData.preferred_days.includes(day.value)}
-                          onCheckedChange={(checked) => handleDayToggle(day.value, checked as boolean)}
-                        />
-                        <Label htmlFor={day.value} className="text-sm">{day.label}</Label>
-                      </div>
-                    ))}
                   </div>
                 </div>
               </CardContent>
