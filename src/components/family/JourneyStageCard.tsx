@@ -112,7 +112,7 @@ export const JourneyStageCard: React.FC<JourneyStageCardProps> = ({
       } else if (step.completed) {
         return "Visit Scheduled";
       }
-      return "Request Scheduling";
+      return "View Care Giver Matches";
     }
     
     return step.completed ? "Edit" : "Complete";
