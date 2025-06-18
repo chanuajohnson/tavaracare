@@ -2,20 +2,18 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { v4 as uuidv4 } from 'uuid';
 import { supabase, ensureStorageBuckets, ensureAuthContext } from '../../lib/supabase';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '../../components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
 import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
 import { Button } from '../../components/ui/button';
 import { Checkbox } from '../../components/ui/checkbox';
-import { Separator } from '../../components/ui/separator';
 import { Textarea } from '../../components/ui/textarea';
-import { useToast } from '../../components/ui/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { Avatar, AvatarFallback, AvatarImage } from '../../components/ui/avatar';
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { PageViewTracker } from "@/components/tracking/PageViewTracker";
 import { toast } from 'sonner';
-import { Calendar, Sun, Moon, Clock, Home } from "lucide-react";
+import { Calendar, Sun, Moon, Clock } from "lucide-react";
 import { getPrefillDataFromUrl, applyPrefillDataToForm } from '../../utils/chat/prefillReader';
 import { clearChatSessionData } from '../../utils/chat/chatSessionUtils';
 import { setAuthFlowFlag, AUTH_FLOW_FLAGS } from "@/utils/authFlowUtils";
@@ -33,19 +31,14 @@ const FamilyRegistration = () => {
   const [careRecipientName, setCareRecipientName] = useState('');
   const [relationship, setRelationship] = useState('');
   const [careTypes, setCareTypes] = useState<string[]>([]);
-  
   const [specialNeeds, setSpecialNeeds] = useState<string[]>([]);
-  const [otherSpecialNeeds, setOtherSpecialNeeds] = useState('');
-  const [specializedCare, setSpecializedCare] = useState<string[]>([]);
-  
-  const [caregiverType, setCaregiverType] = useState('');
-  const [preferredContactMethod, setPreferredContactMethod] = useState('');
   const [careSchedule, setCareSchedule] = useState<string[]>([]);
-  const [customSchedule, setCustomSchedule] = useState('');
+  const [customCareSchedule, setCustomCareSchedule] = useState('');
+  const [budget, setBudget] = useState('');
+  const [caregiverType, setCaregiverType] = useState('');
   const [caregiverPreferences, setCaregiverPreferences] = useState('');
-  const [emergencyContact, setEmergencyContact] = useState('');
-  const [budgetPreferences, setBudgetPreferences] = useState('');
   const [additionalNotes, setAdditionalNotes] = useState('');
+  const [preferredContactMethod, setPreferredContactMethod] = useState('');
   
   const [user, setUser] = useState<any>(null);
   const [authSession, setAuthSession] = useState<any>(null);
@@ -78,7 +71,6 @@ const FamilyRegistration = () => {
     };
   }, []);
 
-  // Function to set form field values from prefill data
   const setFormValue = (field: string, value: any) => {
     console.log(`Setting form field ${field} to:`, value);
     
@@ -95,11 +87,8 @@ const FamilyRegistration = () => {
       case 'email':
         setEmail(value);
         break;
-      case 'location':
+      case 'address':
         setAddress(value);
-        break;
-      case 'budget':
-        setBudgetPreferences(value);
         break;
       case 'care_recipient_name':
         setCareRecipientName(value);
@@ -107,14 +96,17 @@ const FamilyRegistration = () => {
       case 'relationship':
         setRelationship(value);
         break;
+      case 'budget_preferences':
+        setBudget(value);
+        break;
       case 'caregiver_type':
         setCaregiverType(value);
         break;
+      case 'caregiver_preferences':
+        setCaregiverPreferences(value);
+        break;
       case 'preferred_contact_method':
         setPreferredContactMethod(value);
-        break;
-      case 'emergency_contact':
-        setEmergencyContact(value);
         break;
       case 'additional_notes':
         setAdditionalNotes(value);
@@ -125,8 +117,6 @@ const FamilyRegistration = () => {
           setCareTypes(value);
         } else if (field === 'special_needs' && Array.isArray(value)) {
           setSpecialNeeds(value);
-        } else if (field === 'specialized_care' && Array.isArray(value)) {
-          setSpecializedCare(value);
         } else if (field === 'care_schedule' && Array.isArray(value)) {
           setCareSchedule(value);
         }
@@ -136,11 +126,9 @@ const FamilyRegistration = () => {
 
   // Apply prefill data when available
   useEffect(() => {
-    // Only try to apply prefill once
     if (!prefillApplied) {
       console.log('Checking for prefill data...');
       
-      // Try to apply prefill data from URL and localStorage
       const hasPrefill = applyPrefillDataToForm(
         setFormValue, 
         { 
@@ -160,7 +148,6 @@ const FamilyRegistration = () => {
         console.log('Successfully applied prefill data to form');
         toast.success('Your chat information has been applied to this form');
         
-        // If we should auto-submit and we have prefill data and a logged-in user, submit the form
         if (shouldAutoSubmit && user) {
           console.log('Auto-submitting form based on chat completion flow');
           setTimeout(() => {
@@ -174,186 +161,6 @@ const FamilyRegistration = () => {
       setPrefillApplied(true);
     }
   }, [prefillApplied, shouldAutoSubmit, user]);
-
-  useEffect(() => {
-    document.title = "Family Registration | Tavara";
-    
-    // Prevent auth redirection by setting skip flag
-    sessionStorage.setItem('skipPostLoginRedirect', 'true');
-    
-    // Clean up on unmount
-    const cleanup = () => {
-      sessionStorage.removeItem('skipPostLoginRedirect');
-    };
-
-    ensureStorageBuckets().catch(err => {
-      console.error('Failed to check storage buckets:', err);
-    });
-    
-    const getUser = async () => {
-      try {
-        await ensureAuthContext();
-        
-        const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
-        
-        if (sessionError) {
-          console.error('Error fetching session:', sessionError);
-          toast.error('Authentication error. Please sign in again.');
-          navigate('/auth');
-          return;
-        }
-        
-        if (!sessionData.session) {
-          console.log('No active session found');
-          toast.error('Please sign in to complete your registration.');
-          navigate('/auth');
-          return;
-        }
-        
-        setAuthSession(sessionData.session);
-        
-        const { data: userData, error: userError } = await supabase.auth.getUser();
-        
-        if (userError || !userData?.user) {
-          console.error('Error fetching user:', userError);
-          toast.error('Authentication error. Please sign in again.');
-          navigate('/auth');
-          return;
-        }
-        
-        setUser(userData.user);
-        setEmail(userData.user.email || '');
-        
-        try {
-          console.log('Fetching profile for user ID:', userData.user.id);
-          const { data: profileData, error: profileError } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', userData.user.id)
-            .maybeSingle();
-
-          if (profileError) {
-            console.error('Error fetching profile:', profileError);
-            await createBasicProfile(userData.user.id);
-            return;
-          }
-
-          if (profileData) {
-            console.log('Profile data found:', profileData);
-            setAvatarUrl(profileData.avatar_url);
-            setFirstName(profileData.full_name?.split(' ')[0] || '');
-            setLastName(profileData.full_name?.split(' ')[1] || '');
-            setPhoneNumber(profileData.phone_number || '');
-            setAddress(profileData.address || '');
-            setCareRecipientName(profileData.care_recipient_name || '');
-            setRelationship(profileData.relationship || '');
-            setCareTypes(profileData.care_types || []);
-            setSpecialNeeds(profileData.special_needs || []);
-            setSpecializedCare(profileData.specialized_care || []);
-            setOtherSpecialNeeds(profileData.other_special_needs || '');
-            setCaregiverType(profileData.caregiver_type || '');
-            setPreferredContactMethod(profileData.preferred_contact_method || '');
-            setCareSchedule(profileData.care_schedule ? 
-              (typeof profileData.care_schedule === 'string' ? 
-                [profileData.care_schedule] : 
-                profileData.care_schedule) : 
-              []);
-            setCustomSchedule(profileData.custom_schedule || '');
-            setBudgetPreferences(profileData.budget_preferences || '');
-            setCaregiverPreferences(profileData.caregiver_preferences || '');
-            setEmergencyContact(profileData.emergency_contact || '');
-            setAdditionalNotes(profileData.additional_notes || '');
-          } else {
-            console.log('No profile found, creating basic profile');
-            await createBasicProfile(userData.user.id);
-          }
-        } catch (profileErr) {
-          console.error('Error in profile fetch:', profileErr);
-          await createBasicProfile(userData.user.id);
-        }
-      } catch (err) {
-        console.error('Error in authentication flow:', err);
-        toast.error('Authentication error. Please sign in again.');
-        navigate('/auth');
-      }
-    };
-
-    const createBasicProfile = async (userId: string) => {
-      try {
-        console.log('Creating basic profile for user:', userId);
-        const { data: { user } } = await supabase.auth.getUser();
-        
-        let fullName = '';
-        if (user?.user_metadata?.full_name) {
-          fullName = user.user_metadata.full_name;
-        } else if (user?.user_metadata?.first_name && user?.user_metadata?.last_name) {
-          fullName = `${user.user_metadata.first_name} ${user.user_metadata.last_name}`;
-        } else if (user?.email) {
-          fullName = user.email.split('@')[0];
-        }
-        
-        await ensureAuthContext();
-        
-        const { error } = await supabase.from('profiles').upsert({
-          id: userId,
-          full_name: fullName,
-          role: 'family',
-          updated_at: new Date().toISOString()
-        });
-        
-        if (error) {
-          console.error('Error creating basic profile:', error);
-          throw error;
-        }
-        
-        console.log('Basic profile created successfully');
-        
-        if (fullName) {
-          const nameParts = fullName.split(' ');
-          setFirstName(nameParts[0] || '');
-          setLastName(nameParts.slice(1).join(' ') || '');
-        }
-        
-        if (user?.email) {
-          setEmail(user.email);
-        }
-        
-      } catch (err) {
-        console.error('Failed to create basic profile:', err);
-        toast.error('Failed to create user profile. Please try again or contact support.');
-      }
-    };
-
-    getUser();
-    
-    const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === 'SIGNED_OUT') {
-        navigate('/auth');
-      } else if (session) {
-        setAuthSession(session);
-      }
-    });
-    
-    return () => {
-      cleanup();
-      authListener?.subscription.unsubscribe();
-    };
-  }, [navigate]);
-
-  const handleAvatarChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    if (!event.target.files || event.target.files.length === 0) {
-      return;
-    }
-    
-    const file = event.target.files[0];
-    setAvatarFile(file);
-    
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setAvatarUrl(reader.result as string);
-    };
-    reader.readAsDataURL(file);
-  };
 
   const handleCareScheduleChange = (value: string) => {
     setCareSchedule(prev => {
@@ -377,31 +184,6 @@ const FamilyRegistration = () => {
     }
   };
 
-  const updateProfile = async (profileData: any) => {
-    try {
-      // Convert care_schedule from string[] to string if needed
-      const updatedProfileData = {
-        ...profileData,
-        // If care_schedule is an array, join it into a string
-        care_schedule: Array.isArray(profileData.care_schedule) 
-          ? profileData.care_schedule.join(', ')
-          : profileData.care_schedule
-      };
-      
-      const { error } = await supabase
-        .from('profiles')
-        .update(updatedProfileData)
-        .eq('id', user.id);
-      
-      if (error) throw error;
-      
-      // Success handling
-    } catch (err) {
-      // Error handling
-      throw err;
-    }
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -418,8 +200,6 @@ const FamilyRegistration = () => {
         navigate('/auth');
         return;
       }
-      
-      console.log('Current user ID for profile update:', user?.id);
       
       if (!user?.id) {
         throw new Error('User ID is missing. Please sign in again.');
@@ -474,21 +254,23 @@ const FamilyRegistration = () => {
         relationship: relationship,
         care_types: careTypes || [],
         special_needs: specialNeeds || [],
-        specialized_care: specializedCare || [],
-        other_special_needs: otherSpecialNeeds || '',
-        caregiver_type: caregiverType || '',
-        preferred_contact_method: preferredContactMethod || '',
         care_schedule: careSchedule || [],
-        custom_schedule: customSchedule || '',
-        budget_preferences: budgetPreferences || '',
+        custom_care_schedule: customCareSchedule || '',
+        budget_preferences: budget || '',
+        caregiver_type: caregiverType || '',
         caregiver_preferences: caregiverPreferences || '',
-        emergency_contact: emergencyContact || '',
-        additional_notes: additionalNotes || ''
+        additional_notes: additionalNotes || '',
+        preferred_contact_method: preferredContactMethod || ''
       };
 
-      console.log('Updating profile with data:', updates);
+      console.log('Updating family profile with data:', updates);
       
-      await updateProfile(updates);
+      const { error } = await supabase
+        .from('profiles')
+        .update(updates)
+        .eq('id', user.id);
+      
+      if (error) throw error;
       
       // Get session ID from URL to clear specific flags
       const urlParams = new URLSearchParams(window.location.search);
@@ -503,7 +285,7 @@ const FamilyRegistration = () => {
         localStorage.removeItem(`tavara_chat_transition_${sessionId}`);
       }
 
-      toast.success('Registration Complete! Your family caregiver profile has been updated.');
+      toast.success('Registration Complete! Your family profile has been updated.');
       
       navigate('/dashboard/family');
     } catch (error: any) {
@@ -529,9 +311,9 @@ const FamilyRegistration = () => {
       />
       
       <div className="container max-w-4xl py-10">
-        <h1 className="text-3xl font-bold mb-6">Family Member Registration</h1>
+        <h1 className="text-3xl font-bold mb-6">Family Care Registration</h1>
         <p className="text-gray-500 mb-8">
-          Complete your profile to connect with professional caregivers and community resources.
+          Complete your family profile to find the right caregiver for your loved one.
         </p>
 
         <form ref={formRef} onSubmit={handleSubmit} className="space-y-6">
@@ -539,30 +321,10 @@ const FamilyRegistration = () => {
             <CardHeader>
               <CardTitle>Personal & Contact Information</CardTitle>
               <CardDescription>
-                Tell us about yourself so we can connect you with the right care providers.
+                Tell us about yourself so caregivers can learn about your family.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="flex flex-col items-center mb-6">
-                <Avatar className="h-24 w-24 mb-4">
-                  {avatarUrl ? (
-                    <AvatarImage src={avatarUrl} alt="Profile" />
-                  ) : (
-                    <AvatarFallback>{firstName.charAt(0)}{lastName.charAt(0)}</AvatarFallback>
-                  )}
-                </Avatar>
-                <Label htmlFor="avatar" className="cursor-pointer text-primary">
-                  {avatarUrl ? 'Change Profile Picture' : 'Upload Profile Picture'}
-                  <Input 
-                    id="avatar" 
-                    type="file" 
-                    accept="image/*" 
-                    onChange={handleAvatarChange} 
-                    className="hidden" 
-                  />
-                </Label>
-              </div>
-              
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="firstName">First Name *</Label>
@@ -604,13 +366,14 @@ const FamilyRegistration = () => {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="address">Location – Address/City of the care recipient *</Label>
-                <Input 
+                <Label htmlFor="address">Address *</Label>
+                <Textarea 
                   id="address" 
-                  placeholder="Address" 
+                  placeholder="Your full address" 
                   value={address} 
                   onChange={(e) => setAddress(e.target.value)}
                   required
+                  rows={3}
                 />
               </div>
             </CardContent>
@@ -620,18 +383,18 @@ const FamilyRegistration = () => {
             <CardHeader>
               <CardTitle>Care Recipient Information</CardTitle>
               <CardDescription>
-                Tell us about the person you are caring for.
+                Tell us about the person who needs care.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="careRecipientName">Care Recipient's Full Name – Name of the person needing care *</Label>
+                <Label htmlFor="careRecipientName">Care Recipient's Name *</Label>
                 <Input 
                   id="careRecipientName" 
-                  placeholder="Care Recipient Name" 
+                  placeholder="Full Name" 
                   value={careRecipientName} 
                   onChange={(e) => setCareRecipientName(e.target.value)}
-                  required
+                  required 
                 />
               </div>
 
@@ -639,33 +402,41 @@ const FamilyRegistration = () => {
                 <Label htmlFor="relationship">Relationship to Care Recipient *</Label>
                 <Select value={relationship} onValueChange={setRelationship} required>
                   <SelectTrigger id="relationship">
-                    <SelectValue placeholder="Select your relationship" />
+                    <SelectValue placeholder="Select relationship" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Parent">Parent</SelectItem>
-                    <SelectItem value="Child">Child</SelectItem>
-                    <SelectItem value="Spouse">Spouse</SelectItem>
-                    <SelectItem value="Grandparent">Grandparent</SelectItem>
-                    <SelectItem value="Sibling">Sibling</SelectItem>
-                    <SelectItem value="Legal Guardian">Legal Guardian</SelectItem>
-                    <SelectItem value="Other">Other</SelectItem>
+                    <SelectItem value="parent">Parent</SelectItem>
+                    <SelectItem value="spouse">Spouse/Partner</SelectItem>
+                    <SelectItem value="child">Child</SelectItem>
+                    <SelectItem value="sibling">Sibling</SelectItem>
+                    <SelectItem value="friend">Friend</SelectItem>
+                    <SelectItem value="other">Other</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
+            </CardContent>
+          </Card>
 
+          <Card className="mb-8">
+            <CardHeader>
+              <CardTitle>Care Needs & Preferences</CardTitle>
+              <CardDescription>
+                Share the types of care assistance needed and any special needs.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label>Primary Care Type Needed – What type of care is needed? (Select all that apply)</Label>
+                <Label>Care Types – What type of care assistance do you need? (Select all that apply)</Label>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                   {[
-                    { id: 'care-inhome', label: '🏠 In-Home Care (Daily, Nighttime, Weekend, Live-in)', value: 'In-Home Care' },
-                    { id: 'care-medical', label: '🏥 Medical Support (Post-surgery, Chronic Condition Management, Hospice)', value: 'Medical Support' },
-                    { id: 'care-therapeutic', label: '🌱 Therapeutic Support (Physical Therapy, Occupational Therapy, Speech Therapy)', value: 'Therapeutic Support' },
-                    { id: 'care-specialneeds', label: '🎓 Child or Special Needs Support (Autism, ADHD, Learning Disabilities)', value: 'Special Needs Support' },
-                    { id: 'care-cognitive', label: '🧠 Cognitive & Memory Care (Alzheimer\'s, Dementia, Parkinson\'s)', value: 'Cognitive & Memory Care' },
-                    { id: 'care-mobility', label: '♿ Mobility Assistance (Wheelchair, Bed-bound, Fall Prevention)', value: 'Mobility Assistance' },
-                    { id: 'care-medication', label: '💊 Medication Management (Daily Medications, Insulin, Medical Equipment)', value: 'Medication Management' },
-                    { id: 'care-nutrition', label: '🍽️ Nutritional Assistance (Meal Prep, Special Diets, Tube Feeding)', value: 'Nutritional Assistance' },
-                    { id: 'care-household', label: '🏡 Household Assistance (Cleaning, Laundry, Errands, Yard/Garden Maintenance)', value: 'Household Assistance' }
+                    { id: 'personal_care', label: '🧼 Personal Care (bathing, dressing, toileting)', value: 'personal_care' },
+                    { id: 'medication_management', label: '💊 Medication Management', value: 'medication_management' },
+                    { id: 'mobility_assistance', label: '🚶 Mobility Assistance', value: 'mobility_assistance' },
+                    { id: 'meal_preparation', label: '🍲 Meal Preparation', value: 'meal_preparation' },
+                    { id: 'housekeeping', label: '🧹 Light Housekeeping', value: 'housekeeping' },
+                    { id: 'transportation', label: '🚗 Transportation', value: 'transportation' },
+                    { id: 'companionship', label: '👥 Companionship', value: 'companionship' },
+                    { id: 'specialized_care', label: '🏥 Specialized Medical Care', value: 'specialized_care' }
                   ].map((item) => (
                     <div key={item.id} className="flex items-start space-x-2">
                       <Checkbox 
@@ -685,39 +456,20 @@ const FamilyRegistration = () => {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="caregiverType">Preferred Caregiver Type – Do you prefer care from:</Label>
-                <Select value={caregiverType} onValueChange={setCaregiverType}>
-                  <SelectTrigger id="caregiverType">
-                    <SelectValue placeholder="Select Caregiver Type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Certified Agency">🏥 Certified Agency</SelectItem>
-                    <SelectItem value="Independent Caregiver">🏠 Independent Caregiver</SelectItem>
-                    <SelectItem value="Either">👩‍⚕️ Either is fine</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="mb-8">
-            <CardHeader>
-              <CardTitle>🟡 Special Medical & Care Needs (Required If Applicable)</CardTitle>
-              <CardDescription>
-                Detailed information about specific medical conditions and care requirements.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label>Does the Care Recipient Have Any of These Conditions? (Check all that apply)</Label>
+                <Label>Special Needs or Conditions (Select all that apply)</Label>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                   {[
-                    { id: 'needs-cognitive', label: '🧠 Cognitive Disorders – Alzheimer\'s, Dementia, Parkinson\'s', value: 'Cognitive Disorders' },
-                    { id: 'needs-physical', label: '♿ Physical Disabilities – Stroke, Paralysis, ALS, Multiple Sclerosis', value: 'Physical Disabilities' },
-                    { id: 'needs-chronic', label: '🏥 Chronic Illness – Diabetes, Heart Disease, Cancer, Kidney Disease', value: 'Chronic Illness' },
-                    { id: 'needs-specialneeds', label: '🧩 Special Needs (Child or Adult) – Autism, Down Syndrome, Cerebral Palsy, ADHD', value: 'Special Needs' },
-                    { id: 'needs-equipment', label: '💊 Medical Equipment Use – Oxygen Tank, Ventilator, Catheter, Feeding Tube', value: 'Medical Equipment Use' },
-                    { id: 'needs-vision', label: '👁️ Vision or Hearing Impairment', value: 'Vision or Hearing Impairment' }
+                    { id: 'dementia', label: "🧠 Dementia/Alzheimer's", value: 'dementia' },
+                    { id: 'parkinsons', label: "🤲 Parkinson's Disease", value: 'parkinsons' },
+                    { id: 'diabetes', label: "🩸 Diabetes", value: 'diabetes' },
+                    { id: 'stroke_recovery', label: "🫀 Stroke Recovery", value: 'stroke_recovery' },
+                    { id: 'cancer_care', label: "🎗️ Cancer Care", value: 'cancer_care' },
+                    { id: 'heart_disease', label: "❤️ Heart Disease", value: 'heart_disease' },
+                    { id: 'respiratory_issues', label: "🫁 Respiratory Issues", value: 'respiratory_issues' },
+                    { id: 'mobility_limitations', label: "♿ Mobility Limitations", value: 'mobility_limitations' },
+                    { id: 'wound_care', label: "🩹 Wound Care", value: 'wound_care' },
+                    { id: 'incontinence', label: "💧 Incontinence", value: 'incontinence' },
+                    { id: 'other', label: "✏️ Other (please specify)", value: 'other' }
                   ].map((item) => (
                     <div key={item.id} className="flex items-start space-x-2">
                       <Checkbox 
@@ -735,58 +487,20 @@ const FamilyRegistration = () => {
                   ))}
                 </div>
               </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="otherSpecialNeeds">⚠️ Other Special Needs (if any)</Label>
-                <Textarea 
-                  id="otherSpecialNeeds" 
-                  placeholder="Please specify any other special needs" 
-                  value={otherSpecialNeeds} 
-                  onChange={(e) => setOtherSpecialNeeds(e.target.value)}
-                  rows={3}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label>Specialized Care Requirements – Do they need:</Label>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                  {[
-                    { id: 'specialized-supervision', label: '🏥 24/7 Supervision', value: '24/7 Supervision' },
-                    { id: 'specialized-nurse', label: '🩺 Nurse-Level Medical Assistance', value: 'Nurse-Level Medical Assistance' },
-                    { id: 'specialized-diet', label: '🍽️ Special Diet/Nutritional Needs', value: 'Special Diet/Nutritional Needs' },
-                    { id: 'specialized-transport', label: '🚗 Transportation to Appointments', value: 'Transportation to Appointments' },
-                    { id: 'specialized-language', label: '💬 Sign Language/Language-Specific Care', value: 'Sign Language/Language-Specific Care' }
-                  ].map((item) => (
-                    <div key={item.id} className="flex items-start space-x-2">
-                      <Checkbox 
-                        id={item.id} 
-                        checked={specializedCare.includes(item.value)}
-                        onCheckedChange={() => handleCheckboxArrayChange(
-                          item.value, 
-                          specializedCare, 
-                          setSpecializedCare
-                        )}
-                        className="mt-1"
-                      />
-                      <Label htmlFor={item.id} className="font-normal">{item.label}</Label>
-                    </div>
-                  ))}
-                </div>
-              </div>
             </CardContent>
           </Card>
 
           <Card className="mb-8">
             <CardHeader>
-              <CardTitle>🟡 Additional Preferences (Optional but Recommended)</CardTitle>
+              <CardTitle>📅 Care Schedule & Availability</CardTitle>
               <CardDescription>
-                Help us better understand your specific needs and preferences.
+                When do you need care support? Select all time slots that work for your family.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="space-y-4">
-                <Label className="text-base font-medium">Care Schedule & Availability – Preferred care hours</Label>
-                <p className="text-sm text-gray-500 mb-4">Select the care schedule options that best fit your needs. This helps us match you with caregivers who have matching availability.</p>
+                <Label className="text-base font-medium">Care Schedule – When do you need caregiving support?</Label>
+                <p className="text-sm text-gray-500 mb-4">Select all time slots when you need care assistance. This helps us match you with caregivers who are available during these hours.</p>
                 
                 <div className="space-y-5">
                   <div className="space-y-3">
@@ -798,8 +512,8 @@ const FamilyRegistration = () => {
                       <div className="flex items-start space-x-2">
                         <Checkbox 
                           id="weekday-standard" 
-                          checked={careSchedule.includes('weekday_standard')}
-                          onCheckedChange={() => handleCareScheduleChange('weekday_standard')}
+                          checked={careSchedule.includes('mon_fri_8am_4pm')}
+                          onCheckedChange={() => handleCareScheduleChange('mon_fri_8am_4pm')}
                         />
                         <Label htmlFor="weekday-standard" className="font-normal">
                           ☀️ Monday – Friday, 8 AM – 4 PM (Standard daytime coverage)
@@ -807,27 +521,27 @@ const FamilyRegistration = () => {
                       </div>
                       <div className="flex items-start space-x-2">
                         <Checkbox 
-                          id="weekday-extended" 
-                          checked={careSchedule.includes('weekday_extended')}
-                          onCheckedChange={() => handleCareScheduleChange('weekday_extended')}
+                          id="weekday-extended-8-6" 
+                          checked={careSchedule.includes('mon_fri_8am_6pm')}
+                          onCheckedChange={() => handleCareScheduleChange('mon_fri_8am_6pm')}
                         />
-                        <Label htmlFor="weekday-extended" className="font-normal">
-                          🕕 Monday – Friday, 6 AM – 6 PM (Extended daytime coverage)
+                        <Label htmlFor="weekday-extended-8-6" className="font-normal">
+                          🕕 Monday – Friday, 8 AM – 6 PM (Extended daytime coverage)
                         </Label>
                       </div>
                       <div className="flex items-start space-x-2">
                         <Checkbox 
-                          id="weekday-night" 
-                          checked={careSchedule.includes('weekday_night')}
-                          onCheckedChange={() => handleCareScheduleChange('weekday_night')}
+                          id="weekday-extended-6-6" 
+                          checked={careSchedule.includes('mon_fri_6am_6pm')}
+                          onCheckedChange={() => handleCareScheduleChange('mon_fri_6am_6pm')}
                         />
-                        <Label htmlFor="weekday-night" className="font-normal">
-                          🌙 Monday – Friday, 6 PM – 8 AM (Nighttime coverage)
+                        <Label htmlFor="weekday-extended-6-6" className="font-normal">
+                          🕕 Monday – Friday, 6 AM – 6 PM (Extended daytime coverage)
                         </Label>
                       </div>
                     </div>
                   </div>
-                  
+
                   <div className="space-y-3">
                     <div className="flex items-center gap-2">
                       <Sun className="h-5 w-5 text-primary" />
@@ -837,8 +551,8 @@ const FamilyRegistration = () => {
                       <div className="flex items-start space-x-2">
                         <Checkbox 
                           id="weekend-day" 
-                          checked={careSchedule.includes('weekend_day')}
-                          onCheckedChange={() => handleCareScheduleChange('weekend_day')}
+                          checked={careSchedule.includes('sat_sun_6am_6pm')}
+                          onCheckedChange={() => handleCareScheduleChange('sat_sun_6am_6pm')}
                         />
                         <Label htmlFor="weekend-day" className="font-normal">
                           🌞 Saturday – Sunday, 6 AM – 6 PM (Daytime weekend coverage)
@@ -846,7 +560,7 @@ const FamilyRegistration = () => {
                       </div>
                     </div>
                   </div>
-                  
+
                   <div className="space-y-3">
                     <div className="flex items-center gap-2">
                       <Moon className="h-5 w-5 text-primary" />
@@ -856,8 +570,8 @@ const FamilyRegistration = () => {
                       <div className="flex items-start space-x-2">
                         <Checkbox 
                           id="evening-4-6" 
-                          checked={careSchedule.includes('evening_4_6')}
-                          onCheckedChange={() => handleCareScheduleChange('evening_4_6')}
+                          checked={careSchedule.includes('weekday_evening_4pm_6am')}
+                          onCheckedChange={() => handleCareScheduleChange('weekday_evening_4pm_6am')}
                         />
                         <Label htmlFor="evening-4-6" className="font-normal">
                           🌙 Weekday Evening Shift (4 PM – 6 AM)
@@ -866,8 +580,8 @@ const FamilyRegistration = () => {
                       <div className="flex items-start space-x-2">
                         <Checkbox 
                           id="evening-4-8" 
-                          checked={careSchedule.includes('evening_4_8')}
-                          onCheckedChange={() => handleCareScheduleChange('evening_4_8')}
+                          checked={careSchedule.includes('weekday_evening_4pm_8am')}
+                          onCheckedChange={() => handleCareScheduleChange('weekday_evening_4pm_8am')}
                         />
                         <Label htmlFor="evening-4-8" className="font-normal">
                           🌙 Weekday Evening Shift (4 PM – 8 AM)
@@ -876,8 +590,8 @@ const FamilyRegistration = () => {
                       <div className="flex items-start space-x-2">
                         <Checkbox 
                           id="evening-5-5" 
-                          checked={careSchedule.includes('evening_5_5')}
-                          onCheckedChange={() => handleCareScheduleChange('evening_5_5')}
+                          checked={careSchedule.includes('weekday_evening_5pm_5am')}
+                          onCheckedChange={() => handleCareScheduleChange('weekday_evening_5pm_5am')}
                         />
                         <Label htmlFor="evening-5-5" className="font-normal">
                           🌙 Weekday Evening Shift (5 PM – 5 AM)
@@ -886,8 +600,8 @@ const FamilyRegistration = () => {
                       <div className="flex items-start space-x-2">
                         <Checkbox 
                           id="evening-5-8" 
-                          checked={careSchedule.includes('evening_5_8')}
-                          onCheckedChange={() => handleCareScheduleChange('evening_5_8')}
+                          checked={careSchedule.includes('weekday_evening_5pm_8am')}
+                          onCheckedChange={() => handleCareScheduleChange('weekday_evening_5pm_8am')}
                         />
                         <Label htmlFor="evening-5-8" className="font-normal">
                           🌙 Weekday Evening Shift (5 PM – 8 AM)
@@ -896,8 +610,8 @@ const FamilyRegistration = () => {
                       <div className="flex items-start space-x-2">
                         <Checkbox 
                           id="evening-6-6" 
-                          checked={careSchedule.includes('evening_6_6')}
-                          onCheckedChange={() => handleCareScheduleChange('evening_6_6')}
+                          checked={careSchedule.includes('weekday_evening_6pm_6am')}
+                          onCheckedChange={() => handleCareScheduleChange('weekday_evening_6pm_6am')}
                         />
                         <Label htmlFor="evening-6-6" className="font-normal">
                           🌙 Weekday Evening Shift (6 PM – 6 AM)
@@ -906,8 +620,8 @@ const FamilyRegistration = () => {
                       <div className="flex items-start space-x-2">
                         <Checkbox 
                           id="evening-6-8" 
-                          checked={careSchedule.includes('evening_6_8')}
-                          onCheckedChange={() => handleCareScheduleChange('evening_6_8')}
+                          checked={careSchedule.includes('weekday_evening_6pm_8am')}
+                          onCheckedChange={() => handleCareScheduleChange('weekday_evening_6pm_8am')}
                         />
                         <Label htmlFor="evening-6-8" className="font-normal">
                           🌙 Weekday Evening Shift (6 PM – 8 AM)
@@ -915,7 +629,7 @@ const FamilyRegistration = () => {
                       </div>
                     </div>
                   </div>
-                  
+
                   <div className="space-y-3">
                     <div className="flex items-center gap-2">
                       <Clock className="h-5 w-5 text-primary" />
@@ -935,8 +649,8 @@ const FamilyRegistration = () => {
                       <div className="flex items-start space-x-2">
                         <Checkbox 
                           id="live-in" 
-                          checked={careSchedule.includes('live_in')}
-                          onCheckedChange={() => handleCareScheduleChange('live_in')}
+                          checked={careSchedule.includes('live_in_care')}
+                          onCheckedChange={() => handleCareScheduleChange('live_in_care')}
                         />
                         <Label htmlFor="live-in" className="font-normal">
                           🏡 Live-In Care (Full-time in-home support)
@@ -945,8 +659,8 @@ const FamilyRegistration = () => {
                       <div className="flex items-start space-x-2">
                         <Checkbox 
                           id="care-24-7" 
-                          checked={careSchedule.includes('care_24_7')}
-                          onCheckedChange={() => handleCareScheduleChange('care_24_7')}
+                          checked={careSchedule.includes('24_7_care')}
+                          onCheckedChange={() => handleCareScheduleChange('24_7_care')}
                         />
                         <Label htmlFor="care-24-7" className="font-normal">
                           🕐 24/7 Care Availability
@@ -955,32 +669,32 @@ const FamilyRegistration = () => {
                       <div className="flex items-start space-x-2">
                         <Checkbox 
                           id="around-clock" 
-                          checked={careSchedule.includes('around_clock')}
-                          onCheckedChange={() => handleCareScheduleChange('around_clock')}
+                          checked={careSchedule.includes('around_clock_shifts')}
+                          onCheckedChange={() => handleCareScheduleChange('around_clock_shifts')}
                         />
                         <Label htmlFor="around-clock" className="font-normal">
-                          🌅 Around-the-Clock Shifts
+                          🌅 Around-the-Clock Shifts (Multiple caregivers rotating)
                         </Label>
                       </div>
                       <div className="flex items-start space-x-2">
                         <Checkbox 
-                          id="custom" 
-                          checked={careSchedule.includes('custom')}
-                          onCheckedChange={() => handleCareScheduleChange('custom')}
+                          id="other-schedule" 
+                          checked={careSchedule.includes('other')}
+                          onCheckedChange={() => handleCareScheduleChange('other')}
                         />
-                        <Label htmlFor="custom" className="font-normal">
-                          ✏️ Other (Custom shift — specify your hours)
+                        <Label htmlFor="other-schedule" className="font-normal">
+                          ✏️ Other (Custom schedule — specify your hours)
                         </Label>
                       </div>
                       
-                      {careSchedule.includes('custom') && (
+                      {careSchedule.includes('other') && (
                         <div className="pt-2 pl-6">
-                          <Label htmlFor="customSchedule" className="text-sm mb-1 block">Please specify your custom schedule:</Label>
+                          <Label htmlFor="customCareSchedule" className="text-sm mb-1 block">Please specify your custom care schedule:</Label>
                           <Textarea
-                            id="customSchedule"
-                            placeholder="Describe your specific schedule needs"
-                            value={customSchedule}
-                            onChange={(e) => setCustomSchedule(e.target.value)}
+                            id="customCareSchedule"
+                            placeholder="Describe your specific care schedule needs"
+                            value={customCareSchedule}
+                            onChange={(e) => setCustomCareSchedule(e.target.value)}
                             rows={2}
                             className="w-full"
                           />
@@ -990,35 +704,79 @@ const FamilyRegistration = () => {
                   </div>
                 </div>
               </div>
+            </CardContent>
+          </Card>
+
+          <Card className="mb-8">
+            <CardHeader>
+              <CardTitle>Budget & Caregiver Preferences</CardTitle>
+              <CardDescription>
+                Share your budget and preferences for caregivers.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="budget">Budget Range</Label>
+                <Select value={budget} onValueChange={setBudget}>
+                  <SelectTrigger id="budget">
+                    <SelectValue placeholder="Select your budget range" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="under_15">Under $15/hour</SelectItem>
+                    <SelectItem value="15_20">$15-$20/hour</SelectItem>
+                    <SelectItem value="20_25">$20-$25/hour</SelectItem>
+                    <SelectItem value="25_30">$25-$30/hour</SelectItem>
+                    <SelectItem value="30_plus">$30+/hour</SelectItem>
+                    <SelectItem value="not_sure">Not sure yet</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
 
               <div className="space-y-2">
-                <Label htmlFor="caregiverPreferences">Caregiver Preferences – Gender, Age, Language, Experience Level</Label>
+                <Label htmlFor="caregiverType">Type of Caregiver Preferred</Label>
+                <Select value={caregiverType} onValueChange={setCaregiverType}>
+                  <SelectTrigger id="caregiverType">
+                    <SelectValue placeholder="Select caregiver type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="professional">👩‍⚕️ Professional Caregiver (trained, experienced)</SelectItem>
+                    <SelectItem value="nurse">🏥 Nurse (RN or LPN)</SelectItem>
+                    <SelectItem value="companion">👥 Companion Caregiver (non-medical)</SelectItem>
+                    <SelectItem value="specialized">🔬 Specialized Care Provider</SelectItem>
+                    <SelectItem value="no_preference">🤷 No specific preference</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="caregiverPreferences">Specific Preferences for Caregiver</Label>
                 <Textarea 
                   id="caregiverPreferences" 
-                  placeholder="Please specify any preferences regarding your caregiver" 
+                  placeholder="Any preferences regarding language, experience, etc." 
                   value={caregiverPreferences} 
                   onChange={(e) => setCaregiverPreferences(e.target.value)}
                   rows={3}
                 />
               </div>
+            </CardContent>
+          </Card>
 
+          <Card className="mb-8">
+            <CardHeader>
+              <CardTitle>Additional Information</CardTitle>
+              <CardDescription>
+                Anything else you'd like to share about your care needs.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="emergencyContact">Emergency Contact Details – Secondary contact in case of urgent needs</Label>
-                <Input 
-                  id="emergencyContact" 
-                  placeholder="Name, relationship, phone number" 
-                  value={emergencyContact} 
-                  onChange={(e) => setEmergencyContact(e.target.value)}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="budgetPreferences">Budget Preferences – Expected hourly or monthly care budget</Label>
-                <Input 
-                  id="budgetPreferences" 
-                  placeholder="Your budget for care services" 
-                  value={budgetPreferences} 
-                  onChange={(e) => setBudgetPreferences(e.target.value)}
+                <Label htmlFor="additionalNotes">Additional Notes</Label>
+                <Textarea 
+                  id="additionalNotes" 
+                  placeholder="Any additional details that would help us understand your situation better" 
+                  value={additionalNotes} 
+                  onChange={(e) => setAdditionalNotes(e.target.value)}
+                  rows={3}
                 />
               </div>
 
@@ -1026,25 +784,15 @@ const FamilyRegistration = () => {
                 <Label htmlFor="preferredContactMethod">Preferred Contact Method</Label>
                 <Select value={preferredContactMethod} onValueChange={setPreferredContactMethod}>
                   <SelectTrigger id="preferredContactMethod">
-                    <SelectValue placeholder="Select Contact Method" />
+                    <SelectValue placeholder="Select preferred contact method" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="phone">Phone</SelectItem>
-                    <SelectItem value="email">Email</SelectItem>
-                    <SelectItem value="text">Text</SelectItem>
+                    <SelectItem value="phone">📞 Phone</SelectItem>
+                    <SelectItem value="email">📧 Email</SelectItem>
+                    <SelectItem value="text">💬 Text Message</SelectItem>
+                    <SelectItem value="whatsapp">📱 WhatsApp</SelectItem>
                   </SelectContent>
                 </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="additionalNotes">Additional Notes</Label>
-                <Textarea 
-                  id="additionalNotes" 
-                  placeholder="Any other information you would like to share" 
-                  value={additionalNotes} 
-                  onChange={(e) => setAdditionalNotes(e.target.value)}
-                  rows={3}
-                />
               </div>
             </CardContent>
           </Card>

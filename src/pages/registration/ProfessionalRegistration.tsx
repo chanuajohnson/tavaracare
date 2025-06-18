@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { v4 as uuidv4 } from 'uuid';
@@ -252,7 +251,7 @@ const ProfessionalRegistration = () => {
         avatar_url: uploadedAvatarUrl,
         phone_number: phoneNumber,
         address: address,
-        role: 'professional',
+        role: 'professional' as const,
         updated_at: new Date().toISOString(),
         years_of_experience: yearsOfExperience,
         specialties: specialties || [],
@@ -442,7 +441,7 @@ const ProfessionalRegistration = () => {
 
           <Card className="mb-8">
             <CardHeader>
-              <CardTitle>Availability & Schedule Preferences</CardTitle>
+              <CardTitle>📅 Availability & Schedule Preferences</CardTitle>
               <CardDescription>
                 Let families know when you're available to provide care services.
               </CardDescription>
@@ -471,22 +470,22 @@ const ProfessionalRegistration = () => {
                       </div>
                       <div className="flex items-start space-x-2">
                         <Checkbox 
-                          id="weekday-extended" 
-                          checked={availability.includes('weekday_extended')}
-                          onCheckedChange={() => handleAvailabilityChange('weekday_extended')}
+                          id="weekday-extended-8-6" 
+                          checked={availability.includes('weekday_extended_8_6')}
+                          onCheckedChange={() => handleAvailabilityChange('weekday_extended_8_6')}
                         />
-                        <Label htmlFor="weekday-extended" className="font-normal">
-                          🕕 Monday – Friday, 6 AM – 6 PM (Extended daytime coverage)
+                        <Label htmlFor="weekday-extended-8-6" className="font-normal">
+                          🕕 Monday – Friday, 8 AM – 6 PM (Extended daytime coverage)
                         </Label>
                       </div>
                       <div className="flex items-start space-x-2">
                         <Checkbox 
-                          id="weekday-night" 
-                          checked={availability.includes('weekday_night')}
-                          onCheckedChange={() => handleAvailabilityChange('weekday_night')}
+                          id="weekday-extended-6-6" 
+                          checked={availability.includes('weekday_extended_6_6')}
+                          onCheckedChange={() => handleAvailabilityChange('weekday_extended_6_6')}
                         />
-                        <Label htmlFor="weekday-night" className="font-normal">
-                          🌙 Monday – Friday, 6 PM – 8 AM (Nighttime coverage)
+                        <Label htmlFor="weekday-extended-6-6" className="font-normal">
+                          🕕 Monday – Friday, 6 AM – 6 PM (Extended daytime coverage)
                         </Label>
                       </div>
                     </div>

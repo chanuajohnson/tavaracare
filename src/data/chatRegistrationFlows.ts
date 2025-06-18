@@ -101,7 +101,7 @@ export const familyRegistrationFlow: RegistrationSection[] = [
         text: "What schedule works best for your care needs?",
         type: "multi-select",
         options: [
-          // Standard Weekday Shifts
+          // Standard Weekday Shifts - CORRECTED ORDER
           { value: "mon_fri_8am_4pm", label: "☀️ Monday – Friday, 8 AM – 4 PM (Standard daytime coverage)" },
           { value: "mon_fri_8am_6pm", label: "🕕 Monday – Friday, 8 AM – 6 PM (Extended daytime coverage)" },
           { value: "mon_fri_6am_6pm", label: "🕕 Monday – Friday, 6 AM – 6 PM (Extended daytime coverage)" },
@@ -404,7 +404,7 @@ export const professionalRegistrationFlow: RegistrationSection[] = [
         text: "What's your typical availability for caregiving work?",
         type: "multi-select",
         options: [
-          // Standard Weekday Shifts
+          // Standard Weekday Shifts - CORRECTED ORDER
           { value: "mon_fri_8am_4pm", label: "☀️ Monday – Friday, 8 AM – 4 PM (Standard daytime coverage)" },
           { value: "mon_fri_8am_6pm", label: "🕕 Monday – Friday, 8 AM – 6 PM (Extended daytime coverage)" },
           { value: "mon_fri_6am_6pm", label: "🕕 Monday – Friday, 6 AM – 6 PM (Extended daytime coverage)" },
