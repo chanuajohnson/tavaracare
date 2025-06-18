@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -102,7 +103,7 @@ export const JourneyStageCard: React.FC<JourneyStageCardProps> = ({
     }
     
     if (step.step_number === 6) {
-      return step.completed ? "Edit Meal Plans" : "Start Planning";
+      return step.completed ? "Share Your Loved Ones Story" : "Share Your Loved Ones Story";
     }
     
     if (step.step_number === 7) {
