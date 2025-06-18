@@ -259,12 +259,12 @@ const ProfessionalRegistration = () => {
         certifications: certifications || [],
         availability: availability || [],
         custom_availability: customAvailability || '',
-        preferred_locations: preferredLocations || '',
+        preferred_work_locations: preferredLocations || '',
         hourly_rate: hourlyRate || '',
         transportation: transportation || '',
         languages: languages || [],
         emergency_contact: emergencyContact || '',
-        background_check: backgroundCheck || '',
+        background_check: backgroundCheck ? backgroundCheck === 'yes' || backgroundCheck === 'true' : null,
         additional_info: additionalInfo || ''
       };
 
