@@ -268,6 +268,7 @@ export const useEnhancedJourneyProgress = (): JourneyProgressData => {
 
   // Function to trigger a refresh of journey data
   const refreshJourneyProgress = () => {
+    console.log('Triggering journey progress refresh...');
     setRefreshTrigger(prev => prev + 1);
   };
 
@@ -278,6 +279,49 @@ export const useEnhancedJourneyProgress = (): JourneyProgressData => {
   const onVisitCancelled = () => {
     refreshJourneyProgress();
   };
+
+  // Add event listener for storage changes to detect form submissions
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'family_registration_completed' || e.key === 'journey_refresh_needed') {
+        console.log('Detected form completion via storage event, refreshing journey...');
+        refreshJourneyProgress();
+        // Clear the flag
+        localStorage.removeItem('family_registration_completed');
+        localStorage.removeItem('journey_refresh_needed');
+      }
+    };
+
+    // Listen for custom events for immediate refresh
+    const handleCustomRefresh = () => {
+      console.log('Detected custom refresh event, refreshing journey...');
+      refreshJourneyProgress();
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('refreshJourneyProgress', handleCustomRefresh);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('refreshJourneyProgress', handleCustomRefresh);
+    };
+  }, []);
+
+  // Add visibility change listener to refresh when user returns to tab
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden && user) {
+        // Small delay to ensure any database operations have completed
+        setTimeout(() => {
+          console.log('Page became visible, checking for journey updates...');
+          refreshJourneyProgress();
+        }, 500);
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [user]);
 
   const trackStepAction = async (stepId: string, action: string) => {
     if (!user) return;
@@ -418,6 +462,7 @@ export const useEnhancedJourneyProgress = (): JourneyProgressData => {
     
     try {
       setLoading(true);
+      console.log('Fetching journey data for user:', user.id);
       
       // Fetch user profile data
       const { data: profile } = await supabase
@@ -425,6 +470,8 @@ export const useEnhancedJourneyProgress = (): JourneyProgressData => {
         .select('*')
         .eq('id', user.id)
         .single();
+      
+      console.log('Profile data:', profile);
       
       // Fetch active (non-cancelled) visit bookings for this user
       const { data: visitBookings } = await supabase
@@ -464,6 +511,8 @@ export const useEnhancedJourneyProgress = (): JourneyProgressData => {
         .select('id')
         .eq('profile_id', user.id)
         .maybeSingle();
+      
+      console.log('Care needs data:', careNeedsData);
       
       const { data: careRecipientData } = await supabase
         .from('care_recipient_profiles')
@@ -534,9 +583,23 @@ export const useEnhancedJourneyProgress = (): JourneyProgressData => {
               
               // Mark complete if either the profile form was filled out OR chatbot was completed
               isCompleted = !!(hasEssentialProfileData || hasChatbotCompletion);
+              console.log('Step 2 completion check:', {
+                hasEssentialProfileData,
+                hasChatbotCompletion,
+                isCompleted,
+                profile: profile ? {
+                  care_recipient_name: profile.care_recipient_name,
+                  relationship: profile.relationship,
+                  care_types: profile.care_types
+                } : null
+              });
               break;
             case 3: // Care assessment
               isCompleted = !!careNeedsData;
+              console.log('Step 3 completion check:', {
+                careNeedsData,
+                isCompleted
+              });
               break;
             case 4: // Legacy story / Care recipient profile
               isCompleted = !!(careRecipientData && careRecipientData.full_name);
@@ -576,11 +639,15 @@ export const useEnhancedJourneyProgress = (): JourneyProgressData => {
           }
         });
         
+        console.log('Completed steps:', Array.from(completedStepsSet));
+        
         // Now process steps with completion and accessibility
         const updatedSteps = journeySteps.map(step => {
           const stepCategory = validateCategory(step.category);
           const isCompleted = completedStepsSet.has(step.step_number);
           const isAccessible = determineStepAccessibility(step.step_number, completedStepsSet, profile, latestVisitBooking);
+          
+          console.log(`Step ${step.step_number}: completed=${isCompleted}, accessible=${isAccessible}`);
           
           const processedStep: JourneyStep = {
             id: step.id,
@@ -641,6 +708,25 @@ export const useEnhancedJourneyProgress = (): JourneyProgressData => {
       setLoading(false);
     }
   };
+
+  // Handle anonymous users with dummy data
+  useEffect(() => {
+    if (isAnonymous) {
+      const { steps: dummySteps, paths: dummyPaths } = getDummyJourneyData();
+      setSteps(dummySteps.map(step => ({
+        ...step,
+        action: () => handleAnonymousStepAction(step)
+      })));
+      setPaths(dummyPaths);
+      setCurrentStage('foundation');
+      setLoading(false);
+      return;
+    }
+
+    if (user) {
+      fetchJourneyData();
+    }
+  }, [user, refreshTrigger]);
 
   const handleStepAction = (step: JourneyStep) => {
     if (!step.accessible && !isAnonymous) return;
