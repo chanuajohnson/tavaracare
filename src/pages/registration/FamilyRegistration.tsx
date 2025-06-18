@@ -68,16 +68,16 @@ export default function FamilyRegistration() {
 
         setProfile(data);
 
-        // Set default values for the form
+        // Set default values for the form using correct field names and fallbacks
         setValue('careRecipientName', data?.care_recipient_name || '');
         setValue('relationship', data?.relationship || '');
         setValue('careTypes', data?.care_types || []);
-        setValue('careRecipientAge', data?.care_recipient_age || '');
-        setValue('physicalCareNeeded', data?.physical_care_needed || '');
-        setValue('companionCareNeeded', data?.companion_care_needed || '');
-        setValue('medicalCareNeeded', data?.medical_care_needed || '');
-        setValue('householdTasksNeeded', data?.household_tasks_needed || '');
-        setValue('additionalInfo', data?.additional_info || '');
+        setValue('careRecipientAge', data?.care_recipient_age || ''); // This field might not exist, will fallback to empty
+        setValue('physicalCareNeeded', data?.physical_care_needed || ''); // This field might not exist, will fallback to empty
+        setValue('companionCareNeeded', data?.companion_care_needed || ''); // This field might not exist, will fallback to empty
+        setValue('medicalCareNeeded', data?.medical_care_needed || ''); // This field might not exist, will fallback to empty
+        setValue('householdTasksNeeded', data?.household_tasks_needed || ''); // This field might not exist, will fallback to empty
+        setValue('additionalInfo', data?.additional_notes || ''); // Use additional_notes which exists in the schema
       } catch (error) {
         console.error('Error loading profile:', error);
       }
@@ -103,7 +103,7 @@ export default function FamilyRegistration() {
           companion_care_needed: data.companionCareNeeded,
           medical_care_needed: data.medicalCareNeeded,
           household_tasks_needed: data.householdTasksNeeded,
-          additional_info: data.additionalInfo,
+          additional_notes: data.additionalInfo, // Use additional_notes which exists
           updated_at: new Date().toISOString()
         })
         .eq('id', user.id);
