@@ -343,31 +343,44 @@ export const JourneyStageCard: React.FC<JourneyStageCardProps> = ({
                           </div>
                         )}
                         
-                        {/* Show visit details for Step 7 if scheduled */}
+                        {/* Enhanced visit details display for Step 7 if scheduled */}
                         {step.step_number === 7 && visitDetails && step.completed && (
-                          <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded-lg">
-                            <div className="flex items-center gap-2 text-sm flex-wrap">
-                              <div className="flex items-center gap-1">
-                                {visitDetails.type === 'virtual' ? (
-                                  <Video className="h-3 w-3 text-blue-600" />
-                                ) : (
-                                  <Home className="h-3 w-3 text-blue-600" />
-                                )}
-                                <span className="text-blue-800 font-medium">
-                                  {visitDetails.type === 'virtual' ? 'Virtual Visit' : 'Home Visit'}
-                                </span>
-                                {visitDetails.type === 'in_person' && (
-                                  <span className="text-xs bg-green-100 text-green-800 px-1 py-0.5 rounded ml-1">
-                                    Payment Pending
+                          <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                            <div className="space-y-2">
+                              <div className="flex items-center gap-2 text-sm">
+                                <div className="flex items-center gap-1">
+                                  {visitDetails.type === 'virtual' ? (
+                                    <Video className="h-3 w-3 text-blue-600" />
+                                  ) : (
+                                    <Home className="h-3 w-3 text-blue-600" />
+                                  )}
+                                  <span className="text-blue-800 font-medium">
+                                    {visitDetails.type === 'virtual' ? 'Virtual Visit Scheduled' : 'Home Visit Scheduled'}
                                   </span>
-                                )}
+                                  {visitDetails.type === 'in_person' && (
+                                    <span className="text-xs bg-amber-100 text-amber-800 px-1 py-0.5 rounded ml-1">
+                                      $300 TTD
+                                    </span>
+                                  )}
+                                </div>
                               </div>
-                              <div className="flex items-center gap-1">
-                                <Calendar className="h-3 w-3 text-blue-600" />
-                                <span className="text-blue-700 text-xs">
-                                  {new Date(visitDetails.date).toLocaleDateString()} at {visitDetails.time}
-                                </span>
+                              <div className="flex items-center gap-4 text-xs text-blue-700">
+                                <div className="flex items-center gap-1">
+                                  <Calendar className="h-3 w-3" />
+                                  <span>{new Date(visitDetails.date).toLocaleDateString()}</span>
+                                </div>
+                                <div className="flex items-center gap-1">
+                                  <Clock className="h-3 w-3" />
+                                  <span>{visitDetails.time}</span>
+                                </div>
                               </div>
+                              {visitDetails.is_admin_scheduled && (
+                                <div className="pt-1 border-t border-blue-100">
+                                  <p className="text-xs text-blue-600 font-medium">
+                                    ⚠️ Confirmation Required - Check your dashboard to accept this visit
+                                  </p>
+                                </div>
+                              )}
                             </div>
                           </div>
                         )}
@@ -380,18 +393,20 @@ export const JourneyStageCard: React.FC<JourneyStageCardProps> = ({
                           </div>
                         )}
                         
-                        {/* Simplified Step 7 Button - Only Cancel for completed visits */}
+                        {/* Enhanced Step 7 Button Logic */}
                         <Button 
                           variant="ghost" 
                           size="sm" 
                           className={`mobile-button-responsive mobile-touch-target ${
                             !(step.accessible || isAnonymous)
                               ? 'text-gray-400 cursor-not-allowed opacity-50'
-                              : step.step_number === 7 && step.completed && visitDetails
-                                ? 'text-red-600 hover:text-red-700'
-                                : step.completed 
-                                  ? 'text-blue-600 hover:text-blue-700' 
-                                  : 'text-primary hover:text-primary-600'
+                              : step.step_number === 7 && step.completed && visitDetails && visitDetails.is_admin_scheduled
+                                ? 'text-blue-600 hover:text-blue-700 font-medium'
+                                : step.step_number === 7 && step.completed && visitDetails
+                                  ? 'text-red-600 hover:text-red-700'
+                                  : step.completed 
+                                    ? 'text-blue-600 hover:text-blue-700' 
+                                    : 'text-primary hover:text-primary-600'
                           }`}
                           disabled={!(step.accessible || isAnonymous)}
                           onClick={(e) => {
