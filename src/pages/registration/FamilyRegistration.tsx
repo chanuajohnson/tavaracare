@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { v4 as uuidv4 } from 'uuid';
@@ -876,6 +875,26 @@ const FamilyRegistration = () => {
                       </div>
                       <div className="flex items-start space-x-2">
                         <Checkbox 
+                          id="evening-5-5" 
+                          checked={careSchedule.includes('evening_5_5')}
+                          onCheckedChange={() => handleCareScheduleChange('evening_5_5')}
+                        />
+                        <Label htmlFor="evening-5-5" className="font-normal">
+                          🌙 Weekday Evening Shift (5 PM – 5 AM)
+                        </Label>
+                      </div>
+                      <div className="flex items-start space-x-2">
+                        <Checkbox 
+                          id="evening-5-8" 
+                          checked={careSchedule.includes('evening_5_8')}
+                          onCheckedChange={() => handleCareScheduleChange('evening_5_8')}
+                        />
+                        <Label htmlFor="evening-5-8" className="font-normal">
+                          🌙 Weekday Evening Shift (5 PM – 8 AM)
+                        </Label>
+                      </div>
+                      <div className="flex items-start space-x-2">
+                        <Checkbox 
                           id="evening-6-6" 
                           checked={careSchedule.includes('evening_6_6')}
                           onCheckedChange={() => handleCareScheduleChange('evening_6_6')}
@@ -921,6 +940,26 @@ const FamilyRegistration = () => {
                         />
                         <Label htmlFor="live-in" className="font-normal">
                           🏡 Live-In Care (Full-time in-home support)
+                        </Label>
+                      </div>
+                      <div className="flex items-start space-x-2">
+                        <Checkbox 
+                          id="care-24-7" 
+                          checked={careSchedule.includes('care_24_7')}
+                          onCheckedChange={() => handleCareScheduleChange('care_24_7')}
+                        />
+                        <Label htmlFor="care-24-7" className="font-normal">
+                          🕐 24/7 Care Availability
+                        </Label>
+                      </div>
+                      <div className="flex items-start space-x-2">
+                        <Checkbox 
+                          id="around-clock" 
+                          checked={careSchedule.includes('around_clock')}
+                          onCheckedChange={() => handleCareScheduleChange('around_clock')}
+                        />
+                        <Label htmlFor="around-clock" className="font-normal">
+                          🌅 Around-the-Clock Shifts
                         </Label>
                       </div>
                       <div className="flex items-start space-x-2">
