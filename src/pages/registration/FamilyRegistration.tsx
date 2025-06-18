@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { v4 as uuidv4 } from 'uuid';
@@ -248,13 +249,13 @@ const FamilyRegistration = () => {
         avatar_url: uploadedAvatarUrl,
         phone_number: phoneNumber,
         address: address,
-        role: 'family',
+        role: 'family' as const,
         updated_at: new Date().toISOString(),
         care_recipient_name: careRecipientName,
         relationship: relationship,
         care_types: careTypes || [],
         special_needs: specialNeeds || [],
-        care_schedule: careSchedule || [],
+        care_schedule: careSchedule.length > 0 ? careSchedule.join(',') : '',
         custom_care_schedule: customCareSchedule || '',
         budget_preferences: budget || '',
         caregiver_type: caregiverType || '',
