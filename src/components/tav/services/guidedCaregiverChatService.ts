@@ -104,7 +104,10 @@ export class GuidedCaregiverChatService {
         return null;
       }
 
-      return data;
+      return {
+        ...data,
+        current_stage: data.current_stage as 'introduction' | 'interest_expression' | 'waiting_acceptance' | 'guided_qa'
+      };
     } catch (error) {
       console.error('Error in initializeConversationFlow:', error);
       return null;
@@ -125,7 +128,12 @@ export class GuidedCaregiverChatService {
         return null;
       }
 
-      return data;
+      if (!data) return null;
+
+      return {
+        ...data,
+        current_stage: data.current_stage as 'introduction' | 'interest_expression' | 'waiting_acceptance' | 'guided_qa'
+      };
     } catch (error) {
       console.error('Error in getConversationFlow:', error);
       return null;
@@ -191,7 +199,10 @@ export class GuidedCaregiverChatService {
         { chat_request_id: data.id }
       );
 
-      return data;
+      return {
+        ...data,
+        status: data.status as 'pending' | 'accepted' | 'declined'
+      };
     } catch (error) {
       console.error('Error in createChatRequest:', error);
       return null;
@@ -373,7 +384,12 @@ Focus on professional caregiving topics only. Be encouraging and informative.`;
         return null;
       }
 
-      return data;
+      if (!data) return null;
+
+      return {
+        ...data,
+        status: data.status as 'pending' | 'accepted' | 'declined'
+      };
     } catch (error) {
       console.error('Error in getChatRequestStatus:', error);
       return null;
