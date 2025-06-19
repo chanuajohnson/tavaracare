@@ -27,6 +27,37 @@ interface RegistrationSection {
 // Type alias for compatibility with existing imports
 export type ChatRegistrationQuestion = RegistrationQuestion;
 
+// Standardized shift options that align with the matching algorithm
+const STANDARDIZED_SHIFT_OPTIONS = [
+  // Standard Weekday Shifts
+  { value: "mon_fri_8am_4pm", label: "☀️ Monday – Friday, 8 AM – 4 PM (Standard daytime coverage)" },
+  { value: "mon_fri_8am_6pm", label: "🕕 Monday – Friday, 8 AM – 6 PM (Extended daytime coverage)" },
+  { value: "mon_fri_6am_6pm", label: "🕕 Monday – Friday, 6 AM – 6 PM (Full daytime coverage)" },
+  
+  // Weekend Shifts
+  { value: "sat_sun_6am_6pm", label: "🌞 Saturday – Sunday, 6 AM – 6 PM (Weekend daytime coverage)" },
+  { value: "sat_sun_8am_4pm", label: "☀️ Saturday – Sunday, 8 AM – 4 PM (Weekend standard hours)" },
+  
+  // Evening & Overnight Shifts
+  { value: "weekday_evening_4pm_6am", label: "🌙 Weekday Evening Shift (4 PM – 6 AM)" },
+  { value: "weekday_evening_4pm_8am", label: "🌙 Weekday Evening Shift (4 PM – 8 AM)" },
+  { value: "weekday_evening_5pm_5am", label: "🌙 Weekday Evening Shift (5 PM – 5 AM)" },
+  { value: "weekday_evening_5pm_8am", label: "🌙 Weekday Evening Shift (5 PM – 8 AM)" },
+  { value: "weekday_evening_6pm_6am", label: "🌙 Weekday Evening Shift (6 PM – 6 AM)" },
+  { value: "weekday_evening_6pm_8am", label: "🌙 Weekday Evening Shift (6 PM – 8 AM)" },
+  
+  // Weekend Evening Shifts
+  { value: "weekend_evening_4pm_6am", label: "🌆 Weekend Evening Shift (4 PM – 6 AM)" },
+  { value: "weekend_evening_6pm_6am", label: "🌆 Weekend Evening Shift (6 PM – 6 AM)" },
+  
+  // Extended Coverage Options
+  { value: "flexible", label: "⏳ Flexible / On-Demand Availability" },
+  { value: "live_in_care", label: "🏡 Live-In Care (Full-time in-home support)" },
+  { value: "24_7_care", label: "🕐 24/7 Care Availability" },
+  { value: "around_clock_shifts", label: "🌅 Around-the-Clock Shifts (Multiple caregivers rotating)" },
+  { value: "other", label: "✏️ Other (Custom shift — specify your hours)" }
+];
+
 export const familyRegistrationFlow: RegistrationSection[] = [
   {
     id: "personal_info",
@@ -100,30 +131,7 @@ export const familyRegistrationFlow: RegistrationSection[] = [
         id: "care_schedule",
         text: "What schedule works best for your care needs?",
         type: "multi-select",
-        options: [
-          // Standard Weekday Shifts - CORRECTED ORDER
-          { value: "mon_fri_8am_4pm", label: "☀️ Monday – Friday, 8 AM – 4 PM (Standard daytime coverage)" },
-          { value: "mon_fri_8am_6pm", label: "🕕 Monday – Friday, 8 AM – 6 PM (Extended daytime coverage)" },
-          { value: "mon_fri_6am_6pm", label: "🕕 Monday – Friday, 6 AM – 6 PM (Extended daytime coverage)" },
-          
-          // Weekend Shifts
-          { value: "sat_sun_6am_6pm", label: "🌞 Saturday – Sunday, 6 AM – 6 PM (Daytime weekend coverage)" },
-          
-          // Evening & Overnight Shifts
-          { value: "weekday_evening_4pm_6am", label: "🌙 Weekday Evening Shift (4 PM – 6 AM)" },
-          { value: "weekday_evening_4pm_8am", label: "🌙 Weekday Evening Shift (4 PM – 8 AM)" },
-          { value: "weekday_evening_5pm_5am", label: "🌙 Weekday Evening Shift (5 PM – 5 AM)" },
-          { value: "weekday_evening_5pm_8am", label: "🌙 Weekday Evening Shift (5 PM – 8 AM)" },
-          { value: "weekday_evening_6pm_6am", label: "🌙 Weekday Evening Shift (6 PM – 6 AM)" },
-          { value: "weekday_evening_6pm_8am", label: "🌙 Weekday Evening Shift (6 PM – 8 AM)" },
-          
-          // Other Options
-          { value: "flexible", label: "⏳ Flexible / On-Demand Availability" },
-          { value: "live_in_care", label: "🏡 Live-In Care (Full-time in-home support)" },
-          { value: "24_7_care", label: "🕐 24/7 Care Availability" },
-          { value: "around_clock_shifts", label: "🌅 Around-the-Clock Shifts (Multiple caregivers rotating)" },
-          { value: "other", label: "✏️ Other (Custom shift — specify your hours)" }
-        ],
+        options: STANDARDIZED_SHIFT_OPTIONS,
         required: true,
         section: "care_schedule"
       }
@@ -403,30 +411,7 @@ export const professionalRegistrationFlow: RegistrationSection[] = [
         id: "availability",
         text: "What's your typical availability for caregiving work?",
         type: "multi-select",
-        options: [
-          // Standard Weekday Shifts - CORRECTED ORDER
-          { value: "mon_fri_8am_4pm", label: "☀️ Monday – Friday, 8 AM – 4 PM (Standard daytime coverage)" },
-          { value: "mon_fri_8am_6pm", label: "🕕 Monday – Friday, 8 AM – 6 PM (Extended daytime coverage)" },
-          { value: "mon_fri_6am_6pm", label: "🕕 Monday – Friday, 6 AM – 6 PM (Extended daytime coverage)" },
-          
-          // Weekend Shifts
-          { value: "sat_sun_6am_6pm", label: "🌞 Saturday – Sunday, 6 AM – 6 PM (Daytime weekend coverage)" },
-          
-          // Evening & Overnight Shifts
-          { value: "weekday_evening_4pm_6am", label: "🌙 Weekday Evening Shift (4 PM – 6 AM)" },
-          { value: "weekday_evening_4pm_8am", label: "🌙 Weekday Evening Shift (4 PM – 8 AM)" },
-          { value: "weekday_evening_5pm_5am", label: "🌙 Weekday Evening Shift (5 PM – 5 AM)" },
-          { value: "weekday_evening_5pm_8am", label: "🌙 Weekday Evening Shift (5 PM – 8 AM)" },
-          { value: "weekday_evening_6pm_6am", label: "🌙 Weekday Evening Shift (6 PM – 6 AM)" },
-          { value: "weekday_evening_6pm_8am", label: "🌙 Weekday Evening Shift (6 PM – 8 AM)" },
-          
-          // Other Options
-          { value: "flexible", label: "⏳ Flexible / On-Demand Availability" },
-          { value: "live_in_care", label: "🏡 Live-In Care (24/7 in-home support)" },
-          { value: "24_7_care", label: "🕐 24/7 Care Availability" },
-          { value: "around_clock_shifts", label: "🌅 Around-the-Clock Shifts (Multiple caregivers rotating)" },
-          { value: "other", label: "✏️ Other (Custom shift — specify your hours)" }
-        ],
+        options: STANDARDIZED_SHIFT_OPTIONS,
         required: true,
         section: "availability"
       }
