@@ -1,10 +1,9 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { MessageCircle, Clock, Check, X, User, RefreshCw } from "lucide-react";
+import { MessageCircle, Clock, Check, X, User, RefreshCw, AlertCircle } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { supabase } from "@/lib/supabase";
@@ -24,15 +23,40 @@ interface ChatRequest {
 }
 
 export const ChatRequestsSection = () => {
-  const { user } = useAuth();
+  const { user, userRole, isLoading: authLoading } = useAuth();
   const [requests, setRequests] = useState<ChatRequest[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [processingRequest, setProcessingRequest] = useState<string | null>(null);
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
+  const [authDebugInfo, setAuthDebugInfo] = useState<any>(null);
+
+  // ENHANCED: Debug auth state for troubleshooting
+  useEffect(() => {
+    if (user) {
+      setAuthDebugInfo({
+        userId: user.id,
+        userEmail: user.email,
+        userRole: userRole,
+        metadataRole: user.user_metadata?.role,
+        isLoading: authLoading
+      });
+      console.log('[ChatRequestsSection] Auth Debug Info:', {
+        userId: user.id,
+        userEmail: user.email,
+        userRole: userRole,
+        metadataRole: user.user_metadata?.role,
+        isLoading: authLoading
+      });
+    }
+  }, [user, userRole, authLoading]);
 
   const loadChatRequests = async (showLoadingSpinner = true) => {
-    if (!user?.id) {
-      console.log('[ChatRequestsSection] No user ID found, skipping load');
+    // ENHANCED: Wait for auth to be fully loaded
+    if (authLoading || !user?.id) {
+      console.log('[ChatRequestsSection] Auth still loading or no user ID, skipping load');
+      if (!authLoading) {
+        setIsLoading(false); // Stop loading if auth is done but no user
+      }
       return;
     }
 
@@ -43,7 +67,8 @@ export const ChatRequestsSection = () => {
       
       console.log(`[ChatRequestsSection] *** ENHANCED LOADING ***`);
       console.log(`[ChatRequestsSection] Loading chat requests for caregiver: ${user.id}`);
-      console.log(`[ChatRequestsSection] User role: ${user.role}`);
+      console.log(`[ChatRequestsSection] User role: ${userRole || user.user_metadata?.role}`);
+      console.log(`[ChatRequestsSection] User email: ${user.email}`);
       
       // CRITICAL FIX: Query by caregiver_id matching the logged-in user's ID
       const { data: chatRequests, error: chatError } = await supabase
@@ -174,10 +199,21 @@ export const ChatRequestsSection = () => {
     loadChatRequests(false);
   };
 
+  // ENHANCED: Effect to load requests when auth is ready
   useEffect(() => {
-    if (user?.role === 'professional' && user?.id) {
-      console.log('[ChatRequestsSection] *** COMPONENT MOUNTED ***');
-      console.log('[ChatRequestsSection] User:', { id: user.id, role: user.role });
+    console.log('[ChatRequestsSection] *** AUTH STATE CHANGE ***', {
+      hasUser: !!user,
+      userId: user?.id,
+      userRole: userRole || user?.user_metadata?.role,
+      authLoading,
+      isExpectedRole: (userRole === 'professional' || user?.user_metadata?.role === 'professional')
+    });
+
+    // Wait for auth to be fully loaded and user to have professional role
+    if (!authLoading && user?.id && (userRole === 'professional' || user?.user_metadata?.role === 'professional')) {
+      console.log('[ChatRequestsSection] *** COMPONENT MOUNTED WITH VALID PROFESSIONAL USER ***');
+      console.log('[ChatRequestsSection] User:', { id: user.id, role: userRole || user.user_metadata?.role });
+      
       loadChatRequests();
       
       // Set up real-time subscription for new requests
@@ -219,10 +255,30 @@ export const ChatRequestsSection = () => {
         console.log('[ChatRequestsSection] Cleaning up real-time subscription');
         supabase.removeChannel(channel);
       };
+    } else if (!authLoading && user?.id) {
+      // User exists but doesn't have professional role
+      console.log('[ChatRequestsSection] User exists but role mismatch:', {
+        userRole,
+        metadataRole: user.user_metadata?.role,
+        expected: 'professional'
+      });
+      setIsLoading(false);
+    } else if (!authLoading) {
+      // Auth loaded but no user
+      console.log('[ChatRequestsSection] Auth loaded but no user found');
+      setIsLoading(false);
     }
-  }, [user?.role, user?.id]);
+  }, [user?.id, userRole, authLoading, user?.user_metadata?.role]);
 
-  if (user?.role !== 'professional') {
+  // Don't render anything if user doesn't have professional role
+  const isProfessional = userRole === 'professional' || user?.user_metadata?.role === 'professional';
+  if (!authLoading && (!user || !isProfessional)) {
+    console.log('[ChatRequestsSection] Not rendering - user role check failed:', {
+      hasUser: !!user,
+      userRole,
+      metadataRole: user?.user_metadata?.role,
+      isProfessional
+    });
     return null;
   }
 
@@ -234,7 +290,9 @@ export const ChatRequestsSection = () => {
     pendingRequests: pendingRequests.length,
     respondedRequests: respondedRequests.length,
     isLoading,
-    userId: user?.id
+    authLoading,
+    userId: user?.id,
+    userRole: userRole || user?.user_metadata?.role
   });
 
   return (
@@ -255,22 +313,41 @@ export const ChatRequestsSection = () => {
               variant="ghost"
               size="sm"
               onClick={handleRefresh}
-              disabled={isLoading}
+              disabled={isLoading || authLoading}
             >
-              <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`h-4 w-4 ${(isLoading || authLoading) ? 'animate-spin' : ''}`} />
             </Button>
           </div>
         </div>
         <div className="text-xs text-gray-500">
           Last updated: {lastRefresh.toLocaleTimeString()}
         </div>
+        {/* ENHANCED: Show auth debug info in development */}
+        {window.location.hostname.includes('lovable.app') && authDebugInfo && (
+          <div className="text-xs text-blue-600 bg-blue-50 p-2 rounded">
+            Debug: {authDebugInfo.userEmail} • Role: {authDebugInfo.userRole || authDebugInfo.metadataRole || 'None'} • ID: {authDebugInfo.userId?.slice(0, 8)}...
+          </div>
+        )}
       </CardHeader>
       
       <CardContent>
-        {isLoading ? (
+        {(isLoading || authLoading) ? (
           <div className="flex items-center justify-center py-8">
             <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
-            <span className="ml-2 text-gray-600">Loading chat requests...</span>
+            <span className="ml-2 text-gray-600">
+              {authLoading ? 'Loading authentication...' : 'Loading chat requests...'}
+            </span>
+          </div>
+        ) : !isProfessional ? (
+          <div className="text-center py-8 text-gray-500">
+            <AlertCircle className="h-12 w-12 mx-auto mb-4 text-orange-400" />
+            <p className="font-medium">Role Verification Required</p>
+            <p className="text-sm">This section is only available to professional caregivers</p>
+            <div className="mt-4 p-4 bg-orange-50 rounded-lg">
+              <p className="text-sm text-orange-700">
+                Current role: {userRole || user?.user_metadata?.role || 'Not set'}
+              </p>
+            </div>
           </div>
         ) : requests.length === 0 ? (
           <div className="text-center py-8 text-gray-500">
@@ -281,7 +358,7 @@ export const ChatRequestsSection = () => {
               <p className="text-sm text-blue-700">
                 💡 <strong>Debug Info:</strong> This section shows chat requests from the 
                 <code className="bg-blue-100 px-1 rounded mx-1">caregiver_chat_requests</code> table 
-                where <code className="bg-blue-100 px-1 rounded mx-1">caregiver_id = {user.id}</code>
+                where <code className="bg-blue-100 px-1 rounded mx-1">caregiver_id = {user?.id}</code>
               </p>
             </div>
           </div>
