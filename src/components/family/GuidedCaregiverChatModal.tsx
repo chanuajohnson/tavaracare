@@ -1,7 +1,6 @@
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { MessageCircle, Shield, Crown, Loader2, Sparkles, AlertCircle } from "lucide-react";
@@ -20,8 +19,14 @@ interface GuidedCaregiverChatModalProps {
 
 export const GuidedCaregiverChatModal = ({ open, onOpenChange, caregiver }: GuidedCaregiverChatModalProps) => {
   const scrollRef = useRef<HTMLDivElement>(null);
+  const [isInitialized, setIsInitialized] = useState(false);
   
-  console.log(`[GuidedCaregiverChatModal] RENDER: Opening modal for caregiver:`, caregiver);
+  // Memoize caregiver ID to prevent re-initialization
+  const caregiverId = caregiver?.id;
+  const isValidCaregiver = caregiverId && 
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(caregiverId);
+
+  console.log(`[GuidedCaregiverChatModal] RENDER: Modal open: ${open}, Valid caregiver: ${isValidCaregiver}`);
   
   const {
     messages,
@@ -32,25 +37,44 @@ export const GuidedCaregiverChatModal = ({ open, onOpenChange, caregiver }: Guid
     initializeConversation,
     handlePromptSelection
   } = useGuidedCaregiverChat({
-    caregiverId: caregiver?.id,
+    caregiverId: caregiverId || '',
     caregiver
   });
 
-  // Initialize conversation when modal opens - FIXED TRIGGER
+  // Initialize conversation when modal opens - FIXED with proper dependencies
   useEffect(() => {
-    if (open && caregiver?.id && !conversationFlow) {
-      console.log('[GuidedCaregiverChatModal] RENDER: Modal opened, initializing conversation...');
-      console.log('[GuidedCaregiverChatModal] RENDER: Caregiver ID:', caregiver.id);
+    if (open && isValidCaregiver && !isInitialized && !conversationFlow) {
+      console.log('[GuidedCaregiverChatModal] INIT: Starting initialization...');
+      setIsInitialized(true);
       initializeConversation();
     }
-  }, [open, caregiver?.id, conversationFlow, initializeConversation]);
+  }, [open, isValidCaregiver, isInitialized, conversationFlow, initializeConversation]);
+
+  // Reset initialization when modal closes
+  useEffect(() => {
+    if (!open) {
+      setIsInitialized(false);
+    }
+  }, [open]);
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
-    if (scrollRef.current) {
+    if (scrollRef.current && messages.length > 0) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [messages]);
+  }, [messages.length]);
+
+  // Memoize the option selection handler
+  const handleOptionSelect = useCallback((optionId: string) => {
+    console.log(`[GuidedCaregiverChatModal] Option selected: ${optionId}`);
+    const selectedTemplate = promptTemplates.find(t => t.id === optionId);
+    if (selectedTemplate) {
+      console.log(`[GuidedCaregiverChatModal] Selected template:`, selectedTemplate);
+      handlePromptSelection(selectedTemplate.prompt_text);
+    } else {
+      console.error(`[GuidedCaregiverChatModal] Template not found for ID: ${optionId}`);
+    }
+  }, [promptTemplates, handlePromptSelection]);
 
   // Convert prompt templates to chat options
   const chatOptions = promptTemplates.map(template => ({
@@ -62,23 +86,10 @@ export const GuidedCaregiverChatModal = ({ open, onOpenChange, caregiver }: Guid
              template.category === 'specialty' ? 'Verify specific expertise' : undefined
   }));
 
-  const handleOptionSelect = (optionId: string) => {
-    console.log(`[GuidedCaregiverChatModal] RENDER: Option selected: ${optionId}`);
-    const selectedTemplate = promptTemplates.find(t => t.id === optionId);
-    if (selectedTemplate) {
-      console.log(`[GuidedCaregiverChatModal] RENDER: Selected template:`, selectedTemplate);
-      handlePromptSelection(selectedTemplate.prompt_text);
-    } else {
-      console.error(`[GuidedCaregiverChatModal] RENDER: Template not found for ID: ${optionId}`);
-    }
-  };
-
-  // Check if we have real caregiver data - ENHANCED VALIDATION
-  const isValidCaregiver = caregiver?.id && 
-    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(caregiver.id);
-
-  console.log(`[GuidedCaregiverChatModal] RENDER: Render state:`, {
+  console.log(`[GuidedCaregiverChatModal] RENDER STATE:`, {
+    open,
     isValidCaregiver,
+    isInitialized,
     currentStage,
     messagesCount: messages.length,
     promptTemplatesCount: promptTemplates.length,

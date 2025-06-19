@@ -31,8 +31,8 @@ export const ChatRequestsSection = () => {
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
 
   const loadChatRequests = async (showLoadingSpinner = true) => {
-    if (!user) {
-      console.log('[ChatRequestsSection] No user found, skipping load');
+    if (!user?.id) {
+      console.log('[ChatRequestsSection] No user ID found, skipping load');
       return;
     }
 
@@ -41,25 +41,29 @@ export const ChatRequestsSection = () => {
         setIsLoading(true);
       }
       
+      console.log(`[ChatRequestsSection] *** ENHANCED LOADING ***`);
       console.log(`[ChatRequestsSection] Loading chat requests for caregiver: ${user.id}`);
+      console.log(`[ChatRequestsSection] User role: ${user.role}`);
       
-      // First get the chat requests
+      // CRITICAL FIX: Query by caregiver_id matching the logged-in user's ID
       const { data: chatRequests, error: chatError } = await supabase
         .from('caregiver_chat_requests')
         .select('*')
-        .eq('caregiver_id', user.id)
+        .eq('caregiver_id', user.id) // This must match the professional user's ID
         .order('created_at', { ascending: false });
 
       if (chatError) {
         console.error('[ChatRequestsSection] Error loading chat requests:', chatError);
+        console.error('[ChatRequestsSection] Error details:', JSON.stringify(chatError, null, 2));
         toast.error('Failed to load chat requests');
         return;
       }
 
+      console.log(`[ChatRequestsSection] *** QUERY RESULTS ***`);
       console.log(`[ChatRequestsSection] Found ${chatRequests?.length || 0} chat requests:`, chatRequests);
 
       if (!chatRequests || chatRequests.length === 0) {
-        console.log('[ChatRequestsSection] No chat requests found');
+        console.log('[ChatRequestsSection] No chat requests found for this caregiver');
         setRequests([]);
         return;
       }
@@ -97,11 +101,13 @@ export const ChatRequestsSection = () => {
         };
       });
 
+      console.log(`[ChatRequestsSection] *** TRANSFORMATION COMPLETE ***`);
       console.log(`[ChatRequestsSection] Transformed ${transformedRequests.length} requests:`, transformedRequests);
       setRequests(transformedRequests);
       setLastRefresh(new Date());
     } catch (error) {
-      console.error('[ChatRequestsSection] Error in loadChatRequests:', error);
+      console.error('[ChatRequestsSection] *** ERROR IN LOAD REQUESTS ***');
+      console.error('[ChatRequestsSection] Exception details:', error);
       toast.error('Failed to load chat requests');
     } finally {
       if (showLoadingSpinner) {
@@ -114,23 +120,31 @@ export const ChatRequestsSection = () => {
     try {
       setProcessingRequest(requestId);
       
-      console.log(`[ChatRequestsSection] ${action}ing request: ${requestId}`);
+      console.log(`[ChatRequestsSection] *** ${action.toUpperCase()}ING REQUEST ***`);
+      console.log(`[ChatRequestsSection] Request ID: ${requestId}`);
       
       const updateData = {
         status: action === 'accept' ? 'accepted' : 'declined',
         [action === 'accept' ? 'accepted_at' : 'declined_at']: new Date().toISOString()
       };
 
-      const { error } = await supabase
+      console.log(`[ChatRequestsSection] Update data:`, updateData);
+
+      const { data, error } = await supabase
         .from('caregiver_chat_requests')
         .update(updateData)
-        .eq('id', requestId);
+        .eq('id', requestId)
+        .select();
 
       if (error) {
         console.error(`[ChatRequestsSection] Error ${action}ing request:`, error);
+        console.error(`[ChatRequestsSection] Error details:`, JSON.stringify(error, null, 2));
         toast.error(`Failed to ${action} request`);
         return;
       }
+
+      console.log(`[ChatRequestsSection] *** ${action.toUpperCase()} SUCCESS ***`);
+      console.log(`[ChatRequestsSection] Updated data:`, data);
 
       // Update local state
       setRequests(prev => prev.map(req => 
@@ -147,7 +161,8 @@ export const ChatRequestsSection = () => {
 
       console.log(`[ChatRequestsSection] Successfully ${action}ed request`);
     } catch (error) {
-      console.error(`[ChatRequestsSection] Error ${action}ing request:`, error);
+      console.error(`[ChatRequestsSection] *** EXCEPTION ${action.toUpperCase()}ING REQUEST ***`);
+      console.error(`[ChatRequestsSection] Exception details:`, error);
       toast.error(`Failed to ${action} request`);
     } finally {
       setProcessingRequest(null);
@@ -160,11 +175,13 @@ export const ChatRequestsSection = () => {
   };
 
   useEffect(() => {
-    if (user?.role === 'professional') {
-      console.log('[ChatRequestsSection] Component mounted, loading chat requests');
+    if (user?.role === 'professional' && user?.id) {
+      console.log('[ChatRequestsSection] *** COMPONENT MOUNTED ***');
+      console.log('[ChatRequestsSection] User:', { id: user.id, role: user.role });
       loadChatRequests();
       
       // Set up real-time subscription for new requests
+      console.log('[ChatRequestsSection] Setting up real-time subscription...');
       const channel = supabase
         .channel('chat-requests')
         .on(
@@ -176,7 +193,7 @@ export const ChatRequestsSection = () => {
             filter: `caregiver_id=eq.${user.id}`
           },
           (payload) => {
-            console.log('[ChatRequestsSection] New chat request received via realtime:', payload);
+            console.log('[ChatRequestsSection] *** NEW CHAT REQUEST VIA REALTIME ***', payload);
             loadChatRequests(false); // Reload without spinner
             toast.success('New chat request received!');
           }
@@ -190,17 +207,20 @@ export const ChatRequestsSection = () => {
             filter: `caregiver_id=eq.${user.id}`
           },
           (payload) => {
-            console.log('[ChatRequestsSection] Chat request updated via realtime:', payload);
+            console.log('[ChatRequestsSection] *** CHAT REQUEST UPDATED VIA REALTIME ***', payload);
             loadChatRequests(false);
           }
         )
-        .subscribe();
+        .subscribe((status) => {
+          console.log('[ChatRequestsSection] Real-time subscription status:', status);
+        });
 
       return () => {
+        console.log('[ChatRequestsSection] Cleaning up real-time subscription');
         supabase.removeChannel(channel);
       };
     }
-  }, [user]);
+  }, [user?.role, user?.id]);
 
   if (user?.role !== 'professional') {
     return null;
@@ -208,6 +228,14 @@ export const ChatRequestsSection = () => {
 
   const pendingRequests = requests.filter(req => req.status === 'pending');
   const respondedRequests = requests.filter(req => req.status !== 'pending');
+
+  console.log(`[ChatRequestsSection] *** RENDER STATE ***`, {
+    totalRequests: requests.length,
+    pendingRequests: pendingRequests.length,
+    respondedRequests: respondedRequests.length,
+    isLoading,
+    userId: user?.id
+  });
 
   return (
     <Card className="mb-6">
