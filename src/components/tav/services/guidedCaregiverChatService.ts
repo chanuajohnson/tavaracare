@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { TAVAIService } from './tavAIService';
 
@@ -224,7 +223,7 @@ export class GuidedCaregiverChatService {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
         console.error('[GuidedChatService] CRITICAL: No authenticated user found for chat request');
-        return null;
+        throw new Error('User not authenticated');
       }
 
       console.log(`[GuidedChatService] CRITICAL: Creating chat request from family user: ${user.id}`);
@@ -232,14 +231,32 @@ export class GuidedCaregiverChatService {
       // ENHANCED VALIDATION: Ensure caregiverId is a valid UUID
       if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(caregiverId)) {
         console.error('[GuidedChatService] CRITICAL: Invalid caregiver UUID format:', caregiverId);
-        return null;
+        throw new Error('Invalid caregiver ID format');
       }
 
       // ENHANCED VALIDATION: Check if caregiver exists in database
       const caregiverExists = await this.validateCaregiverExists(caregiverId);
       if (!caregiverExists) {
         console.error('[GuidedChatService] CRITICAL: Caregiver does not exist in database:', caregiverId);
-        return null;
+        throw new Error('Caregiver not found in database');
+      }
+
+      // Check for existing chat request first
+      const { data: existingRequest } = await supabase
+        .from('caregiver_chat_requests')
+        .select('*')
+        .eq('family_user_id', user.id)
+        .eq('caregiver_id', caregiverId)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (existingRequest) {
+        console.log('[GuidedChatService] CRITICAL: Found existing chat request:', existingRequest);
+        return {
+          ...existingRequest,
+          status: existingRequest.status as 'pending' | 'accepted' | 'declined'
+        };
       }
 
       console.log('[GuidedChatService] CRITICAL: All validations passed, inserting chat request...');
@@ -258,7 +275,7 @@ export class GuidedCaregiverChatService {
       if (error) {
         console.error('[GuidedChatService] CRITICAL: Error creating chat request:', error);
         console.error('[GuidedChatService] CRITICAL: Error details:', JSON.stringify(error, null, 2));
-        return null;
+        throw new Error(`Failed to create chat request: ${error.message}`);
       }
 
       console.log('[GuidedChatService] CRITICAL: Chat request created successfully:', data);
@@ -273,10 +290,10 @@ export class GuidedCaregiverChatService {
         { chat_request_id: data.id }
       );
 
-      if (notificationCreated) {
-        console.log('[GuidedChatService] CRITICAL: Caregiver notification created successfully');
+      if (!notificationCreated) {
+        console.warn('[GuidedChatService] CRITICAL: Failed to create caregiver notification - but request was created');
       } else {
-        console.warn('[GuidedChatService] CRITICAL: Failed to create caregiver notification');
+        console.log('[GuidedChatService] CRITICAL: Caregiver notification created successfully');
       }
 
       return {
@@ -285,7 +302,7 @@ export class GuidedCaregiverChatService {
       };
     } catch (error) {
       console.error('[GuidedChatService] CRITICAL: Exception in createChatRequest:', error);
-      return null;
+      throw error; // Re-throw to let caller handle
     }
   }
 
@@ -335,7 +352,7 @@ export class GuidedCaregiverChatService {
     promptText: string,
     caregiver: Caregiver,
     currentStage: string
-  ): Promise<{ success: boolean; response?: string; error?: string; nextStage?: string }> {
+  ): Promise<{ success: boolean; response?: string; error?: string; nextStage?: string; chatRequestId?: string }> {
     try {
       console.log(`[GuidedChatService] FLOW DEBUG: *** CRITICAL STAGE HANDLING ***`);
       console.log(`[GuidedChatService] FLOW DEBUG: Current stage: ${currentStage}`);
@@ -351,6 +368,7 @@ export class GuidedCaregiverChatService {
       // Handle stage progression with CRITICAL FIX
       let nextStage = currentStage;
       let stageData = { ...flow.stage_data };
+      let chatRequestId: string | undefined;
 
       console.log(`[GuidedChatService] FLOW DEBUG: Processing stage transition from: ${currentStage}`);
 
@@ -366,17 +384,26 @@ export class GuidedCaregiverChatService {
           console.log('[GuidedChatService] FLOW DEBUG: *** CRITICAL STAGE - INTEREST EXPRESSION ***');
           console.log(`[GuidedChatService] FLOW DEBUG: About to create chat request for caregiver: ${caregiver.id}`);
           
-          // THIS IS THE CRITICAL FIX - Create chat request and move to waiting
-          const chatRequest = await this.createChatRequest(caregiver.id, promptText);
-          if (!chatRequest) {
-            console.error('[GuidedChatService] FLOW DEBUG: ❌ FAILED TO CREATE CHAT REQUEST!');
-            return { success: false, error: "Failed to create chat request. Please try again." };
+          try {
+            // THIS IS THE CRITICAL FIX - Create chat request and move to waiting
+            const chatRequest = await this.createChatRequest(caregiver.id, promptText);
+            if (!chatRequest) {
+              console.error('[GuidedChatService] FLOW DEBUG: ❌ FAILED TO CREATE CHAT REQUEST!');
+              return { success: false, error: "Failed to create chat request. Please try again." };
+            }
+            
+            console.log('[GuidedChatService] FLOW DEBUG: ✅ SUCCESS - Chat request created with ID:', chatRequest.id);
+            nextStage = 'waiting_acceptance';
+            stageData.chatRequestId = chatRequest.id;
+            stageData.interestMessage = promptText;
+            chatRequestId = chatRequest.id;
+          } catch (error) {
+            console.error('[GuidedChatService] FLOW DEBUG: ❌ Exception creating chat request:', error);
+            return { 
+              success: false, 
+              error: error instanceof Error ? error.message : "Failed to create chat request. Please try again." 
+            };
           }
-          
-          console.log('[GuidedChatService] FLOW DEBUG: ✅ SUCCESS - Chat request created with ID:', chatRequest.id);
-          nextStage = 'waiting_acceptance';
-          stageData.chatRequestId = chatRequest.id;
-          stageData.interestMessage = promptText;
           break;
         
         case 'guided_qa':
@@ -408,11 +435,15 @@ export class GuidedCaregiverChatService {
       return { 
         success: true, 
         response: tavResponse,
-        nextStage 
+        nextStage,
+        chatRequestId
       };
     } catch (error) {
       console.error('[GuidedChatService] FLOW DEBUG: ❌ Exception handling prompt selection:', error);
-      return { success: false, error: "Something went wrong. Please try again." };
+      return { 
+        success: false, 
+        error: error instanceof Error ? error.message : "Something went wrong. Please try again." 
+      };
     }
   }
 
