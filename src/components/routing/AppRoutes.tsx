@@ -1,3 +1,4 @@
+
 import { Routes, Route } from "react-router-dom";
 import { useAuth } from "@/components/providers/AuthProvider";
 import Index from "@/pages/Index";
@@ -9,11 +10,15 @@ import ProfessionalDashboard from "@/pages/dashboards/ProfessionalDashboard";
 import CommunityDashboard from "@/pages/dashboards/CommunityDashboard";
 import AdminDashboard from "@/pages/admin/AdminDashboard";
 import AdminVisitSchedulePage from "@/pages/admin/AdminVisitSchedulePage";
+import HeroVideoManagementPage from "@/pages/admin/HeroVideoManagementPage";
 import UserJourneyPage from "@/pages/admin/UserJourneyPage";
 import FeedbackManagementPage from "@/pages/admin/FeedbackManagementPage";
+import WhatsAppNudgePage from "@/pages/admin/WhatsAppNudgePage";
+import PlatformAnalyticsPage from "@/pages/admin/PlatformAnalyticsPage";
 import FeaturesPage from "@/pages/features/FeaturesPage";
 import AboutPage from "@/pages/about/AboutPage";
 import FAQPage from "@/pages/support/FAQPage";
+import PrivacyPolicyPage from "@/pages/legal/PrivacyPolicyPage";
 import NotFound from "@/pages/NotFound";
 import SupabaseDebugPage from "@/pages/debug/SupabaseDebugPage";
 
@@ -43,6 +48,9 @@ import CarePlanDetailPage from "@/pages/family/care-management/CarePlanDetailPag
 import CreateCarePlanPage from "@/pages/family/care-management/CreateCarePlanPage";
 import CareJourneyProgressPage from "@/pages/family/CareJourneyProgressPage";
 
+// Profile Pages
+import ProfileEditPage from "@/pages/profile/ProfileEditPage";
+
 // Community Pages
 import CommunityFeaturesOverview from "@/pages/community/CommunityFeaturesOverview";
 
@@ -70,6 +78,7 @@ export const AppRoutes = () => {
       <Route path="/features" element={<FeaturesPage />} />
       <Route path="/about" element={<AboutPage />} />
       <Route path="/faq" element={<FAQPage />} />
+      <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
       
       {/* Registration Routes */}
       <Route path="/registration/family" element={<FamilyRegistration />} />
@@ -81,6 +90,9 @@ export const AppRoutes = () => {
       <Route path="/dashboard/professional" element={<ProfessionalDashboard />} />
       <Route path="/dashboard/community" element={<CommunityDashboard />} />
       <Route path="/dashboard/admin" element={<AdminDashboard />} />
+      
+      {/* Profile Routes */}
+      <Route path="/profile/edit" element={<ProfileEditPage />} />
       
       {/* Professional Routes */}
       <Route path="/professional" element={<ProfessionalFeaturesOverview />} />
@@ -118,8 +130,11 @@ export const AppRoutes = () => {
       
       {/* Admin Routes */}
       <Route path="/admin/visit-schedule" element={<AdminVisitSchedulePage />} />
+      <Route path="/admin/hero-video-management" element={<HeroVideoManagementPage />} />
       <Route path="/admin/user-journey" element={<UserJourneyPage />} />
       <Route path="/admin/feedback" element={<FeedbackManagementPage />} />
+      <Route path="/admin/whatsapp-nudge" element={<WhatsAppNudgePage />} />
+      <Route path="/admin/platform-analytics" element={<PlatformAnalyticsPage />} />
       
       {/* Legacy Routes */}
       <Route path="/legacy/stories" element={<LegacyStoriesPage />} />

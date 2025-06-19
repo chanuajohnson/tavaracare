@@ -82,43 +82,34 @@ export const generateNextQuestionMessage = (
     const section = flow.sections[sectionIndex];
     const question = section.questions[questionIndex];
     
-    // For select/multiselect/checkbox, provide options
+    // For select/multi-select, provide options
     let options;
     if (
       question.type === "select" ||
-      question.type === "multiselect" ||
-      question.type === "checkbox"
+      question.type === "multi-select"
     ) {
       options = question.options?.map(option => ({
-        id: option,
-        label: option
+        id: option.value,
+        label: option.label
       }));
-    }
-    
-    // For confirm questions, provide yes/no options
-    if (question.type === "confirm") {
-      options = [
-        { id: "yes", label: "Yes" },
-        { id: "no", label: "No" }
-      ];
     }
     
     // Get a random question intro to add variety
     const questionIntro = getRandomQuestionIntro();
     
-    // Use just the question label with random intro for variety
-    let message = questionIntro + question.label;
+    // Use the question text with random intro for variety
+    let message = questionIntro + question.text;
     
     // Detect field type for format guidance
     let fieldType: string | null = null;
-    const questionLabel = (question.label || "").toLowerCase();
+    const questionText = (question.text || "").toLowerCase();
     const questionId = (question.id || "").toLowerCase();
     
-    if (questionId.includes("email") || questionLabel.includes("email")) {
+    if (questionId.includes("email") || questionText.includes("email")) {
       fieldType = "email";
-    } else if (questionId.includes("phone") || questionLabel.includes("phone") || questionLabel.includes("contact number")) {
+    } else if (questionId.includes("phone") || questionText.includes("phone") || questionText.includes("contact number")) {
       fieldType = "phone";
-    } else if (questionId.includes("name") || questionLabel.includes("name")) {
+    } else if (questionId.includes("name") || questionText.includes("name")) {
       fieldType = "name";
     }
     
@@ -130,14 +121,14 @@ export const generateNextQuestionMessage = (
       }
     }
     
-    // Add special prompts for specific question types based on question ID or label
+    // Add special prompts for specific question types based on question ID or text
     if (question.id === "budget") {
-      message = `${questionIntro}${question.label} Please specify an hourly range (e.g., $20-30/hour) or say 'Negotiable'.`;
+      message = `${questionIntro}${question.text} Please specify an hourly range (e.g., $20-30/hour) or say 'Negotiable'.`;
     }
     
     // For multi-select questions, add instruction
-    if (question.type === "checkbox" || question.type === "multiselect") {
-      message = `${questionIntro}${question.label} (Please select all that apply)`;
+    if (question.type === "multi-select") {
+      message = `${questionIntro}${question.text} (Please select all that apply)`;
       
       // Add "Done selecting" option for multi-select
       if (options && options.length > 0) {
