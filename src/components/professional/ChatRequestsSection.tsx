@@ -53,7 +53,21 @@ export const ChatRequestsSection = () => {
         return;
       }
 
-      setRequests(data || []);
+      // Transform the data to ensure proper typing
+      const transformedRequests: ChatRequest[] = (data || []).map(item => ({
+        id: item.id,
+        family_user_id: item.family_user_id,
+        initial_message: item.initial_message,
+        status: item.status as 'pending' | 'accepted' | 'declined', // Type assertion
+        created_at: item.created_at,
+        family_profile: item.family_profile && !Array.isArray(item.family_profile) ? {
+          full_name: item.family_profile.full_name,
+          avatar_url: item.family_profile.avatar_url,
+          location: item.family_profile.location
+        } : undefined
+      }));
+
+      setRequests(transformedRequests);
     } catch (error) {
       console.error('Error in loadChatRequests:', error);
       toast.error('Failed to load chat requests');

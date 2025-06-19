@@ -5,7 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, Star, ArrowRight, Clock, Filter, MapPinned, DollarSign, Calendar, Sparkles } from "lucide-react";
+import { MapPin, Star, ArrowRight, Clock, Filter, MapPinned, DollarSign, Calendar, Sparkles, CheckCircle, AlertCircle, XCircle } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -147,6 +147,12 @@ export const DashboardFamilyMatches = () => {
     if (score >= 80) return "text-green-600 bg-green-50 border-green-200";
     if (score >= 60) return "text-yellow-600 bg-yellow-50 border-yellow-200";
     return "text-red-600 bg-red-50 border-red-200";
+  };
+
+  const getCompatibilityIcon = (score: number) => {
+    if (score >= 80) return <CheckCircle className="h-3 w-3" />;
+    if (score >= 60) return <AlertCircle className="h-3 w-3" />;
+    return <XCircle className="h-3 w-3" />;
   };
 
   if (!user) {
