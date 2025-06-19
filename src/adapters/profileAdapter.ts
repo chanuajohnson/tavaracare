@@ -1,4 +1,4 @@
-.
+
 import { Profile } from "../types/profile";
 import type { DbProfile, DbProfileInsert } from "../types/profile";
 import { fromJson, toJson } from "../utils/json";
@@ -185,7 +185,7 @@ export function adaptProfileFromDb(dbProfile: DbProfile): Profile {
     communityMotivation: dbProfile.community_motivation,
     improvementIdeas: dbProfile.improvement_ideas,
     listInCommunityDirectory: dbProfile.list_in_community_directory,
-    enableCommun ityNotifications: dbProfile.enable_community_notifications
+    enableCommunityNotifications: dbProfile.enable_community_notifications
   };
 }
 
