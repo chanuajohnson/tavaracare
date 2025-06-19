@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { supabase } from "@/lib/supabase";
@@ -8,6 +7,7 @@ import { toast } from "sonner";
 interface Caregiver {
   id: string;
   full_name: string;
+  first_name?: string;
   avatar_url: string | null;
   location: string | null;
   care_types: string[] | null;
@@ -28,6 +28,7 @@ interface FamilyScheduleData {
 const MOCK_CAREGIVERS: Caregiver[] = [{
   id: "1",
   full_name: "Maria Santos",
+  first_name: "Maria",
   avatar_url: null,
   location: "Port of Spain",
   care_types: ["Elderly Care", "Companionship"],
@@ -38,6 +39,7 @@ const MOCK_CAREGIVERS: Caregiver[] = [{
 }, {
   id: "2", 
   full_name: "James Mitchell",
+  first_name: "James",
   avatar_url: null,
   location: "San Fernando",
   care_types: ["Special Needs", "Medical Support"],
@@ -48,6 +50,7 @@ const MOCK_CAREGIVERS: Caregiver[] = [{
 }, {
   id: "3",
   full_name: "Sarah Johnson",
+  first_name: "Sarah",
   avatar_url: null,
   location: "Arima",
   care_types: ["Child Care", "Housekeeping"],
@@ -304,6 +307,7 @@ export const useCaregiverMatches = (showOnlyBestMatch: boolean = true) => {
         return {
           id: professional.id,
           full_name: professional.full_name || 'Professional Caregiver',
+          first_name: professional.full_name?.split(' ')[0] || 'Professional',
           avatar_url: professional.avatar_url,
           location: professional.location || 'Trinidad and Tobago',
           care_types: careTypes,
