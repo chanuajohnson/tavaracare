@@ -125,7 +125,11 @@ export class CaregiverChatService {
         return [];
       }
 
-      return messages || [];
+      // Type cast the messages to ensure proper typing
+      return (messages || []).map(msg => ({
+        ...msg,
+        message_type: msg.message_type as 'chat' | 'system' | 'warning' | 'upsell'
+      }));
     } catch (error) {
       console.error('Error in getChatMessages:', error);
       return [];
