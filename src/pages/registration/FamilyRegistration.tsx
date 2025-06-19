@@ -12,15 +12,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Avatar, AvatarFallback, AvatarImage } from '../../components/ui/avatar';
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { PageViewTracker } from "@/components/tracking/PageViewTracker";
-import { useAuth } from '@/components/providers/AuthProvider';
+import { useAuth } from "@/components/providers/AuthProvider";
 import { toast } from 'sonner';
-import { Calendar, Sun, Moon, Clock, Loader2 } from "lucide-react";
+import { Calendar, Sun, Moon, Clock } from "lucide-react";
 import { getPrefillDataFromUrl, applyPrefillDataToForm } from '../../utils/chat/prefillReader';
 import { clearChatSessionData } from '../../utils/chat/chatSessionUtils';
 import { setAuthFlowFlag, AUTH_FLOW_FLAGS } from "@/utils/authFlowUtils";
 
 const FamilyRegistration = () => {
-  const { user, session, isLoading: authLoading } = useAuth();
+  const { user, isLoading: authLoading } = useAuth();
   const [loading, setLoading] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
@@ -44,18 +44,8 @@ const FamilyRegistration = () => {
   
   const [prefillApplied, setPrefillApplied] = useState(false);
   const [shouldAutoSubmit, setShouldAutoSubmit] = useState(false);
-  const [userDataPopulated, setUserDataPopulated] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
   const navigate = useNavigate();
-
-  // Redirect if not authenticated
-  useEffect(() => {
-    if (!authLoading && !user) {
-      console.log('User not authenticated, redirecting to auth page');
-      toast.error('Please sign in to complete your registration');
-      navigate('/auth');
-    }
-  }, [authLoading, user, navigate]);
 
   // Check for auto-redirect flag from chat
   useEffect(() => {
@@ -81,61 +71,55 @@ const FamilyRegistration = () => {
     };
   }, []);
 
-  // Pre-populate user information from auth context
+  // Pre-populate form fields when user auth data is available
   useEffect(() => {
-    if (user && !userDataPopulated) {
-      console.log('Pre-populating user data from auth context:', user);
+    if (user && !prefillApplied) {
+      console.log('Pre-populating form with user data:', {
+        email: user.email,
+        metadata: user.user_metadata
+      });
       
       // Set email from authenticated user
       if (user.email) {
         setEmail(user.email);
       }
       
-      // Extract names from user metadata with multiple fallback options
-      const metadata = user.user_metadata || {};
-      console.log('User metadata:', metadata);
-      
-      let extractedFirstName = '';
-      let extractedLastName = '';
-      
-      // Try different metadata key patterns
-      extractedFirstName = metadata.first_name || 
-                          metadata.firstName || 
-                          metadata.given_name || 
-                          metadata.name?.first || 
-                          '';
-      
-      extractedLastName = metadata.last_name || 
-                         metadata.lastName || 
-                         metadata.family_name || 
-                         metadata.name?.last || 
-                         '';
-      
-      // If we don't have individual names, try to split full_name
-      if (!extractedFirstName && !extractedLastName && metadata.full_name) {
-        const nameParts = metadata.full_name.trim().split(' ');
-        if (nameParts.length >= 2) {
-          extractedFirstName = nameParts[0];
-          extractedLastName = nameParts.slice(1).join(' ');
-        } else if (nameParts.length === 1) {
-          extractedFirstName = nameParts[0];
+      // Extract name information from user metadata
+      if (user.user_metadata) {
+        const metadata = user.user_metadata;
+        
+        // Try different possible metadata keys for first/last name
+        const possibleFirstNames = ['first_name', 'firstName', 'given_name'];
+        const possibleLastNames = ['last_name', 'lastName', 'family_name', 'surname'];
+        
+        for (const key of possibleFirstNames) {
+          if (metadata[key] && !firstName) {
+            setFirstName(metadata[key]);
+            console.log(`Set first name from ${key}:`, metadata[key]);
+            break;
+          }
+        }
+        
+        for (const key of possibleLastNames) {
+          if (metadata[key] && !lastName) {
+            setLastName(metadata[key]);
+            console.log(`Set last name from ${key}:`, metadata[key]);
+            break;
+          }
+        }
+        
+        // If full_name is available but first/last aren't, try to split it
+        if (metadata.full_name && !firstName && !lastName) {
+          const nameParts = metadata.full_name.split(' ');
+          if (nameParts.length >= 2) {
+            setFirstName(nameParts[0]);
+            setLastName(nameParts.slice(1).join(' '));
+            console.log('Split full name:', metadata.full_name);
+          }
         }
       }
-      
-      // Set the extracted names
-      if (extractedFirstName) {
-        setFirstName(extractedFirstName);
-        console.log('Set first name from metadata:', extractedFirstName);
-      }
-      
-      if (extractedLastName) {
-        setLastName(extractedLastName);
-        console.log('Set last name from metadata:', extractedLastName);
-      }
-      
-      setUserDataPopulated(true);
     }
-  }, [user, userDataPopulated]);
+  }, [user, prefillApplied, firstName, lastName]);
 
   const setFormValue = (field: string, value: any) => {
     console.log(`Setting form field ${field} to:`, value);
@@ -192,7 +176,7 @@ const FamilyRegistration = () => {
 
   // Apply prefill data when available
   useEffect(() => {
-    if (!prefillApplied && userDataPopulated) {
+    if (!prefillApplied && user) {
       console.log('Checking for prefill data...');
       
       const hasPrefill = applyPrefillDataToForm(
@@ -226,7 +210,7 @@ const FamilyRegistration = () => {
       
       setPrefillApplied(true);
     }
-  }, [prefillApplied, shouldAutoSubmit, user, userDataPopulated]);
+  }, [prefillApplied, shouldAutoSubmit, user]);
 
   const handleCareScheduleChange = (value: string) => {
     setCareSchedule(prev => {
@@ -255,9 +239,22 @@ const FamilyRegistration = () => {
     setLoading(true);
 
     try {
-      // User is guaranteed to exist due to auth check above
       if (!user?.id) {
-        throw new Error('Authentication error. Please refresh the page and try again.');
+        toast.error('Authentication required. Please sign in again.');
+        navigate('/auth');
+        return;
+      }
+      
+      const contextValid = await ensureAuthContext();
+      if (!contextValid) {
+        throw new Error('Authentication context could not be established');
+      }
+      
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError || !sessionData.session) {
+        toast.error('Your session has expired. Please sign in again.');
+        navigate('/auth');
+        return;
       }
       
       if (!firstName || !lastName || !phoneNumber || !address || !careRecipientName || !relationship) {
@@ -351,28 +348,26 @@ const FamilyRegistration = () => {
     }
   };
 
-  // Show loading screen while auth is resolving
+  // Show loading state while auth is resolving
   if (authLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <p className="text-gray-600">Loading your registration form...</p>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-sm text-gray-600">Loading your account...</p>
         </div>
       </div>
     );
   }
 
-  // Show message if user is not authenticated (shouldn't happen due to redirect above)
+  // Show auth required message if no user after loading
   if (!user) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold mb-4">Authentication Required</h1>
+        <div className="text-center max-w-md mx-auto p-6">
+          <h2 className="text-xl font-semibold text-gray-900 mb-2">Authentication Required</h2>
           <p className="text-gray-600 mb-4">Please sign in to complete your family registration.</p>
-          <Button onClick={() => navigate('/auth')}>
-            Sign In
-          </Button>
+          <Button onClick={() => navigate('/auth')}>Sign In</Button>
         </div>
       </div>
     );
@@ -916,14 +911,7 @@ const FamilyRegistration = () => {
               Cancel
             </Button>
             <Button type="submit" disabled={loading}>
-              {loading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Submitting...
-                </>
-              ) : (
-                'Complete Registration'
-              )}
+              {loading ? 'Submitting...' : 'Complete Registration'}
             </Button>
           </div>
         </form>
