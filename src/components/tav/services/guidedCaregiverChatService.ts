@@ -1,10 +1,11 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { TAVAIService } from './tavAIService';
 
 export interface CaregiverChatRequest {
   id: string;
   family_user_id: string;
-  caregiver_id: string;
+  caregiver_id: string; // Now properly UUID
   initial_message: string;
   status: 'pending' | 'accepted' | 'declined';
   accepted_at?: string;
@@ -188,7 +189,7 @@ export class GuidedCaregiverChatService {
     }
   }
 
-  // Create caregiver chat request (gateway message)
+  // Create caregiver chat request (gateway message) - FIXED TO USE UUID
   async createChatRequest(caregiverId: string, initialMessage: string): Promise<CaregiverChatRequest | null> {
     try {
       console.log(`[GuidedChatService] Creating chat request for caregiver: ${caregiverId}`);
@@ -202,11 +203,17 @@ export class GuidedCaregiverChatService {
 
       console.log(`[GuidedChatService] Creating chat request from family user: ${user.id}`);
 
+      // Ensure caregiverId is a valid UUID
+      if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(caregiverId)) {
+        console.error('[GuidedChatService] Invalid caregiver UUID format:', caregiverId);
+        return null;
+      }
+
       const { data, error } = await supabase
         .from('caregiver_chat_requests')
         .insert({
           family_user_id: user.id,
-          caregiver_id: caregiverId,
+          caregiver_id: caregiverId, // Now properly typed as UUID
           initial_message: initialMessage,
           status: 'pending'
         })
@@ -220,7 +227,7 @@ export class GuidedCaregiverChatService {
 
       console.log('[GuidedChatService] Chat request created successfully:', data);
 
-      // Create notification for caregiver
+      // Create notification for caregiver - FIXED TO USE UUID
       console.log(`[GuidedChatService] Creating notification for caregiver: ${caregiverId}`);
       const notificationCreated = await this.createCaregiverNotification(
         caregiverId,
@@ -246,7 +253,7 @@ export class GuidedCaregiverChatService {
     }
   }
 
-  // Create caregiver notification
+  // Create caregiver notification - FIXED TO USE UUID
   async createCaregiverNotification(
     caregiverId: string,
     type: string,
@@ -257,10 +264,16 @@ export class GuidedCaregiverChatService {
     try {
       console.log(`[GuidedChatService] Creating notification for caregiver: ${caregiverId}`, { type, title });
       
+      // Ensure caregiverId is a valid UUID
+      if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(caregiverId)) {
+        console.error('[GuidedChatService] Invalid caregiver UUID format for notification:', caregiverId);
+        return false;
+      }
+
       const { error } = await supabase
         .from('caregiver_notifications')
         .insert({
-          caregiver_id: caregiverId,
+          caregiver_id: caregiverId, // Now properly typed as string (UUID)
           notification_type: type,
           title,
           message,
@@ -434,7 +447,7 @@ Focus on professional caregiving topics only. Be encouraging and informative.`;
     }
   }
 
-  // Check chat request status
+  // Check chat request status - FIXED TO USE UUID
   async getChatRequestStatus(caregiverId: string): Promise<CaregiverChatRequest | null> {
     try {
       console.log(`[GuidedChatService] Checking chat request status for caregiver: ${caregiverId}`);
@@ -442,6 +455,12 @@ Focus on professional caregiving topics only. Be encouraging and informative.`;
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
         console.error('[GuidedChatService] No authenticated user for status check');
+        return null;
+      }
+
+      // Ensure caregiverId is a valid UUID
+      if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(caregiverId)) {
+        console.error('[GuidedChatService] Invalid caregiver UUID format for status check:', caregiverId);
         return null;
       }
 

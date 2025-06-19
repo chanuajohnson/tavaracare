@@ -21,7 +21,7 @@ export const useGuidedCaregiverChat = ({ caregiverId, caregiver }: UseGuidedCare
     setIsLoading(true);
     try {
       // Validate that caregiver ID is a real UUID from database
-      if (!caregiverId || caregiverId.length !== 36) {
+      if (!caregiverId || !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(caregiverId)) {
         console.error('[useGuidedCaregiverChat] Invalid caregiver ID:', caregiverId);
         setMessages([{
           content: '💙 Sorry, there was an issue connecting to this caregiver. Please try selecting a different match.',
