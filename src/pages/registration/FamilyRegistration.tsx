@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { v4 as uuidv4 } from 'uuid';
@@ -556,7 +555,17 @@ const FamilyRegistration = () => {
                           onCheckedChange={() => handleCareScheduleChange('sat_sun_6am_6pm')}
                         />
                         <Label htmlFor="weekend-day" className="font-normal">
-                          🌞 Saturday – Sunday, 6 AM – 6 PM (Daytime weekend coverage)
+                          🌞 Saturday – Sunday, 6 AM – 6 PM (Weekend daytime coverage)
+                        </Label>
+                      </div>
+                      <div className="flex items-start space-x-2">
+                        <Checkbox 
+                          id="weekend-standard" 
+                          checked={careSchedule.includes('sat_sun_8am_4pm')}
+                          onCheckedChange={() => handleCareScheduleChange('sat_sun_8am_4pm')}
+                        />
+                        <Label htmlFor="weekend-standard" className="font-normal">
+                          ☀️ Saturday – Sunday, 8 AM – 4 PM (Weekend standard hours)
                         </Label>
                       </div>
                     </div>
@@ -626,6 +635,28 @@ const FamilyRegistration = () => {
                         />
                         <Label htmlFor="evening-6-8" className="font-normal">
                           🌙 Weekday Evening Shift (6 PM – 8 AM)
+                        </Label>
+                      </div>
+                      
+                      {/* Weekend Evening Shifts */}
+                      <div className="flex items-start space-x-2">
+                        <Checkbox 
+                          id="weekend-evening-4-6" 
+                          checked={careSchedule.includes('weekend_evening_4pm_6am')}
+                          onCheckedChange={() => handleCareScheduleChange('weekend_evening_4pm_6am')}
+                        />
+                        <Label htmlFor="weekend-evening-4-6" className="font-normal">
+                          🌆 Weekend Evening Shift (4 PM – 6 AM)
+                        </Label>
+                      </div>
+                      <div className="flex items-start space-x-2">
+                        <Checkbox 
+                          id="weekend-evening-6-6" 
+                          checked={careSchedule.includes('weekend_evening_6pm_6am')}
+                          onCheckedChange={() => handleCareScheduleChange('weekend_evening_6pm_6am')}
+                        />
+                        <Label htmlFor="weekend-evening-6-6" className="font-normal">
+                          🌆 Weekend Evening Shift (6 PM – 6 AM)
                         </Label>
                       </div>
                     </div>
