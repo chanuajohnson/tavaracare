@@ -13,7 +13,6 @@ import { CaregiverProfileModal } from "@/components/family/CaregiverProfileModal
 interface Caregiver {
   id: string;
   full_name: string;
-  first_name: string;
   avatar_url: string | null;
   location: string | null;
   care_types: string[] | null;

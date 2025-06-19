@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,7 +13,6 @@ import { CaregiverMatchingModal } from "./CaregiverMatchingModal";
 interface Caregiver {
   id: string;
   full_name: string;
-  first_name: string;
   avatar_url: string | null;
   location: string | null;
   care_types: string[] | null;

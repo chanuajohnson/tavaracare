@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,7 +15,6 @@ import { CaregiverProfileModal } from "./CaregiverProfileModal";
 interface Caregiver {
   id: string;
   full_name: string;
-  first_name: string;
   avatar_url: string | null;
   location: string | null;
   care_types: string[] | null;
