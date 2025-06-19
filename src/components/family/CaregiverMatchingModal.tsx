@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,6 +10,18 @@ import { MatchingTracker } from "@/components/tracking/MatchingTracker";
 import { useCaregiverMatches } from "@/hooks/useCaregiverMatches";
 import { CaregiverMatchCard } from "./CaregiverMatchCard";
 import { CaregiverProfileModal } from "./CaregiverProfileModal";
+
+interface Caregiver {
+  id: string;
+  full_name: string;
+  first_name: string;
+  avatar_url: string | null;
+  location: string | null;
+  care_types: string[] | null;
+  years_of_experience: string | null;
+  match_score: number;
+  is_premium: boolean;
+}
 
 interface CaregiverMatchingModalProps {
   open: boolean;

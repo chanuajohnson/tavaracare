@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
@@ -10,6 +9,18 @@ import { MatchingTracker } from "@/components/tracking/MatchingTracker";
 import { useCaregiverMatches } from "@/hooks/useCaregiverMatches";
 import { CaregiverMatchCard } from "@/components/family/CaregiverMatchCard";
 import { CaregiverProfileModal } from "@/components/family/CaregiverProfileModal";
+
+interface Caregiver {
+  id: string;
+  full_name: string;
+  first_name: string;
+  avatar_url: string | null;
+  location: string | null;
+  care_types: string[] | null;
+  years_of_experience: string | null;
+  match_score: number;
+  is_premium: boolean;
+}
 
 const MAGICAL_MESSAGES = [
   { text: "Hold on, we are finding your perfect match! ✨", subtext: "Analyzing your care needs and preferences..." },
