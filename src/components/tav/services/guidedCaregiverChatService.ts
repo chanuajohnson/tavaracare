@@ -487,7 +487,7 @@ Focus on professional caregiving topics only. Be encouraging and informative.`;
   }
 
   // Check chat request status
-  async getChatRequestStatus(caregiverId: string): Promise<Caregiver​Request | null> {
+  async getChatRequestStatus(caregiverId: string): Promise<CaregiverChatRequest | null> {
     try {
       console.log(`[GuidedChatService] Checking chat request status for caregiver: ${caregiverId}`);
       
