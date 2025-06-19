@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { GuidedCaregiverChatService, ChatConversationFlow, ChatPromptTemplate } from '@/components/tav/services/guidedCaregiverChatService';
 
@@ -13,7 +12,7 @@ export const useGuidedCaregiverChat = ({ caregiverId, caregiver }: UseGuidedCare
   const [promptTemplates, setPromptTemplates] = useState<ChatPromptTemplate[]>([]);
   const [isLoading, setIsLoading] = useState(true); // Start as true
   const [messages, setMessages] = useState<Array<{ content: string; isUser: boolean; timestamp: number }>>([]);
-  const [current Stage, setCurrentStage] = useState<string>('introduction');
+  const [currentStage, setCurrentStage] = useState<string>('introduction');
 
   // Initialize conversation
   const initializeConversation = useCallback(async () => {
