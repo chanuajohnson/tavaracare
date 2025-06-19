@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Users, Sparkles } from "lucide-react";
+import { ArrowRight, Users, Sparkles, Calendar } from "lucide-react";
 import { SubscriptionFeatureLink } from "@/components/subscription/SubscriptionFeatureLink";
 import { useCaregiverMatches } from "@/hooks/useCaregiverMatches";
 import { CaregiverMatchCard } from "./CaregiverMatchCard";
@@ -39,6 +39,18 @@ export const DashboardCaregiverMatches = () => {
 
   const bestMatch = caregivers[0];
 
+  const getCompatibilityColor = (score: number) => {
+    if (score >= 80) return "text-green-600";
+    if (score >= 60) return "text-yellow-600";
+    return "text-red-600";
+  };
+
+  const getCompatibilityIcon = (score: number) => {
+    if (score >= 80) return "🟢";
+    if (score >= 60) return "🟡";
+    return "🔴";
+  };
+
   return (
     <>
       <Card className="mb-8 border-l-4 border-l-primary">
@@ -46,7 +58,7 @@ export const DashboardCaregiverMatches = () => {
           <div>
             <CardTitle className="text-xl">Your Caregiver Match</CardTitle>
             <p className="text-sm text-gray-500">
-              1 caregiver matches your care needs
+              1 caregiver matches your care needs and schedule
             </p>
           </div>
           <SubscriptionFeatureLink
@@ -76,7 +88,7 @@ export const DashboardCaregiverMatches = () => {
                   Finding your perfect match! ✨
                 </p>
                 <p className="text-sm text-gray-600">
-                  Analyzing caregivers in your area...
+                  Analyzing caregivers and schedule compatibility...
                 </p>
               </div>
             </div>
@@ -90,6 +102,24 @@ export const DashboardCaregiverMatches = () => {
                 showUnlockButton={false}
                 onUnlockProfile={() => setShowProfileModal(true)}
               />
+              
+              {/* Enhanced compatibility display */}
+              {bestMatch.shift_compatibility_score !== undefined && (
+                <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium text-blue-800 flex items-center gap-1">
+                      <Calendar className="h-4 w-4" />
+                      Schedule Compatibility
+                    </span>
+                    <span className={`text-sm font-bold ${getCompatibilityColor(bestMatch.shift_compatibility_score)}`}>
+                      {getCompatibilityIcon(bestMatch.shift_compatibility_score)} {bestMatch.shift_compatibility_score}%
+                    </span>
+                  </div>
+                  {bestMatch.match_explanation && (
+                    <p className="text-xs text-blue-700">{bestMatch.match_explanation}</p>
+                  )}
+                </div>
+              )}
               
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <Button 
