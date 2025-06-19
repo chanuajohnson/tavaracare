@@ -44,7 +44,7 @@ const ProfessionalRegistration = () => {
   const [languages, setLanguages] = useState<string[]>([]);
   const [emergencyContact, setEmergencyContact] = useState('');
   const [backgroundCheck, setBackgroundCheck] = useState('');
-  const [additionalInfo, setAdditionalInfo] = useState('');
+  const [additionalNotes, setAdditionalNotes] = useState(''); // Changed from additionalInfo to additionalNotes
   
   const [prefillApplied, setPrefillApplied] = useState(false);
   const [shouldAutoSubmit, setShouldAutoSubmit] = useState(false);
@@ -160,8 +160,8 @@ const ProfessionalRegistration = () => {
       case 'background_check':
         setBackgroundCheck(value);
         break;
-      case 'additional_info':
-        setAdditionalInfo(value);
+      case 'additional_notes': // Changed from additional_info to additional_notes
+        setAdditionalNotes(value);
         break;
       default:
         // Handle array fields
@@ -303,7 +303,7 @@ const ProfessionalRegistration = () => {
         languages: languages || [],
         emergency_contact: emergencyContact || '',
         background_check: backgroundCheck ? backgroundCheck === 'yes' || backgroundCheck === 'true' : null,
-        additional_info: additionalInfo || ''
+        additional_notes: additionalNotes || '' // Changed from additional_info to additional_notes
       };
 
       console.log('Updating professional profile with data:', updates);
@@ -773,6 +773,27 @@ const ProfessionalRegistration = () => {
                     <SelectItem value="Need assistance">Need assistance with transportation</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="mb-8">
+            <CardHeader>
+              <CardTitle>Additional Information</CardTitle>
+              <CardDescription>
+                Any additional notes about your experience or preferences.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="additionalNotes">Additional Notes</Label>
+                <Textarea 
+                  id="additionalNotes" 
+                  placeholder="Any additional information about your experience, preferences, or availability" 
+                  value={additionalNotes} 
+                  onChange={(e) => setAdditionalNotes(e.target.value)}
+                  rows={3}
+                />
               </div>
             </CardContent>
           </Card>
