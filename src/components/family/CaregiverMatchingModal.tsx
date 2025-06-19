@@ -1,10 +1,11 @@
+
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Shield, Sparkles, MessageCircle, ChevronDown } from "lucide-react";
+import { Shield, Sparkles, MessageCircle, ChevronDown, Video } from "lucide-react";
 import { SubscriptionFeatureLink } from "@/components/subscription/SubscriptionFeatureLink";
 import { MatchingTracker } from "@/components/tracking/MatchingTracker";
 import { useCaregiverMatches } from "@/hooks/useCaregiverMatches";
@@ -134,29 +135,29 @@ export const CaregiverMatchingModal = ({
                   transition={{ duration: 0.5 }}
                   className="space-y-6"
                 >
-                  {/* Premium Feature Notice - Now as Magical Accordion */}
-                  <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200 relative overflow-hidden">
+                  {/* Premium Video Call Feature Notice - Enhanced Accordion */}
+                  <Card className="bg-gradient-to-r from-purple-50 to-indigo-50 border-purple-200 relative overflow-hidden">
                     {/* Magical background sparkles */}
                     <div className="absolute inset-0 pointer-events-none">
-                      <Sparkles className="absolute top-4 right-4 h-4 w-4 text-blue-400 animate-pulse" />
-                      <Sparkles className="absolute bottom-4 left-4 h-3 w-3 text-purple-400 animate-pulse delay-300" />
+                      <Sparkles className="absolute top-4 right-4 h-4 w-4 text-purple-400 animate-pulse" />
+                      <Sparkles className="absolute bottom-4 left-4 h-3 w-3 text-indigo-400 animate-pulse delay-300" />
                       <Sparkles className="absolute top-1/2 right-1/4 h-2 w-2 text-pink-400 animate-pulse delay-600" />
                     </div>
                     
                     <Accordion type="single" collapsible className="w-full">
-                      <AccordionItem value="premium-details" className="border-none">
+                      <AccordionItem value="video-details" className="border-none">
                         <AccordionTrigger className="hover:no-underline group p-6 pb-0">
                           <div className="flex items-center space-x-3 w-full">
                             <div className="relative">
-                              <MessageCircle className="h-6 w-6 text-blue-600" />
-                              <Sparkles className="absolute -top-1 -right-1 h-3 w-3 text-blue-500 animate-pulse group-hover:animate-spin" />
+                              <Video className="h-6 w-6 text-purple-600" />
+                              <Sparkles className="absolute -top-1 -right-1 h-3 w-3 text-purple-500 animate-pulse group-hover:animate-spin" />
                             </div>
                             <div className="text-left flex-1">
-                              <h3 className="text-lg font-semibold text-blue-900 group-hover:text-blue-700 transition-colors">
-                                TAV-Moderated Chat Service ✨
+                              <h3 className="text-lg font-semibold text-purple-900 group-hover:text-purple-700 transition-colors">
+                                Skip Chat - Book Video Visit ✨
                               </h3>
-                              <p className="text-sm text-blue-700 opacity-80">
-                                Click to discover chat benefits
+                              <p className="text-sm text-purple-700 opacity-80">
+                                Click to see instant video call benefits
                               </p>
                             </div>
                             <motion.div
@@ -164,8 +165,8 @@ export const CaregiverMatchingModal = ({
                               whileHover={{ scale: 1.1 }}
                               transition={{ duration: 0.2 }}
                             >
-                              <ChevronDown className="h-5 w-5 text-blue-600" />
-                              <Sparkles className="absolute -top-2 -right-2 h-3 w-3 text-purple-400 animate-pulse opacity-0 group-hover:opacity-100 transition-opacity" />
+                              <ChevronDown className="h-5 w-5 text-purple-600" />
+                              <Sparkles className="absolute -top-2 -right-2 h-3 w-3 text-indigo-400 animate-pulse opacity-0 group-hover:opacity-100 transition-opacity" />
                             </motion.div>
                           </div>
                         </AccordionTrigger>
@@ -182,11 +183,10 @@ export const CaregiverMatchingModal = ({
                               <Sparkles className="absolute bottom-2 left-8 h-2 w-2 text-green-400 animate-pulse delay-500" />
                             </div>
                             
-                            <div className="relative bg-white/50 rounded-lg p-4 backdrop-blur-sm border border-blue-200/50">
-                              <p className="text-blue-800">
-                                Start a safe, TAV-moderated conversation with your caregiver match! Get 3 daily messages to 
-                                learn about their experience, approach, and availability. All conversations are professionally 
-                                monitored for your safety.
+                            <div className="relative bg-white/50 rounded-lg p-4 backdrop-blur-sm border border-purple-200/50">
+                              <p className="text-purple-800">
+                                Skip the getting-to-know phase and book an instant video visit with your caregiver match! 
+                                Meet face-to-face in a secure, TAV-moderated video call to discuss care needs and availability directly.
                               </p>
                             </div>
                             
@@ -196,15 +196,16 @@ export const CaregiverMatchingModal = ({
                               transition={{ duration: 0.2 }}
                             >
                               <SubscriptionFeatureLink
-                                featureType="Premium Messaging"
+                                featureType="Video Call Access"
                                 returnPath="/family/matching"
                                 referringPagePath={referringPagePath}
                                 referringPageLabel={referringPageLabel}
                               >
-                                <Button className="bg-blue-600 hover:bg-blue-700 text-white w-full relative overflow-hidden group">
+                                <Button className="bg-purple-600 hover:bg-purple-700 text-white w-full relative overflow-hidden group">
                                   <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
                                   <span className="relative flex items-center justify-center gap-2">
-                                    Upgrade for Unlimited Chat
+                                    <Video className="h-4 w-4" />
+                                    Book Instant Video Visit
                                     <Sparkles className="h-4 w-4 animate-pulse" />
                                   </span>
                                 </Button>
@@ -249,7 +250,7 @@ export const CaregiverMatchingModal = ({
                                 <CardTitle className="text-xl">Your Perfect Match</CardTitle>
                                 <Sparkles className="h-5 w-5 text-green-500 animate-pulse" />
                               </div>
-                              <CardDescription className="text-base">Start chatting to learn more about their experience</CardDescription>
+                              <CardDescription className="text-base">Start chatting or book a video visit to learn more</CardDescription>
                             </motion.div>
                             
                             <motion.div
@@ -291,18 +292,19 @@ export const CaregiverMatchingModal = ({
                               onClick={() => setShowChatModal(true)}
                             >
                               <MessageCircle className="h-4 w-4 mr-2" />
-                              Chat with Match
+                              Start Chat (Free)
                             </Button>
                             
                             <SubscriptionFeatureLink
-                              featureType="Premium Match Features"
+                              featureType="Video Call Access"
                               returnPath="/family/matching"
                               referringPagePath={referringPagePath}
                               referringPageLabel={referringPageLabel}
                               variant="outline"
                               className="w-full transform hover:scale-105 transition-all duration-200"
                             >
-                              Browse All Matches
+                              <Video className="h-4 w-4 mr-2" />
+                              Book Video Visit
                             </SubscriptionFeatureLink>
                           </motion.div>
                         </CardContent>
@@ -314,7 +316,7 @@ export const CaregiverMatchingModal = ({
                     </div>
                   )}
 
-                  {/* Why Chat First Notice - Enhanced */}
+                  {/* Why Chat or Video Notice - Enhanced */}
                   <motion.div
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -326,10 +328,10 @@ export const CaregiverMatchingModal = ({
                         <div className="flex items-start space-x-3">
                           <MessageCircle className="h-5 w-5 text-amber-600 mt-0.5 animate-pulse" />
                           <div>
-                            <h4 className="font-medium text-amber-900 mb-1">Why start with chat?</h4>
+                            <h4 className="font-medium text-amber-900 mb-1">Free Chat or Premium Video?</h4>
                             <p className="text-sm text-amber-800">
-                              TAV moderates your conversation to keep it professional and safe. Get to know your caregiver's 
-                              experience and approach before upgrading to full contact information and unlimited matches.
+                              Chat for free with unlimited messages to get to know your caregiver. Ready to meet face-to-face? 
+                              Upgrade to book instant video visits and skip the text conversation phase entirely.
                             </p>
                           </div>
                         </div>
