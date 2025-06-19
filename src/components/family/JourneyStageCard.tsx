@@ -99,11 +99,11 @@ export const JourneyStageCard: React.FC<JourneyStageCardProps> = ({
     }
     
     if (step.step_number === 5) {
-      return step.completed ? "Edit Medications" : "Start Setup";
+      return step.completed ? "Edit Care Assessment" : "Start Assessment";
     }
     
     if (step.step_number === 6) {
-      return step.completed ? "Edit Meal Plans" : "Start Planning";
+      return step.completed ? "Share Your Loved Ones Story" : "Share Your Loved Ones Story";
     }
     
     if (step.step_number === 7) {
@@ -112,7 +112,7 @@ export const JourneyStageCard: React.FC<JourneyStageCardProps> = ({
       } else if (step.completed) {
         return "Visit Scheduled";
       }
-      return "Request Scheduling";
+      return "View Care Giver Matches";
     }
     
     return step.completed ? "Edit" : "Complete";

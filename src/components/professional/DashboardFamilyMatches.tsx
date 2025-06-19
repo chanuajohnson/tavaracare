@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -5,84 +6,31 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, Star, ArrowRight, Clock, Filter, MapPinned, DollarSign } from "lucide-react";
-import { supabase } from "@/lib/supabase";
+import { MapPin, Star, ArrowRight, Clock, Filter, MapPinned, DollarSign, Calendar, Sparkles } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
 import { useTracking } from "@/hooks/useTracking";
 import { toast } from "sonner";
-
-interface Family {
-  id: string;
-  full_name: string;
-  avatar_url: string | null;
-  location: string | null;
-  care_types: string[] | null;
-  special_needs: string[] | null;
-  care_schedule: string | null;
-  match_score: number;
-  is_premium: boolean;
-  distance: number;
-  budget_preferences?: string | null;
-}
-
-const MOCK_FAMILIES: Family[] = [{
-  id: "1",
-  full_name: "Garcia Family",
-  avatar_url: null,
-  location: "Port of Spain",
-  care_types: ["Elderly Care", "Companionship"],
-  special_needs: ["Alzheimer's", "Mobility Assistance"],
-  care_schedule: "Weekdays, Evenings",
-  match_score: 95,
-  is_premium: false,
-  distance: 3.2,
-  budget_preferences: "$15-25/hr"
-}, {
-  id: "2",
-  full_name: "Wilson Family",
-  avatar_url: null,
-  location: "San Fernando",
-  care_types: ["Special Needs", "Medical Support"],
-  special_needs: ["Autism Care", "Medication Management"],
-  care_schedule: "Full-time, Weekends",
-  match_score: 89,
-  is_premium: true,
-  distance: 15.7,
-  budget_preferences: "$25-35/hr"
-}, {
-  id: "3",
-  full_name: "Thomas Family",
-  avatar_url: null,
-  location: "Arima",
-  care_types: ["Child Care", "Housekeeping"],
-  special_needs: ["Early Childhood Development", "Meal Preparation"],
-  care_schedule: "Part-time, Mornings",
-  match_score: 82,
-  is_premium: false,
-  distance: 8.5,
-  budget_preferences: "$20-30/hr"
-}];
+import { useFamilyMatches } from "@/hooks/useFamilyMatches";
 
 export const DashboardFamilyMatches = () => {
-  const {
-    user
-  } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
-  const [families, setFamilies] = useState<Family[]>([]);
-  const [filteredFamilies, setFilteredFamilies] = useState<Family[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [showFilters, setShowFilters] = useState(false);
-  const [dataLoaded, setDataLoaded] = useState(false);
   const { trackEngagement } = useTracking();
+  
+  // Use the new family matches hook with shift compatibility
+  const { families, isLoading, dataLoaded } = useFamilyMatches(false);
+  const [filteredFamilies, setFilteredFamilies] = useState(families);
   
   const [careTypes, setCareTypes] = useState<string[]>([]);
   const [specialNeeds, setSpecialNeeds] = useState<string[]>([]);
   const [scheduleType, setScheduleType] = useState<string>("all");
   const [maxDistance, setMaxDistance] = useState<number>(30);
   const [budgetRange, setBudgetRange] = useState<[number, number]>([15, 50]);
+  const [minCompatibility, setMinCompatibility] = useState<number>(0);
 
   const careTypeOptions = ["Elderly Care", "Child Care", "Special Needs", "Medical Support", "Overnight Care", "Companionship", "Housekeeping"];
   
@@ -129,93 +77,10 @@ export const DashboardFamilyMatches = () => {
     label: "Overnight"
   }];
 
-  const loadFamilies = useCallback(async () => {
-    if (!user || dataLoaded) return;
-    
-    try {
-      setIsLoading(true);
-
-      // First use mock families immediately to prevent UI waiting
-      setFamilies(MOCK_FAMILIES);
-      setFilteredFamilies(MOCK_FAMILIES);
-
-      const {
-        data: familyUsers,
-        error: familyError
-      } = await supabase.from('profiles').select('*').eq('role', 'family');
-      
-      if (familyError) {
-        console.error("Error fetching family users:", familyError);
-        toast.error("Failed to load family matches");
-        setDataLoaded(true);
-        return;
-      }
-
-      if (!familyUsers || familyUsers.length === 0) {
-        console.log("No family users found, using mock data");
-        await trackEngagement('dashboard_family_matches_view', { 
-          data_source: 'mock_data',
-          family_count: MOCK_FAMILIES.length,
-          view_context: 'dashboard_widget',
-          component: 'DashboardFamilyMatches'
-        });
-        setDataLoaded(true);
-        return;
-      }
-
-      const realFamilies: Family[] = familyUsers.map(family => {
-        const matchScore = Math.floor(Math.random() * (99 - 65) + 65);
-        const distance = parseFloat((Math.random() * 19 + 1).toFixed(1));
-        return {
-          id: family.id,
-          full_name: family.full_name || `${family.care_recipient_name || ''} Family`,
-          avatar_url: family.avatar_url,
-          location: family.location || 'Port of Spain',
-          care_types: family.care_types || ['Elderly Care'],
-          special_needs: family.special_needs || [],
-          care_schedule: family.care_schedule || 'Weekdays',
-          match_score: matchScore,
-          is_premium: false,
-          distance: distance,
-          budget_preferences: family.budget_preferences || '$15-30/hr'
-        };
-      });
-      
-      console.log("Loaded real family users:", realFamilies.length);
-
-      // If we have few real families, supplement with some mock ones
-      const limitedMockFamilies = MOCK_FAMILIES.slice(0, Math.max(0, 3 - realFamilies.length));
-      const allFamilies = [...realFamilies, ...limitedMockFamilies].slice(0, 3);
-
-      await trackEngagement('dashboard_family_matches_view', {
-        data_source: realFamilies.length > 0 ? 'mixed_data' : 'mock_data',
-        real_family_count: realFamilies.length,
-        mock_family_count: limitedMockFamilies.length,
-        view_context: 'dashboard_widget',
-        component: 'DashboardFamilyMatches'
-      });
-      
-      setFamilies(allFamilies);
-      setFilteredFamilies(allFamilies);
-      setDataLoaded(true);
-    } catch (error) {
-      console.error("Error loading families:", error);
-      toast.error("Error loading family matches");
-      setDataLoaded(true);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [user, trackEngagement, dataLoaded]);
-  
+  // Update filtered families when families data changes
   useEffect(() => {
-    if (user && !dataLoaded) {
-      const timer = setTimeout(() => {
-        loadFamilies();
-      }, 100);
-      
-      return () => clearTimeout(timer);
-    }
-  }, [user, loadFamilies, dataLoaded]);
+    setFilteredFamilies(families);
+  }, [families]);
 
   useEffect(() => {
     if (families.length === 0) return;
@@ -231,6 +96,9 @@ export const DashboardFamilyMatches = () => {
         result = result.filter(family => family.care_schedule?.toLowerCase().includes(scheduleType.toLowerCase()));
       }
       result = result.filter(family => family.distance <= maxDistance);
+      
+      // Apply compatibility filter
+      result = result.filter(family => (family.shift_compatibility_score || 0) >= minCompatibility);
 
       // Apply budget filter
       result = result.filter(family => {
@@ -249,7 +117,7 @@ export const DashboardFamilyMatches = () => {
       setFilteredFamilies(result);
     };
     applyFilters();
-  }, [families, careTypes, specialNeeds, scheduleType, maxDistance, budgetRange]);
+  }, [families, careTypes, specialNeeds, scheduleType, maxDistance, budgetRange, minCompatibility]);
 
   const handleCareTypeChange = (type: string) => {
     setCareTypes(prev => prev.includes(type) ? prev.filter(t => t !== type) : [...prev, type]);
@@ -275,6 +143,18 @@ export const DashboardFamilyMatches = () => {
     });
   };
 
+  const getCompatibilityColor = (score: number) => {
+    if (score >= 80) return "text-green-600 bg-green-50 border-green-200";
+    if (score >= 60) return "text-yellow-600 bg-yellow-50 border-yellow-200";
+    return "text-red-600 bg-red-50 border-red-200";
+  };
+
+  const getCompatibilityIcon = (score: number) => {
+    if (score >= 80) return "🟢";
+    if (score >= 60) return "🟡";
+    return "🔴";
+  };
+
   if (!user) {
     return null;
   }
@@ -284,7 +164,7 @@ export const DashboardFamilyMatches = () => {
         <div>
           <CardTitle className="text-xl">Family Matches</CardTitle>
           <p className="text-sm text-gray-500">
-            {filteredFamilies.length} families match your expertise
+            {filteredFamilies.length} families match your expertise and availability
           </p>
         </div>
         <div className="flex gap-2">
@@ -350,17 +230,32 @@ export const DashboardFamilyMatches = () => {
               </div>
             </div>
             
-            <div className="space-y-2">
-              <Label className="text-sm flex justify-between">
-                <span>Budget Range: ${budgetRange[0]}-${budgetRange[1]}/hr</span>
-              </Label>
-              <Slider 
-                value={budgetRange} 
-                min={15} 
-                max={50} 
-                step={5} 
-                onValueChange={(value) => setBudgetRange(value as [number, number])} 
-              />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className="text-sm flex justify-between">
+                  <span>Budget Range: ${budgetRange[0]}-${budgetRange[1]}/hr</span>
+                </Label>
+                <Slider 
+                  value={budgetRange} 
+                  min={15} 
+                  max={50} 
+                  step={5} 
+                  onValueChange={(value) => setBudgetRange(value as [number, number])} 
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label className="text-sm flex justify-between">
+                  <span>Min Schedule Compatibility: {minCompatibility}%</span>
+                </Label>
+                <Slider 
+                  value={[minCompatibility]} 
+                  min={0} 
+                  max={100} 
+                  step={10} 
+                  onValueChange={value => setMinCompatibility(value[0])} 
+                />
+              </div>
             </div>
           </div>
         </CardContent>}
@@ -369,7 +264,7 @@ export const DashboardFamilyMatches = () => {
         {isLoading ? <div className="flex justify-center items-center py-6">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
           </div> : filteredFamilies.length > 0 ? <div className="space-y-4">
-            {filteredFamilies.map(family => <div key={family.id} className={`p-4 rounded-lg border ${family.is_premium ? 'border-amber-300' : 'border-gray-200'} relative`}>
+            {filteredFamilies.map(family => <div key={family.id} className={`p-4 rounde-lg border ${family.is_premium ? 'border-amber-300' : 'border-gray-200'} relative`}>
                 {family.is_premium && <div className="absolute top-0 right-0">
                     <Badge className="bg-amber-500 text-white uppercase font-bold rounded-tl-none rounded-tr-sm rounded-br-none rounded-bl-sm px-2">
                       Premium
@@ -397,6 +292,16 @@ export const DashboardFamilyMatches = () => {
                       <div className="mt-1 bg-primary-50 rounded px-2 py-1 text-center">
                         <span className="text-sm font-medium text-primary-700">{family.match_score}% Match</span>
                       </div>
+                      
+                      {/* Schedule Compatibility Indicator */}
+                      {family.shift_compatibility_score !== undefined && (
+                        <div className={`mt-1 rounded px-2 py-1 text-center border ${getCompatibilityColor(family.shift_compatibility_score)}`}>
+                          <span className="text-xs font-medium flex items-center justify-center gap-1">
+                            <Calendar className="h-3 w-3" />
+                            {family.shift_compatibility_score}% Schedule
+                          </span>
+                        </div>
+                      )}
                     </div>
                   </div>
                   
@@ -418,6 +323,17 @@ export const DashboardFamilyMatches = () => {
                       </div>
                     </div>
                     
+                    {/* Schedule Overlap Details */}
+                    {family.schedule_overlap_details && (
+                      <div className="text-sm">
+                        <span className="font-medium block mb-1">Schedule Overlap:</span>
+                        <div className="flex items-center gap-1">
+                          <span className="text-xs">{getCompatibilityIcon(family.shift_compatibility_score || 0)}</span>
+                          <span className="text-gray-600">{family.schedule_overlap_details}</span>
+                        </div>
+                      </div>
+                    )}
+                    
                     <div className="text-sm">
                       <span className="font-medium block mb-1">Care Needs:</span>
                       <div className="flex flex-wrap gap-1">
@@ -435,6 +351,16 @@ export const DashboardFamilyMatches = () => {
                             </Badge>)}
                         </div>
                       </div>}
+                    
+                    {/* Match Explanation */}
+                    {family.match_explanation && (
+                      <div className="text-sm p-2 bg-blue-50 rounded border border-blue-200">
+                        <span className="text-blue-700 flex items-center gap-1">
+                          <Sparkles className="h-3 w-3" />
+                          {family.match_explanation}
+                        </span>
+                      </div>
+                    )}
                   </div>
                   
                   <div className="sm:w-1/4 flex flex-col justify-center space-y-3">
@@ -476,6 +402,7 @@ export const DashboardFamilyMatches = () => {
           setScheduleType("all");
           setMaxDistance(30);
           setBudgetRange([15, 50]);
+          setMinCompatibility(0);
         }}>
               Reset Filters
             </Button>
