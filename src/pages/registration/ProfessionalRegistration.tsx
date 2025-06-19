@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { v4 as uuidv4 } from 'uuid';
+import { useAuth } from '@/components/providers/AuthProvider';
 import { supabase, ensureStorageBuckets, ensureAuthContext } from '../../lib/supabase';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
 import { Input } from '../../components/ui/input';
@@ -13,7 +14,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '../../components/ui/avatar'
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { PageViewTracker } from "@/components/tracking/PageViewTracker";
 import { toast } from 'sonner';
-import { Calendar, Sun, Moon, Clock } from "lucide-react";
+import { Calendar, Sun, Moon, Clock, Loader2 } from "lucide-react";
 import { getPrefillDataFromUrl, applyPrefillDataToForm } from '../../utils/chat/prefillReader';
 import { clearChatSessionData } from '../../utils/chat/chatSessionUtils';
 import { setAuthFlowFlag, AUTH_FLOW_FLAGS } from "@/utils/authFlowUtils";
@@ -22,6 +23,7 @@ import { setAuthFlowFlag, AUTH_FLOW_FLAGS } from "@/utils/authFlowUtils";
 import { STANDARDIZED_SHIFT_OPTIONS } from '../../data/chatRegistrationFlows';
 
 const ProfessionalRegistration = () => {
+  const { user, isLoading: authLoading } = useAuth();
   const [loading, setLoading] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
@@ -44,10 +46,9 @@ const ProfessionalRegistration = () => {
   const [backgroundCheck, setBackgroundCheck] = useState('');
   const [additionalInfo, setAdditionalInfo] = useState('');
   
-  const [user, setUser] = useState<any>(null);
-  const [authSession, setAuthSession] = useState<any>(null);
   const [prefillApplied, setPrefillApplied] = useState(false);
   const [shouldAutoSubmit, setShouldAutoSubmit] = useState(false);
+  const [userDataPopulated, setUserDataPopulated] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
   const navigate = useNavigate();
 
@@ -74,6 +75,53 @@ const ProfessionalRegistration = () => {
       sessionStorage.removeItem(AUTH_FLOW_FLAGS.SKIP_REGISTRATION_REDIRECT);
     };
   }, []);
+
+  // Pre-populate user data from auth context
+  useEffect(() => {
+    if (user && !userDataPopulated) {
+      console.log('Pre-populating user data from auth context:', user);
+      
+      // Extract email
+      if (user.email) {
+        setEmail(user.email);
+      }
+      
+      // Extract names from metadata
+      if (user.user_metadata) {
+        const metadata = user.user_metadata;
+        
+        // Try different possible field names for first name
+        const possibleFirstNames = ['first_name', 'firstName', 'given_name'];
+        const possibleLastNames = ['last_name', 'lastName', 'family_name', 'surname'];
+        
+        for (const field of possibleFirstNames) {
+          if (metadata[field]) {
+            setFirstName(metadata[field]);
+            break;
+          }
+        }
+        
+        for (const field of possibleLastNames) {
+          if (metadata[field]) {
+            setLastName(metadata[field]);
+            break;
+          }
+        }
+        
+        // If we have a full_name but no separate first/last, try to split it
+        if (!firstName && !lastName && metadata.full_name) {
+          const nameParts = metadata.full_name.split(' ');
+          if (nameParts.length >= 2) {
+            setFirstName(nameParts[0]);
+            setLastName(nameParts.slice(1).join(' '));
+          }
+        }
+      }
+      
+      setUserDataPopulated(true);
+      console.log('User data populated successfully');
+    }
+  }, [user, userDataPopulated, firstName, lastName]);
 
   const setFormValue = (field: string, value: any) => {
     console.log(`Setting form field ${field} to:`, value);
@@ -195,18 +243,6 @@ const ProfessionalRegistration = () => {
     setLoading(true);
 
     try {
-      const contextValid = await ensureAuthContext();
-      if (!contextValid) {
-        throw new Error('Authentication context could not be established');
-      }
-      
-      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
-      if (sessionError || !sessionData.session) {
-        toast.error('Your session has expired. Please sign in again.');
-        navigate('/auth');
-        return;
-      }
-      
       if (!user?.id) {
         throw new Error('User ID is missing. Please sign in again.');
       }
@@ -283,7 +319,7 @@ const ProfessionalRegistration = () => {
       const urlParams = new URLSearchParams(window.location.search);
       const sessionId = urlParams.get('session');
       
-      // Clear chat session data including auto-redirect flag
+      // Clear chat session data including auto-redirect flag  
       clearChatSessionData(sessionId || undefined);
       
       // Also clear the auto-redirect flag specifically
@@ -302,6 +338,33 @@ const ProfessionalRegistration = () => {
       setLoading(false);
     }
   };
+
+  // Show loading state while auth is resolving
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+          <p className="text-gray-600">Loading your account...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show auth required state if no user
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center max-w-md mx-auto p-6">
+          <h1 className="text-2xl font-bold mb-4">Authentication Required</h1>
+          <p className="text-gray-600 mb-6">You must be logged in to complete your professional registration.</p>
+          <Button onClick={() => navigate('/auth')}>
+            Sign In
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -719,7 +782,14 @@ const ProfessionalRegistration = () => {
               Cancel
             </Button>
             <Button type="submit" disabled={loading}>
-              {loading ? 'Submitting...' : 'Complete Registration'}
+              {loading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Submitting...
+                </>
+              ) : (
+                'Complete Registration'
+              )}
             </Button>
           </div>
         </form>
