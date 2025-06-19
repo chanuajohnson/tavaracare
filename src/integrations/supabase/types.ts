@@ -790,6 +790,80 @@ export type Database = {
           },
         ]
       }
+      caregiver_chat_messages: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          is_tav_moderated: boolean
+          is_user: boolean
+          message_type: string
+          session_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          is_tav_moderated?: boolean
+          is_user: boolean
+          message_type?: string
+          session_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          is_tav_moderated?: boolean
+          is_user?: boolean
+          message_type?: string
+          session_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "caregiver_chat_messages_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "caregiver_chat_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      caregiver_chat_sessions: {
+        Row: {
+          caregiver_id: string
+          created_at: string
+          family_user_id: string
+          id: string
+          is_premium: boolean
+          max_daily_messages: number
+          messages_sent: number
+          session_date: string
+          updated_at: string
+        }
+        Insert: {
+          caregiver_id: string
+          created_at?: string
+          family_user_id: string
+          id?: string
+          is_premium?: boolean
+          max_daily_messages?: number
+          messages_sent?: number
+          session_date?: string
+          updated_at?: string
+        }
+        Update: {
+          caregiver_id?: string
+          created_at?: string
+          family_user_id?: string
+          id?: string
+          is_premium?: boolean
+          max_daily_messages?: number
+          messages_sent?: number
+          session_date?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       chatbot_conversations: {
         Row: {
           care_needs: Json | null

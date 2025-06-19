@@ -2,7 +2,7 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { MapPin, Star } from "lucide-react";
+import { MapPin, Star, MessageCircle } from "lucide-react";
 import { SubscriptionFeatureLink } from "@/components/subscription/SubscriptionFeatureLink";
 
 interface Caregiver {
@@ -22,7 +22,7 @@ interface CaregiverMatchCardProps {
   referringPagePath?: string;
   referringPageLabel?: string;
   showUnlockButton?: boolean;
-  onUnlockProfile?: () => void;
+  onStartChat?: () => void;
 }
 
 export const CaregiverMatchCard = ({ 
@@ -31,7 +31,7 @@ export const CaregiverMatchCard = ({
   referringPagePath = "/dashboard/family",
   referringPageLabel = "Family Dashboard",
   showUnlockButton = true,
-  onUnlockProfile
+  onStartChat
 }: CaregiverMatchCardProps) => {
   return (
     <div className={`p-4 rounded-lg border ${caregiver.is_premium ? 'border-amber-300' : 'border-gray-200'} relative`}>
@@ -96,24 +96,26 @@ export const CaregiverMatchCard = ({
           
           {showUnlockButton && (
             <>
-              {onUnlockProfile ? (
+              {onStartChat ? (
                 <Button
                   variant="default"
                   className="w-full"
-                  onClick={onUnlockProfile}
+                  onClick={onStartChat}
                 >
-                  Unlock Profile
+                  <MessageCircle className="h-4 w-4 mr-2" />
+                  Chat with Match
                 </Button>
               ) : (
                 <SubscriptionFeatureLink
-                  featureType="Premium Caregiver Profiles"
+                  featureType="Premium Caregiver Chat"
                   returnPath={returnPath}
                   referringPagePath={referringPagePath}
                   referringPageLabel={referringPageLabel}
                   variant="default"
                   className="w-full"
                 >
-                  Unlock Profile
+                  <MessageCircle className="h-4 w-4 mr-2" />
+                  Chat with Match
                 </SubscriptionFeatureLink>
               )}
             </>
