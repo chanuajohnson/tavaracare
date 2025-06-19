@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,7 +9,7 @@ import { SubscriptionFeatureLink } from "@/components/subscription/SubscriptionF
 import { MatchingTracker } from "@/components/tracking/MatchingTracker";
 import { useCaregiverMatches } from "@/hooks/useCaregiverMatches";
 import { CaregiverMatchCard } from "./CaregiverMatchCard";
-import { CaregiverChatModal } from "./CaregiverChatModal";
+import { GuidedCaregiverChatModal } from "./GuidedCaregiverChatModal";
 
 interface CaregiverMatchingModalProps {
   open: boolean;
@@ -217,7 +216,7 @@ export const CaregiverMatchingModal = ({
                     </Accordion>
                   </Card>
 
-                  {/* Magical Caregiver Match - Enhanced with sparkles and glow */}
+                  {/* Magical Caregiver Match */}
                   {bestMatch ? (
                     <motion.div
                       initial={{ opacity: 0, scale: 0.95 }}
@@ -250,7 +249,7 @@ export const CaregiverMatchingModal = ({
                                 <CardTitle className="text-xl">Your Perfect Match</CardTitle>
                                 <Sparkles className="h-5 w-5 text-green-500 animate-pulse" />
                               </div>
-                              <CardDescription className="text-base">Start chatting or book a video visit to learn more</CardDescription>
+                              <CardDescription className="text-base">Start a guided conversation or book a video visit</CardDescription>
                             </motion.div>
                             
                             <motion.div
@@ -292,7 +291,7 @@ export const CaregiverMatchingModal = ({
                               onClick={() => setShowChatModal(true)}
                             >
                               <MessageCircle className="h-4 w-4 mr-2" />
-                              Start Chat (Free)
+                              Start Guided Chat
                             </Button>
                             
                             <SubscriptionFeatureLink
@@ -316,7 +315,7 @@ export const CaregiverMatchingModal = ({
                     </div>
                   )}
 
-                  {/* Why Chat or Video Notice - Enhanced */}
+                  {/* Updated Chat Notice */}
                   <motion.div
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -328,10 +327,10 @@ export const CaregiverMatchingModal = ({
                         <div className="flex items-start space-x-3">
                           <MessageCircle className="h-5 w-5 text-amber-600 mt-0.5 animate-pulse" />
                           <div>
-                            <h4 className="font-medium text-amber-900 mb-1">Free Chat or Premium Video?</h4>
+                            <h4 className="font-medium text-amber-900 mb-1">Guided Chat or Premium Video?</h4>
                             <p className="text-sm text-amber-800">
-                              Chat for free with unlimited messages to get to know your caregiver. Ready to meet face-to-face? 
-                              Upgrade to book instant video visits and skip the text conversation phase entirely.
+                              Our guided chat uses conversation prompts to help you ask the right questions safely. 
+                              Ready to meet face-to-face? Upgrade to book instant video visits and skip the conversation phase entirely.
                             </p>
                           </div>
                         </div>
@@ -345,9 +344,9 @@ export const CaregiverMatchingModal = ({
         </DialogContent>
       </Dialog>
 
-      {/* Chat Modal */}
+      {/* Guided Chat Modal */}
       {bestMatch && (
-        <CaregiverChatModal
+        <GuidedCaregiverChatModal
           open={showChatModal}
           onOpenChange={setShowChatModal}
           caregiver={bestMatch}

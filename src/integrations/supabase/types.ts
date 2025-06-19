@@ -828,6 +828,42 @@ export type Database = {
           },
         ]
       }
+      caregiver_chat_requests: {
+        Row: {
+          accepted_at: string | null
+          caregiver_id: string
+          created_at: string | null
+          declined_at: string | null
+          family_user_id: string
+          id: string
+          initial_message: string
+          status: string
+          updated_at: string | null
+        }
+        Insert: {
+          accepted_at?: string | null
+          caregiver_id: string
+          created_at?: string | null
+          declined_at?: string | null
+          family_user_id: string
+          id?: string
+          initial_message: string
+          status?: string
+          updated_at?: string | null
+        }
+        Update: {
+          accepted_at?: string | null
+          caregiver_id?: string
+          created_at?: string | null
+          declined_at?: string | null
+          family_user_id?: string
+          id?: string
+          initial_message?: string
+          status?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       caregiver_chat_sessions: {
         Row: {
           caregiver_id: string
@@ -861,6 +897,102 @@ export type Database = {
           messages_sent?: number
           session_date?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      caregiver_notifications: {
+        Row: {
+          caregiver_id: string
+          created_at: string | null
+          data: Json | null
+          id: string
+          is_read: boolean | null
+          message: string
+          notification_type: string
+          read_at: string | null
+          title: string
+        }
+        Insert: {
+          caregiver_id: string
+          created_at?: string | null
+          data?: Json | null
+          id?: string
+          is_read?: boolean | null
+          message: string
+          notification_type?: string
+          read_at?: string | null
+          title: string
+        }
+        Update: {
+          caregiver_id?: string
+          created_at?: string | null
+          data?: Json | null
+          id?: string
+          is_read?: boolean | null
+          message?: string
+          notification_type?: string
+          read_at?: string | null
+          title?: string
+        }
+        Relationships: []
+      }
+      chat_conversation_flows: {
+        Row: {
+          created_at: string | null
+          current_stage: string
+          id: string
+          session_id: string
+          stage_data: Json | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          current_stage?: string
+          id?: string
+          session_id: string
+          stage_data?: Json | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          current_stage?: string
+          id?: string
+          session_id?: string
+          stage_data?: Json | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      chat_prompt_templates: {
+        Row: {
+          category: string
+          context_requirements: Json | null
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          order_index: number | null
+          prompt_text: string
+          stage: string
+        }
+        Insert: {
+          category: string
+          context_requirements?: Json | null
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          order_index?: number | null
+          prompt_text: string
+          stage: string
+        }
+        Update: {
+          category?: string
+          context_requirements?: Json | null
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          order_index?: number | null
+          prompt_text?: string
+          stage?: string
         }
         Relationships: []
       }
