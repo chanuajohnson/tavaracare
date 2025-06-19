@@ -4,11 +4,11 @@ import { motion } from 'framer-motion';
 import { Clock, Heart, Star, CheckCircle } from 'lucide-react';
 
 interface WaitingForCaregiverStateProps {
-  caregiverName?: string;
+  caregiverName?: string; // Keep for backwards compatibility but don't use
 }
 
 export const WaitingForCaregiverState: React.FC<WaitingForCaregiverStateProps> = ({
-  caregiverName
+  caregiverName // Ignore this prop to protect privacy
 }) => {
   return (
     <motion.div
@@ -49,13 +49,13 @@ export const WaitingForCaregiverState: React.FC<WaitingForCaregiverStateProps> =
           </div>
         </motion.div>
 
-        {/* Main message */}
+        {/* Main message - anonymized */}
         <div className="space-y-3">
           <h3 className="text-xl font-semibold text-gray-800">
             Your message has been sent!
           </h3>
           <p className="text-gray-600 max-w-md mx-auto">
-            {caregiverName ? `${caregiverName} has` : 'The caregiver has'} been notified of your interest. 
+            The professional caregiver has been notified of your interest. 
             They typically respond within a few hours.
           </p>
         </div>

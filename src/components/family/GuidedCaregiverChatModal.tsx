@@ -91,7 +91,7 @@ export const GuidedCaregiverChatModal = ({ open, onOpenChange, caregiver }: Guid
             <div className="space-y-2">
               <DialogTitle className="flex items-center gap-2">
                 <MessageCircle className="h-5 w-5 text-blue-600" />
-                Guided Chat with {caregiver.full_name}
+                Guided Chat with Professional Caregiver
               </DialogTitle>
               <div className="flex items-center gap-2 text-sm text-gray-600">
                 <Shield className="h-4 w-4" />
@@ -200,7 +200,7 @@ export const GuidedCaregiverChatModal = ({ open, onOpenChange, caregiver }: Guid
                     exit={{ opacity: 0, y: -20 }}
                     transition={{ duration: 0.5 }}
                   >
-                    <WaitingForCaregiverState caregiverName={caregiver.full_name} />
+                    <WaitingForCaregiverState />
                   </motion.div>
                 ) : chatOptions.length > 0 ? (
                   <motion.div

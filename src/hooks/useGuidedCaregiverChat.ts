@@ -50,9 +50,9 @@ export const useGuidedCaregiverChat = ({ caregiverId, caregiver }: UseGuidedCare
         console.log(`[useGuidedCaregiverChat] Loaded ${templates.length} templates`);
         setPromptTemplates(templates);
         
-        // Add welcome message
+        // Add welcome message - anonymized
         setMessages([{
-          content: `💙 Hi! I'm TAV, your care coordinator. I'll help you connect with ${caregiver.full_name} in a safe and structured way. Choose how you'd like to start the conversation:`,
+          content: `💙 Hi! I'm TAV, your care coordinator. I'll help you connect with this professional caregiver in a safe and structured way. Choose how you'd like to start the conversation:`,
           isUser: false,
           timestamp: Date.now()
         }]);
@@ -74,7 +74,7 @@ export const useGuidedCaregiverChat = ({ caregiverId, caregiver }: UseGuidedCare
     } finally {
       setIsLoading(false);
     }
-  }, [caregiverId, caregiver.full_name, chatService]);
+  }, [caregiverId, chatService]);
 
   // Handle prompt selection
   const handlePromptSelection = useCallback(async (promptText: string) => {
@@ -168,18 +168,18 @@ export const useGuidedCaregiverChat = ({ caregiverId, caregiver }: UseGuidedCare
           const templates = await chatService.getPromptTemplates('guided_qa');
           setPromptTemplates(templates);
           
-          // Add acceptance message
+          // Add acceptance message - anonymized  
           setMessages(prev => [...prev, {
-            content: `🎉 Great news! ${caregiver.full_name} has accepted your request and is ready to chat. What would you like to ask them?`,
+            content: `🎉 Great news! The professional caregiver has accepted your request and is ready to chat. What would you like to ask them?`,
             isUser: false,
             timestamp: Date.now()
           }]);
         }
       } else if (chatRequest && chatRequest.status === 'declined') {
         console.log('[useGuidedCaregiverChat] Caregiver declined the request');
-        // Caregiver declined
+        // Caregiver declined - anonymized
         setMessages(prev => [...prev, {
-          content: `💙 ${caregiver.full_name} is not available right now, but don't worry - we have many other amazing caregivers who would love to help your family. Would you like me to show you more matches?`,
+          content: `💙 This caregiver is not available right now, but don't worry - we have many other amazing caregivers who would love to help your family. Would you like me to show you more matches?`,
           isUser: false,
           timestamp: Date.now()
         }]);
@@ -188,7 +188,7 @@ export const useGuidedCaregiverChat = ({ caregiverId, caregiver }: UseGuidedCare
     } catch (error) {
       console.error('[useGuidedCaregiverChat] Error checking caregiver response:', error);
     }
-  }, [currentStage, caregiverId, conversationFlow, caregiver.full_name, chatService]);
+  }, [currentStage, caregiverId, conversationFlow, chatService]);
 
   // Poll for caregiver response during waiting stage
   useEffect(() => {
