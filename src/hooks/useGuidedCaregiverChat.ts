@@ -32,8 +32,8 @@ export const useGuidedCaregiverChat = ({ caregiverId, caregiver }: UseGuidedCare
         return;
       }
 
-      // Create a session ID for this conversation
-      const sessionId = `caregiver-chat-${caregiverId}-${Date.now()}`;
+      // Create a proper UUID session ID
+      const sessionId = crypto.randomUUID();
       console.log(`[useGuidedCaregiverChat] Created session ID: ${sessionId}`);
       
       // Initialize conversation flow

@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { TAVAIService } from './tavAIService';
 
@@ -89,11 +88,17 @@ export class GuidedCaregiverChatService {
     }
   }
 
-  // Initialize conversation flow
+  // Initialize conversation flow with proper UUID session_id
   async initializeConversationFlow(sessionId: string): Promise<ChatConversationFlow | null> {
     try {
       console.log(`[GuidedChatService] Initializing conversation flow for session: ${sessionId}`);
       
+      // Ensure sessionId is a valid UUID format
+      if (!sessionId || !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(sessionId)) {
+        console.error('[GuidedChatService] Invalid UUID format for session_id:', sessionId);
+        return null;
+      }
+
       const { data, error } = await supabase
         .from('chat_conversation_flows')
         .insert({
@@ -275,7 +280,7 @@ export class GuidedCaregiverChatService {
     }
   }
 
-  // Handle prompt selection and generate TAV response
+  // Handle prompt selection and generate TAV response - FIXED TO ENSURE CHAT REQUEST CREATION
   async handlePromptSelection(
     sessionId: string,
     promptText: string,
@@ -283,13 +288,13 @@ export class GuidedCaregiverChatService {
     currentStage: string
   ): Promise<{ success: boolean; response?: string; error?: string; nextStage?: string }> {
     try {
-      console.log(`[GuidedChatService] Handling prompt selection in stage: ${currentStage}`);
-      console.log(`[GuidedChatService] Prompt text: "${promptText}"`);
-      console.log(`[GuidedChatService] Caregiver ID: ${caregiver.id}`);
+      console.log(`[GuidedChatService] FLOW DEBUG: Handling prompt selection in stage: ${currentStage}`);
+      console.log(`[GuidedChatService] FLOW DEBUG: Prompt text: "${promptText}"`);
+      console.log(`[GuidedChatService] FLOW DEBUG: Caregiver ID: ${caregiver.id}`);
       
       const flow = await this.getConversationFlow(sessionId);
       if (!flow) {
-        console.error('[GuidedChatService] Conversation flow not found for session:', sessionId);
+        console.error('[GuidedChatService] FLOW DEBUG: Conversation flow not found for session:', sessionId);
         return { success: false, error: "Conversation flow not found" };
       }
 
@@ -297,63 +302,64 @@ export class GuidedCaregiverChatService {
       let nextStage = currentStage;
       let stageData = { ...flow.stage_data };
 
-      console.log(`[GuidedChatService] Current stage: ${currentStage}, processing...`);
+      console.log(`[GuidedChatService] FLOW DEBUG: Current stage: ${currentStage}, processing stage transition...`);
 
       switch (currentStage) {
         case 'introduction':
           // After introduction, move to interest expression
           nextStage = 'interest_expression';
           stageData.selectedIntroPrompt = promptText;
-          console.log('[GuidedChatService] Moving from introduction to interest_expression');
+          console.log('[GuidedChatService] FLOW DEBUG: Moving from introduction to interest_expression');
           break;
         
         case 'interest_expression':
-          console.log('[GuidedChatService] CRITICAL: Processing interest expression - this should create chat request!');
-          console.log(`[GuidedChatService] About to create chat request for caregiver: ${caregiver.id}`);
+          console.log('[GuidedChatService] FLOW DEBUG: CRITICAL STAGE - Processing interest expression!');
+          console.log(`[GuidedChatService] FLOW DEBUG: About to create chat request for caregiver: ${caregiver.id}`);
           
-          // Create chat request and move to waiting
+          // THIS IS THE KEY FIX - Create chat request and move to waiting
           const chatRequest = await this.createChatRequest(caregiver.id, promptText);
           if (!chatRequest) {
-            console.error('[GuidedChatService] FAILED TO CREATE CHAT REQUEST!');
-            return { success: false, error: "Failed to create chat request" };
+            console.error('[GuidedChatService] FLOW DEBUG: FAILED TO CREATE CHAT REQUEST!');
+            return { success: false, error: "Failed to create chat request. Please try again." };
           }
           
-          console.log('[GuidedChatService] SUCCESS: Chat request created, moving to waiting_acceptance');
+          console.log('[GuidedChatService] FLOW DEBUG: SUCCESS - Chat request created with ID:', chatRequest.id);
           nextStage = 'waiting_acceptance';
           stageData.chatRequestId = chatRequest.id;
+          stageData.interestMessage = promptText;
           break;
         
         case 'guided_qa':
           // Continue in guided Q&A
           stageData.lastQuestion = promptText;
-          console.log('[GuidedChatService] Continuing in guided_qa stage');
+          console.log('[GuidedChatService] FLOW DEBUG: Continuing in guided_qa stage');
           break;
 
         default:
-          console.warn(`[GuidedChatService] Unknown stage: ${currentStage}`);
+          console.warn(`[GuidedChatService] FLOW DEBUG: Unknown stage: ${currentStage}`);
       }
 
       // Update conversation stage
-      console.log(`[GuidedChatService] Updating conversation stage from ${currentStage} to ${nextStage}`);
+      console.log(`[GuidedChatService] FLOW DEBUG: Updating conversation stage from ${currentStage} to ${nextStage}`);
       const stageUpdated = await this.updateConversationStage(sessionId, nextStage as any, stageData);
       
       if (!stageUpdated) {
-        console.error('[GuidedChatService] Failed to update conversation stage');
+        console.error('[GuidedChatService] FLOW DEBUG: Failed to update conversation stage');
         return { success: false, error: "Failed to update conversation stage" };
       }
 
       // Get TAV response
-      console.log('[GuidedChatService] Getting TAV response for stage:', currentStage);
+      console.log('[GuidedChatService] FLOW DEBUG: Getting TAV response for stage:', currentStage);
       const tavResponse = await this.getTavResponse(promptText, caregiver, currentStage, stageData);
 
-      console.log('[GuidedChatService] Prompt selection handled successfully');
+      console.log('[GuidedChatService] FLOW DEBUG: Prompt selection handled successfully, next stage:', nextStage);
       return { 
         success: true, 
         response: tavResponse,
         nextStage 
       };
     } catch (error) {
-      console.error('[GuidedChatService] Error handling prompt selection:', error);
+      console.error('[GuidedChatService] FLOW DEBUG: Error handling prompt selection:', error);
       return { success: false, error: "Something went wrong. Please try again." };
     }
   }
