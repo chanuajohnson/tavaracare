@@ -1,7 +1,51 @@
-
+.
 import { Profile } from "../types/profile";
 import type { DbProfile, DbProfileInsert } from "../types/profile";
 import { fromJson, toJson } from "../utils/json";
+
+/**
+ * Parse care schedule from various formats to ensure consistency
+ */
+const parseCareSchedule = (scheduleData: any): string => {
+  if (!scheduleData) return '';
+  
+  // If it's already a string, return as-is
+  if (typeof scheduleData === 'string') {
+    return scheduleData;
+  }
+  
+  // If it's an array, join with commas
+  if (Array.isArray(scheduleData)) {
+    return scheduleData.join(',');
+  }
+  
+  // Try to parse as JSON if it looks like JSON
+  try {
+    const parsed = JSON.parse(scheduleData);
+    if (Array.isArray(parsed)) {
+      return parsed.join(',');
+    }
+    return String(parsed);
+  } catch {
+    return String(scheduleData);
+  }
+};
+
+/**
+ * Parse care schedule string to array for frontend use
+ */
+const parseCareScheduleToArray = (scheduleString: string | null | undefined): string[] => {
+  if (!scheduleString) return [];
+  
+  try {
+    // Try parsing as JSON first (for backward compatibility)
+    const parsed = JSON.parse(scheduleString);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    // Parse as comma-separated string
+    return scheduleString.split(',').map(s => s.trim()).filter(s => s.length > 0);
+  }
+};
 
 /**
  * Adapts a frontend Profile to a database-ready object
@@ -24,7 +68,7 @@ export function adaptProfileToDb(profile: Partial<Profile>): DbProfileInsert {
     other_special_needs: profile.otherSpecialNeeds,
     caregiver_type: profile.caregiverType,
     preferred_contact_method: profile.preferredContactMethod,
-    care_schedule: profile.careSchedule,
+    care_schedule: parseCareSchedule(profile.careSchedule), // Ensure consistent format
     budget_preferences: profile.budgetPreferences,
     caregiver_preferences: profile.caregiverPreferences,
     additional_notes: profile.additionalNotes,
@@ -96,7 +140,7 @@ export function adaptProfileFromDb(dbProfile: DbProfile): Profile {
     otherSpecialNeeds: dbProfile.other_special_needs,
     caregiverType: dbProfile.caregiver_type,
     preferredContactMethod: dbProfile.preferred_contact_method,
-    careSchedule: dbProfile.care_schedule,
+    careSchedule: dbProfile.care_schedule, // Keep as string for consistency
     budgetPreferences: dbProfile.budget_preferences,
     caregiverPreferences: dbProfile.caregiver_preferences,
     additionalNotes: dbProfile.additional_notes,
@@ -141,6 +185,9 @@ export function adaptProfileFromDb(dbProfile: DbProfile): Profile {
     communityMotivation: dbProfile.community_motivation,
     improvementIdeas: dbProfile.improvement_ideas,
     listInCommunityDirectory: dbProfile.list_in_community_directory,
-    enableCommunityNotifications: dbProfile.enable_community_notifications
+    enableCommun ityNotifications: dbProfile.enable_community_notifications
   };
 }
+
+// Export parsing utilities for use in matching algorithms
+export { parseCareSchedule, parseCareScheduleToArray };

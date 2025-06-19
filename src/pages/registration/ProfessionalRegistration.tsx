@@ -18,6 +18,9 @@ import { getPrefillDataFromUrl, applyPrefillDataToForm } from '../../utils/chat/
 import { clearChatSessionData } from '../../utils/chat/chatSessionUtils';
 import { setAuthFlowFlag, AUTH_FLOW_FLAGS } from "@/utils/authFlowUtils";
 
+// Import standardized shift options from chat registration flows
+import { STANDARDIZED_SHIFT_OPTIONS } from '../../data/chatRegistrationFlows';
+
 const ProfessionalRegistration = () => {
   const [loading, setLoading] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
@@ -31,7 +34,7 @@ const ProfessionalRegistration = () => {
   const [yearsOfExperience, setYearsOfExperience] = useState('');
   const [specialties, setSpecialties] = useState<string[]>([]);
   const [certifications, setCertifications] = useState<string[]>([]);
-  const [availability, setAvailability] = useState<string[]>([]);
+  const [careSchedule, setCareSchedule] = useState<string[]>([]); // Changed from availability to careSchedule
   const [customAvailability, setCustomAvailability] = useState('');
   const [preferredLocations, setPreferredLocations] = useState('');
   const [hourlyRate, setHourlyRate] = useState('');
@@ -118,8 +121,8 @@ const ProfessionalRegistration = () => {
           setSpecialties(value);
         } else if (field === 'certifications' && Array.isArray(value)) {
           setCertifications(value);
-        } else if (field === 'availability' && Array.isArray(value)) {
-          setAvailability(value);
+        } else if (field === 'care_schedule' && Array.isArray(value)) {
+          setCareSchedule(value);
         } else if (field === 'languages' && Array.isArray(value)) {
           setLanguages(value);
         }
@@ -165,8 +168,8 @@ const ProfessionalRegistration = () => {
     }
   }, [prefillApplied, shouldAutoSubmit, user]);
 
-  const handleAvailabilityChange = (value: string) => {
-    setAvailability(prev => {
+  const handleCareScheduleChange = (value: string) => {
+    setCareSchedule(prev => {
       if (prev.includes(value)) {
         return prev.filter(item => item !== value);
       } else {
@@ -256,7 +259,7 @@ const ProfessionalRegistration = () => {
         years_of_experience: yearsOfExperience,
         specialties: specialties || [],
         certifications: certifications || [],
-        availability: availability || [],
+        care_schedule: careSchedule.join(',') || '', // Changed to match family registration format
         custom_availability: customAvailability || '',
         preferred_work_locations: preferredLocations || '',
         hourly_rate: hourlyRate || '',
@@ -460,32 +463,32 @@ const ProfessionalRegistration = () => {
                     <div className="pl-7 space-y-3">
                       <div className="flex items-start space-x-2">
                         <Checkbox 
-                          id="weekday-standard" 
-                          checked={availability.includes('weekday_standard')}
-                          onCheckedChange={() => handleAvailabilityChange('weekday_standard')}
+                          id="mon_fri_8am_4pm" 
+                          checked={careSchedule.includes('mon_fri_8am_4pm')}
+                          onCheckedChange={() => handleCareScheduleChange('mon_fri_8am_4pm')}
                         />
-                        <Label htmlFor="weekday-standard" className="font-normal">
+                        <Label htmlFor="mon_fri_8am_4pm" className="font-normal">
                           ☀️ Monday – Friday, 8 AM – 4 PM (Standard daytime coverage)
                         </Label>
                       </div>
                       <div className="flex items-start space-x-2">
                         <Checkbox 
-                          id="weekday-extended-8-6" 
-                          checked={availability.includes('weekday_extended_8_6')}
-                          onCheckedChange={() => handleAvailabilityChange('weekday_extended_8_6')}
+                          id="mon_fri_8am_6pm" 
+                          checked={careSchedule.includes('mon_fri_8am_6pm')}
+                          onCheckedChange={() => handleCareScheduleChange('mon_fri_8am_6pm')}
                         />
-                        <Label htmlFor="weekday-extended-8-6" className="font-normal">
+                        <Label htmlFor="mon_fri_8am_6pm" className="font-normal">
                           🕕 Monday – Friday, 8 AM – 6 PM (Extended daytime coverage)
                         </Label>
                       </div>
                       <div className="flex items-start space-x-2">
                         <Checkbox 
-                          id="weekday-extended-6-6" 
-                          checked={availability.includes('weekday_extended_6_6')}
-                          onCheckedChange={() => handleAvailabilityChange('weekday_extended_6_6')}
+                          id="mon_fri_6am_6pm" 
+                          checked={careSchedule.includes('mon_fri_6am_6pm')}
+                          onCheckedChange={() => handleCareScheduleChange('mon_fri_6am_6pm')}
                         />
-                        <Label htmlFor="weekday-extended-6-6" className="font-normal">
-                          🕕 Monday – Friday, 6 AM – 6 PM (Extended daytime coverage)
+                        <Label htmlFor="mon_fri_6am_6pm" className="font-normal">
+                          🕕 Monday – Friday, 6 AM – 6 PM (Full daytime coverage)
                         </Label>
                       </div>
                     </div>
@@ -499,12 +502,22 @@ const ProfessionalRegistration = () => {
                     <div className="pl-7 space-y-3">
                       <div className="flex items-start space-x-2">
                         <Checkbox 
-                          id="weekend-day" 
-                          checked={availability.includes('weekend_day')}
-                          onCheckedChange={() => handleAvailabilityChange('weekend_day')}
+                          id="sat_sun_6am_6pm" 
+                          checked={careSchedule.includes('sat_sun_6am_6pm')}
+                          onCheckedChange={() => handleCareScheduleChange('sat_sun_6am_6pm')}
                         />
-                        <Label htmlFor="weekend-day" className="font-normal">
-                          🌞 Saturday – Sunday, 6 AM – 6 PM (Daytime weekend coverage)
+                        <Label htmlFor="sat_sun_6am_6pm" className="font-normal">
+                          🌞 Saturday – Sunday, 6 AM – 6 PM (Weekend daytime coverage)
+                        </Label>
+                      </div>
+                      <div className="flex items-start space-x-2">
+                        <Checkbox 
+                          id="sat_sun_8am_4pm" 
+                          checked={careSchedule.includes('sat_sun_8am_4pm')}
+                          onCheckedChange={() => handleCareScheduleChange('sat_sun_8am_4pm')}
+                        />
+                        <Label htmlFor="sat_sun_8am_4pm" className="font-normal">
+                          ☀️ Saturday – Sunday, 8 AM – 4 PM (Weekend standard hours)
                         </Label>
                       </div>
                     </div>
@@ -518,62 +531,82 @@ const ProfessionalRegistration = () => {
                     <div className="pl-7 space-y-3">
                       <div className="flex items-start space-x-2">
                         <Checkbox 
-                          id="evening-4-6" 
-                          checked={availability.includes('evening_4_6')}
-                          onCheckedChange={() => handleAvailabilityChange('evening_4_6')}
+                          id="weekday_evening_4pm_6am" 
+                          checked={careSchedule.includes('weekday_evening_4pm_6am')}
+                          onCheckedChange={() => handleCareScheduleChange('weekday_evening_4pm_6am')}
                         />
-                        <Label htmlFor="evening-4-6" className="font-normal">
+                        <Label htmlFor="weekday_evening_4pm_6am" className="font-normal">
                           🌙 Weekday Evening Shift (4 PM – 6 AM)
                         </Label>
                       </div>
                       <div className="flex items-start space-x-2">
                         <Checkbox 
-                          id="evening-4-8" 
-                          checked={availability.includes('evening_4_8')}
-                          onCheckedChange={() => handleAvailabilityChange('evening_4_8')}
+                          id="weekday_evening_4pm_8am" 
+                          checked={careSchedule.includes('weekday_evening_4pm_8am')}
+                          onCheckedChange={() => handleCareScheduleChange('weekday_evening_4pm_8am')}
                         />
-                        <Label htmlFor="evening-4-8" className="font-normal">
+                        <Label htmlFor="weekday_evening_4pm_8am" className="font-normal">
                           🌙 Weekday Evening Shift (4 PM – 8 AM)
                         </Label>
                       </div>
                       <div className="flex items-start space-x-2">
                         <Checkbox 
-                          id="evening-5-5" 
-                          checked={availability.includes('evening_5_5')}
-                          onCheckedChange={() => handleAvailabilityChange('evening_5_5')}
+                          id="weekday_evening_5pm_5am" 
+                          checked={careSchedule.includes('weekday_evening_5pm_5am')}
+                          onCheckedChange={() => handleCareScheduleChange('weekday_evening_5pm_5am')}
                         />
-                        <Label htmlFor="evening-5-5" className="font-normal">
+                        <Label htmlFor="weekday_evening_5pm_5am" className="font-normal">
                           🌙 Weekday Evening Shift (5 PM – 5 AM)
                         </Label>
                       </div>
                       <div className="flex items-start space-x-2">
                         <Checkbox 
-                          id="evening-5-8" 
-                          checked={availability.includes('evening_5_8')}
-                          onCheckedChange={() => handleAvailabilityChange('evening_5_8')}
+                          id="weekday_evening_5pm_8am" 
+                          checked={careSchedule.includes('weekday_evening_5pm_8am')}
+                          onCheckedChange={() => handleCareScheduleChange('weekday_evening_5pm_8am')}
                         />
-                        <Label htmlFor="evening-5-8" className="font-normal">
+                        <Label htmlFor="weekday_evening_5pm_8am" className="font-normal">
                           🌙 Weekday Evening Shift (5 PM – 8 AM)
                         </Label>
                       </div>
                       <div className="flex items-start space-x-2">
                         <Checkbox 
-                          id="evening-6-6" 
-                          checked={availability.includes('evening_6_6')}
-                          onCheckedChange={() => handleAvailabilityChange('evening_6_6')}
+                          id="weekday_evening_6pm_6am" 
+                          checked={careSchedule.includes('weekday_evening_6pm_6am')}
+                          onCheckedChange={() => handleCareScheduleChange('weekday_evening_6pm_6am')}
                         />
-                        <Label htmlFor="evening-6-6" className="font-normal">
+                        <Label htmlFor="weekday_evening_6pm_6am" className="font-normal">
                           🌙 Weekday Evening Shift (6 PM – 6 AM)
                         </Label>
                       </div>
                       <div className="flex items-start space-x-2">
                         <Checkbox 
-                          id="evening-6-8" 
-                          checked={availability.includes('evening_6_8')}
-                          onCheckedChange={() => handleAvailabilityChange('evening_6_8')}
+                          id="weekday_evening_6pm_8am" 
+                          checked={careSchedule.includes('weekday_evening_6pm_8am')}
+                          onCheckedChange={() => handleCareScheduleChange('weekday_evening_6pm_8am')}
                         />
-                        <Label htmlFor="evening-6-8" className="font-normal">
+                        <Label htmlFor="weekday_evening_6pm_8am" className="font-normal">
                           🌙 Weekday Evening Shift (6 PM – 8 AM)
+                        </Label>
+                      </div>
+                      <div className="flex items-start space-x-2">
+                        <Checkbox 
+                          id="weekend_evening_4pm_6am" 
+                          checked={careSchedule.includes('weekend_evening_4pm_6am')}
+                          onCheckedChange={() => handleCareScheduleChange('weekend_evening_4pm_6am')}
+                        />
+                        <Label htmlFor="weekend_evening_4pm_6am" className="font-normal">
+                          🌆 Weekend Evening Shift (4 PM – 6 AM)
+                        </Label>
+                      </div>
+                      <div className="flex items-start space-x-2">
+                        <Checkbox 
+                          id="weekend_evening_6pm_6am" 
+                          checked={careSchedule.includes('weekend_evening_6pm_6am')}
+                          onCheckedChange={() => handleCareScheduleChange('weekend_evening_6pm_6am')}
+                        />
+                        <Label htmlFor="weekend_evening_6pm_6am" className="font-normal">
+                          🌆 Weekend Evening Shift (6 PM – 6 AM)
                         </Label>
                       </div>
                     </div>
@@ -582,14 +615,14 @@ const ProfessionalRegistration = () => {
                   <div className="space-y-3">
                     <div className="flex items-center gap-2">
                       <Clock className="h-5 w-5 text-primary" />
-                      <span className="font-medium">Other Options</span>
+                      <span className="font-medium">Extended Coverage Options</span>
                     </div>
                     <div className="pl-7 space-y-3">
                       <div className="flex items-start space-x-2">
                         <Checkbox 
                           id="flexible" 
-                          checked={availability.includes('flexible')}
-                          onCheckedChange={() => handleAvailabilityChange('flexible')}
+                          checked={careSchedule.includes('flexible')}
+                          onCheckedChange={() => handleCareScheduleChange('flexible')}
                         />
                         <Label htmlFor="flexible" className="font-normal">
                           ⏳ Flexible / On-Demand Availability
@@ -597,46 +630,46 @@ const ProfessionalRegistration = () => {
                       </div>
                       <div className="flex items-start space-x-2">
                         <Checkbox 
-                          id="live-in" 
-                          checked={availability.includes('live_in')}
-                          onCheckedChange={() => handleAvailabilityChange('live_in')}
+                          id="live_in_care" 
+                          checked={careSchedule.includes('live_in_care')}
+                          onCheckedChange={() => handleCareScheduleChange('live_in_care')}
                         />
-                        <Label htmlFor="live-in" className="font-normal">
+                        <Label htmlFor="live_in_care" className="font-normal">
                           🏡 Live-In Care (Full-time in-home support)
                         </Label>
                       </div>
                       <div className="flex items-start space-x-2">
                         <Checkbox 
-                          id="care-24-7" 
-                          checked={availability.includes('care_24_7')}
-                          onCheckedChange={() => handleAvailabilityChange('care_24_7')}
+                          id="24_7_care" 
+                          checked={careSchedule.includes('24_7_care')}
+                          onCheckedChange={() => handleCareScheduleChange('24_7_care')}
                         />
-                        <Label htmlFor="care-24-7" className="font-normal">
+                        <Label htmlFor="24_7_care" className="font-normal">
                           🕐 24/7 Care Availability
                         </Label>
                       </div>
                       <div className="flex items-start space-x-2">
                         <Checkbox 
-                          id="around-clock" 
-                          checked={availability.includes('around_clock')}
-                          onCheckedChange={() => handleAvailabilityChange('around_clock')}
+                          id="around_clock_shifts" 
+                          checked={careSchedule.includes('around_clock_shifts')}
+                          onCheckedChange={() => handleCareScheduleChange('around_clock_shifts')}
                         />
-                        <Label htmlFor="around-clock" className="font-normal">
-                          🌅 Around-the-Clock Shifts
+                        <Label htmlFor="around_clock_shifts" className="font-normal">
+                          🌅 Around-the-Clock Shifts (Multiple caregivers rotating)
                         </Label>
                       </div>
                       <div className="flex items-start space-x-2">
                         <Checkbox 
-                          id="custom" 
-                          checked={availability.includes('custom')}
-                          onCheckedChange={() => handleAvailabilityChange('custom')}
+                          id="other" 
+                          checked={careSchedule.includes('other')}
+                          onCheckedChange={() => handleCareScheduleChange('other')}
                         />
-                        <Label htmlFor="custom" className="font-normal">
-                          ✏️ Other (Custom availability — specify your hours)
+                        <Label htmlFor="other" className="font-normal">
+                          ✏️ Other (Custom shift — specify your hours)
                         </Label>
                       </div>
                       
-                      {availability.includes('custom') && (
+                      {careSchedule.includes('other') && (
                         <div className="pt-2 pl-6">
                           <Label htmlFor="customAvailability" className="text-sm mb-1 block">Please specify your custom availability:</Label>
                           <Textarea
