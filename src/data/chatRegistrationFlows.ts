@@ -1,3 +1,4 @@
+
 import { UserRole } from "@/types/userRoles";
 
 interface RegistrationOption {
@@ -27,8 +28,8 @@ interface RegistrationSection {
 // Type alias for compatibility with existing imports
 export type ChatRegistrationQuestion = RegistrationQuestion;
 
-// Standardized shift options that align with the matching algorithm
-const STANDARDIZED_SHIFT_OPTIONS = [
+// Standardized shift options that align with the matching algorithm - NOW EXPORTED
+export const STANDARDIZED_SHIFT_OPTIONS = [
   // Standard Weekday Shifts
   { value: "mon_fri_8am_4pm", label: "☀️ Monday – Friday, 8 AM – 4 PM (Standard daytime coverage)" },
   { value: "mon_fri_8am_6pm", label: "🕕 Monday – Friday, 8 AM – 6 PM (Extended daytime coverage)" },
