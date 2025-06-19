@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { supabase } from "@/lib/supabase";
@@ -25,7 +24,6 @@ interface Family {
 interface ProfessionalScheduleData {
   care_schedule?: string;
   care_types?: string[] | null;
-  specialties?: string[] | null;
 }
 
 const MOCK_FAMILIES: Family[] = [{
@@ -202,7 +200,7 @@ export const useFamilyMatches = (showOnlyBestMatch: boolean = false) => {
       try {
         const { data: professionalProfile, error: profileError } = await supabase
           .from('profiles')
-          .select('care_schedule, care_types, specialties')
+          .select('care_schedule, care_types')
           .eq('id', user.id)
           .maybeSingle();
         
