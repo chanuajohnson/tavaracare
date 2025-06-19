@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { GuidedCaregiverChatService, ChatConversationFlow, ChatPromptTemplate } from '@/components/tav/services/guidedCaregiverChatService';
 import { useChatPersistence } from './useChatPersistence';
@@ -16,12 +17,15 @@ export const useGuidedCaregiverChat = ({ caregiverId, caregiver }: UseGuidedCare
   const [currentStage, setCurrentStage] = useState<string>('introduction');
   const [error, setError] = useState<string | null>(null);
 
-  // Use persistence hook
-  const { chatState, saveChatState, isLoading: persistenceLoading } = useChatPersistence(caregiverId);
+  // Use persistence hook with enhanced integration
+  const { chatState, saveChatState, isLoading: persistenceLoading, loadChatState } = useChatPersistence(caregiverId);
 
-  // Initialize conversation
+  // Initialize conversation with persistence integration
   const initializeConversation = useCallback(async () => {
-    console.log(`[useGuidedCaregiverChat] Initializing conversation for caregiver: ${caregiverId}`);
+    console.log(`[useGuidedCaregiverChat] *** ENHANCED INITIALIZATION ***`);
+    console.log(`[useGuidedCaregiverChat] Caregiver ID: ${caregiverId}`);
+    console.log(`[useGuidedCaregiverChat] Chat state:`, chatState);
+    
     setIsLoading(true);
     setError(null);
     
@@ -43,29 +47,31 @@ export const useGuidedCaregiverChat = ({ caregiverId, caregiver }: UseGuidedCare
       const sessionId = chatState?.sessionId || crypto.randomUUID();
       console.log(`[useGuidedCaregiverChat] Using session ID: ${sessionId}`);
       
-      // Initialize conversation flow with proper UUID
-      console.log('[useGuidedCaregiverChat] Initializing conversation flow...');
+      // Initialize or get existing conversation flow
       let flow = await chatService.getConversationFlow(sessionId);
       
       if (!flow) {
+        console.log('[useGuidedCaregiverChat] No existing flow, creating new one');
         flow = await chatService.initializeConversationFlow(sessionId);
+      } else {
+        console.log('[useGuidedCaregiverChat] Found existing conversation flow:', flow);
       }
       
       if (flow) {
-        console.log('[useGuidedCaregiverChat] Conversation flow initialized successfully:', flow);
         setConversationFlow(flow);
         
         // Restore stage from persistence or use flow stage
         const stageToUse = chatState?.currentStage || flow.current_stage;
         setCurrentStage(stageToUse);
         
-        // Save to persistence if not already saved
-        if (!chatState?.sessionId) {
+        // Save to persistence if not already saved or if stage changed
+        if (!chatState?.sessionId || chatState.currentStage !== stageToUse) {
           saveChatState({
             sessionId,
             caregiverId,
             currentStage: stageToUse,
-            hasStartedChat: false
+            hasStartedChat: chatState?.hasStartedChat || false,
+            chatRequestId: chatState?.chatRequestId
           });
         }
         
@@ -75,7 +81,7 @@ export const useGuidedCaregiverChat = ({ caregiverId, caregiver }: UseGuidedCare
         console.log(`[useGuidedCaregiverChat] Loaded ${templates.length} templates:`, templates);
         setPromptTemplates(templates);
         
-        // Set appropriate welcome message based on stage
+        // Set appropriate welcome message based on stage and chat state
         if (stageToUse === 'waiting_acceptance') {
           setMessages([{
             content: `💙 Your chat request has been sent! The professional caregiver will be notified and typically responds within a few hours.`,
@@ -88,6 +94,12 @@ export const useGuidedCaregiverChat = ({ caregiverId, caregiver }: UseGuidedCare
             isUser: false,
             timestamp: Date.now()
           }]);
+        } else if (chatState?.hasStartedChat) {
+          setMessages([{
+            content: `💙 Welcome back! Let's continue your conversation with this professional caregiver. What would you like to say next?`,
+            isUser: false,
+            timestamp: Date.now()
+          }]);
         } else {
           setMessages([{
             content: `💙 Hi! I'm TAV, your care coordinator. I'll help you connect with this professional caregiver in a safe and structured way. Choose how you'd like to start the conversation:`,
@@ -96,7 +108,7 @@ export const useGuidedCaregiverChat = ({ caregiverId, caregiver }: UseGuidedCare
           }]);
         }
         
-        console.log('[useGuidedCaregiverChat] Initialization completed successfully');
+        console.log('[useGuidedCaregiverChat] ✅ Initialization completed successfully');
       } else {
         console.error('[useGuidedCaregiverChat] Failed to initialize conversation flow');
         setError('Failed to initialize conversation');
@@ -119,7 +131,7 @@ export const useGuidedCaregiverChat = ({ caregiverId, caregiver }: UseGuidedCare
     }
   }, [caregiverId, chatService, chatState, saveChatState]);
 
-  // Handle prompt selection with improved error handling
+  // Handle prompt selection with enhanced persistence
   const handlePromptSelection = useCallback(async (promptText: string) => {
     if (!conversationFlow) {
       console.error('[useGuidedCaregiverChat] No conversation flow available for prompt selection');
@@ -127,9 +139,8 @@ export const useGuidedCaregiverChat = ({ caregiverId, caregiver }: UseGuidedCare
       return;
     }
 
-    console.log(`[useGuidedCaregiverChat] FLOW DEBUG: Handling prompt selection in stage: ${currentStage}`);
-    console.log(`[useGuidedCaregiverChat] FLOW DEBUG: Prompt text: "${promptText}"`);
-    console.log(`[useGuidedCaregiverChat] FLOW DEBUG: Caregiver ID: ${caregiver.id}`);
+    console.log(`[useGuidedCaregiverChat] *** ENHANCED PROMPT SELECTION ***`);
+    console.log(`[useGuidedCaregiverChat] Stage: ${currentStage}, Prompt: "${promptText}"`);
 
     setIsLoading(true);
     setError(null);
@@ -142,8 +153,7 @@ export const useGuidedCaregiverChat = ({ caregiverId, caregiver }: UseGuidedCare
         timestamp: Date.now()
       }]);
 
-      // Handle the selection with detailed error reporting
-      console.log('[useGuidedCaregiverChat] FLOW DEBUG: Calling chatService.handlePromptSelection...');
+      // Handle the selection with enhanced error reporting
       const result = await chatService.handlePromptSelection(
         conversationFlow.session_id,
         promptText,
@@ -151,7 +161,7 @@ export const useGuidedCaregiverChat = ({ caregiverId, caregiver }: UseGuidedCare
         currentStage
       );
 
-      console.log('[useGuidedCaregiverChat] FLOW DEBUG: Prompt selection result:', result);
+      console.log('[useGuidedCaregiverChat] Prompt selection result:', result);
 
       if (result.success && result.response) {
         // Add TAV response
@@ -161,32 +171,39 @@ export const useGuidedCaregiverChat = ({ caregiverId, caregiver }: UseGuidedCare
           timestamp: Date.now()
         }]);
 
-        // Update stage if changed
+        // Update stage if changed and save to persistence
         if (result.nextStage && result.nextStage !== currentStage) {
-          console.log(`[useGuidedCaregiverChat] FLOW DEBUG: Stage transition: ${currentStage} -> ${result.nextStage}`);
+          console.log(`[useGuidedCaregiverChat] Stage transition: ${currentStage} -> ${result.nextStage}`);
           setCurrentStage(result.nextStage);
           
-          // Update persistence
+          // Update persistence with enhanced data
           saveChatState({
             currentStage: result.nextStage,
             hasStartedChat: true,
-            chatRequestId: result.chatRequestId
+            chatRequestId: result.chatRequestId || chatState?.chatRequestId
           });
           
           // Load new prompt templates for the next stage
           if (result.nextStage !== 'waiting_acceptance') {
-            console.log(`[useGuidedCaregiverChat] FLOW DEBUG: Loading templates for new stage: ${result.nextStage}`);
+            console.log(`[useGuidedCaregiverChat] Loading templates for new stage: ${result.nextStage}`);
             const templates = await chatService.getPromptTemplates(result.nextStage);
-            console.log(`[useGuidedCaregiverChat] FLOW DEBUG: Loaded ${templates.length} templates for ${result.nextStage}`);
+            console.log(`[useGuidedCaregiverChat] Loaded ${templates.length} templates for ${result.nextStage}`);
             setPromptTemplates(templates);
           } else {
             // Clear templates during waiting stage
-            console.log('[useGuidedCaregiverChat] FLOW DEBUG: Clearing templates for waiting stage');
+            console.log('[useGuidedCaregiverChat] Clearing templates for waiting stage');
             setPromptTemplates([]);
+          }
+        } else {
+          // Mark as started even if stage didn't change
+          if (!chatState?.hasStartedChat) {
+            saveChatState({
+              hasStartedChat: true
+            });
           }
         }
       } else if (result.error) {
-        console.error('[useGuidedCaregiverChat] FLOW DEBUG: Prompt selection error:', result.error);
+        console.error('[useGuidedCaregiverChat] Prompt selection error:', result.error);
         setError(result.error);
         setMessages(prev => [...prev, {
           content: `💙 ${result.error}`,
@@ -194,7 +211,7 @@ export const useGuidedCaregiverChat = ({ caregiverId, caregiver }: UseGuidedCare
           timestamp: Date.now()
         }]);
       } else {
-        console.error('[useGuidedCaregiverChat] FLOW DEBUG: Unexpected result format:', result);
+        console.error('[useGuidedCaregiverChat] Unexpected result format:', result);
         setError('Unexpected response format');
         setMessages(prev => [...prev, {
           content: '💙 Something unexpected happened. Please try again.',
@@ -203,7 +220,7 @@ export const useGuidedCaregiverChat = ({ caregiverId, caregiver }: UseGuidedCare
         }]);
       }
     } catch (error) {
-      console.error('[useGuidedCaregiverChat] FLOW DEBUG: Error handling prompt selection:', error);
+      console.error('[useGuidedCaregiverChat] Error handling prompt selection:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
       setError(errorMessage);
       setMessages(prev => [...prev, {
@@ -214,23 +231,28 @@ export const useGuidedCaregiverChat = ({ caregiverId, caregiver }: UseGuidedCare
     } finally {
       setIsLoading(false);
     }
-  }, [conversationFlow, currentStage, caregiver, chatService, saveChatState]);
+  }, [conversationFlow, currentStage, caregiver, chatService, saveChatState, chatState]);
 
-  // Check for caregiver response (for waiting stage)
+  // Enhanced caregiver response checking with persistence integration
   const checkCaregiverResponse = useCallback(async () => {
     if (currentStage !== 'waiting_acceptance') return;
 
-    console.log('[useGuidedCaregiverChat] FLOW DEBUG: Checking caregiver response...');
+    console.log('[useGuidedCaregiverChat] Checking caregiver response...');
     try {
       const chatRequest = await chatService.getChatRequestStatus(caregiverId);
-      console.log('[useGuidedCaregiverChat] FLOW DEBUG: Chat request status:', chatRequest);
+      console.log('[useGuidedCaregiverChat] Chat request status:', chatRequest);
       
       if (chatRequest && chatRequest.status === 'accepted') {
-        console.log('[useGuidedCaregiverChat] FLOW DEBUG: Caregiver accepted the request!');
-        // Caregiver accepted! Move to guided Q&A
+        console.log('[useGuidedCaregiverChat] Caregiver accepted the request!');
+        
         if (conversationFlow) {
           await chatService.updateConversationStage(conversationFlow.session_id, 'guided_qa');
           setCurrentStage('guided_qa');
+          
+          // Update persistence
+          saveChatState({
+            currentStage: 'guided_qa'
+          });
           
           // Load guided Q&A templates
           const templates = await chatService.getPromptTemplates('guided_qa');
@@ -244,7 +266,8 @@ export const useGuidedCaregiverChat = ({ caregiverId, caregiver }: UseGuidedCare
           }]);
         }
       } else if (chatRequest && chatRequest.status === 'declined') {
-        console.log('[useGuidedCaregiverChat] FLOW DEBUG: Caregiver declined the request');
+        console.log('[useGuidedCaregiverChat] Caregiver declined the request');
+        
         // Caregiver declined - anonymized
         setMessages(prev => [...prev, {
           content: `💙 This caregiver is not available right now, but don't worry - we have many other amazing caregivers who would love to help your family. Would you like me to show you more matches?`,
@@ -254,17 +277,17 @@ export const useGuidedCaregiverChat = ({ caregiverId, caregiver }: UseGuidedCare
         setPromptTemplates([]);
       }
     } catch (error) {
-      console.error('[useGuidedCaregiverChat] FLOW DEBUG: Error checking caregiver response:', error);
+      console.error('[useGuidedCaregiverChat] Error checking caregiver response:', error);
     }
-  }, [currentStage, caregiverId, conversationFlow, chatService]);
+  }, [currentStage, caregiverId, conversationFlow, chatService, saveChatState]);
 
   // Poll for caregiver response during waiting stage
   useEffect(() => {
     if (currentStage === 'waiting_acceptance') {
-      console.log('[useGuidedCaregiverChat] FLOW DEBUG: Starting polling for caregiver response...');
+      console.log('[useGuidedCaregiverChat] Starting polling for caregiver response...');
       const interval = setInterval(checkCaregiverResponse, 5000); // Check every 5 seconds
       return () => {
-        console.log('[useGuidedCaregiverChat] FLOW DEBUG: Stopping polling for caregiver response');
+        console.log('[useGuidedCaregiverChat] Stopping polling for caregiver response');
         clearInterval(interval);
       };
     }

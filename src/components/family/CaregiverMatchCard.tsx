@@ -2,8 +2,9 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { MapPin, Star, MessageCircle } from "lucide-react";
+import { MapPin, Star, MessageCircle, Loader2 } from "lucide-react";
 import { SubscriptionFeatureLink } from "@/components/subscription/SubscriptionFeatureLink";
+import { useChatButtonState } from "@/hooks/useChatButtonState";
 
 interface Caregiver {
   id: string;
@@ -33,6 +34,17 @@ export const CaregiverMatchCard = ({
   showUnlockButton = true,
   onStartChat
 }: CaregiverMatchCardProps) => {
+  const { buttonState, hasActiveChat } = useChatButtonState(caregiver.id);
+
+  const handleChatClick = () => {
+    console.log(`[CaregiverMatchCard] Chat button clicked for caregiver: ${caregiver.id}`);
+    console.log(`[CaregiverMatchCard] Has active chat: ${hasActiveChat}, Button state:`, buttonState);
+    
+    if (onStartChat && !buttonState.isDisabled) {
+      onStartChat();
+    }
+  };
+
   return (
     <div className={`p-4 rounded-lg border ${caregiver.is_premium ? 'border-amber-300' : 'border-gray-200'} relative`}>
       {caregiver.is_premium && (
@@ -98,12 +110,18 @@ export const CaregiverMatchCard = ({
             <>
               {onStartChat ? (
                 <Button
-                  variant="default"
+                  variant={buttonState.variant}
                   className="w-full"
-                  onClick={onStartChat}
+                  onClick={handleChatClick}
+                  disabled={buttonState.isDisabled}
                 >
-                  <MessageCircle className="h-4 w-4 mr-2" />
-                  Chat with Match
+                  {buttonState.showSpinner && (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  )}
+                  {!buttonState.showSpinner && (
+                    <MessageCircle className="h-4 w-4 mr-2" />
+                  )}
+                  {buttonState.buttonText}
                 </Button>
               ) : (
                 <SubscriptionFeatureLink
