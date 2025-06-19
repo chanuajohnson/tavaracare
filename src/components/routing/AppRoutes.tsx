@@ -48,6 +48,9 @@ import CarePlanDetailPage from "@/pages/family/care-management/CarePlanDetailPag
 import CreateCarePlanPage from "@/pages/family/care-management/CreateCarePlanPage";
 import CareJourneyProgressPage from "@/pages/family/CareJourneyProgressPage";
 
+// Profile Pages
+import ProfileEditPage from "@/pages/profile/ProfileEditPage";
+
 // Community Pages
 import CommunityFeaturesOverview from "@/pages/community/CommunityFeaturesOverview";
 
@@ -87,6 +90,9 @@ export const AppRoutes = () => {
       <Route path="/dashboard/professional" element={<ProfessionalDashboard />} />
       <Route path="/dashboard/community" element={<CommunityDashboard />} />
       <Route path="/dashboard/admin" element={<AdminDashboard />} />
+      
+      {/* Profile Routes */}
+      <Route path="/profile/edit" element={<ProfileEditPage />} />
       
       {/* Professional Routes */}
       <Route path="/professional" element={<ProfessionalFeaturesOverview />} />
