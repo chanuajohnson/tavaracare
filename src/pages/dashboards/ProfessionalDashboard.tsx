@@ -13,6 +13,7 @@ import { DashboardFamilyMatches } from "@/components/professional/DashboardFamil
 import { CaregiverMatchingCard } from "@/components/professional/CaregiverMatchingCard";
 import { ProfessionalShortcutMenuBar } from "@/components/professional/ProfessionalShortcutMenuBar";
 import { CaregiverHealthCard } from "@/components/professional/CaregiverHealthCard";
+import { ChatRequestsSection } from "@/components/professional/ChatRequestsSection";
 
 const ProfessionalDashboard = () => {
   const { user } = useAuth();
@@ -70,6 +71,18 @@ const ProfessionalDashboard = () => {
 
         {/* Quick Access Menu Bar - Only show when user is logged in */}
         {user && <ProfessionalShortcutMenuBar />}
+
+        {/* Add Chat Requests Section - Only for logged-in users */}
+        {user && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.1 }}
+            className="mt-8"
+          >
+            <ChatRequestsSection />
+          </motion.div>
+        )}
 
         {!user ? (
           <motion.div
