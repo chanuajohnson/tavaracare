@@ -21,7 +21,7 @@ interface GuidedCaregiverChatModalProps {
 export const GuidedCaregiverChatModal = ({ open, onOpenChange, caregiver }: GuidedCaregiverChatModalProps) => {
   const scrollRef = useRef<HTMLDivElement>(null);
   
-  console.log(`[GuidedCaregiverChatModal] Opening modal for caregiver:`, caregiver);
+  console.log(`[GuidedCaregiverChatModal] RENDER: Opening modal for caregiver:`, caregiver);
   
   const {
     messages,
@@ -32,17 +32,18 @@ export const GuidedCaregiverChatModal = ({ open, onOpenChange, caregiver }: Guid
     initializeConversation,
     handlePromptSelection
   } = useGuidedCaregiverChat({
-    caregiverId: caregiver.id,
+    caregiverId: caregiver?.id,
     caregiver
   });
 
-  // Initialize conversation when modal opens
+  // Initialize conversation when modal opens - FIXED TRIGGER
   useEffect(() => {
-    if (open && !conversationFlow) {
-      console.log('[GuidedCaregiverChatModal] Modal opened, initializing conversation...');
+    if (open && caregiver?.id && !conversationFlow) {
+      console.log('[GuidedCaregiverChatModal] RENDER: Modal opened, initializing conversation...');
+      console.log('[GuidedCaregiverChatModal] RENDER: Caregiver ID:', caregiver.id);
       initializeConversation();
     }
-  }, [open, conversationFlow, initializeConversation]);
+  }, [open, caregiver?.id, conversationFlow, initializeConversation]);
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
@@ -62,25 +63,27 @@ export const GuidedCaregiverChatModal = ({ open, onOpenChange, caregiver }: Guid
   }));
 
   const handleOptionSelect = (optionId: string) => {
-    console.log(`[GuidedCaregiverChatModal] Option selected: ${optionId}`);
+    console.log(`[GuidedCaregiverChatModal] RENDER: Option selected: ${optionId}`);
     const selectedTemplate = promptTemplates.find(t => t.id === optionId);
     if (selectedTemplate) {
-      console.log(`[GuidedCaregiverChatModal] Selected template:`, selectedTemplate);
+      console.log(`[GuidedCaregiverChatModal] RENDER: Selected template:`, selectedTemplate);
       handlePromptSelection(selectedTemplate.prompt_text);
     } else {
-      console.error(`[GuidedCaregiverChatModal] Template not found for ID: ${optionId}`);
+      console.error(`[GuidedCaregiverChatModal] RENDER: Template not found for ID: ${optionId}`);
     }
   };
 
-  // Check if we have real caregiver data
-  const isValidCaregiver = caregiver?.id && caregiver.id.length === 36; // UUID length check
+  // Check if we have real caregiver data - ENHANCED VALIDATION
+  const isValidCaregiver = caregiver?.id && 
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(caregiver.id);
 
-  console.log(`[GuidedCaregiverChatModal] Render state:`, {
+  console.log(`[GuidedCaregiverChatModal] RENDER: Render state:`, {
     isValidCaregiver,
     currentStage,
     messagesCount: messages.length,
     promptTemplatesCount: promptTemplates.length,
-    isLoading
+    isLoading,
+    conversationFlowExists: !!conversationFlow
   });
 
   return (
@@ -96,7 +99,7 @@ export const GuidedCaregiverChatModal = ({ open, onOpenChange, caregiver }: Guid
               <div className="flex items-center gap-2 text-sm text-gray-600">
                 <Shield className="h-4 w-4" />
                 <span>TAV-guided conversation</span>
-                {caregiver.is_premium && (
+                {caregiver?.is_premium && (
                   <Badge className="bg-amber-100 text-amber-800 border-amber-300">
                     <Crown className="h-3 w-3 mr-1" />
                     Premium
@@ -106,7 +109,7 @@ export const GuidedCaregiverChatModal = ({ open, onOpenChange, caregiver }: Guid
             </div>
             <div className="text-right">
               <div className="text-lg font-semibold text-green-600">
-                {caregiver.match_score}% Match
+                {caregiver?.match_score || 0}% Match
               </div>
               <div className="text-xs text-gray-500">
                 Professional caregiver
