@@ -10,19 +10,6 @@ import { CaregiverMatchCard } from "./CaregiverMatchCard";
 import { CaregiverProfileModal } from "./CaregiverProfileModal";
 import { CaregiverMatchingModal } from "./CaregiverMatchingModal";
 
-interface Caregiver {
-  id: string;
-  full_name: string;
-  avatar_url: string | null;
-  location: string | null;
-  care_types: string[] | null;
-  years_of_experience: string | null;
-  match_score: number;
-  is_premium: boolean;
-  shift_compatibility_score?: number;
-  match_explanation?: string;
-}
-
 export const DashboardCaregiverMatches = () => {
   const { user } = useAuth();
   const { caregivers, isLoading: hookLoading } = useCaregiverMatches(true);

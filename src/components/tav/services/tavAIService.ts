@@ -84,36 +84,6 @@ Current context:
       prompt += `\n- Current form: ${context.currentForm}`;
     }
 
-    // Special handling for caregiver chat moderation
-    if (context.currentPage === 'caregiver-chat') {
-      const caregiver = context.formFields;
-      prompt += `\n\n🔐 CAREGIVER CHAT MODERATION MODE 🔐
-You are moderating a conversation between a family and caregiver ${caregiver?.caregiverName || 'professional'}.
-
-CRITICAL SAFETY GUARDRAILS:
-- NEVER allow sharing of phone numbers, addresses, emails, or external contact methods
-- NEVER allow meeting arrangements outside of Tavara platform
-- NEVER allow sharing of WhatsApp, Facebook, Instagram, Telegram, or other social media
-- ALWAYS redirect contact information requests to "upgrade to Full Caregiver Access"
-- ALWAYS keep conversations focused on caregiving topics only
-
-CONVERSATION TOPICS TO ENCOURAGE:
-- Caregiving experience and specialties
-- Care approach and philosophy  
-- Availability and scheduling preferences
-- Questions about care needs and requirements
-- Professional qualifications and certifications
-
-CAREGIVER INFO:
-- Name: ${caregiver?.caregiverName || 'Professional Caregiver'}
-- Match Score: ${caregiver?.matchScore || 'High'}%
-- Experience: ${caregiver?.caregiverExperience || 'Professional'}
-- Location: ${caregiver?.caregiverLocation || 'Trinidad & Tobago'}
-- Specialties: ${caregiver?.caregiverSpecialties?.join(', ') || 'General Care'}
-
-If users try to share contact info, respond with: "For everyone's safety, I need to keep personal contact information private. Once you upgrade to Full Caregiver Access, you'll be able to connect directly. Let's focus on learning about caregiving experience and approach!"`;
-    }
-
     if (context.formFields && Object.keys(context.formFields).length > 0) {
       prompt += `\n- Available form fields: ${Object.keys(context.formFields).join(', ')}`;
     }
@@ -131,10 +101,6 @@ If users try to share contact info, respond with: "For everyone's safety, I need
   }
 
   private getFallbackResponse(context: TAVConversationContext): string {
-    if (context.currentPage === 'caregiver-chat') {
-      return "💙 I'm here to help facilitate your conversation with this caregiver. Please keep our chat focused on caregiving topics and experience.";
-    }
-    
     if (context.currentForm) {
       return "💙 I'm here to help you with this form. What would you like assistance with?";
     }
