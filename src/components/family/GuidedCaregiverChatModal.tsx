@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { MessageCircle, Shield, Crown, Loader2, Sparkles, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
-import { useGuidedCaregiverChat } from "@/hooks/chat/useGuidedCaregiverChat";
+import { useGuidedCaregiverChat } from "@/hooks/useGuidedCaregiverChat";
 import { ConversationProgressIndicator } from "./chat/ConversationProgressIndicator";
 import { WaitingForCaregiverState } from "./chat/WaitingForCaregiverState";
 import { ChatOptionsRenderer } from "@/components/chatbot/ChatOptionsRenderer";
@@ -20,6 +20,8 @@ interface GuidedCaregiverChatModalProps {
 
 export const GuidedCaregiverChatModal = ({ open, onOpenChange, caregiver }: GuidedCaregiverChatModalProps) => {
   const scrollRef = useRef<HTMLDivElement>(null);
+  
+  console.log(`[GuidedCaregiverChatModal] Opening modal for caregiver:`, caregiver);
   
   const {
     messages,
@@ -37,6 +39,7 @@ export const GuidedCaregiverChatModal = ({ open, onOpenChange, caregiver }: Guid
   // Initialize conversation when modal opens
   useEffect(() => {
     if (open && !conversationFlow) {
+      console.log('[GuidedCaregiverChatModal] Modal opened, initializing conversation...');
       initializeConversation();
     }
   }, [open, conversationFlow, initializeConversation]);
@@ -59,14 +62,26 @@ export const GuidedCaregiverChatModal = ({ open, onOpenChange, caregiver }: Guid
   }));
 
   const handleOptionSelect = (optionId: string) => {
+    console.log(`[GuidedCaregiverChatModal] Option selected: ${optionId}`);
     const selectedTemplate = promptTemplates.find(t => t.id === optionId);
     if (selectedTemplate) {
+      console.log(`[GuidedCaregiverChatModal] Selected template:`, selectedTemplate);
       handlePromptSelection(selectedTemplate.prompt_text);
+    } else {
+      console.error(`[GuidedCaregiverChatModal] Template not found for ID: ${optionId}`);
     }
   };
 
   // Check if we have real caregiver data
   const isValidCaregiver = caregiver?.id && caregiver.id.length === 36; // UUID length check
+
+  console.log(`[GuidedCaregiverChatModal] Render state:`, {
+    isValidCaregiver,
+    currentStage,
+    messagesCount: messages.length,
+    promptTemplatesCount: promptTemplates.length,
+    isLoading
+  });
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

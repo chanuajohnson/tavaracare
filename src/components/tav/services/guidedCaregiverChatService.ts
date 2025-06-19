@@ -67,6 +67,8 @@ export class GuidedCaregiverChatService {
   // Get prompt templates for a specific stage
   async getPromptTemplates(stage: string): Promise<ChatPromptTemplate[]> {
     try {
+      console.log(`[GuidedChatService] Fetching prompt templates for stage: ${stage}`);
+      
       const { data, error } = await supabase
         .from('chat_prompt_templates')
         .select('*')
@@ -75,13 +77,14 @@ export class GuidedCaregiverChatService {
         .order('order_index');
 
       if (error) {
-        console.error('Error fetching prompt templates:', error);
+        console.error('[GuidedChatService] Error fetching prompt templates:', error);
         return [];
       }
 
+      console.log(`[GuidedChatService] Found ${data?.length || 0} templates for stage ${stage}:`, data);
       return data || [];
     } catch (error) {
-      console.error('Error in getPromptTemplates:', error);
+      console.error('[GuidedChatService] Error in getPromptTemplates:', error);
       return [];
     }
   }
@@ -89,6 +92,8 @@ export class GuidedCaregiverChatService {
   // Initialize conversation flow
   async initializeConversationFlow(sessionId: string): Promise<ChatConversationFlow | null> {
     try {
+      console.log(`[GuidedChatService] Initializing conversation flow for session: ${sessionId}`);
+      
       const { data, error } = await supabase
         .from('chat_conversation_flows')
         .insert({
@@ -100,16 +105,17 @@ export class GuidedCaregiverChatService {
         .single();
 
       if (error) {
-        console.error('Error initializing conversation flow:', error);
+        console.error('[GuidedChatService] Error initializing conversation flow:', error);
         return null;
       }
 
+      console.log('[GuidedChatService] Conversation flow initialized:', data);
       return {
         ...data,
         current_stage: data.current_stage as 'introduction' | 'interest_expression' | 'waiting_acceptance' | 'guided_qa'
       };
     } catch (error) {
-      console.error('Error in initializeConversationFlow:', error);
+      console.error('[GuidedChatService] Error in initializeConversationFlow:', error);
       return null;
     }
   }
@@ -117,6 +123,8 @@ export class GuidedCaregiverChatService {
   // Get conversation flow
   async getConversationFlow(sessionId: string): Promise<ChatConversationFlow | null> {
     try {
+      console.log(`[GuidedChatService] Getting conversation flow for session: ${sessionId}`);
+      
       const { data, error } = await supabase
         .from('chat_conversation_flows')
         .select('*')
@@ -124,18 +132,22 @@ export class GuidedCaregiverChatService {
         .maybeSingle();
 
       if (error) {
-        console.error('Error fetching conversation flow:', error);
+        console.error('[GuidedChatService] Error fetching conversation flow:', error);
         return null;
       }
 
-      if (!data) return null;
+      if (!data) {
+        console.log(`[GuidedChatService] No conversation flow found for session: ${sessionId}`);
+        return null;
+      }
 
+      console.log('[GuidedChatService] Found conversation flow:', data);
       return {
         ...data,
         current_stage: data.current_stage as 'introduction' | 'interest_expression' | 'waiting_acceptance' | 'guided_qa'
       };
     } catch (error) {
-      console.error('Error in getConversationFlow:', error);
+      console.error('[GuidedChatService] Error in getConversationFlow:', error);
       return null;
     }
   }
@@ -147,6 +159,8 @@ export class GuidedCaregiverChatService {
     stageData: any = {}
   ): Promise<boolean> {
     try {
+      console.log(`[GuidedChatService] Updating conversation stage to ${stage} for session: ${sessionId}`, stageData);
+      
       const { error } = await supabase
         .from('chat_conversation_flows')
         .update({
@@ -157,13 +171,14 @@ export class GuidedCaregiverChatService {
         .eq('session_id', sessionId);
 
       if (error) {
-        console.error('Error updating conversation stage:', error);
+        console.error('[GuidedChatService] Error updating conversation stage:', error);
         return false;
       }
 
+      console.log(`[GuidedChatService] Successfully updated conversation stage to ${stage}`);
       return true;
     } catch (error) {
-      console.error('Error in updateConversationStage:', error);
+      console.error('[GuidedChatService] Error in updateConversationStage:', error);
       return false;
     }
   }
@@ -171,8 +186,16 @@ export class GuidedCaregiverChatService {
   // Create caregiver chat request (gateway message)
   async createChatRequest(caregiverId: string, initialMessage: string): Promise<CaregiverChatRequest | null> {
     try {
+      console.log(`[GuidedChatService] Creating chat request for caregiver: ${caregiverId}`);
+      console.log(`[GuidedChatService] Initial message: "${initialMessage}"`);
+      
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return null;
+      if (!user) {
+        console.error('[GuidedChatService] No authenticated user found for chat request');
+        return null;
+      }
+
+      console.log(`[GuidedChatService] Creating chat request from family user: ${user.id}`);
 
       const { data, error } = await supabase
         .from('caregiver_chat_requests')
@@ -186,12 +209,15 @@ export class GuidedCaregiverChatService {
         .single();
 
       if (error) {
-        console.error('Error creating chat request:', error);
+        console.error('[GuidedChatService] Error creating chat request:', error);
         return null;
       }
 
+      console.log('[GuidedChatService] Chat request created successfully:', data);
+
       // Create notification for caregiver
-      await this.createCaregiverNotification(
+      console.log(`[GuidedChatService] Creating notification for caregiver: ${caregiverId}`);
+      const notificationCreated = await this.createCaregiverNotification(
         caregiverId,
         'chat_request',
         'New Chat Request',
@@ -199,12 +225,18 @@ export class GuidedCaregiverChatService {
         { chat_request_id: data.id }
       );
 
+      if (notificationCreated) {
+        console.log('[GuidedChatService] Caregiver notification created successfully');
+      } else {
+        console.warn('[GuidedChatService] Failed to create caregiver notification');
+      }
+
       return {
         ...data,
         status: data.status as 'pending' | 'accepted' | 'declined'
       };
     } catch (error) {
-      console.error('Error in createChatRequest:', error);
+      console.error('[GuidedChatService] Error in createChatRequest:', error);
       return null;
     }
   }
@@ -218,6 +250,8 @@ export class GuidedCaregiverChatService {
     data: any = {}
   ): Promise<boolean> {
     try {
+      console.log(`[GuidedChatService] Creating notification for caregiver: ${caregiverId}`, { type, title });
+      
       const { error } = await supabase
         .from('caregiver_notifications')
         .insert({
@@ -229,13 +263,14 @@ export class GuidedCaregiverChatService {
         });
 
       if (error) {
-        console.error('Error creating caregiver notification:', error);
+        console.error('[GuidedChatService] Error creating caregiver notification:', error);
         return false;
       }
 
+      console.log('[GuidedChatService] Caregiver notification created successfully');
       return true;
     } catch (error) {
-      console.error('Error in createCaregiverNotification:', error);
+      console.error('[GuidedChatService] Error in createCaregiverNotification:', error);
       return false;
     }
   }
@@ -248,8 +283,13 @@ export class GuidedCaregiverChatService {
     currentStage: string
   ): Promise<{ success: boolean; response?: string; error?: string; nextStage?: string }> {
     try {
+      console.log(`[GuidedChatService] Handling prompt selection in stage: ${currentStage}`);
+      console.log(`[GuidedChatService] Prompt text: "${promptText}"`);
+      console.log(`[GuidedChatService] Caregiver ID: ${caregiver.id}`);
+      
       const flow = await this.getConversationFlow(sessionId);
       if (!flow) {
+        console.error('[GuidedChatService] Conversation flow not found for session:', sessionId);
         return { success: false, error: "Conversation flow not found" };
       }
 
@@ -257,19 +297,28 @@ export class GuidedCaregiverChatService {
       let nextStage = currentStage;
       let stageData = { ...flow.stage_data };
 
+      console.log(`[GuidedChatService] Current stage: ${currentStage}, processing...`);
+
       switch (currentStage) {
         case 'introduction':
           // After introduction, move to interest expression
           nextStage = 'interest_expression';
           stageData.selectedIntroPrompt = promptText;
+          console.log('[GuidedChatService] Moving from introduction to interest_expression');
           break;
         
         case 'interest_expression':
+          console.log('[GuidedChatService] CRITICAL: Processing interest expression - this should create chat request!');
+          console.log(`[GuidedChatService] About to create chat request for caregiver: ${caregiver.id}`);
+          
           // Create chat request and move to waiting
           const chatRequest = await this.createChatRequest(caregiver.id, promptText);
           if (!chatRequest) {
+            console.error('[GuidedChatService] FAILED TO CREATE CHAT REQUEST!');
             return { success: false, error: "Failed to create chat request" };
           }
+          
+          console.log('[GuidedChatService] SUCCESS: Chat request created, moving to waiting_acceptance');
           nextStage = 'waiting_acceptance';
           stageData.chatRequestId = chatRequest.id;
           break;
@@ -277,22 +326,34 @@ export class GuidedCaregiverChatService {
         case 'guided_qa':
           // Continue in guided Q&A
           stageData.lastQuestion = promptText;
+          console.log('[GuidedChatService] Continuing in guided_qa stage');
           break;
+
+        default:
+          console.warn(`[GuidedChatService] Unknown stage: ${currentStage}`);
       }
 
       // Update conversation stage
-      await this.updateConversationStage(sessionId, nextStage as any, stageData);
+      console.log(`[GuidedChatService] Updating conversation stage from ${currentStage} to ${nextStage}`);
+      const stageUpdated = await this.updateConversationStage(sessionId, nextStage as any, stageData);
+      
+      if (!stageUpdated) {
+        console.error('[GuidedChatService] Failed to update conversation stage');
+        return { success: false, error: "Failed to update conversation stage" };
+      }
 
       // Get TAV response
+      console.log('[GuidedChatService] Getting TAV response for stage:', currentStage);
       const tavResponse = await this.getTavResponse(promptText, caregiver, currentStage, stageData);
 
+      console.log('[GuidedChatService] Prompt selection handled successfully');
       return { 
         success: true, 
         response: tavResponse,
         nextStage 
       };
     } catch (error) {
-      console.error('Error handling prompt selection:', error);
+      console.error('[GuidedChatService] Error handling prompt selection:', error);
       return { success: false, error: "Something went wrong. Please try again." };
     }
   }
@@ -304,6 +365,8 @@ export class GuidedCaregiverChatService {
     stage: string,
     stageData: any
   ): Promise<string> {
+    console.log(`[GuidedChatService] Generating TAV response for stage: ${stage}`);
+    
     let systemPrompt = '';
 
     switch (stage) {
@@ -357,9 +420,10 @@ Focus on professional caregiving topics only. Be encouraging and informative.`;
       };
 
       const response = await this.tavService.sendMessage(userPrompt, context, []);
+      console.log('[GuidedChatService] TAV response generated successfully');
       return response || "💙 I'm here to help you connect with this amazing caregiver. What would you like to know next?";
     } catch (error) {
-      console.error('Error getting TAV response:', error);
+      console.error('[GuidedChatService] Error getting TAV response:', error);
       return "💙 I'm here to help you connect with this caregiver. Let me know what you'd like to learn about them!";
     }
   }
@@ -367,8 +431,13 @@ Focus on professional caregiving topics only. Be encouraging and informative.`;
   // Check chat request status
   async getChatRequestStatus(caregiverId: string): Promise<CaregiverChatRequest | null> {
     try {
+      console.log(`[GuidedChatService] Checking chat request status for caregiver: ${caregiverId}`);
+      
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return null;
+      if (!user) {
+        console.error('[GuidedChatService] No authenticated user for status check');
+        return null;
+      }
 
       const { data, error } = await supabase
         .from('caregiver_chat_requests')
@@ -380,18 +449,22 @@ Focus on professional caregiving topics only. Be encouraging and informative.`;
         .maybeSingle();
 
       if (error) {
-        console.error('Error fetching chat request status:', error);
+        console.error('[GuidedChatService] Error fetching chat request status:', error);
         return null;
       }
 
-      if (!data) return null;
+      if (!data) {
+        console.log(`[GuidedChatService] No chat request found for caregiver: ${caregiverId}`);
+        return null;
+      }
 
+      console.log('[GuidedChatService] Chat request status:', data);
       return {
         ...data,
         status: data.status as 'pending' | 'accepted' | 'declined'
       };
     } catch (error) {
-      console.error('Error in getChatRequestStatus:', error);
+      console.error('[GuidedChatService] Error in getChatRequestStatus:', error);
       return null;
     }
   }
