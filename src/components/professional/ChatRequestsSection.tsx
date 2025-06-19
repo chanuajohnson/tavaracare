@@ -34,38 +34,53 @@ export const ChatRequestsSection = () => {
 
     try {
       setIsLoading(true);
-      const { data, error } = await supabase
+      
+      // First get the chat requests
+      const { data: chatRequests, error: chatError } = await supabase
         .from('caregiver_chat_requests')
-        .select(`
-          *,
-          family_profile:profiles!caregiver_chat_requests_family_user_id_fkey(
-            full_name,
-            avatar_url,
-            location
-          )
-        `)
+        .select('*')
         .eq('caregiver_id', user.id)
         .order('created_at', { ascending: false });
 
-      if (error) {
-        console.error('Error loading chat requests:', error);
+      if (chatError) {
+        console.error('Error loading chat requests:', chatError);
         toast.error('Failed to load chat requests');
         return;
       }
 
-      // Transform the data to ensure proper typing
-      const transformedRequests: ChatRequest[] = (data || []).map(item => ({
-        id: item.id,
-        family_user_id: item.family_user_id,
-        initial_message: item.initial_message,
-        status: item.status as 'pending' | 'accepted' | 'declined', // Type assertion
-        created_at: item.created_at,
-        family_profile: item.family_profile && !Array.isArray(item.family_profile) ? {
-          full_name: item.family_profile.full_name,
-          avatar_url: item.family_profile.avatar_url,
-          location: item.family_profile.location
-        } : undefined
-      }));
+      if (!chatRequests || chatRequests.length === 0) {
+        setRequests([]);
+        return;
+      }
+
+      // Get family profiles for the requests
+      const familyUserIds = chatRequests.map(req => req.family_user_id);
+      const { data: profiles, error: profileError } = await supabase
+        .from('profiles')
+        .select('id, full_name, avatar_url, location')
+        .in('id', familyUserIds);
+
+      if (profileError) {
+        console.warn('Error loading family profiles:', profileError);
+      }
+
+      // Transform and combine the data
+      const transformedRequests: ChatRequest[] = chatRequests.map(request => {
+        const profile = profiles?.find(p => p.id === request.family_user_id);
+        
+        return {
+          id: request.id,
+          family_user_id: request.family_user_id,
+          initial_message: request.initial_message,
+          status: request.status as 'pending' | 'accepted' | 'declined',
+          created_at: request.created_at,
+          family_profile: profile ? {
+            full_name: profile.full_name || 'Family Member',
+            avatar_url: profile.avatar_url,
+            location: profile.location
+          } : undefined
+        };
+      });
 
       setRequests(transformedRequests);
     } catch (error) {
