@@ -12,13 +12,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Avatar, AvatarFallback, AvatarImage } from '../../components/ui/avatar';
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { PageViewTracker } from "@/components/tracking/PageViewTracker";
+import { useAuth } from '@/components/providers/AuthProvider';
 import { toast } from 'sonner';
-import { Calendar, Sun, Moon, Clock } from "lucide-react";
+import { Calendar, Sun, Moon, Clock, Loader2 } from "lucide-react";
 import { getPrefillDataFromUrl, applyPrefillDataToForm } from '../../utils/chat/prefillReader';
 import { clearChatSessionData } from '../../utils/chat/chatSessionUtils';
 import { setAuthFlowFlag, AUTH_FLOW_FLAGS } from "@/utils/authFlowUtils";
 
 const FamilyRegistration = () => {
+  const { user, session, isLoading: authLoading } = useAuth();
   const [loading, setLoading] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
@@ -40,12 +42,20 @@ const FamilyRegistration = () => {
   const [additionalNotes, setAdditionalNotes] = useState('');
   const [preferredContactMethod, setPreferredContactMethod] = useState('');
   
-  const [user, setUser] = useState<any>(null);
-  const [authSession, setAuthSession] = useState<any>(null);
   const [prefillApplied, setPrefillApplied] = useState(false);
   const [shouldAutoSubmit, setShouldAutoSubmit] = useState(false);
+  const [userDataPopulated, setUserDataPopulated] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
   const navigate = useNavigate();
+
+  // Redirect if not authenticated
+  useEffect(() => {
+    if (!authLoading && !user) {
+      console.log('User not authenticated, redirecting to auth page');
+      toast.error('Please sign in to complete your registration');
+      navigate('/auth');
+    }
+  }, [authLoading, user, navigate]);
 
   // Check for auto-redirect flag from chat
   useEffect(() => {
@@ -70,6 +80,62 @@ const FamilyRegistration = () => {
       sessionStorage.removeItem(AUTH_FLOW_FLAGS.SKIP_REGISTRATION_REDIRECT);
     };
   }, []);
+
+  // Pre-populate user information from auth context
+  useEffect(() => {
+    if (user && !userDataPopulated) {
+      console.log('Pre-populating user data from auth context:', user);
+      
+      // Set email from authenticated user
+      if (user.email) {
+        setEmail(user.email);
+      }
+      
+      // Extract names from user metadata with multiple fallback options
+      const metadata = user.user_metadata || {};
+      console.log('User metadata:', metadata);
+      
+      let extractedFirstName = '';
+      let extractedLastName = '';
+      
+      // Try different metadata key patterns
+      extractedFirstName = metadata.first_name || 
+                          metadata.firstName || 
+                          metadata.given_name || 
+                          metadata.name?.first || 
+                          '';
+      
+      extractedLastName = metadata.last_name || 
+                         metadata.lastName || 
+                         metadata.family_name || 
+                         metadata.name?.last || 
+                         '';
+      
+      // If we don't have individual names, try to split full_name
+      if (!extractedFirstName && !extractedLastName && metadata.full_name) {
+        const nameParts = metadata.full_name.trim().split(' ');
+        if (nameParts.length >= 2) {
+          extractedFirstName = nameParts[0];
+          extractedLastName = nameParts.slice(1).join(' ');
+        } else if (nameParts.length === 1) {
+          extractedFirstName = nameParts[0];
+        }
+      }
+      
+      // Set the extracted names
+      if (extractedFirstName) {
+        setFirstName(extractedFirstName);
+        console.log('Set first name from metadata:', extractedFirstName);
+      }
+      
+      if (extractedLastName) {
+        setLastName(extractedLastName);
+        console.log('Set last name from metadata:', extractedLastName);
+      }
+      
+      setUserDataPopulated(true);
+    }
+  }, [user, userDataPopulated]);
 
   const setFormValue = (field: string, value: any) => {
     console.log(`Setting form field ${field} to:`, value);
@@ -126,7 +192,7 @@ const FamilyRegistration = () => {
 
   // Apply prefill data when available
   useEffect(() => {
-    if (!prefillApplied) {
+    if (!prefillApplied && userDataPopulated) {
       console.log('Checking for prefill data...');
       
       const hasPrefill = applyPrefillDataToForm(
@@ -160,7 +226,7 @@ const FamilyRegistration = () => {
       
       setPrefillApplied(true);
     }
-  }, [prefillApplied, shouldAutoSubmit, user]);
+  }, [prefillApplied, shouldAutoSubmit, user, userDataPopulated]);
 
   const handleCareScheduleChange = (value: string) => {
     setCareSchedule(prev => {
@@ -189,20 +255,9 @@ const FamilyRegistration = () => {
     setLoading(true);
 
     try {
-      const contextValid = await ensureAuthContext();
-      if (!contextValid) {
-        throw new Error('Authentication context could not be established');
-      }
-      
-      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
-      if (sessionError || !sessionData.session) {
-        toast.error('Your session has expired. Please sign in again.');
-        navigate('/auth');
-        return;
-      }
-      
+      // User is guaranteed to exist due to auth check above
       if (!user?.id) {
-        throw new Error('User ID is missing. Please sign in again.');
+        throw new Error('Authentication error. Please refresh the page and try again.');
       }
       
       if (!firstName || !lastName || !phoneNumber || !address || !careRecipientName || !relationship) {
@@ -295,6 +350,33 @@ const FamilyRegistration = () => {
       setLoading(false);
     }
   };
+
+  // Show loading screen while auth is resolving
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p className="text-gray-600">Loading your registration form...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show message if user is not authenticated (shouldn't happen due to redirect above)
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold mb-4">Authentication Required</h1>
+          <p className="text-gray-600 mb-4">Please sign in to complete your family registration.</p>
+          <Button onClick={() => navigate('/auth')}>
+            Sign In
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -834,7 +916,14 @@ const FamilyRegistration = () => {
               Cancel
             </Button>
             <Button type="submit" disabled={loading}>
-              {loading ? 'Submitting...' : 'Complete Registration'}
+              {loading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Submitting...
+                </>
+              ) : (
+                'Complete Registration'
+              )}
             </Button>
           </div>
         </form>
