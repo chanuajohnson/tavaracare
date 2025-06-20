@@ -14,6 +14,10 @@ import { UserJourneyTracker } from "@/components/tracking/UserJourneyTracker";
 import { useJourneyTracking } from "@/hooks/useJourneyTracking";
 import { useState, useEffect } from "react";
 
+const DashboardFamilyMatches = () => {
+  // ... keep existing code (this component was already here)
+};
+
 const ProfessionalDashboard = () => {
   const { user, userRole, isLoading } = useAuth();
   const [isHealthCardExpanded, setIsHealthCardExpanded] = useState(false);

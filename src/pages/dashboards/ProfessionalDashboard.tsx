@@ -1,4 +1,3 @@
-
 import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
@@ -243,8 +242,8 @@ const ProfessionalDashboard = () => {
 
         <CaregiverMatchingCard />
 
-        {/* Family Matches Section */}
-        <div className="mt-8">
+        {/* Family Matches Section - Add the missing ID here */}
+        <div id="family-matches" className="mt-8">
           <DashboardFamilyMatches />
         </div>
 
