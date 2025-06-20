@@ -332,8 +332,8 @@ const ProfessionalRegistration = () => {
         localStorage.removeItem(`tavara_chat_transition_${sessionId}`);
       }
 
-      toast.success('Registration Complete! Your professional caregiver profile has been updated.');
-      
+      //Edit Chan toast.success('Registration Complete! Your professional caregiver profile has been updated.');
+      toast.success('Registration Complete! Your professional caregiver registration has been updated.');
       navigate('/dashboard/professional');
     } catch (error: any) {
       console.error('Error updating profile:', error);
