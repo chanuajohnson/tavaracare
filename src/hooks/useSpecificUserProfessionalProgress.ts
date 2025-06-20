@@ -156,8 +156,8 @@ export const useSpecificUserProfessionalProgress = (userId: string): SpecificUse
         throw documentsError;
       }
 
-      // Explicitly type documents array to avoid 'never' inference
-      const documents: Array<any> = documentsData || [];
+      // Use type assertion to fix TypeScript inference
+      const documents = (documentsData || []) as Array<{ document_type: string; file_name: string; [key: string]: any }>;
       console.log('📄 Documents data fetched:', {
         documentsCount: documents.length,
         documents: documents.map(d => ({ type: d.document_type, name: d.file_name }))
@@ -174,8 +174,8 @@ export const useSpecificUserProfessionalProgress = (userId: string): SpecificUse
         throw assignmentsError;
       }
 
-      // Explicitly type assignments array to avoid 'never' inference
-      const assignments: Array<any> = assignmentsData || [];
+      // Use type assertion to fix TypeScript inference
+      const assignments = (assignmentsData || []) as Array<{ id: string; status: string; role: string; [key: string]: any }>;
       console.log('💼 Assignments data fetched:', {
         assignmentsCount: assignments.length,
         assignments: assignments.map(a => ({ id: a.id, status: a.status, role: a.role }))
