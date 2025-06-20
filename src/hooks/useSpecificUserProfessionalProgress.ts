@@ -119,6 +119,10 @@ export const useSpecificUserProfessionalProgress = (userId: string): SpecificUse
       return;
     }
     
+    // Declare variables at function scope with explicit typing
+    let documents: Array<{ document_type: string; file_name: string; [key: string]: any }> = [];
+    let assignments: Array<{ id: string; status: string; role: string; [key: string]: any }> = [];
+    
     try {
       setLoading(true);
       console.log('🔍 useSpecificUserProfessionalProgress: Starting check for userId:', userId);
@@ -156,8 +160,8 @@ export const useSpecificUserProfessionalProgress = (userId: string): SpecificUse
         throw documentsError;
       }
 
-      // Use type assertion to fix TypeScript inference
-      const documents = (documentsData || []) as Array<{ document_type: string; file_name: string; [key: string]: any }>;
+      // Assign to pre-declared variable
+      documents = documentsData || [];
       console.log('📄 Documents data fetched:', {
         documentsCount: documents.length,
         documents: documents.map(d => ({ type: d.document_type, name: d.file_name }))
@@ -174,8 +178,8 @@ export const useSpecificUserProfessionalProgress = (userId: string): SpecificUse
         throw assignmentsError;
       }
 
-      // Use type assertion to fix TypeScript inference
-      const assignments = (assignmentsData || []) as Array<{ id: string; status: string; role: string; [key: string]: any }>;
+      // Assign to pre-declared variable
+      assignments = assignmentsData || [];
       console.log('💼 Assignments data fetched:', {
         assignmentsCount: assignments.length,
         assignments: assignments.map(a => ({ id: a.id, status: a.status, role: a.role }))
