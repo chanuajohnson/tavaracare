@@ -69,7 +69,7 @@ export const useSpecificUserProfessionalProgress = (userId: string): SpecificUse
       description: "Enhance your skills with our professional development courses", 
       link: "/professional/training",
       category: "training",
-      stage: "training", // Changed from "qualification" to "training"
+      stage: "training",
       isInteractive: true
     },
     { 
@@ -141,7 +141,7 @@ export const useSpecificUserProfessionalProgress = (userId: string): SpecificUse
       });
 
       // Fetch documents - Fix TypeScript error by properly typing the response
-      const { data: documents, error: documentsError } = await supabase
+      const { data: documentsData, error: documentsError } = await supabase
         .from('professional_documents')
         .select('*')
         .eq('user_id', userId);
@@ -152,10 +152,10 @@ export const useSpecificUserProfessionalProgress = (userId: string): SpecificUse
       }
 
       // Ensure documents is properly typed as an array
-      const documentsArray = documents || [];
+      const documents = documentsData || [];
       console.log('📄 Documents data fetched:', {
-        documentsCount: documentsArray.length,
-        documents: documentsArray.map(d => ({ type: d.document_type, name: d.file_name }))
+        documentsCount: documents.length,
+        documents: documents.map(d => ({ type: d.document_type, name: d.file_name }))
       });
 
       // Fetch care team assignments
@@ -176,6 +176,8 @@ export const useSpecificUserProfessionalProgress = (userId: string): SpecificUse
 
       const processedSteps: ProfessionalStep[] = baseSteps.map(baseStep => {
         let completed = false;
+
+        console.log(`🔍 Checking step ${baseStep.id}: ${baseStep.title}`);
 
         switch (baseStep.id) {
           case 1: // Account creation
@@ -207,7 +209,7 @@ export const useSpecificUserProfessionalProgress = (userId: string): SpecificUse
             });
             break;
           case 4: // Documents upload
-            const documentsCount = documentsArray.length; // Fixed TypeScript error
+            const documentsCount = documents.length;
             completed = documentsCount > 0;
             console.log(`📄 Step 4 (Documents): ${completed} (count: ${documentsCount})`);
             break;
