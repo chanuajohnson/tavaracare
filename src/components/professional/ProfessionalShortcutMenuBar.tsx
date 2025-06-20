@@ -42,12 +42,16 @@ export function ProfessionalShortcutMenuBar() {
       // Use exact same logic as NextStepsPanel and useProfessionalProgress for consistency
       const { data: profile } = await supabase
         .from('profiles')
-        .select('professional_type, years_of_experience')
+        //New Code Chan
+        //.select('professional_type, years_of_experience')
+        .select('profile.full_name')
         .eq('id', user.id)
         .maybeSingle();
       
       // Profile is complete if both professional_type and years_of_experience exist
-      const isComplete = profile && profile.professional_type && profile.years_of_experience;
+      //New Code Chan Profile is complete if profile.full_name
+      //const isComplete = profile && profile.professional_type && profile.years_of_experience;
+      const isComplete = profile && profile.full_name;
       setProfileComplete(!!isComplete);
     } catch (error) {
       console.error("Error checking profile completion:", error);
