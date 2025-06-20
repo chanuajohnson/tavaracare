@@ -216,14 +216,12 @@ export const useSpecificUserProfessionalProgress = (userId: string): SpecificUse
             });
             break;
           case 4: // Documents upload
-            const documentsCount = documents.length;
-            completed = documentsCount > 0;
-            console.log(`📄 Step 4 (Documents): ${completed} (count: ${documentsCount})`);
+            completed = documents.length > 0;
+            console.log(`📄 Step 4 (Documents): ${completed} (count: ${documents.length})`);
             break;
           case 5: // Assignments (reordered from Step 6)
-            const assignmentsCount = assignments.length;
-            completed = assignmentsCount > 0;
-            console.log(`💼 Step 5 (Assignments): ${completed} (count: ${assignmentsCount})`);
+            completed = assignments.length > 0;
+            console.log(`💼 Step 5 (Assignments): ${completed} (count: ${assignments.length})`);
             break;
           case 6: // Training modules (reordered from Step 5) - check certifications
             const certificationsArray = profile?.certifications;

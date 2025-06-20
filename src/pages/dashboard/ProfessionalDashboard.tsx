@@ -1,4 +1,3 @@
-
 import { motion } from "framer-motion";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { EnhancedProfessionalNextStepsPanel } from "@/components/professional/EnhancedProfessionalNextStepsPanel";
@@ -150,6 +149,16 @@ const ProfessionalDashboard = () => {
           <div className="lg:col-span-2 space-y-6">
             {/* Enhanced Next Steps Panel with Real Data */}
             <EnhancedProfessionalNextStepsPanel />
+            
+            {/* Family Matches Section - Add the missing ID here */}
+            <motion.div
+              id="family-matches"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.2 }}
+            >
+              <DashboardFamilyMatches />
+            </motion.div>
             
             {/* Collapsible Caregiver Health Card */}
             <motion.div
