@@ -19,6 +19,7 @@ export interface ProfessionalStep {
   title: string;
   description: string;
   completed: boolean;
+  accessible: boolean;
   link: string;
   buttonText: string;
   action: () => void;
@@ -47,7 +48,7 @@ export const useEnhancedProfessionalProgress = (): ProfessionalProgressData => {
   const [profileData, setProfileData] = useState<any>(null);
   const [documentsData, setDocumentsData] = useState<any[]>([]);
 
-  // Define journey stages - Added new "training" stage
+  // Define journey stages
   const stages: ProfessionalJourneyStage[] = [
     {
       id: 'foundation',
@@ -90,16 +91,17 @@ export const useEnhancedProfessionalProgress = (): ProfessionalProgressData => {
   const [currentStages, setCurrentStages] = useState<ProfessionalJourneyStage[]>(stages);
 
   const handleStepAction = (step: ProfessionalStep) => {
+    if (!step.accessible) {
+      return; // Don't allow navigation for locked steps
+    }
+    
     if (step.modalAction) {
       switch (step.modalAction) {
         case 'document_upload':
-          // Smart document navigation: check if user has existing documents
           const hasDocuments = documentsData && documentsData.length > 0;
           if (hasDocuments) {
-            // User has documents, navigate to manage view
             navigate('/professional/profile?tab=documents&action=manage');
           } else {
-            // New user, navigate to upload view
             navigate('/professional/profile?tab=documents&action=upload');
           }
           break;
@@ -113,7 +115,18 @@ export const useEnhancedProfessionalProgress = (): ProfessionalProgressData => {
           navigate(step.link);
       }
     } else {
-      navigate(step.link);
+      if (step.id === 5) {
+        // For family matches, scroll to the family matches section
+        navigate('/dashboard/professional');
+        setTimeout(() => {
+          const element = document.getElementById('family-matches');
+          if (element) {
+            element.scrollIntoView({ behavior: 'smooth' });
+          }
+        }, 100);
+      } else {
+        navigate(step.link);
+      }
     }
   };
 
@@ -122,13 +135,17 @@ export const useEnhancedProfessionalProgress = (): ProfessionalProgressData => {
   };
 
   const getButtonText = (step: ProfessionalStep) => {
+    if (!step.accessible) {
+      return "🔒 Locked";
+    }
+    
     if (step.completed) {
       switch (step.id) {
         case 1: return "✓ Account Created";
         case 2: return "✓ Profile Complete";
         case 3: return "Edit Availability";
         case 4: return "View Documents";
-        case 5: return "View Assignments";
+        case 5: return "View Family Matches";
         case 6: return "Continue Training";
         default: return "✓ Complete";
       }
@@ -139,14 +156,14 @@ export const useEnhancedProfessionalProgress = (): ProfessionalProgressData => {
       case 2: return "Complete Profile";
       case 3: return "Set Availability";
       case 4: return "Upload Documents";
-      case 5: return "Get Assignments";
+      case 5: return "View Family Matches";
       case 6: return "Start Training";
       default: return "Complete";
     }
   };
 
-  // Base steps definition - Step 5 and 6 reordered
-  const baseSteps: Omit<ProfessionalStep, 'completed' | 'action' | 'buttonText'>[] = [
+  // Base steps definition - Step 5 updated
+  const baseSteps: Omit<ProfessionalStep, 'completed' | 'action' | 'buttonText' | 'accessible'>[] = [
     { 
       id: 1, 
       title: "Create your account", 
@@ -187,9 +204,9 @@ export const useEnhancedProfessionalProgress = (): ProfessionalProgressData => {
     },
     { 
       id: 5, 
-      title: "Start receiving assignments", 
+      title: "Match with Tavara Families", 
       description: "Get matched with families and begin your caregiving journey", 
-      link: "/professional/profile?tab=assignments",
+      link: "/dashboard/professional#family-matches",
       category: "assignments",
       stage: "active",
       isInteractive: false
@@ -210,6 +227,7 @@ export const useEnhancedProfessionalProgress = (): ProfessionalProgressData => {
   const generateDemoData = () => {
     const demoSteps: ProfessionalStep[] = baseSteps.map(baseStep => {
       let completed = false;
+      let accessible = true;
 
       switch (baseStep.id) {
         case 1:
@@ -220,7 +238,12 @@ export const useEnhancedProfessionalProgress = (): ProfessionalProgressData => {
           break;
         case 3:
         case 4:
+          completed = false;
+          break;
         case 5:
+          completed = false;
+          accessible = false; // Demo shows locked state
+          break;
         case 6:
         default:
           completed = false;
@@ -230,8 +253,9 @@ export const useEnhancedProfessionalProgress = (): ProfessionalProgressData => {
       return {
         ...baseStep,
         completed,
+        accessible,
         action: handleDemoStepAction,
-        buttonText: getButtonText({ ...baseStep, completed, action: () => {}, buttonText: '' })
+        buttonText: getButtonText({ ...baseStep, completed, accessible, action: () => {}, buttonText: '' })
       };
     });
 
@@ -305,11 +329,23 @@ export const useEnhancedProfessionalProgress = (): ProfessionalProgressData => {
             break;
         }
 
+        // Determine accessibility - Step 5 is only accessible if steps 1-4 are completed
+        let accessible = true;
+        if (baseStep.id === 5) {
+          const step1Complete = !!user;
+          const step2Complete = !!(profile?.full_name);
+          const step3Complete = !!(profile?.care_schedule && profile.care_schedule.length > 0);
+          const step4Complete = (documents?.length || 0) > 0;
+          
+          accessible = step1Complete && step2Complete && step3Complete && step4Complete;
+        }
+
         return {
           ...baseStep,
           completed,
-          action: () => handleStepAction({ ...baseStep, completed, action: () => {}, buttonText: '' }),
-          buttonText: getButtonText({ ...baseStep, completed, action: () => {}, buttonText: '' })
+          accessible,
+          action: () => handleStepAction({ ...baseStep, completed, accessible, action: () => {}, buttonText: '' }),
+          buttonText: getButtonText({ ...baseStep, completed, accessible, action: () => {}, buttonText: '' })
         };
       });
 
@@ -367,7 +403,7 @@ export const useEnhancedProfessionalProgress = (): ProfessionalProgressData => {
   const completedSteps = steps.filter(step => step.completed).length;
   const totalSteps = steps.length;
   const overallProgress = Math.round((completedSteps / totalSteps) * 100);
-  const nextStep = steps.find(step => !step.completed);
+  const nextStep = steps.find(step => !step.completed && step.accessible);
   
   // Determine current stage
   const currentStage = currentStages.find(stage => stage.isActive)?.id || 

@@ -7,6 +7,7 @@ interface ProfessionalStep {
   title: string;
   description: string;
   completed: boolean;
+  accessible: boolean;
   link: string;
   buttonText: string;
   category: string;
@@ -25,7 +26,7 @@ export const useSpecificUserProfessionalProgress = (userId: string): SpecificUse
   const [loading, setLoading] = useState(true);
   const [steps, setSteps] = useState<ProfessionalStep[]>([]);
 
-  // Base steps definition - Step 5 and 6 reordered
+  // Base steps definition - Step 5 updated with new title
   const baseSteps = [
     { 
       id: 1, 
@@ -65,9 +66,9 @@ export const useSpecificUserProfessionalProgress = (userId: string): SpecificUse
     },
     { 
       id: 5, 
-      title: "Start receiving assignments", 
+      title: "Match with Tavara Families", 
       description: "Get matched with families and begin your caregiving journey", 
-      link: "/professional/profile?tab=assignments",
+      link: "/dashboard/professional#family-matches",
       category: "assignments",
       stage: "active",
       isInteractive: false
@@ -83,14 +84,18 @@ export const useSpecificUserProfessionalProgress = (userId: string): SpecificUse
     }
   ];
 
-  const getButtonText = (step: typeof baseSteps[0], completed: boolean) => {
+  const getButtonText = (step: typeof baseSteps[0], completed: boolean, accessible: boolean) => {
+    if (!accessible) {
+      return "🔒 Locked";
+    }
+    
     if (completed) {
       switch (step.id) {
         case 1: return "✓ Account Created";
         case 2: return "✓ Profile Complete";
         case 3: return "Edit Availability";
         case 4: return "View Documents";
-        case 5: return "View Assignments";
+        case 5: return "View Family Matches";
         case 6: return "Continue Training";
         default: return "✓ Complete";
       }
@@ -101,7 +106,7 @@ export const useSpecificUserProfessionalProgress = (userId: string): SpecificUse
       case 2: return "Complete Profile";
       case 3: return "Set Availability";
       case 4: return "Upload Documents";
-      case 5: return "Get Assignments";
+      case 5: return "View Family Matches";
       case 6: return "Start Training";
       default: return "Complete";
     }
@@ -140,7 +145,7 @@ export const useSpecificUserProfessionalProgress = (userId: string): SpecificUse
         careScheduleLength: profile?.care_schedule?.length || 0
       });
 
-      // Fetch documents - Properly type the response to fix TypeScript error
+      // Fetch documents
       const { data: documentsData, error: documentsError } = await supabase
         .from('professional_documents')
         .select('*')
@@ -151,8 +156,7 @@ export const useSpecificUserProfessionalProgress = (userId: string): SpecificUse
         throw documentsError;
       }
 
-      // Explicitly type documents as an array to fix the TypeScript error
-      const documents: any[] = documentsData || [];
+      const documents = documentsData || [];
       console.log('📄 Documents data fetched:', {
         documentsCount: documents.length,
         documents: documents.map(d => ({ type: d.document_type, name: d.file_name }))
@@ -169,8 +173,7 @@ export const useSpecificUserProfessionalProgress = (userId: string): SpecificUse
         throw assignmentsError;
       }
 
-      // Explicitly type assignments as an array
-      const assignments: any[] = assignmentsData || [];
+      const assignments = assignmentsData || [];
       console.log('💼 Assignments data fetched:', {
         assignmentsCount: assignments.length,
         assignments: assignments.map(a => ({ id: a.id, status: a.status, role: a.role }))
@@ -234,12 +237,34 @@ export const useSpecificUserProfessionalProgress = (userId: string): SpecificUse
             break;
         }
 
-        console.log(`📊 Step ${baseStep.id} final result: ${completed ? '✅' : '❌'} ${baseStep.title}`);
+        // Determine accessibility - Step 5 is only accessible if steps 1-4 are completed
+        let accessible = true;
+        if (baseStep.id === 5) {
+          // Check if steps 1-4 are completed
+          const step1Complete = !!userId;
+          const step2Complete = !!(profile?.professional_type && profile?.years_of_experience);
+          const step3Complete = (typeof profile?.care_schedule === 'string' 
+            ? profile.care_schedule.split(',').filter(s => s.trim()).length 
+            : Array.isArray(profile?.care_schedule) ? profile.care_schedule.length : 0) > 0;
+          const step4Complete = documents.length > 0;
+          
+          accessible = step1Complete && step2Complete && step3Complete && step4Complete;
+          console.log(`🔒 Step 5 accessibility check:`, {
+            step1Complete,
+            step2Complete,
+            step3Complete,
+            step4Complete,
+            accessible
+          });
+        }
+
+        console.log(`📊 Step ${baseStep.id} final result: ${completed ? '✅' : '❌'} ${baseStep.title} (accessible: ${accessible})`);
 
         return {
           ...baseStep,
           completed,
-          buttonText: getButtonText(baseStep, completed)
+          accessible,
+          buttonText: getButtonText(baseStep, completed, accessible)
         };
       });
 
@@ -247,6 +272,7 @@ export const useSpecificUserProfessionalProgress = (userId: string): SpecificUse
         step: s.id,
         title: s.title,
         completed: s.completed ? '✅' : '❌',
+        accessible: s.accessible ? '🔓' : '🔒',
         stage: s.stage
       })));
 
@@ -271,7 +297,7 @@ export const useSpecificUserProfessionalProgress = (userId: string): SpecificUse
   const completedSteps = steps.filter(step => step.completed).length;
   const totalSteps = steps.length;
   const completionPercentage = totalSteps > 0 ? Math.round((completedSteps / totalSteps) * 100) : 0;
-  const nextStep = steps.find(step => !step.completed);
+  const nextStep = steps.find(step => !step.completed && step.accessible);
 
   console.log('📊 Final calculation summary:', {
     userId,
@@ -280,10 +306,10 @@ export const useSpecificUserProfessionalProgress = (userId: string): SpecificUse
     completionPercentage,
     nextStepTitle: nextStep?.title,
     stagesBreakdown: {
-      foundation: steps.filter(s => s.stage === 'foundation').map(s => ({ title: s.title, completed: s.completed })),
-      qualification: steps.filter(s => s.stage === 'qualification').map(s => ({ title: s.title, completed: s.completed })),
-      training: steps.filter(s => s.stage === 'training').map(s => ({ title: s.title, completed: s.completed })),
-      active: steps.filter(s => s.stage === 'active').map(s => ({ title: s.title, completed: s.completed }))
+      foundation: steps.filter(s => s.stage === 'foundation').map(s => ({ title: s.title, completed: s.completed, accessible: s.accessible })),
+      qualification: steps.filter(s => s.stage === 'qualification').map(s => ({ title: s.title, completed: s.completed, accessible: s.accessible })),
+      training: steps.filter(s => s.stage === 'training').map(s => ({ title: s.title, completed: s.completed, accessible: s.accessible })),
+      active: steps.filter(s => s.stage === 'active').map(s => ({ title: s.title, completed: s.completed, accessible: s.accessible }))
     }
   });
 
