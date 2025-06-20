@@ -173,7 +173,7 @@ export const CarePlanTabs = ({
         </Card>
       </HorizontalTabsContent>
 
-      {/* ENHANCED DOCUMENTS TAB WITH ACCORDION LAYOUT */}
+      {/* ENHANCED DOCUMENTS TAB WITH ACCORDION LAYOUT AND TARGET IDS */}
       <HorizontalTabsContent value="documents" className="space-y-6">
         <Card>
           <CardHeader>
@@ -193,7 +193,9 @@ export const CarePlanTabs = ({
                   Upload Documents
                 </AccordionTrigger>
                 <AccordionContent className="pt-4">
-                  <CertificateUpload onUploadSuccess={onCertificateUploadSuccess} />
+                  <div id="upload-documents">
+                    <CertificateUpload onUploadSuccess={onCertificateUploadSuccess} />
+                  </div>
                 </AccordionContent>
               </AccordionItem>
               
@@ -203,7 +205,9 @@ export const CarePlanTabs = ({
                   Manage Documents
                 </AccordionTrigger>
                 <AccordionContent className="pt-4">
-                  <DocumentManager onDocumentDeleted={onCertificateUploadSuccess} />
+                  <div id="manage-documents">
+                    <DocumentManager onDocumentDeleted={onCertificateUploadSuccess} />
+                  </div>
                 </AccordionContent>
               </AccordionItem>
             </Accordion>

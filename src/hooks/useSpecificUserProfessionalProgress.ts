@@ -8,9 +8,10 @@ import {
   hasDocuments,
   hasAssignments,
   hasCertifications,
-  checkStepAccessibility
+  checkStepAccessibility,
+  getDocumentCount
 } from './professional/completionCheckers';
-import { baseSteps, getButtonText } from './professional/stepDefinitions';
+import { baseSteps, getButtonText, getDocumentNavigationLink } from './professional/stepDefinitions';
 import { ProfessionalStep, SpecificUserProfessionalProgressData } from './professional/types';
 
 export const useSpecificUserProfessionalProgress = (userId: string): SpecificUserProfessionalProgressData => {
@@ -38,6 +39,7 @@ export const useSpecificUserProfessionalProgress = (userId: string): SpecificUse
       const processedSteps: ProfessionalStep[] = baseSteps.map(baseStep => {
         let completed = false;
         let accessible = true;
+        let link = baseStep.link;
 
         console.log(`🔍 Checking step ${baseStep.id}: ${baseStep.title}`);
 
@@ -53,6 +55,8 @@ export const useSpecificUserProfessionalProgress = (userId: string): SpecificUse
             break;
           case 4: // Documents upload
             completed = hasDocuments(documents);
+            // Use dynamic navigation link for documents
+            link = getDocumentNavigationLink(completed);
             break;
           case 5: // Assignments
             completed = hasAssignments(assignments);
@@ -65,11 +69,15 @@ export const useSpecificUserProfessionalProgress = (userId: string): SpecificUse
 
         console.log(`📊 Step ${baseStep.id} final result: ${completed ? '✅' : '❌'} ${baseStep.title} (accessible: ${accessible})`);
 
+        const documentsCount = getDocumentCount(documents);
+        const hasDocsForButtonText = documentsCount > 0;
+
         return {
           ...baseStep,
+          link,
           completed,
           accessible,
-          buttonText: getButtonText(baseStep, completed, accessible)
+          buttonText: getButtonText(baseStep, completed, accessible, hasDocsForButtonText)
         };
       });
 
@@ -78,7 +86,8 @@ export const useSpecificUserProfessionalProgress = (userId: string): SpecificUse
         title: s.title,
         completed: s.completed ? '✅' : '❌',
         accessible: s.accessible ? '🔓' : '🔒',
-        stage: s.stage
+        stage: s.stage,
+        link: s.link
       })));
 
       setSteps(processedSteps);

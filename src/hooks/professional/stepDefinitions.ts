@@ -58,7 +58,16 @@ export const baseSteps = [
   }
 ];
 
-export const getButtonText = (step: typeof baseSteps[0], completed: boolean, accessible: boolean): string => {
+export const getDocumentNavigationLink = (hasDocuments: boolean): string => {
+  const baseUrl = "/professional/profile?tab=documents";
+  if (hasDocuments) {
+    return `${baseUrl}#manage-documents`;
+  } else {
+    return `${baseUrl}#upload-documents`;
+  }
+};
+
+export const getButtonText = (step: typeof baseSteps[0], completed: boolean, accessible: boolean, hasDocuments?: boolean): string => {
   if (!accessible) {
     return "🔒 Locked";
   }
@@ -68,7 +77,7 @@ export const getButtonText = (step: typeof baseSteps[0], completed: boolean, acc
       case 1: return "✓ Account Created";
       case 2: return "✓ Profile Complete";
       case 3: return "Edit Availability";
-      case 4: return "View Documents";
+      case 4: return hasDocuments ? "Manage Documents" : "View Documents";
       case 5: return "View Family Matches";
       case 6: return "Continue Training";
       default: return "✓ Complete";

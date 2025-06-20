@@ -1,8 +1,8 @@
-
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { supabase } from '@/lib/supabase';
 import { useNavigate } from 'react-router-dom';
+import { getDocumentNavigationLink } from '../../../hooks/professional/stepDefinitions';
 
 interface ProfessionalStep {
   id: number;
@@ -99,7 +99,12 @@ export const useProfessionalProgress = (): ProfessionalProgressData => {
       return; // Don't allow navigation for locked steps
     }
     
-    if (step.id === 5) {
+    if (step.id === 4) {
+      // Use dynamic navigation for document step
+      const hasDocuments = step.completed; // Use completion status as proxy for having documents
+      const documentLink = getDocumentNavigationLink(hasDocuments);
+      navigate(documentLink);
+    } else if (step.id === 5) {
       // For family matches, scroll to the family matches section
       navigate('/dashboard/professional');
       setTimeout(() => {
@@ -163,6 +168,7 @@ export const useProfessionalProgress = (): ProfessionalProgressData => {
       const updatedSteps = steps.map(step => {
         let completed = step.completed;
         let accessible = step.accessible;
+        let stepLink = step.link;
         
         // Check completion status
         if (step.id === 1) {
@@ -189,11 +195,17 @@ export const useProfessionalProgress = (): ProfessionalProgressData => {
           accessible = step1Complete && step2Complete && step3Complete && step4Complete;
         }
 
+        // Update document step link dynamically
+        if (step.id === 4) {
+          stepLink = getDocumentNavigationLink(completed);
+        }
+        
         return {
           ...step,
+          link: stepLink,
           completed,
           accessible,
-          action: () => handleStepAction({ ...step, completed, accessible }),
+          action: () => handleStepAction({ ...step, link: stepLink, completed, accessible }),
           buttonText: getButtonText({ ...step, completed, accessible })
         };
       });

@@ -45,6 +45,10 @@ export const hasDocuments = (documents: ProfessionalDocument[]): boolean => {
   return completed;
 };
 
+export const getDocumentCount = (documents: ProfessionalDocument[]): number => {
+  return documents.length;
+};
+
 export const hasAssignments = (assignments: CareTeamAssignment[]): boolean => {
   const completed = assignments.length > 0;
   console.log(`💼 Step 5 (Assignments): ${completed} (count: ${assignments.length})`);

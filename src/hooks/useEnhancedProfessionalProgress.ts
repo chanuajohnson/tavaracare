@@ -1,8 +1,8 @@
-
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { supabase } from '@/lib/supabase';
 import { useNavigate } from 'react-router-dom';
+import { getDocumentNavigationLink } from './professional/stepDefinitions';
 
 export interface ProfessionalJourneyStage {
   id: string;
@@ -99,11 +99,8 @@ export const useEnhancedProfessionalProgress = (): ProfessionalProgressData => {
       switch (step.modalAction) {
         case 'document_upload':
           const hasDocuments = documentsData && documentsData.length > 0;
-          if (hasDocuments) {
-            navigate('/professional/profile?tab=documents&action=manage');
-          } else {
-            navigate('/professional/profile?tab=documents&action=upload');
-          }
+          const documentLink = getDocumentNavigationLink(hasDocuments);
+          navigate(documentLink);
           break;
         case 'training_modules':
           navigate('/professional/training');
@@ -162,7 +159,7 @@ export const useEnhancedProfessionalProgress = (): ProfessionalProgressData => {
     }
   };
 
-  // Base steps definition - Step 5 updated
+  // Base steps definition - Step 4 updated with dynamic navigation
   const baseSteps: Omit<ProfessionalStep, 'completed' | 'action' | 'buttonText' | 'accessible'>[] = [
     { 
       id: 1, 
@@ -307,6 +304,7 @@ export const useEnhancedProfessionalProgress = (): ProfessionalProgressData => {
 
       const steps: ProfessionalStep[] = baseSteps.map(baseStep => {
         let completed = false;
+        let stepLink = baseStep.link;
 
         switch (baseStep.id) {
           case 1: // Account creation
@@ -320,6 +318,7 @@ export const useEnhancedProfessionalProgress = (): ProfessionalProgressData => {
             break;
           case 4: // Documents upload
             completed = (documents?.length || 0) > 0;
+            stepLink = getDocumentNavigationLink(completed);
             break;
           case 5: // Assignments (moved from Step 6)
             completed = (assignments?.length || 0) > 0;
@@ -342,9 +341,10 @@ export const useEnhancedProfessionalProgress = (): ProfessionalProgressData => {
 
         return {
           ...baseStep,
+          link: stepLink,
           completed,
           accessible,
-          action: () => handleStepAction({ ...baseStep, completed, accessible, action: () => {}, buttonText: '' }),
+          action: () => handleStepAction({ ...baseStep, link: stepLink, completed, accessible, action: () => {}, buttonText: '' }),
           buttonText: getButtonText({ ...baseStep, completed, accessible, action: () => {}, buttonText: '' })
         };
       });
