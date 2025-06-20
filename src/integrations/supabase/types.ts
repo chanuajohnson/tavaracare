@@ -1263,6 +1263,116 @@ export type Database = {
           },
         ]
       }
+      family_chat_messages: {
+        Row: {
+          content: string
+          created_at: string | null
+          id: string
+          is_tav_moderated: boolean
+          is_user: boolean
+          message_type: string
+          session_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string | null
+          id?: string
+          is_tav_moderated?: boolean
+          is_user: boolean
+          message_type?: string
+          session_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string | null
+          id?: string
+          is_tav_moderated?: boolean
+          is_user?: boolean
+          message_type?: string
+          session_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "family_chat_messages_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "family_chat_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      family_chat_requests: {
+        Row: {
+          accepted_at: string | null
+          created_at: string | null
+          declined_at: string | null
+          family_user_id: string
+          id: string
+          initial_message: string
+          professional_id: string
+          status: string
+          updated_at: string | null
+        }
+        Insert: {
+          accepted_at?: string | null
+          created_at?: string | null
+          declined_at?: string | null
+          family_user_id: string
+          id?: string
+          initial_message: string
+          professional_id: string
+          status?: string
+          updated_at?: string | null
+        }
+        Update: {
+          accepted_at?: string | null
+          created_at?: string | null
+          declined_at?: string | null
+          family_user_id?: string
+          id?: string
+          initial_message?: string
+          professional_id?: string
+          status?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      family_chat_sessions: {
+        Row: {
+          created_at: string | null
+          family_user_id: string
+          id: string
+          is_premium: boolean
+          max_daily_messages: number
+          messages_sent: number
+          professional_id: string
+          session_date: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          family_user_id: string
+          id?: string
+          is_premium?: boolean
+          max_daily_messages?: number
+          messages_sent?: number
+          professional_id: string
+          session_date?: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          family_user_id?: string
+          id?: string
+          is_premium?: boolean
+          max_daily_messages?: number
+          messages_sent?: number
+          professional_id?: string
+          session_date?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       feature_interest_tracking: {
         Row: {
           action_type: string | null

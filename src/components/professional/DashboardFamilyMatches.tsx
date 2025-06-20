@@ -5,7 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, Star, ArrowRight, Clock, Filter, MapPinned, DollarSign, Calendar, Sparkles, CheckCircle, AlertCircle, XCircle } from "lucide-react";
+import { MapPin, Star, ArrowRight, Clock, Filter, MapPinned, DollarSign, Calendar, Sparkles, CheckCircle, AlertCircle, XCircle, MessageCircle } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -14,11 +14,14 @@ import { useTracking } from "@/hooks/useTracking";
 import { toast } from "sonner";
 import { useFamilyMatches } from "@/hooks/useFamilyMatches";
 import { ChatRequestsSection } from "./ChatRequestsSection";
+import { ProfessionalFamilyChatModal } from "./ProfessionalFamilyChatModal";
 
 export const DashboardFamilyMatches = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [showFilters, setShowFilters] = useState(false);
+  const [showChatModal, setShowChatModal] = useState(false);
+  const [selectedFamily, setSelectedFamily] = useState<any>(null);
   const { trackEngagement } = useTracking();
   
   // Use the family matches hook with shift compatibility
@@ -127,20 +130,13 @@ export const DashboardFamilyMatches = () => {
     setSpecialNeeds(prev => prev.includes(need) ? prev.filter(n => n !== need) : [...prev, need]);
   };
 
-  const handleUnlockProfile = (familyId: string) => {
-    trackEngagement('unlock_family_profile_click', {
-      family_id: familyId,
+  const handleChatWithFamily = (family: any) => {
+    trackEngagement('chat_with_family_click', {
+      family_id: family.id,
       source: 'dashboard_widget'
     });
-    navigate("/subscription", {
-      state: {
-        returnPath: "/family/matching",
-        referringPagePath: "/dashboard/professional",
-        referringPageLabel: "Professional Dashboard",
-        featureType: "Premium Family Profiles",
-        familyId: familyId
-      }
-    });
+    setSelectedFamily(family);
+    setShowChatModal(true);
   };
 
   const getCompatibilityColor = (score: number) => {
@@ -292,7 +288,7 @@ export const DashboardFamilyMatches = () => {
                       <div className="mt-2 text-center sm:text-left">
                         <h3 className="font-semibold">Family User</h3>
                         <div className="text-xs text-blue-600 mt-1">
-                          * Name protected until subscription
+                          * Name protected until connected
                         </div>
                         <div className="flex items-center justify-center sm:justify-start gap-1 text-sm text-gray-500">
                           <MapPin className="h-3.5 w-3.5" />
@@ -382,8 +378,13 @@ export const DashboardFamilyMatches = () => {
                         ))}
                       </div>
                       
-                      <Button variant="default" className="w-full" onClick={() => handleUnlockProfile(family.id)}>
-                        Unlock Profile
+                      <Button 
+                        variant="default" 
+                        className="w-full flex items-center gap-2" 
+                        onClick={() => handleChatWithFamily(family)}
+                      >
+                        <MessageCircle className="h-4 w-4" />
+                        Chat with Family
                       </Button>
                     </div>
                   </div>
@@ -415,6 +416,15 @@ export const DashboardFamilyMatches = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* Professional Family Chat Modal */}
+      {selectedFamily && (
+        <ProfessionalFamilyChatModal
+          open={showChatModal}
+          onOpenChange={setShowChatModal}
+          family={selectedFamily}
+        />
+      )}
     </>
   );
 };
