@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { v4 as uuidv4 } from 'uuid';
@@ -23,6 +22,7 @@ import { setAuthFlowFlag, AUTH_FLOW_FLAGS } from "@/utils/authFlowUtils";
 const FamilyRegistration = () => {
   const { user, isLoading: authLoading } = useAuth();
   const [loading, setLoading] = useState(false);
+  const [profileLoading, setProfileLoading] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [firstName, setFirstName] = useState('');
@@ -44,6 +44,7 @@ const FamilyRegistration = () => {
   const [preferredContactMethod, setPreferredContactMethod] = useState('');
   
   const [prefillApplied, setPrefillApplied] = useState(false);
+  const [profileDataLoaded, setProfileDataLoaded] = useState(false);
   const [shouldAutoSubmit, setShouldAutoSubmit] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
   const navigate = useNavigate();
@@ -72,6 +73,87 @@ const FamilyRegistration = () => {
     };
   }, []);
 
+  // Load existing profile data when user is available
+  const loadExistingProfile = async (userId: string) => {
+    if (profileDataLoaded) return; // Prevent duplicate loads
+    
+    setProfileLoading(true);
+    console.log('Loading existing profile data for user:', userId);
+    
+    try {
+      const { data: profile, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .eq('role', 'family')
+        .maybeSingle();
+      
+      if (error) {
+        console.error('Error loading profile:', error);
+        return;
+      }
+      
+      if (profile) {
+        console.log('Found existing profile data:', profile);
+        
+        // Prefill basic contact info
+        if (profile.phone_number) setPhoneNumber(profile.phone_number);
+        if (profile.address) setAddress(profile.address);
+        if (profile.avatar_url) setAvatarUrl(profile.avatar_url);
+        
+        // Prefill care recipient info
+        if (profile.care_recipient_name) setCareRecipientName(profile.care_recipient_name);
+        if (profile.relationship) setRelationship(profile.relationship);
+        
+        // Prefill care types (handle as array)
+        if (profile.care_types && Array.isArray(profile.care_types)) {
+          setCareTypes(profile.care_types);
+        }
+        
+        // Prefill special needs (handle as array)
+        if (profile.special_needs && Array.isArray(profile.special_needs)) {
+          setSpecialNeeds(profile.special_needs);
+        }
+        
+        // Prefill care schedule (parse from comma-separated string or array)
+        if (profile.care_schedule) {
+          if (typeof profile.care_schedule === 'string') {
+            setCareSchedule(profile.care_schedule.split(',').filter(s => s.trim()));
+          } else if (Array.isArray(profile.care_schedule)) {
+            setCareSchedule(profile.care_schedule);
+          }
+        }
+        
+        // Prefill custom schedule
+        if (profile.custom_schedule) setCustomCareSchedule(profile.custom_schedule);
+        
+        // Prefill preferences and notes
+        if (profile.budget_preferences) setBudget(profile.budget_preferences);
+        if (profile.caregiver_type) setCaregiverType(profile.caregiver_type);
+        if (profile.caregiver_preferences) setCaregiverPreferences(profile.caregiver_preferences);
+        if (profile.additional_notes) setAdditionalNotes(profile.additional_notes);
+        if (profile.preferred_contact_method) setPreferredContactMethod(profile.preferred_contact_method);
+        
+        setProfileDataLoaded(true);
+        toast.success('Profile data loaded for editing');
+      } else {
+        console.log('No existing profile found - new registration');
+        setProfileDataLoaded(true);
+      }
+    } catch (err) {
+      console.error('Error loading profile:', err);
+    } finally {
+      setProfileLoading(false);
+    }
+  };
+
+  // Load existing profile data when user is available
+  useEffect(() => {
+    if (user && !profileDataLoaded && !profileLoading) {
+      loadExistingProfile(user.id);
+    }
+  }, [user, profileDataLoaded, profileLoading]);
+
   // Pre-populate form fields when user auth data is available
   useEffect(() => {
     if (user && !prefillApplied) {
@@ -85,8 +167,8 @@ const FamilyRegistration = () => {
         setEmail(user.email);
       }
       
-      // Extract name information from user metadata
-      if (user.user_metadata) {
+      // Extract name information from user metadata (only if not already set from profile)
+      if (user.user_metadata && !firstName && !lastName) {
         const metadata = user.user_metadata;
         
         // Try different possible metadata keys for first/last name
@@ -175,9 +257,9 @@ const FamilyRegistration = () => {
     }
   };
 
-  // Apply prefill data when available
+  // Apply prefill data when available (for new registrations from chat)
   useEffect(() => {
-    if (!prefillApplied && user) {
+    if (!prefillApplied && user && profileDataLoaded) {
       console.log('Checking for prefill data...');
       
       const hasPrefill = applyPrefillDataToForm(
@@ -211,7 +293,7 @@ const FamilyRegistration = () => {
       
       setPrefillApplied(true);
     }
-  }, [prefillApplied, shouldAutoSubmit, user]);
+  }, [prefillApplied, shouldAutoSubmit, user, profileDataLoaded]);
 
   const handleCareScheduleChange = (value: string) => {
     setCareSchedule(prev => {
@@ -369,6 +451,18 @@ const FamilyRegistration = () => {
           <h2 className="text-xl font-semibold text-gray-900 mb-2">Authentication Required</h2>
           <p className="text-gray-600 mb-4">Please sign in to complete your family registration.</p>
           <Button onClick={() => navigate('/auth')}>Sign In</Button>
+        </div>
+      </div>
+    );
+  }
+
+  // Show loading state while profile data is being loaded
+  if (profileLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-sm text-gray-600">Loading your profile data...</p>
         </div>
       </div>
     );
