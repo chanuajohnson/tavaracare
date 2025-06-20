@@ -82,7 +82,10 @@ export class ProfessionalFamilyChatService {
         return [];
       }
 
-      return data || [];
+      return (data || []).map(item => ({
+        ...item,
+        status: item.status as 'pending' | 'accepted' | 'declined'
+      }));
     } catch (error) {
       console.error('Error in getProfessionalChatRequests:', error);
       return [];
@@ -106,7 +109,10 @@ export class ProfessionalFamilyChatService {
         return [];
       }
 
-      return data || [];
+      return (data || []).map(item => ({
+        ...item,
+        status: item.status as 'pending' | 'accepted' | 'declined'
+      }));
     } catch (error) {
       console.error('Error in getFamilyChatRequests:', error);
       return [];
@@ -236,7 +242,7 @@ export class ProfessionalFamilyChatService {
         const { error: updateError } = await supabase
           .from('family_chat_sessions')
           .update({
-            messages_sent: supabase.raw('messages_sent + 1'),
+            messages_sent: supabase.sql`messages_sent + 1`,
             updated_at: new Date().toISOString()
           })
           .eq('id', sessionId);

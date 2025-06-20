@@ -111,7 +111,7 @@ export const ProfessionalFamilyChatModal = ({ open, onOpenChange, family }: Prof
                   <AvatarFallback>F</AvatarFallback>
                 </Avatar>
                 <div>
-                  <h3 className="font-semibold">{family.full_name || 'Family User'}</h3>
+                  <h3 className="font-semibold">Family Member</h3>
                   <div className="flex items-center gap-2 text-sm text-gray-500">
                     <MapPin className="h-3 w-3" />
                     {family.location}
