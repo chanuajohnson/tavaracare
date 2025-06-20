@@ -285,7 +285,8 @@ export const useEnhancedProfessionalProgress = (): ProfessionalProgressData => {
             completed = !!user;
             break;
           case 2: // Professional profile
-            completed = !!(profile?.professional_type && profile?.years_of_experience);
+            //Chan edit completed = !!(profile?.professional_type && profile?.years_of_experience);
+            completed = !!(profile?.full_name);
             break;
           case 3: // Documents upload
             completed = (documents?.length || 0) > 0;
