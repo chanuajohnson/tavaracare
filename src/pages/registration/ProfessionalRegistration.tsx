@@ -163,6 +163,9 @@ const ProfessionalRegistration = () => {
       case 'additional_notes': // Changed from additional_info to additional_notes
         setAdditionalNotes(value);
         break;
+      case 'custom_schedule': // Added mapping for custom_schedule
+        setCustomAvailability(value);
+        break;
       default:
         // Handle array fields
         if (field === 'specialties' && Array.isArray(value)) {
@@ -296,7 +299,7 @@ const ProfessionalRegistration = () => {
         specialties: specialties || [],
         certifications: certifications || [],
         care_schedule: careSchedule.join(',') || '', // Changed to match family registration format
-        custom_availability: customAvailability || '',
+        custom_schedule: customAvailability || '', // Changed from custom_availability to custom_schedule
         preferred_work_locations: preferredLocations || '',
         hourly_rate: hourlyRate || '',
         transportation: transportation || '',
