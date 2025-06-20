@@ -159,7 +159,7 @@ export const useSpecificUserProfessionalProgress = (userId: string): SpecificUse
       });
 
       // Fetch care team assignments
-      const { data: assignments, error: assignmentsError } = await supabase
+      const { data: assignmentsData, error: assignmentsError } = await supabase
         .from('care_team_members')
         .select('*')
         .eq('caregiver_id', userId);
@@ -169,9 +169,11 @@ export const useSpecificUserProfessionalProgress = (userId: string): SpecificUse
         throw assignmentsError;
       }
 
+      // Explicitly type assignments as an array
+      const assignments: any[] = assignmentsData || [];
       console.log('💼 Assignments data fetched:', {
-        assignmentsCount: assignments?.length || 0,
-        assignments: assignments?.map(a => ({ id: a.id, status: a.status, role: a.role }))
+        assignmentsCount: assignments.length,
+        assignments: assignments.map(a => ({ id: a.id, status: a.status, role: a.role }))
       });
 
       const processedSteps: ProfessionalStep[] = baseSteps.map(baseStep => {
@@ -214,7 +216,7 @@ export const useSpecificUserProfessionalProgress = (userId: string): SpecificUse
             console.log(`📄 Step 4 (Documents): ${completed} (count: ${documentsCount})`);
             break;
           case 5: // Assignments (reordered from Step 6)
-            const assignmentsCount = assignments?.length || 0;
+            const assignmentsCount = assignments.length;
             completed = assignmentsCount > 0;
             console.log(`💼 Step 5 (Assignments): ${completed} (count: ${assignmentsCount})`);
             break;
