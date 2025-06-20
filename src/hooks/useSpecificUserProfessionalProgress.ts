@@ -156,7 +156,8 @@ export const useSpecificUserProfessionalProgress = (userId: string): SpecificUse
         throw documentsError;
       }
 
-      const documents = documentsData || [];
+      // Explicitly type documents array
+      const documents: any[] = documentsData || [];
       console.log('📄 Documents data fetched:', {
         documentsCount: documents.length,
         documents: documents.map(d => ({ type: d.document_type, name: d.file_name }))
@@ -173,7 +174,8 @@ export const useSpecificUserProfessionalProgress = (userId: string): SpecificUse
         throw assignmentsError;
       }
 
-      const assignments = assignmentsData || [];
+      // Explicitly type assignments array
+      const assignments: any[] = assignmentsData || [];
       console.log('💼 Assignments data fetched:', {
         assignmentsCount: assignments.length,
         assignments: assignments.map(a => ({ id: a.id, status: a.status, role: a.role }))
