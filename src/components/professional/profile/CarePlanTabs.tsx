@@ -1,13 +1,14 @@
-
 import React from "react";
 import { HorizontalTabs, HorizontalTabsList, HorizontalTabsTrigger, HorizontalTabsContent } from "@/components/ui/horizontal-scroll-tabs";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, Pill, ChefHat, Shield, FileText } from "lucide-react";
+import { Calendar, Pill, ChefHat, Shield, FileText, Upload, Settings } from "lucide-react";
 import { ProfessionalScheduleView } from "@/components/professional/ProfessionalScheduleView";
 import { MedicationDashboard } from "@/components/professional/MedicationDashboard";
 import { CarePlanMealPlanner } from "@/components/meal-planning/CarePlanMealPlanner";
 import { CertificateUpload } from "@/components/professional/CertificateUpload";
+import { DocumentManager } from "@/components/professional/DocumentManager";
 
 interface CarePlanTabsProps {
   activeTab: string;
@@ -172,6 +173,7 @@ export const CarePlanTabs = ({
         </Card>
       </HorizontalTabsContent>
 
+      {/* ENHANCED DOCUMENTS TAB WITH ACCORDION LAYOUT */}
       <HorizontalTabsContent value="documents" className="space-y-6">
         <Card>
           <CardHeader>
@@ -184,7 +186,27 @@ export const CarePlanTabs = ({
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <CertificateUpload onUploadSuccess={onCertificateUploadSuccess} />
+            <Accordion type="single" collapsible defaultValue="upload" className="w-full">
+              <AccordionItem value="upload">
+                <AccordionTrigger className="flex items-center gap-2">
+                  <Upload className="h-4 w-4" />
+                  Upload Documents
+                </AccordionTrigger>
+                <AccordionContent className="pt-4">
+                  <CertificateUpload onUploadSuccess={onCertificateUploadSuccess} />
+                </AccordionContent>
+              </AccordionItem>
+              
+              <AccordionItem value="manage">
+                <AccordionTrigger className="flex items-center gap-2">
+                  <Settings className="h-4 w-4" />
+                  Manage Documents
+                </AccordionTrigger>
+                <AccordionContent className="pt-4">
+                  <DocumentManager onDocumentDeleted={onCertificateUploadSuccess} />
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
           </CardContent>
         </Card>
       </HorizontalTabsContent>
