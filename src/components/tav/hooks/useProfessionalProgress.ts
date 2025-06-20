@@ -1,5 +1,4 @@
 
-
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { supabase } from '@/lib/supabase';
@@ -36,7 +35,7 @@ export const useProfessionalProgress = (): ProfessionalProgressData => {
       id: 1, 
       title: "Create your account", 
       description: "Set up your Tavara professional account", 
-      completed: true, // Always completed if user exists
+      completed: true,
       link: "/auth",
       stage: "foundation",
       category: "account"
@@ -56,7 +55,7 @@ export const useProfessionalProgress = (): ProfessionalProgressData => {
       description: "Configure your work schedule and location preferences", 
       completed: false, 
       link: "/registration/professional?scroll=availability&edit=true",
-      stage: "foundation", // Changed from matching to foundation
+      stage: "foundation",
       category: "availability"
     },
     { 
@@ -65,7 +64,7 @@ export const useProfessionalProgress = (): ProfessionalProgressData => {
       description: "Verify your credentials and background", 
       completed: false, 
       link: "/professional/profile?tab=documents",
-      stage: "qualification", // Changed from qualification to qualification
+      stage: "qualification",
       category: "documents"
     },
     { 
@@ -74,7 +73,7 @@ export const useProfessionalProgress = (): ProfessionalProgressData => {
       description: "Enhance your skills with our professional development courses", 
       completed: false, 
       link: "/professional/training",
-      stage: "qualification",
+      stage: "training", // Changed from "qualification" to "training"
       category: "training"
     },
     { 
@@ -96,8 +95,8 @@ export const useProfessionalProgress = (): ProfessionalProgressData => {
     if (step.completed) {
       if (step.id === 1) return "✓ Account Created";
       if (step.id === 2) return "View Profile";
-      if (step.id === 3) return "Edit Availability";  // Step 3 is now availability
-      if (step.id === 4) return "View Documents";     // Step 4 is now documents
+      if (step.id === 3) return "Edit Availability";
+      if (step.id === 4) return "View Documents";
       if (step.id === 5) return "Continue Training";
       if (step.id === 6) return "View Assignments";
       return "✓ Complete";
@@ -105,8 +104,8 @@ export const useProfessionalProgress = (): ProfessionalProgressData => {
     
     if (step.id === 1) return "Complete Setup";
     if (step.id === 2) return "Complete Profile";
-    if (step.id === 3) return "Set Availability";     // Step 3 is now availability
-    if (step.id === 4) return "Upload Documents";     // Step 4 is now documents
+    if (step.id === 3) return "Set Availability";
+    if (step.id === 4) return "Upload Documents";
     if (step.id === 5) return "Start Training";
     if (step.id === 6) return "Get Assignments";
     
@@ -119,20 +118,17 @@ export const useProfessionalProgress = (): ProfessionalProgressData => {
     try {
       setLoading(true);
       
-      // Check user profile completion - enhanced checks
       const { data: profile } = await supabase
         .from('profiles')
         .select('professional_type, years_of_experience, certifications, care_schedule')
         .eq('id', user.id)
         .maybeSingle();
 
-      // Check for uploaded documents
       const { data: documents } = await supabase
         .from('professional_documents')
         .select('id')
         .eq('user_id', user.id);
 
-      // Check care team assignments
       const { data: assignments } = await supabase
         .from('care_team_members')
         .select('id')
@@ -144,30 +140,30 @@ export const useProfessionalProgress = (): ProfessionalProgressData => {
         buttonText: getButtonText(step)
       }));
       
-      // Step 1: Account creation - always completed if user exists
+      // Step 1: Account creation
       updatedSteps[0].completed = true;
       
-      // Step 2: Complete professional profile - check if professional details are filled
+      // Step 2: Complete professional profile
       if (profile && profile.professional_type && profile.years_of_experience) {
         updatedSteps[1].completed = true;
       }
       
-      // Step 3: Availability (was Step 4) - check if care_schedule is set
+      // Step 3: Availability
       if (profile && profile.care_schedule && profile.care_schedule.length > 0) {
         updatedSteps[2].completed = true;
       }
       
-      // Step 4: Upload documents (was Step 3) - check if any documents exist
+      // Step 4: Upload documents
       if (documents && documents.length > 0) {
         updatedSteps[3].completed = true;
       }
       
-      // Step 5: Training modules - check if professional_type is set and certifications exist
+      // Step 5: Training modules
       if (profile && profile.professional_type && profile.certifications && profile.certifications.length > 0) {
         updatedSteps[4].completed = true;
       }
       
-      // Step 6: Assignments - check if user has any care team assignments
+      // Step 6: Assignments
       if (assignments && assignments.length > 0) {
         updatedSteps[5].completed = true;
       }
@@ -194,8 +190,9 @@ export const useProfessionalProgress = (): ProfessionalProgressData => {
   // Determine current stage based on completed steps
   const getCurrentStage = () => {
     if (completionPercentage === 100) return 'active';
-    if (completedSteps >= 4) return 'matching';
-    if (completedSteps >= 2) return 'qualification';
+    if (completedSteps >= 5) return 'training'; // Step 5 is now in training stage
+    if (completedSteps >= 4) return 'qualification'; // Step 4 completes qualification
+    if (completedSteps >= 3) return 'foundation'; // Steps 1-3 are foundation
     return 'foundation';
   };
 

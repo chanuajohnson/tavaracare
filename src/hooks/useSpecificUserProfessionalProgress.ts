@@ -1,5 +1,4 @@
 
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 
@@ -26,7 +25,7 @@ export const useSpecificUserProfessionalProgress = (userId: string): SpecificUse
   const [loading, setLoading] = useState(true);
   const [steps, setSteps] = useState<ProfessionalStep[]>([]);
 
-  // Base steps definition - SWAPPED STEPS 3 AND 4
+  // Base steps definition - Step 5 moved to "training" stage
   const baseSteps = [
     { 
       id: 1, 
@@ -52,7 +51,7 @@ export const useSpecificUserProfessionalProgress = (userId: string): SpecificUse
       description: "Configure your work schedule and location preferences", 
       link: "/registration/professional?scroll=availability&edit=true",
       category: "availability",
-      stage: "foundation", // Changed from matching to foundation
+      stage: "foundation",
       isInteractive: true
     },
     { 
@@ -61,7 +60,7 @@ export const useSpecificUserProfessionalProgress = (userId: string): SpecificUse
       description: "Verify your credentials and background", 
       link: "/professional/profile?tab=documents",
       category: "documents",
-      stage: "qualification", // Changed from qualification to qualification
+      stage: "qualification",
       isInteractive: true
     },
     { 
@@ -70,7 +69,7 @@ export const useSpecificUserProfessionalProgress = (userId: string): SpecificUse
       description: "Enhance your skills with our professional development courses", 
       link: "/professional/training",
       category: "training",
-      stage: "qualification",
+      stage: "training", // Changed from "qualification" to "training"
       isInteractive: true
     },
     { 
@@ -89,8 +88,8 @@ export const useSpecificUserProfessionalProgress = (userId: string): SpecificUse
       switch (step.id) {
         case 1: return "✓ Account Created";
         case 2: return "✓ Profile Complete";
-        case 3: return "Edit Availability";  // Step 3 is now availability
-        case 4: return "View Documents";     // Step 4 is now documents
+        case 3: return "Edit Availability";
+        case 4: return "View Documents";
         case 5: return "Continue Training";
         case 6: return "View Assignments";
         default: return "✓ Complete";
@@ -100,8 +99,8 @@ export const useSpecificUserProfessionalProgress = (userId: string): SpecificUse
     switch (step.id) {
       case 1: return "Complete Setup";
       case 2: return "Complete Profile";
-      case 3: return "Set Availability";     // Step 3 is now availability
-      case 4: return "Upload Documents";     // Step 4 is now documents
+      case 3: return "Set Availability";
+      case 4: return "Upload Documents";
       case 5: return "Start Training";
       case 6: return "Get Assignments";
       default: return "Complete";
@@ -119,7 +118,7 @@ export const useSpecificUserProfessionalProgress = (userId: string): SpecificUse
       setLoading(true);
       console.log('🔍 useSpecificUserProfessionalProgress: Starting check for userId:', userId);
       
-      // Fetch profile data - exact same queries as useEnhancedProfessionalProgress
+      // Fetch profile data
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('*')
@@ -141,7 +140,7 @@ export const useSpecificUserProfessionalProgress = (userId: string): SpecificUse
         careScheduleLength: profile?.care_schedule?.length || 0
       });
 
-      // Fetch documents
+      // Fetch documents - Fix TypeScript error by properly typing the response
       const { data: documents, error: documentsError } = await supabase
         .from('professional_documents')
         .select('*')
@@ -152,9 +151,11 @@ export const useSpecificUserProfessionalProgress = (userId: string): SpecificUse
         throw documentsError;
       }
 
+      // Ensure documents is properly typed as an array
+      const documentsArray = documents || [];
       console.log('📄 Documents data fetched:', {
-        documentsCount: documents?.length || 0,
-        documents: documents?.map(d => ({ type: d.document_type, name: d.file_name }))
+        documentsCount: documentsArray.length,
+        documents: documentsArray.map(d => ({ type: d.document_type, name: d.file_name }))
       });
 
       // Fetch care team assignments
@@ -176,10 +177,9 @@ export const useSpecificUserProfessionalProgress = (userId: string): SpecificUse
       const processedSteps: ProfessionalStep[] = baseSteps.map(baseStep => {
         let completed = false;
 
-        // SWAPPED completion logic for steps 3 and 4
         switch (baseStep.id) {
           case 1: // Account creation
-            completed = !!userId; // Always true if userId exists
+            completed = !!userId;
             console.log(`✅ Step 1 (Account): ${completed} - userId exists: ${!!userId}`);
             break;
           case 2: // Professional profile
@@ -193,7 +193,7 @@ export const useSpecificUserProfessionalProgress = (userId: string): SpecificUse
               hasYearsExp
             });
             break;
-          case 3: // Availability (was Step 4)
+          case 3: // Availability
             const careScheduleData = profile?.care_schedule;
             const careScheduleLength = typeof careScheduleData === 'string' 
               ? careScheduleData.split(',').filter(s => s.trim()).length 
@@ -206,8 +206,8 @@ export const useSpecificUserProfessionalProgress = (userId: string): SpecificUse
               isArray: Array.isArray(careScheduleData)
             });
             break;
-          case 4: // Documents upload (was Step 3)
-            const documentsCount = documents?.length || 0;
+          case 4: // Documents upload
+            const documentsCount = documentsArray.length; // Fixed TypeScript error
             completed = documentsCount > 0;
             console.log(`📄 Step 4 (Documents): ${completed} (count: ${documentsCount})`);
             break;
@@ -242,7 +242,8 @@ export const useSpecificUserProfessionalProgress = (userId: string): SpecificUse
       console.log('📈 Final processed steps summary:', processedSteps.map(s => ({
         step: s.id,
         title: s.title,
-        completed: s.completed ? '✅' : '❌'
+        completed: s.completed ? '✅' : '❌',
+        stage: s.stage
       })));
 
       setSteps(processedSteps);
@@ -274,7 +275,12 @@ export const useSpecificUserProfessionalProgress = (userId: string): SpecificUse
     totalSteps,
     completionPercentage,
     nextStepTitle: nextStep?.title,
-    stepsCompleted: steps.filter(s => s.completed).map(s => s.title)
+    stagesBreakdown: {
+      foundation: steps.filter(s => s.stage === 'foundation').map(s => ({ title: s.title, completed: s.completed })),
+      qualification: steps.filter(s => s.stage === 'qualification').map(s => ({ title: s.title, completed: s.completed })),
+      training: steps.filter(s => s.stage === 'training').map(s => ({ title: s.title, completed: s.completed })),
+      active: steps.filter(s => s.stage === 'active').map(s => ({ title: s.title, completed: s.completed }))
+    }
   });
 
   return {

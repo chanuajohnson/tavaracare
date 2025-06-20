@@ -47,7 +47,7 @@ export const useEnhancedProfessionalProgress = (): ProfessionalProgressData => {
   const [profileData, setProfileData] = useState<any>(null);
   const [documentsData, setDocumentsData] = useState<any[]>([]);
 
-  // Define journey stages
+  // Define journey stages - Added new "training" stage
   const stages: ProfessionalJourneyStage[] = [
     {
       id: 'foundation',
@@ -68,10 +68,10 @@ export const useEnhancedProfessionalProgress = (): ProfessionalProgressData => {
       isCompleted: false
     },
     {
-      id: 'matching',
-      name: 'Matching',
-      description: 'Set availability and enable family matching',
-      color: 'bg-purple-500',
+      id: 'training',
+      name: 'Training',
+      description: 'Complete optional training modules to enhance your skills',
+      color: 'bg-yellow-500',
       completionPercentage: 0,
       isActive: false,
       isCompleted: false
@@ -91,17 +91,22 @@ export const useEnhancedProfessionalProgress = (): ProfessionalProgressData => {
 
   const handleStepAction = (step: ProfessionalStep) => {
     if (step.modalAction) {
-      // Handle modal actions for interactive steps
       switch (step.modalAction) {
         case 'document_upload':
-          // Navigate to profile with document upload focus
-          navigate('/professional/profile?tab=documents&action=upload');
+          // Smart document navigation: check if user has existing documents
+          const hasDocuments = documentsData && documentsData.length > 0;
+          if (hasDocuments) {
+            // User has documents, navigate to manage view
+            navigate('/professional/profile?tab=documents&action=manage');
+          } else {
+            // New user, navigate to upload view
+            navigate('/professional/profile?tab=documents&action=upload');
+          }
           break;
         case 'training_modules':
           navigate('/professional/training');
           break;
         case 'availability_setup':
-         //EDIT CHAN navigate('/professional/profile?tab=availability&action=setup');
           navigate('/registration/professional?scroll=availability&edit=true');
           break;
         default:
@@ -113,7 +118,6 @@ export const useEnhancedProfessionalProgress = (): ProfessionalProgressData => {
   };
 
   const handleDemoStepAction = () => {
-    // For non-logged-in users, redirect to auth page
     navigate('/auth');
   };
 
@@ -122,8 +126,8 @@ export const useEnhancedProfessionalProgress = (): ProfessionalProgressData => {
       switch (step.id) {
         case 1: return "✓ Account Created";
         case 2: return "✓ Profile Complete";
-        case 3: return "Edit Availability"; // Step 3 is now availability
-        case 4: return "View Documents";   // Step 4 is now documents
+        case 3: return "Edit Availability";
+        case 4: return "View Documents";
         case 5: return "Continue Training";
         case 6: return "View Assignments";
         default: return "✓ Complete";
@@ -133,15 +137,15 @@ export const useEnhancedProfessionalProgress = (): ProfessionalProgressData => {
     switch (step.id) {
       case 1: return "Complete Setup";
       case 2: return "Complete Profile";
-      case 3: return "Set Availability";    // Step 3 is now availability
-      case 4: return "Upload Documents";    // Step 4 is now documents
+      case 3: return "Set Availability";
+      case 4: return "Upload Documents";
       case 5: return "Start Training";
       case 6: return "Get Assignments";
       default: return "Complete";
     }
   };
 
-  // Base steps definition - SWAPPED STEPS 3 AND 4
+  // Base steps definition - Step 5 moved to "training" stage
   const baseSteps: Omit<ProfessionalStep, 'completed' | 'action' | 'buttonText'>[] = [
     { 
       id: 1, 
@@ -167,7 +171,7 @@ export const useEnhancedProfessionalProgress = (): ProfessionalProgressData => {
       description: "Configure your work schedule and location preferences", 
       link: "/registration/professional?scroll=availability&edit=true",
       category: "availability",
-      stage: "foundation", // Changed from matching to foundation
+      stage: "foundation",
       isInteractive: true,
       modalAction: "availability_setup"
     },
@@ -177,7 +181,7 @@ export const useEnhancedProfessionalProgress = (): ProfessionalProgressData => {
       description: "Verify your credentials and background", 
       link: "/professional/profile?tab=documents",
       category: "documents",
-      stage: "qualification", // Changed from qualification to qualification
+      stage: "qualification",
       isInteractive: true,
       modalAction: "document_upload"
     },
@@ -187,7 +191,7 @@ export const useEnhancedProfessionalProgress = (): ProfessionalProgressData => {
       description: "Enhance your skills with our professional development courses", 
       link: "/professional/training",
       category: "training",
-      stage: "qualification",
+      stage: "training", // Changed from "qualification" to "training"
       isInteractive: true,
       modalAction: "training_modules"
     },
@@ -207,18 +211,17 @@ export const useEnhancedProfessionalProgress = (): ProfessionalProgressData => {
     const demoSteps: ProfessionalStep[] = baseSteps.map(baseStep => {
       let completed = false;
 
-      // Set demo completion status - first 2 steps completed
       switch (baseStep.id) {
-        case 1: // Account creation
+        case 1:
           completed = true;
           break;
-        case 2: // Professional profile
+        case 2:
           completed = true;
           break;
-        case 3: // Availability - this will be the "next" step
-        case 4: // Documents upload
-        case 5: // Training modules
-        case 6: // Assignments
+        case 3:
+        case 4:
+        case 5:
+        case 6:
         default:
           completed = false;
           break;
@@ -227,7 +230,7 @@ export const useEnhancedProfessionalProgress = (): ProfessionalProgressData => {
       return {
         ...baseStep,
         completed,
-        action: handleDemoStepAction, // All demo actions redirect to auth
+        action: handleDemoStepAction,
         buttonText: getButtonText({ ...baseStep, completed, action: () => {}, buttonText: '' })
       };
     });
@@ -281,22 +284,20 @@ export const useEnhancedProfessionalProgress = (): ProfessionalProgressData => {
       const steps: ProfessionalStep[] = baseSteps.map(baseStep => {
         let completed = false;
 
-        // Check completion status for each step - SWAPPED LOGIC FOR STEPS 3 AND 4
         switch (baseStep.id) {
           case 1: // Account creation
             completed = !!user;
             break;
           case 2: // Professional profile
-            //Chan edit completed = !!(profile?.professional_type && profile?.years_of_experience);
             completed = !!(profile?.full_name);
             break;
-          case 3: // Availability (was Step 4)
+          case 3: // Availability
             completed = !!(profile?.care_schedule && profile.care_schedule.length > 0);
             break;
-          case 4: // Documents upload (was Step 3)
+          case 4: // Documents upload
             completed = (documents?.length || 0) > 0;
             break;
-          case 5: // Training modules - check if professional_type is set and certifications exist
+          case 5: // Training modules
             completed = !!(profile?.professional_type && profile?.certifications && profile.certifications.length > 0);
             break;
           case 6: // Assignments
@@ -340,7 +341,6 @@ export const useEnhancedProfessionalProgress = (): ProfessionalProgressData => {
 
   const refreshProgress = async () => {
     if (!user) {
-      // For non-logged-in users, provide demo data immediately
       const { steps: demoSteps, stages: demoStages } = generateDemoData();
       setSteps(demoSteps);
       setCurrentStages(demoStages);
@@ -355,13 +355,11 @@ export const useEnhancedProfessionalProgress = (): ProfessionalProgressData => {
 
   useEffect(() => {
     if (!user) {
-      // For non-logged-in users, provide demo data immediately
       const { steps: demoSteps, stages: demoStages } = generateDemoData();
       setSteps(demoSteps);
       setCurrentStages(demoStages);
       setLoading(false);
     } else {
-      // For logged-in users, fetch real data
       refreshProgress();
     }
   }, [user]);
