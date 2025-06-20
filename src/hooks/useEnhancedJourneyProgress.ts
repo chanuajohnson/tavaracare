@@ -13,6 +13,12 @@ export interface JourneyStep {
   accessible: boolean;
   step_number: number;
   action?: () => void;
+  category?: string;
+  icon_name?: string;
+  tooltip_content?: string;
+  detailed_explanation?: string;
+  link_path?: string;
+  cancelAction?: () => void;
 }
 
 export interface JourneyProgress {
@@ -21,6 +27,24 @@ export interface JourneyProgress {
   nextStep: JourneyStep | null;
   currentStage: string;
   isAnonymous: boolean;
+  // Extended properties for family dashboard compatibility
+  loading: boolean;
+  showScheduleModal: boolean;
+  setShowScheduleModal: (show: boolean) => void;
+  showInternalScheduleModal: boolean;
+  setShowInternalScheduleModal: (show: boolean) => void;
+  showCancelVisitModal: boolean;
+  setShowCancelVisitModal: (show: boolean) => void;
+  showCaregiverMatchingModal: boolean;
+  setShowCaregiverMatchingModal: (show: boolean) => void;
+  showLeadCaptureModal: boolean;
+  setShowLeadCaptureModal: (show: boolean) => void;
+  visitDetails: any;
+  trackStepAction: (stepId: string, action: string) => void;
+  onVisitScheduled: () => void;
+  onVisitCancelled: () => void;
+  paths?: any[];
+  carePlans?: any[];
 }
 
 export const useEnhancedJourneyProgress = (): JourneyProgress => {
@@ -30,8 +54,15 @@ export const useEnhancedJourneyProgress = (): JourneyProgress => {
   const [visitDetails, setVisitDetails] = useState<any>(null);
   const [carePlans, setCarePlans] = useState<any[]>([]);
   
+  // Modal states
+  const [showScheduleModal, setShowScheduleModal] = useState(false);
+  const [showInternalScheduleModal, setShowInternalScheduleModal] = useState(false);
+  const [showCancelVisitModal, setShowCancelVisitModal] = useState(false);
+  const [showCaregiverMatchingModal, setShowCaregiverMatchingModal] = useState(false);
+  const [showLeadCaptureModal, setShowLeadCaptureModal] = useState(false);
+  
   // Use the existing journey progress hook for step data
-  const { steps: rawSteps, isLoading } = useUserJourneyProgress(user?.id);
+  const { steps: rawSteps, loading } = useUserJourneyProgress(user?.id || '', user?.user_metadata?.role || 'family');
 
   // Enhanced step actions with simple navigation (following professional pattern)
   const getStepAction = (step: any): (() => void) => {
@@ -71,15 +102,20 @@ export const useEnhancedJourneyProgress = (): JourneyProgress => {
     }
   };
 
-  // Enhanced steps with proper actions
+  // Enhanced steps with proper actions and categories
   const enhancedSteps: JourneyStep[] = rawSteps.map(step => ({
-    id: step.id || `step-${step.step_number}`,
-    title: step.title || step.step_title || `Step ${step.step_number}`,
+    id: step.id?.toString() || `step-${step.step_number}`,
+    title: step.title || `Step ${step.step_number}`,
     description: step.description,
     completed: step.completed || false,
     accessible: step.accessible !== undefined ? step.accessible : true,
     step_number: step.step_number,
-    action: getStepAction(step)
+    action: getStepAction(step),
+    category: step.category || 'foundation',
+    icon_name: step.icon_name,
+    tooltip_content: step.tooltip_content,
+    detailed_explanation: step.detailed_explanation,
+    link_path: step.link_path
   }));
 
   // Calculate completion percentage
@@ -107,8 +143,8 @@ export const useEnhancedJourneyProgress = (): JourneyProgress => {
       try {
         const { data } = await supabase
           .from('care_plans')
-          .select('id, name')
-          .eq('user_id', user.id)
+          .select('id, title')
+          .eq('family_id', user.id)
           .order('created_at', { ascending: false });
         
         if (data) {
@@ -122,11 +158,44 @@ export const useEnhancedJourneyProgress = (): JourneyProgress => {
     loadCarePlans();
   }, [user?.id]);
 
+  // Track step actions
+  const trackStepAction = (stepId: string, action: string) => {
+    console.log(`Step ${stepId}: ${action}`);
+  };
+
+  // Visit handlers
+  const onVisitScheduled = () => {
+    setShowScheduleModal(false);
+    // Refresh visit details if needed
+  };
+
+  const onVisitCancelled = () => {
+    setShowCancelVisitModal(false);
+    setVisitDetails(null);
+  };
+
   return {
     steps: enhancedSteps,
     completionPercentage,
     nextStep,
     currentStage: getCurrentStage(),
-    isAnonymous: !user
+    isAnonymous: !user,
+    loading,
+    showScheduleModal,
+    setShowScheduleModal,
+    showInternalScheduleModal,
+    setShowInternalScheduleModal,
+    showCancelVisitModal,
+    setShowCancelVisitModal,
+    showCaregiverMatchingModal,
+    setShowCaregiverMatchingModal,
+    showLeadCaptureModal,
+    setShowLeadCaptureModal,
+    visitDetails,
+    trackStepAction,
+    onVisitScheduled,
+    onVisitCancelled,
+    paths: [], // Add empty paths for compatibility
+    carePlans
   };
 };
