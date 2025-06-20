@@ -140,7 +140,7 @@ export const useSpecificUserProfessionalProgress = (userId: string): SpecificUse
         careScheduleLength: profile?.care_schedule?.length || 0
       });
 
-      // Fetch documents - Fix TypeScript error by properly typing the response
+      // Fetch documents - Properly type the response to fix TypeScript error
       const { data: documentsData, error: documentsError } = await supabase
         .from('professional_documents')
         .select('*')
@@ -151,7 +151,7 @@ export const useSpecificUserProfessionalProgress = (userId: string): SpecificUse
         throw documentsError;
       }
 
-      // Ensure documents is properly typed as an array
+      // Explicitly type documents as an array to fix the TypeScript error
       const documents: any[] = documentsData || [];
       console.log('📄 Documents data fetched:', {
         documentsCount: documents.length,
@@ -213,12 +213,12 @@ export const useSpecificUserProfessionalProgress = (userId: string): SpecificUse
             completed = documentsCount > 0;
             console.log(`📄 Step 4 (Documents): ${completed} (count: ${documentsCount})`);
             break;
-          case 5: // Assignments (moved from Step 6)
+          case 5: // Assignments (reordered from Step 6)
             const assignmentsCount = assignments?.length || 0;
             completed = assignmentsCount > 0;
             console.log(`💼 Step 5 (Assignments): ${completed} (count: ${assignmentsCount})`);
             break;
-          case 6: // Training modules (moved from Step 5) - check certifications
+          case 6: // Training modules (reordered from Step 5) - check certifications
             const certificationsArray = profile?.certifications;
             const certificationsCount = Array.isArray(certificationsArray) ? certificationsArray.length : 0;
             const hasProfileTypeForTraining = !!profile?.professional_type;
