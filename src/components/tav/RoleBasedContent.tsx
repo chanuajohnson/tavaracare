@@ -17,6 +17,8 @@ interface RoleBasedContentProps {
   onNudgeClick: (nudge: AssistantNudge) => void;
   isLoading: boolean;
   progressContext: ProgressContext;
+  professionalProgress?: any;
+  familyJourneyProgress?: any;
   onClose: () => void;
   onMinimize: () => void;
 }
@@ -27,6 +29,8 @@ export const RoleBasedContent: React.FC<RoleBasedContentProps> = ({
   onNudgeClick,
   isLoading,
   progressContext,
+  professionalProgress,
+  familyJourneyProgress,
   onClose,
   onMinimize
 }) => {
@@ -43,7 +47,9 @@ export const RoleBasedContent: React.FC<RoleBasedContentProps> = ({
         window.location.href = '/professional/profile?tab=assignments';
       }
     } else if (role === 'family') {
-      if (progressContext.completionPercentage < 50) {
+      // Use direct family progress data for navigation decisions
+      const completionPercentage = familyJourneyProgress?.completionPercentage || 0;
+      if (completionPercentage < 50) {
         window.location.href = '/registration/family';
       } else {
         window.location.href = '/family/profile';
@@ -142,7 +148,7 @@ export const RoleBasedContent: React.FC<RoleBasedContentProps> = ({
           {user && (
             <>
               {/* Professional-specific enhanced content */}
-              {role === 'professional' && (
+              {role === 'professional' && professionalProgress && (
                 <div className="space-y-4">
                   <ProfessionalJourneyWelcomeCard 
                     progressContext={progressContext}
@@ -152,9 +158,53 @@ export const RoleBasedContent: React.FC<RoleBasedContentProps> = ({
                 </div>
               )}
 
-              {/* Family-specific content */}
-              {role === 'family' && (
-                <FamilyJourneyPreview onBack={handleBack} />
+              {/* Family-specific content - now using direct hook data */}
+              {role === 'family' && familyJourneyProgress && (
+                <div className="space-y-4">
+                  {/* Family journey progress card using direct hook data */}
+                  <div className="bg-gradient-to-br from-blue-50 to-blue-100/50 rounded-xl p-4 border border-blue-200">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Sparkles className="h-4 w-4 text-blue-600" />
+                      <h3 className="font-semibold text-blue-800">Your Family Journey</h3>
+                    </div>
+                    
+                    <div className="space-y-3">
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm font-medium text-blue-700">Overall Progress</span>
+                        <span className="text-sm font-bold text-blue-600">{familyJourneyProgress.completionPercentage}%</span>
+                      </div>
+                      
+                      <div className="w-full bg-blue-200 rounded-full h-2">
+                        <div 
+                          className="bg-blue-600 h-2 rounded-full transition-all duration-300" 
+                          style={{ width: `${familyJourneyProgress.completionPercentage}%` }}
+                        />
+                      </div>
+                      
+                      <div className="text-xs text-blue-600">
+                        {familyJourneyProgress.steps.filter(s => s.completed).length} of {familyJourneyProgress.steps.length} steps complete
+                      </div>
+                      
+                      {familyJourneyProgress.nextStep && (
+                        <div className="bg-white/60 rounded-lg p-3 border border-blue-200">
+                          <div className="text-xs font-medium text-blue-700 mb-1">Next Step:</div>
+                          <div className="text-xs text-blue-600">{familyJourneyProgress.nextStep.title}</div>
+                        </div>
+                      )}
+                      
+                      <Button 
+                        size="sm" 
+                        className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+                        onClick={handleJourneyAction}
+                      >
+                        Continue Journey
+                        <ArrowRight className="ml-1 h-3 w-3" />
+                      </Button>
+                    </div>
+                  </div>
+                  
+                  <FamilyJourneyPreview onBack={handleBack} />
+                </div>
               )}
 
               {/* Community-specific content */}
