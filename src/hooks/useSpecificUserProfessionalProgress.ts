@@ -25,7 +25,7 @@ export const useSpecificUserProfessionalProgress = (userId: string): SpecificUse
   const [loading, setLoading] = useState(true);
   const [steps, setSteps] = useState<ProfessionalStep[]>([]);
 
-  // Base steps definition - Step 5 moved to "training" stage
+  // Base steps definition - Step 5 and 6 reordered
   const baseSteps = [
     { 
       id: 1, 
@@ -65,21 +65,21 @@ export const useSpecificUserProfessionalProgress = (userId: string): SpecificUse
     },
     { 
       id: 5, 
-      title: "Complete training modules", 
-      description: "Enhance your skills with our professional development courses", 
-      link: "/professional/training",
-      category: "training",
-      stage: "training",
-      isInteractive: true
-    },
-    { 
-      id: 6, 
       title: "Start receiving assignments", 
       description: "Get matched with families and begin your caregiving journey", 
       link: "/professional/profile?tab=assignments",
       category: "assignments",
       stage: "active",
       isInteractive: false
+    },
+    { 
+      id: 6, 
+      title: "Complete training modules", 
+      description: "Enhance your skills with our professional development courses", 
+      link: "/professional/training",
+      category: "training",
+      stage: "training",
+      isInteractive: true
     }
   ];
 
@@ -90,8 +90,8 @@ export const useSpecificUserProfessionalProgress = (userId: string): SpecificUse
         case 2: return "✓ Profile Complete";
         case 3: return "Edit Availability";
         case 4: return "View Documents";
-        case 5: return "Continue Training";
-        case 6: return "View Assignments";
+        case 5: return "View Assignments";
+        case 6: return "Continue Training";
         default: return "✓ Complete";
       }
     }
@@ -101,8 +101,8 @@ export const useSpecificUserProfessionalProgress = (userId: string): SpecificUse
       case 2: return "Complete Profile";
       case 3: return "Set Availability";
       case 4: return "Upload Documents";
-      case 5: return "Start Training";
-      case 6: return "Get Assignments";
+      case 5: return "Get Assignments";
+      case 6: return "Start Training";
       default: return "Complete";
     }
   };
@@ -152,7 +152,7 @@ export const useSpecificUserProfessionalProgress = (userId: string): SpecificUse
       }
 
       // Ensure documents is properly typed as an array
-      const documents = documentsData || [];
+      const documents: any[] = documentsData || [];
       console.log('📄 Documents data fetched:', {
         documentsCount: documents.length,
         documents: documents.map(d => ({ type: d.document_type, name: d.file_name }))
@@ -213,22 +213,22 @@ export const useSpecificUserProfessionalProgress = (userId: string): SpecificUse
             completed = documentsCount > 0;
             console.log(`📄 Step 4 (Documents): ${completed} (count: ${documentsCount})`);
             break;
-          case 5: // Training modules - check certifications
+          case 5: // Assignments (moved from Step 6)
+            const assignmentsCount = assignments?.length || 0;
+            completed = assignmentsCount > 0;
+            console.log(`💼 Step 5 (Assignments): ${completed} (count: ${assignmentsCount})`);
+            break;
+          case 6: // Training modules (moved from Step 5) - check certifications
             const certificationsArray = profile?.certifications;
             const certificationsCount = Array.isArray(certificationsArray) ? certificationsArray.length : 0;
             const hasProfileTypeForTraining = !!profile?.professional_type;
             completed = hasProfileTypeForTraining && certificationsCount > 0;
-            console.log(`🎓 Step 5 (Training/Certifications): ${completed}`, {
+            console.log(`🎓 Step 6 (Training/Certifications): ${completed}`, {
               certificationsArray,
               certificationsCount,
               hasProfileTypeForTraining,
               isArray: Array.isArray(certificationsArray)
             });
-            break;
-          case 6: // Assignments
-            const assignmentsCount = assignments?.length || 0;
-            completed = assignmentsCount > 0;
-            console.log(`💼 Step 6 (Assignments): ${completed} (count: ${assignmentsCount})`);
             break;
         }
 

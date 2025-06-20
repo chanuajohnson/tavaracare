@@ -69,21 +69,21 @@ export const useProfessionalProgress = (): ProfessionalProgressData => {
     },
     { 
       id: 5, 
-      title: "Complete training modules", 
-      description: "Enhance your skills with our professional development courses", 
-      completed: false, 
-      link: "/professional/training",
-      stage: "training", // Changed from "qualification" to "training"
-      category: "training"
-    },
-    { 
-      id: 6, 
       title: "Start receiving assignments", 
       description: "Get matched with families and begin your caregiving journey", 
       completed: false, 
       link: "/professional/profile?tab=assignments",
       stage: "active",
       category: "assignments"
+    },
+    { 
+      id: 6, 
+      title: "Complete training modules", 
+      description: "Enhance your skills with our professional development courses", 
+      completed: false, 
+      link: "/professional/training",
+      stage: "training",
+      category: "training"
     }
   ]);
 
@@ -97,8 +97,8 @@ export const useProfessionalProgress = (): ProfessionalProgressData => {
       if (step.id === 2) return "View Profile";
       if (step.id === 3) return "Edit Availability";
       if (step.id === 4) return "View Documents";
-      if (step.id === 5) return "Continue Training";
-      if (step.id === 6) return "View Assignments";
+      if (step.id === 5) return "View Assignments";
+      if (step.id === 6) return "Continue Training";
       return "✓ Complete";
     }
     
@@ -106,8 +106,8 @@ export const useProfessionalProgress = (): ProfessionalProgressData => {
     if (step.id === 2) return "Complete Profile";
     if (step.id === 3) return "Set Availability";
     if (step.id === 4) return "Upload Documents";
-    if (step.id === 5) return "Start Training";
-    if (step.id === 6) return "Get Assignments";
+    if (step.id === 5) return "Get Assignments";
+    if (step.id === 6) return "Start Training";
     
     return "Complete";
   };
@@ -158,13 +158,13 @@ export const useProfessionalProgress = (): ProfessionalProgressData => {
         updatedSteps[3].completed = true;
       }
       
-      // Step 5: Training modules
-      if (profile && profile.professional_type && profile.certifications && profile.certifications.length > 0) {
+      // Step 5: Assignments (moved from Step 6)
+      if (assignments && assignments.length > 0) {
         updatedSteps[4].completed = true;
       }
       
-      // Step 6: Assignments
-      if (assignments && assignments.length > 0) {
+      // Step 6: Training modules (moved from Step 5)
+      if (profile && profile.professional_type && profile.certifications && profile.certifications.length > 0) {
         updatedSteps[5].completed = true;
       }
       
@@ -189,8 +189,8 @@ export const useProfessionalProgress = (): ProfessionalProgressData => {
 
   // Determine current stage based on completed steps
   const getCurrentStage = () => {
-    if (completionPercentage === 100) return 'active';
-    if (completedSteps >= 5) return 'training'; // Step 5 is now in training stage
+    if (completionPercentage === 100) return 'training';
+    if (completedSteps >= 5) return 'active'; //  Step 5 is now assignments (active stage)
     if (completedSteps >= 4) return 'qualification'; // Step 4 completes qualification
     if (completedSteps >= 3) return 'foundation'; // Steps 1-3 are foundation
     return 'foundation';

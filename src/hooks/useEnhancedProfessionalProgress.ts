@@ -68,19 +68,19 @@ export const useEnhancedProfessionalProgress = (): ProfessionalProgressData => {
       isCompleted: false
     },
     {
-      id: 'training',
-      name: 'Training',
-      description: 'Complete optional training modules to enhance your skills',
-      color: 'bg-yellow-500',
+      id: 'active',
+      name: 'Active Professional',
+      description: 'Receive assignments and grow your career',
+      color: 'bg-green-500',
       completionPercentage: 0,
       isActive: false,
       isCompleted: false
     },
     {
-      id: 'active',
-      name: 'Active Professional',
-      description: 'Receive assignments and grow your career',
-      color: 'bg-green-500',
+      id: 'training',
+      name: 'Training',
+      description: 'Complete optional training modules to enhance your skills',
+      color: 'bg-yellow-500',
       completionPercentage: 0,
       isActive: false,
       isCompleted: false
@@ -128,8 +128,8 @@ export const useEnhancedProfessionalProgress = (): ProfessionalProgressData => {
         case 2: return "✓ Profile Complete";
         case 3: return "Edit Availability";
         case 4: return "View Documents";
-        case 5: return "Continue Training";
-        case 6: return "View Assignments";
+        case 5: return "View Assignments";
+        case 6: return "Continue Training";
         default: return "✓ Complete";
       }
     }
@@ -139,13 +139,13 @@ export const useEnhancedProfessionalProgress = (): ProfessionalProgressData => {
       case 2: return "Complete Profile";
       case 3: return "Set Availability";
       case 4: return "Upload Documents";
-      case 5: return "Start Training";
-      case 6: return "Get Assignments";
+      case 5: return "Get Assignments";
+      case 6: return "Start Training";
       default: return "Complete";
     }
   };
 
-  // Base steps definition - Step 5 moved to "training" stage
+  // Base steps definition - Step 5 and 6 reordered
   const baseSteps: Omit<ProfessionalStep, 'completed' | 'action' | 'buttonText'>[] = [
     { 
       id: 1, 
@@ -187,22 +187,22 @@ export const useEnhancedProfessionalProgress = (): ProfessionalProgressData => {
     },
     { 
       id: 5, 
-      title: "Complete training modules", 
-      description: "Enhance your skills with our professional development courses", 
-      link: "/professional/training",
-      category: "training",
-      stage: "training", // Changed from "qualification" to "training"
-      isInteractive: true,
-      modalAction: "training_modules"
-    },
-    { 
-      id: 6, 
       title: "Start receiving assignments", 
       description: "Get matched with families and begin your caregiving journey", 
       link: "/professional/profile?tab=assignments",
       category: "assignments",
       stage: "active",
       isInteractive: false
+    },
+    { 
+      id: 6, 
+      title: "Complete training modules", 
+      description: "Enhance your skills with our professional development courses", 
+      link: "/professional/training",
+      category: "training",
+      stage: "training",
+      isInteractive: true,
+      modalAction: "training_modules"
     }
   ];
 
@@ -297,11 +297,11 @@ export const useEnhancedProfessionalProgress = (): ProfessionalProgressData => {
           case 4: // Documents upload
             completed = (documents?.length || 0) > 0;
             break;
-          case 5: // Training modules
-            completed = !!(profile?.professional_type && profile?.certifications && profile.certifications.length > 0);
-            break;
-          case 6: // Assignments
+          case 5: // Assignments (moved from Step 6)
             completed = (assignments?.length || 0) > 0;
+            break;
+          case 6: // Training modules (moved from Step 5)
+            completed = !!(profile?.professional_type && profile?.certifications && profile.certifications.length > 0);
             break;
         }
 
