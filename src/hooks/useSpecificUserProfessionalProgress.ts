@@ -156,6 +156,13 @@ export const useSpecificUserProfessionalProgress = (userId: string): SpecificUse
         throw documentsError;
       }
 
+      // Explicitly type documents array
+      const documents: any[] = documentsData || [];
+      console.log('📄 Documents data fetched:', {
+        documentsCount: documents.length,
+        documents: documents.map(d => ({ type: d.document_type, name: d.file_name }))
+      });
+
       // Fetch care team assignments
       const { data: assignmentsData, error: assignmentsError } = await supabase
         .from('care_team_members')
@@ -167,15 +174,8 @@ export const useSpecificUserProfessionalProgress = (userId: string): SpecificUse
         throw assignmentsError;
       }
 
-      // Explicitly type the arrays to avoid TypeScript 'never' type errors
-      const documents: any[] = documentsData || [];
+      // Explicitly type assignments array
       const assignments: any[] = assignmentsData || [];
-      
-      console.log('📄 Documents data fetched:', {
-        documentsCount: documents.length,
-        documents: documents.map(d => ({ type: d.document_type, name: d.file_name }))
-      });
-
       console.log('💼 Assignments data fetched:', {
         assignmentsCount: assignments.length,
         assignments: assignments.map(a => ({ id: a.id, status: a.status, role: a.role }))
@@ -216,12 +216,14 @@ export const useSpecificUserProfessionalProgress = (userId: string): SpecificUse
             });
             break;
           case 4: // Documents upload
-            completed = documents.length > 0;
-            console.log(`📄 Step 4 (Documents): ${completed} (count: ${documents.length})`);
+            const documentsCount = documents.length;
+            completed = documentsCount > 0;
+            console.log(`📄 Step 4 (Documents): ${completed} (count: ${documentsCount})`);
             break;
           case 5: // Assignments (reordered from Step 6)
-            completed = assignments.length > 0;
-            console.log(`💼 Step 5 (Assignments): ${completed} (count: ${assignments.length})`);
+            const assignmentsCount = assignments.length;
+            completed = assignmentsCount > 0;
+            console.log(`💼 Step 5 (Assignments): ${completed} (count: ${assignmentsCount})`);
             break;
           case 6: // Training modules (reordered from Step 5) - check certifications
             const certificationsArray = profile?.certifications;
