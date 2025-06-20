@@ -69,7 +69,25 @@ const ProfessionalRegistration = () => {
   useEffect(() => {
     // Prevent auth redirection by setting specific flag for registration
     setAuthFlowFlag(AUTH_FLOW_FLAGS.SKIP_REGISTRATION_REDIRECT);
-    
+    // Location for URL Parameter Detection added Chan to redirect for Availability Add this new useEffect after the existing one at lines 66-68
+useEffect(() => {
+  const urlParams = new URLSearchParams(window.location.search);
+  const shouldScrollToAvailability = urlParams.get('scroll') === 'availability';
+  const isEditMode = urlParams.get('edit') === 'true';
+  
+  if (shouldScrollToAvailability && isEditMode) {
+    // Scroll to availability section after component mounts
+    setTimeout(() => {
+      const availabilitySection = document.getElementById('availability-section');
+      if (availabilitySection) {
+        availabilitySection.scrollIntoView({ 
+          behavior: 'smooth', 
+          block: 'start' 
+        });
+      }
+    }, 500); // Small delay to ensure DOM is ready
+  }
+}, []);
     // Clean up on unmount
     return () => {
       sessionStorage.removeItem(AUTH_FLOW_FLAGS.SKIP_REGISTRATION_REDIRECT);
@@ -508,10 +526,16 @@ const ProfessionalRegistration = () => {
               </div>
             </CardContent>
           </Card>
-
-          <Card className="mb-8">
-            <CardHeader>
-              <CardTitle>📅 Availability & Schedule Preferences</CardTitle>
+//Chan edit Location for ID Assignment to Availability Section Add an id to the availability card around line 513 where the "📅 Availability & Schedule Preferences" card begins: <Card className="mb-8">  <CardHeader> <CardTitle>
+                
+                
+                
+                <Card className="mb-8" id="availability-section">
+  <CardHeader>
+    <CardTitle className="flex items-center gap-2">
+      <Calendar className="h-5 w-5" />
+      📅 Availability & Schedule Preferences
+    </CardTitle>📅 Availability & Schedule Preferences</CardTitle>
               <CardDescription>
                 Let families know when you're available to provide care services.
               </CardDescription>
