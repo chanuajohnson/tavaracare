@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, MessageCircle, Sparkles, Check, XIcon, ChevronLeft, ChevronRight, Maximize2, Star } from 'lucide-react';
@@ -12,7 +11,7 @@ import { ManualNudgeService } from './ManualNudgeService';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { AssistantNudge, ProgressContext } from './types';
 import { useEnhancedProfessionalProgress } from '@/hooks/useEnhancedProfessionalProgress';
-import { useFamilyJourneyProgress } from '@/hooks/useFamilyJourneyProgress';
+import { useEnhancedJourneyProgress } from '@/hooks/useEnhancedJourneyProgress';
 import { useLocation } from 'react-router-dom';
 
 const AUTO_GREET_MESSAGES = {
@@ -43,9 +42,9 @@ export const TavaraAssistantPanel: React.FC = () => {
   const [greetedPages, setGreetedPages] = useState<Set<string>>(new Set());
   const [isExpanded, setIsExpanded] = useState(false);
 
-  // Get comprehensive journey progress with enhanced professional tracking
+  // Get comprehensive journey progress with consistent data sources
   const professionalProgress = useEnhancedProfessionalProgress();
-  const familyJourneyProgress = useFamilyJourneyProgress();
+  const familyJourneyProgress = useEnhancedJourneyProgress();
 
   // Initialize session tracking
   useEffect(() => {
@@ -65,7 +64,7 @@ export const TavaraAssistantPanel: React.FC = () => {
     }
   }, [user]);
 
-  // Create comprehensive progress context based on user role with enhanced professional data
+  // Create comprehensive progress context based on user role with unified data sources
   const getProgressContext = (): ProgressContext => {
     if (state.currentRole === 'professional') {
       const { overallProgress, nextStep, currentStage, completedSteps, totalSteps } = professionalProgress;
@@ -79,17 +78,18 @@ export const TavaraAssistantPanel: React.FC = () => {
         totalSteps: totalSteps || 6
       };
     } else if (state.currentRole === 'family') {
-      const { completionPercentage, nextStep, journeyStage, careModel, trialCompleted } = familyJourneyProgress;
+      // Use the same enhanced journey progress as the dashboard for consistency
+      const { completionPercentage, nextStep, currentStage, steps } = familyJourneyProgress;
+      const completedSteps = steps.filter(step => step.completed).length;
+      
       return {
         role: 'family',
         completionPercentage: completionPercentage || 0,
         currentStep: nextStep?.title || 'Complete your profile',
         nextAction: nextStep?.description || 'Add your care needs information',
-        journeyStage: journeyStage || 'foundation',
-        careModel,
-        trialCompleted,
-        completedSteps: 0,
-        totalSteps: 7
+        journeyStage: currentStage || 'foundation',
+        completedSteps: completedSteps || 0,
+        totalSteps: steps.length || 7
       };
     }
     
@@ -116,7 +116,7 @@ export const TavaraAssistantPanel: React.FC = () => {
       isOpen: state.isOpen,
       currentRole: state.currentRole,
       pathname: location.pathname,
-      journeyStage: state.currentRole === 'family' ? familyJourneyProgress.journeyStage : 
+      journeyStage: state.currentRole === 'family' ? familyJourneyProgress.currentStage : 
                    state.currentRole === 'professional' ? professionalProgress.currentStage : null,
       currentForm: currentForm?.formId
     });
@@ -139,7 +139,7 @@ export const TavaraAssistantPanel: React.FC = () => {
         }, 2500); // Show greeting for 2.5 seconds then auto-open
       }, 1200); // Initial delay for page load
     }
-  }, [hasInitialGreeted, state.isOpen, openPanel, location.pathname, familyJourneyProgress.journeyStage, professionalProgress.currentStage]);
+  }, [hasInitialGreeted, state.isOpen, openPanel, location.pathname, familyJourneyProgress.currentStage, professionalProgress.currentStage]);
 
   // NAVIGATION AUTO-GREETING (contextual magic on journey touchpoints)
   useEffect(() => {
@@ -392,19 +392,22 @@ export const TavaraAssistantPanel: React.FC = () => {
                   </div>
                 )}
                 
-                {/* Journey progress indicator for family users */}
+                {/* Journey progress indicator for family users - now using consistent data */}
                 {state.currentRole === 'family' && progressContext.completionPercentage > 0 && !currentForm && (
-                  <div className="bg-gray-50 rounded-lg p-2">
+                  <div className="bg-gradient-to-r from-primary/5 to-blue/5 rounded-lg p-2 border border-primary/10">
                     <div className="flex justify-between items-center mb-1">
-                      <span className="text-xs font-medium text-gray-600">Journey Progress</span>
+                      <span className="text-xs font-medium text-primary">Family Journey</span>
                       <span className="text-xs font-bold text-primary">{progressContext.completionPercentage}%</span>
                     </div>
                     <div className="w-full h-1.5 bg-gray-200 rounded-full overflow-hidden">
                       <div 
-                        className="h-full bg-primary rounded-full transition-all duration-300" 
+                        className="h-full bg-gradient-to-r from-primary to-primary/80 rounded-full transition-all duration-300" 
                         style={{ width: `${progressContext.completionPercentage}%` }}
                       />
                     </div>
+                    <p className="text-xs text-gray-600 mt-1">
+                      {progressContext.completedSteps} of {progressContext.totalSteps} steps complete
+                    </p>
                   </div>
                 )}
               </div>
