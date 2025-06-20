@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { v4 as uuidv4 } from 'uuid';
@@ -167,8 +168,8 @@ const ProfessionalRegistration = () => {
         setCustomAvailability(value);
         break;
       default:
-        // Handle array fields
-        if (field === 'specialties' && Array.isArray(value)) {
+        // Handle array fields - Updated to handle both specialties and care_services mapping
+        if ((field === 'specialties' || field === 'care_services') && Array.isArray(value)) {
           setSpecialties(value);
         } else if (field === 'certifications' && Array.isArray(value)) {
           setCertifications(value);
@@ -296,7 +297,7 @@ const ProfessionalRegistration = () => {
         role: 'professional' as const,
         updated_at: new Date().toISOString(),
         years_of_experience: yearsOfExperience,
-        specialties: specialties || [],
+        care_services: specialties || [], // Updated: Map specialties to care_services column
         certifications: certifications || [],
         care_schedule: careSchedule.join(',') || '', // Changed to match family registration format
         custom_schedule: customAvailability || '', // Changed from custom_availability to custom_schedule
