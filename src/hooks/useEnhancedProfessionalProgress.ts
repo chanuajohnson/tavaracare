@@ -100,7 +100,8 @@ export const useEnhancedProfessionalProgress = (): ProfessionalProgressData => {
           navigate('/professional/training');
           break;
         case 'availability_setup':
-          navigate('/professional/profile?tab=availability&action=setup');
+         //EDIT CHAN navigate('/professional/profile?tab=availability&action=setup');
+          navigate('/registration/professional?scroll=availability&edit=true');
           break;
         default:
           navigate(step.link);
