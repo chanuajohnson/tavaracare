@@ -19,6 +19,8 @@ export interface JourneyStep {
   detailed_explanation?: string;
   link_path?: string;
   cancelAction?: () => void;
+  time_estimate_minutes?: number;
+  is_optional?: boolean;
 }
 
 export interface JourneyProgress {
@@ -65,8 +67,8 @@ export const useEnhancedJourneyProgress = (): JourneyProgress => {
   const { steps: rawSteps, loading } = useUserJourneyProgress(user?.id || '', user?.user_metadata?.role || 'family');
 
   // Enhanced step actions with simple navigation (following professional pattern)
-  const getStepAction = (step: any): (() => void) => {
-    switch (step.step_number) {
+  const getStepAction = (stepNumber: number): (() => void) => {
+    switch (stepNumber) {
       case 1: // Family Profile
         return () => navigate('/dashboard/family');
       case 2: // Family Registration  
@@ -110,12 +112,14 @@ export const useEnhancedJourneyProgress = (): JourneyProgress => {
     completed: step.completed || false,
     accessible: step.accessible !== undefined ? step.accessible : true,
     step_number: step.step_number,
-    action: getStepAction(step),
+    action: getStepAction(step.step_number),
     category: step.category || 'foundation',
     icon_name: step.icon_name,
     tooltip_content: step.tooltip_content,
     detailed_explanation: step.detailed_explanation,
-    link_path: step.link_path
+    link_path: step.link_path,
+    time_estimate_minutes: step.time_estimate_minutes,
+    is_optional: step.is_optional || false
   }));
 
   // Calculate completion percentage
