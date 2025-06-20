@@ -96,50 +96,24 @@ const ProfessionalRegistration = () => {
     };
   }, []);
 
-  // Pre-populate user data from auth context
+  // Pre-populate user data from auth context or database
   useEffect(() => {
     if (user && !userDataPopulated) {
-      console.log('Pre-populating user data from auth context:', user);
+      console.log('Pre-populating user data:', user);
       
-      // Extract email
-      if (user.email) {
-        setEmail(user.email);
+      // Check if this is edit mode from dashboard
+      const urlParams = new URLSearchParams(window.location.search);
+      const isEditMode = urlParams.get('edit') === 'true';
+      
+      if (isEditMode) {
+        // In edit mode, fetch complete profile data from database
+        fetchCompleteProfileData();
+      } else {
+        // Regular registration, use auth metadata
+        populateFromAuthMetadata();
       }
       
-      // Extract names from metadata
-      if (user.user_metadata) {
-        const metadata = user.user_metadata;
-        
-        // Try different possible field names for first name
-        const possibleFirstNames = ['first_name', 'firstName', 'given_name'];
-        const possibleLastNames = ['last_name', 'lastName', 'family_name', 'surname'];
-        
-        for (const field of possibleFirstNames) {
-          if (metadata[field]) {
-            setFirstName(metadata[field]);
-            break;
-          }
-        }
-        
-        for (const field of possibleLastNames) {
-          if (metadata[field]) {
-            setLastName(metadata[field]);
-            break;
-          }
-        }
-        
-        // If we have a full_name but no separate first/last, try to split it
-        if (!firstName && !lastName && metadata.full_name) {
-          const nameParts = metadata.full_name.split(' ');
-          if (nameParts.length >= 2) {
-            setFirstName(nameParts[0]);
-            setLastName(nameParts.slice(1).join(' '));
-          }
-        }
-      }
-      
-      setUserDataPopulated(true);
-      console.log('User data populated successfully');
+      console.log('User data population initiated');
     }
   }, [user, userDataPopulated, firstName, lastName]);
 
@@ -239,86 +213,87 @@ const ProfessionalRegistration = () => {
       setPrefillApplied(true);
     }
   }, [prefillApplied, shouldAutoSubmit, user]);
-// CHAN EDIT Add these functions at line 243 (before handleCareScheduleChange)
-const fetchCompleteProfileData = async () => {
-  try {
-    const { data: profile, error } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', user.id)
-      .single();
-    
-    if (error) throw error;
-    
-    if (profile) {
-      // Pre-fill all form fields with database data
-      setFirstName(profile.first_name || '');
-      setLastName(profile.last_name || '');
-      setPhoneNumber(profile.phone_number || '');
-      setAddress(profile.address || '');
-      setYearsOfExperience(profile.years_of_experience || '');
-      setSpecialties(profile.care_services || []);
-      setCertifications(profile.certifications || []);
-      setCareSchedule(profile.care_schedule ? profile.care_schedule.split(',') : []);
-      setCustomAvailability(profile.custom_schedule || '');
-      setPreferredLocations(profile.preferred_work_locations || '');
-      setHourlyRate(profile.hourly_rate || '');
-      setTransportation(profile.commute_mode || '');
-      setLanguages(profile.languages || []);
-      setEmergencyContact(profile.emergency_contact || '');
-      setBackgroundCheck(profile.background_check ? 'yes' : '');
-      setAdditionalNotes(profile.additional_notes || '');
-      setAvatarUrl(profile.avatar_url || null);
-    }
-  } catch (error) {
-    console.error('Error fetching profile data:', error);
-    // Fall back to auth metadata if database fetch fails
-    populateFromAuthMetadata();
-  } finally {
-    setUserDataPopulated(true);
-  }
-};
 
-const populateFromAuthMetadata = () => {
-  // Extract email
-  if (user.email) {
-    setEmail(user.email);
-  }
-  
-  // Extract names from metadata
-  if (user.user_metadata) {
-    const metadata = user.user_metadata;
+  // Add these functions at line 216 (before handleCareScheduleChange)
+  const fetchCompleteProfileData = async () => {
+    try {
+      const { data: profile, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+      
+      if (error) throw error;
+      
+      if (profile) {
+        // Pre-fill all form fields with database data
+        setFirstName(profile.first_name || '');
+        setLastName(profile.last_name || '');
+        setPhoneNumber(profile.phone_number || '');
+        setAddress(profile.address || '');
+        setYearsOfExperience(profile.years_of_experience || '');
+        setSpecialties(profile.care_services || []);
+        setCertifications(profile.certifications || []);
+        setCareSchedule(profile.care_schedule ? profile.care_schedule.split(',') : []);
+        setCustomAvailability(profile.custom_schedule || '');
+        setPreferredLocations(profile.preferred_work_locations || '');
+        setHourlyRate(profile.hourly_rate || '');
+        setTransportation(profile.commute_mode || '');
+        setLanguages(profile.languages || []);
+        setEmergencyContact(profile.emergency_contact || '');
+        setBackgroundCheck(profile.background_check ? 'yes' : '');
+        setAdditionalNotes(profile.additional_notes || '');
+        setAvatarUrl(profile.avatar_url || null);
+      }
+    } catch (error) {
+      console.error('Error fetching profile data:', error);
+      // Fall back to auth metadata if database fetch fails
+      populateFromAuthMetadata();
+    } finally {
+      setUserDataPopulated(true);
+    }
+  };
+
+  const populateFromAuthMetadata = () => {
+    // Extract email
+    if (user.email) {
+      setEmail(user.email);
+    }
     
-    // Try different possible field names for first name
-    const possibleFirstNames = ['first_name', 'firstName', 'given_name'];
-    const possibleLastNames = ['last_name', 'lastName', 'family_name', 'surname'];
-    
-    for (const field of possibleFirstNames) {
-      if (metadata[field]) {
-        setFirstName(metadata[field]);
-        break;
+    // Extract names from metadata
+    if (user.user_metadata) {
+      const metadata = user.user_metadata;
+      
+      // Try different possible field names for first name
+      const possibleFirstNames = ['first_name', 'firstName', 'given_name'];
+      const possibleLastNames = ['last_name', 'lastName', 'family_name', 'surname'];
+      
+      for (const field of possibleFirstNames) {
+        if (metadata[field]) {
+          setFirstName(metadata[field]);
+          break;
+        }
+      }
+      
+      for (const field of possibleLastNames) {
+        if (metadata[field]) {
+          setLastName(metadata[field]);
+          break;
+        }
+      }
+      
+      // If we have a full_name but no separate first/last, try to split it
+      if (!firstName && !lastName && metadata.full_name) {
+        const nameParts = metadata.full_name.split(' ');
+        if (nameParts.length >= 2) {
+          setFirstName(nameParts[0]);
+          setLastName(nameParts.slice(1).join(' '));
+        }
       }
     }
     
-    for (const field of possibleLastNames) {
-      if (metadata[field]) {
-        setLastName(metadata[field]);
-        break;
-      }
-    }
-    
-    // If we have a full_name but no separate first/last, try to split it
-    if (!firstName && !lastName && metadata.full_name) {
-      const nameParts = metadata.full_name.split(' ');
-      if (nameParts.length >= 2) {
-        setFirstName(nameParts[0]);
-        setLastName(nameParts.slice(1).join(' '));
-      }
-    }
-  }
-  
-  setUserDataPopulated(true);
-};
+    setUserDataPopulated(true);
+  };
 
   const handleCareScheduleChange = (value: string) => {
     setCareSchedule(prev => {
@@ -587,7 +562,7 @@ const populateFromAuthMetadata = () => {
                     { id: 'specialty-mobility', label: '♿ Mobility Assistance', value: 'Mobility Assistance' },
                     { id: 'specialty-medication', label: '💊 Medication Management', value: 'Medication Management' },
                     { id: 'specialty-nutrition', label: '🍽️ Nutritional Assistance', value: 'Nutritional Assistance' },
-                    { id: 'specialty-household', label: '🏡 Household Assistance', value: 'Household Assistance' }
+                    { id: 'specialty-household', label: '🧹 Household Assistance', value: 'Household Assistance' }
                   ].map((item) => (
                     <div key={item.id} className="flex items-start space-x-2">
                       <Checkbox 
