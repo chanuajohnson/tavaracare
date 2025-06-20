@@ -354,13 +354,13 @@ export const ChatRequestsSection = () => {
             <MessageCircle className="h-12 w-12 mx-auto mb-4 text-gray-300" />
             <p className="font-medium">No chat requests yet</p>
             <p className="text-sm">Families will be able to reach out to you here</p>
-            <div className="mt-4 p-4 bg-blue-50 rounded-lg">
+           /*Chan Removed user facing debug <div className="mt-4 p-4 bg-blue-50 rounded-lg">
               <p className="text-sm text-blue-700">
                 💡 <strong>Debug Info:</strong> This section shows chat requests from the 
                 <code className="bg-blue-100 px-1 rounded mx-1">caregiver_chat_requests</code> table 
                 where <code className="bg-blue-100 px-1 rounded mx-1">caregiver_id = {user?.id}</code>
               </p>
-            </div>
+            </div>*/
           </div>
         ) : (
           <div className="space-y-4">
