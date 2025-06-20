@@ -1,6 +1,20 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
+import { 
+  isAccountCreated,
+  isProfileComplete,
+  isAvailabilitySet,
+  hasDocuments,
+  hasAssignments,
+  hasCertifications,
+  getDocumentCount
+} from './professional/completionCheckers';
+import {
+  fetchProfileData,
+  fetchDocuments,
+  fetchAssignments
+} from './professional/dataFetchers';
 
 interface JourneyStep {
   id: string;
@@ -54,30 +68,27 @@ export const useUserSpecificProgress = (userId: string, userRole: string): UserS
 
         console.log('📋 Journey steps fetched:', journeySteps?.length || 0, 'steps');
 
-        // Get user profile data for completion checking
-        const { data: profile, error: profileError } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', userId)
-          .maybeSingle();
-
-        if (profileError) {
-          console.error('❌ Error fetching profile:', profileError);
-          throw profileError;
-        }
-
-        console.log('👤 Profile data:', {
-          hasProfile: !!profile,
-          professionalType: profile?.professional_type,
-          yearsExperience: profile?.years_of_experience,
-          certificationsCount: profile?.certifications?.length || 0,
-          availabilityCount: profile?.availability?.length || 0
-        });
-
-        // Get additional completion data based on user role
+        // Get completion data based on user role
         let completionData = {};
         
         if (userRole === 'family') {
+          // Get user profile data for completion checking
+          const { data: profile, error: profileError } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', userId)
+            .maybeSingle();
+
+          if (profileError) {
+            console.error('❌ Error fetching profile:', profileError);
+            throw profileError;
+          }
+
+          console.log('👤 Family profile data:', {
+            hasProfile: !!profile,
+            fullName: profile?.full_name
+          });
+
           const [careAssessment, careRecipient, carePlans, medications, mealPlans] = await Promise.all([
             supabase.from('care_needs_family').select('id').eq('profile_id', userId).maybeSingle(),
             supabase.from('care_recipient_profiles').select('*').eq('user_id', userId).maybeSingle(),
@@ -87,6 +98,7 @@ export const useUserSpecificProgress = (userId: string, userRole: string): UserS
           ]);
           
           completionData = {
+            profile,
             careAssessment: careAssessment.data,
             careRecipient: careRecipient.data,
             carePlans: carePlans.data || [],
@@ -94,33 +106,42 @@ export const useUserSpecificProgress = (userId: string, userRole: string): UserS
             mealPlans: mealPlans.data || []
           };
         } else if (userRole === 'professional') {
-          console.log('🔍 Fetching professional-specific data...');
+          console.log('🔍 Fetching professional-specific data using shared fetchers...');
           
-          // Use the same comprehensive logic as useEnhancedProfessionalProgress
-          const [documentsResult, assignmentsResult] = await Promise.all([
-            supabase.from('professional_documents').select('*').eq('user_id', userId),
-            supabase.from('care_team_members').select('*').eq('caregiver_id', userId)
+          // Use the same data fetchers as the refactored professional hooks
+          const [profileData, documents, assignments] = await Promise.all([
+            fetchProfileData(userId),
+            fetchDocuments(userId),
+            fetchAssignments(userId)
           ]);
           
-          if (documentsResult.error) {
-            console.error('❌ Error fetching documents:', documentsResult.error);
-          }
-          if (assignmentsResult.error) {
-            console.error('❌ Error fetching assignments:', assignmentsResult.error);
-          }
-          
-          const documents = documentsResult.data || [];
-          const assignments = assignmentsResult.data || [];
-          
           console.log('📄 Professional data fetched:', {
+            hasProfile: !!profileData,
             documentsCount: documents.length,
-            assignmentsCount: assignments.length
+            assignmentsCount: assignments.length,
+            professionalType: profileData?.professional_type,
+            yearsExperience: profileData?.years_of_experience
           });
           
           completionData = {
+            profile: profileData,
             documents,
             assignments
           };
+        } else if (userRole === 'community') {
+          // Get user profile data for completion checking
+          const { data: profile, error: profileError } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', userId)
+            .maybeSingle();
+
+          if (profileError) {
+            console.error('❌ Error fetching profile:', profileError);
+            throw profileError;
+          }
+
+          completionData = { profile };
         }
 
         // Process steps with completion status
@@ -131,24 +152,26 @@ export const useUserSpecificProgress = (userId: string, userRole: string): UserS
           
           // Check completion based on step number and user role
           if (userRole === 'family') {
+            const { profile, careAssessment, careRecipient, medications, mealPlans } = completionData as any;
+            
             switch (step.step_number) {
               case 1:
                 completed = !!(profile?.full_name);
                 break;
               case 2:
-                completed = !!(completionData as any).careAssessment;
+                completed = !!careAssessment;
                 break;
               case 3:
-                completed = !!((completionData as any).careRecipient?.full_name);
+                completed = !!(careRecipient?.full_name);
                 break;
               case 4:
-                completed = !!(completionData as any).careRecipient;
+                completed = !!careRecipient;
                 break;
               case 5:
-                completed = ((completionData as any).medications?.length || 0) > 0;
+                completed = (medications?.length || 0) > 0;
                 break;
               case 6:
-                completed = ((completionData as any).mealPlans?.length || 0) > 0;
+                completed = (mealPlans?.length || 0) > 0;
                 break;
               case 7:
                 completed = profile?.visit_scheduling_status === 'scheduled' || profile?.visit_scheduling_status === 'completed';
@@ -160,38 +183,41 @@ export const useUserSpecificProgress = (userId: string, userRole: string): UserS
                 completed = false;
             }
           } else if (userRole === 'professional') {
-            // Use the same completion logic as useEnhancedProfessionalProgress
+            const { profile, documents, assignments } = completionData as any;
+            
+            // Use the same completion logic as the refactored professional hooks
             switch (step.step_number) {
               case 1: // Account creation
-                completed = !!userId; // Always true for existing users
+                completed = isAccountCreated(userId);
                 console.log(`✅ Step 1 (Account): ${completed}`);
                 break;
               case 2: // Professional profile
-                completed = !!(profile?.professional_type && profile?.years_of_experience);
+                completed = isProfileComplete(profile);
                 console.log(`🔍 Step 2 (Profile): ${completed}`, {
                   professionalType: profile?.professional_type,
                   yearsExperience: profile?.years_of_experience
                 });
                 break;
-              case 3: // Documents upload
-                const documentsCount = ((completionData as any).documents?.length || 0);
-                completed = documentsCount > 0;
-                console.log(`📄 Step 3 (Documents): ${completed} (count: ${documentsCount})`);
+              case 3: // Availability - FIXED: Use care_schedule instead of availability
+                completed = isAvailabilitySet(profile);
+                console.log(`📅 Step 3 (Availability): ${completed}`, {
+                  careSchedule: profile?.care_schedule,
+                  careScheduleType: typeof profile?.care_schedule
+                });
                 break;
-              case 4: // Availability
-                const availabilityCount = profile?.availability?.length || 0;
-                completed = availabilityCount > 0;
-                console.log(`📅 Step 4 (Availability): ${completed} (count: ${availabilityCount})`);
+              case 4: // Documents upload
+                completed = hasDocuments(documents);
+                console.log(`📄 Step 4 (Documents): ${completed} (count: ${documents?.length || 0})`);
                 break;
-              case 5: // Training modules - check certifications
-                const certificationsCount = profile?.certifications?.length || 0;
-                completed = !!(profile?.professional_type && certificationsCount > 0);
-                console.log(`🎓 Step 5 (Certifications): ${completed} (count: ${certificationsCount})`);
+              case 5: // Assignments
+                completed = hasAssignments(assignments);
+                console.log(`💼 Step 5 (Assignments): ${completed} (count: ${assignments?.length || 0})`);
                 break;
-              case 6: // Assignments
-                const assignmentsCount = ((completionData as any).assignments?.length || 0);
-                completed = assignmentsCount > 0;
-                console.log(`💼 Step 6 (Assignments): ${completed} (count: ${assignmentsCount})`);
+              case 6: // Training/Certifications
+                completed = hasCertifications(profile);
+                console.log(`🎓 Step 6 (Training/Certifications): ${completed}`, {
+                  certificationsCount: profile?.certifications?.length || 0
+                });
                 break;
               default:
                 // Fallback to onboarding_progress if available
@@ -200,6 +226,8 @@ export const useUserSpecificProgress = (userId: string, userRole: string): UserS
                 console.log(`🔄 Step ${step.step_number} (Fallback): ${completed}`);
             }
           } else if (userRole === 'community') {
+            const { profile } = completionData as any;
+            
             // Basic completion logic for community users
             switch (step.step_number) {
               case 1:
@@ -233,10 +261,11 @@ export const useUserSpecificProgress = (userId: string, userRole: string): UserS
           };
         }) || [];
 
-        console.log('📊 Final processed steps:', processedSteps.map(s => ({
+        console.log('📊 Final processed steps for admin view:', processedSteps.map(s => ({
           step: s.step_number,
           title: s.title,
-          completed: s.completed
+          completed: s.completed ? '✅' : '❌',
+          role: userRole
         })));
 
         setSteps(processedSteps);
@@ -255,7 +284,9 @@ export const useUserSpecificProgress = (userId: string, userRole: string): UserS
   const completionPercentage = steps.length > 0 ? Math.round((completedSteps / steps.length) * 100) : 0;
   const nextStep = steps.find(step => !step.completed && step.accessible);
 
-  console.log('📈 Final calculation:', {
+  console.log('📈 Final admin calculation:', {
+    userId,
+    userRole,
     completedSteps,
     totalSteps: steps.length,
     completionPercentage,
