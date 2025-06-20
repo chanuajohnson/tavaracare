@@ -55,7 +55,7 @@ export const useUserJourneyProgress = (userId: string, userRole: UserRole): User
             step.id === 10 ? "/family/schedule-visit" :
             step.id === 11 ? "/family/schedule-visit" :
             step.id === 12 ? "/family/schedule-visit" : "/dashboard",
-      time_estimate_minutes: step.time_estimate_minutes,
+      time_estimate_minutes: step.time_estimate_minutes || 5,
       is_optional: step.is_optional || false
     }));
 
@@ -67,7 +67,7 @@ export const useUserJourneyProgress = (userId: string, userRole: UserRole): User
         accessible: true,
         step_number: familyProgress.nextStep.id,
         link: convertedSteps.find(s => s.id === familyProgress.nextStep?.id)?.link || "/dashboard",
-        time_estimate_minutes: familyProgress.nextStep.time_estimate_minutes,
+        time_estimate_minutes: familyProgress.nextStep.time_estimate_minutes || 5,
         is_optional: familyProgress.nextStep.is_optional || false
       } : undefined,
       loading: familyProgress.loading,
@@ -136,7 +136,8 @@ export const useUserJourneyProgress = (userId: string, userRole: UserRole): User
       } else if (userRole === 'community') {
         // Mark steps as completed for community
         if (profile.full_name) updatedSteps[0].completed = true;
-        if (profile.contribution_interests && profile.contribution_interests.length > 0) updatedSteps[1].completed = true;
+        if (profile.location) updatedSteps[1].completed = true;
+        if (profile.phone_number) updatedSteps[2].completed = true;
       } else if (userRole === 'admin') {
         // Mark admin steps as completed based on admin-specific criteria
         if (profile.full_name) updatedSteps[0].completed = true;

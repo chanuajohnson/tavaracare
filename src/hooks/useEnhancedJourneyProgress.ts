@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
@@ -8,12 +8,12 @@ import { useUserJourneyProgress } from './useUserJourneyProgress';
 export interface JourneyStep {
   id: string;
   title: string;
-  description?: string;
+  description: string; // Make required to match component expectations
   completed: boolean;
   accessible: boolean;
   step_number: number;
   action?: () => void;
-  category?: string;
+  category: string; // Make required to match component expectations
   icon_name?: string;
   tooltip_content?: string;
   detailed_explanation?: string;
@@ -108,16 +108,16 @@ export const useEnhancedJourneyProgress = (): JourneyProgress => {
   const enhancedSteps: JourneyStep[] = rawSteps.map(step => ({
     id: step.id?.toString() || `step-${step.step_number}`,
     title: step.title || `Step ${step.step_number}`,
-    description: step.description,
+    description: step.description || `Complete step ${step.step_number}`, // Provide default description
     completed: step.completed || false,
     accessible: step.accessible !== undefined ? step.accessible : true,
     step_number: step.step_number,
     action: getStepAction(step.step_number),
-    category: step.category || 'foundation',
+    category: step.category || 'foundation', // Provide default category
     icon_name: step.icon_name,
     tooltip_content: step.tooltip_content,
     detailed_explanation: step.detailed_explanation,
-    link_path: step.link_path,
+    link_path: step.link_path || step.link,
     time_estimate_minutes: step.time_estimate_minutes,
     is_optional: step.is_optional || false
   }));
