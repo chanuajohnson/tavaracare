@@ -54,21 +54,21 @@ export const DocumentManager: React.FC<DocumentManagerProps> = ({ onDocumentDele
     fetchDocuments();
   }, [user]);
 
-  const handleDownload = async (document: ProfessionalDocument) => {
+  const handleDownload = async (doc: ProfessionalDocument) => {
     try {
       const { data, error } = await supabase.storage
         .from('professional-documents')
-        .createSignedUrl(document.file_path, 60); // 1 minute expiry
+        .createSignedUrl(doc.file_path, 60); // 1 minute expiry
 
       if (error) throw error;
 
-      // Create a download link
-      const link = document.createElement('a');
+      // Create a download link using the DOM document object
+      const link = window.document.createElement('a');
       link.href = data.signedUrl;
-      link.download = document.file_name;
-      document.body.appendChild(link);
+      link.download = doc.file_name;
+      window.document.body.appendChild(link);
       link.click();
-      document.body.removeChild(link);
+      window.document.body.removeChild(link);
 
       toast.success('Document download started');
     } catch (error: any) {
@@ -77,14 +77,14 @@ export const DocumentManager: React.FC<DocumentManagerProps> = ({ onDocumentDele
     }
   };
 
-  const handleDelete = async (document: ProfessionalDocument) => {
+  const handleDelete = async (doc: ProfessionalDocument) => {
     try {
-      setDeletingId(document.id);
+      setDeletingId(doc.id);
 
       // Delete from storage
       const { error: storageError } = await supabase.storage
         .from('professional-documents')
-        .remove([document.file_path]);
+        .remove([doc.file_path]);
 
       if (storageError) throw storageError;
 
@@ -92,12 +92,12 @@ export const DocumentManager: React.FC<DocumentManagerProps> = ({ onDocumentDele
       const { error: dbError } = await supabase
         .from('professional_documents')
         .delete()
-        .eq('id', document.id);
+        .eq('id', doc.id);
 
       if (dbError) throw dbError;
 
       // Update local state
-      setDocuments(prev => prev.filter(doc => doc.id !== document.id));
+      setDocuments(prev => prev.filter(document => document.id !== doc.id));
       toast.success('Document deleted successfully');
       onDocumentDeleted?.();
     } catch (error: any) {
@@ -162,32 +162,32 @@ export const DocumentManager: React.FC<DocumentManagerProps> = ({ onDocumentDele
             {formatDocumentType(type)} ({docs.length})
           </h3>
           <div className="grid grid-cols-1 gap-3">
-            {docs.map((document) => (
-              <Card key={document.id} className="p-4">
+            {docs.map((doc) => (
+              <Card key={doc.id} className="p-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-3">
                     <div className="bg-primary/10 p-2 rounded">
                       <FileText className="h-5 w-5 text-primary" />
                     </div>
                     <div>
-                      <p className="font-medium text-gray-900">{document.file_name}</p>
+                      <p className="font-medium text-gray-900">{doc.file_name}</p>
                       <div className="flex items-center space-x-2 text-sm text-gray-500">
-                        <span>{formatFileSize(document.file_size)}</span>
+                        <span>{formatFileSize(doc.file_size)}</span>
                         <span>•</span>
-                        <span>{new Date(document.created_at).toLocaleDateString()}</span>
+                        <span>{new Date(doc.created_at).toLocaleDateString()}</span>
                       </div>
                     </div>
                   </div>
                   
                   <div className="flex items-center space-x-2">
                     <Badge variant="secondary" className="text-xs">
-                      {document.mime_type.split('/')[1].toUpperCase()}
+                      {doc.mime_type.split('/')[1].toUpperCase()}
                     </Badge>
                     
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => handleDownload(document)}
+                      onClick={() => handleDownload(doc)}
                       className="flex items-center gap-1"
                     >
                       <Download className="h-4 w-4" />
@@ -200,9 +200,9 @@ export const DocumentManager: React.FC<DocumentManagerProps> = ({ onDocumentDele
                           variant="outline"
                           size="sm"
                           className="text-red-600 hover:text-red-700 border-red-200 hover:border-red-300"
-                          disabled={deletingId === document.id}
+                          disabled={deletingId === doc.id}
                         >
-                          {deletingId === document.id ? (
+                          {deletingId === doc.id ? (
                             <Loader2 className="h-4 w-4 animate-spin" />
                           ) : (
                             <Trash2 className="h-4 w-4" />
@@ -213,13 +213,13 @@ export const DocumentManager: React.FC<DocumentManagerProps> = ({ onDocumentDele
                         <AlertDialogHeader>
                           <AlertDialogTitle>Delete Document</AlertDialogTitle>
                           <AlertDialogDescription>
-                            Are you sure you want to delete "{document.file_name}"? This action cannot be undone.
+                            Are you sure you want to delete "{doc.file_name}"? This action cannot be undone.
                           </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
                           <AlertDialogCancel>Cancel</AlertDialogCancel>
                           <AlertDialogAction
-                            onClick={() => handleDelete(document)}
+                            onClick={() => handleDelete(doc)}
                             className="bg-red-600 hover:bg-red-700"
                           >
                             Delete
