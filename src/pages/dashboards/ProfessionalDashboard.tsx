@@ -194,12 +194,12 @@ const ProfessionalDashboard = () => {
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </Link>
-              <div className="pt-4">
+             {/*   <div className="pt-4">
                 <UpvoteFeatureButton
                   featureTitle="Professional Profile Management"
                   buttonText="Upvote this Feature"
                 />
-              </div>
+              </div>*/}
             </CardContent>
           </Card>
 
@@ -230,12 +230,12 @@ const ProfessionalDashboard = () => {
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </Link>
-              <div className="pt-4">
+            {/*  <div className="pt-4">
                 <UpvoteFeatureButton
                   featureTitle="Admin Assistant Tools"
                   buttonText="Upvote this Feature"
                 />
-              </div>
+              </div>*/}
             </CardContent>
           </Card>
         </div>
@@ -290,12 +290,12 @@ const ProfessionalDashboard = () => {
                 </Button>
               </Link>
               
-              <div className="pt-4">
+              {/*<div className="pt-4">
                 <UpvoteFeatureButton
                   featureTitle="Professional Agency Management"
                   buttonText="Upvote this Feature"
                 />
-              </div>
+              </div>*/}
             </CardContent>
           </Card>
         </div>
