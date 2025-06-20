@@ -156,13 +156,6 @@ export const useSpecificUserProfessionalProgress = (userId: string): SpecificUse
         throw documentsError;
       }
 
-      // Explicitly type documents array
-      const documents: any[] = documentsData || [];
-      console.log('📄 Documents data fetched:', {
-        documentsCount: documents.length,
-        documents: documents.map(d => ({ type: d.document_type, name: d.file_name }))
-      });
-
       // Fetch care team assignments
       const { data: assignmentsData, error: assignmentsError } = await supabase
         .from('care_team_members')
@@ -174,8 +167,15 @@ export const useSpecificUserProfessionalProgress = (userId: string): SpecificUse
         throw assignmentsError;
       }
 
-      // Explicitly type assignments array
+      // Explicitly type the arrays to avoid TypeScript 'never' type errors
+      const documents: any[] = documentsData || [];
       const assignments: any[] = assignmentsData || [];
+      
+      console.log('📄 Documents data fetched:', {
+        documentsCount: documents.length,
+        documents: documents.map(d => ({ type: d.document_type, name: d.file_name }))
+      });
+
       console.log('💼 Assignments data fetched:', {
         assignmentsCount: assignments.length,
         assignments: assignments.map(a => ({ id: a.id, status: a.status, role: a.role }))
