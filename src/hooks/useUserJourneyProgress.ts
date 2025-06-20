@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useSharedFamilyJourneyData } from '@/hooks/useSharedFamilyJourneyData';
@@ -8,17 +9,9 @@ interface JourneyStep {
   title: string;
   description: string;
   completed: boolean;
-  accessible?: boolean;
-  step_number: number;
   link: string;
   category?: string;
   optional?: boolean;
-  icon_name?: string;
-  tooltip_content?: string;
-  detailed_explanation?: string;
-  link_path?: string;
-  time_estimate_minutes?: number;
-  is_optional?: boolean;
 }
 
 interface UserJourneyData {
@@ -41,8 +34,6 @@ export const useUserJourneyProgress = (userId: string, userRole: UserRole): User
   if (userRole === 'family') {
     const convertedSteps = familyProgress.steps.map(step => ({
       ...step,
-      accessible: step.accessible !== undefined ? step.accessible : true,
-      step_number: step.id,
       link: step.id === 1 ? "/registration/family" :
             step.id === 2 ? "/family/care-assessment" :
             step.id === 3 ? "/family/story" :
@@ -54,9 +45,7 @@ export const useUserJourneyProgress = (userId: string, userRole: UserRole): User
             step.id === 9 ? "/family/schedule-visit" :
             step.id === 10 ? "/family/schedule-visit" :
             step.id === 11 ? "/family/schedule-visit" :
-            step.id === 12 ? "/family/schedule-visit" : "/dashboard",
-      time_estimate_minutes: step.time_estimate_minutes || 5,
-      is_optional: step.is_optional || false
+            step.id === 12 ? "/family/schedule-visit" : "/dashboard"
     }));
 
     return {
@@ -64,11 +53,7 @@ export const useUserJourneyProgress = (userId: string, userRole: UserRole): User
       completionPercentage: familyProgress.completionPercentage,
       nextStep: familyProgress.nextStep ? {
         ...familyProgress.nextStep,
-        accessible: true,
-        step_number: familyProgress.nextStep.id,
-        link: convertedSteps.find(s => s.id === familyProgress.nextStep?.id)?.link || "/dashboard",
-        time_estimate_minutes: familyProgress.nextStep.time_estimate_minutes || 5,
-        is_optional: familyProgress.nextStep.is_optional || false
+        link: convertedSteps.find(s => s.id === familyProgress.nextStep?.id)?.link || "/dashboard"
       } : undefined,
       loading: familyProgress.loading,
       journeyStage: familyProgress.journeyStage
@@ -80,26 +65,26 @@ export const useUserJourneyProgress = (userId: string, userRole: UserRole): User
     switch (role) {
       case 'professional':
         return [
-          { id: 1, title: "Create your account", description: "Set up your Tavara account", completed: true, accessible: true, step_number: 1, link: "/auth", time_estimate_minutes: 5, is_optional: false },
-          { id: 2, title: "Complete your professional profile", description: "Add your experience and certifications", completed: false, accessible: true, step_number: 2, link: "/registration/professional", time_estimate_minutes: 15, is_optional: false },
-          { id: 3, title: "Upload certifications & documents", description: "Verify your credentials", completed: false, accessible: true, step_number: 3, link: "/professional/profile", time_estimate_minutes: 10, is_optional: false },
-          { id: 4, title: "Set your availability preferences", description: "Configure your work schedule", completed: false, accessible: true, step_number: 4, link: "/professional/profile", time_estimate_minutes: 5, is_optional: false },
-          { id: 5, title: "Complete training modules", description: "Enhance your skills", completed: false, accessible: true, step_number: 5, link: "/professional/training", time_estimate_minutes: 30, is_optional: true },
-          { id: 6, title: "Schedule orientation session", description: "Complete your onboarding", completed: false, accessible: true, step_number: 6, link: "/professional/profile", time_estimate_minutes: 20, is_optional: false }
+          { id: 1, title: "Create your account", description: "Set up your Tavara account", completed: true, link: "/auth" },
+          { id: 2, title: "Complete your professional profile", description: "Add your experience and certifications", completed: false, link: "/registration/professional" },
+          { id: 3, title: "Upload certifications & documents", description: "Verify your credentials", completed: false, link: "/professional/profile" },
+          { id: 4, title: "Set your availability preferences", description: "Configure your work schedule", completed: false, link: "/professional/profile" },
+          { id: 5, title: "Complete training modules", description: "Enhance your skills", completed: false, link: "/professional/training" },
+          { id: 6, title: "Schedule orientation session", description: "Complete your onboarding", completed: false, link: "/professional/profile" }
         ];
       case 'community':
         return [
-          { id: 1, title: "Complete your profile", description: "Add your contact information", completed: false, accessible: true, step_number: 1, link: "/registration/community", time_estimate_minutes: 10, is_optional: false },
-          { id: 2, title: "Tell us about your interests", description: "Share how you'd like to help", completed: false, accessible: true, step_number: 2, link: "/community/interests", time_estimate_minutes: 5, is_optional: false },
-          { id: 3, title: "Join community activities", description: "Start supporting families", completed: false, accessible: true, step_number: 3, link: "/community/activities", time_estimate_minutes: 15, is_optional: true }
+          { id: 1, title: "Complete your profile", description: "Add your contact information", completed: false, link: "/registration/community" },
+          { id: 2, title: "Tell us about your interests", description: "Share how you'd like to help", completed: false, link: "/community/interests" },
+          { id: 3, title: "Join community activities", description: "Start supporting families", completed: false, link: "/community/activities" }
         ];
       case 'admin':
         return [
-          { id: 1, title: "Admin account setup", description: "Configure admin settings", completed: false, accessible: true, step_number: 1, link: "/admin/dashboard", time_estimate_minutes: 10, is_optional: false },
-          { id: 2, title: "System configuration", description: "Set up system preferences", completed: false, accessible: true, step_number: 2, link: "/admin/settings", time_estimate_minutes: 20, is_optional: false }
+          { id: 1, title: "Admin account setup", description: "Configure admin settings", completed: false, link: "/admin/dashboard" },
+          { id: 2, title: "System configuration", description: "Set up system preferences", completed: false, link: "/admin/settings" }
         ];
       default:
-        return [{ id: 1, title: "Getting Started", description: "Complete your profile", completed: false, accessible: true, step_number: 1, link: "/dashboard", time_estimate_minutes: 5, is_optional: false }];
+        return [{ id: 1, title: "Getting Started", description: "Complete your profile", completed: false, link: "/dashboard" }];
     }
   };
 
@@ -136,8 +121,7 @@ export const useUserJourneyProgress = (userId: string, userRole: UserRole): User
       } else if (userRole === 'community') {
         // Mark steps as completed for community
         if (profile.full_name) updatedSteps[0].completed = true;
-        if (profile.location) updatedSteps[1].completed = true;
-        if (profile.phone_number) updatedSteps[2].completed = true;
+        if (profile.contribution_interests && profile.contribution_interests.length > 0) updatedSteps[1].completed = true;
       } else if (userRole === 'admin') {
         // Mark admin steps as completed based on admin-specific criteria
         if (profile.full_name) updatedSteps[0].completed = true;

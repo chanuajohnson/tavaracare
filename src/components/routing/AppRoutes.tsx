@@ -1,5 +1,4 @@
 
-import React from 'react';
 import { Routes, Route } from "react-router-dom";
 import { useAuth } from "@/components/providers/AuthProvider";
 import Index from "@/pages/Index";
@@ -48,8 +47,6 @@ import CareManagementPage from "@/pages/family/care-management/CareManagementPag
 import CarePlanDetailPage from "@/pages/family/care-management/CarePlanDetailPage";
 import CreateCarePlanPage from "@/pages/family/care-management/CreateCarePlanPage";
 import CareJourneyProgressPage from "@/pages/family/CareJourneyProgressPage";
-import CaregiverMatchesPage from "@/pages/family/CaregiverMatchesPage";
-import ScheduleVisitPage from "@/pages/family/ScheduleVisitPage";
 
 // Profile Pages
 import ProfileEditPage from "@/pages/profile/ProfileEditPage";
@@ -119,8 +116,6 @@ export const AppRoutes = () => {
       <Route path="/family/care-management/:id/meals" element={<MealManagementPage />} />
       <Route path="/family/care-management/create" element={<CreateCarePlanPage />} />
       <Route path="/family/care-journey-progress" element={<CareJourneyProgressPage />} />
-      <Route path="/family/caregiver-matches" element={<CaregiverMatchesPage />} />
-      <Route path="/family/schedule-visit" element={<ScheduleVisitPage />} />
       
       {/* Community Routes */}
       <Route path="/community" element={<CommunityFeaturesOverview />} />
