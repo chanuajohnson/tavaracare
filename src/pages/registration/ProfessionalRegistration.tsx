@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { v4 as uuidv4 } from 'uuid';
@@ -150,6 +149,7 @@ const ProfessionalRegistration = () => {
         setHourlyRate(value);
         break;
       case 'transportation':
+      case 'commute_mode': // Handle both field names for backward compatibility
         setTransportation(value);
         break;
       case 'preferred_locations':
@@ -303,7 +303,7 @@ const ProfessionalRegistration = () => {
         custom_schedule: customAvailability || '', // Changed from custom_availability to custom_schedule
         preferred_work_locations: preferredLocations || '',
         hourly_rate: hourlyRate || '',
-        transportation: transportation || '',
+        commute_mode: transportation || '', // Updated: Map transportation to commute_mode column
         languages: languages || [],
         emergency_contact: emergencyContact || '',
         background_check: backgroundCheck ? backgroundCheck === 'yes' || backgroundCheck === 'true' : null,
