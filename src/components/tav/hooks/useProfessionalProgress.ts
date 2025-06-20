@@ -1,4 +1,5 @@
 
+
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { supabase } from '@/lib/supabase';
@@ -51,21 +52,21 @@ export const useProfessionalProgress = (): ProfessionalProgressData => {
     },
     { 
       id: 3, 
+      title: "Set your availability preferences", 
+      description: "Configure your work schedule and location preferences", 
+      completed: false, 
+      link: "/registration/professional?scroll=availability&edit=true",
+      stage: "foundation", // Changed from matching to foundation
+      category: "availability"
+    },
+    { 
+      id: 4, 
       title: "Upload certifications & documents", 
       description: "Verify your credentials and background", 
       completed: false, 
       link: "/professional/profile?tab=documents",
-      stage: "qualification",
+      stage: "qualification", // Changed from qualification to qualification
       category: "documents"
-    },
-    { 
-      id: 4, 
-      title: "Set your availability preferences", 
-      description: "Configure your work schedule and location preferences", 
-      completed: false, 
-      link: "/professional/profile?tab=availability",
-      stage: "matching",
-      category: "availability"
     },
     { 
       id: 5, 
@@ -95,8 +96,8 @@ export const useProfessionalProgress = (): ProfessionalProgressData => {
     if (step.completed) {
       if (step.id === 1) return "✓ Account Created";
       if (step.id === 2) return "View Profile";
-      if (step.id === 3) return "View Documents";
-      if (step.id === 4) return "Edit Availability";
+      if (step.id === 3) return "Edit Availability";  // Step 3 is now availability
+      if (step.id === 4) return "View Documents";     // Step 4 is now documents
       if (step.id === 5) return "Continue Training";
       if (step.id === 6) return "View Assignments";
       return "✓ Complete";
@@ -104,8 +105,8 @@ export const useProfessionalProgress = (): ProfessionalProgressData => {
     
     if (step.id === 1) return "Complete Setup";
     if (step.id === 2) return "Complete Profile";
-    if (step.id === 3) return "Upload Documents";
-    if (step.id === 4) return "Set Availability";
+    if (step.id === 3) return "Set Availability";     // Step 3 is now availability
+    if (step.id === 4) return "Upload Documents";     // Step 4 is now documents
     if (step.id === 5) return "Start Training";
     if (step.id === 6) return "Get Assignments";
     
@@ -121,7 +122,7 @@ export const useProfessionalProgress = (): ProfessionalProgressData => {
       // Check user profile completion - enhanced checks
       const { data: profile } = await supabase
         .from('profiles')
-        .select('professional_type, years_of_experience, certifications, availability')
+        .select('professional_type, years_of_experience, certifications, care_schedule')
         .eq('id', user.id)
         .maybeSingle();
 
@@ -151,13 +152,13 @@ export const useProfessionalProgress = (): ProfessionalProgressData => {
         updatedSteps[1].completed = true;
       }
       
-      // Step 3: Upload documents - check if any documents exist
-      if (documents && documents.length > 0) {
+      // Step 3: Availability (was Step 4) - check if care_schedule is set
+      if (profile && profile.care_schedule && profile.care_schedule.length > 0) {
         updatedSteps[2].completed = true;
       }
       
-      // Step 4: Availability - check if availability is set
-      if (profile && profile.availability && profile.availability.length > 0) {
+      // Step 4: Upload documents (was Step 3) - check if any documents exist
+      if (documents && documents.length > 0) {
         updatedSteps[3].completed = true;
       }
       

@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { supabase } from '@/lib/supabase';
@@ -121,8 +122,8 @@ export const useEnhancedProfessionalProgress = (): ProfessionalProgressData => {
       switch (step.id) {
         case 1: return "✓ Account Created";
         case 2: return "✓ Profile Complete";
-        case 3: return "View Documents";
-        case 4: return "Edit Availability";
+        case 3: return "Edit Availability"; // Step 3 is now availability
+        case 4: return "View Documents";   // Step 4 is now documents
         case 5: return "Continue Training";
         case 6: return "View Assignments";
         default: return "✓ Complete";
@@ -132,15 +133,15 @@ export const useEnhancedProfessionalProgress = (): ProfessionalProgressData => {
     switch (step.id) {
       case 1: return "Complete Setup";
       case 2: return "Complete Profile";
-      case 3: return "Upload Documents";
-      case 4: return "Set Availability";
+      case 3: return "Set Availability";    // Step 3 is now availability
+      case 4: return "Upload Documents";    // Step 4 is now documents
       case 5: return "Start Training";
       case 6: return "Get Assignments";
       default: return "Complete";
     }
   };
 
-  // Base steps definition
+  // Base steps definition - SWAPPED STEPS 3 AND 4
   const baseSteps: Omit<ProfessionalStep, 'completed' | 'action' | 'buttonText'>[] = [
     { 
       id: 1, 
@@ -162,24 +163,23 @@ export const useEnhancedProfessionalProgress = (): ProfessionalProgressData => {
     },
     { 
       id: 3, 
+      title: "Set your availability preferences", 
+      description: "Configure your work schedule and location preferences", 
+      link: "/registration/professional?scroll=availability&edit=true",
+      category: "availability",
+      stage: "foundation", // Changed from matching to foundation
+      isInteractive: true,
+      modalAction: "availability_setup"
+    },
+    { 
+      id: 4, 
       title: "Upload certifications & documents", 
       description: "Verify your credentials and background", 
       link: "/professional/profile?tab=documents",
       category: "documents",
-      stage: "qualification",
+      stage: "qualification", // Changed from qualification to qualification
       isInteractive: true,
       modalAction: "document_upload"
-    },
-    { 
-      id: 4, 
-      title: "Set your availability preferences", 
-      description: "Configure your work schedule and location preferences", 
-      // edit chan link: "/professional/profile?tab=availability",
-      link: "/registration/professional?scroll=availability&edit=true",
-      category: "availability",
-      stage: "matching",
-      isInteractive: true,
-      modalAction: "availability_setup"
     },
     { 
       id: 5, 
@@ -215,8 +215,8 @@ export const useEnhancedProfessionalProgress = (): ProfessionalProgressData => {
         case 2: // Professional profile
           completed = true;
           break;
-        case 3: // Documents upload - this will be the "next" step
-        case 4: // Availability
+        case 3: // Availability - this will be the "next" step
+        case 4: // Documents upload
         case 5: // Training modules
         case 6: // Assignments
         default:
@@ -281,7 +281,7 @@ export const useEnhancedProfessionalProgress = (): ProfessionalProgressData => {
       const steps: ProfessionalStep[] = baseSteps.map(baseStep => {
         let completed = false;
 
-        // Check completion status for each step
+        // Check completion status for each step - SWAPPED LOGIC FOR STEPS 3 AND 4
         switch (baseStep.id) {
           case 1: // Account creation
             completed = !!user;
@@ -290,11 +290,11 @@ export const useEnhancedProfessionalProgress = (): ProfessionalProgressData => {
             //Chan edit completed = !!(profile?.professional_type && profile?.years_of_experience);
             completed = !!(profile?.full_name);
             break;
-          case 3: // Documents upload
-            completed = (documents?.length || 0) > 0;
+          case 3: // Availability (was Step 4)
+            completed = !!(profile?.care_schedule && profile.care_schedule.length > 0);
             break;
-          case 4: // Availability
-            completed = !!(profile?.availability && profile.availability.length > 0);
+          case 4: // Documents upload (was Step 3)
+            completed = (documents?.length || 0) > 0;
             break;
           case 5: // Training modules - check if professional_type is set and certifications exist
             completed = !!(profile?.professional_type && profile?.certifications && profile.certifications.length > 0);

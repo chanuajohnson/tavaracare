@@ -1,4 +1,5 @@
 
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 
@@ -25,7 +26,7 @@ export const useSpecificUserProfessionalProgress = (userId: string): SpecificUse
   const [loading, setLoading] = useState(true);
   const [steps, setSteps] = useState<ProfessionalStep[]>([]);
 
-  // Base steps definition - exactly the same as useEnhancedProfessionalProgress
+  // Base steps definition - SWAPPED STEPS 3 AND 4
   const baseSteps = [
     { 
       id: 1, 
@@ -47,20 +48,20 @@ export const useSpecificUserProfessionalProgress = (userId: string): SpecificUse
     },
     { 
       id: 3, 
-      title: "Upload certifications & documents", 
-      description: "Verify your credentials and background", 
-      link: "/professional/profile?tab=documents",
-      category: "documents",
-      stage: "qualification",
+      title: "Set your availability preferences", 
+      description: "Configure your work schedule and location preferences", 
+      link: "/registration/professional?scroll=availability&edit=true",
+      category: "availability",
+      stage: "foundation", // Changed from matching to foundation
       isInteractive: true
     },
     { 
       id: 4, 
-      title: "Set your availability preferences", 
-      description: "Configure your work schedule and location preferences", 
-      link: "/professional/profile?tab=availability",
-      category: "availability",
-      stage: "matching",
+      title: "Upload certifications & documents", 
+      description: "Verify your credentials and background", 
+      link: "/professional/profile?tab=documents",
+      category: "documents",
+      stage: "qualification", // Changed from qualification to qualification
       isInteractive: true
     },
     { 
@@ -88,8 +89,8 @@ export const useSpecificUserProfessionalProgress = (userId: string): SpecificUse
       switch (step.id) {
         case 1: return "✓ Account Created";
         case 2: return "✓ Profile Complete";
-        case 3: return "View Documents";
-        case 4: return "Edit Availability";
+        case 3: return "Edit Availability";  // Step 3 is now availability
+        case 4: return "View Documents";     // Step 4 is now documents
         case 5: return "Continue Training";
         case 6: return "View Assignments";
         default: return "✓ Complete";
@@ -99,8 +100,8 @@ export const useSpecificUserProfessionalProgress = (userId: string): SpecificUse
     switch (step.id) {
       case 1: return "Complete Setup";
       case 2: return "Complete Profile";
-      case 3: return "Upload Documents";
-      case 4: return "Set Availability";
+      case 3: return "Set Availability";     // Step 3 is now availability
+      case 4: return "Upload Documents";     // Step 4 is now documents
       case 5: return "Start Training";
       case 6: return "Get Assignments";
       default: return "Complete";
@@ -136,8 +137,8 @@ export const useSpecificUserProfessionalProgress = (userId: string): SpecificUse
         yearsExperience: profile?.years_of_experience,
         certificationsArray: profile?.certifications,
         certificationsCount: profile?.certifications?.length || 0,
-        availabilityArray: profile?.availability,
-        availabilityCount: profile?.availability?.length || 0
+        careScheduleArray: profile?.care_schedule,
+        careScheduleLength: profile?.care_schedule?.length || 0
       });
 
       // Fetch documents
@@ -175,7 +176,7 @@ export const useSpecificUserProfessionalProgress = (userId: string): SpecificUse
       const processedSteps: ProfessionalStep[] = baseSteps.map(baseStep => {
         let completed = false;
 
-        // Exact same completion logic as useEnhancedProfessionalProgress with detailed logging
+        // SWAPPED completion logic for steps 3 and 4
         switch (baseStep.id) {
           case 1: // Account creation
             completed = !!userId; // Always true if userId exists
@@ -192,20 +193,23 @@ export const useSpecificUserProfessionalProgress = (userId: string): SpecificUse
               hasYearsExp
             });
             break;
-          case 3: // Documents upload
+          case 3: // Availability (was Step 4)
+            const careScheduleData = profile?.care_schedule;
+            const careScheduleLength = typeof careScheduleData === 'string' 
+              ? careScheduleData.split(',').filter(s => s.trim()).length 
+              : Array.isArray(careScheduleData) ? careScheduleData.length : 0;
+            completed = careScheduleLength > 0;
+            console.log(`📅 Step 3 (Availability): ${completed}`, {
+              careScheduleData,
+              careScheduleLength,
+              isString: typeof careScheduleData === 'string',
+              isArray: Array.isArray(careScheduleData)
+            });
+            break;
+          case 4: // Documents upload (was Step 3)
             const documentsCount = documents?.length || 0;
             completed = documentsCount > 0;
-            console.log(`📄 Step 3 (Documents): ${completed} (count: ${documentsCount})`);
-            break;
-          case 4: // Availability
-            const availabilityArray = profile?.availability;
-            const availabilityCount = Array.isArray(availabilityArray) ? availabilityArray.length : 0;
-            completed = availabilityCount > 0;
-            console.log(`📅 Step 4 (Availability): ${completed}`, {
-              availabilityArray,
-              availabilityCount,
-              isArray: Array.isArray(availabilityArray)
-            });
+            console.log(`📄 Step 4 (Documents): ${completed} (count: ${documentsCount})`);
             break;
           case 5: // Training modules - check certifications
             const certificationsArray = profile?.certifications;
