@@ -239,16 +239,28 @@ export class ProfessionalFamilyChatService {
 
       // Update message count if it's a user message
       if (isUser) {
-        const { error: updateError } = await supabase
+        // First get the current session
+        const { data: session, error: fetchError } = await supabase
           .from('family_chat_sessions')
-          .update({
-            messages_sent: supabase.sql`messages_sent + 1`,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', sessionId);
+          .select('messages_sent')
+          .eq('id', sessionId)
+          .single();
 
-        if (updateError) {
-          console.error('Error updating message count:', updateError);
+        if (fetchError) {
+          console.error('Error fetching session for count update:', fetchError);
+        } else {
+          // Update with incremented value
+          const { error: updateError } = await supabase
+            .from('family_chat_sessions')
+            .update({
+              messages_sent: (session.messages_sent || 0) + 1,
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', sessionId);
+
+          if (updateError) {
+            console.error('Error updating message count:', updateError);
+          }
         }
       }
 
