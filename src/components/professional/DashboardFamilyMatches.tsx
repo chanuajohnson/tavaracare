@@ -16,12 +16,14 @@ import { useFamilyMatches } from "@/hooks/useFamilyMatches";
 import { ChatRequestsSection } from "./ChatRequestsSection";
 import { ProfessionalFamilyChatModal } from "./ProfessionalFamilyChatModal";
 import { VideoAvailabilityToggle } from "./VideoAvailabilityToggle";
+import { ProfessionalFamilyMatchModal } from "./ProfessionalFamilyMatchModal";
 
 export const DashboardFamilyMatches = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [showFilters, setShowFilters] = useState(false);
   const [showChatModal, setShowChatModal] = useState(false);
+  const [showFamilyMatchModal, setShowFamilyMatchModal] = useState(false);
   const [selectedFamily, setSelectedFamily] = useState<any>(null);
   const { trackEngagement } = useTracking();
   
@@ -379,17 +381,16 @@ export const DashboardFamilyMatches = () => {
                 </div>
               ))}
               
-              <Button variant="outline" className="w-full mt-2" onClick={() => {
-                trackEngagement('view_all_family_matches_click', {
-                  source: 'dashboard_widget'
-                });
-                navigate("/family/matching", {
-                  state: {
-                    referringPagePath: "/dashboard/professional",
-                    referringPageLabel: "Professional Dashboard"
-                  }
-                });
-              }}>
+              <Button 
+                variant="outline" 
+                className="w-full mt-2" 
+                onClick={() => {
+                  trackEngagement('view_family_match_modal_click', {
+                    source: 'dashboard_widget'
+                  });
+                  setShowFamilyMatchModal(true);
+                }}
+              >
                 View All Family Matches
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
@@ -413,6 +414,16 @@ export const DashboardFamilyMatches = () => {
           family={selectedFamily}
         />
       )}
+
+      {/* Professional Family Match Modal */}
+      <ProfessionalFamilyMatchModal
+        open={showFamilyMatchModal}
+        onOpenChange={setShowFamilyMatchModal}
+        onChatWithFamily={(family) => {
+          setSelectedFamily(family);
+          setShowChatModal(true);
+        }}
+      />
     </>
   );
 };
