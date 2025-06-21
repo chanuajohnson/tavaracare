@@ -152,7 +152,7 @@ export const useProfessionalProgress = (): ProfessionalProgressData => {
       
       const { data: profile } = await supabase
         .from('profiles')
-        .select('professional_type, years_of_experience, certifications, care_schedule, full_name, video_available')
+        .select('professional_type, years_of_experience, certifications, care_schedule, full_name')
         .eq('id', user.id)
         .maybeSingle();
 
@@ -175,8 +175,8 @@ export const useProfessionalProgress = (): ProfessionalProgressData => {
         if (step.id === 1) {
           completed = true; // Account creation
         } else if (step.id === 2) {
-          // Consider profile complete if they have basic info AND video availability set
-          completed = !!(profile && profile.full_name && typeof profile.video_available === 'boolean');
+          completed = !!(profile && profile.full_name);
+          // Use dynamic link based on completion status
           stepLink = getProfessionalRegistrationLink(completed);
         } else if (step.id === 3) {
           completed = !!(profile && profile.care_schedule && profile.care_schedule.length > 0);
@@ -191,7 +191,7 @@ export const useProfessionalProgress = (): ProfessionalProgressData => {
         // Check accessibility - Step 5 is only accessible if steps 1-4 are completed
         if (step.id === 5) {
           const step1Complete = true; // Account always complete for logged in users
-          const step2Complete = !!(profile && profile.full_name && typeof profile.video_available === 'boolean');
+          const step2Complete = !!(profile && profile.full_name);
           const step3Complete = !!(profile && profile.care_schedule && profile.care_schedule.length > 0);
           const step4Complete = !!(documents && documents.length > 0);
           
