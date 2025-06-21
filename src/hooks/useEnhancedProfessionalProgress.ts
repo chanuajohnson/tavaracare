@@ -172,9 +172,9 @@ export const useEnhancedProfessionalProgress = (): ProfessionalProgressData => {
     },
     { 
       id: 2, 
-      title: "Complete your professional profile", 
+      title: "Edit your professional registration", 
       description: "Add your experience, certifications, and specialties", 
-      link: "/registration/professional",
+      link: "/registration/professional?scroll=availability&edit=true",
       category: "profile",
       stage: "foundation",
       isInteractive: true
