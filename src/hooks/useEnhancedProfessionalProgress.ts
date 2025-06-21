@@ -2,39 +2,31 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { supabase } from '@/lib/supabase';
 import { useNavigate } from 'react-router-dom';
+import { getDocumentNavigationLink } from './professional/stepDefinitions';
 
-interface ProfessionalStep {
+export interface ProfessionalJourneyStage {
+  id: string;
+  name: string;
+  description: string;
+  color: string;
+  completionPercentage: number;
+  isActive: boolean;
+  isCompleted: boolean;
+}
+
+export interface ProfessionalStep {
   id: number;
   title: string;
   description: string;
   completed: boolean;
   accessible: boolean;
   link: string;
-  buttonText?: string;
-  action?: () => void;
-  stage: string;
+  buttonText: string;
+  action: () => void;
   category: string;
+  stage: string;
   isInteractive: boolean;
-}
-
-interface ProfessionalStage {
-  id: string;
-  name: string;
-  description: string;
-  color: string;
-  completed: boolean;
-  accessible: boolean;
-  steps: ProfessionalStep[];
-}
-
-// Export the type for use in other components
-export interface ProfessionalJourneyStage {
-  id: string;
-  name: string;
-  description: string;
-  completionPercentage: number;
-  isCompleted: boolean;
-  isActive: boolean;
+  modalAction?: string;
 }
 
 interface ProfessionalProgressData {
@@ -46,15 +38,98 @@ interface ProfessionalProgressData {
   completedSteps: number;
   totalSteps: number;
   loading: boolean;
-  refreshProgress: () => void;
+  refreshProgress: () => Promise<void>;
 }
 
 export const useEnhancedProfessionalProgress = (): ProfessionalProgressData => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
-  const [steps, setSteps] = useState<ProfessionalStep[]>([]);
-  const [stages, setStages] = useState<ProfessionalJourneyStage[]>([]);
+  const [profileData, setProfileData] = useState<any>(null);
+  const [documentsData, setDocumentsData] = useState<any[]>([]);
+
+  // Define journey stages
+  const stages: ProfessionalJourneyStage[] = [
+    {
+      id: 'foundation',
+      name: 'Foundation',
+      description: 'Complete your basic profile and account setup',
+      color: 'bg-blue-500',
+      completionPercentage: 0,
+      isActive: false,
+      isCompleted: false
+    },
+    {
+      id: 'qualification',
+      name: 'Qualification',
+      description: 'Upload credentials and complete background verification',
+      color: 'bg-indigo-500',
+      completionPercentage: 0,
+      isActive: false,
+      isCompleted: false
+    },
+    {
+      id: 'active',
+      name: 'Active Professional',
+      description: 'Receive assignments and grow your career',
+      color: 'bg-green-500',
+      completionPercentage: 0,
+      isActive: false,
+      isCompleted: false
+    },
+    {
+      id: 'training',
+      name: 'Training',
+      description: 'Complete optional training modules to enhance your skills',
+      color: 'bg-yellow-500',
+      completionPercentage: 0,
+      isActive: false,
+      isCompleted: false
+    }
+  ];
+
+  const [currentStages, setCurrentStages] = useState<ProfessionalJourneyStage[]>(stages);
+
+  const handleStepAction = (step: ProfessionalStep) => {
+    if (!step.accessible) {
+      return; // Don't allow navigation for locked steps
+    }
+    
+    if (step.modalAction) {
+      switch (step.modalAction) {
+        case 'document_upload':
+          const hasDocuments = documentsData && documentsData.length > 0;
+          const documentLink = getDocumentNavigationLink(hasDocuments);
+          navigate(documentLink);
+          break;
+        case 'training_modules':
+          navigate('/professional/training');
+          break;
+        case 'availability_setup':
+          navigate('/registration/professional?scroll=availability&edit=true');
+          break;
+        default:
+          navigate(step.link);
+      }
+    } else {
+      if (step.id === 5) {
+        // For family matches, scroll to the family matches section
+        navigate('/dashboard/professional');
+        setTimeout(() => {
+          const element = document.getElementById('family-matches');
+          if (element) {
+            element.scrollIntoView({ behavior: 'smooth' });
+          }
+        }, 100);
+      } else {
+        navigate(step.link);
+      }
+    }
+  };
+
+  const handleDemoStepAction = () => {
+    navigate('/auth');
+  };
 
   const getButtonText = (step: ProfessionalStep) => {
     if (!step.accessible) {
@@ -62,263 +137,266 @@ export const useEnhancedProfessionalProgress = (): ProfessionalProgressData => {
     }
     
     if (step.completed) {
-      if (step.id === 1) return "✓ Account Created";
-      if (step.id === 2) return "Edit Profile"; // Changed from "View Profile"
-      if (step.id === 3) return "Edit Availability";
-      if (step.id === 4) return "View Documents";
-      if (step.id === 5) return "View Family Matches";
-      if (step.id === 6) return "Continue Training";
-      return "✓ Complete";
+      switch (step.id) {
+        case 1: return "✓ Account Created";
+        case 2: return "✓ Profile Complete";
+        case 3: return "Edit Availability";
+        case 4: return "View Documents";
+        case 5: return "View Family Matches";
+        case 6: return "Continue Training";
+        default: return "✓ Complete";
+      }
     }
     
-    if (step.id === 1) return "Complete Setup";
-    if (step.id === 2) return "Complete Profile";
-    if (step.id === 3) return "Set Availability";
-    if (step.id === 4) return "Upload Documents";
-    if (step.id === 5) return "View Family Matches";
-    if (step.id === 6) return "Start Training";
-    
-    return "Complete";
+    switch (step.id) {
+      case 1: return "Complete Setup";
+      case 2: return "Complete Profile";
+      case 3: return "Set Availability";
+      case 4: return "Upload Documents";
+      case 5: return "View Family Matches";
+      case 6: return "Start Training";
+      default: return "Complete";
+    }
   };
 
-  const handleStepAction = (step: ProfessionalStep) => {
-    if (!step.accessible) {
-      return; // Don't allow navigation for locked steps
+  // Base steps definition - Step 4 updated with dynamic navigation
+  const baseSteps: Omit<ProfessionalStep, 'completed' | 'action' | 'buttonText' | 'accessible'>[] = [
+    { 
+      id: 1, 
+      title: "Create your account", 
+      description: "Set up your Tavara professional account", 
+      link: "/auth",
+      category: "account",
+      stage: "foundation",
+      isInteractive: false
+    },
+    { 
+      id: 2, 
+      title: "Complete your professional profile", 
+      description: "Add your experience, certifications, and specialties", 
+      link: "/registration/professional",
+      category: "profile",
+      stage: "foundation",
+      isInteractive: true
+    },
+    { 
+      id: 3, 
+      title: "Set your availability preferences", 
+      description: "Configure your work schedule and location preferences", 
+      link: "/registration/professional?scroll=availability&edit=true",
+      category: "availability",
+      stage: "foundation",
+      isInteractive: true,
+      modalAction: "availability_setup"
+    },
+    { 
+      id: 4, 
+      title: "Upload certifications & documents", 
+      description: "Verify your credentials and background", 
+      link: "/professional/profile?tab=documents",
+      category: "documents",
+      stage: "qualification",
+      isInteractive: true,
+      modalAction: "document_upload"
+    },
+    { 
+      id: 5, 
+      title: "Match with Tavara Families", 
+      description: "Get matched with families and begin your caregiving journey", 
+      link: "/dashboard/professional#family-matches",
+      category: "assignments",
+      stage: "active",
+      isInteractive: false
+    },
+    { 
+      id: 6, 
+      title: "Complete training modules", 
+      description: "Enhance your skills with our professional development courses", 
+      link: "/professional/training",
+      category: "training",
+      stage: "training",
+      isInteractive: true,
+      modalAction: "training_modules"
     }
-    
-    if (step.id === 2) {
-      // For profile step, add edit=true parameter if profile is already completed
-      const profileLink = step.completed 
-        ? "/registration/professional?edit=true"
-        : "/registration/professional";
-      navigate(profileLink);
-    } else if (step.id === 3) {
-      // For availability step, always include edit=true for prefilling
-      navigate("/registration/professional?scroll=availability&edit=true");
-    } else if (step.id === 4) {
-      // Use dynamic navigation for document step
-      const hasDocuments = step.completed;
-      const documentLink = hasDocuments 
-        ? "/professional/profile?tab=documents#manage-documents"
-        : "/professional/profile?tab=documents#upload-documents";
-      navigate(documentLink);
-    } else if (step.id === 5) {
-      // For family matches, scroll to the family matches section
-      navigate('/dashboard/professional');
-      setTimeout(() => {
-        const element = document.getElementById('family-matches');
-        if (element) {
-          element.scrollIntoView({ behavior: 'smooth' });
-        }
-      }, 100);
-    } else {
-      navigate(step.link);
-    }
+  ];
+
+  // Generate demo data for non-logged-in users
+  const generateDemoData = () => {
+    const demoSteps: ProfessionalStep[] = baseSteps.map(baseStep => {
+      let completed = false;
+      let accessible = true;
+
+      switch (baseStep.id) {
+        case 1:
+          completed = true;
+          break;
+        case 2:
+          completed = true;
+          break;
+        case 3:
+        case 4:
+          completed = false;
+          break;
+        case 5:
+          completed = false;
+          accessible = false; // Demo shows locked state
+          break;
+        case 6:
+        default:
+          completed = false;
+          break;
+      }
+
+      return {
+        ...baseStep,
+        completed,
+        accessible,
+        action: handleDemoStepAction,
+        buttonText: getButtonText({ ...baseStep, completed, accessible, action: () => {}, buttonText: '' })
+      };
+    });
+
+    // Calculate demo stage completion
+    const demoStages = currentStages.map(stage => {
+      const stageSteps = demoSteps.filter(step => step.stage === stage.id);
+      const completedStageSteps = stageSteps.filter(step => step.completed);
+      const completionPercentage = stageSteps.length > 0 ? 
+        Math.round((completedStageSteps.length / stageSteps.length) * 100) : 0;
+      
+      return {
+        ...stage,
+        completionPercentage,
+        isCompleted: completionPercentage === 100,
+        isActive: completionPercentage > 0 && completionPercentage < 100
+      };
+    });
+
+    return { steps: demoSteps, stages: demoStages };
   };
 
   const checkStepCompletion = async () => {
-    if (!user) return;
+    if (!user) return { steps: [], stages: currentStages };
     
     try {
       setLoading(true);
       
+      // Fetch profile data
       const { data: profile } = await supabase
         .from('profiles')
-        .select('professional_type, years_of_experience, certifications, care_schedule')
+        .select('*')
         .eq('id', user.id)
         .maybeSingle();
 
+      // Fetch documents
       const { data: documents } = await supabase
         .from('professional_documents')
-        .select('id')
+        .select('*')
         .eq('user_id', user.id);
 
+      // Fetch care team assignments
       const { data: assignments } = await supabase
         .from('care_team_members')
-        .select('id')
+        .select('*')
         .eq('caregiver_id', user.id);
 
-      const baseSteps = [
-        { 
-          id: 1, 
-          title: "Create your account", 
-          description: "Set up your Tavara professional account", 
-          link: "/auth",
-          category: "account",
-          stage: "foundation",
-          isInteractive: false
-        },
-        { 
-          id: 2, 
-          title: "Complete your professional profile", 
-          description: "Add your experience, certifications, and specialties", 
-          link: "/registration/professional",
-          category: "profile",
-          stage: "foundation",
-          isInteractive: true
-        },
-        { 
-          id: 3, 
-          title: "Set your availability preferences", 
-          description: "Configure your work schedule and location preferences", 
-          link: "/registration/professional?scroll=availability&edit=true",
-          category: "availability",
-          stage: "foundation",
-          isInteractive: true
-        },
-        { 
-          id: 4, 
-          title: "Upload certifications & documents", 
-          description: "Verify your credentials and background", 
-          link: "/professional/profile?tab=documents",
-          category: "documents",
-          stage: "qualification",
-          isInteractive: true
-        },
-        { 
-          id: 5, 
-          title: "Match with Tavara Families", 
-          description: "Get matched with families and begin your caregiving journey", 
-          link: "/dashboard/professional#family-matches",
-          category: "assignments",
-          stage: "active",
-          isInteractive: false
-        },
-        { 
-          id: 6, 
-          title: "Complete training modules", 
-          description: "Enhance your skills with our professional development courses", 
-          link: "/professional/training",
-          category: "training",
-          stage: "training",
-          isInteractive: true
-        }
-      ];
+      setProfileData(profile);
+      setDocumentsData(documents || []);
 
-      const updatedSteps = baseSteps.map(step => {
+      const steps: ProfessionalStep[] = baseSteps.map(baseStep => {
         let completed = false;
-        let accessible = true;
-        let stepLink = step.link;
-        
-        // Check completion status
-        if (step.id === 1) {
-          completed = true; // Account creation
-        } else if (step.id === 2) {
-          completed = !!(profile && profile.professional_type && profile.years_of_experience);
-          // Update link for profile step - add edit=true if completed
-          stepLink = completed ? "/registration/professional?edit=true" : "/registration/professional";
-        } else if (step.id === 3) {
-          completed = !!(profile && profile.care_schedule && profile.care_schedule.length > 0);
-        } else if (step.id === 4) {
-          completed = !!(documents && documents.length > 0);
-          // Update document step link dynamically
-          stepLink = completed 
-            ? "/professional/profile?tab=documents#manage-documents"
-            : "/professional/profile?tab=documents#upload-documents";
-        } else if (step.id === 5) {
-          completed = !!(assignments && assignments.length > 0);
-        } else if (step.id === 6) {
-          completed = !!(profile && profile.professional_type && profile.certifications && profile.certifications.length > 0);
+        let stepLink = baseStep.link;
+
+        switch (baseStep.id) {
+          case 1: // Account creation
+            completed = !!user;
+            break;
+          case 2: // Professional profile
+            completed = !!(profile?.full_name);
+            break;
+          case 3: // Availability
+            completed = !!(profile?.care_schedule && profile.care_schedule.length > 0);
+            break;
+          case 4: // Documents upload
+            completed = (documents?.length || 0) > 0;
+            stepLink = getDocumentNavigationLink(completed);
+            break;
+          case 5: // Assignments (moved from Step 6)
+            completed = (assignments?.length || 0) > 0;
+            break;
+          case 6: // Training modules (moved from Step 5)
+            completed = !!(profile?.professional_type && profile?.certifications && profile.certifications.length > 0);
+            break;
         }
-        
-        // Check accessibility - Step 5 is only accessible if steps 1-4 are completed
-        if (step.id === 5) {
-          const step1Complete = true; // Account always complete for logged in users
-          const step2Complete = !!(profile && profile.professional_type && profile.years_of_experience);
-          const step3Complete = !!(profile && profile.care_schedule && profile.care_schedule.length > 0);
-          const step4Complete = !!(documents && documents.length > 0);
+
+        // Determine accessibility - Step 5 is only accessible if steps 1-4 are completed
+        let accessible = true;
+        if (baseStep.id === 5) {
+          const step1Complete = !!user;
+          const step2Complete = !!(profile?.full_name);
+          const step3Complete = !!(profile?.care_schedule && profile.care_schedule.length > 0);
+          const step4Complete = (documents?.length || 0) > 0;
           
           accessible = step1Complete && step2Complete && step3Complete && step4Complete;
         }
-        
+
         return {
-          ...step,
+          ...baseStep,
           link: stepLink,
           completed,
           accessible,
-          action: () => handleStepAction({ ...step, link: stepLink, completed, accessible }),
-          buttonText: getButtonText({ ...step, completed, accessible })
-        } as ProfessionalStep;
-      });
-      
-      setSteps(updatedSteps);
-
-      // Create stages based on steps and transform to ProfessionalJourneyStage format
-      const foundationSteps = updatedSteps.filter(s => s.stage === 'foundation');
-      const qualificationSteps = updatedSteps.filter(s => s.stage === 'qualification');
-      const activeSteps = updatedSteps.filter(s => s.stage === 'active');
-      const trainingSteps = updatedSteps.filter(s => s.stage === 'training');
-
-      const internalStages = [
-        {
-          id: 'foundation',
-          name: 'Foundation',
-          description: 'Build your professional foundation',
-          color: '#3B82F6',
-          steps: foundationSteps,
-          completed: foundationSteps.every(s => s.completed),
-          accessible: true
-        },
-        {
-          id: 'qualification',
-          name: 'Qualification',
-          description: 'Verify your credentials',
-          color: '#10B981',
-          steps: qualificationSteps,
-          completed: qualificationSteps.every(s => s.completed),
-          accessible: foundationSteps.every(s => s.completed)
-        },
-        {
-          id: 'active',
-          name: 'Active',
-          description: 'Start your caregiving journey',
-          color: '#F59E0B',
-          steps: activeSteps,
-          completed: activeSteps.every(s => s.completed),
-          accessible: [...foundationSteps, ...qualificationSteps].every(s => s.completed)
-        },
-        {
-          id: 'training',
-          name: 'Training',
-          description: 'Enhance your skills',
-          color: '#8B5CF6',
-          steps: trainingSteps,
-          completed: trainingSteps.every(s => s.completed),
-          accessible: true
-        }
-      ];
-
-      // Transform to ProfessionalJourneyStage format
-      const transformedStages: ProfessionalJourneyStage[] = internalStages.map(stage => {
-        const completedCount = stage.steps.filter(step => step.completed).length;
-        const totalCount = stage.steps.length;
-        const completionPercentage = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
-        
-        return {
-          id: stage.id,
-          name: stage.name,
-          description: stage.description,
-          completionPercentage,
-          isCompleted: stage.completed,
-          isActive: getCurrentStage() === stage.id
+          action: () => handleStepAction({ ...baseStep, link: stepLink, completed, accessible, action: () => {}, buttonText: '' }),
+          buttonText: getButtonText({ ...baseStep, completed, accessible, action: () => {}, buttonText: '' })
         };
       });
 
-      setStages(transformedStages);
+      // Calculate stage completion
+      const updatedStages = currentStages.map(stage => {
+        const stageSteps = steps.filter(step => step.stage === stage.id);
+        const completedStageSteps = stageSteps.filter(step => step.completed);
+        const completionPercentage = stageSteps.length > 0 ? 
+          Math.round((completedStageSteps.length / stageSteps.length) * 100) : 0;
+        
+        return {
+          ...stage,
+          completionPercentage,
+          isCompleted: completionPercentage === 100,
+          isActive: completionPercentage > 0 && completionPercentage < 100
+        };
+      });
+
+      return { steps, stages: updatedStages };
     } catch (error) {
       console.error("Error checking professional progress:", error);
+      return { steps: [], stages: currentStages };
     } finally {
       setLoading(false);
     }
   };
 
-  const refreshProgress = () => {
-    checkStepCompletion();
+  const [steps, setSteps] = useState<ProfessionalStep[]>([]);
+
+  const refreshProgress = async () => {
+    if (!user) {
+      const { steps: demoSteps, stages: demoStages } = generateDemoData();
+      setSteps(demoSteps);
+      setCurrentStages(demoStages);
+      setLoading(false);
+      return;
+    }
+
+    const { steps: newSteps, stages: newStages } = await checkStepCompletion();
+    setSteps(newSteps);
+    setCurrentStages(newStages);
   };
 
   useEffect(() => {
-    if (user) {
-      checkStepCompletion();
+    if (!user) {
+      const { steps: demoSteps, stages: demoStages } = generateDemoData();
+      setSteps(demoSteps);
+      setCurrentStages(demoStages);
+      setLoading(false);
+    } else {
+      refreshProgress();
     }
   }, [user]);
 
@@ -326,19 +404,15 @@ export const useEnhancedProfessionalProgress = (): ProfessionalProgressData => {
   const totalSteps = steps.length;
   const overallProgress = Math.round((completedSteps / totalSteps) * 100);
   const nextStep = steps.find(step => !step.completed && step.accessible);
-
-  // Determine current stage based on completed steps
-  const getCurrentStage = () => {
-    if (overallProgress === 100) return 'training';
-    if (completedSteps >= 5) return 'active';
-    if (completedSteps >= 4) return 'qualification';
-    return 'foundation';
-  };
+  
+  // Determine current stage
+  const currentStage = currentStages.find(stage => stage.isActive)?.id || 
+                     (overallProgress === 100 ? 'active' : 'foundation');
 
   return {
     steps,
-    stages,
-    currentStage: getCurrentStage(),
+    stages: currentStages,
+    currentStage,
     overallProgress,
     nextStep,
     completedSteps,
