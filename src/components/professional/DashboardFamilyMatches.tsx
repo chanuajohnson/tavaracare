@@ -280,6 +280,9 @@ export const DashboardFamilyMatches = () => {
                         <div className="text-xs text-blue-600 mt-1">
                           * Name protected until connected
                         </div>
+                        <div className="text-xs text-gray-500 font-mono mt-1">
+                          ID: {family.id?.substring(0, 8) || 'N/A'}
+                        </div>
                         <div className="flex items-center justify-center sm:justify-start gap-1 text-sm text-gray-500">
                           <MapPin className="h-3.5 w-3.5" />
                           <span>{family.location}</span>
