@@ -1,8 +1,9 @@
+
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { supabase } from '@/lib/supabase';
 import { useNavigate } from 'react-router-dom';
-import { getDocumentNavigationLink } from '../../../hooks/professional/stepDefinitions';
+import { getDocumentNavigationLink, getProfessionalRegistrationLink } from '../../../hooks/professional/stepDefinitions';
 
 interface ProfessionalStep {
   id: number;
@@ -44,7 +45,7 @@ export const useProfessionalProgress = (): ProfessionalProgressData => {
     },
     { 
       id: 2, 
-      title: "Complete your professional profile", 
+      title: "Edit your professional registration", 
       description: "Add your experience, certifications, and specialties", 
       completed: false,
       accessible: true,
@@ -125,7 +126,7 @@ export const useProfessionalProgress = (): ProfessionalProgressData => {
     
     if (step.completed) {
       if (step.id === 1) return "✓ Account Created";
-      if (step.id === 2) return "View Profile";
+      if (step.id === 2) return "✓ Edit Profile";
       if (step.id === 3) return "Edit Availability";
       if (step.id === 4) return "View Documents";
       if (step.id === 5) return "View Family Matches";
@@ -151,7 +152,7 @@ export const useProfessionalProgress = (): ProfessionalProgressData => {
       
       const { data: profile } = await supabase
         .from('profiles')
-        .select('professional_type, years_of_experience, certifications, care_schedule')
+        .select('professional_type, years_of_experience, certifications, care_schedule, full_name')
         .eq('id', user.id)
         .maybeSingle();
 
@@ -174,7 +175,9 @@ export const useProfessionalProgress = (): ProfessionalProgressData => {
         if (step.id === 1) {
           completed = true; // Account creation
         } else if (step.id === 2) {
-          completed = !!(profile && profile.professional_type && profile.years_of_experience);
+          completed = !!(profile && profile.full_name);
+          // Use dynamic link based on completion status
+          stepLink = getProfessionalRegistrationLink(completed);
         } else if (step.id === 3) {
           completed = !!(profile && profile.care_schedule && profile.care_schedule.length > 0);
         } else if (step.id === 4) {
@@ -188,7 +191,7 @@ export const useProfessionalProgress = (): ProfessionalProgressData => {
         // Check accessibility - Step 5 is only accessible if steps 1-4 are completed
         if (step.id === 5) {
           const step1Complete = true; // Account always complete for logged in users
-          const step2Complete = !!(profile && profile.professional_type && profile.years_of_experience);
+          const step2Complete = !!(profile && profile.full_name);
           const step3Complete = !!(profile && profile.care_schedule && profile.care_schedule.length > 0);
           const step4Complete = !!(documents && documents.length > 0);
           

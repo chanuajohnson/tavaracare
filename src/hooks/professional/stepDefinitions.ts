@@ -13,7 +13,7 @@ export const baseSteps = [
   },
   { 
     id: 2, 
-    title: "Complete your professional profile", 
+    title: "Edit your professional registration", 
     description: "Add your experience, certifications, and specialties", 
     link: "/registration/professional",
     category: "profile",
@@ -67,6 +67,14 @@ export const getDocumentNavigationLink = (hasDocuments: boolean): string => {
   }
 };
 
+export const getProfessionalRegistrationLink = (isCompleted: boolean): string => {
+  if (isCompleted) {
+    return "/registration/professional?scroll=availability&edit=true";
+  } else {
+    return "/registration/professional";
+  }
+};
+
 export const getButtonText = (step: typeof baseSteps[0], completed: boolean, accessible: boolean, hasDocuments?: boolean): string => {
   if (!accessible) {
     return "🔒 Locked";
@@ -75,7 +83,7 @@ export const getButtonText = (step: typeof baseSteps[0], completed: boolean, acc
   if (completed) {
     switch (step.id) {
       case 1: return "✓ Account Created";
-      case 2: return "✓ Profile Complete";
+      case 2: return "✓ Edit Profile";
       case 3: return "Edit Availability";
       case 4: return hasDocuments ? "Manage Documents" : "View Documents";
       case 5: return "View Family Matches";

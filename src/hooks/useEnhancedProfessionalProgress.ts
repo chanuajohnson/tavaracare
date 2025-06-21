@@ -1,8 +1,9 @@
+
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { supabase } from '@/lib/supabase';
 import { useNavigate } from 'react-router-dom';
-import { getDocumentNavigationLink } from './professional/stepDefinitions';
+import { getDocumentNavigationLink, getProfessionalRegistrationLink } from './professional/stepDefinitions';
 
 export interface ProfessionalJourneyStage {
   id: string;
@@ -159,7 +160,7 @@ export const useEnhancedProfessionalProgress = (): ProfessionalProgressData => {
     }
   };
 
-  // Base steps definition - Step 4 updated with dynamic navigation
+  // Base steps definition with dynamic links
   const baseSteps: Omit<ProfessionalStep, 'completed' | 'action' | 'buttonText' | 'accessible'>[] = [
     { 
       id: 1, 
@@ -174,7 +175,7 @@ export const useEnhancedProfessionalProgress = (): ProfessionalProgressData => {
       id: 2, 
       title: "Edit your professional registration", 
       description: "Add your experience, certifications, and specialties", 
-      link: "/registration/professional?scroll=availability&edit=true",
+      link: "/registration/professional",
       category: "profile",
       stage: "foundation",
       isInteractive: true
@@ -312,6 +313,8 @@ export const useEnhancedProfessionalProgress = (): ProfessionalProgressData => {
             break;
           case 2: // Professional profile
             completed = !!(profile?.full_name);
+            // Use dynamic link based on completion status
+            stepLink = getProfessionalRegistrationLink(completed);
             break;
           case 3: // Availability
             completed = !!(profile?.care_schedule && profile.care_schedule.length > 0);
@@ -320,10 +323,10 @@ export const useEnhancedProfessionalProgress = (): ProfessionalProgressData => {
             completed = (documents?.length || 0) > 0;
             stepLink = getDocumentNavigationLink(completed);
             break;
-          case 5: // Assignments (moved from Step 6)
+          case 5: // Assignments
             completed = (assignments?.length || 0) > 0;
             break;
-          case 6: // Training modules (moved from Step 5)
+          case 6: // Training modules
             completed = !!(profile?.professional_type && profile?.certifications && profile.certifications.length > 0);
             break;
         }
