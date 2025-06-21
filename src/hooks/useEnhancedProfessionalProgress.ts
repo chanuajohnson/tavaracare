@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { supabase } from '@/lib/supabase';
@@ -40,7 +39,7 @@ export interface ProfessionalJourneyStage {
 
 interface ProfessionalProgressData {
   steps: ProfessionalStep[];
-  stages: ProfessionalStage[];
+  stages: ProfessionalJourneyStage[];
   currentStage: string;
   overallProgress: number;
   nextStep?: ProfessionalStep;
@@ -55,7 +54,7 @@ export const useEnhancedProfessionalProgress = (): ProfessionalProgressData => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [steps, setSteps] = useState<ProfessionalStep[]>([]);
-  const [stages, setStages] = useState<ProfessionalStage[]>([]);
+  const [stages, setStages] = useState<ProfessionalJourneyStage[]>([]);
 
   const getButtonText = (step: ProfessionalStep) => {
     if (!step.accessible) {
@@ -244,13 +243,13 @@ export const useEnhancedProfessionalProgress = (): ProfessionalProgressData => {
       
       setSteps(updatedSteps);
 
-      // Create stages based on steps
+      // Create stages based on steps and transform to ProfessionalJourneyStage format
       const foundationSteps = updatedSteps.filter(s => s.stage === 'foundation');
       const qualificationSteps = updatedSteps.filter(s => s.stage === 'qualification');
       const activeSteps = updatedSteps.filter(s => s.stage === 'active');
       const trainingSteps = updatedSteps.filter(s => s.stage === 'training');
 
-      const stageData = [
+      const internalStages = [
         {
           id: 'foundation',
           name: 'Foundation',
@@ -289,7 +288,23 @@ export const useEnhancedProfessionalProgress = (): ProfessionalProgressData => {
         }
       ];
 
-      setStages(stageData);
+      // Transform to ProfessionalJourneyStage format
+      const transformedStages: ProfessionalJourneyStage[] = internalStages.map(stage => {
+        const completedCount = stage.steps.filter(step => step.completed).length;
+        const totalCount = stage.steps.length;
+        const completionPercentage = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
+        
+        return {
+          id: stage.id,
+          name: stage.name,
+          description: stage.description,
+          completionPercentage,
+          isCompleted: stage.completed,
+          isActive: getCurrentStage() === stage.id
+        };
+      });
+
+      setStages(transformedStages);
     } catch (error) {
       console.error("Error checking professional progress:", error);
     } finally {
