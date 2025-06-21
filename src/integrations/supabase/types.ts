@@ -2788,6 +2788,7 @@ export type Database = {
           tech_interests: string[] | null
           updated_at: string | null
           verification_badge_earned_at: string | null
+          video_available: boolean | null
           visit_notes: string | null
           visit_payment_reference: string | null
           visit_payment_status: string | null
@@ -2876,6 +2877,7 @@ export type Database = {
           tech_interests?: string[] | null
           updated_at?: string | null
           verification_badge_earned_at?: string | null
+          video_available?: boolean | null
           visit_notes?: string | null
           visit_payment_reference?: string | null
           visit_payment_status?: string | null
@@ -2964,6 +2966,7 @@ export type Database = {
           tech_interests?: string[] | null
           updated_at?: string | null
           verification_badge_earned_at?: string | null
+          video_available?: boolean | null
           visit_notes?: string | null
           visit_payment_reference?: string | null
           visit_payment_status?: string | null
@@ -4194,6 +4197,10 @@ export type Database = {
       }
       update_site_visit_status: {
         Args: { plan_id: string; new_status: string }
+        Returns: undefined
+      }
+      update_video_availability: {
+        Args: { user_id_param: string; available: boolean }
         Returns: undefined
       }
       update_visit_payment_status: {

@@ -15,6 +15,7 @@ import { toast } from "sonner";
 import { useFamilyMatches } from "@/hooks/useFamilyMatches";
 import { ChatRequestsSection } from "./ChatRequestsSection";
 import { ProfessionalFamilyChatModal } from "./ProfessionalFamilyChatModal";
+import { VideoAvailabilityToggle } from "./VideoAvailabilityToggle";
 
 export const DashboardFamilyMatches = () => {
   const { user } = useAuth();
@@ -173,20 +174,7 @@ export const DashboardFamilyMatches = () => {
               <Filter className="h-4 w-4" />
               {showFilters ? "Hide Filters" : "Show Filters"}
             </Button>
-            <Button variant="default" className="flex items-center gap-1" onClick={() => {
-              trackEngagement('view_all_family_matches_click', {
-                source: 'dashboard_widget'
-              });
-              navigate("/family/matching", {
-                state: {
-                  referringPagePath: "/dashboard/professional",
-                  referringPageLabel: "Professional Dashboard"
-                }
-              });
-            }}>
-              View All
-              <ArrowRight className="h-4 w-4" />
-            </Button>
+            <VideoAvailabilityToggle />
           </div>
         </CardHeader>
         
