@@ -28,6 +28,16 @@ interface ProfessionalStage {
   steps: ProfessionalStep[];
 }
 
+// Export the type for use in other components
+export interface ProfessionalJourneyStage {
+  id: string;
+  name: string;
+  description: string;
+  completionPercentage: number;
+  isCompleted: boolean;
+  isActive: boolean;
+}
+
 interface ProfessionalProgressData {
   steps: ProfessionalStep[];
   stages: ProfessionalStage[];
@@ -188,7 +198,7 @@ export const useEnhancedProfessionalProgress = (): ProfessionalProgressData => {
 
       const updatedSteps = baseSteps.map(step => {
         let completed = false;
-        let accessible = step.accessible !== false;
+        let accessible = true;
         let stepLink = step.link;
         
         // Check completion status
