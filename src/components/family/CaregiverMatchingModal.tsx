@@ -136,7 +136,6 @@ export const CaregiverMatchingModal = ({
                 >
                   {/* Premium Video Call Feature Notice - Enhanced Accordion */}
                   <Card className="bg-gradient-to-r from-purple-50 to-indigo-50 border-purple-200 relative overflow-hidden">
-                    {/* Magical background sparkles */}
                     <div className="absolute inset-0 pointer-events-none">
                       <Sparkles className="absolute top-4 right-4 h-4 w-4 text-purple-400 animate-pulse" />
                       <Sparkles className="absolute bottom-4 left-4 h-3 w-3 text-indigo-400 animate-pulse delay-300" />

@@ -1,4 +1,3 @@
-
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -72,6 +71,9 @@ export const CaregiverMatchCard = ({
             </div>
             <div className="text-xs text-blue-600 mt-1">
               * Name protected until subscription
+            </div>
+            <div className="text-xs text-gray-500 font-mono mt-1">
+              ID: {caregiver.id?.substring(0, 8) || 'N/A'}
             </div>
             <div className="mt-1 bg-primary-50 rounded px-2 py-1 text-center">
               <span className="text-sm font-medium text-primary-700">{caregiver.match_score}% Match</span>
