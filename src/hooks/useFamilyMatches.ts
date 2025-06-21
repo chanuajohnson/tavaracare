@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { supabase } from "@/lib/supabase";
@@ -17,11 +16,11 @@ interface Family {
   is_premium: boolean;
   distance: number;
   budget_preferences?: string | null;
-  shift_compatibility_score?: number;
-  match_explanation?: string;
-  schedule_overlap_details?: string;
-  interaction_status?: InteractionStatus;
-  readiness_status?: UserReadinessStatus;
+  shift_compatibility_score: number; // Made required
+  match_explanation: string; // Made required
+  schedule_overlap_details: string; // Made required
+  interaction_status: InteractionStatus; // Made required
+  readiness_status: UserReadinessStatus; // Made required
 }
 
 interface ProfessionalScheduleData {
@@ -40,7 +39,12 @@ const MOCK_FAMILIES: Family[] = [{
   match_score: 95,
   is_premium: false,
   distance: 3.2,
-  budget_preferences: "$15-25/hr"
+  budget_preferences: "$15-25/hr",
+  shift_compatibility_score: 90,
+  match_explanation: "Excellent schedule match",
+  schedule_overlap_details: "Direct overlap: weekdays and evenings",
+  interaction_status: { hasInteracted: false },
+  readiness_status: { isReady: true, completionPercentage: 100, currentStep: 7, totalSteps: 7, hasBasicProfile: true }
 }, {
   id: "2",
   full_name: "Wilson Family",
@@ -52,7 +56,12 @@ const MOCK_FAMILIES: Family[] = [{
   match_score: 89,
   is_premium: true,
   distance: 15.7,
-  budget_preferences: "$25-35/hr"
+  budget_preferences: "$25-35/hr",
+  shift_compatibility_score: 95,
+  match_explanation: "Perfect for 24/7 care needs",
+  schedule_overlap_details: "Full-time availability matches",
+  interaction_status: { hasInteracted: false },
+  readiness_status: { isReady: true, completionPercentage: 100, currentStep: 7, totalSteps: 7, hasBasicProfile: true }
 }, {
   id: "3",
   full_name: "Thomas Family",
@@ -64,7 +73,12 @@ const MOCK_FAMILIES: Family[] = [{
   match_score: 82,
   is_premium: false,
   distance: 8.5,
-  budget_preferences: "$20-30/hr"
+  budget_preferences: "$20-30/hr",
+  shift_compatibility_score: 75,
+  match_explanation: "Good weekend availability match",
+  schedule_overlap_details: "Weekend overlap with flexibility",
+  interaction_status: { hasInteracted: false },
+  readiness_status: { isReady: true, completionPercentage: 100, currentStep: 7, totalSteps: 7, hasBasicProfile: true }
 }];
 
 // Shift compatibility scoring algorithm (mirrored from useCaregiverMatches)
@@ -216,7 +230,7 @@ export const useFamilyMatches = (showOnlyBestMatch: boolean = false) => {
       }
 
       // Fetch professional's care schedule and preferences
-      let professionalScheduleData: ProfessionalScheduleData = {};
+      let professionalScheduleData: { care_schedule?: string; care_types?: string[] | null; } = {};
       try {
         const { data: professionalProfile, error: profileError } = await supabase
           .from('profiles')

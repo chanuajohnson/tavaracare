@@ -394,7 +394,7 @@ export const ChatRequestsSection = () => {
                         </div>
                         <div className="flex items-center gap-2">
                           <Badge 
-                            variant={request.status === 'accepted' ? 'success' : 'secondary'}
+                            variant={request.status === 'accepted' ? 'default' : 'secondary'}
                             className={
                               request.status === 'accepted' 
                                 ? 'bg-green-100 text-green-800' 
