@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { supabase } from "@/lib/supabase";
 import { useTracking } from "@/hooks/useTracking";
-import { toast } from "sonner";
+import { InteractionHistoryService, InteractionStatus, UserReadinessStatus } from "@/services/interactionHistoryService";
 
 interface Caregiver {
   id: string;
@@ -17,6 +17,8 @@ interface Caregiver {
   shift_compatibility_score?: number;
   match_explanation?: string;
   availability_schedule?: string[] | null;
+  interaction_status?: InteractionStatus;
+  readiness_status?: UserReadinessStatus;
 }
 
 interface FamilyScheduleData {
@@ -92,12 +94,29 @@ export const useCaregiverMatches = (showOnlyBestMatch: boolean = true) => {
       return;
     }
     
-    console.log('Loading real caregivers for user:', user.id);
+    console.log('[useCaregiverMatches] Starting enhanced caregiver loading for family user:', user.id);
     loadingRef.current = true;
     
     try {
       setIsLoading(true);
       setError(null);
+
+      // Check family's own readiness first
+      const familyReadiness = await InteractionHistoryService.checkUserReadiness(user.id, 'family');
+      console.log('[useCaregiverMatches] Family readiness:', familyReadiness);
+
+      if (!familyReadiness.isReady) {
+        console.log('[useCaregiverMatches] Family not ready for matching:', familyReadiness.reason);
+        setCaregivers([]);
+        setError(`Profile incomplete: ${familyReadiness.reason}`);
+        await trackEngagement('caregiver_matches_view', { 
+          data_source: 'none',
+          family_not_ready: true,
+          readiness_reason: familyReadiness.reason,
+          completion_percentage: familyReadiness.completionPercentage
+        });
+        return;
+      }
 
       // If we already have processed caregivers, use them
       if (processedCaregiversRef.current) {
@@ -123,12 +142,12 @@ export const useCaregiverMatches = (showOnlyBestMatch: boolean = true) => {
           familyScheduleData = familyProfile;
         }
       } catch (profileErr) {
-        console.warn("Could not fetch family profile for schedule matching:", profileErr);
+        console.warn("[useCaregiverMatches] Could not fetch family profile for schedule matching:", profileErr);
       }
 
       // Parse family's care schedule
       const familyCareSchedule = parseCareSchedule(familyScheduleData.care_schedule);
-      console.log('Family care schedule:', familyCareSchedule);
+      console.log('[useCaregiverMatches] Family care schedule:', familyCareSchedule);
 
       // Fetch ONLY real professional data
       const { data: professionalUsers, error: professionalError } = await supabase
@@ -136,16 +155,16 @@ export const useCaregiverMatches = (showOnlyBestMatch: boolean = true) => {
         .select('*')
         .eq('role', 'professional')
         .not('full_name', 'is', null) // Ensure they have a name
-        .limit(showOnlyBestMatch ? 3 : 10);
+        .limit(showOnlyBestMatch ? 10 : 20); // Get more to filter
       
       if (professionalError) {
-        console.error("Error fetching professional users:", professionalError);
+        console.error("[useCaregiverMatches] Error fetching professional users:", professionalError);
         setError("Unable to load caregiver matches. Please try again.");
         return;
       }
 
       if (!professionalUsers || professionalUsers.length === 0) {
-        console.log("No professional users found in database");
+        console.log("[useCaregiverMatches] No professional users found in database");
         setError("No caregivers are currently available. Please check back later.");
         setCaregivers([]);
         await trackEngagement('caregiver_matches_view', { 
@@ -157,83 +176,119 @@ export const useCaregiverMatches = (showOnlyBestMatch: boolean = true) => {
         return;
       }
 
-      // Process real caregiver data ONLY
-      const realCaregivers: Caregiver[] = professionalUsers.map((professional) => {
-        // Use consistent hash-based scoring for repeatability
-        const hashCode = (str: string) => {
-          let hash = 0;
-          for (let i = 0; i < str.length; i++) {
-            const char = str.charCodeAt(i);
-            hash = ((hash << 5) - hash) + char;
-            hash = hash & hash;
-          }
-          return Math.abs(hash);
-        };
-        
-        const hash = hashCode(professional.id + user.id);
-        const baseMatchScore = 75 + (hash % 25); // Score between 75-99
-        const isPremium = (hash % 10) < 3; // 30% chance of premium
-        
-        // Parse care_types
-        let careTypes: string[] = ['General Care'];
-        if (professional.care_types) {
-          if (typeof professional.care_types === 'string') {
-            try {
-              careTypes = JSON.parse(professional.care_types);
-            } catch {
-              careTypes = [professional.care_types];
-            }
-          } else if (Array.isArray(professional.care_types)) {
-            careTypes = professional.care_types;
-          }
-        }
+      console.log(`[useCaregiverMatches] Found ${professionalUsers.length} potential caregivers`);
 
-        // Parse professional's availability schedule
-        const professionalSchedule = parseCareSchedule(professional.care_schedule);
-        
-        // Calculate shift compatibility
-        const shiftCompatibility = calculateShiftCompatibility(familyCareSchedule, professionalSchedule);
-        const matchExplanation = generateMatchExplanation(shiftCompatibility);
-        
-        // Blend base match score with shift compatibility
-        const finalMatchScore = Math.round((baseMatchScore * 0.6) + (shiftCompatibility * 0.4));
-        
-        return {
-          id: professional.id, // Real UUID from database
-          full_name: professional.full_name || 'Professional Caregiver',
-          avatar_url: professional.avatar_url,
-          location: professional.location || 'Trinidad and Tobago',
-          care_types: careTypes,
-          years_of_experience: professional.years_of_experience || '2+ years',
-          match_score: finalMatchScore,
-          is_premium: isPremium,
-          shift_compatibility_score: shiftCompatibility,
-          match_explanation: matchExplanation,
-          availability_schedule: professionalSchedule
-        };
+      // Process each caregiver with interaction and readiness checks
+      const caregiverProcessingPromises = professionalUsers.map(async (professional) => {
+        try {
+          // Check interaction status
+          const interactionStatus = await InteractionHistoryService.checkFamilyCaregiverInteraction(
+            user.id, 
+            professional.id
+          );
+
+          // Check caregiver readiness
+          const readinessStatus = await InteractionHistoryService.checkUserReadiness(
+            professional.id, 
+            'professional'
+          );
+
+          // Skip caregivers we've already interacted with or who aren't ready
+          if (interactionStatus.hasInteracted) {
+            console.log(`[useCaregiverMatches] Skipping caregiver ${professional.id} - already interacted:`, interactionStatus);
+            return null;
+          }
+
+          if (!readinessStatus.isReady) {
+            console.log(`[useCaregiverMatches] Skipping caregiver ${professional.id} - not ready:`, readinessStatus.reason);
+            return null;
+          }
+
+          // Generate match data
+          const hashCode = (str: string) => {
+            let hash = 0;
+            for (let i = 0; i < str.length; i++) {
+              const char = str.charCodeAt(i);
+              hash = ((hash << 5) - hash) + char;
+              hash = hash & hash;
+            }
+            return Math.abs(hash);
+          };
+          
+          const hash = hashCode(professional.id + user.id);
+          const baseMatchScore = 75 + (hash % 25); // Score between 75-99
+          const isPremium = (hash % 10) < 3; // 30% chance of premium
+          
+          // Parse care_types
+          let careTypes: string[] = ['General Care'];
+          if (professional.care_types) {
+            if (typeof professional.care_types === 'string') {
+              try {
+                careTypes = JSON.parse(professional.care_types);
+              } catch {
+                careTypes = [professional.care_types];
+              }
+            } else if (Array.isArray(professional.care_types)) {
+              careTypes = professional.care_types;
+            }
+          }
+
+          // Parse professional's availability schedule
+          const professionalSchedule = parseCareSchedule(professional.care_schedule);
+          
+          // Calculate shift compatibility
+          const shiftCompatibility = calculateShiftCompatibility(familyCareSchedule, professionalSchedule);
+          const matchExplanation = generateMatchExplanation(shiftCompatibility);
+          
+          // Blend base match score with shift compatibility
+          const finalMatchScore = Math.round((baseMatchScore * 0.6) + (shiftCompatibility * 0.4));
+          
+          return {
+            id: professional.id, // Real UUID from database
+            full_name: professional.full_name || 'Professional Caregiver',
+            avatar_url: professional.avatar_url,
+            location: professional.location || 'Trinidad and Tobago',
+            care_types: careTypes,
+            years_of_experience: professional.years_of_experience || '2+ years',
+            match_score: finalMatchScore,
+            is_premium: isPremium,
+            shift_compatibility_score: shiftCompatibility,
+            match_explanation: matchExplanation,
+            availability_schedule: professionalSchedule,
+            interaction_status: interactionStatus,
+            readiness_status: readinessStatus
+          } as Caregiver;
+        } catch (error) {
+          console.error(`[useCaregiverMatches] Error processing caregiver ${professional.id}:`, error);
+          return null;
+        }
       });
+
+      const processedResults = await Promise.all(caregiverProcessingPromises);
+      const readyCaregivers = processedResults.filter((caregiver): caregiver is Caregiver => caregiver !== null);
       
-      realCaregivers.sort((a, b) => b.match_score - a.match_score);
-      processedCaregiversRef.current = realCaregivers;
+      readyCaregivers.sort((a, b) => b.match_score - a.match_score);
+      processedCaregiversRef.current = readyCaregivers;
       
-      console.log("Loaded real professional users:", realCaregivers.length);
+      console.log(`[useCaregiverMatches] Processed ${readyCaregivers.length} ready caregivers from ${professionalUsers.length} total`);
 
       const finalCaregivers = showOnlyBestMatch 
-        ? realCaregivers.slice(0, 1) 
-        : realCaregivers;
+        ? readyCaregivers.slice(0, 1) 
+        : readyCaregivers;
 
       await trackEngagement('caregiver_matches_view', {
         data_source: 'real_data_only',
-        real_caregiver_count: finalCaregivers.length,
+        ready_caregiver_count: finalCaregivers.length,
+        excluded_interaction_count: professionalUsers.length - readyCaregivers.length,
         view_context: showOnlyBestMatch ? 'dashboard_widget' : 'matching_page',
-        caregiver_names: finalCaregivers.map(c => c.full_name),
+        family_readiness: familyReadiness,
         shift_compatibility_enabled: true,
         family_schedule_items: familyCareSchedule.length
       });
       
       setCaregivers(finalCaregivers);
     } catch (error) {
-      console.error("Error loading caregivers:", error);
+      console.error("[useCaregiverMatches] Error loading caregivers:", error);
       setError(error instanceof Error ? error.message : "Unknown error loading caregivers");
       setCaregivers([]);
     } finally {
@@ -244,7 +299,7 @@ export const useCaregiverMatches = (showOnlyBestMatch: boolean = true) => {
   
   useEffect(() => {
     if (user) {
-      console.log('useCaregiverMatches effect triggered for user:', user.id);
+      console.log('[useCaregiverMatches] Enhanced effect triggered for user:', user.id);
       const timer = setTimeout(() => {
         loadCaregivers();
       }, 100);

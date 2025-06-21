@@ -1,7 +1,8 @@
+
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { MapPin, Star, MessageCircle, Loader2 } from "lucide-react";
+import { MapPin, Star, MessageCircle, Loader2, CheckCircle, Clock, XCircle } from "lucide-react";
 import { SubscriptionFeatureLink } from "@/components/subscription/SubscriptionFeatureLink";
 import { useChatButtonState } from "@/hooks/useChatButtonState";
 
@@ -14,6 +15,20 @@ interface Caregiver {
   years_of_experience: string | null;
   match_score: number;
   is_premium: boolean;
+  interaction_status?: {
+    hasInteracted: boolean;
+    chatRequestStatus?: 'pending' | 'accepted' | 'declined';
+    lastInteraction?: string;
+    interactionType?: 'chat_request' | 'chat_session' | 'video_call';
+  };
+  readiness_status?: {
+    isReady: boolean;
+    completionPercentage: number;
+    currentStep: number;
+    totalSteps: number;
+    hasBasicProfile: boolean;
+    reason?: string;
+  };
 }
 
 interface CaregiverMatchCardProps {
@@ -42,6 +57,61 @@ export const CaregiverMatchCard = ({
     if (onStartChat && !buttonState.isDisabled) {
       onStartChat();
     }
+  };
+
+  // Get interaction status display
+  const getInteractionStatusBadge = () => {
+    if (!caregiver.interaction_status?.hasInteracted) return null;
+
+    const { chatRequestStatus, interactionType } = caregiver.interaction_status;
+    
+    if (chatRequestStatus === 'pending') {
+      return (
+        <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-300">
+          <Clock className="h-3 w-3 mr-1" />
+          Request Pending
+        </Badge>
+      );
+    }
+    
+    if (chatRequestStatus === 'accepted') {
+      return (
+        <Badge variant="outline" className="bg-green-50 text-green-700 border-green-300">
+          <CheckCircle className="h-3 w-3 mr-1" />
+          Chat Active
+        </Badge>
+      );
+    }
+    
+    if (chatRequestStatus === 'declined') {
+      return (
+        <Badge variant="outline" className="bg-gray-50 text-gray-600 border-gray-300">
+          <XCircle className="h-3 w-3 mr-1" />
+          Previously Contacted
+        </Badge>
+      );
+    }
+
+    return (
+      <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-300">
+        Previously Contacted
+      </Badge>
+    );
+  };
+
+  // Get readiness status display
+  const getReadinessIndicator = () => {
+    if (!caregiver.readiness_status) return null;
+
+    const { completionPercentage, currentStep, totalSteps, isReady } = caregiver.readiness_status;
+    
+    return (
+      <div className="text-xs text-center mt-1">
+        <div className={`px-2 py-1 rounded ${isReady ? 'bg-green-50 text-green-700' : 'bg-yellow-50 text-yellow-700'}`}>
+          Step {currentStep} of {totalSteps} • {completionPercentage}% Complete
+        </div>
+      </div>
+    );
   };
 
   return (
@@ -78,6 +148,16 @@ export const CaregiverMatchCard = ({
             <div className="mt-1 bg-primary-50 rounded px-2 py-1 text-center">
               <span className="text-sm font-medium text-primary-700">{caregiver.match_score}% Match</span>
             </div>
+            
+            {/* Interaction Status Badge */}
+            {getInteractionStatusBadge() && (
+              <div className="mt-1">
+                {getInteractionStatusBadge()}
+              </div>
+            )}
+            
+            {/* Readiness Indicator */}
+            {getReadinessIndicator()}
           </div>
         </div>
         
@@ -87,7 +167,7 @@ export const CaregiverMatchCard = ({
           </div>
           
           <div className="text-sm">
-            <span className="font-medium block mb-1">Specialties:</span>
+            <span className="font-medium block mb-1">Specialties: </span>
             <div className="flex flex-wrap gap-1">
               {caregiver.care_types?.map((type, i) => (
                 <Badge key={i} variant="outline" className="bg-gray-50">
@@ -115,7 +195,7 @@ export const CaregiverMatchCard = ({
                   variant={buttonState.variant}
                   className="w-full"
                   onClick={handleChatClick}
-                  disabled={buttonState.isDisabled}
+                  disabled={buttonState.isDisabled || caregiver.interaction_status?.hasInteracted}
                 >
                   {buttonState.showSpinner && (
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -123,7 +203,10 @@ export const CaregiverMatchCard = ({
                   {!buttonState.showSpinner && (
                     <MessageCircle className="h-4 w-4 mr-2" />
                   )}
-                  {buttonState.buttonText}
+                  {caregiver.interaction_status?.hasInteracted 
+                    ? 'Already Contacted' 
+                    : buttonState.buttonText
+                  }
                 </Button>
               ) : (
                 <SubscriptionFeatureLink
