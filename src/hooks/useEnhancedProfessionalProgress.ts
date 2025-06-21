@@ -139,7 +139,7 @@ export const useEnhancedProfessionalProgress = (): ProfessionalProgressData => {
     if (step.completed) {
       switch (step.id) {
         case 1: return "✓ Account Created";
-        case 2: return "✓ Profile Complete";
+        case 2: return "✓ Edit Profile";
         case 3: return "Edit Availability";
         case 4: return "View Documents";
         case 5: return "View Family Matches";
