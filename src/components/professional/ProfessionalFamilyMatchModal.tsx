@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -102,6 +101,9 @@ export const ProfessionalFamilyMatchModal = ({
                       <h3 className="font-semibold text-lg">Family Member</h3>
                       <div className="text-xs text-blue-600 mt-1">
                         * Name protected until connected
+                      </div>
+                      <div className="text-xs text-gray-500 font-mono mt-1">
+                        ID: {bestMatch.id?.substring(0, 8) || 'N/A'}
                       </div>
                       <div className="flex items-center gap-2 text-sm text-gray-500 mt-1">
                         <MapPin className="h-3.5 w-3.5" />
