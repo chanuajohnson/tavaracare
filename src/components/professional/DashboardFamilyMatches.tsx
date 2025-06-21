@@ -154,59 +154,6 @@ export const DashboardFamilyMatches = () => {
     return <XCircle className="h-3 w-3" />;
   };
 
-  const getInteractionStatusBadge = (family: any) => {
-    if (!family.interaction_status?.hasInteracted) return null;
-
-    const { chatRequestStatus } = family.interaction_status;
-    
-    if (chatRequestStatus === 'pending') {
-      return (
-        <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-300">
-          <Clock className="h-3 w-3 mr-1" />
-          Request Sent
-        </Badge>
-      );
-    }
-    
-    if (chatRequestStatus === 'accepted') {
-      return (
-        <Badge variant="outline" className="bg-green-50 text-green-700 border-green-300">
-          <CheckCircle className="h-3 w-3 mr-1" />
-          Chat Active
-        </Badge>
-      );
-    }
-    
-    if (chatRequestStatus === 'declined') {
-      return (
-        <Badge variant="outline" className="bg-gray-50 text-gray-600 border-gray-300">
-          <XCircle className="h-3 w-3 mr-1" />
-          Request Declined
-        </Badge>
-      );
-    }
-
-    return (
-      <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-300">
-        Previously Contacted
-      </Badge>
-    );
-  };
-
-  const getReadinessIndicator = (family: any) => {
-    if (!family.readiness_status) return null;
-
-    const { completionPercentage, currentStep, totalSteps, isReady } = family.readiness_status;
-    
-    return (
-      <div className="text-xs text-center mt-1">
-        <div className={`px-2 py-1 rounded ${isReady ? 'bg-green-50 text-green-700' : 'bg-yellow-50 text-yellow-700'}`}>
-          Step {currentStep} of {totalSteps} • {completionPercentage}% Complete
-        </div>
-      </div>
-    );
-  };
-
   if (!user) {
     return null;
   }
@@ -313,13 +260,11 @@ export const DashboardFamilyMatches = () => {
             <div className="space-y-4">
               {filteredFamilies.map(family => (
                 <div key={family.id} className={`p-4 rounded-lg border ${family.is_premium ? 'border-amber-300' : 'border-gray-200'} relative`}>
-                  {family.is_premium && (
-                    <div className="absolute top-0 right-0">
+                  {family.is_premium && <div className="absolute top-0 right-0">
                       <Badge className="bg-amber-500 text-white uppercase font-bold rounded-tl-none rounded-tr-sm rounded-br-none rounded-bl-sm px-2">
                         Premium
                       </Badge>
-                    </div>
-                  )}
+                    </div>}
                   
                   <div className="flex flex-col sm:flex-row gap-4">
                     <div className="flex flex-col items-center sm:items-start sm:w-1/4">
@@ -355,16 +300,6 @@ export const DashboardFamilyMatches = () => {
                             </span>
                           </div>
                         )}
-                        
-                        {/* Interaction Status Badge */}
-                        {getInteractionStatusBadge(family) && (
-                          <div className="mt-1">
-                            {getInteractionStatusBadge(family)}
-                          </div>
-                        )}
-                        
-                        {/* Readiness Indicator */}
-                        {getReadinessIndicator(family)}
                       </div>
                     </div>
                     
@@ -440,13 +375,9 @@ export const DashboardFamilyMatches = () => {
                         variant="default" 
                         className="w-full flex items-center gap-2" 
                         onClick={() => handleChatWithFamily(family)}
-                        disabled={family.interaction_status?.hasInteracted}
                       >
                         <MessageCircle className="h-4 w-4" />
-                        {family.interaction_status?.hasInteracted 
-                          ? 'Already Contacted' 
-                          : 'Chat with Family'
-                        }
+                        Chat with Family
                       </Button>
                     </div>
                   </div>
