@@ -1,4 +1,3 @@
-
 import { supabase } from "@/lib/supabase";
 
 export interface UserReadinessStatus {
@@ -9,7 +8,6 @@ export interface UserReadinessStatus {
 
 export interface FamilyReadinessCriteria {
   full_name: boolean;
-  location: boolean;
   care_recipient_name: boolean;
   care_types: boolean;
   phone_number: boolean;
@@ -17,7 +15,6 @@ export interface FamilyReadinessCriteria {
 
 export interface ProfessionalReadinessCriteria {
   full_name: boolean;
-  location: boolean;
   care_types: boolean;
   years_of_experience: boolean;
   phone_number: boolean;
@@ -29,7 +26,6 @@ export interface ProfessionalReadinessCriteria {
 export const checkFamilyUserReadiness = (profile: any): UserReadinessStatus => {
   const criteria: FamilyReadinessCriteria = {
     full_name: !!profile.full_name,
-    location: !!profile.location,
     care_recipient_name: !!profile.care_recipient_name,
     care_types: Array.isArray(profile.care_types) && profile.care_types.length > 0,
     phone_number: !!profile.phone_number,
@@ -63,7 +59,6 @@ export const checkFamilyUserReadiness = (profile: any): UserReadinessStatus => {
 export const checkProfessionalUserReadiness = (profile: any): UserReadinessStatus => {
   const criteria: ProfessionalReadinessCriteria = {
     full_name: !!profile.full_name,
-    location: !!profile.location,
     care_types: Array.isArray(profile.care_types) && profile.care_types.length > 0,
     years_of_experience: !!profile.years_of_experience,
     phone_number: !!profile.phone_number,
@@ -101,7 +96,6 @@ export const getReadyFamilyUsers = async (limit: number = 50) => {
       .select('*')
       .eq('role', 'family')
       .not('full_name', 'is', null)
-      .not('location', 'is', null)
       .not('care_recipient_name', 'is', null)
       .not('phone_number', 'is', null)
       .limit(limit);
@@ -134,7 +128,6 @@ export const getReadyProfessionalUsers = async (limit: number = 50) => {
       .select('*')
       .eq('role', 'professional')
       .not('full_name', 'is', null)
-      .not('location', 'is', null)
       .not('phone_number', 'is', null)
       .limit(limit);
 
