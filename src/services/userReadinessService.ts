@@ -1,3 +1,4 @@
+
 import { supabase } from "@/lib/supabase";
 
 export interface UserReadinessStatus {
@@ -15,7 +16,7 @@ export interface FamilyReadinessCriteria {
 
 export interface ProfessionalReadinessCriteria {
   full_name: boolean;
-  care_types: boolean;
+  care_services: boolean;
   years_of_experience: boolean;
   phone_number: boolean;
 }
@@ -59,7 +60,7 @@ export const checkFamilyUserReadiness = (profile: any): UserReadinessStatus => {
 export const checkProfessionalUserReadiness = (profile: any): UserReadinessStatus => {
   const criteria: ProfessionalReadinessCriteria = {
     full_name: !!profile.full_name,
-    care_types: Array.isArray(profile.care_types) && profile.care_types.length > 0,
+    care_services: Array.isArray(profile.care_services) && profile.care_services.length > 0,
     years_of_experience: !!profile.years_of_experience,
     phone_number: !!profile.phone_number,
   };
@@ -129,6 +130,7 @@ export const getReadyProfessionalUsers = async (limit: number = 50) => {
       .eq('role', 'professional')
       .not('full_name', 'is', null)
       .not('phone_number', 'is', null)
+      .not('care_services', 'is', null)
       .limit(limit);
 
     if (error) {
@@ -136,7 +138,7 @@ export const getReadyProfessionalUsers = async (limit: number = 50) => {
       return [];
     }
 
-    // Further filter by care_types and years_of_experience
+    // Further filter by care_services and years_of_experience
     const readyUsers = (data || []).filter(profile => {
       const readiness = checkProfessionalUserReadiness(profile);
       return readiness.isReady;
