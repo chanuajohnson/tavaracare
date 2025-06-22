@@ -1,9 +1,9 @@
-
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { supabase } from "@/lib/supabase";
 import { useTracking } from "@/hooks/useTracking";
 import { toast } from "sonner";
+import { getReadyProfessionalUsers, checkCurrentUserReadiness } from "@/services/userReadinessService";
 
 interface Caregiver {
   id: string;
@@ -92,12 +92,28 @@ export const useCaregiverMatches = (showOnlyBestMatch: boolean = true) => {
       return;
     }
     
-    console.log('Loading real caregivers for user:', user.id);
+    console.log('Loading ready caregivers for user:', user.id);
     loadingRef.current = true;
     
     try {
       setIsLoading(true);
       setError(null);
+
+      // Check if current family user is ready for matching
+      const currentUserReadiness = await checkCurrentUserReadiness(user.id);
+      if (!currentUserReadiness.isReady) {
+        console.log('Current family user not ready for matching:', currentUserReadiness.missingFields);
+        setError(`Please complete your profile to see caregiver matches. Missing: ${currentUserReadiness.missingFields.join(', ')}`);
+        setCaregivers([]);
+        await trackEngagement('caregiver_matches_view', { 
+          data_source: 'filtered_out',
+          caregiver_count: 0,
+          view_context: showOnlyBestMatch ? 'dashboard_widget' : 'matching_page',
+          error: 'family_profile_incomplete',
+          missing_fields: currentUserReadiness.missingFields
+        });
+        return;
+      }
 
       // If we already have processed caregivers, use them
       if (processedCaregiversRef.current) {
@@ -130,35 +146,24 @@ export const useCaregiverMatches = (showOnlyBestMatch: boolean = true) => {
       const familyCareSchedule = parseCareSchedule(familyScheduleData.care_schedule);
       console.log('Family care schedule:', familyCareSchedule);
 
-      // Fetch ONLY real professional data
-      const { data: professionalUsers, error: professionalError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('role', 'professional')
-        .not('full_name', 'is', null) // Ensure they have a name
-        .limit(showOnlyBestMatch ? 3 : 10);
+      // Fetch ONLY ready professional users
+      const professionalUsers = await getReadyProfessionalUsers(showOnlyBestMatch ? 3 : 10);
       
-      if (professionalError) {
-        console.error("Error fetching professional users:", professionalError);
-        setError("Unable to load caregiver matches. Please try again.");
-        return;
-      }
-
       if (!professionalUsers || professionalUsers.length === 0) {
-        console.log("No professional users found in database");
-        setError("No caregivers are currently available. Please check back later.");
+        console.log("No ready professional users found");
+        setError("No qualified caregivers are currently available. Please check back later.");
         setCaregivers([]);
         await trackEngagement('caregiver_matches_view', { 
-          data_source: 'real_data',
+          data_source: 'ready_professionals',
           caregiver_count: 0,
           view_context: showOnlyBestMatch ? 'dashboard_widget' : 'matching_page',
-          error: 'no_professionals_found'
+          error: 'no_ready_professionals_found'
         });
         return;
       }
 
-      // Process real caregiver data ONLY
-      const realCaregivers: Caregiver[] = professionalUsers.map((professional) => {
+      // Process ready caregiver data ONLY
+      const readyCaregivers: Caregiver[] = professionalUsers.map((professional) => {
         // Use consistent hash-based scoring for repeatability
         const hashCode = (str: string) => {
           let hash = 0;
@@ -213,27 +218,28 @@ export const useCaregiverMatches = (showOnlyBestMatch: boolean = true) => {
         };
       });
       
-      realCaregivers.sort((a, b) => b.match_score - a.match_score);
-      processedCaregiversRef.current = realCaregivers;
+      readyCaregivers.sort((a, b) => b.match_score - a.match_score);
+      processedCaregiversRef.current = readyCaregivers;
       
-      console.log("Loaded real professional users:", realCaregivers.length);
+      console.log("Loaded ready professional users:", readyCaregivers.length);
 
       const finalCaregivers = showOnlyBestMatch 
-        ? realCaregivers.slice(0, 1) 
-        : realCaregivers;
+        ? readyCaregivers.slice(0, 1) 
+        : readyCaregivers;
 
       await trackEngagement('caregiver_matches_view', {
-        data_source: 'real_data_only',
-        real_caregiver_count: finalCaregivers.length,
+        data_source: 'ready_professionals_only',
+        ready_caregiver_count: finalCaregivers.length,
         view_context: showOnlyBestMatch ? 'dashboard_widget' : 'matching_page',
         caregiver_names: finalCaregivers.map(c => c.full_name),
         shift_compatibility_enabled: true,
-        family_schedule_items: familyCareSchedule.length
+        family_schedule_items: familyCareSchedule.length,
+        current_user_readiness: currentUserReadiness.completionPercentage
       });
       
       setCaregivers(finalCaregivers);
     } catch (error) {
-      console.error("Error loading caregivers:", error);
+      console.error("Error loading ready caregivers:", error);
       setError(error instanceof Error ? error.message : "Unknown error loading caregivers");
       setCaregivers([]);
     } finally {
