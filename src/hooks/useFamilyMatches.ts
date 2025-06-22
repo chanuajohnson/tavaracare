@@ -3,7 +3,6 @@ import { useAuth } from "@/components/providers/AuthProvider";
 import { supabase } from "@/lib/supabase";
 import { useTracking } from "@/hooks/useTracking";
 import { toast } from "sonner";
-import { getReadyFamilyUsers, checkCurrentUserReadiness } from "@/services/userReadinessService";
 
 interface Family {
   id: string;
@@ -178,28 +177,12 @@ export const useFamilyMatches = (showOnlyBestMatch: boolean = false) => {
       return;
     }
     
-    console.log('Starting ready family match load for professional:', user.id);
+    console.log('Starting family match load for professional:', user.id);
     loadingRef.current = true;
     
     try {
       setIsLoading(true);
       setError(null);
-
-      // Check if current professional user is ready for matching
-      const currentUserReadiness = await checkCurrentUserReadiness(user.id);
-      if (!currentUserReadiness.isReady) {
-        console.log('Current professional user not ready for matching:', currentUserReadiness.missingFields);
-        setError(`Please complete your profile to see family matches. Missing: ${currentUserReadiness.missingFields.join(', ')}`);
-        setFamilies([]);
-        await trackEngagement('family_matches_view', { 
-          data_source: 'filtered_out',
-          family_count: 0,
-          view_context: showOnlyBestMatch ? 'dashboard_widget' : 'matching_page',
-          error: 'professional_profile_incomplete',
-          missing_fields: currentUserReadiness.missingFields
-        });
-        return;
-      }
 
       // If we already have processed families for this session, use them
       if (processedFamiliesRef.current) {
@@ -232,11 +215,51 @@ export const useFamilyMatches = (showOnlyBestMatch: boolean = false) => {
       const professionalCareSchedule = parseCareSchedule(professionalScheduleData.care_schedule);
       console.log('Professional care schedule:', professionalCareSchedule);
 
-      // Try to fetch ready family users
-      const familyUsers = await getReadyFamilyUsers(showOnlyBestMatch ? 3 : 10);
+      // Try to fetch real family data first
+      const { data: familyUsers, error: familyError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('role', 'family')
+        .limit(showOnlyBestMatch ? 3 : 10);
       
+      if (familyError) {
+        console.warn("Error fetching family users:", familyError);
+        // Fall back to mock data with enhanced compatibility scoring
+        const enhancedMockFamilies = MOCK_FAMILIES.map(family => {
+          const familySchedule = parseCareSchedule(family.care_schedule);
+          const shiftCompatibility = calculateShiftCompatibility(professionalCareSchedule, familySchedule);
+          const matchExplanation = generateMatchExplanation(shiftCompatibility, professionalCareSchedule, familySchedule);
+          const scheduleOverlapDetails = generateScheduleOverlapDetails(professionalCareSchedule, familySchedule);
+          
+          return {
+            ...family,
+            shift_compatibility_score: shiftCompatibility,
+            match_explanation: matchExplanation,
+            schedule_overlap_details: scheduleOverlapDetails,
+            match_score: Math.round((family.match_score + shiftCompatibility) / 2)
+          };
+        });
+
+        // Sort by combined match score
+        enhancedMockFamilies.sort((a, b) => b.match_score - a.match_score);
+        
+        const fallbackFamilies = showOnlyBestMatch 
+          ? enhancedMockFamilies.slice(0, 1) 
+          : enhancedMockFamilies;
+        processedFamiliesRef.current = enhancedMockFamilies;
+        setFamilies(fallbackFamilies);
+        await trackEngagement('family_matches_view', { 
+          data_source: 'mock_data_fallback',
+          family_count: fallbackFamilies.length,
+          view_context: showOnlyBestMatch ? 'dashboard_widget' : 'matching_page',
+          error: familyError.message,
+          shift_compatibility_enabled: true
+        });
+        return;
+      }
+
       if (!familyUsers || familyUsers.length === 0) {
-        console.log("No ready family users found, using enhanced mock data");
+        console.log("No family users found, using enhanced mock data");
         const enhancedMockFamilies = MOCK_FAMILIES.map(family => {
           const familySchedule = parseCareSchedule(family.care_schedule);
           const shiftCompatibility = calculateShiftCompatibility(professionalCareSchedule, familySchedule);
@@ -260,17 +283,16 @@ export const useFamilyMatches = (showOnlyBestMatch: boolean = false) => {
         processedFamiliesRef.current = enhancedMockFamilies;
         setFamilies(fallbackFamilies);
         await trackEngagement('family_matches_view', { 
-          data_source: 'mock_data_no_ready_families',
+          data_source: 'mock_data',
           family_count: fallbackFamilies.length,
           view_context: showOnlyBestMatch ? 'dashboard_widget' : 'matching_page',
-          shift_compatibility_enabled: true,
-          current_user_readiness: currentUserReadiness.completionPercentage
+          shift_compatibility_enabled: true
         });
         return;
       }
 
-      // Process ready family data with enhanced compatibility scoring
-      const readyFamilies: Family[] = familyUsers.map((family, index) => {
+      // Process real family data with enhanced compatibility scoring
+      const realFamilies: Family[] = familyUsers.map((family, index) => {
         const hashCode = (str: string) => {
           let hash = 0;
           for (let i = 0; i < str.length; i++) {
@@ -328,34 +350,33 @@ export const useFamilyMatches = (showOnlyBestMatch: boolean = false) => {
       });
       
       // Sort by final match score (which includes compatibility) descending
-      readyFamilies.sort((a, b) => b.match_score - a.match_score);
+      realFamilies.sort((a, b) => b.match_score - a.match_score);
       
       // Cache the processed families
-      processedFamiliesRef.current = readyFamilies;
+      processedFamiliesRef.current = realFamilies;
       
-      console.log("Loaded ready family users with shift compatibility:", readyFamilies.length);
+      console.log("Loaded real family users with shift compatibility:", realFamilies.length);
 
       let finalFamilies: Family[];
       if (showOnlyBestMatch) {
-        finalFamilies = readyFamilies.slice(0, 1);
+        finalFamilies = realFamilies.slice(0, 1);
       } else {
-        finalFamilies = readyFamilies;
+        finalFamilies = realFamilies;
       }
 
       await trackEngagement('family_matches_view', {
-        data_source: 'ready_families_only',
-        ready_family_count: finalFamilies.length,
+        data_source: 'real_data',
+        real_family_count: finalFamilies.length,
         mock_family_count: 0,
         view_context: showOnlyBestMatch ? 'dashboard_widget' : 'matching_page',
         family_names: finalFamilies.map(f => f.full_name),
         shift_compatibility_enabled: true,
-        professional_schedule_items: professionalCareSchedule.length,
-        current_user_readiness: currentUserReadiness.completionPercentage
+        professional_schedule_items: professionalCareSchedule.length
       });
       
       setFamilies(finalFamilies);
     } catch (error) {
-      console.error("Error loading ready families:", error);
+      console.error("Error loading families:", error);
       setError(error instanceof Error ? error.message : "Unknown error");
       
       // Use fallback data on error with compatibility scoring
