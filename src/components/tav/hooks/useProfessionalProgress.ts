@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { supabase } from '@/lib/supabase';
@@ -176,6 +177,17 @@ export const useProfessionalProgress = (): ProfessionalProgressData => {
         if (step.id === 4) {
           stepLink = getDocumentNavigationLink(completed);
         }
+
+        // Create a base step object for the getButtonText function
+        const baseStep = {
+          id: step.id,
+          title: step.title,
+          description: step.description,
+          link: stepLink,
+          category: step.category,
+          stage: step.stage,
+          isInteractive: true
+        };
         
         return {
           ...step,
@@ -183,7 +195,7 @@ export const useProfessionalProgress = (): ProfessionalProgressData => {
           completed,
           accessible,
           action: () => handleStepAction({ ...step, link: stepLink, completed, accessible }),
-          buttonText: getButtonText({ ...step, completed, accessible }, completed, accessible, step.id === 4 ? completed : undefined)
+          buttonText: getButtonText(baseStep, completed, accessible, step.id === 4 ? completed : undefined)
         };
       });
       
