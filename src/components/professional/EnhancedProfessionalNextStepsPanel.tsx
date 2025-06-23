@@ -1,13 +1,13 @@
+
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { CheckCircle2, Circle, ArrowRight, Clock, Target, TrendingUp, BookOpen, FileCheck, Calendar, Briefcase, Unlock } from 'lucide-react';
+import { CheckCircle2, Circle, ArrowRight, Clock, Target, TrendingUp, BookOpen, FileCheck, Calendar, Briefcase } from 'lucide-react';
 import { useEnhancedProfessionalProgress } from '@/hooks/useEnhancedProfessionalProgress';
 import { ProfessionalJourneyStageCard } from './ProfessionalJourneyStageCard';
-import { ProfessionalReadinessModal } from './ProfessionalReadinessModal';
 
 export const EnhancedProfessionalNextStepsPanel = () => {
   const {
@@ -23,7 +23,6 @@ export const EnhancedProfessionalNextStepsPanel = () => {
   } = useEnhancedProfessionalProgress();
 
   const [showAllSteps, setShowAllSteps] = useState(false);
-  const [showReadinessModal, setShowReadinessModal] = useState(false);
 
   const getStageIcon = (stageId: string) => {
     switch (stageId) {
@@ -82,20 +81,9 @@ export const EnhancedProfessionalNextStepsPanel = () => {
                 </p>
               </div>
             </div>
-            <div className="flex items-center gap-3">
-              <div className="text-right">
-                <div className="text-2xl font-bold text-primary">{overallProgress}%</div>
-                <div className="text-xs text-gray-500">Complete</div>
-              </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowReadinessModal(true)}
-                className="flex items-center gap-2"
-              >
-                <Unlock className="h-4 w-4" />
-                Check Progress
-              </Button>
+            <div className="text-right">
+              <div className="text-2xl font-bold text-primary">{overallProgress}%</div>
+              <div className="text-xs text-gray-500">Complete</div>
             </div>
           </div>
           
@@ -220,16 +208,6 @@ export const EnhancedProfessionalNextStepsPanel = () => {
           )}
         </CardContent>
       </Card>
-
-      {/* Professional Readiness Modal */}
-      <ProfessionalReadinessModal
-        open={showReadinessModal}
-        onOpenChange={setShowReadinessModal}
-        onReadinessAchieved={() => {
-          setShowReadinessModal(false);
-          refreshProgress();
-        }}
-      />
     </motion.div>
   );
 };

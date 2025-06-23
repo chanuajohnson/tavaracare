@@ -5,14 +5,12 @@ import { fetchFamilyProfile, fetchCareAssessment, fetchCareRecipientProfile } fr
 import { getFamilyReadinessStatus } from '@/hooks/family/completionCheckers';
 import { DashboardCaregiverMatches } from './DashboardCaregiverMatches';
 import { FamilyReadinessModal } from './FamilyReadinessModal';
-import { isModalDismissed, setModalDismissed, clearModalDismissal } from '@/utils/modalDismissalUtils';
 
 export const FamilyReadinessChecker = () => {
   const { user } = useAuth();
   const [isReady, setIsReady] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
-  const [manualTrigger, setManualTrigger] = useState(false);
 
   const checkReadiness = async () => {
     if (!user?.id) {
@@ -42,18 +40,7 @@ export const FamilyReadinessChecker = () => {
       });
       
       setIsReady(status.allReady);
-      
-      // If user becomes ready, clear dismissal state
-      if (status.allReady) {
-        clearModalDismissal(user.id, 'family');
-        setShowModal(false);
-      } else {
-        // Only show modal automatically if not previously dismissed and not manually triggered
-        const wasDismissed = isModalDismissed(user.id, 'family');
-        if (!wasDismissed && !manualTrigger) {
-          setShowModal(true);
-        }
-      }
+      setShowModal(!status.allReady);
     } catch (error) {
       console.error('Error checking family readiness:', error);
       setIsReady(false);
@@ -68,20 +55,6 @@ export const FamilyReadinessChecker = () => {
       checkReadiness();
     }
   }, [user]);
-
-  const handleModalClose = (open: boolean) => {
-    if (!open && user?.id) {
-      // Mark modal as dismissed when user closes it
-      setModalDismissed(user.id, 'family');
-    }
-    setShowModal(open);
-    setManualTrigger(false);
-  };
-
-  const handleManualOpen = () => {
-    setManualTrigger(true);
-    setShowModal(true);
-  };
 
   // Show loading state while checking readiness
   if (isLoading) {
@@ -100,28 +73,13 @@ export const FamilyReadinessChecker = () => {
 
   // If not ready, show the readiness modal
   return (
-    <div>
-      <FamilyReadinessModal
-        open={showModal}
-        onOpenChange={handleModalClose}
-        onReadinessAchieved={() => {
-          setIsReady(true);
-          setShowModal(false);
-        }}
-      />
-      
-      {/* Button to manually open modal if dismissed */}
-      {!showModal && (
-        <div className="text-center py-8">
-          <p className="text-gray-600 mb-4">Complete your family setup to access caregiver matches</p>
-          <button
-            onClick={handleManualOpen}
-            className="bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary-600 transition-colors"
-          >
-            Check Requirements
-          </button>
-        </div>
-      )}
-    </div>
+    <FamilyReadinessModal
+      open={showModal}
+      onOpenChange={setShowModal}
+      onReadinessAchieved={() => {
+        setIsReady(true);
+        setShowModal(false);
+      }}
+    />
   );
 };

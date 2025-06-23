@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { supabase } from '@/lib/supabase';
@@ -20,17 +21,6 @@ interface JourneyStep {
   prerequisites: string[];
   action?: () => void;
   cancelAction?: () => void;
-  isInteractive?: boolean;
-  buttonText?: string;
-}
-
-interface JourneyStage {
-  id: string;
-  name: string;
-  description: string;
-  completed: boolean;
-  current: boolean;
-  progress: number;
 }
 
 interface JourneyPath {
@@ -44,13 +34,9 @@ interface JourneyPath {
 
 interface JourneyProgressData {
   steps: JourneyStep[];
-  stages: JourneyStage[];
   paths: JourneyPath[];
   completionPercentage: number;
-  overallProgress: number;
   nextStep?: JourneyStep;
-  completedSteps: number;
-  totalSteps: number;
   currentStage: 'foundation' | 'scheduling' | 'trial' | 'conversion';
   loading: boolean;
   carePlans: any[];
@@ -71,7 +57,6 @@ interface JourneyProgressData {
   setShowLeadCaptureModal: (show: boolean) => void;
   onVisitScheduled: () => void;
   onVisitCancelled: () => void;
-  refreshProgress: () => void;
 }
 
 // Helper function to validate and convert category
@@ -98,9 +83,7 @@ const getDummyJourneyData = (): { steps: JourneyStep[], paths: JourneyPath[] } =
       icon_name: 'User',
       completed: true,
       accessible: true,
-      prerequisites: [],
-      isInteractive: false,
-      buttonText: 'Complete'
+      prerequisites: []
     },
     {
       id: 'dummy-2',
@@ -116,9 +99,7 @@ const getDummyJourneyData = (): { steps: JourneyStep[], paths: JourneyPath[] } =
       icon_name: 'ClipboardCheck',
       completed: false,
       accessible: true,
-      prerequisites: [],
-      isInteractive: true,
-      buttonText: 'Continue'
+      prerequisites: []
     },
     {
       id: 'dummy-3',
@@ -134,9 +115,7 @@ const getDummyJourneyData = (): { steps: JourneyStep[], paths: JourneyPath[] } =
       icon_name: 'ClipboardList',
       completed: false,
       accessible: true,
-      prerequisites: [],
-      isInteractive: true,
-      buttonText: 'Start'
+      prerequisites: []
     },
     {
       id: 'dummy-4',
@@ -152,53 +131,118 @@ const getDummyJourneyData = (): { steps: JourneyStep[], paths: JourneyPath[] } =
       icon_name: 'Heart',
       completed: false,
       accessible: true,
-      prerequisites: [],
-      isInteractive: true,
-      buttonText: 'Begin'
+      prerequisites: []
+    },
+    {
+      id: 'dummy-5',
+      step_number: 5,
+      title: 'See Your Instant Caregiver Matches',
+      description: 'View caregivers who match your needs',
+      category: 'foundation',
+      is_optional: false,
+      tooltip_content: 'Browse qualified caregivers in your area',
+      detailed_explanation: 'We\'ve found caregivers who specialize in your care needs',
+      time_estimate_minutes: 10,
+      link_path: '/family/caregiver-matches',
+      icon_name: 'Users',
+      completed: false,
+      accessible: false,
+      prerequisites: []
+    },
+    {
+      id: 'dummy-6',
+      step_number: 6,
+      title: 'Set Up Medication Management',
+      description: 'Add medications and set up schedules',
+      category: 'scheduling',
+      is_optional: false,
+      tooltip_content: 'Create a medication plan for your loved one',
+      detailed_explanation: 'Ensure medications are taken correctly and on time',
+      time_estimate_minutes: 20,
+      link_path: '/family/medications',
+      icon_name: 'Pill',
+      completed: false,
+      accessible: false,
+      prerequisites: []
+    },
+    {
+      id: 'dummy-7',
+      step_number: 7,
+      title: 'Set Up Meal Management',
+      description: 'Plan meals and create grocery lists',
+      category: 'scheduling',
+      is_optional: true,
+      tooltip_content: 'Develop meal plans tailored to dietary needs',
+      detailed_explanation: 'Ensure proper nutrition with customized meal planning',
+      time_estimate_minutes: 15,
+      link_path: '/family/meal-plans',
+      icon_name: 'Utensils',
+      completed: false,
+      accessible: false,
+      prerequisites: []
+    },
+    {
+      id: 'dummy-8',
+      step_number: 8,
+      title: 'Schedule initial visit',
+      description: 'Meet your care coordinator',
+      category: 'scheduling',
+      is_optional: false,
+      tooltip_content: 'Schedule a time to meet your care team',
+      detailed_explanation: 'This visit helps establish care goals and expectations',
+      time_estimate_minutes: 5,
+      link_path: '/family/schedule-visit',
+      icon_name: 'Calendar',
+      completed: false,
+      accessible: false,
+      prerequisites: []
+    },
+    // Note: Steps 9-11 (trial steps) are hidden for anonymous users
+    // They only show for authenticated users who explicitly choose trial path
+    {
+      id: 'dummy-12',
+      step_number: 12,
+      title: 'Choose Your Care Model',
+      description: 'Decide between hiring directly ($40/hr) or subscribing to Tavara ($45/hr) for full support tools.',
+      category: 'conversion',
+      is_optional: false,
+      tooltip_content: 'Choose your care model',
+      detailed_explanation: 'Select the best care option for your family',
+      time_estimate_minutes: 15,
+      link_path: '/family/choose-path',
+      icon_name: 'Star',
+      completed: false,
+      accessible: false,
+      prerequisites: []
     }
   ];
+
+  // For anonymous users, only mark the first step as completed
+  dummySteps[0].completed = true;
+  dummySteps[1].completed = false;
+  dummySteps[2].completed = false;
+  dummySteps[3].completed = false;
 
   const dummyPaths: JourneyPath[] = [
     {
       id: 'dummy-path-1',
       path_name: 'Quick Start Path',
       path_description: 'Get matched with a caregiver in 24-48 hours',
-      step_ids: [1, 2, 3, 4],
+      step_ids: [1, 2, 3, 4, 7, 12], // Skip trial steps for default path
       path_color: '#10B981',
       is_recommended: true
+    },
+    {
+      id: 'dummy-path-2',
+      path_name: 'Trial Experience Path',
+      path_description: 'Try before you commit with our trial option',
+      step_ids: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
+      path_color: '#3B82F6',
+      is_recommended: false
     }
   ];
 
   return { steps: dummySteps, paths: dummyPaths };
-};
-
-const generateStages = (steps: JourneyStep[], currentStage: string): JourneyStage[] => {
-  return [
-    {
-      id: 'registration',
-      name: 'Registration',
-      description: 'Complete your family profile',
-      completed: steps.filter(s => s.category === 'foundation' && s.step_number <= 2).every(s => s.completed),
-      current: currentStage === 'foundation',
-      progress: steps.filter(s => s.category === 'foundation' && s.step_number <= 2 && s.completed).length / 2 * 100
-    },
-    {
-      id: 'assessment',
-      name: 'Assessment',
-      description: 'Tell us about your care needs',
-      completed: steps.filter(s => s.step_number >= 3 && s.step_number <= 4).every(s => s.completed),
-      current: currentStage === 'foundation' && steps.find(s => s.step_number === 2)?.completed,
-      progress: steps.filter(s => s.step_number >= 3 && s.step_number <= 4 && s.completed).length / 2 * 100
-    },
-    {
-      id: 'matching',
-      name: 'Matching',
-      description: 'Find your perfect caregiver',
-      completed: currentStage !== 'foundation',
-      current: currentStage === 'scheduling',
-      progress: currentStage === 'foundation' ? 0 : 100
-    }
-  ];
 };
 
 export const useEnhancedJourneyProgress = (): JourneyProgressData => {
@@ -223,16 +267,16 @@ export const useEnhancedJourneyProgress = (): JourneyProgressData => {
   const isAnonymous = !user;
 
   // Function to trigger a refresh of journey data
-  const refreshProgress = () => {
+  const refreshJourneyProgress = () => {
     setRefreshTrigger(prev => prev + 1);
   };
 
   const onVisitScheduled = () => {
-    refreshProgress();
+    refreshJourneyProgress();
   };
 
   const onVisitCancelled = () => {
-    refreshProgress();
+    refreshJourneyProgress();
   };
 
   const trackStepAction = async (stepId: string, action: string) => {
@@ -596,8 +640,6 @@ export const useEnhancedJourneyProgress = (): JourneyProgressData => {
             completed: isCompleted,
             accessible: isAccessible,
             prerequisites: (step.prerequisites as string[]) || [],
-            isInteractive: !isCompleted,
-            buttonText: isCompleted ? 'Completed' : 'Continue',
             action: step.step_number === 10 && extractedVisitDetails ? 
               () => setShowCancelVisitModal(true) : 
               () => handleStepAction(processedStep),
@@ -705,25 +747,16 @@ export const useEnhancedJourneyProgress = (): JourneyProgressData => {
 
   // Calculate completion percentage
   const completedSteps = steps.filter(step => step.completed).length;
-  const totalSteps = steps.length;
   const completionPercentage = steps.length > 0 ? Math.round((completedSteps / steps.length) * 100) : 0;
-  const overallProgress = completionPercentage;
 
   // Find next step
   const nextStep = steps.find(step => !step.completed && step.accessible);
 
-  // Generate stages based on current data
-  const stages = generateStages(steps, currentStage);
-
   return {
     steps,
-    stages,
     paths,
     completionPercentage,
-    overallProgress,
     nextStep,
-    completedSteps,
-    totalSteps,
     currentStage,
     loading,
     carePlans,
@@ -743,7 +776,6 @@ export const useEnhancedJourneyProgress = (): JourneyProgressData => {
     showLeadCaptureModal,
     setShowLeadCaptureModal,
     onVisitScheduled,
-    onVisitCancelled,
-    refreshProgress
+    onVisitCancelled
   };
 };
