@@ -5,12 +5,14 @@ import { fetchProfileData, fetchDocuments } from '@/hooks/professional/dataFetch
 import { isProfileComplete, hasDocuments } from '@/hooks/professional/completionCheckers';
 import { DashboardFamilyMatches } from './DashboardFamilyMatches';
 import { ProfessionalReadinessModal } from './ProfessionalReadinessModal';
+import { isModalDismissed, setModalDismissed, clearModalDismissal } from '@/utils/modalDismissalUtils';
 
 export const ProfessionalReadinessChecker = () => {
   const { user } = useAuth();
   const [isReady, setIsReady] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
+  const [manualTrigger, setManualTrigger] = useState(false);
 
   const checkReadiness = async () => {
     if (!user?.id) {
@@ -41,7 +43,18 @@ export const ProfessionalReadinessChecker = () => {
       });
       
       setIsReady(ready);
-      setShowModal(!ready);
+      
+      // If user becomes ready, clear dismissal state
+      if (ready) {
+        clearModalDismissal(user.id, 'professional');
+        setShowModal(false);
+      } else {
+        // Only show modal automatically if not previously dismissed and not manually triggered
+        const wasDismissed = isModalDismissed(user.id, 'professional');
+        if (!wasDismissed && !manualTrigger) {
+          setShowModal(true);
+        }
+      }
     } catch (error) {
       console.error('Error checking professional readiness:', error);
       setIsReady(false);
@@ -56,6 +69,20 @@ export const ProfessionalReadinessChecker = () => {
       checkReadiness();
     }
   }, [user]);
+
+  const handleModalClose = (open: boolean) => {
+    if (!open && user?.id) {
+      // Mark modal as dismissed when user closes it
+      setModalDismissed(user.id, 'professional');
+    }
+    setShowModal(open);
+    setManualTrigger(false);
+  };
+
+  const handleManualOpen = () => {
+    setManualTrigger(true);
+    setShowModal(true);
+  };
 
   // Show loading state while checking readiness
   if (isLoading) {
@@ -74,13 +101,28 @@ export const ProfessionalReadinessChecker = () => {
 
   // If not ready, show the readiness modal
   return (
-    <ProfessionalReadinessModal
-      open={showModal}
-      onOpenChange={setShowModal}
-      onReadinessAchieved={() => {
-        setIsReady(true);
-        setShowModal(false);
-      }}
-    />
+    <div>
+      <ProfessionalReadinessModal
+        open={showModal}
+        onOpenChange={handleModalClose}
+        onReadinessAchieved={() => {
+          setIsReady(true);
+          setShowModal(false);
+        }}
+      />
+      
+      {/* Button to manually open modal if dismissed */}
+      {!showModal && (
+        <div className="text-center py-8">
+          <p className="text-gray-600 mb-4">Complete your professional setup to access family matches</p>
+          <button
+            onClick={handleManualOpen}
+            className="bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary-600 transition-colors"
+          >
+            Check Requirements
+          </button>
+        </div>
+      )}
+    </div>
   );
 };
