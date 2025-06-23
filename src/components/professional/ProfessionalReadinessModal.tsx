@@ -5,9 +5,9 @@ import { useNavigate } from 'react-router-dom';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Sparkles, CheckCircle2, Circle, FileText, User, ArrowRight, Unlock } from 'lucide-react';
+import { Sparkles, CheckCircle2, Circle, FileText, User, ArrowRight, Unlock, Shield, Award, CreditCard } from 'lucide-react';
 import { fetchProfileData, fetchDocuments } from '@/hooks/professional/dataFetchers';
-import { isProfileComplete, hasDocuments } from '@/hooks/professional/completionCheckers';
+import { isProfileComplete, getMissingDocumentTypes, hasAllRequiredDocuments, REQUIRED_DOCUMENT_TYPES } from '@/hooks/professional/completionCheckers';
 import { getProfessionalRegistrationLink, getDocumentNavigationLink } from '@/hooks/professional/stepDefinitions';
 
 interface ProfessionalReadinessModalProps {
@@ -26,7 +26,9 @@ export const ProfessionalReadinessModal = ({
   const [isLoading, setIsLoading] = useState(true);
   const [readinessChecks, setReadinessChecks] = useState({
     profileComplete: false,
-    documentsUploaded: false
+    hasIdentification: false,
+    hasCertification: false,
+    hasPoliceCleanrace: false
   });
 
   const checkStatus = async () => {
@@ -41,15 +43,22 @@ export const ProfessionalReadinessModal = ({
       ]);
 
       const profileComplete = isProfileComplete(profile);
-      const documentsUploaded = hasDocuments(documents);
+      
+      // Check individual document types
+      const documentTypes = documents.map(doc => doc.document_type);
+      const hasIdentification = documentTypes.includes('identification');
+      const hasCertification = documentTypes.includes('certification');
+      const hasPoliceCleanrace = documentTypes.includes('police_clearance');
       
       setReadinessChecks({
         profileComplete,
-        documentsUploaded
+        hasIdentification,
+        hasCertification,
+        hasPoliceCleanrace
       });
 
-      // If both are complete, notify parent and close modal
-      if (profileComplete && documentsUploaded) {
+      // If all are complete, notify parent and close modal
+      if (profileComplete && hasIdentification && hasCertification && hasPoliceCleanrace) {
         setTimeout(() => {
           onReadinessAchieved();
         }, 1000);
@@ -74,12 +83,15 @@ export const ProfessionalReadinessModal = ({
     navigate(link);
   };
 
-  const handleDocumentsAction = () => {
-    const link = getDocumentNavigationLink(readinessChecks.documentsUploaded);
-    navigate(link);
+  const handleDocumentAction = (documentType: string) => {
+    const link = getDocumentNavigationLink(true); // Navigate to documents page
+    navigate(`${link}&type=${documentType}`);
   };
 
-  const allReady = readinessChecks.profileComplete && readinessChecks.documentsUploaded;
+  const allReady = readinessChecks.profileComplete && 
+                   readinessChecks.hasIdentification && 
+                   readinessChecks.hasCertification && 
+                   readinessChecks.hasPoliceCleanrace;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -154,33 +166,97 @@ export const ProfessionalReadinessModal = ({
                 </div>
               </div>
 
-              {/* Documents Upload Check */}
+              {/* Upload Identification */}
               <div className="flex items-center justify-between p-4 bg-white/70 rounded-lg border border-white/50 shadow-sm">
                 <div className="flex items-center space-x-3">
-                  {readinessChecks.documentsUploaded ? (
+                  {readinessChecks.hasIdentification ? (
                     <CheckCircle2 className="h-5 w-5 text-green-500" />
                   ) : (
                     <Circle className="h-5 w-5 text-gray-400" />
                   )}
                   <div>
-                    <p className="font-medium text-gray-800">Upload Documents</p>
-                    <p className="text-sm text-gray-600">Certifications & credentials</p>
+                    <p className="font-medium text-gray-800">Upload Identification</p>
+                    <p className="text-sm text-gray-600">Valid ID document</p>
                   </div>
                 </div>
                 <div className="flex items-center space-x-2">
-                  {readinessChecks.documentsUploaded && (
+                  {readinessChecks.hasIdentification && (
                     <Badge variant="secondary" className="bg-green-100 text-green-700 border-green-200">
                       Uploaded
                     </Badge>
                   )}
                   <Button
-                    variant={readinessChecks.documentsUploaded ? "outline" : "default"}
+                    variant={readinessChecks.hasIdentification ? "outline" : "default"}
                     size="sm"
-                    onClick={handleDocumentsAction}
+                    onClick={() => handleDocumentAction('identification')}
                     className="flex items-center space-x-1"
                   >
-                    <FileText className="h-4 w-4" />
-                    <span>{readinessChecks.documentsUploaded ? 'Manage' : 'Upload'}</span>
+                    <CreditCard className="h-4 w-4" />
+                    <span>{readinessChecks.hasIdentification ? 'Manage' : 'Upload'}</span>
+                    <ArrowRight className="h-3 w-3" />
+                  </Button>
+                </div>
+              </div>
+
+              {/* Upload Certification */}
+              <div className="flex items-center justify-between p-4 bg-white/70 rounded-lg border border-white/50 shadow-sm">
+                <div className="flex items-center space-x-3">
+                  {readinessChecks.hasCertification ? (
+                    <CheckCircle2 className="h-5 w-5 text-green-500" />
+                  ) : (
+                    <Circle className="h-5 w-5 text-gray-400" />
+                  )}
+                  <div>
+                    <p className="font-medium text-gray-800">Upload Certification</p>
+                    <p className="text-sm text-gray-600">Professional credentials</p>
+                  </div>
+                </div>
+                <div className="flex items-center space-x-2">
+                  {readinessChecks.hasCertification && (
+                    <Badge variant="secondary" className="bg-green-100 text-green-700 border-green-200">
+                      Uploaded
+                    </Badge>
+                  )}
+                  <Button
+                    variant={readinessChecks.hasCertification ? "outline" : "default"}
+                    size="sm"
+                    onClick={() => handleDocumentAction('certification')}
+                    className="flex items-center space-x-1"
+                  >
+                    <Award className="h-4 w-4" />
+                    <span>{readinessChecks.hasCertification ? 'Manage' : 'Upload'}</span>
+                    <ArrowRight className="h-3 w-3" />
+                  </Button>
+                </div>
+              </div>
+
+              {/* Upload Police Character Certificate */}
+              <div className="flex items-center justify-between p-4 bg-white/70 rounded-lg border border-white/50 shadow-sm">
+                <div className="flex items-center space-x-3">
+                  {readinessChecks.hasPoliceCleanrace ? (
+                    <CheckCircle2 className="h-5 w-5 text-green-500" />
+                  ) : (
+                    <Circle className="h-5 w-5 text-gray-400" />
+                  )}
+                  <div>
+                    <p className="font-medium text-gray-800">Upload Police Character Certificate</p>
+                    <p className="text-sm text-gray-600">To ensure you're a Vetted Professional on Tavara</p>
+                  </div>
+                </div>
+                <div className="flex items-center space-x-2">
+                  {readinessChecks.hasPoliceCleanrace && (
+                    <Badge variant="secondary" className="bg-green-100 text-green-700 border-green-200">
+                      Uploaded
+                    </Badge>
+                  )}
+                  <Button
+                    variant={readinessChecks.hasPoliceCleanrace ? "outline" : "default"}
+                    size="sm"
+                    onClick={() => handleDocumentAction('police_clearance')}
+                    className="flex items-center space-x-1"
+                  >
+                    <Shield className="h-4 w-4" />
+                    <span>{readinessChecks.hasPoliceCleanrace ? 'Manage' : 'Upload'}</span>
                     <ArrowRight className="h-3 w-3" />
                   </Button>
                 </div>
