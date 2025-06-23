@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { supabase } from '@/lib/supabase';
 import { useNavigate } from 'react-router-dom';
-import { getDocumentNavigationLink, getProfessionalRegistrationLink, getButtonText } from '../../../hooks/professional/stepDefinitions';
+import { getDocumentNavigationLink, getProfessionalRegistrationLink } from '../../../hooks/professional/stepDefinitions';
 
 interface ProfessionalStep {
   id: number;
@@ -119,6 +119,31 @@ export const useProfessionalProgress = (): ProfessionalProgressData => {
     }
   };
 
+  const getButtonText = (step: ProfessionalStep) => {
+    if (!step.accessible) {
+      return "🔒 Locked";
+    }
+    
+    if (step.completed) {
+      if (step.id === 1) return "✓ Account Created";
+      if (step.id === 2) return "✓ Edit Profile";
+      if (step.id === 3) return "Edit Availability";
+      if (step.id === 4) return "View Documents";
+      if (step.id === 5) return "View Family Matches";
+      if (step.id === 6) return "Continue Training";
+      return "✓ Complete";
+    }
+    
+    if (step.id === 1) return "Complete Setup";
+    if (step.id === 2) return "Complete Profile";
+    if (step.id === 3) return "Set Availability";
+    if (step.id === 4) return "Upload Documents";
+    if (step.id === 5) return "View Family Matches";
+    if (step.id === 6) return "Start Training";
+    
+    return "Complete";
+  };
+
   const checkStepCompletion = async () => {
     if (!user) return;
     
@@ -177,17 +202,6 @@ export const useProfessionalProgress = (): ProfessionalProgressData => {
         if (step.id === 4) {
           stepLink = getDocumentNavigationLink(completed);
         }
-
-        // Create a base step object for the getButtonText function
-        const baseStep = {
-          id: step.id,
-          title: step.title,
-          description: step.description,
-          link: stepLink,
-          category: step.category,
-          stage: step.stage,
-          isInteractive: true
-        };
         
         return {
           ...step,
@@ -195,7 +209,7 @@ export const useProfessionalProgress = (): ProfessionalProgressData => {
           completed,
           accessible,
           action: () => handleStepAction({ ...step, link: stepLink, completed, accessible }),
-          buttonText: getButtonText(baseStep, completed, accessible, step.id === 4 ? completed : undefined)
+          buttonText: getButtonText({ ...step, completed, accessible })
         };
       });
       

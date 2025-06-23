@@ -1,3 +1,4 @@
+
 import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -7,7 +8,6 @@ import { useAuth } from "@/components/providers/AuthProvider";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
-import { getProfessionalRegistrationLink } from "../../hooks/professional/stepDefinitions";
 
 export const NextStepsPanel = () => {
   const { user } = useAuth();
@@ -73,7 +73,7 @@ export const NextStepsPanel = () => {
       // Check user profile completion from profiles table
       const { data: profile } = await supabase
         .from('profiles')
-        .select('professional_type, years_of_experience, certifications, availability, full_name')
+        .select('professional_type, years_of_experience, certifications, availability')
         .eq('id', user.id)
         .maybeSingle();
 
@@ -89,10 +89,9 @@ export const NextStepsPanel = () => {
       updatedSteps[0].completed = true;
       
       // Step 2: Complete professional profile - check if professional details are filled
-      const profileCompleted = !!(profile && profile.professional_type && profile.years_of_experience);
-      updatedSteps[1].completed = profileCompleted;
-      // Use dynamic link based on completion status
-      updatedSteps[1].link = getProfessionalRegistrationLink(profileCompleted);
+      if (profile && profile.professional_type && profile.years_of_experience) {
+        updatedSteps[1].completed = true;
+      }
       
       // Step 3: Upload documents - check if any documents exist
       if (documents && documents.length > 0) {
