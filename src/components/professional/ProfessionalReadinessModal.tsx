@@ -1,0 +1,215 @@
+
+import { useState, useEffect } from 'react';
+import { useAuth } from '@/components/providers/AuthProvider';
+import { useNavigate } from 'react-router-dom';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Sparkles, CheckCircle2, Circle, FileText, User, ArrowRight, Unlock } from 'lucide-react';
+import { fetchProfileData, fetchDocuments } from '@/hooks/professional/dataFetchers';
+import { isProfileComplete, hasDocuments } from '@/hooks/professional/completionCheckers';
+import { getProfessionalRegistrationLink, getDocumentNavigationLink } from '@/hooks/professional/stepDefinitions';
+
+interface ProfessionalReadinessModalProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onReadinessAchieved: () => void;
+}
+
+export const ProfessionalReadinessModal = ({ 
+  open, 
+  onOpenChange, 
+  onReadinessAchieved 
+}: ProfessionalReadinessModalProps) => {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const [isLoading, setIsLoading] = useState(true);
+  const [readinessChecks, setReadinessChecks] = useState({
+    profileComplete: false,
+    documentsUploaded: false
+  });
+
+  const checkStatus = async () => {
+    if (!user?.id) return;
+
+    try {
+      setIsLoading(true);
+      
+      const [profile, documents] = await Promise.all([
+        fetchProfileData(user.id),
+        fetchDocuments(user.id)
+      ]);
+
+      const profileComplete = isProfileComplete(profile);
+      const documentsUploaded = hasDocuments(documents);
+      
+      setReadinessChecks({
+        profileComplete,
+        documentsUploaded
+      });
+
+      // If both are complete, notify parent and close modal
+      if (profileComplete && documentsUploaded) {
+        setTimeout(() => {
+          onReadinessAchieved();
+        }, 1000);
+      }
+    } catch (error) {
+      console.error('Error checking readiness status:', error);
+    } finally {
+      setTimeout(() => {
+        setIsLoading(false);
+      }, 800);
+    }
+  };
+
+  useEffect(() => {
+    if (open && user) {
+      checkStatus();
+    }
+  }, [open, user]);
+
+  const handleProfileAction = () => {
+    const link = getProfessionalRegistrationLink(readinessChecks.profileComplete);
+    navigate(link);
+  };
+
+  const handleDocumentsAction = () => {
+    const link = getDocumentNavigationLink(readinessChecks.documentsUploaded);
+    navigate(link);
+  };
+
+  const allReady = readinessChecks.profileComplete && readinessChecks.documentsUploaded;
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-md mx-auto bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 border-0 shadow-2xl">
+        <DialogHeader className="text-center space-y-4 pb-2">
+          <div className="mx-auto relative">
+            <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+              <Unlock className="h-8 w-8 text-white" />
+            </div>
+            <Sparkles className="absolute -top-1 -right-1 h-5 w-5 text-purple-500 animate-pulse" />
+            <Sparkles className="absolute -bottom-1 -left-1 h-3 w-3 text-blue-500 animate-pulse delay-150" />
+          </div>
+          
+          <DialogTitle className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+            Unlock Family Matches
+          </DialogTitle>
+          
+          <p className="text-gray-600 text-sm leading-relaxed">
+            Complete these steps to start connecting with families who need your care expertise
+          </p>
+        </DialogHeader>
+
+        <div className="space-y-6 py-4">
+          {isLoading ? (
+            <div className="flex flex-col justify-center items-center py-8 space-y-4">
+              <div className="relative">
+                <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-200 border-t-blue-600"></div>
+                <Sparkles className="absolute -top-1 -right-1 h-5 w-5 text-blue-500 animate-pulse" />
+                <Sparkles className="absolute -bottom-1 -left-1 h-3 w-3 text-purple-500 animate-pulse delay-150" />
+                <Sparkles className="absolute top-1/2 -left-3 h-2 w-2 text-pink-500 animate-pulse delay-300" />
+              </div>
+              <div className="text-center space-y-1">
+                <p className="text-lg font-semibold text-blue-600">
+                  Checking your progress! ✨
+                </p>
+                <p className="text-sm text-gray-600">
+                  Reviewing your professional readiness...
+                </p>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {/* Profile Completion Check */}
+              <div className="flex items-center justify-between p-4 bg-white/70 rounded-lg border border-white/50 shadow-sm">
+                <div className="flex items-center space-x-3">
+                  {readinessChecks.profileComplete ? (
+                    <CheckCircle2 className="h-5 w-5 text-green-500" />
+                  ) : (
+                    <Circle className="h-5 w-5 text-gray-400" />
+                  )}
+                  <div>
+                    <p className="font-medium text-gray-800">Complete Profile</p>
+                    <p className="text-sm text-gray-600">Professional type & experience</p>
+                  </div>
+                </div>
+                <div className="flex items-center space-x-2">
+                  {readinessChecks.profileComplete && (
+                    <Badge variant="secondary" className="bg-green-100 text-green-700 border-green-200">
+                      Complete
+                    </Badge>
+                  )}
+                  <Button
+                    variant={readinessChecks.profileComplete ? "outline" : "default"}
+                    size="sm"
+                    onClick={handleProfileAction}
+                    className="flex items-center space-x-1"
+                  >
+                    <User className="h-4 w-4" />
+                    <span>{readinessChecks.profileComplete ? 'Edit' : 'Complete'}</span>
+                    <ArrowRight className="h-3 w-3" />
+                  </Button>
+                </div>
+              </div>
+
+              {/* Documents Upload Check */}
+              <div className="flex items-center justify-between p-4 bg-white/70 rounded-lg border border-white/50 shadow-sm">
+                <div className="flex items-center space-x-3">
+                  {readinessChecks.documentsUploaded ? (
+                    <CheckCircle2 className="h-5 w-5 text-green-500" />
+                  ) : (
+                    <Circle className="h-5 w-5 text-gray-400" />
+                  )}
+                  <div>
+                    <p className="font-medium text-gray-800">Upload Documents</p>
+                    <p className="text-sm text-gray-600">Certifications & credentials</p>
+                  </div>
+                </div>
+                <div className="flex items-center space-x-2">
+                  {readinessChecks.documentsUploaded && (
+                    <Badge variant="secondary" className="bg-green-100 text-green-700 border-green-200">
+                      Uploaded
+                    </Badge>
+                  )}
+                  <Button
+                    variant={readinessChecks.documentsUploaded ? "outline" : "default"}
+                    size="sm"
+                    onClick={handleDocumentsAction}
+                    className="flex items-center space-x-1"
+                  >
+                    <FileText className="h-4 w-4" />
+                    <span>{readinessChecks.documentsUploaded ? 'Manage' : 'Upload'}</span>
+                    <ArrowRight className="h-3 w-3" />
+                  </Button>
+                </div>
+              </div>
+
+              {/* Success State */}
+              {allReady && (
+                <div className="text-center p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg border border-green-200">
+                  <div className="flex items-center justify-center space-x-2 mb-2">
+                    <CheckCircle2 className="h-5 w-5 text-green-600" />
+                    <p className="font-semibold text-green-700">All Set!</p>
+                  </div>
+                  <p className="text-sm text-green-600">
+                    Unlocking your family matches now...
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        <div className="pt-4 border-t border-white/30">
+          <div className="text-center">
+            <p className="text-xs text-gray-500">
+              Complete these steps to access our family matching system
+            </p>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+};

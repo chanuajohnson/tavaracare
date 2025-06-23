@@ -13,6 +13,7 @@ import { CaregiverMatchingCard } from "@/components/professional/CaregiverMatchi
 import { ProfessionalShortcutMenuBar } from "@/components/professional/ProfessionalShortcutMenuBar";
 import { CaregiverHealthCard } from "@/components/professional/CaregiverHealthCard";
 import { ChatRequestsSection } from "@/components/professional/ChatRequestsSection";
+import { ProfessionalReadinessChecker } from "@/components/professional/ProfessionalReadinessChecker";
 
 const ProfessionalDashboard = () => {
   const { user } = useAuth();
@@ -242,9 +243,9 @@ const ProfessionalDashboard = () => {
 
         <CaregiverMatchingCard />
 
-        {/* Family Matches Section - Add the missing ID here */}
+        {/* Professional Readiness-Gated Family Matches Section */}
         <div id="family-matches" className="mt-8">
-          <DashboardFamilyMatches />
+          <ProfessionalReadinessChecker />
         </div>
 
         {/* Professional Agency */}
