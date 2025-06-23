@@ -69,7 +69,7 @@ export const getDocumentNavigationLink = (hasDocuments: boolean): string => {
 
 export const getProfessionalRegistrationLink = (isCompleted: boolean): string => {
   if (isCompleted) {
-    return "/registration/professional?scroll=availability&edit=true";
+    return "/registration/professional?scroll=firstName&edit=true";
   } else {
     return "/registration/professional";
   }
