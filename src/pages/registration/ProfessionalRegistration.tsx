@@ -240,7 +240,12 @@ const ProfessionalRegistration = () => {
         setPhoneNumber(profile.phone_number || '');
         setAddress(profile.address || '');
         setProfessionalType(profile.professional_type || '');
-        setOtherProfessionalType(profile.other_professional_type || '');
+        // Handle other professional type - if professional_type doesn't match predefined values, it's likely a custom "other" type
+        const predefinedTypes = ['agency', 'nurse', 'hha', 'cna', 'special_needs', 'therapist', 'nutritionist', 'medication', 'elderly', 'holistic', 'gapp'];
+        if (profile.professional_type && !predefinedTypes.includes(profile.professional_type)) {
+          setProfessionalType('other');
+          setOtherProfessionalType(profile.professional_type);
+        }
         setYearsOfExperience(profile.years_of_experience || '');
         setSpecialties(profile.care_services || []);
         setCertifications(profile.certifications || []);
@@ -384,7 +389,6 @@ const ProfessionalRegistration = () => {
         role: 'professional' as const,
         updated_at: new Date().toISOString(),
         professional_type: finalProfessionalType,
-        other_professional_type: professionalType === 'other' ? otherProfessionalType : null,
         years_of_experience: yearsOfExperience,
         care_services: specialties || [], // Updated: Map specialties to care_services column
         certifications: certifications || [],
@@ -550,11 +554,7 @@ const ProfessionalRegistration = () => {
             <CardContent className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="professional-type" className="mb-1">Professional Role <span className="text-red-500">*</span></Label>
-                <Select 
-                  value={professionalType} 
-                  onValueChange={setProfessionalType}
-                  required
-                >
+                <Select value={professionalType} onValueChange={setProfessionalType} required>
                   <SelectTrigger id="professional-type">
                     <SelectValue placeholder="Select your role" />
                   </SelectTrigger>
