@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,7 +10,11 @@ import { useEnhancedJourneyProgress } from '@/hooks/useEnhancedJourneyProgress';
 import { JourneyStageCard } from './JourneyStageCard';
 import { FamilyReadinessModal } from './FamilyReadinessModal';
 
-export const EnhancedFamilyNextStepsPanel = () => {
+interface EnhancedFamilyNextStepsPanelProps {
+  showAllSteps?: boolean;
+}
+
+export const EnhancedFamilyNextStepsPanel = ({ showAllSteps: propShowAllSteps = false }: EnhancedFamilyNextStepsPanelProps) => {
   const {
     steps,
     stages,
@@ -22,7 +27,7 @@ export const EnhancedFamilyNextStepsPanel = () => {
     refreshProgress
   } = useEnhancedJourneyProgress();
 
-  const [showAllSteps, setShowAllSteps] = useState(false);
+  const [showAllSteps, setShowAllSteps] = useState(propShowAllSteps);
   const [showReadinessModal, setShowReadinessModal] = useState(false);
 
   const getStageIcon = (stageId: string) => {
@@ -56,7 +61,7 @@ export const EnhancedFamilyNextStepsPanel = () => {
     );
   }
 
-  const visibleSteps = showAllSteps ? steps : steps.slice(0, 4);
+  const visibleSteps = showAllSteps || propShowAllSteps ? steps : steps.slice(0, 4);
   const currentStageData = stages.find(s => s.id === currentStage);
 
   return (
@@ -192,7 +197,7 @@ export const EnhancedFamilyNextStepsPanel = () => {
                     className={`text-xs px-3 py-1 ${
                       step.id === nextStep?.id ? 'bg-primary hover:bg-primary-600' : ''
                     }`}
-                    disabled={step.id === 1 && step.completed}
+                    disabled={step.step_number === 1 && step.completed}
                   >
                     {step.buttonText}
                     {!step.completed && <ArrowRight className="ml-1 h-3 w-3" />}
@@ -202,7 +207,7 @@ export const EnhancedFamilyNextStepsPanel = () => {
             ))}
           </div>
 
-          {steps.length > 4 && (
+          {steps.length > 4 && !propShowAllSteps && (
             <div className="mt-4 text-center">
               <Button
                 variant="ghost"
