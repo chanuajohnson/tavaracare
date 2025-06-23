@@ -1,4 +1,3 @@
-
 import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
@@ -8,7 +7,7 @@ import { ArrowRight, FileText, UserCog, Building, Users, ChevronDown, ChevronUp,
 import { Link } from "react-router-dom";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { EnhancedFamilyNextStepsPanel } from "@/components/family/EnhancedFamilyNextStepsPanel";
-import { DashboardCaregiverMatches } from "@/components/family/DashboardCaregiverMatches";
+import { FamilyReadinessChecker } from "@/components/family/FamilyReadinessChecker";
 import { FamilyShortcutMenuBar } from "@/components/family/FamilyShortcutMenuBar";
 import { ProfessionalChatRequestsSection } from "@/components/family/ProfessionalChatRequestsSection";
 
@@ -253,9 +252,9 @@ const FamilyDashboard = () => {
           </Card>
         </div>
 
-        {/* Caregiver Matches Section */}
+        {/* Family Readiness Checker - Replaces DashboardCaregiverMatches */}
         <div className="mt-8">
-          <DashboardCaregiverMatches />
+          <FamilyReadinessChecker />
         </div>
 
         {/* Community Support */}
