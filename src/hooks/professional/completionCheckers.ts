@@ -1,6 +1,13 @@
 
 import { ProfileData, ProfessionalDocument, CareTeamAssignment } from './types';
 
+// Define required document types that professionals must upload
+export const REQUIRED_DOCUMENT_TYPES = [
+  'identification', // ID document
+  'certification', // Professional certification
+  'police_clearance' // Police Character Certificate
+] as const;
+
 export const isAccountCreated = (userId: string): boolean => {
   const completed = !!userId;
   console.log(`✅ Step 1 (Account): ${completed} - userId exists: ${!!userId}`);
@@ -39,14 +46,48 @@ export const isAvailabilitySet = (profile: ProfileData | null): boolean => {
   return completed;
 };
 
+export const hasAllRequiredDocuments = (documents: ProfessionalDocument[]): { hasAll: boolean; missing: string[] } => {
+  const documentTypes = documents.map(doc => doc.document_type);
+  const missing: string[] = [];
+  
+  REQUIRED_DOCUMENT_TYPES.forEach(requiredType => {
+    if (!documentTypes.includes(requiredType)) {
+      missing.push(requiredType);
+    }
+  });
+  
+  const hasAll = missing.length === 0;
+  
+  console.log(`📄 Document type check:`, {
+    availableTypes: documentTypes,
+    requiredTypes: REQUIRED_DOCUMENT_TYPES,
+    missing,
+    hasAll
+  });
+  
+  return { hasAll, missing };
+};
+
 export const hasDocuments = (documents: ProfessionalDocument[]): boolean => {
-  const completed = documents.length > 0;
-  console.log(`📄 Step 4 (Documents): ${completed} (count: ${documents.length})`);
-  return completed;
+  const { hasAll, missing } = hasAllRequiredDocuments(documents);
+  
+  console.log(`📄 Step 4 (Documents): ${hasAll}`, {
+    totalDocuments: documents.length,
+    requiredTypes: REQUIRED_DOCUMENT_TYPES,
+    missingTypes: missing,
+    hasAllRequired: hasAll
+  });
+  
+  return hasAll;
 };
 
 export const getDocumentCount = (documents: ProfessionalDocument[]): number => {
   return documents.length;
+};
+
+export const getMissingDocumentTypes = (documents: ProfessionalDocument[]): string[] => {
+  const { missing } = hasAllRequiredDocuments(documents);
+  return missing;
 };
 
 export const hasAssignments = (assignments: CareTeamAssignment[]): boolean => {
@@ -91,7 +132,8 @@ export const checkStepAccessibility = (
       step2Complete,
       step3Complete,
       step4Complete,
-      accessible
+      accessible,
+      missingDocumentTypes: getMissingDocumentTypes(documents)
     });
     
     return accessible;

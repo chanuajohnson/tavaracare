@@ -9,7 +9,8 @@ import {
   hasAssignments,
   hasCertifications,
   checkStepAccessibility,
-  getDocumentCount
+  getDocumentCount,
+  getMissingDocumentTypes
 } from './professional/completionCheckers';
 import { baseSteps, getButtonText, getDocumentNavigationLink } from './professional/stepDefinitions';
 import { ProfessionalStep, SpecificUserProfessionalProgressData } from './professional/types';
@@ -70,14 +71,14 @@ export const useSpecificUserProfessionalProgress = (userId: string): SpecificUse
         console.log(`📊 Step ${baseStep.id} final result: ${completed ? '✅' : '❌'} ${baseStep.title} (accessible: ${accessible})`);
 
         const documentsCount = getDocumentCount(documents);
-        const hasDocsForButtonText = documentsCount > 0;
+        const hasDocsForButtonText = completed && documentsCount > 0;
 
         return {
           ...baseStep,
           link,
           completed,
           accessible,
-          buttonText: getButtonText(baseStep, completed, accessible, hasDocsForButtonText)
+          buttonText: getButtonText(baseStep, completed, accessible, hasDocsForButtonText, documents)
         };
       });
 
@@ -87,7 +88,8 @@ export const useSpecificUserProfessionalProgress = (userId: string): SpecificUse
         completed: s.completed ? '✅' : '❌',
         accessible: s.accessible ? '🔓' : '🔒',
         stage: s.stage,
-        link: s.link
+        link: s.link,
+        missingDocs: s.id === 4 ? getMissingDocumentTypes(documents) : undefined
       })));
 
       setSteps(processedSteps);
