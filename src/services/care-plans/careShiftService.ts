@@ -63,7 +63,7 @@ export const createCareShift = async (
 ): Promise<CareShift | null> => {
   try {
     // Determine initial status based on caregiver assignment
-    const initialStatus = shift.caregiverId ? 'assigned' : 'open';
+    const initialStatus = shift.caregiverId ? 'confirmed' : 'open';
     
     // Convert from domain model input to database model
     const dbShift: CareShiftDto = {
@@ -110,7 +110,7 @@ export const updateCareShift = async (
     let statusUpdate = {};
     if ('caregiverId' in updates) {
       statusUpdate = {
-        status: updates.caregiverId ? 'assigned' : 'open'
+        status: updates.caregiverId ? 'confirmed' : 'open'
       };
     }
     

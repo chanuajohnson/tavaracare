@@ -1,4 +1,3 @@
-
 import { supabase } from '@/lib/supabase';
 import { 
   ShiftCoverageRequest, 
@@ -281,12 +280,12 @@ export const shiftCoverageService = {
           newCaregiverId: claim.claiming_caregiver_id
         });
 
-        // Update both caregiver_id AND status to 'assigned'
+        // Update both caregiver_id AND status to 'confirmed'
         const { error: updateError } = await supabase
           .from('care_shifts')
           .update({ 
             caregiver_id: claim.claiming_caregiver_id,
-            status: 'assigned',
+            status: 'confirmed',
             updated_at: new Date().toISOString()
           })
           .eq('id', claim.coverage_request.shift_id);
