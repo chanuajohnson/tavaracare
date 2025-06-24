@@ -7,7 +7,7 @@ import { PageViewTracker } from "@/components/tracking/PageViewTracker";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useCarePlanData } from "@/hooks/useCarePlanData";
 import { CareTeamMemberWithProfile } from "@/types/careTypes";
-import { ChefHat } from "lucide-react";
+import { ChefHat, FileText } from "lucide-react";
 
 import { CareTeamTab } from "@/components/care-plan/CareTeamTab";
 import { PlanDetailsTab } from "@/components/care-plan/PlanDetailsTab";
@@ -20,6 +20,7 @@ import { CarePlanLoadingState } from "@/components/care-plan/CarePlanLoadingStat
 import { CarePlanNotFound } from "@/components/care-plan/CarePlanNotFound";
 import { RemoveTeamMemberDialog } from "@/components/care-plan/RemoveTeamMemberDialog";
 import { MealPlanner } from "@/components/meal-planning/MealPlanner";
+import { ShiftReportGenerator } from "@/components/care-plan/ShiftReportGenerator";
 
 const CarePlanDetailPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -116,6 +117,10 @@ const CarePlanDetailPage = () => {
               Meals
             </TabsTrigger>
             <TabsTrigger value="schedule">Schedule</TabsTrigger>
+            <TabsTrigger value="reports-shift" className="flex items-center gap-2">
+              <FileText className="h-4 w-4" />
+              Shift Reports
+            </TabsTrigger>
             <TabsTrigger value="reports">Reports</TabsTrigger>
             <TabsTrigger value="payroll">Payroll & Hours</TabsTrigger>
           </TabsList>
@@ -154,6 +159,15 @@ const CarePlanDetailPage = () => {
               careTeamMembers={careTeamMembers}
               onShiftUpdated={reloadCareShifts}
               onDeleteShift={handleDeleteShift}
+            />
+          </TabsContent>
+
+          <TabsContent value="reports-shift">
+            <ShiftReportGenerator
+              carePlanId={id}
+              careShifts={careShifts}
+              careTeamMembers={careTeamMembers}
+              carePlanTitle={carePlan.title}
             />
           </TabsContent>
 
