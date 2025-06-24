@@ -11,6 +11,9 @@ import { CareShift, CareTeamMemberWithProfile } from "@/types/careTypes";
 import { toast } from "sonner";
 import jsPDF from 'jspdf';
 
+// Static import of jspdf-autotable to ensure it extends jsPDF before instantiation
+import 'jspdf-autotable';
+
 // Extend jsPDF type to include autoTable
 declare module 'jspdf' {
   interface jsPDF {
@@ -101,6 +104,37 @@ export const ShiftReportGenerator: React.FC<ShiftReportGeneratorProps> = ({
     }
   };
 
+  // Verify and ensure autoTable plugin is available
+  const ensureAutoTablePlugin = async () => {
+    console.log('Checking autoTable plugin availability...');
+    
+    // Create a test instance to check if autoTable is available
+    const testDoc = new jsPDF();
+    
+    if (typeof testDoc.autoTable === 'function') {
+      console.log('AutoTable plugin is available via static import');
+      return true;
+    }
+
+    console.log('AutoTable not available via static import, trying dynamic import...');
+    
+    try {
+      // Try dynamic import as fallback
+      await import('jspdf-autotable');
+      
+      // Test again after dynamic import
+      const testDoc2 = new jsPDF();
+      if (typeof testDoc2.autoTable === 'function') {
+        console.log('AutoTable plugin loaded via dynamic import');
+        return true;
+      }
+    } catch (error) {
+      console.error('Failed to load autoTable via dynamic import:', error);
+    }
+
+    return false;
+  };
+
   // Generate PDF report
   const generatePDFReport = async () => {
     setIsGenerating(true);
@@ -116,18 +150,21 @@ export const ShiftReportGenerator: React.FC<ShiftReportGeneratorProps> = ({
         return;
       }
 
-      // Import jspdf-autotable as a side effect to extend jsPDF prototype
-      await import('jspdf-autotable');
-      console.log('AutoTable plugin imported');
+      // Ensure autoTable plugin is available
+      const pluginAvailable = await ensureAutoTablePlugin();
+      
+      if (!pluginAvailable) {
+        throw new Error('AutoTable plugin could not be loaded. PDF generation requires the jspdf-autotable plugin.');
+      }
 
       const doc = new jsPDF();
       
-      // Verify autoTable is now available
+      // Final verification that autoTable is available
       if (typeof doc.autoTable !== 'function') {
-        throw new Error('AutoTable plugin failed to initialize. PDF generation requires the jspdf-autotable plugin.');
+        throw new Error('AutoTable method is not available on jsPDF instance after plugin loading.');
       }
       
-      console.log('AutoTable method available:', typeof doc.autoTable);
+      console.log('AutoTable method confirmed available');
       
       // Header
       doc.setFontSize(20);
