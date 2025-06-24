@@ -10,17 +10,7 @@ import { format, addDays, startOfWeek, endOfWeek } from 'date-fns';
 import { CareShift, CareTeamMemberWithProfile } from "@/types/careTypes";
 import { toast } from "sonner";
 import jsPDF from 'jspdf';
-
-// Static import of jspdf-autotable to ensure it extends jsPDF before instantiation
-import 'jspdf-autotable';
-
-// Extend jsPDF type to include autoTable
-declare module 'jspdf' {
-  interface jsPDF {
-    autoTable: (options: any) => jsPDF;
-    lastAutoTable?: { finalY: number };
-  }
-}
+import autoTable from 'jspdf-autotable';
 
 interface ShiftReportGeneratorProps {
   carePlanId: string;
@@ -104,37 +94,6 @@ export const ShiftReportGenerator: React.FC<ShiftReportGeneratorProps> = ({
     }
   };
 
-  // Verify and ensure autoTable plugin is available
-  const ensureAutoTablePlugin = async () => {
-    console.log('Checking autoTable plugin availability...');
-    
-    // Create a test instance to check if autoTable is available
-    const testDoc = new jsPDF();
-    
-    if (typeof testDoc.autoTable === 'function') {
-      console.log('AutoTable plugin is available via static import');
-      return true;
-    }
-
-    console.log('AutoTable not available via static import, trying dynamic import...');
-    
-    try {
-      // Try dynamic import as fallback
-      await import('jspdf-autotable');
-      
-      // Test again after dynamic import
-      const testDoc2 = new jsPDF();
-      if (typeof testDoc2.autoTable === 'function') {
-        console.log('AutoTable plugin loaded via dynamic import');
-        return true;
-      }
-    } catch (error) {
-      console.error('Failed to load autoTable via dynamic import:', error);
-    }
-
-    return false;
-  };
-
   // Generate PDF report
   const generatePDFReport = async () => {
     setIsGenerating(true);
@@ -150,21 +109,9 @@ export const ShiftReportGenerator: React.FC<ShiftReportGeneratorProps> = ({
         return;
       }
 
-      // Ensure autoTable plugin is available
-      const pluginAvailable = await ensureAutoTablePlugin();
-      
-      if (!pluginAvailable) {
-        throw new Error('AutoTable plugin could not be loaded. PDF generation requires the jspdf-autotable plugin.');
-      }
-
       const doc = new jsPDF();
       
-      // Final verification that autoTable is available
-      if (typeof doc.autoTable !== 'function') {
-        throw new Error('AutoTable method is not available on jsPDF instance after plugin loading.');
-      }
-      
-      console.log('AutoTable method confirmed available');
+      console.log('PDF document created, generating report...');
       
       // Header
       doc.setFontSize(20);
@@ -207,8 +154,8 @@ export const ShiftReportGenerator: React.FC<ShiftReportGeneratorProps> = ({
 
       console.log('Table data prepared:', tableData.length, 'rows');
 
-      // Add table using autoTable
-      doc.autoTable({
+      // Add table using autoTable function
+      autoTable(doc, {
         head: [['Date', 'Day', 'Time', 'Shift Title', 'Caregiver', 'Status', 'Location']],
         body: tableData,
         startY: 85,
@@ -239,7 +186,7 @@ export const ShiftReportGenerator: React.FC<ShiftReportGeneratorProps> = ({
 
       // Add summary if detailed report
       if (reportType === 'detailed' && careTeamMembers.length > 0) {
-        const finalY = doc.lastAutoTable?.finalY ? doc.lastAutoTable.finalY + 20 : 200;
+        const finalY = (doc as any).lastAutoTable?.finalY ? (doc as any).lastAutoTable.finalY + 20 : 200;
         
         // Care team summary
         doc.setFontSize(14);
@@ -256,7 +203,7 @@ export const ShiftReportGenerator: React.FC<ShiftReportGeneratorProps> = ({
           ];
         });
 
-        doc.autoTable({
+        autoTable(doc, {
           head: [['Name', 'Type', 'Shifts', 'Role']],
           body: caregiverSummary,
           startY: finalY + 10,
