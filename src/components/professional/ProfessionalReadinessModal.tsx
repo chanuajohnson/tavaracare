@@ -1,11 +1,10 @@
-
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { useNavigate } from 'react-router-dom';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Sparkles, CheckCircle2, Circle, FileText, User, ArrowRight, Unlock, Shield, Award, CreditCard } from 'lucide-react';
+import { Sparkles, CheckCircle2, Circle, FileText, User, ArrowRight, Unlock, Shield, Award, CreditCard, X } from 'lucide-react';
 import { fetchProfileData, fetchDocuments } from '@/hooks/professional/dataFetchers';
 import { isProfileComplete, getMissingDocumentTypes, hasAllRequiredDocuments, REQUIRED_DOCUMENT_TYPES } from '@/hooks/professional/completionCheckers';
 import { getProfessionalRegistrationLink, getDocumentNavigationLink } from '@/hooks/professional/stepDefinitions';
@@ -95,7 +94,16 @@ export const ProfessionalReadinessModal = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[95vw] sm:max-w-md max-h-[90vh] overflow-y-auto mx-auto bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 border-0 shadow-2xl p-4 sm:p-6">
+      <DialogContent className="max-w-[95vw] sm:max-w-md max-h-[90vh] overflow-y-auto mx-auto bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 border-0 shadow-2xl p-4 sm:p-6 relative">
+        {/* Custom Close Button with better positioning and z-index */}
+        <button
+          onClick={() => onOpenChange(false)}
+          className="absolute right-3 top-3 sm:right-4 sm:top-4 z-50 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none bg-white/80 hover:bg-white/100 p-1.5 shadow-sm"
+        >
+          <X className="h-4 w-4" />
+          <span className="sr-only">Close</span>
+        </button>
+
         <DialogHeader className="text-center space-y-3 sm:space-y-4 pb-2">
           <div className="mx-auto relative">
             <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
@@ -283,10 +291,18 @@ export const ProfessionalReadinessModal = ({
         </div>
 
         <div className="pt-3 sm:pt-4 border-t border-white/30">
-          <div className="text-center">
-            <p className="text-xs text-gray-500">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-2">
+            <p className="text-xs text-gray-500 text-center sm:text-left">
               Complete these steps to access our family matching system
             </p>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => onOpenChange(false)}
+              className="text-xs text-gray-600 hover:text-gray-800 sm:hidden"
+            >
+              Close
+            </Button>
           </div>
         </div>
       </DialogContent>
