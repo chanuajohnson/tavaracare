@@ -55,13 +55,23 @@ export const ShiftReportGenerator: React.FC<ShiftReportGeneratorProps> = ({
 
   // Filter shifts by date range
   const getFilteredShifts = () => {
-    const start = new Date(startDate);
-    const end = new Date(endDate);
-    
-    return careShifts.filter(shift => {
-      const shiftDate = new Date(shift.startTime);
-      return shiftDate >= start && shiftDate <= end;
-    });
+    try {
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+      
+      return careShifts.filter(shift => {
+        try {
+          const shiftDate = new Date(shift.startTime);
+          return shiftDate >= start && shiftDate <= end;
+        } catch (err) {
+          console.error('Error parsing shift date:', shift.startTime, err);
+          return false;
+        }
+      });
+    } catch (err) {
+      console.error('Error filtering shifts:', err);
+      return [];
+    }
   };
 
   // Get caregiver name
@@ -71,18 +81,41 @@ export const ShiftReportGenerator: React.FC<ShiftReportGeneratorProps> = ({
     return member?.professionalDetails?.full_name || "Unknown";
   };
 
-  // Format time
+  // Format time safely
   const formatTime = (dateString: string) => {
-    return format(new Date(dateString), "h:mm a");
+    try {
+      return format(new Date(dateString), "h:mm a");
+    } catch (err) {
+      console.error('Error formatting time:', dateString, err);
+      return "Invalid time";
+    }
+  };
+
+  // Format date safely
+  const formatDate = (dateString: string) => {
+    try {
+      return format(new Date(dateString), 'MMM d, yyyy');
+    } catch (err) {
+      console.error('Error formatting date:', dateString, err);
+      return "Invalid date";
+    }
   };
 
   // Generate PDF report
-  const generatePDFReport = () => {
+  const generatePDFReport = async () => {
     setIsGenerating(true);
     
     try {
-      const doc = new jsPDF();
+      console.log('Starting PDF generation...');
       const filteredShifts = getFilteredShifts();
+      console.log('Filtered shifts:', filteredShifts.length);
+      
+      if (filteredShifts.length === 0) {
+        toast.error('No shifts found in the selected date range. Please adjust your date filters.');
+        return;
+      }
+
+      const doc = new jsPDF();
       
       // Header
       doc.setFontSize(20);
@@ -92,24 +125,39 @@ export const ShiftReportGenerator: React.FC<ShiftReportGeneratorProps> = ({
       // Care plan info
       doc.setFontSize(12);
       doc.setTextColor(100);
-      doc.text(`Care Plan: ${carePlanTitle}`, 20, 40);
-      doc.text(`Period: ${format(new Date(startDate), 'MMM d, yyyy')} - ${format(new Date(endDate), 'MMM d, yyyy')}`, 20, 50);
+      doc.text(`Care Plan: ${carePlanTitle || 'Untitled Care Plan'}`, 20, 40);
+      doc.text(`Period: ${formatDate(startDate)} - ${formatDate(endDate)}`, 20, 50);
       doc.text(`Generated on: ${format(new Date(), 'MMM d, yyyy')} at ${format(new Date(), 'h:mm a')}`, 20, 60);
       doc.text(`Total Shifts: ${filteredShifts.length}`, 20, 70);
 
       // Prepare table data
-      const tableData = filteredShifts.map(shift => [
-        format(new Date(shift.startTime), 'MMM d, yyyy'),
-        format(new Date(shift.startTime), 'EEE'),
-        `${formatTime(shift.startTime)} - ${formatTime(shift.endTime)}`,
-        shift.title,
-        getCaregiverName(shift.caregiverId),
-        shift.status || 'Scheduled',
-        shift.location || ''
-      ]);
+      const tableData = filteredShifts.map(shift => {
+        try {
+          return [
+            formatDate(shift.startTime),
+            format(new Date(shift.startTime), 'EEE'),
+            `${formatTime(shift.startTime)} - ${formatTime(shift.endTime)}`,
+            shift.title || 'Untitled Shift',
+            getCaregiverName(shift.caregiverId),
+            shift.status || 'Scheduled',
+            shift.location || 'Not specified'
+          ];
+        } catch (err) {
+          console.error('Error processing shift for table:', shift, err);
+          return [
+            'Invalid date',
+            'N/A',
+            'Invalid time',
+            shift.title || 'Untitled Shift',
+            getCaregiverName(shift.caregiverId),
+            shift.status || 'Scheduled',
+            shift.location || 'Not specified'
+          ];
+        }
+      });
 
       // Add table
-      doc.autoTable({
+      (doc as any).autoTable({
         head: [['Date', 'Day', 'Time', 'Shift Title', 'Caregiver', 'Status', 'Location']],
         body: tableData,
         startY: 85,
@@ -137,7 +185,7 @@ export const ShiftReportGenerator: React.FC<ShiftReportGeneratorProps> = ({
       });
 
       // Add summary if detailed report
-      if (reportType === 'detailed') {
+      if (reportType === 'detailed' && careTeamMembers.length > 0) {
         const finalY = (doc as any).lastAutoTable.finalY + 20;
         
         // Care team summary
@@ -149,13 +197,13 @@ export const ShiftReportGenerator: React.FC<ShiftReportGeneratorProps> = ({
           const memberShifts = filteredShifts.filter(s => s.caregiverId === member.caregiverId);
           return [
             member.professionalDetails?.full_name || 'Unknown',
-            member.professionalDetails?.professional_type || 'Caregiver',
+            member.professionalDetails?.professional_type || 'Care Professional',
             memberShifts.length.toString(),
             member.role || 'Caregiver'
           ];
         });
 
-        doc.autoTable({
+        (doc as any).autoTable({
           head: [['Name', 'Type', 'Shifts', 'Role']],
           body: caregiverSummary,
           startY: finalY + 10,
@@ -179,7 +227,7 @@ export const ShiftReportGenerator: React.FC<ShiftReportGeneratorProps> = ({
       
     } catch (error) {
       console.error('Error generating PDF:', error);
-      toast.error('Failed to generate report. Please try again.');
+      toast.error('Failed to generate report. Please check your data and try again.');
     } finally {
       setIsGenerating(false);
     }
@@ -253,7 +301,7 @@ export const ShiftReportGenerator: React.FC<ShiftReportGeneratorProps> = ({
         <div className="bg-muted/30 rounded-md p-4">
           <h4 className="font-medium mb-2">Report Preview</h4>
           <div className="text-sm text-muted-foreground space-y-1">
-            <p>Period: {format(new Date(startDate), 'MMM d, yyyy')} - {format(new Date(endDate), 'MMM d, yyyy')}</p>
+            <p>Period: {formatDate(startDate)} - {formatDate(endDate)}</p>
             <p>Shifts found: {filteredShifts.length}</p>
             <p>Care team members: {careTeamMembers.length}</p>
             <p>Report type: {reportType === 'detailed' ? 'Detailed with care team summary' : 'Summary only'}</p>
