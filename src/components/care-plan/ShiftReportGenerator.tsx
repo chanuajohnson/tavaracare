@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -75,6 +74,29 @@ export const ShiftReportGenerator: React.FC<ShiftReportGeneratorProps> = ({
     return member?.professionalDetails?.full_name || "Unknown";
   };
 
+  // Get caregiver initials
+  const getCaregiverInitials = (caregiverId?: string) => {
+    const name = getCaregiverName(caregiverId);
+    if (name === "Unassigned" || name === "Unknown") return "?";
+    return name.split(' ')
+      .filter(part => part.length > 0)
+      .map(n => n[0])
+      .join('')
+      .toUpperCase()
+      .substring(0, 2);
+  };
+
+  // Classify shift as day or night
+  const isNightShift = (startTime: string) => {
+    try {
+      const hour = new Date(startTime).getHours();
+      // Night shift: 6 PM (18:00) to 6 AM (06:00)
+      return hour >= 18 || hour < 6;
+    } catch (err) {
+      return false;
+    }
+  };
+
   // Format time safely
   const formatTime = (dateString: string) => {
     try {
@@ -116,10 +138,10 @@ export const ShiftReportGenerator: React.FC<ShiftReportGeneratorProps> = ({
     return colorOptions[hashCode % colorOptions.length];
   };
 
-  // Generate calendar view PDF
+  // Generate enhanced calendar view PDF
   const generateCalendarPDF = async () => {
     const filteredShifts = getFilteredShifts();
-    const doc = new jsPDF();
+    const doc = new jsPDF('landscape'); // Use landscape for better calendar view
     
     // Header
     doc.setFontSize(18);
@@ -132,20 +154,22 @@ export const ShiftReportGenerator: React.FC<ShiftReportGeneratorProps> = ({
     doc.text(`Care Plan: ${carePlanTitle || 'Untitled Care Plan'}`, 20, 35);
     doc.text(`Period: ${formatDate(startDate)} - ${formatDate(endDate)}`, 20, 42);
     doc.text(`Generated: ${format(new Date(), 'MMM d, yyyy h:mm a')}`, 20, 49);
-    doc.text(`Total Shifts: ${filteredShifts.length}`, 20, 56);
 
     const start = new Date(startDate);
     const end = new Date(endDate);
     const daysDiff = differenceInDays(end, start);
     
-    let currentY = 70;
+    // Add caregiver legend in top right
+    generateCaregiverLegendTopRight(doc, filteredShifts);
+    
+    let currentY = 60;
     
     if (daysDiff <= 7) {
       // Weekly view
-      currentY = generateWeeklyCalendar(doc, start, end, filteredShifts, currentY);
+      currentY = generateEnhancedWeeklyCalendar(doc, start, end, filteredShifts, currentY);
     } else if (daysDiff <= 31) {
       // Monthly view  
-      currentY = generateMonthlyCalendar(doc, start, end, filteredShifts, currentY);
+      currentY = generateEnhancedMonthlyCalendar(doc, start, end, filteredShifts, currentY);
     } else {
       // Multi-month view - generate multiple monthly calendars
       let currentStart = startOfMonth(start);
@@ -153,45 +177,88 @@ export const ShiftReportGenerator: React.FC<ShiftReportGeneratorProps> = ({
       
       while (currentStart <= finalEnd) {
         const monthEnd = endOfMonth(currentStart);
-        currentY = generateMonthlyCalendar(doc, currentStart, monthEnd, filteredShifts, currentY);
+        currentY = generateEnhancedMonthlyCalendar(doc, currentStart, monthEnd, filteredShifts, currentY);
         currentStart = addDays(monthEnd, 1);
         
-        // Add new page if needed
-        if (currentY > 250) {
-          doc.addPage();
-          currentY = 20;
+        // Add new page if needed for multi-month
+        if (currentStart <= finalEnd) {
+          doc.addPage('landscape');
+          generateCaregiverLegendTopRight(doc, filteredShifts);
+          currentY = 60;
         }
       }
     }
-
-    // Add caregiver legend
-    if (currentY > 220) {
-      doc.addPage();
-      currentY = 20;
-    }
-    
-    currentY = generateCaregiverLegend(doc, filteredShifts, currentY + 10);
     
     return doc;
   };
 
-  const generateWeeklyCalendar = (doc: jsPDF, start: Date, end: Date, shifts: CareShift[], startY: number) => {
+  const generateCaregiverLegendTopRight = (doc: jsPDF, shifts: CareShift[]) => {
+    const uniqueCaregivers = [...new Set(shifts.map(s => s.caregiverId).filter(Boolean))];
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const legendStartX = pageWidth - 80;
+    let currentY = 25;
+    
+    // Legend header
+    doc.setFontSize(10);
+    doc.setTextColor(40);
+    doc.text('Caregiver Legend', legendStartX, currentY);
+    currentY += 8;
+    
+    uniqueCaregivers.forEach((caregiverId) => {
+      const color = getCaregiverColor(caregiverId);
+      const name = getCaregiverName(caregiverId);
+      const initials = getCaregiverInitials(caregiverId);
+      
+      // Draw color box
+      doc.setFillColor(color[0], color[1], color[2]);
+      doc.rect(legendStartX, currentY - 3, 4, 4, 'F');
+      
+      // Draw caregiver info
+      doc.setFontSize(8);
+      doc.setTextColor(40);
+      doc.text(`${initials} - ${name.substring(0, 12)}`, legendStartX + 8, currentY);
+      
+      currentY += 6;
+    });
+    
+    // Add shift type legend
+    currentY += 3;
+    doc.setFontSize(9);
+    doc.setTextColor(40);
+    doc.text('Shift Types:', legendStartX, currentY);
+    currentY += 6;
+    
+    // Day shift indicator
+    doc.setFillColor(100, 100, 100);
+    doc.circle(legendStartX + 2, currentY - 1, 1.5, 'F');
+    doc.setFontSize(7);
+    doc.text('Day Shift', legendStartX + 8, currentY);
+    currentY += 5;
+    
+    // Night shift indicator
+    doc.setDrawColor(100, 100, 100);
+    doc.setLineWidth(0.5);
+    doc.circle(legendStartX + 2, currentY - 1, 1.5);
+    doc.text('Night Shift', legendStartX + 8, currentY);
+  };
+
+  const generateEnhancedWeeklyCalendar = (doc: jsPDF, start: Date, end: Date, shifts: CareShift[], startY: number) => {
     const weekStart = startOfWeek(start);
     const weekDays = eachDayOfInterval({ start: weekStart, end: addDays(weekStart, 6) });
     
-    const cellWidth = 25;
-    const cellHeight = 60;
+    const cellWidth = 35;
+    const cellHeight = 80;
     const headerHeight = 15;
     
     // Draw week header
-    doc.setFontSize(12);
+    doc.setFontSize(14);
     doc.setTextColor(40);
     doc.text(`Week of ${format(weekStart, 'MMM d, yyyy')}`, 20, startY);
     
-    let currentY = startY + 10;
+    let currentY = startY + 15;
     
     // Draw day headers
-    doc.setFontSize(9);
+    doc.setFontSize(10);
     doc.setTextColor(60);
     weekDays.forEach((day, index) => {
       const x = 20 + (index * cellWidth);
@@ -199,64 +266,104 @@ export const ShiftReportGenerator: React.FC<ShiftReportGeneratorProps> = ({
       doc.text(format(day, 'd'), x + 2, currentY + 15);
       
       // Draw cell border
+      doc.setDrawColor(200, 200, 200);
       doc.rect(x, currentY, cellWidth, cellHeight);
     });
     
-    // Draw shifts
+    // Draw shifts with day/night differentiation
     weekDays.forEach((day, dayIndex) => {
       const dayShifts = shifts.filter(shift => isSameDay(new Date(shift.startTime), day));
       const x = 20 + (dayIndex * cellWidth);
-      let shiftY = currentY + headerHeight + 2;
       
-      dayShifts.slice(0, 3).forEach((shift, shiftIndex) => {
+      // Separate day and night shifts
+      const dayShiftsFiltered = dayShifts.filter(shift => !isNightShift(shift.startTime));
+      const nightShiftsFiltered = dayShifts.filter(shift => isNightShift(shift.startTime));
+      
+      // Draw day shifts in top half
+      let dayShiftY = currentY + headerHeight + 3;
+      dayShiftsFiltered.slice(0, 2).forEach((shift) => {
         const color = getCaregiverColor(shift.caregiverId);
-        doc.setFillColor(color[0], color[1], color[2]);
-        doc.rect(x + 1, shiftY, cellWidth - 2, 8, 'F');
+        const initials = getCaregiverInitials(shift.caregiverId);
         
+        // Draw shift rectangle
+        doc.setFillColor(color[0], color[1], color[2]);
+        doc.rect(x + 2, dayShiftY, cellWidth - 4, 12, 'F');
+        
+        // Draw time and caregiver
         doc.setFontSize(6);
         doc.setTextColor(255, 255, 255);
-        doc.text(`${formatTime(shift.startTime)}`, x + 2, shiftY + 4);
-        doc.text(`${getCaregiverName(shift.caregiverId).substring(0, 8)}`, x + 2, shiftY + 7);
+        doc.text(`${formatTime(shift.startTime).slice(0, 5)}`, x + 3, dayShiftY + 4);
+        doc.text(initials, x + 3, dayShiftY + 8);
         
-        shiftY += 10;
+        // Draw solid circle for day shift
+        doc.setFillColor(255, 255, 255);
+        doc.circle(x + cellWidth - 5, dayShiftY + 4, 1, 'F');
+        
+        dayShiftY += 15;
       });
       
-      if (dayShifts.length > 3) {
+      // Draw night shifts in bottom half
+      let nightShiftY = currentY + headerHeight + 35;
+      nightShiftsFiltered.slice(0, 2).forEach((shift) => {
+        const color = getCaregiverColor(shift.caregiverId);
+        const initials = getCaregiverInitials(shift.caregiverId);
+        
+        // Draw shift rectangle
+        doc.setFillColor(color[0], color[1], color[2]);
+        doc.rect(x + 2, nightShiftY, cellWidth - 4, 12, 'F');
+        
+        // Draw time and caregiver
+        doc.setFontSize(6);
+        doc.setTextColor(255, 255, 255);
+        doc.text(`${formatTime(shift.startTime).slice(0, 5)}`, x + 3, nightShiftY + 4);
+        doc.text(initials, x + 3, nightShiftY + 8);
+        
+        // Draw hollow circle for night shift
+        doc.setDrawColor(255, 255, 255);
+        doc.setLineWidth(0.5);
+        doc.circle(x + cellWidth - 5, nightShiftY + 4, 1);
+        
+        nightShiftY += 15;
+      });
+      
+      // Show overflow count if needed
+      const totalShifts = dayShifts.length;
+      if (totalShifts > 4) {
         doc.setFontSize(6);
         doc.setTextColor(100);
-        doc.text(`+${dayShifts.length - 3} more`, x + 2, shiftY);
+        doc.text(`+${totalShifts - 4} more`, x + 2, currentY + cellHeight - 5);
       }
     });
     
-    return currentY + cellHeight + 10;
+    return currentY + cellHeight + 15;
   };
 
-  const generateMonthlyCalendar = (doc: jsPDF, start: Date, end: Date, shifts: CareShift[], startY: number) => {
+  const generateEnhancedMonthlyCalendar = (doc: jsPDF, start: Date, end: Date, shifts: CareShift[], startY: number) => {
     const monthStart = startOfMonth(start);
     const monthEnd = endOfMonth(end);
     const calendarStart = startOfWeek(monthStart);
     const calendarEnd = endOfWeek(monthEnd);
     const allDays = eachDayOfInterval({ start: calendarStart, end: calendarEnd });
     
-    const cellWidth = 25;
-    const cellHeight = 25;
+    const cellWidth = 35;
+    const cellHeight = 30;
     
     // Draw month header
-    doc.setFontSize(14);
+    doc.setFontSize(16);
     doc.setTextColor(40);
     doc.text(format(monthStart, 'MMMM yyyy'), 20, startY);
     
-    let currentY = startY + 15;
+    let currentY = startY + 20;
     
     // Draw day of week headers
-    doc.setFontSize(8);
+    doc.setFontSize(9);
     doc.setTextColor(60);
     const dayHeaders = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     dayHeaders.forEach((day, index) => {
       doc.text(day, 20 + (index * cellWidth) + 2, currentY + 8);
     });
     
-    currentY += 10;
+    currentY += 12;
     
     // Draw calendar grid
     let weekCount = 0;
@@ -268,6 +375,7 @@ export const ShiftReportGenerator: React.FC<ShiftReportGeneratorProps> = ({
         const y = currentY + (weekCount * cellHeight);
         
         // Draw cell border
+        doc.setDrawColor(200, 200, 200);
         doc.rect(x, y, cellWidth, cellHeight);
         
         // Draw date number
@@ -275,55 +383,42 @@ export const ShiftReportGenerator: React.FC<ShiftReportGeneratorProps> = ({
         doc.setTextColor(day.getMonth() === monthStart.getMonth() ? 40 : 150);
         doc.text(format(day, 'd'), x + 2, y + 10);
         
-        // Draw shifts as colored dots
+        // Draw shifts with day/night differentiation
         const dayShifts = shifts.filter(shift => isSameDay(new Date(shift.startTime), day));
-        dayShifts.slice(0, 4).forEach((shift, shiftIndex) => {
+        const dayShiftsFiltered = dayShifts.filter(shift => !isNightShift(shift.startTime));
+        const nightShiftsFiltered = dayShifts.filter(shift => isNightShift(shift.startTime));
+        
+        // Draw day shifts (solid circles)
+        dayShiftsFiltered.slice(0, 2).forEach((shift, shiftIndex) => {
           const color = getCaregiverColor(shift.caregiverId);
           doc.setFillColor(color[0], color[1], color[2]);
-          const dotX = x + 2 + (shiftIndex % 2) * 6;
-          const dotY = y + 15 + Math.floor(shiftIndex / 2) * 4;
-          doc.circle(dotX, dotY, 1.5, 'F');
+          const dotX = x + 3 + (shiftIndex * 8);
+          const dotY = y + 18;
+          doc.circle(dotX, dotY, 2, 'F');
         });
         
+        // Draw night shifts (hollow circles)
+        nightShiftsFiltered.slice(0, 2).forEach((shift, shiftIndex) => {
+          const color = getCaregiverColor(shift.caregiverId);
+          doc.setDrawColor(color[0], color[1], color[2]);
+          doc.setLineWidth(1);
+          const dotX = x + 3 + (shiftIndex * 8);
+          const dotY = y + 24;
+          doc.circle(dotX, dotY, 2);
+        });
+        
+        // Show overflow
         if (dayShifts.length > 4) {
-          doc.setFontSize(6);
+          doc.setFontSize(5);
           doc.setTextColor(100);
-          doc.text(`+${dayShifts.length - 4}`, x + 15, y + 22);
+          doc.text(`+${dayShifts.length - 4}`, x + 25, y + 28);
         }
       });
       
       weekCount++;
     }
     
-    return currentY + (weekCount * cellHeight) + 10;
-  };
-
-  const generateCaregiverLegend = (doc: jsPDF, shifts: CareShift[], startY: number) => {
-    doc.setFontSize(12);
-    doc.setTextColor(40);
-    doc.text('Caregiver Legend', 20, startY);
-    
-    const uniqueCaregivers = [...new Set(shifts.map(s => s.caregiverId).filter(Boolean))];
-    let currentY = startY + 10;
-    
-    uniqueCaregivers.forEach((caregiverId, index) => {
-      const color = getCaregiverColor(caregiverId);
-      const name = getCaregiverName(caregiverId);
-      const shiftCount = shifts.filter(s => s.caregiverId === caregiverId).length;
-      
-      // Draw color box
-      doc.setFillColor(color[0], color[1], color[2]);
-      doc.rect(20, currentY, 5, 5, 'F');
-      
-      // Draw caregiver info
-      doc.setFontSize(10);
-      doc.setTextColor(40);
-      doc.text(`${name} (${shiftCount} shifts)`, 30, currentY + 4);
-      
-      currentY += 8;
-    });
-    
-    return currentY;
+    return currentY + (weekCount * cellHeight) + 15;
   };
 
   // Generate table PDF (existing functionality)
@@ -563,7 +658,7 @@ export const ShiftReportGenerator: React.FC<ShiftReportGeneratorProps> = ({
             <p>Period: {formatDate(startDate)} - {formatDate(endDate)}</p>
             <p>Shifts found: {filteredShifts.length}</p>
             <p>Care team members: {careTeamMembers.length}</p>
-            <p>Format: {viewType === 'calendar' ? 'Visual calendar layout' : 'Table format'}</p>
+            <p>Format: {viewType === 'calendar' ? 'Visual calendar layout with day/night shift indicators' : 'Table format'}</p>
             <p>Report type: {reportType === 'detailed' ? 'Detailed with care team summary' : 'Summary only'}</p>
           </div>
         </div>
@@ -588,13 +683,14 @@ export const ShiftReportGenerator: React.FC<ShiftReportGeneratorProps> = ({
 
         {/* Instructions */}
         <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
-          <h4 className="font-medium text-blue-900 mb-2">Report Format Options:</h4>
+          <h4 className="font-medium text-blue-900 mb-2">Enhanced Calendar View Features:</h4>
           <ul className="text-sm text-blue-800 space-y-1">
-            <li>• <strong>Calendar View:</strong> Visual calendar layout similar to your shift calendar - perfect for quick overview</li>
-            <li>• <strong>Table View:</strong> Detailed list format with all shift information - great for comprehensive records</li>
-            <li>• Color-coded caregivers in calendar view for easy identification</li>
-            <li>• Automatic layout adjustment based on date range (weekly/monthly)</li>
-            <li>• Caregiver legend included in calendar reports</li>
+            <li>• <strong>Calendar View:</strong> Visual calendar layout with caregiver legend in top-right corner</li>
+            <li>• <strong>Day/Night Shifts:</strong> Solid circles for day shifts, hollow circles for night shifts</li>
+            <li>• <strong>Split Display:</strong> Day shifts in upper half, night shifts in lower half of each cell</li>
+            <li>• <strong>Color Coding:</strong> Each caregiver has a unique color for easy identification</li>
+            <li>• <strong>Single Page:</strong> Weekly and monthly calendars fit on single pages</li>
+            <li>• <strong>Multi-Month:</strong> Separate pages only for date ranges spanning multiple months</li>
           </ul>
         </div>
       </CardContent>
