@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { useNavigate } from 'react-router-dom';
@@ -26,8 +27,8 @@ export const ProfessionalReadinessModal = ({
   const [readinessChecks, setReadinessChecks] = useState({
     profileComplete: false,
     hasIdentification: false,
-    hasCertification: false,
-    hasPoliceCleanrace: false
+    hasCertificate: false, // Updated from hasCertification
+    hasBackgroundCheck: false // Updated from hasPoliceCleanrace
   });
 
   const checkStatus = async () => {
@@ -43,21 +44,21 @@ export const ProfessionalReadinessModal = ({
 
       const profileComplete = isProfileComplete(profile);
       
-      // Check individual document types
+      // Check individual document types with correct names
       const documentTypes = documents.map(doc => doc.document_type);
       const hasIdentification = documentTypes.includes('identification');
-      const hasCertification = documentTypes.includes('certification');
-      const hasPoliceCleanrace = documentTypes.includes('police_clearance');
+      const hasCertificate = documentTypes.includes('certificate'); // Updated
+      const hasBackgroundCheck = documentTypes.includes('background_check'); // Updated
       
       setReadinessChecks({
         profileComplete,
         hasIdentification,
-        hasCertification,
-        hasPoliceCleanrace
+        hasCertificate, // Updated
+        hasBackgroundCheck // Updated
       });
 
       // If all are complete, notify parent and close modal
-      if (profileComplete && hasIdentification && hasCertification && hasPoliceCleanrace) {
+      if (profileComplete && hasIdentification && hasCertificate && hasBackgroundCheck) {
         setTimeout(() => {
           onReadinessAchieved();
         }, 1000);
@@ -89,8 +90,8 @@ export const ProfessionalReadinessModal = ({
 
   const allReady = readinessChecks.profileComplete && 
                    readinessChecks.hasIdentification && 
-                   readinessChecks.hasCertification && 
-                   readinessChecks.hasPoliceCleanrace;
+                   readinessChecks.hasCertificate && // Updated
+                   readinessChecks.hasBackgroundCheck; // Updated
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -208,10 +209,10 @@ export const ProfessionalReadinessModal = ({
                 </div>
               </div>
 
-              {/* Upload Certification */}
+              {/* Upload Certificate */}
               <div className="flex items-center justify-between p-3 sm:p-4 bg-white/70 rounded-lg border border-white/50 shadow-sm">
                 <div className="flex items-center space-x-2 sm:space-x-3 flex-1 min-w-0">
-                  {readinessChecks.hasCertification ? (
+                  {readinessChecks.hasCertificate ? (
                     <CheckCircle2 className="h-4 w-4 sm:h-5 sm:w-5 text-green-500 flex-shrink-0" />
                   ) : (
                     <Circle className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400 flex-shrink-0" />
@@ -222,29 +223,29 @@ export const ProfessionalReadinessModal = ({
                   </div>
                 </div>
                 <div className="flex items-center space-x-1 sm:space-x-2 flex-shrink-0">
-                  {readinessChecks.hasCertification && (
+                  {readinessChecks.hasCertificate && (
                     <Badge variant="secondary" className="bg-green-100 text-green-700 border-green-200 text-xs hidden sm:inline-flex">
                       Uploaded
                     </Badge>
                   )}
                   <Button
-                    variant={readinessChecks.hasCertification ? "outline" : "default"}
+                    variant={readinessChecks.hasCertificate ? "outline" : "default"}
                     size="sm"
-                    onClick={() => handleDocumentAction('certification')}
+                    onClick={() => handleDocumentAction('certificate')}
                     className="flex items-center space-x-1 text-xs px-2 py-1 sm:px-3 sm:py-1 min-h-[36px] sm:min-h-[40px]"
                   >
                     <Award className="h-3 w-3 sm:h-4 sm:w-4" />
-                    <span className="hidden sm:inline">{readinessChecks.hasCertification ? 'Manage' : 'Upload'}</span>
-                    <span className="sm:hidden">{readinessChecks.hasCertification ? 'View' : 'Add'}</span>
+                    <span className="hidden sm:inline">{readinessChecks.hasCertificate ? 'Manage' : 'Upload'}</span>
+                    <span className="sm:hidden">{readinessChecks.hasCertificate ? 'View' : 'Add'}</span>
                     <ArrowRight className="h-2 w-2 sm:h-3 sm:w-3" />
                   </Button>
                 </div>
               </div>
 
-              {/* Upload Police Character Certificate */}
+              {/* Upload Background Check */}
               <div className="flex items-center justify-between p-3 sm:p-4 bg-white/70 rounded-lg border border-white/50 shadow-sm">
                 <div className="flex items-center space-x-2 sm:space-x-3 flex-1 min-w-0">
-                  {readinessChecks.hasPoliceCleanrace ? (
+                  {readinessChecks.hasBackgroundCheck ? (
                     <CheckCircle2 className="h-4 w-4 sm:h-5 sm:w-5 text-green-500 flex-shrink-0" />
                   ) : (
                     <Circle className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400 flex-shrink-0" />
@@ -255,20 +256,20 @@ export const ProfessionalReadinessModal = ({
                   </div>
                 </div>
                 <div className="flex items-center space-x-1 sm:space-x-2 flex-shrink-0">
-                  {readinessChecks.hasPoliceCleanrace && (
+                  {readinessChecks.hasBackgroundCheck && (
                     <Badge variant="secondary" className="bg-green-100 text-green-700 border-green-200 text-xs hidden sm:inline-flex">
                       Uploaded
                     </Badge>
                   )}
                   <Button
-                    variant={readinessChecks.hasPoliceCleanrace ? "outline" : "default"}
+                    variant={readinessChecks.hasBackgroundCheck ? "outline" : "default"}
                     size="sm"
-                    onClick={() => handleDocumentAction('police_clearance')}
+                    onClick={() => handleDocumentAction('background_check')}
                     className="flex items-center space-x-1 text-xs px-2 py-1 sm:px-3 sm:py-1 min-h-[36px] sm:min-h-[40px]"
                   >
                     <Shield className="h-3 w-3 sm:h-4 sm:w-4" />
-                    <span className="hidden sm:inline">{readinessChecks.hasPoliceCleanrace ? 'Manage' : 'Upload'}</span>
-                    <span className="sm:hidden">{readinessChecks.hasPoliceCleanrace ? 'View' : 'Add'}</span>
+                    <span className="hidden sm:inline">{readinessChecks.hasBackgroundCheck ? 'Manage' : 'Upload'}</span>
+                    <span className="sm:hidden">{readinessChecks.hasBackgroundCheck ? 'View' : 'Add'}</span>
                     <ArrowRight className="h-2 w-2 sm:h-3 sm:w-3" />
                   </Button>
                 </div>
