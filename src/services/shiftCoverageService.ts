@@ -275,9 +275,13 @@ export const shiftCoverageService = {
       .single();
 
     if (claim) {
+      // Update both caregiver_id AND status to 'assigned'
       await supabase
         .from('care_shifts')
-        .update({ caregiver_id: claim.claiming_caregiver_id })
+        .update({ 
+          caregiver_id: claim.claiming_caregiver_id,
+          status: 'assigned'
+        })
         .eq('id', claim.coverage_request.shift_id);
     }
   },
