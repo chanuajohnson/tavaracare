@@ -116,16 +116,11 @@ export const ShiftReportGenerator: React.FC<ShiftReportGeneratorProps> = ({
         return;
       }
 
-      // Dynamic import and initialization of jspdf-autotable
-      const autoTableModule = await import('jspdf-autotable');
-      console.log('AutoTable module loaded:', !!autoTableModule);
+      // Import jspdf-autotable as a side effect to extend jsPDF prototype
+      await import('jspdf-autotable');
+      console.log('AutoTable plugin imported');
 
       const doc = new jsPDF();
-      
-      // Apply the autoTable plugin
-      if (autoTableModule.default && typeof autoTableModule.default === 'function') {
-        autoTableModule.default(doc);
-      }
       
       // Verify autoTable is now available
       if (typeof doc.autoTable !== 'function') {
