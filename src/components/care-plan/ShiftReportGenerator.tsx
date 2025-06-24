@@ -10,14 +10,6 @@ import { format, addDays, startOfWeek, endOfWeek } from 'date-fns';
 import { CareShift, CareTeamMemberWithProfile } from "@/types/careTypes";
 import { toast } from "sonner";
 import jsPDF from 'jspdf';
-import 'jspdf-autotable';
-
-// Extend jsPDF type to include autoTable
-declare module 'jspdf' {
-  interface jsPDF {
-    autoTable: (options: any) => jsPDF;
-  }
-}
 
 interface ShiftReportGeneratorProps {
   carePlanId: string;
@@ -107,6 +99,11 @@ export const ShiftReportGenerator: React.FC<ShiftReportGeneratorProps> = ({
     
     try {
       console.log('Starting PDF generation...');
+      
+      // Dynamic import of jspdf-autotable to ensure proper loading
+      const autoTable = await import('jspdf-autotable');
+      console.log('AutoTable plugin loaded:', autoTable);
+      
       const filteredShifts = getFilteredShifts();
       console.log('Filtered shifts:', filteredShifts.length);
       
@@ -116,6 +113,21 @@ export const ShiftReportGenerator: React.FC<ShiftReportGeneratorProps> = ({
       }
 
       const doc = new jsPDF();
+      
+      // Verify autoTable is available
+      if (typeof doc.autoTable !== 'function') {
+        console.error('autoTable method not available on jsPDF instance');
+        // Try to manually attach the plugin
+        if (autoTable.default) {
+          autoTable.default(doc);
+        }
+        
+        if (typeof doc.autoTable !== 'function') {
+          throw new Error('Failed to initialize autoTable plugin');
+        }
+      }
+      
+      console.log('AutoTable method available:', typeof doc.autoTable);
       
       // Header
       doc.setFontSize(20);
@@ -156,8 +168,10 @@ export const ShiftReportGenerator: React.FC<ShiftReportGeneratorProps> = ({
         }
       });
 
-      // Add table
-      (doc as any).autoTable({
+      console.log('Table data prepared:', tableData.length, 'rows');
+
+      // Add table using autoTable
+      doc.autoTable({
         head: [['Date', 'Day', 'Time', 'Shift Title', 'Caregiver', 'Status', 'Location']],
         body: tableData,
         startY: 85,
@@ -184,6 +198,8 @@ export const ShiftReportGenerator: React.FC<ShiftReportGeneratorProps> = ({
         },
       });
 
+      console.log('Main table added successfully');
+
       // Add summary if detailed report
       if (reportType === 'detailed' && careTeamMembers.length > 0) {
         const finalY = (doc as any).lastAutoTable.finalY + 20;
@@ -203,7 +219,7 @@ export const ShiftReportGenerator: React.FC<ShiftReportGeneratorProps> = ({
           ];
         });
 
-        (doc as any).autoTable({
+        doc.autoTable({
           head: [['Name', 'Type', 'Shifts', 'Role']],
           body: caregiverSummary,
           startY: finalY + 10,
@@ -217,17 +233,24 @@ export const ShiftReportGenerator: React.FC<ShiftReportGeneratorProps> = ({
             fontStyle: 'bold',
           },
         });
+
+        console.log('Summary table added successfully');
       }
 
       // Save the PDF
       const fileName = `shift-schedule-${format(new Date(startDate), 'yyyy-MM-dd')}-to-${format(new Date(endDate), 'yyyy-MM-dd')}.pdf`;
       doc.save(fileName);
       
+      console.log('PDF saved successfully:', fileName);
       toast.success('Shift schedule report generated successfully!');
       
     } catch (error) {
       console.error('Error generating PDF:', error);
-      toast.error('Failed to generate report. Please check your data and try again.');
+      if (error instanceof Error) {
+        toast.error(`Failed to generate report: ${error.message}`);
+      } else {
+        toast.error('Failed to generate report. Please check your data and try again.');
+      }
     } finally {
       setIsGenerating(false);
     }
