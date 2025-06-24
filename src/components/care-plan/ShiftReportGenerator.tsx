@@ -11,6 +11,14 @@ import { CareShift, CareTeamMemberWithProfile } from "@/types/careTypes";
 import { toast } from "sonner";
 import jsPDF from 'jspdf';
 
+// Extend jsPDF type to include autoTable
+declare module 'jspdf' {
+  interface jsPDF {
+    autoTable: (options: any) => jsPDF;
+    lastAutoTable?: { finalY: number };
+  }
+}
+
 interface ShiftReportGeneratorProps {
   carePlanId: string;
   careShifts: CareShift[];
@@ -100,10 +108,6 @@ export const ShiftReportGenerator: React.FC<ShiftReportGeneratorProps> = ({
     try {
       console.log('Starting PDF generation...');
       
-      // Dynamic import of jspdf-autotable to ensure proper loading
-      const autoTable = await import('jspdf-autotable');
-      console.log('AutoTable plugin loaded:', autoTable);
-      
       const filteredShifts = getFilteredShifts();
       console.log('Filtered shifts:', filteredShifts.length);
       
@@ -112,19 +116,20 @@ export const ShiftReportGenerator: React.FC<ShiftReportGeneratorProps> = ({
         return;
       }
 
+      // Dynamic import and initialization of jspdf-autotable
+      const autoTableModule = await import('jspdf-autotable');
+      console.log('AutoTable module loaded:', !!autoTableModule);
+
       const doc = new jsPDF();
       
-      // Verify autoTable is available
+      // Apply the autoTable plugin
+      if (autoTableModule.default && typeof autoTableModule.default === 'function') {
+        autoTableModule.default(doc);
+      }
+      
+      // Verify autoTable is now available
       if (typeof doc.autoTable !== 'function') {
-        console.error('autoTable method not available on jsPDF instance');
-        // Try to manually attach the plugin
-        if (autoTable.default) {
-          autoTable.default(doc);
-        }
-        
-        if (typeof doc.autoTable !== 'function') {
-          throw new Error('Failed to initialize autoTable plugin');
-        }
+        throw new Error('AutoTable plugin failed to initialize. PDF generation requires the jspdf-autotable plugin.');
       }
       
       console.log('AutoTable method available:', typeof doc.autoTable);
@@ -202,7 +207,7 @@ export const ShiftReportGenerator: React.FC<ShiftReportGeneratorProps> = ({
 
       // Add summary if detailed report
       if (reportType === 'detailed' && careTeamMembers.length > 0) {
-        const finalY = (doc as any).lastAutoTable.finalY + 20;
+        const finalY = doc.lastAutoTable?.finalY ? doc.lastAutoTable.finalY + 20 : 200;
         
         // Care team summary
         doc.setFontSize(14);
