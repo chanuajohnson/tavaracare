@@ -9,7 +9,7 @@ import { toast } from "sonner";
 
 import { ReportConfiguration } from './report-generator/components/ReportConfiguration';
 import { ReportPreview } from './report-generator/components/ReportPreview';
-import { generateCalendarPDF } from './report-generator/pdf/PDFCalendarGenerator';
+import { generateEnhancedCalendarPDF } from './report-generator/pdf/EnhancedPDFCalendarGenerator';
 import { generateTablePDF } from './report-generator/pdf/PDFTableGenerator';
 import { getFilteredShifts } from './report-generator/utils/dateUtils';
 
@@ -32,12 +32,12 @@ export const ShiftReportGenerator: React.FC<ShiftReportGeneratorProps> = ({
   const [viewType, setViewType] = useState<'calendar' | 'table'>('calendar');
   const [isGenerating, setIsGenerating] = useState(false);
 
-  // Main PDF generation function
+  // Enhanced PDF generation function
   const generatePDFReport = async () => {
     setIsGenerating(true);
     
     try {
-      console.log('Starting PDF generation with view type:', viewType);
+      console.log('Starting enhanced PDF generation with view type:', viewType);
       
       const filteredShifts = getFilteredShifts(careShifts, startDate, endDate);
       console.log('Filtered shifts:', filteredShifts.length);
@@ -50,20 +50,20 @@ export const ShiftReportGenerator: React.FC<ShiftReportGeneratorProps> = ({
       let doc;
       
       if (viewType === 'calendar') {
-        doc = await generateCalendarPDF(startDate, endDate, filteredShifts, carePlanTitle);
+        doc = await generateEnhancedCalendarPDF(startDate, endDate, filteredShifts, carePlanTitle);
       } else {
         doc = await generateTablePDF(startDate, endDate, filteredShifts, careTeamMembers, carePlanTitle, reportType);
       }
       
-      // Save the PDF
-      const fileName = `shift-schedule-${viewType}-${format(new Date(startDate), 'yyyy-MM-dd')}-to-${format(new Date(endDate), 'yyyy-MM-dd')}.pdf`;
+      // Save the PDF with enhanced naming
+      const fileName = `enhanced-care-calendar-${format(new Date(startDate), 'yyyy-MM-dd')}-to-${format(new Date(endDate), 'yyyy-MM-dd')}.pdf`;
       doc.save(fileName);
       
-      console.log('PDF saved successfully:', fileName);
-      toast.success(`${viewType === 'calendar' ? 'Calendar' : 'Table'} schedule report generated successfully!`);
+      console.log('Enhanced PDF saved successfully:', fileName);
+      toast.success(`🌿 Enhanced ${viewType === 'calendar' ? 'timeline calendar' : 'table'} report generated successfully!`);
       
     } catch (error) {
-      console.error('Error generating PDF:', error);
+      console.error('Error generating enhanced PDF:', error);
       if (error instanceof Error) {
         toast.error(`Failed to generate report: ${error.message}`);
       } else {
@@ -81,7 +81,7 @@ export const ShiftReportGenerator: React.FC<ShiftReportGeneratorProps> = ({
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <FileText className="h-5 w-5" />
-          Generate Shift Schedule Report
+          🌿 Enhanced Care Team Calendar
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -105,7 +105,7 @@ export const ShiftReportGenerator: React.FC<ShiftReportGeneratorProps> = ({
           reportType={reportType}
         />
 
-        {/* Generate Actions */}
+        {/* Enhanced Generate Actions */}
         <div className="flex gap-2">
           <Button 
             onClick={generatePDFReport}
@@ -113,7 +113,7 @@ export const ShiftReportGenerator: React.FC<ShiftReportGeneratorProps> = ({
             className="flex items-center gap-2"
           >
             <Download className="h-4 w-4" />
-            {isGenerating ? 'Generating...' : `Download ${viewType === 'calendar' ? 'Calendar' : 'Table'} PDF Report`}
+            {isGenerating ? 'Generating...' : `Download Enhanced ${viewType === 'calendar' ? 'Timeline Calendar' : 'Table'} PDF`}
           </Button>
           
           {filteredShifts.length === 0 && (
@@ -123,16 +123,17 @@ export const ShiftReportGenerator: React.FC<ShiftReportGeneratorProps> = ({
           )}
         </div>
 
-        {/* Instructions */}
-        <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
-          <h4 className="font-medium text-blue-900 mb-2">Enhanced Calendar View Features:</h4>
-          <ul className="text-sm text-blue-800 space-y-1">
-            <li>• <strong>Full-Page Calendar:</strong> Calendar now uses the entire page width for better visibility</li>
-            <li>• <strong>Multi-Week Pages:</strong> 2+ week ranges automatically generate separate pages per week</li>
-            <li>• <strong>Day/Night Shifts:</strong> Solid circles for day shifts, hollow circles for night shifts</li>
-            <li>• <strong>Split Display:</strong> Day shifts in upper half, night shifts in lower half of each cell</li>
-            <li>• <strong>Color Coding:</strong> Each caregiver has a unique color for easy identification</li>
-            <li>• <strong>Improved Legend:</strong> Caregiver legend positioned to avoid calendar overlap</li>
+        {/* Enhanced Instructions */}
+        <div className="bg-green-50 border border-green-200 rounded-md p-4">
+          <h4 className="font-medium text-green-900 mb-2">🌿 Enhanced Timeline Calendar Features:</h4>
+          <ul className="text-sm text-green-800 space-y-1">
+            <li>• <strong>Timeline-Based Layout:</strong> Horizontal shift bars spanning actual time durations</li>
+            <li>• <strong>Smart Space Usage:</strong> Optimized layout with time-based columns (6 AM, 8 AM, 12 PM, etc.)</li>
+            <li>• <strong>Day/Night Separation:</strong> 🌞 Day shifts (upper) and 🌙 Night shifts (lower) clearly separated</li>
+            <li>• <strong>Color-Coded Caregivers:</strong> Each caregiver has unique colors with initials and time spans</li>
+            <li>• <strong>Professional Typography:</strong> Clean, scannable design with proper visual hierarchy</li>
+            <li>• <strong>Enhanced Legend:</strong> Compact bottom legend with caregiver details and shift type indicators</li>
+            <li>• <strong>Coverage Insights:</strong> Visual gaps and overlap detection for better planning</li>
           </ul>
         </div>
       </CardContent>
