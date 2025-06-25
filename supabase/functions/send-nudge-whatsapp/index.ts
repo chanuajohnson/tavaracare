@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
 
@@ -18,14 +17,43 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    const { target_users, message_type, custom_message, care_plan_id, shift_details } = await req.json();
+    const { target_users, message_type, custom_message, care_plan_id, shift_details, schedule_period } = await req.json();
     
-    console.log('WhatsApp nudge request:', { target_users, message_type, care_plan_id, shift_details });
+    console.log('WhatsApp nudge request:', { target_users, message_type, care_plan_id, shift_details, schedule_period });
 
     let recipients = [];
     let messageTemplate = '';
 
-    if (message_type === 'emergency_shift_coverage' && care_plan_id && shift_details) {
+    // Handle schedule sharing message types
+    if (['weekly_schedule_update', 'biweekly_schedule_update', 'monthly_schedule_update'].includes(message_type)) {
+      console.log('Processing schedule sharing request for care plan:', care_plan_id);
+      
+      if (!care_plan_id || !target_users || target_users.length === 0) {
+        throw new Error('Care plan ID and target users are required for schedule sharing');
+      }
+
+      // Get care team members for the care plan
+      const { data: teamMembers, error: teamError } = await supabase
+        .from('care_team_members')
+        .select(`
+          caregiver_id,
+          caregiver:profiles!caregiver_id(full_name, phone_number)
+        `)
+        .eq('care_plan_id', care_plan_id)
+        .in('caregiver_id', target_users)
+        .eq('status', 'active');
+
+      if (teamError) {
+        console.error('Error fetching team members for schedule sharing:', teamError);
+        throw new Error('Failed to fetch care team members');
+      }
+
+      recipients = teamMembers?.filter(member => member.caregiver?.phone_number) || [];
+      messageTemplate = custom_message || getDefaultScheduleMessage(message_type, schedule_period);
+
+      console.log('Schedule sharing recipients:', recipients.length);
+      
+    } else if (message_type === 'emergency_shift_coverage' && care_plan_id && shift_details) {
       // Get care team members for emergency shift coverage
       const { data: teamMembers, error: teamError } = await supabase
         .from('care_team_members')
@@ -138,18 +166,26 @@ Thank you for your quick response!
         }
 
         // Record the nudge in assistant_nudges table
+        const nudgeContext: any = {
+          message_type,
+          phone_number: recipient.phone_number || recipient.caregiver?.phone_number,
+          care_plan_id
+        };
+
+        // Add context specific to message type
+        if (message_type === 'emergency_shift_coverage') {
+          nudgeContext.shift_details = shift_details;
+        } else if (['weekly_schedule_update', 'biweekly_schedule_update', 'monthly_schedule_update'].includes(message_type)) {
+          nudgeContext.schedule_period = schedule_period;
+        }
+
         const { error: nudgeError } = await supabase
           .from('assistant_nudges')
           .insert({
             user_id: recipient.id || recipient.caregiver_id,
             message: messageTemplate,
             status: 'sent',
-            context: {
-              message_type,
-              phone_number: recipient.phone_number || recipient.caregiver?.phone_number,
-              care_plan_id,
-              shift_details: message_type === 'emergency_shift_coverage' ? shift_details : undefined
-            }
+            context: nudgeContext
           });
 
         if (nudgeError) {
@@ -209,4 +245,24 @@ function getDefaultNudgeMessage(messageType: string): string {
   };
   
   return templates[messageType as keyof typeof templates] || templates.general;
+}
+
+function getDefaultScheduleMessage(messageType: string, schedulePeriod?: string): string {
+  const periodLabels = {
+    weekly: 'Weekly',
+    biweekly: 'Bi-Weekly', 
+    monthly: 'Monthly'
+  };
+  
+  const period = schedulePeriod || 'weekly';
+  const label = periodLabels[period as keyof typeof periodLabels] || 'Schedule';
+  
+  return `📅 ${label} Schedule Update
+
+Your care schedule has been updated. Please check the details and contact your care coordinator if you have any questions.
+
+🔗 Login to your dashboard to view full details
+
+Questions? Reply to this message!
+- Chan 💙`;
 }

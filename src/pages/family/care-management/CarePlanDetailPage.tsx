@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/components/providers/AuthProvider";
@@ -111,18 +110,18 @@ const CarePlanDetailPage = () => {
           <TabsList className="mb-6">
             <TabsTrigger value="details">Plan Details</TabsTrigger>
             <TabsTrigger value="team">Care Team</TabsTrigger>
-            <TabsTrigger value="medications">Medications</TabsTrigger>
-            <TabsTrigger value="meals" className="flex items-center gap-2">
-              <ChefHat className="h-4 w-4" />
-              Meals
-            </TabsTrigger>
             <TabsTrigger value="schedule">Schedule</TabsTrigger>
-            <TabsTrigger value="reports-shift" className="flex items-center gap-2">
-              <FileText className="h-4 w-4" />
+            <TabsTrigger value="payroll">Payroll & Hours</TabsTrigger>
+            <TabsTrigger value="medications">Medications</TabsTrigger>
+            <TabsTrigger value="reports">Reports</TabsTrigger>
+            <TabsTrigger value="meals">
+              <ChefHat className="mr-2 h-4 w-4" />
+              Meal Planning
+            </TabsTrigger>
+            <TabsTrigger value="shift-reports">
+              <FileText className="mr-2 h-4 w-4" />
               Shift Reports
             </TabsTrigger>
-            <TabsTrigger value="reports">Reports</TabsTrigger>
-            <TabsTrigger value="payroll">Payroll & Hours</TabsTrigger>
           </TabsList>
           
           <TabsContent value="details">
@@ -153,8 +152,9 @@ const CarePlanDetailPage = () => {
           
           <TabsContent value="schedule">
             <EnhancedScheduleTab
-              carePlanId={id}
-              familyId={user.id}
+              carePlanId={id!}
+              carePlanTitle={carePlan?.title || 'Care Plan'}
+              familyId={carePlan?.family_id || user.id}
               careShifts={careShifts}
               careTeamMembers={careTeamMembers}
               onShiftUpdated={reloadCareShifts}
@@ -162,7 +162,7 @@ const CarePlanDetailPage = () => {
             />
           </TabsContent>
 
-          <TabsContent value="reports-shift">
+          <TabsContent value="shift-reports">
             <ShiftReportGenerator
               carePlanId={id}
               careShifts={careShifts}
