@@ -50,7 +50,7 @@ export const ShiftReportGenerator: React.FC<ShiftReportGeneratorProps> = ({
       let doc;
       
       if (viewType === 'calendar') {
-        // Use the new grid-based generator that mirrors ShiftCalendar.tsx
+        // Use the enhanced grid-based generator that mirrors ShiftCalendar.tsx
         doc = await generateGridBasedCalendarPDF(startDate, endDate, filteredShifts, careTeamMembers, carePlanTitle);
       } else {
         doc = await generateTablePDF(startDate, endDate, filteredShifts, careTeamMembers, carePlanTitle, reportType);
@@ -60,7 +60,7 @@ export const ShiftReportGenerator: React.FC<ShiftReportGeneratorProps> = ({
       const fileName = `care-schedule-${format(new Date(startDate), 'yyyy-MM-dd')}-to-${format(new Date(endDate), 'yyyy-MM-dd')}.pdf`;
       doc.save(fileName);
       
-      console.log('Grid-based PDF saved successfully:', fileName);
+      console.log('Enhanced grid-based PDF saved successfully:', fileName);
       toast.success(`📅 ${viewType === 'calendar' ? 'Calendar schedule' : 'Table'} report generated successfully!`);
       
     } catch (error) {
@@ -124,17 +124,18 @@ export const ShiftReportGenerator: React.FC<ShiftReportGeneratorProps> = ({
           )}
         </div>
 
-        {/* Instructions */}
+        {/* Updated Instructions */}
         <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
-          <h4 className="font-medium text-blue-900 mb-2">📅 Calendar Schedule Features:</h4>
+          <h4 className="font-medium text-blue-900 mb-2">📅 Enhanced Calendar Schedule Features:</h4>
           <ul className="text-sm text-blue-800 space-y-1">
+            <li>• <strong>Day/Night Separation:</strong> Shifts organized by time - Day shifts (6 AM - 5 PM) and Night shifts (5 PM - 6 AM)</li>
             <li>• <strong>Grid Layout:</strong> Weekly view with Sunday through Saturday columns</li>
             <li>• <strong>Color-Coded Shifts:</strong> Each caregiver has unique colors matching the app</li>
-            <li>• <strong>Shift Cards:</strong> Shows title, time range, and caregiver initials</li>
+            <li>• <strong>Improved Shift Cards:</strong> Caregiver initials in top-left corner, clear shift details</li>
             <li>• <strong>Weekend Highlighting:</strong> Blue background for Saturday and Sunday</li>
-            <li>• <strong>Overflow Handling:</strong> "+X more" indicator when multiple shifts per day</li>
+            <li>• <strong>Overflow Handling:</strong> "+X more" indicator when multiple shifts per time period</li>
             <li>• <strong>Caregiver Summary:</strong> Shows shift count per caregiver at the top</li>
-            <li>• <strong>Print-Ready:</strong> Optimized layout and spacing for professional printing</li>
+            <li>• <strong>Print-Ready:</strong> Optimized layout with proper margins and page boundaries</li>
           </ul>
         </div>
       </CardContent>

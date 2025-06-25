@@ -23,8 +23,8 @@ export const getCaregiverInitials = (caregiverId?: string, careTeamMembers: Care
 export const isNightShift = (startTime: string) => {
   try {
     const hour = getHours(new Date(startTime));
-    // Night shift: 6 PM (18:00) to 6 AM (06:00)
-    return hour >= 18 || hour < 6;
+    // Updated: Night shift starts at 5 PM (17:00) through 6 AM (06:00)
+    return hour >= 17 || hour < 6;
   } catch (err) {
     return false;
   }

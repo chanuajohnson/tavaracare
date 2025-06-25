@@ -2,7 +2,7 @@
 import jsPDF from 'jspdf';
 import { format, addDays, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay, differenceInDays, eachWeekOfInterval } from 'date-fns';
 import { CareShift, CareTeamMemberWithProfile } from "@/types/careTypes";
-import { getCaregiverColor, getCaregiverInitials, getCaregiverName, formatTime, formatDate } from '../utils/caregiverUtils';
+import { getCaregiverColor, getCaregiverInitials, getCaregiverName, formatTime, formatDate, isNightShift } from '../utils/enhancedCaregiverUtils';
 
 const DAYS_OF_WEEK = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
@@ -12,6 +12,12 @@ interface GridShift {
   caregiverInitials: string;
   color: number[];
   timeDisplay: string;
+  isNight: boolean;
+}
+
+interface DayShifts {
+  dayShifts: GridShift[];
+  nightShifts: GridShift[];
 }
 
 export const generateGridBasedCalendarPDF = async (
@@ -26,11 +32,14 @@ export const generateGridBasedCalendarPDF = async (
   const end = new Date(endDate);
   const daysDiff = differenceInDays(end, start);
   
-  // Page dimensions
+  // Page dimensions with proper margins
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
   const margin = 20;
+  const topMargin = 80; // Space for header and summary
+  const bottomMargin = 40; // Space for about section
   const availableWidth = pageWidth - (margin * 2);
+  const availableHeight = pageHeight - topMargin - bottomMargin;
   const columnWidth = availableWidth / 7;
   
   // Generate header
@@ -43,7 +52,7 @@ export const generateGridBasedCalendarPDF = async (
   
   if (daysDiff <= 7) {
     // Single week view
-    currentY = generateWeekGrid(doc, start, end, filteredShifts, careTeamMembers, currentY, margin, columnWidth);
+    currentY = generateWeekGrid(doc, start, end, filteredShifts, careTeamMembers, currentY, margin, columnWidth, availableHeight);
   } else {
     // Multi-week view
     const weeks = eachWeekOfInterval({ start, end });
@@ -58,12 +67,13 @@ export const generateGridBasedCalendarPDF = async (
         currentY = generateCaregiverSummary(doc, filteredShifts, careTeamMembers, currentY, margin);
       }
       
-      currentY = generateWeekGrid(doc, weekStart, weekEnd, filteredShifts, careTeamMembers, currentY, margin, columnWidth);
+      currentY = generateWeekGrid(doc, weekStart, weekEnd, filteredShifts, careTeamMembers, currentY, margin, columnWidth, availableHeight);
     });
   }
   
-  // Add about section at bottom
-  generateAboutSection(doc, currentY, margin);
+  // Add about section at bottom (ensure it fits)
+  const aboutY = Math.min(currentY + 20, pageHeight - bottomMargin);
+  generateAboutSection(doc, aboutY, margin);
   
   return doc;
 };
@@ -125,18 +135,23 @@ const generateWeekGrid = (
   careTeamMembers: CareTeamMemberWithProfile[],
   startY: number,
   margin: number,
-  columnWidth: number
+  columnWidth: number,
+  availableHeight: number
 ): number => {
   const week = startOfWeek(weekStart);
   const weekDays = eachDayOfInterval({ start: week, end: addDays(week, 6) });
   
   let currentY = startY;
   
-  // Draw day headers (mirroring ShiftCalendar format)
+  // Draw day headers
   currentY = generateDayHeaders(doc, weekDays, currentY, margin, columnWidth);
   
-  // Draw the grid and shifts
-  currentY = generateDayGrid(doc, weekDays, shifts, careTeamMembers, currentY, margin, columnWidth);
+  // Draw shift type labels
+  currentY = generateShiftTypeLabels(doc, currentY, margin, columnWidth);
+  
+  // Draw the grid and shifts with proper height constraints
+  const maxCellHeight = Math.min(120, (availableHeight - (currentY - startY)) / 2); // Divide by 2 for day/night rows
+  currentY = generateDayNightGrid(doc, weekDays, shifts, careTeamMembers, currentY, margin, columnWidth, maxCellHeight);
   
   return currentY + 20;
 };
@@ -149,12 +164,13 @@ const generateDayHeaders = (
   columnWidth: number
 ): number => {
   const headerHeight = 25;
+  const labelWidth = 80; // Space for "Day Shift"/"Night Shift" labels
   
   doc.setFontSize(10);
   doc.setTextColor(60, 60, 60);
   
   weekDays.forEach((day, index) => {
-    const x = margin + (index * columnWidth);
+    const x = margin + labelWidth + (index * columnWidth);
     const centerX = x + (columnWidth / 2);
     
     // Day name and date (like "Mon 24")
@@ -174,67 +190,86 @@ const generateDayHeaders = (
   doc.setDrawColor(180, 180, 180);
   doc.setLineWidth(1);
   const gridWidth = columnWidth * 7;
-  doc.line(margin, startY + headerHeight, margin + gridWidth, startY + headerHeight);
+  doc.line(margin + labelWidth, startY + headerHeight, margin + labelWidth + gridWidth, startY + headerHeight);
   
   return startY + headerHeight;
 };
 
-const generateDayGrid = (
+const generateShiftTypeLabels = (
+  doc: jsPDF,
+  startY: number,
+  margin: number,
+  columnWidth: number
+): number => {
+  const labelWidth = 80;
+  const rowHeight = 60; // Height for each shift type row
+  
+  doc.setFontSize(10);
+  doc.setTextColor(60, 60, 60);
+  
+  // Day Shift label
+  doc.text('Day Shift', margin + 5, startY + 35);
+  doc.text('(6 AM - 5 PM)', margin + 5, startY + 45);
+  
+  // Night Shift label
+  doc.text('Night Shift', margin + 5, startY + 35 + rowHeight);
+  doc.text('(5 PM - 6 AM)', margin + 5, startY + 45 + rowHeight);
+  
+  // Draw horizontal separator between day and night
+  doc.setDrawColor(200, 200, 200);
+  doc.setLineWidth(0.5);
+  const gridWidth = columnWidth * 7;
+  doc.line(margin + labelWidth, startY + rowHeight, margin + labelWidth + gridWidth, startY + rowHeight);
+  
+  return startY;
+};
+
+const generateDayNightGrid = (
   doc: jsPDF,
   weekDays: Date[],
   shifts: CareShift[],
   careTeamMembers: CareTeamMemberWithProfile[],
   startY: number,
   margin: number,
-  columnWidth: number
+  columnWidth: number,
+  maxCellHeight: number
 ): number => {
-  const cellHeight = 90; // Increased height to accommodate multiple shifts
+  const labelWidth = 80;
+  const rowHeight = Math.min(60, maxCellHeight); // Height for each shift type row
   const cellPadding = 4;
   
   weekDays.forEach((day, dayIndex) => {
     const isWeekend = dayIndex === 0 || dayIndex === 6;
-    const x = margin + (dayIndex * columnWidth);
+    const x = margin + labelWidth + (dayIndex * columnWidth);
     
-    // Background color for weekends (mirroring ShiftCalendar)
-    if (isWeekend) {
-      doc.setFillColor(240, 248, 255); // bg-blue-50 equivalent
-      doc.rect(x, startY, columnWidth, cellHeight, 'F');
-    } else {
-      doc.setFillColor(250, 250, 250); // Light gray background
-      doc.rect(x, startY, columnWidth, cellHeight, 'F');
-    }
-    
-    // Cell border
-    doc.setDrawColor(220, 220, 220);
-    doc.setLineWidth(0.5);
-    doc.rect(x, startY, columnWidth, cellHeight);
-    
-    // Get shifts for this day
+    // Get shifts for this day separated by type
     const dayShifts = getShiftsForDay(day, shifts, careTeamMembers);
     
-    if (dayShifts.length === 0) {
-      // Show plus icon placeholder (simplified)
-      doc.setTextColor(150, 150, 150);
-      doc.setFontSize(16);
-      doc.text('+', x + (columnWidth / 2), startY + (cellHeight / 2), { align: 'center' });
-    } else {
-      // Render shifts (limit to 3 visible, show overflow)
-      renderDayShifts(doc, dayShifts, x + cellPadding, startY + cellPadding, columnWidth - (cellPadding * 2), cellHeight - (cellPadding * 2));
-    }
+    // Day shift section
+    renderShiftSection(doc, dayShifts.dayShifts, x, startY, columnWidth, rowHeight, cellPadding, isWeekend, 'day');
+    
+    // Night shift section
+    renderShiftSection(doc, dayShifts.nightShifts, x, startY + rowHeight, columnWidth, rowHeight, cellPadding, isWeekend, 'night');
     
     // Column separator
     if (dayIndex < 6) {
       doc.setDrawColor(220, 220, 220);
       doc.setLineWidth(0.5);
-      doc.line(x + columnWidth, startY, x + columnWidth, startY + cellHeight);
+      doc.line(x + columnWidth, startY, x + columnWidth, startY + (rowHeight * 2));
     }
   });
   
-  return startY + cellHeight;
+  // Bottom border
+  doc.setDrawColor(180, 180, 180);
+  doc.setLineWidth(1);
+  const gridWidth = columnWidth * 7;
+  doc.line(margin + labelWidth, startY + (rowHeight * 2), margin + labelWidth + gridWidth, startY + (rowHeight * 2));
+  
+  return startY + (rowHeight * 2);
 };
 
-const getShiftsForDay = (day: Date, shifts: CareShift[], careTeamMembers: CareTeamMemberWithProfile[]): GridShift[] => {
-  return shifts
+const getShiftsForDay = (day: Date, shifts: CareShift[], careTeamMembers: CareTeamMemberWithProfile[]): DayShifts => {
+  const allShifts = shifts
     .filter(shift => {
       if (!shift.startTime) return false;
       return isSameDay(new Date(shift.startTime), day);
@@ -244,28 +279,70 @@ const getShiftsForDay = (day: Date, shifts: CareShift[], careTeamMembers: CareTe
       caregiverName: getCaregiverName(shift.caregiverId, careTeamMembers),
       caregiverInitials: getCaregiverInitials(shift.caregiverId, careTeamMembers),
       color: getCaregiverColor(shift.caregiverId),
-      timeDisplay: `${formatTime(shift.startTime)} - ${formatTime(shift.endTime)}`
+      timeDisplay: `${formatTime(shift.startTime)} - ${formatTime(shift.endTime)}`,
+      isNight: isNightShift(shift.startTime)
     }));
+  
+  return {
+    dayShifts: allShifts.filter(s => !s.isNight),
+    nightShifts: allShifts.filter(s => s.isNight)
+  };
 };
 
-const renderDayShifts = (
+const renderShiftSection = (
   doc: jsPDF,
-  dayShifts: GridShift[],
+  sectionShifts: GridShift[],
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  cellPadding: number,
+  isWeekend: boolean,
+  sectionType: 'day' | 'night'
+) => {
+  // Background color for weekends
+  if (isWeekend) {
+    doc.setFillColor(240, 248, 255); // bg-blue-50 equivalent
+    doc.rect(x, y, width, height, 'F');
+  } else {
+    doc.setFillColor(250, 250, 250); // Light gray background
+    doc.rect(x, y, width, height, 'F');
+  }
+  
+  // Cell border
+  doc.setDrawColor(220, 220, 220);
+  doc.setLineWidth(0.5);
+  doc.rect(x, y, width, height);
+  
+  if (sectionShifts.length === 0) {
+    // Show plus icon placeholder
+    doc.setTextColor(150, 150, 150);
+    doc.setFontSize(12);
+    doc.text('+', x + (width / 2), y + (height / 2), { align: 'center' });
+  } else {
+    // Render shifts with updated positioning
+    renderSectionShifts(doc, sectionShifts, x + cellPadding, y + cellPadding, width - (cellPadding * 2), height - (cellPadding * 2));
+  }
+};
+
+const renderSectionShifts = (
+  doc: jsPDF,
+  sectionShifts: GridShift[],
   x: number,
   y: number,
   width: number,
   height: number
 ) => {
-  const shiftHeight = 20;
+  const shiftHeight = 18;
   const shiftSpacing = 2;
-  const maxVisibleShifts = Math.floor((height - 10) / (shiftHeight + shiftSpacing));
-  const visibleShifts = dayShifts.slice(0, maxVisibleShifts);
-  const hasOverflow = dayShifts.length > maxVisibleShifts;
+  const maxVisibleShifts = Math.floor(height / (shiftHeight + shiftSpacing));
+  const visibleShifts = sectionShifts.slice(0, maxVisibleShifts);
+  const hasOverflow = sectionShifts.length > maxVisibleShifts;
   
   visibleShifts.forEach((gridShift, index) => {
     const shiftY = y + (index * (shiftHeight + shiftSpacing));
     
-    // Shift card background (mirroring ShiftCalendar styling)
+    // Shift card background
     doc.setFillColor(gridShift.color[0], gridShift.color[1], gridShift.color[2]);
     doc.roundedRect(x, shiftY, width - 2, shiftHeight, 2, 2, 'F');
     
@@ -274,49 +351,52 @@ const renderDayShifts = (
     doc.setLineWidth(0.5);
     doc.roundedRect(x, shiftY, width - 2, shiftHeight, 2, 2, 'S');
     
-    // Shift text content
-    doc.setTextColor(255, 255, 255);
-    doc.setFontSize(8);
+    // Caregiver initials circle - MOVED TO TOP-LEFT
+    const initialsX = x + 8;
+    const initialsY = shiftY + 6;
+    doc.setFillColor(255, 255, 255);
+    doc.circle(initialsX, initialsY, 4, 'F');
+    doc.setTextColor(gridShift.color[0], gridShift.color[1], gridShift.color[2]);
+    doc.setFontSize(5);
+    doc.text(gridShift.caregiverInitials, initialsX, initialsY + 1.5, { align: 'center' });
     
-    // Title
+    // Shift text content - adjusted positioning to avoid initials
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(7);
+    
+    // Title - moved right to avoid initials
     const titleText = gridShift.shift.title || 'Shift';
-    doc.text(titleText, x + 2, shiftY + 6);
+    doc.text(titleText, x + 18, shiftY + 6);
     
     // Time
-    doc.setFontSize(7);
-    doc.setTextColor(240, 240, 240);
-    doc.text(gridShift.timeDisplay, x + 2, shiftY + 12);
-    
-    // Caregiver initials (small circle on right)
-    const initialsX = x + width - 15;
-    doc.setFillColor(255, 255, 255);
-    doc.circle(initialsX, shiftY + 10, 6, 'F');
-    doc.setTextColor(gridShift.color[0], gridShift.color[1], gridShift.color[2]);
     doc.setFontSize(6);
-    doc.text(gridShift.caregiverInitials, initialsX, shiftY + 12, { align: 'center' });
+    doc.setTextColor(240, 240, 240);
+    doc.text(gridShift.timeDisplay, x + 18, shiftY + 12);
     
     // Caregiver name
     doc.setTextColor(240, 240, 240);
-    doc.setFontSize(6);
+    doc.setFontSize(5);
     const nameText = gridShift.caregiverName === 'Unassigned' ? 'Unassigned' : gridShift.caregiverName;
-    doc.text(nameText, x + 2, shiftY + 17);
+    const maxNameLength = 12; // Limit name length to fit
+    const displayName = nameText.length > maxNameLength ? nameText.substring(0, maxNameLength) + '...' : nameText;
+    doc.text(displayName, x + 18, shiftY + 16);
   });
   
   // Overflow indicator
   if (hasOverflow) {
     const overflowY = y + (maxVisibleShifts * (shiftHeight + shiftSpacing));
-    doc.setTextColor(100, 100, 100);
-    doc.setFontSize(7);
-    doc.text(`+${dayShifts.length - maxVisibleShifts} more`, x + 2, overflowY + 8);
+    if (overflowY + 8 <= y + height) { // Ensure it fits
+      doc.setTextColor(100, 100, 100);
+      doc.setFontSize(6);
+      doc.text(`+${sectionShifts.length - maxVisibleShifts} more`, x + 2, overflowY + 6);
+    }
   }
 };
 
 const generateAboutSection = (doc: jsPDF, startY: number, margin: number) => {
-  const aboutY = startY + 20;
-  
   doc.setFontSize(12);
   doc.setTextColor(60, 60, 60);
-  doc.text('About the Schedule', margin, aboutY);
+  doc.text('About the Schedule', margin, startY);
   
   doc.setFontSize(9);
   doc.setTextColor(100, 100, 100);
@@ -324,12 +404,13 @@ const generateAboutSection = (doc: jsPDF, startY: number, margin: number) => {
   const aboutItems = [
     '• Different colors represent different caregivers',
     '• Weekend days are highlighted with blue background',
-    '• Multiple shifts per day are stacked vertically',
+    '• Day shifts (6 AM - 5 PM) and night shifts (5 PM - 6 AM) are separated into different rows',
+    '• Multiple shifts per time period are stacked vertically',
     '• Overflow shifts are indicated with "+X more"',
-    '• Caregiver initials appear in circles on each shift card'
+    '• Caregiver initials appear in circles at the top-left of each shift card'
   ];
   
   aboutItems.forEach((item, index) => {
-    doc.text(item, margin, aboutY + 15 + (index * 10));
+    doc.text(item, margin, startY + 15 + (index * 8));
   });
 };
