@@ -173,15 +173,13 @@ export const ShareScheduleModal: React.FC<ShareScheduleModalProps> = ({
       setSending(true);
       
       const scheduleMessage = formatScheduleMessage(selectedPeriod);
-      const messageType = `${selectedPeriod}_schedule_update`;
 
+      // Use the same parameter structure as NudgeSystem
       const { data, error } = await supabase.functions.invoke('send-nudge-whatsapp', {
         body: {
-          target_users: selectedMembers,
-          message_type: messageType,
-          custom_message: scheduleMessage,
-          care_plan_id: carePlanId,
-          schedule_period: selectedPeriod
+          userIds: selectedMembers, // Changed from target_users to userIds to match NudgeSystem
+          message: scheduleMessage, // Changed from custom_message to message to match NudgeSystem
+          templateId: `${selectedPeriod}_schedule_update` // Use templateId instead of message_type
         }
       });
 
