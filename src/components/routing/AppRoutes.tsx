@@ -1,4 +1,3 @@
-
 import { Routes, Route } from "react-router-dom";
 import { useAuth } from "@/components/providers/AuthProvider";
 import Index from "@/pages/Index";
@@ -15,6 +14,7 @@ import UserJourneyPage from "@/pages/admin/UserJourneyPage";
 import FeedbackManagementPage from "@/pages/admin/FeedbackManagementPage";
 import WhatsAppNudgePage from "@/pages/admin/WhatsAppNudgePage";
 import PlatformAnalyticsPage from "@/pages/admin/PlatformAnalyticsPage";
+import ShiftManagementPage from "@/pages/admin/ShiftManagementPage";
 import FeaturesPage from "@/pages/features/FeaturesPage";
 import AboutPage from "@/pages/about/AboutPage";
 import FAQPage from "@/pages/support/FAQPage";
@@ -135,6 +135,7 @@ export const AppRoutes = () => {
       <Route path="/admin/feedback" element={<FeedbackManagementPage />} />
       <Route path="/admin/whatsapp-nudge" element={<WhatsAppNudgePage />} />
       <Route path="/admin/platform-analytics" element={<PlatformAnalyticsPage />} />
+      <Route path="/admin/shift-management" element={<ShiftManagementPage />} />
       
       {/* Legacy Routes */}
       <Route path="/legacy/stories" element={<LegacyStoriesPage />} />
