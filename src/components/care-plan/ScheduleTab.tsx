@@ -17,6 +17,7 @@ import { createCareShift, updateCareShift } from "@/services/care-plans";
 import { WorkLogForm } from './WorkLogForm';
 import { EmergencyShiftWhatsAppModal } from './EmergencyShiftWhatsAppModal';
 import { toast } from "sonner";
+import { getShiftTimeMappings, getShiftMappingById } from './utils/shiftTimeMapping';
 
 interface ScheduleTabProps {
   carePlanId: string;
@@ -25,13 +26,6 @@ interface ScheduleTabProps {
   careTeamMembers: CareTeamMemberWithProfile[];
   onShiftUpdated: () => void;
   onDeleteShift: (shiftId: string) => void;
-}
-
-interface ShiftTypeOption {
-  id: string;
-  label: string;
-  description: string;
-  timeRange: { start: string; end: string };
 }
 
 export const ScheduleTab: React.FC<ScheduleTabProps> = ({
@@ -71,18 +65,8 @@ export const ScheduleTab: React.FC<ScheduleTabProps> = ({
     reason: string;
   }>({ shift: null, reason: '' });
 
-  const SHIFT_TITLE_OPTIONS: ShiftTypeOption[] = [
-    { id: "weekday_standard", label: "Monday - Friday, 8 AM - 4 PM", description: "Standard daytime coverage during business hours", timeRange: { start: "08:00", end: "16:00" } },
-    { id: "weekday_standard_extended", label: "Monday - Friday, 8 AM - 6 PM", description: "Extended daytime coverage with longer hours", timeRange: { start: "08:00", end: "18:00" } },
-    { id: "weekday_extended", label: "Monday - Friday, 6 AM - 6 PM", description: "Extended daytime coverage for more comprehensive care", timeRange: { start: "06:00", end: "18:00" } },
-    { id: "weekday_night", label: "Monday - Friday, 6 PM - 8 AM", description: "Extended nighttime coverage to relieve standard daytime coverage", timeRange: { start: "18:00", end: "08:00" } },
-    { id: "saturday_sunday", label: "Saturday - Sunday, 6 AM - 6 PM", description: "Daytime weekend coverage with a dedicated caregiver", timeRange: { start: "06:00", end: "18:00" } },
-    { id: "saturday_sunday_8am_6pm", label: "Saturday - Sunday, 8 AM - 6 PM", description: "Standard weekend coverage for family assistance", timeRange: { start: "08:00", end: "18:00" } },
-    { id: "weekday_evening_4pm_6am", label: "Weekday Evening Shift (4 PM - 6 AM)", description: "Evening care on weekdays after the primary shift ends, or continuous 24-hour coverage", timeRange: { start: "16:00", end: "06:00" } },
-    { id: "weekday_evening_4pm_8am", label: "Weekday Evening Shift (4 PM - 8 AM)", description: "Evening care on weekdays after the primary shift ends, or continuous 24-hour coverage", timeRange: { start: "16:00", end: "08:00" } },
-    { id: "weekday_evening_6pm_6am", label: "Weekday Evening Shift (6 PM - 6 AM)", description: "Evening care on weekdays after the primary shift ends, or continuous 24-hour coverage", timeRange: { start: "18:00", end: "06:00" } },
-    { id: "weekday_evening_6pm_8am", label: "Weekday Evening Shift (6 PM - 8 AM)", description: "Evening care on weekdays after the primary shift ends, or continuous 24-hour coverage", timeRange: { start: "18:00", end: "08:00" } }
-  ];
+  // Get standardized shift options
+  const SHIFT_TITLE_OPTIONS = getShiftTimeMappings();
 
   const showEmergencyWhatsAppModal = (shift: CareShift, reason: string) => {
     setEmergencyShiftData({ shift, reason });
@@ -93,9 +77,9 @@ export const ScheduleTab: React.FC<ScheduleTabProps> = ({
     try {
       const baseDayDate = selectedDay || (dateRange?.from ? new Date(dateRange.from) : new Date());
       
-      const selectedShiftType = SHIFT_TITLE_OPTIONS.find(option => option.id === newShift.selectedShiftType);
+      const selectedShiftMapping = getShiftMappingById(newShift.selectedShiftType);
       
-      if (!selectedShiftType) {
+      if (!selectedShiftMapping) {
         return;
       }
 
@@ -116,10 +100,10 @@ export const ScheduleTab: React.FC<ScheduleTabProps> = ({
       let emergencyShiftCreated: CareShift | null = null;
       
       for (const shiftDate of datesToCreateShifts) {
-        const shiftTitle = selectedShiftType.label;
+        const shiftTitle = selectedShiftMapping.label;
         
-        const [startHour, startMinute] = selectedShiftType.timeRange.start.split(':').map(Number);
-        const [endHour, endMinute] = selectedShiftType.timeRange.end.split(':').map(Number);
+        const [startHour, startMinute] = selectedShiftMapping.timeRange.start.split(':').map(Number);
+        const [endHour, endMinute] = selectedShiftMapping.timeRange.end.split(':').map(Number);
         
         const startTime = new Date(shiftDate);
         startTime.setHours(startHour, startMinute, 0);
@@ -135,7 +119,7 @@ export const ScheduleTab: React.FC<ScheduleTabProps> = ({
           familyId,
           caregiverId: newShift.caregiverId !== "unassigned" ? newShift.caregiverId : undefined,
           title: shiftTitle,
-          description: selectedShiftType.description,
+          description: selectedShiftMapping.description,
           location: "Patient's home",
           status: newShift.isEmergencyCoverage ? "open" : "open",
           startTime: startTime.toISOString(),
@@ -195,7 +179,7 @@ export const ScheduleTab: React.FC<ScheduleTabProps> = ({
   const handleEditShift = (shift: CareShift) => {
     const shiftDate = new Date(shift.startTime);
     
-    const matchingShiftType = SHIFT_TITLE_OPTIONS.find(option => 
+    const matchingShiftMapping = SHIFT_TITLE_OPTIONS.find(option => 
       option.label === shift.title
     ) || SHIFT_TITLE_OPTIONS[0];
     
@@ -203,7 +187,7 @@ export const ScheduleTab: React.FC<ScheduleTabProps> = ({
     setNewShift({
       caregiverId: shift.caregiverId || "",
       title: shift.title,
-      selectedShiftType: matchingShiftType.id,
+      selectedShiftType: matchingShiftMapping.id,
       description: shift.description || "",
       day: format(shiftDate, "yyyy-MM-dd"),
       timeSlot: "",
@@ -280,7 +264,7 @@ export const ScheduleTab: React.FC<ScheduleTabProps> = ({
                       <SelectTrigger>
                         <SelectValue placeholder="Select a shift type" />
                       </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent className="max-h-60 overflow-y-auto">
                         {SHIFT_TITLE_OPTIONS.map((option) => (
                           <SelectItem key={option.id} value={option.id}>
                             {option.label}
