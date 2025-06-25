@@ -44,6 +44,8 @@ const getTimeRangeForShift = (shiftValue: string): TimeRange => {
       return { start: "06:00", end: "18:00" };
     
     // Weekend Shifts
+    case "sat_sun_8am_6pm":
+      return { start: "08:00", end: "18:00" };
     case "sat_sun_6am_6pm":
       return { start: "06:00", end: "18:00" };
     case "sat_sun_8am_4pm":
@@ -91,8 +93,10 @@ const getShiftDescription = (shiftValue: string): string => {
       return "Extended daytime coverage with longer hours";
     case "mon_fri_6am_6pm":
       return "Extended daytime coverage for more comprehensive care";
+    case "sat_sun_8am_6pm":
+      return "Main weekend daytime coverage with balanced hours";
     case "sat_sun_6am_6pm":
-      return "Daytime weekend coverage with a dedicated caregiver";
+      return "Extended weekend coverage for comprehensive care";
     case "sat_sun_8am_4pm":
       return "Standard weekend coverage for family assistance";
     case "weekday_evening_4pm_6am":
