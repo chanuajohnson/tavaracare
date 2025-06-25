@@ -23,8 +23,8 @@ export const getCaregiverInitials = (caregiverId?: string, careTeamMembers: Care
 export const isNightShift = (startTime: string) => {
   try {
     const hour = getHours(new Date(startTime));
-    // Updated: Night shift starts at 5 PM (17:00) through 6 AM (06:00)
-    return hour >= 17 || hour < 6;
+    // Updated: Night shift starts at 5 PM (17:00) through 5 AM (05:00)
+    return hour >= 17 || hour < 5;
   } catch (err) {
     return false;
   }
@@ -63,16 +63,16 @@ export const getCaregiverColor = (caregiverId?: string) => {
   const hashCode = caregiverId.split('')
     .reduce((acc, char) => acc + char.charCodeAt(0), 0);
   
-  // Enhanced color palette that matches ShiftCalendar.tsx
+  // Updated color palette to match exact Tailwind hex-to-RGB values
   const colorOptions = [
-    [59, 130, 246],   // Blue (bg-blue-100 border-blue-200)
-    [34, 197, 94],    // Green (bg-green-100 border-green-200)
-    [251, 191, 36],   // Yellow (bg-yellow-100 border-yellow-200)
-    [147, 51, 234],   // Purple (bg-purple-100 border-purple-200)
-    [236, 72, 153],   // Pink (bg-pink-100 border-pink-200)
-    [249, 115, 22],   // Orange (bg-orange-100 border-orange-200)
-    [20, 184, 166],   // Teal (bg-teal-100 border-teal-200)
-    [6, 182, 212],    // Cyan (bg-cyan-100 border-cyan-200)
+    [254, 243, 199],  // bg-yellow-100 (Yellow)
+    [255, 237, 213],  // bg-orange-100 (Orange)
+    [219, 234, 254],  // bg-blue-100 (Blue)
+    [220, 252, 231],  // bg-green-100 (Green)
+    [233, 213, 255],  // bg-purple-100 (Purple)
+    [252, 231, 243],  // bg-pink-100 (Pink)
+    [204, 251, 241],  // bg-teal-100 (Teal)
+    [207, 250, 254],  // bg-cyan-100 (Cyan)
   ];
   
   return colorOptions[hashCode % colorOptions.length];
@@ -103,12 +103,12 @@ export const getShiftCardColorClass = (caregiverId?: string) => {
     .reduce((acc, char) => acc + char.charCodeAt(0), 0);
   
   const colorOptions = [
-    "bg-blue-100 border-blue-200",
-    "bg-green-100 border-green-200", 
-    "bg-yellow-100 border-yellow-200",
+    "bg-yellow-100 border-yellow-200", // Updated to match new color order
+    "bg-orange-100 border-orange-200",
+    "bg-blue-100 border-blue-200", 
+    "bg-green-100 border-green-200",
     "bg-purple-100 border-purple-200",
     "bg-pink-100 border-pink-200",
-    "bg-orange-100 border-orange-200",
     "bg-teal-100 border-teal-200",
     "bg-cyan-100 border-cyan-200"
   ];
@@ -123,4 +123,26 @@ export const getInitials = (name: string) => {
     .map(n => n[0])
     .join('')
     .toUpperCase();
+};
+
+// Helper function to format shift title like UI
+export const formatShiftTitle = (shift: any): string => {
+  if (shift.title && shift.title !== 'Shift') {
+    return shift.title;
+  }
+  
+  try {
+    const startDate = new Date(shift.startTime);
+    const endDate = new Date(shift.endTime);
+    const startDay = format(startDate, 'EEEE');
+    const endDay = format(endDate, 'EEEE');
+    const timeDisplay = `${formatTime(shift.startTime)} - ${formatTime(shift.endTime)}`;
+    
+    if (startDay === endDay) {
+      return `${startDay}, ${timeDisplay}`;
+    }
+    return `${startDay} - ${endDay}, ${timeDisplay}`;
+  } catch (err) {
+    return shift.title || 'Shift';
+  }
 };
