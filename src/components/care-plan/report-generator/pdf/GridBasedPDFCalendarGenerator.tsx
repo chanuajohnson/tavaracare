@@ -32,18 +32,20 @@ export const generateGridBasedCalendarPDF = async (
   const end = new Date(endDate);
   const daysDiff = differenceInDays(end, start);
   
-  // Enhanced page dimensions with responsive margins
+  // Enhanced page dimensions with optimized margins (Phase 1: Optimize Margin Calculations)
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
   
-  // Smart responsive margins based on page size
-  const baseMargin = Math.max(15, Math.min(25, pageWidth * 0.03)); // 3% of page width, between 15-25
-  const topMargin = Math.max(70, Math.min(90, pageHeight * 0.15)); // 15% of page height for header
-  const bottomMargin = Math.max(30, Math.min(50, pageHeight * 0.08)); // 8% of page height for footer
+  // Optimized margin calculations for better space utilization
+  const baseMargin = 12; // Reduced from 15-25
+  const topMargin = 50; // Reduced from 70-90
+  const bottomMargin = 25; // Reduced from 30-50
+  const labelWidth = 50; // Reduced from 80
   
-  const availableWidth = pageWidth - (baseMargin * 2);
+  // Phase 2: Fix Grid Width Calculations
+  const availableGridWidth = pageWidth - baseMargin * 2 - labelWidth;
+  const columnWidth = availableGridWidth / 7;
   const availableHeight = pageHeight - topMargin - bottomMargin;
-  const columnWidth = availableWidth / 7;
   
   // Generate header
   generatePDFHeader(doc, carePlanTitle, startDate, endDate, pageWidth, baseMargin);
@@ -55,7 +57,7 @@ export const generateGridBasedCalendarPDF = async (
   
   if (daysDiff <= 7) {
     // Single week view with proper height constraints
-    currentY = generateWeekGrid(doc, start, end, filteredShifts, careTeamMembers, currentY, baseMargin, columnWidth, availableHeight, topMargin);
+    currentY = generateWeekGrid(doc, start, end, filteredShifts, careTeamMembers, currentY, baseMargin, labelWidth, columnWidth, availableHeight, topMargin, pageHeight, bottomMargin);
   } else {
     // Multi-week view
     const weeks = eachWeekOfInterval({ start, end });
@@ -70,14 +72,8 @@ export const generateGridBasedCalendarPDF = async (
         currentY = generateCaregiverSummary(doc, filteredShifts, careTeamMembers, currentY, baseMargin);
       }
       
-      currentY = generateWeekGrid(doc, weekStart, weekEnd, filteredShifts, careTeamMembers, currentY, baseMargin, columnWidth, availableHeight, topMargin);
+      currentY = generateWeekGrid(doc, weekStart, weekEnd, filteredShifts, careTeamMembers, currentY, baseMargin, labelWidth, columnWidth, availableHeight, topMargin, pageHeight, bottomMargin);
     });
-  }
-  
-  // Add about section at bottom with proper positioning
-  const aboutY = Math.max(currentY + 15, pageHeight - bottomMargin - 60);
-  if (aboutY + 50 <= pageHeight - 10) { // Ensure it fits on page
-    generateAboutSection(doc, aboutY, baseMargin);
   }
   
   return doc;
@@ -142,32 +138,51 @@ const generateWeekGrid = (
   careTeamMembers: CareTeamMemberWithProfile[],
   startY: number,
   margin: number,
+  labelWidth: number,
   columnWidth: number,
   availableHeight: number,
-  topMargin: number
+  topMargin: number,
+  pageHeight: number,
+  bottomMargin: number
 ): number => {
   const week = startOfWeek(weekStart);
   const weekDays = eachDayOfInterval({ start: week, end: addDays(week, 6) });
   
   let currentY = startY;
   
-  // Calculate remaining height for grid
+  // Phase 4: Enhanced Vertical Space Management
   const usedHeight = currentY - topMargin;
   const remainingHeight = availableHeight - usedHeight - 80; // Reserve space for about section
+  const gridHeaderHeight = 25; // Height used by headers and labels
+  const maxGridHeight = Math.max(150, remainingHeight - gridHeaderHeight); // Increased minimum
+  const cellHeight = Math.min(35, maxGridHeight / 2); // Increased minimum cell height to 35pt
+  
+  // Phase 5: Content Overflow Protection - Add pagination guard
+  const expectedGridHeight = gridHeaderHeight + (cellHeight * 2);
+  if (currentY + expectedGridHeight > pageHeight - bottomMargin) {
+    doc.addPage('landscape');
+    generatePDFHeader(doc, '', '', '', doc.internal.pageSize.getWidth(), margin);
+    currentY = topMargin;
+  }
   
   // Draw day headers
-  currentY = generateDayHeaders(doc, weekDays, currentY, margin, columnWidth);
+  currentY = generateDayHeaders(doc, weekDays, currentY, margin, labelWidth, columnWidth);
   
   // Draw shift type labels
-  currentY = generateShiftTypeLabels(doc, currentY, margin, columnWidth);
-  
-  // Calculate cell height based on remaining space
-  const gridHeaderHeight = 25; // Height used by headers and labels
-  const maxGridHeight = Math.max(120, remainingHeight - gridHeaderHeight);
-  const cellHeight = Math.min(70, maxGridHeight / 2); // Divide by 2 for day/night rows
+  currentY = generateShiftTypeLabels(doc, currentY, margin, labelWidth, columnWidth, cellHeight);
   
   // Draw the grid and shifts with calculated height
-  currentY = generateDayNightGrid(doc, weekDays, shifts, careTeamMembers, currentY, margin, columnWidth, cellHeight);
+  currentY = generateDayNightGrid(doc, weekDays, shifts, careTeamMembers, currentY, margin, labelWidth, columnWidth, cellHeight);
+  
+  // Add about section at bottom with proper positioning
+  const aboutY = Math.max(currentY + 15, pageHeight - bottomMargin - 60);
+  if (aboutY + 50 <= pageHeight - 10) { // Ensure it fits on page
+    generateAboutSection(doc, aboutY, margin);
+  } else {
+    // Move about section to new page if it doesn't fit
+    doc.addPage('landscape');
+    generateAboutSection(doc, topMargin, margin);
+  }
   
   return currentY + 20;
 };
@@ -177,15 +192,16 @@ const generateDayHeaders = (
   weekDays: Date[],
   startY: number,
   margin: number,
+  labelWidth: number,
   columnWidth: number
 ): number => {
   const headerHeight = 25;
-  const labelWidth = 80; // Space for "Day Shift"/"Night Shift" labels
   
   doc.setFontSize(10);
   doc.setTextColor(60, 60, 60);
   
   weekDays.forEach((day, index) => {
+    // Phase 2: Ensure X positioning matches grid calculations
     const x = margin + labelWidth + (index * columnWidth);
     const centerX = x + (columnWidth / 2);
     
@@ -215,27 +231,29 @@ const generateShiftTypeLabels = (
   doc: jsPDF,
   startY: number,
   margin: number,
-  columnWidth: number
+  labelWidth: number,
+  columnWidth: number,
+  cellHeight: number
 ): number => {
-  const labelWidth = 80;
-  const rowHeight = 60; // Height for each shift type row
-  
   doc.setFontSize(10);
   doc.setTextColor(60, 60, 60);
   
   // Day Shift label
-  doc.text('Day Shift', margin + 5, startY + 35);
-  doc.text('(6 AM - 5 PM)', margin + 5, startY + 45);
+  doc.text('Day Shift', margin + 5, startY + (cellHeight / 2) + 2);
+  doc.setFontSize(8);
+  doc.text('(6 AM - 5 PM)', margin + 5, startY + (cellHeight / 2) + 10);
   
   // Night Shift label  
-  doc.text('Night Shift', margin + 5, startY + 35 + rowHeight);
-  doc.text('(5 PM - 5 AM)', margin + 5, startY + 45 + rowHeight);
+  doc.setFontSize(10);
+  doc.text('Night Shift', margin + 5, startY + cellHeight + (cellHeight / 2) + 2);
+  doc.setFontSize(8);
+  doc.text('(5 PM - 6 AM)', margin + 5, startY + cellHeight + (cellHeight / 2) + 10);
   
   // Draw horizontal separator between day and night
   doc.setDrawColor(200, 200, 200);
   doc.setLineWidth(0.5);
   const gridWidth = columnWidth * 7;
-  doc.line(margin + labelWidth, startY + rowHeight, margin + labelWidth + gridWidth, startY + rowHeight);
+  doc.line(margin + labelWidth, startY + cellHeight, margin + labelWidth + gridWidth, startY + cellHeight);
   
   return startY;
 };
@@ -247,14 +265,15 @@ const generateDayNightGrid = (
   careTeamMembers: CareTeamMemberWithProfile[],
   startY: number,
   margin: number,
+  labelWidth: number,
   columnWidth: number,
   cellHeight: number
 ): number => {
-  const labelWidth = 80;
-  const cellPadding = 4;
+  const cellPadding = 2; // Reduced padding for better space utilization
   
   weekDays.forEach((day, dayIndex) => {
     const isWeekend = dayIndex === 0 || dayIndex === 6;
+    // Phase 2: Ensure X positioning matches grid calculations
     const x = margin + labelWidth + (dayIndex * columnWidth);
     
     // Get shifts for this day separated by type
@@ -348,8 +367,9 @@ const renderSectionShifts = (
   width: number,
   height: number
 ) => {
-  const shiftHeight = 20; // Increased for better text spacing
-  const shiftSpacing = 2;
+  // Phase 3: Optimize Shift Card Rendering
+  const shiftHeight = 18; // Optimized for better fit
+  const shiftSpacing = 1; // Reduced spacing
   const maxVisibleShifts = Math.floor(height / (shiftHeight + shiftSpacing));
   const visibleShifts = sectionShifts.slice(0, maxVisibleShifts);
   const hasOverflow = sectionShifts.length > maxVisibleShifts;
@@ -357,61 +377,78 @@ const renderSectionShifts = (
   visibleShifts.forEach((gridShift, index) => {
     const shiftY = y + (index * (shiftHeight + shiftSpacing));
     
+    // Phase 3: Increase card width slightly
+    const cardWidth = width - 1; // Increased from width - 2
+    
     // Shift card background with enhanced colors
     doc.setFillColor(gridShift.color[0], gridShift.color[1], gridShift.color[2]);
-    doc.roundedRect(x, shiftY, width - 2, shiftHeight, 2, 2, 'F');
+    doc.roundedRect(x, shiftY, cardWidth, shiftHeight, 2, 2, 'F');
     
     // Add border to match UI
     const borderColor = gridShift.color.map(c => Math.max(0, c - 30)); // Darker border
     doc.setDrawColor(borderColor[0], borderColor[1], borderColor[2]);
     doc.setLineWidth(0.5);
-    doc.roundedRect(x, shiftY, width - 2, shiftHeight, 2, 2, 'S');
+    doc.roundedRect(x, shiftY, cardWidth, shiftHeight, 2, 2, 'S');
     
-    // Enhanced caregiver initials circle - FIXED TO TOP-LEFT
-    const initialsRadius = 6; // Increased for better visibility
-    const initialsX = x + 10;
+    // Phase 5: Enhanced caregiver initials circle with bounds checking
+    const initialsRadius = 5; // Optimized for 18pt card height
+    const initialsX = x + 8;
     const initialsY = shiftY + initialsRadius + 2;
     
-    // White circle background
-    doc.setFillColor(255, 255, 255);
-    doc.circle(initialsX, initialsY, initialsRadius, 'F');
+    // Ensure initials circle stays within card boundaries
+    if (initialsX + initialsRadius <= x + cardWidth && initialsY + initialsRadius <= shiftY + shiftHeight) {
+      // White circle background
+      doc.setFillColor(255, 255, 255);
+      doc.circle(initialsX, initialsY, initialsRadius, 'F');
+      
+      // Initials text
+      doc.setTextColor(gridShift.color[0], gridShift.color[1], gridShift.color[2]);
+      doc.setFontSize(5);
+      doc.text(gridShift.caregiverInitials, initialsX, initialsY + 1.5, { align: 'center' });
+    }
     
-    // Initials text
-    doc.setTextColor(gridShift.color[0], gridShift.color[1], gridShift.color[2]);
-    doc.setFontSize(6);
-    doc.text(gridShift.caregiverInitials, initialsX, initialsY + 1.5, { align: 'center' });
+    // Phase 3: Adjust text positioning and use smaller fonts
+    const textX = x + 16; // Adjusted from x + 20
     
-    // Enhanced shift text content - adjusted positioning to avoid initials
-    doc.setTextColor(100, 100, 100); // Darker text for better readability
-    
-    // Title with enhanced formatting
-    doc.setFontSize(6.5);
+    // Title with enhanced formatting and smart truncation
+    doc.setTextColor(100, 100, 100);
+    doc.setFontSize(6); // Reduced from 6.5
     const titleText = formatShiftTitle(gridShift.shift);
-    const maxTitleLength = 25; // Adjust based on available width
+    const maxTitleLength = 20; // Adjusted for narrower cards
     const displayTitle = titleText.length > maxTitleLength ? titleText.substring(0, maxTitleLength) + '...' : titleText;
-    doc.text(displayTitle, x + 20, shiftY + 7);
+    
+    // Phase 5: Add bounds checking for text
+    if (textX + doc.getTextWidth(displayTitle) <= x + cardWidth) {
+      doc.text(displayTitle, textX, shiftY + 6);
+    }
     
     // Time with muted styling
-    doc.setFontSize(5.5);
-    doc.setTextColor(130, 130, 130); // Muted color
-    doc.text(gridShift.timeDisplay, x + 20, shiftY + 12);
+    doc.setFontSize(4.5); // Reduced from 5.5
+    doc.setTextColor(130, 130, 130);
+    if (textX + doc.getTextWidth(gridShift.timeDisplay) <= x + cardWidth) {
+      doc.text(gridShift.timeDisplay, textX, shiftY + 10);
+    }
     
     // Caregiver name
-    doc.setFontSize(5.5);
+    doc.setFontSize(4); // Reduced from 5.5
     doc.setTextColor(110, 110, 110);
     const nameText = gridShift.caregiverName === 'Unassigned' ? 'Unassigned' : gridShift.caregiverName;
-    const maxNameLength = 15; // Limit name length to fit
+    const maxNameLength = 12; // Reduced for smaller font
     const displayName = nameText.length > maxNameLength ? nameText.substring(0, maxNameLength) + '...' : nameText;
-    doc.text(displayName, x + 20, shiftY + 17);
+    
+    if (textX + doc.getTextWidth(displayName) <= x + cardWidth) {
+      doc.text(displayName, textX, shiftY + 14);
+    }
   });
   
-  // Enhanced overflow indicator
+  // Phase 5: Enhanced overflow indicator with bounds checking
   if (hasOverflow) {
     const overflowY = y + (maxVisibleShifts * (shiftHeight + shiftSpacing));
     if (overflowY + 8 <= y + height) { // Ensure it fits
       doc.setTextColor(120, 120, 120); // Muted color to match UI
-      doc.setFontSize(5.5);
-      doc.text(`+${sectionShifts.length - maxVisibleShifts} more`, x + 3, overflowY + 6);
+      doc.setFontSize(4.5); // Reduced font size
+      const overflowText = `+${sectionShifts.length - maxVisibleShifts} more`;
+      doc.text(overflowText, x + 3, overflowY + 6);
     }
   }
 };
@@ -421,19 +458,19 @@ const generateAboutSection = (doc: jsPDF, startY: number, margin: number) => {
   doc.setTextColor(60, 60, 60);
   doc.text('About the Schedule', margin, startY);
   
-  doc.setFontSize(9);
+  doc.setFontSize(8); // Reduced font size for better fit
   doc.setTextColor(100, 100, 100);
   
   const aboutItems = [
     '• Different colors represent different caregivers',
     '• Weekend days are highlighted with blue background',
-    '• Day shifts (6 AM - 5 PM) and night shifts (5 PM - 5 AM) are separated into different rows',
+    '• Day shifts (6 AM - 5 PM) and night shifts (5 PM - 6 AM) are separated into different rows',
     '• Multiple shifts per time period are stacked vertically',
     '• Overflow shifts are indicated with "+X more"',
-    '• Caregiver initials appear in circles at the top-left of each shift card'
+    '• Caregiver initials appear in circles at the left of each shift card'
   ];
   
   aboutItems.forEach((item, index) => {
-    doc.text(item, margin, startY + 15 + (index * 8));
+    doc.text(item, margin, startY + 15 + (index * 7)); // Reduced line spacing
   });
 };
