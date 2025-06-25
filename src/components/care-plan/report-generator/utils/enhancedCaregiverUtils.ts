@@ -17,7 +17,7 @@ export const getCaregiverInitials = (caregiverId?: string, careTeamMembers: Care
     .map(n => n[0])
     .join('')
     .toUpperCase()
-    .substring(0, 3); // Allow up to 3 characters for better readability
+    .substring(0, 2); // Limit to 2 characters for better PDF readability
 };
 
 export const isNightShift = (startTime: string) => {
@@ -63,18 +63,16 @@ export const getCaregiverColor = (caregiverId?: string) => {
   const hashCode = caregiverId.split('')
     .reduce((acc, char) => acc + char.charCodeAt(0), 0);
   
-  // Enhanced color palette for better readability and professional appearance
+  // Enhanced color palette that matches ShiftCalendar.tsx
   const colorOptions = [
-    [59, 130, 246],   // Blue
-    [34, 197, 94],    // Green  
-    [251, 191, 36],   // Amber
-    [147, 51, 234],   // Purple
-    [236, 72, 153],   // Pink
-    [249, 115, 22],   // Orange
-    [20, 184, 166],   // Teal
-    [6, 182, 212],    // Cyan
-    [99, 102, 241],   // Indigo
-    [245, 101, 101],  // Red
+    [59, 130, 246],   // Blue (bg-blue-100 border-blue-200)
+    [34, 197, 94],    // Green (bg-green-100 border-green-200)
+    [251, 191, 36],   // Yellow (bg-yellow-100 border-yellow-200)
+    [147, 51, 234],   // Purple (bg-purple-100 border-purple-200)
+    [236, 72, 153],   // Pink (bg-pink-100 border-pink-200)
+    [249, 115, 22],   // Orange (bg-orange-100 border-orange-200)
+    [20, 184, 166],   // Teal (bg-teal-100 border-teal-200)
+    [6, 182, 212],    // Cyan (bg-cyan-100 border-cyan-200)
   ];
   
   return colorOptions[hashCode % colorOptions.length];
@@ -97,56 +95,32 @@ export const getShiftDuration = (startTime: string, endTime: string): string => 
   }
 };
 
-export const detectShiftOverlap = (shifts: any[]): boolean => {
-  for (let i = 0; i < shifts.length; i++) {
-    for (let j = i + 1; j < shifts.length; j++) {
-      const shift1Start = new Date(shifts[i].startTime);
-      const shift1End = new Date(shifts[i].endTime);
-      const shift2Start = new Date(shifts[j].startTime);
-      const shift2End = new Date(shifts[j].endTime);
-      
-      // Check for overlap
-      if (shift1Start < shift2End && shift2Start < shift1End) {
-        return true;
-      }
-    }
-  }
-  return false;
+// Grid-specific utilities that mirror ShiftCalendar behavior
+export const getShiftCardColorClass = (caregiverId?: string) => {
+  if (!caregiverId) return "bg-gray-100 border-gray-200";
+  
+  const hashCode = caregiverId.split('')
+    .reduce((acc, char) => acc + char.charCodeAt(0), 0);
+  
+  const colorOptions = [
+    "bg-blue-100 border-blue-200",
+    "bg-green-100 border-green-200", 
+    "bg-yellow-100 border-yellow-200",
+    "bg-purple-100 border-purple-200",
+    "bg-pink-100 border-pink-200",
+    "bg-orange-100 border-orange-200",
+    "bg-teal-100 border-teal-200",
+    "bg-cyan-100 border-cyan-200"
+  ];
+  
+  return colorOptions[hashCode % colorOptions.length];
 };
 
-export const findCoverageGaps = (shifts: any[], dayStart: Date, dayEnd: Date): Array<{start: Date, end: Date}> => {
-  if (shifts.length === 0) {
-    return [{ start: dayStart, end: dayEnd }];
-  }
-  
-  // Sort shifts by start time
-  const sortedShifts = shifts.sort((a, b) => 
-    new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
-  );
-  
-  const gaps: Array<{start: Date, end: Date}> = [];
-  
-  // Check gap before first shift
-  const firstShiftStart = new Date(sortedShifts[0].startTime);
-  if (dayStart < firstShiftStart) {
-    gaps.push({ start: dayStart, end: firstShiftStart });
-  }
-  
-  // Check gaps between shifts
-  for (let i = 0; i < sortedShifts.length - 1; i++) {
-    const currentEnd = new Date(sortedShifts[i].endTime);
-    const nextStart = new Date(sortedShifts[i + 1].startTime);
-    
-    if (currentEnd < nextStart) {
-      gaps.push({ start: currentEnd, end: nextStart });
-    }
-  }
-  
-  // Check gap after last shift
-  const lastShiftEnd = new Date(sortedShifts[sortedShifts.length - 1].endTime);
-  if (lastShiftEnd < dayEnd) {
-    gaps.push({ start: lastShiftEnd, end: dayEnd });
-  }
-  
-  return gaps;
+export const getInitials = (name: string) => {
+  if (!name || name === "Unassigned" || name === "Unknown") return "?";
+  return name.split(' ')
+    .filter(part => part.length > 0)
+    .map(n => n[0])
+    .join('')
+    .toUpperCase();
 };
