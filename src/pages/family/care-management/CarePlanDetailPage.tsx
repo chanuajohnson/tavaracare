@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/components/providers/AuthProvider";
@@ -154,7 +155,7 @@ const CarePlanDetailPage = () => {
             <EnhancedScheduleTab
               carePlanId={id!}
               carePlanTitle={carePlan?.title || 'Care Plan'}
-              familyId={carePlan?.family_id || user.id}
+              familyId={carePlan?.familyId || user.id}
               careShifts={careShifts}
               careTeamMembers={careTeamMembers}
               onShiftUpdated={reloadCareShifts}
