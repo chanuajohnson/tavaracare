@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -164,7 +163,7 @@ export const ShareScheduleModal: React.FC<ShareScheduleModalProps> = ({
 
     const scheduleMessage = formatScheduleMessage(selectedPeriod);
     
-    // Convert selected team members to WhatsApp contacts
+    // Convert selected team members to WhatsApp contacts - using correct phone number path
     const selectedContacts: WhatsAppContact[] = careTeamMembers
       .filter(member => selectedMembers.includes(member.caregiverId))
       .map(member => ({
