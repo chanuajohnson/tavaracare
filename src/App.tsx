@@ -1,8 +1,9 @@
+
 import React from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "sonner";
-import { ThemeProvider } from "@/components/theme-provider";
+import { ThemeProvider } from "@/components/providers/ThemeProvider";
 import { AuthProvider } from "@/components/providers/AuthProvider";
 
 // Admin pages
@@ -12,12 +13,12 @@ import HeroVideoManagementPage from "@/pages/admin/HeroVideoManagementPage";
 import AdminVisitSchedulePage from "@/pages/admin/AdminVisitSchedulePage";
 import WhatsAppNudgePage from "@/pages/admin/WhatsAppNudgePage";
 import CareTeamCommunicationPage from "@/pages/admin/CareTeamCommunicationPage";
-import FeedbackPage from "@/pages/admin/FeedbackPage";
+import FeedbackManagementPage from "@/pages/admin/FeedbackManagementPage";
 import PlatformAnalyticsPage from "@/pages/admin/PlatformAnalyticsPage";
 import ShiftManagementPage from "@/pages/admin/ShiftManagementPage";
 
-import HomePage from "@/pages/HomePage";
-import AuthPage from "@/pages/AuthPage";
+import HomePage from "@/pages/Index";
+import AuthPage from "@/pages/auth/AuthPage";
 import CarePlanDetailPage from "@/pages/family/care-management/CarePlanDetailPage";
 
 function App() {
@@ -42,7 +43,7 @@ function App() {
               <Route path="/admin/visit-schedule" element={<AdminVisitSchedulePage />} />
               <Route path="/admin/whatsapp-nudge" element={<WhatsAppNudgePage />} />
               <Route path="/admin/care-team-communication" element={<CareTeamCommunicationPage />} />
-              <Route path="/admin/feedback" element={<FeedbackPage />} />
+              <Route path="/admin/feedback" element={<FeedbackManagementPage />} />
               <Route path="/admin/platform-analytics" element={<PlatformAnalyticsPage />} />
               <Route path="/admin/shift-management" element={<ShiftManagementPage />} />
 
