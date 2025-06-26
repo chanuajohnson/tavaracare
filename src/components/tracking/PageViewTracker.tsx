@@ -27,7 +27,7 @@ interface PageViewTrackerProps {
 }
 
 /**
- * Component to track page views automatically
+ * Component to track page views automatically with Google Analytics and Meta Pixel
  */
 export const PageViewTracker = ({ 
   actionType, 
@@ -66,7 +66,8 @@ export const PageViewTracker = ({
       // Determine if this is a return visit to the page
       const isReturnVisit = visitHistory.slice(0, -1).some(visit => visit.path === location.pathname);
       
-      await trackEngagement(actionType, {
+      // Enhanced tracking data for Meta Pixel
+      const trackingData = {
         ...additionalData,
         path: location.pathname,
         search: location.search,
@@ -75,8 +76,12 @@ export const PageViewTracker = ({
         is_return_visit: isReturnVisit,
         visit_count: visitHistory.length,
         time_on_previous_page: timeOnPreviousPage,
-        user_status: user ? (isProfileComplete ? 'complete_profile' : 'incomplete_profile') : 'anonymous'
-      });
+        user_status: user ? (isProfileComplete ? 'complete_profile' : 'incomplete_profile') : 'anonymous',
+        page_title: document.title,
+        page_type: actionType.replace('_view', '').replace('_page', '')
+      };
+
+      await trackEngagement(actionType, trackingData);
       
       // Update previous path
       previousPath.current = location.pathname + location.search;
