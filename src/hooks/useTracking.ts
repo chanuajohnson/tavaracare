@@ -3,7 +3,6 @@ import { useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { v4 as uuidv4 } from "uuid";
 import { useAuth } from "@/components/providers/AuthProvider";
-import { metaPixelService } from "@/services/metaPixelService";
 
 export type TrackingActionType = 
   // Page Views
@@ -105,68 +104,6 @@ const sendToGoogleAnalytics = (actionType: TrackingActionType, additionalData: R
 };
 
 /**
- * Send event to Meta Pixel based on action type
- */
-const sendToMetaPixel = (actionType: TrackingActionType, additionalData: Record<string, any>) => {
-  try {
-    // Map tracking actions to Meta Pixel events
-    switch (actionType) {
-      case 'auth_signup_success':
-        metaPixelService.trackRegistration(additionalData.user_role || 'unknown', additionalData);
-        break;
-      
-      case 'caregiver_matching_cta_click':
-      case 'family_matching_cta_click':
-      case 'premium_matching_cta_click':
-        metaPixelService.trackLead('matching_interest', additionalData);
-        break;
-      
-      case 'subscription_cta_click':
-        metaPixelService.trackStandardEvent('InitiateCheckout', {
-          content_category: 'subscription',
-          ...additionalData
-        });
-        break;
-      
-      case 'complete_profile_cta_click':
-        metaPixelService.trackCustomEvent('ProfileComplete', additionalData);
-        break;
-      
-      case 'training_module_complete':
-        metaPixelService.trackCustomEvent('TrainingComplete', additionalData);
-        break;
-      
-      case 'landing_page_view':
-      case 'dashboard_view':
-      case 'family_dashboard_view':
-      case 'professional_dashboard_view':
-      case 'community_dashboard_view':
-        metaPixelService.trackPageView({
-          page_type: actionType.replace('_view', ''),
-          ...additionalData
-        });
-        break;
-      
-      case 'user_journey_progress':
-        metaPixelService.trackCustomEvent('JourneyProgress', additionalData);
-        break;
-      
-      default:
-        // For other actions, track as custom events
-        if (actionType.includes('_click') || actionType.includes('_interaction')) {
-          metaPixelService.trackCustomEvent('FeatureInteraction', {
-            action: actionType,
-            ...additionalData
-          });
-        }
-        break;
-    }
-  } catch (error) {
-    console.error("Error sending to Meta Pixel:", error);
-  }
-};
-
-/**
  * Hook for tracking user engagement across the platform
  */
 export function useTracking(options: TrackingOptions = {}) {
@@ -220,9 +157,6 @@ export function useTracking(options: TrackingOptions = {}) {
       // Send to Google Analytics
       sendToGoogleAnalytics(actionType, enhancedData);
       
-      // Send to Meta Pixel
-      sendToMetaPixel(actionType, enhancedData);
-      
       // Record the tracking event in Supabase
       const { error } = await supabase.from('cta_engagement_tracking').insert({
         user_id: user?.id || null,
@@ -243,7 +177,6 @@ export function useTracking(options: TrackingOptions = {}) {
   
   return {
     trackEngagement,
-    isLoading,
-    metaPixelService // Expose Meta Pixel service for advanced usage
+    isLoading
   };
 }
