@@ -8,7 +8,7 @@ import { AuthProvider } from "@/components/providers/AuthProvider";
 
 // Admin pages
 import AdminDashboard from "@/pages/admin/AdminDashboard";
-import AdminUserJourneyPage from "@/pages/admin/AdminUserJourneyPage";
+import UserJourneyPage from "@/pages/admin/UserJourneyPage";
 import HeroVideoManagementPage from "@/pages/admin/HeroVideoManagementPage";
 import AdminVisitSchedulePage from "@/pages/admin/AdminVisitSchedulePage";
 import WhatsAppNudgePage from "@/pages/admin/WhatsAppNudgePage";
@@ -38,7 +38,7 @@ function App() {
 
               {/* Admin routes */}
               <Route path="/dashboard/admin" element={<AdminDashboard />} />
-              <Route path="/admin/user-journey" element={<AdminUserJourneyPage />} />
+              <Route path="/admin/user-journey" element={<UserJourneyPage />} />
               <Route path="/admin/hero-video-management" element={<HeroVideoManagementPage />} />
               <Route path="/admin/visit-schedule" element={<AdminVisitSchedulePage />} />
               <Route path="/admin/whatsapp-nudge" element={<WhatsAppNudgePage />} />
