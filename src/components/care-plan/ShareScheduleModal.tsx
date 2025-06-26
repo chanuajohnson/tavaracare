@@ -7,11 +7,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { MessageSquare, Calendar, Users, Eye } from "lucide-react";
+import { MessageSquare, Calendar, Users, Eye, ArrowRight } from "lucide-react";
 import { CareTeamMemberWithProfile, CareShift } from "@/types/careTypes";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import { format, addDays, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from "date-fns";
+import { WhatsAppContact, WhatsAppMessage, generateWhatsAppMessages } from "@/utils/whatsapp/whatsappWebUtils";
+import { WhatsAppMessagePreview } from "./WhatsAppMessagePreview";
 
 interface ShareScheduleModalProps {
   open: boolean;
@@ -33,8 +35,8 @@ export const ShareScheduleModal: React.FC<ShareScheduleModalProps> = ({
   const [selectedPeriod, setSelectedPeriod] = useState<string>('');
   const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
   const [customMessage, setCustomMessage] = useState('');
-  const [sending, setSending] = useState(false);
-  const [previewMessage, setPreviewMessage] = useState('');
+  const [step, setStep] = useState<'configure' | 'preview'>('configure');
+  const [whatsappMessages, setWhatsappMessages] = useState<WhatsAppMessage[]>([]);
 
   const periods = [
     { value: 'weekly', label: 'Weekly Schedule (7 days)', days: 7 },
@@ -50,7 +52,7 @@ export const ShareScheduleModal: React.FC<ShareScheduleModalProps> = ({
 
     switch (period) {
       case 'weekly':
-        startDate = startOfWeek(now, { weekStartsOn: 1 }); // Monday start
+        startDate = startOfWeek(now, { weekStartsOn: 1 });
         endDate = endOfWeek(now, { weekStartsOn: 1 });
         periodLabel = `Week of ${format(startDate, 'MMMM d, yyyy')}`;
         break;
@@ -101,13 +103,13 @@ export const ShareScheduleModal: React.FC<ShareScheduleModalProps> = ({
         const dayTimeShifts = dayShifts.filter(shift => {
           const startHour = new Date(shift.startTime).getHours();
           const endHour = new Date(shift.endTime).getHours();
-          return !(endHour < startHour || startHour >= 17); // Not overnight or evening
+          return !(endHour < startHour || startHour >= 17);
         });
         
         const nightShifts = dayShifts.filter(shift => {
           const startHour = new Date(shift.startTime).getHours();
           const endHour = new Date(shift.endTime).getHours();
-          return endHour < startHour || startHour >= 17; // Overnight or evening
+          return endHour < startHour || startHour >= 17;
         });
 
         // Format day shifts on same line
@@ -149,18 +151,9 @@ export const ShareScheduleModal: React.FC<ShareScheduleModalProps> = ({
     );
   };
 
-  const handlePreview = () => {
+  const handleGenerateMessages = () => {
     if (!selectedPeriod) {
       toast.error('Please select a time period first');
-      return;
-    }
-    const message = formatScheduleMessage(selectedPeriod);
-    setPreviewMessage(message);
-  };
-
-  const handleSendSchedule = async () => {
-    if (!selectedPeriod) {
-      toast.error('Please select a time period');
       return;
     }
 
@@ -169,157 +162,206 @@ export const ShareScheduleModal: React.FC<ShareScheduleModalProps> = ({
       return;
     }
 
+    const scheduleMessage = formatScheduleMessage(selectedPeriod);
+    
+    // Convert selected team members to WhatsApp contacts
+    const selectedContacts: WhatsAppContact[] = careTeamMembers
+      .filter(member => selectedMembers.includes(member.caregiverId))
+      .map(member => ({
+        id: member.caregiverId,
+        name: member.professionalDetails?.full_name || 'Unknown Professional',
+        phone: member.professionalDetails?.phone_number || '',
+        role: member.role || 'Team Member'
+      }))
+      .filter(contact => contact.phone); // Only contacts with phone numbers
+
+    if (selectedContacts.length === 0) {
+      toast.error('None of the selected team members have phone numbers on file');
+      return;
+    }
+
+    const messages = generateWhatsAppMessages(selectedContacts, scheduleMessage);
+    setWhatsappMessages(messages);
+    setStep('preview');
+  };
+
+  const handleMarkAsSent = async (contactIds: string[]) => {
     try {
-      setSending(true);
-      
+      // Log the messages as sent in the database
       const scheduleMessage = formatScheduleMessage(selectedPeriod);
-
-      // Use the same parameter structure as NudgeSystem
-      const { data, error } = await supabase.functions.invoke('send-nudge-whatsapp', {
-        body: {
-          userIds: selectedMembers, // Changed from target_users to userIds to match NudgeSystem
-          message: scheduleMessage, // Changed from custom_message to message to match NudgeSystem
-          templateId: `${selectedPeriod}_schedule_update` // Use templateId instead of message_type
-        }
-      });
-
-      if (error) throw error;
-
-      toast.success(`Schedule shared with ${selectedMembers.length} team member${selectedMembers.length === 1 ? '' : 's'}!`);
-      onOpenChange(false);
       
-      // Reset form
-      setSelectedPeriod('');
-      setSelectedMembers([]);
-      setCustomMessage('');
-      setPreviewMessage('');
+      for (const contactId of contactIds) {
+        const member = careTeamMembers.find(m => m.caregiverId === contactId);
+        if (member?.professionalDetails?.phone_number) {
+          const { error } = await supabase
+            .from('whatsapp_message_log')
+            .insert({
+              phone_number: member.professionalDetails.phone_number,
+              user_id: contactId,
+              direction: 'outgoing',
+              message_type: `${selectedPeriod}_schedule_update`,
+              content: scheduleMessage,
+              processed: true,
+              processed_at: new Date().toISOString()
+            });
+
+          if (error) {
+            console.error('Error logging WhatsApp message:', error);
+          }
+        }
+      }
+      
+      toast.success(`Marked ${contactIds.length} message${contactIds.length === 1 ? '' : 's'} as sent`);
     } catch (error) {
-      console.error('Error sending schedule:', error);
-      toast.error('Failed to send schedule. Please try again.');
-    } finally {
-      setSending(false);
+      console.error('Error marking messages as sent:', error);
+      toast.error('Failed to log sent messages');
     }
   };
 
+  const handleClose = () => {
+    setStep('configure');
+    setSelectedPeriod('');
+    setSelectedMembers([]);
+    setCustomMessage('');
+    setWhatsappMessages([]);
+    onOpenChange(false);
+  };
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
+    <Dialog open={open} onOpenChange={handleClose}>
+      <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <MessageSquare className="h-5 w-5 text-green-600" />
             Share Schedule via WhatsApp
           </DialogTitle>
           <DialogDescription>
-            Send a formatted schedule update to your care team members via WhatsApp
+            {step === 'configure' 
+              ? 'Configure your schedule update message for team members'
+              : 'Review and send WhatsApp messages to your care team'
+            }
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-6 py-4">
-          {/* Period Selection */}
-          <div className="space-y-2">
-            <Label htmlFor="period">Schedule Period</Label>
-            <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select time period" />
-              </SelectTrigger>
-              <SelectContent>
-                {periods.map((period) => (
-                  <SelectItem key={period.value} value={period.value}>
-                    <div className="flex items-center gap-2">
-                      <Calendar className="h-4 w-4" />
-                      {period.label}
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Team Member Selection */}
-          <div className="space-y-3">
-            <Label className="flex items-center gap-2">
-              <Users className="h-4 w-4" />
-              Select Team Members to Notify
-            </Label>
-            <div className="grid grid-cols-1 gap-2 max-h-32 overflow-y-auto border rounded p-3">
-              {careTeamMembers.length > 0 ? (
-                careTeamMembers.map((member) => (
-                  <div key={member.caregiverId} className="flex items-center space-x-2">
-                    <Checkbox
-                      id={member.caregiverId}
-                      checked={selectedMembers.includes(member.caregiverId)}
-                      onCheckedChange={() => handleMemberToggle(member.caregiverId)}
-                    />
-                    <Label htmlFor={member.caregiverId} className="font-normal">
-                      {member.professionalDetails?.full_name || 'Unknown Professional'}
-                      <span className="text-sm text-muted-foreground ml-1">
-                        ({member.role || 'Team Member'})
-                      </span>
-                    </Label>
-                  </div>
-                ))
-              ) : (
-                <p className="text-sm text-muted-foreground">No team members found</p>
-              )}
+        {step === 'configure' ? (
+          <div className="space-y-6 py-4">
+            {/* Period Selection */}
+            <div className="space-y-2">
+              <Label htmlFor="period">Schedule Period</Label>
+              <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select time period" />
+                </SelectTrigger>
+                <SelectContent>
+                  {periods.map((period) => (
+                    <SelectItem key={period.value} value={period.value}>
+                      <div className="flex items-center gap-2">
+                        <Calendar className="h-4 w-4" />
+                        {period.label}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
-          </div>
 
-          {/* Optional Custom Message */}
-          <div className="space-y-2">
-            <Label htmlFor="customMessage">Additional Message (Optional)</Label>
-            <Textarea
-              id="customMessage"
-              placeholder="Add any additional notes or context..."
-              value={customMessage}
-              onChange={(e) => setCustomMessage(e.target.value)}
-              rows={3}
+            {/* Team Member Selection */}
+            <div className="space-y-3">
+              <Label className="flex items-center gap-2">
+                <Users className="h-4 w-4" />
+                Select Team Members to Notify
+              </Label>
+              <div className="grid grid-cols-1 gap-2 max-h-32 overflow-y-auto border rounded p-3">
+                {careTeamMembers.length > 0 ? (
+                  careTeamMembers.map((member) => (
+                    <div key={member.caregiverId} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={member.caregiverId}
+                        checked={selectedMembers.includes(member.caregiverId)}
+                        onCheckedChange={() => handleMemberToggle(member.caregiverId)}
+                      />
+                      <Label htmlFor={member.caregiverId} className="font-normal">
+                        {member.professionalDetails?.full_name || 'Unknown Professional'}
+                        <span className="text-sm text-muted-foreground ml-1">
+                          ({member.role || 'Team Member'})
+                        </span>
+                        {!member.professionalDetails?.phone_number && (
+                          <span className="text-xs text-orange-600 ml-2">(No phone)</span>
+                        )}
+                      </Label>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-sm text-muted-foreground">No team members found</p>
+                )}
+              </div>
+            </div>
+
+            {/* Optional Custom Message */}
+            <div className="space-y-2">
+              <Label htmlFor="customMessage">Additional Message (Optional)</Label>
+              <Textarea
+                id="customMessage"
+                placeholder="Add any additional notes or context..."
+                value={customMessage}
+                onChange={(e) => setCustomMessage(e.target.value)}
+                rows={3}
+              />
+            </div>
+
+            {/* Preview Button */}
+            {selectedPeriod && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">Message Preview</CardTitle>
+                  <CardDescription>
+                    This is how the WhatsApp message will appear
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                    <pre className="whitespace-pre-wrap font-sans text-sm text-green-900">
+                      {formatScheduleMessage(selectedPeriod)}
+                    </pre>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        ) : (
+          <div className="py-4">
+            <WhatsAppMessagePreview 
+              messages={whatsappMessages}
+              onMarkAsSent={handleMarkAsSent}
             />
           </div>
-
-          {/* Preview Button */}
-          <div className="flex gap-2">
-            <Button 
-              onClick={handlePreview} 
-              variant="outline" 
-              disabled={!selectedPeriod}
-              className="flex items-center gap-2"
-            >
-              <Eye className="h-4 w-4" />
-              Preview Message
-            </Button>
-          </div>
-
-          {/* Message Preview */}
-          {previewMessage && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Message Preview</CardTitle>
-                <CardDescription>
-                  This is how the WhatsApp message will appear
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                  <pre className="whitespace-pre-wrap font-sans text-sm text-green-900">
-                    {previewMessage}
-                  </pre>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-        </div>
+        )}
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancel
-          </Button>
-          <Button 
-            onClick={handleSendSchedule}
-            disabled={!selectedPeriod || selectedMembers.length === 0 || sending}
-            className="bg-green-600 hover:bg-green-700"
-          >
-            {sending ? 'Sending...' : `Send to ${selectedMembers.length} Member${selectedMembers.length === 1 ? '' : 's'}`}
-          </Button>
+          {step === 'configure' ? (
+            <>
+              <Button variant="outline" onClick={handleClose}>
+                Cancel
+              </Button>
+              <Button 
+                onClick={handleGenerateMessages}
+                disabled={!selectedPeriod || selectedMembers.length === 0}
+                className="bg-green-600 hover:bg-green-700"
+              >
+                <ArrowRight className="h-4 w-4 mr-2" />
+                Generate WhatsApp Messages
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button variant="outline" onClick={() => setStep('configure')}>
+                Back to Configure
+              </Button>
+              <Button onClick={handleClose}>
+                Done
+              </Button>
+            </>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>
