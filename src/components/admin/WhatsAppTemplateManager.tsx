@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { MessageSquare, Plus, Edit3, Trash2, Eye, Search, Filter, Sparkles } from "lucide-react";
+import { MessageSquare, Plus, Edit3, Trash2, Eye, Search, Filter, Sparkles, Send } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 
@@ -159,6 +159,62 @@ This includes:
 As a qualified professional caregiver, you deserve to understand exactly how our partnership will benefit you financially and professionally.
 
 When would be a good time to discuss this? I can walk you through everything! 💙`
+};
+
+// New care communication templates
+const CARE_COMMUNICATION_TEMPLATES = {
+  weekly_schedule_update: `📅 Weekly Schedule Update - [CarePlanTitle]
+
+Week of [SchedulePeriod]:
+
+[ScheduleDetails]
+
+🔗 Login to your dashboard to view full details: ${window.location.origin}/dashboard/professional
+
+Questions? Reply to this message!
+- Chan 💙`,
+
+  biweekly_schedule_update: `📅 Bi-Weekly Schedule Update - [CarePlanTitle]
+
+Two Weeks: [SchedulePeriod]
+
+[ScheduleDetails]
+
+🔗 Login to your dashboard to view full details: ${window.location.origin}/dashboard/professional
+
+Questions? Reply to this message!
+- Chan 💙`,
+
+  monthly_schedule_update: `📅 Monthly Schedule Update - [CarePlanTitle]
+
+Month of [SchedulePeriod]:
+
+[ScheduleDetails]
+
+🔗 Login to your dashboard to view full details: ${window.location.origin}/dashboard/professional
+
+Questions? Reply to this message!
+- Chan 💙`,
+
+  emergency_shift_coverage: `🚨 URGENT: EMERGENCY SHIFT COVERAGE NEEDED
+
+Hi! This is TAV, your Tavara Assistant Coordinator.
+
+We have an urgent opening that needs to be filled:
+
+📅 Date: [ShiftDate]
+⏰ Time: [ShiftTime]
+📍 Location: [ShiftLocation]
+❗ Reason: [ShiftReason]
+
+PLEASE RESPOND IMMEDIATELY if you can cover this shift by replying:
+✅ "YES" - to confirm you can take this shift
+❌ "NO" - if you cannot cover
+
+This is TIME SENSITIVE - first to respond gets the shift.
+
+Thank you for your quick response!
+- TAV, Tavara Care Coordinator`
 };
 
 export function WhatsAppTemplateManager() {
@@ -384,6 +440,11 @@ export function WhatsAppTemplateManager() {
   ).filter(stage => stage && stage.trim() !== '');
 
   const getDefaultTemplate = (stage: string, role: string): string => {
+    // Check for care communication templates first
+    if (CARE_COMMUNICATION_TEMPLATES[stage as keyof typeof CARE_COMMUNICATION_TEMPLATES]) {
+      return CARE_COMMUNICATION_TEMPLATES[stage as keyof typeof CARE_COMMUNICATION_TEMPLATES];
+    }
+
     if (role === 'professional' && PROFESSIONAL_TEMPLATES[stage as keyof typeof PROFESSIONAL_TEMPLATES]) {
       return PROFESSIONAL_TEMPLATES[stage as keyof typeof PROFESSIONAL_TEMPLATES];
     }
@@ -396,6 +457,44 @@ export function WhatsAppTemplateManager() {
     };
     
     return templates[stage as keyof typeof templates] || `Hi [Name]! This is Chan from Tavara Care. Hope you're doing well on your ${role} journey! 💙`;
+  };
+
+  const createCareTemplates = async () => {
+    try {
+      const careTemplates = Object.entries(CARE_COMMUNICATION_TEMPLATES).map(([stage, message]) => ({
+        name: `Care ${stage.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}`,
+        role: 'professional' as const,
+        stage,
+        message_template: message,
+        message_type: 'whatsapp' as const
+      }));
+
+      for (const template of careTemplates) {
+        // Check if template already exists
+        const { data: existing } = await supabase
+          .from('nudge_templates')
+          .select('id')
+          .eq('role', template.role)
+          .eq('stage', template.stage)
+          .single();
+
+        if (!existing) {
+          const { error } = await supabase
+            .from('nudge_templates')
+            .insert(template);
+
+          if (error) {
+            console.error(`Error creating ${template.stage} template:`, error);
+          }
+        }
+      }
+
+      toast.success(`Created care communication templates!`);
+      fetchTemplates();
+    } catch (error: any) {
+      console.error('Error creating care templates:', error);
+      toast.error('Failed to create care templates');
+    }
   };
 
   return (
@@ -414,6 +513,14 @@ export function WhatsAppTemplateManager() {
           >
             <Sparkles className="h-4 w-4" />
             Create All Professional Templates
+          </Button>
+          <Button 
+            onClick={createCareTemplates} 
+            variant="outline"
+            className="flex items-center gap-2 bg-green-50 border-green-200 text-green-700 hover:bg-green-100"
+          >
+            <Send className="h-4 w-4" />
+            Create Care Communication Templates
           </Button>
           <Button onClick={openCreateDialog} className="flex items-center gap-2">
             <Plus className="h-4 w-4" />
