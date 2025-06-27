@@ -310,7 +310,7 @@ export const CaregiverMatchingModal = ({
                     </motion.div>
                   ) : (
                     <div className="text-center py-6">
-                      <p className="text-gray-500 mb-4">No caregiver matches found</p>
+                      <p className="text-gray-500 mb-4">Complete your profile for personalized matches! Our caregivers are matched based on your actual care needs and the unique preferences of those you love.</p>
                     </div>
                   )}
 
