@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { X, Minimize2, Sparkles, ArrowRight, CheckCircle, Clock, Target, Star, Zap, Heart, Users } from 'lucide-react';
@@ -330,7 +331,7 @@ export const RoleBasedContent: React.FC<RoleBasedContentProps> = ({
                     </div>
                   </motion.div>
 
-                  {/* MASSIVE PULSING REGISTRATION CTA - Enhanced for Mobile */}
+                  {/* MASSIVE PULSING REGISTRATION CTA - Enhanced for Mobile with Responsive Text */}
                   <motion.div
                     animate={{ 
                       boxShadow: [
@@ -343,22 +344,22 @@ export const RoleBasedContent: React.FC<RoleBasedContentProps> = ({
                     className="bg-gradient-to-r from-primary via-blue-600 to-primary rounded-2xl p-4 sm:p-6 border-2 border-primary/20"
                   >
                     <div className="text-center space-y-4">
-                      <h4 className="text-lg sm:text-xl font-bold text-white flex items-center justify-center gap-2 flex-wrap">
-                        <Sparkles className="h-5 w-5 sm:h-6 sm:w-6" />
-                        <span className="text-center">
+                      <h4 className="text-base sm:text-lg md:text-xl font-bold text-white flex items-center justify-center gap-2 flex-wrap">
+                        <Sparkles className="h-4 w-4 sm:h-5 sm:w-5 md:h-6 md:w-6 flex-shrink-0" />
+                        <span className="text-center leading-tight">
                           {dashboardRole === 'family' ? "GET YOUR PERFECT MATCH NOW!" : "GET MATCHED WITH FAMILIES!"}
                         </span>
-                        <Sparkles className="h-5 w-5 sm:h-6 sm:w-6" />
+                        <Sparkles className="h-4 w-4 sm:h-5 sm:w-5 md:h-6 md:w-6 flex-shrink-0" />
                       </h4>
                       
-                      <p className="text-sm sm:text-base text-blue-100 font-medium px-2">
+                      <p className="text-xs sm:text-sm md:text-base text-blue-100 font-medium px-2">
                         {dashboardRole === 'family' 
                           ? "Join thousands of families who found their perfect caregiver through Tavara!"
                           : "Join hundreds of professionals earning with flexible caregiving jobs!"
                         }
                       </p>
                       
-                      {/* SUPER PROMINENT REGISTRATION BUTTON - Mobile Optimized */}
+                      {/* SUPER PROMINENT REGISTRATION BUTTON - Mobile Optimized with Responsive Text */}
                       <motion.div
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.98 }}
@@ -366,26 +367,46 @@ export const RoleBasedContent: React.FC<RoleBasedContentProps> = ({
                       >
                         <Button 
                           size="lg" 
-                          className="w-full bg-white text-primary hover:bg-gray-50 text-sm sm:text-lg font-bold py-3 sm:py-4 px-4 sm:px-8 rounded-xl shadow-lg border-2 border-white min-h-[48px]"
+                          className="w-full bg-white text-primary hover:bg-gray-50 text-xs sm:text-sm md:text-lg font-bold py-3 sm:py-4 px-2 sm:px-4 md:px-8 rounded-xl shadow-lg border-2 border-white min-h-[48px]"
                           onClick={dashboardRole === 'family' ? handleFindCaregiverClick : handleProfessionalMatchClick}
                         >
-                          <Sparkles className="mr-2 h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
+                          <Sparkles className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4 md:h-5 md:w-5 flex-shrink-0" />
                           <span className="text-center leading-tight">
-                            {dashboardRole === 'family' ? "🎯 FIND MY CAREGIVER NOW!" : "⚡ GET MATCHED WITH FAMILIES!"}
+                            {dashboardRole === 'family' ? (
+                              <>
+                                <span className="sm:hidden">🎯 FIND CAREGIVER!</span>
+                                <span className="hidden sm:inline">🎯 FIND MY CAREGIVER NOW!</span>
+                              </>
+                            ) : (
+                              <>
+                                <span className="sm:hidden">⚡ GET MATCHED!</span>
+                                <span className="hidden sm:inline">⚡ GET MATCHED WITH FAMILIES!</span>
+                              </>
+                            )}
                           </span>
-                          <ArrowRight className="ml-2 h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
+                          <ArrowRight className="ml-1 sm:ml-2 h-3 w-3 sm:h-4 sm:w-4 md:h-5 md:w-5 flex-shrink-0" />
                         </Button>
                       </motion.div>
                       
-                      {/* SECONDARY PATHWAY BUTTONS - Mobile Optimized */}
+                      {/* SECONDARY PATHWAY BUTTONS - Mobile Optimized with Responsive Text */}
                       <div className="grid grid-cols-1 gap-2 pt-2 w-full">
                         <Button 
                           variant="outline" 
-                          className="w-full bg-white/20 border-white/30 text-white hover:bg-white/30 font-semibold text-sm sm:text-base py-2 sm:py-3 min-h-[44px]"
+                          className="w-full bg-white/20 border-white/30 text-white hover:bg-white/30 font-semibold text-xs sm:text-sm md:text-base py-2 sm:py-3 min-h-[44px]"
                           onClick={dashboardRole === 'family' ? handleQuickRegistrationClick : handleProfessionalRegistrationClick}
                         >
                           <span className="text-center leading-tight">
-                            {dashboardRole === 'family' ? "🏠 Quick Family Registration" : "👩‍⚕️ Care Professionals Sign Up"}
+                            {dashboardRole === 'family' ? (
+                              <>
+                                <span className="sm:hidden">🏠 Quick Sign Up</span>
+                                <span className="hidden sm:inline">🏠 Quick Family Registration</span>
+                              </>
+                            ) : (
+                              <>
+                                <span className="sm:hidden">👩‍⚕️ Professional Sign Up</span>
+                                <span className="hidden sm:inline">👩‍⚕️ Care Professionals Sign Up</span>
+                              </>
+                            )}
                           </span>
                         </Button>
                       </div>
