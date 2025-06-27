@@ -5,7 +5,7 @@ import Index from "@/pages/Index";
 import AuthPage from "@/pages/auth/AuthPage";
 import ResetPassword from "@/pages/auth/ResetPassword";
 import ResetPasswordConfirm from "@/pages/auth/reset-password/ResetPasswordConfirm";
-import FamilyDashboard from "@/components/family/FamilyDashboard";
+import FamilyDashboard from "@/pages/dashboards/FamilyDashboard";
 import ProfessionalDashboard from "@/pages/dashboards/ProfessionalDashboard";
 import CommunityDashboard from "@/pages/dashboards/CommunityDashboard";
 import AdminDashboard from "@/pages/admin/AdminDashboard";
@@ -15,7 +15,6 @@ import UserJourneyPage from "@/pages/admin/UserJourneyPage";
 import FeedbackManagementPage from "@/pages/admin/FeedbackManagementPage";
 import WhatsAppNudgePage from "@/pages/admin/WhatsAppNudgePage";
 import PlatformAnalyticsPage from "@/pages/admin/PlatformAnalyticsPage";
-import ShiftManagementPage from "@/pages/admin/ShiftManagementPage";
 import FeaturesPage from "@/pages/features/FeaturesPage";
 import AboutPage from "@/pages/about/AboutPage";
 import FAQPage from "@/pages/support/FAQPage";
@@ -136,7 +135,6 @@ export const AppRoutes = () => {
       <Route path="/admin/feedback" element={<FeedbackManagementPage />} />
       <Route path="/admin/whatsapp-nudge" element={<WhatsAppNudgePage />} />
       <Route path="/admin/platform-analytics" element={<PlatformAnalyticsPage />} />
-      <Route path="/admin/shift-management" element={<ShiftManagementPage />} />
       
       {/* Legacy Routes */}
       <Route path="/legacy/stories" element={<LegacyStoriesPage />} />

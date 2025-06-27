@@ -14,7 +14,7 @@ const adaptDbShiftToCareShift = (dbShift: any): CareShift => ({
   title: dbShift.title || 'Untitled Shift',
   description: dbShift.description || '',
   location: dbShift.location,
-  status: dbShift.status as 'open' | 'confirmed' | 'completed' | 'cancelled',
+  status: dbShift.status as 'open' | 'assigned' | 'completed' | 'cancelled',
   startTime: dbShift.start_time,
   endTime: dbShift.end_time,
   recurringPattern: dbShift.recurring_pattern,
@@ -26,7 +26,7 @@ const adaptDbShiftToCareShift = (dbShift: any): CareShift => ({
 
 interface UseCareShiftsFilters {
   carePlanId?: string;
-  status?: 'open' | 'confirmed' | 'completed' | 'cancelled' | string;
+  status?: 'open' | 'assigned' | 'completed' | 'cancelled' | string;
   startDate?: Date;
   endDate?: Date;
 }

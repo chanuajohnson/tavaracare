@@ -310,43 +310,7 @@ export const CaregiverMatchingModal = ({
                     </motion.div>
                   ) : (
                     <div className="text-center py-6">
-                      <p className="text-gray-500 mb-4"> <div className="text-center py-6">
-  <div className="max-w-md mx-auto space-y-4">
-    <h3 className="text-lg font-semibold text-gray-800 mb-4">
-      To get matched with the right caregiver for your family:
-    </h3>
-    
-    <div className="text-left space-y-3">
-      <div className="flex items-start gap-3">
-        <div className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
-        <p className="text-gray-600">
-          <span className="font-medium">Complete your family profile</span> – so we can understand your real care needs and what matters most.
-        </p>
-      </div>
-      
-      <div className="flex items-start gap-3">
-        <div className="w-2 h-2 bg-purple-500 rounded-full mt-2 flex-shrink-0"></div>
-        <p className="text-gray-600 text-sm italic">
-          (You may need to register or log in first.)
-        </p>
-      </div>
-    </div>
-    
-    <div className="mt-6 p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg border border-blue-200">
-      <div className="flex items-start gap-2">
-        <span className="text-xl">💫</span>
-        <div className="text-left">
-          <p className="text-sm font-medium text-gray-800 mb-1">
-            The more complete your profile, the better your matches.
-          </p>
-          <p className="text-sm text-gray-600">
-            Care is personal—let's make sure your matches are too.
-          </p>
-        </div>
-      </div>
-    </div>
-  </div>
-</div></p>
+                      <p className="text-gray-500 mb-4">No caregiver matches found</p>
                     </div>
                   )}
 

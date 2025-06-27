@@ -62,9 +62,6 @@ export const createCareShift = async (
   shift: CareShiftInput
 ): Promise<CareShift | null> => {
   try {
-    // Determine initial status based on caregiver assignment
-    const initialStatus = shift.caregiverId ? 'confirmed' : 'open';
-    
     // Convert from domain model input to database model
     const dbShift: CareShiftDto = {
       care_plan_id: shift.carePlanId,
@@ -73,7 +70,7 @@ export const createCareShift = async (
       title: shift.title,
       description: shift.description,
       location: shift.location,
-      status: shift.status || initialStatus,
+      status: shift.status || 'open',
       start_time: shift.startTime,
       end_time: shift.endTime,
       recurring_pattern: shift.recurringPattern,
@@ -106,14 +103,6 @@ export const updateCareShift = async (
   updates: Partial<CareShiftInput>
 ): Promise<CareShift | null> => {
   try {
-    // Automatically update status based on caregiver assignment
-    let statusUpdate = {};
-    if ('caregiverId' in updates) {
-      statusUpdate = {
-        status: updates.caregiverId ? 'confirmed' : 'open'
-      };
-    }
-    
     // Convert from domain model input to database model
     const dbUpdates: Partial<CareShiftDto> = {
       care_plan_id: updates.carePlanId,
@@ -127,8 +116,7 @@ export const updateCareShift = async (
       end_time: updates.endTime,
       recurring_pattern: updates.recurringPattern,
       recurrence_rule: updates.recurrenceRule,
-      google_calendar_event_id: updates.googleCalendarEventId,
-      ...statusUpdate
+      google_calendar_event_id: updates.googleCalendarEventId
     };
 
     // Remove undefined properties
