@@ -8,17 +8,19 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Sparkles, MessageCircle, Video, MapPin, Clock, DollarSign, Star } from 'lucide-react';
 import { useFamilyMatches } from '@/hooks/useFamilyMatches';
 
-interface ProfessionalFamilyMatchModalProps {
+interface ProfessionalFamilyMatchingModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onChatWithFamily?: (family: any) => void;
+  referringPagePath?: string;
+  referringPageLabel?: string;
 }
 
-export const ProfessionalFamilyMatchModal = ({ 
+export const ProfessionalFamilyMatchingModal = ({ 
   open, 
   onOpenChange,
-  onChatWithFamily 
-}: ProfessionalFamilyMatchModalProps) => {
+  referringPagePath,
+  referringPageLabel
+}: ProfessionalFamilyMatchingModalProps) => {
   const { families, isLoading: hookLoading } = useFamilyMatches(true);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -49,6 +51,16 @@ export const ProfessionalFamilyMatchModal = ({
     return "🔴";
   };
 
+  const handleSkipToRegistration = () => {
+    onOpenChange(false);
+    window.location.href = '/registration/professional';
+  };
+
+  const handleBookVideoVisit = () => {
+    onOpenChange(false);
+    window.location.href = '/registration/professional?focus=video';
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
@@ -71,10 +83,10 @@ export const ProfessionalFamilyMatchModal = ({
               </div>
               <div className="text-center space-y-2">
                 <p className="text-xl font-semibold text-blue-600">
-                  Finding your perfect family match! ✨
+                  Finding families who need your care! ✨
                 </p>
                 <p className="text-sm text-gray-600">
-                  Analyzing family needs and your expertise...
+                  Analyzing family care needs and your expertise...
                 </p>
               </div>
             </div>
@@ -99,9 +111,9 @@ export const ProfessionalFamilyMatchModal = ({
                       </AvatarFallback>
                     </Avatar>
                     <div className="flex-1">
-                      <h3 className="font-semibold text-lg">Family Member</h3>
+                      <h3 className="font-semibold text-lg">Family Seeking Care</h3>
                       <div className="text-xs text-blue-600 mt-1">
-                        * Name protected until connected
+                        * Details protected until connected
                       </div>
                       <div className="text-xs text-gray-500 font-mono mt-1">
                         ID: {bestMatch.id?.substring(0, 8) || 'N/A'}
@@ -192,7 +204,7 @@ export const ProfessionalFamilyMatchModal = ({
                     {[1, 2, 3, 4, 5].map(star => (
                       <Star key={star} className="h-4 w-4 text-amber-400 fill-current" />
                     ))}
-                    <span className="text-sm text-gray-600 ml-2">Excellent family rating</span>
+                    <span className="text-sm text-gray-600 ml-2">Verified family profile</span>
                   </div>
                 </CardContent>
               </Card>
@@ -202,32 +214,86 @@ export const ProfessionalFamilyMatchModal = ({
                 <Button 
                   variant="default" 
                   className="w-full flex items-center gap-2"
-                  onClick={() => {
-                    if (onChatWithFamily) {
-                      onChatWithFamily(bestMatch);
-                    }
-                    onOpenChange(false);
-                  }}
+                  onClick={handleSkipToRegistration}
                 >
                   <MessageCircle className="h-4 w-4" />
-                  Start Conversation
+                  Connect with Family
                 </Button>
                 
                 <Button 
                   variant="outline" 
                   className="w-full flex items-center gap-2 border-green-200 text-green-700 hover:bg-green-50"
+                  onClick={handleBookVideoVisit}
                 >
                   <Video className="h-4 w-4" />
-                  Video Calls Enabled
+                  Book Video Visit
                 </Button>
               </div>
 
-              {/* Info Message */}
-              <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
-                <p className="text-sm text-blue-800">
-                  💙 This family is looking for exactly your type of expertise. 
-                  Video calls are enabled to help you stand out and connect more personally with families.
+              {/* Skip Options */}
+              <div className="bg-gradient-to-r from-blue-50 to-purple-50 p-4 rounded-lg border border-blue-200">
+                <h3 className="font-semibold text-blue-800 mb-2">Skip Chat - Book Video Visit ✨</h3>
+                <p className="text-sm text-blue-700 mb-3">
+                  Click to see instant video call benefits
                 </p>
+                <p className="text-xs text-blue-600 mb-3">
+                  Skip the getting-to-know phase and book an instant video visit with your family match! Meet face-to-face in a secure, TAV-moderated video call to discuss care needs and availability directly.
+                </p>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={handleBookVideoVisit}
+                  className="w-full border-blue-300 text-blue-700 hover:bg-blue-50"
+                >
+                  Book Instant Video Visit
+                </Button>
+              </div>
+
+              {/* Profile Completion Message */}
+              <div className="bg-primary-50 p-4 rounded-lg border border-primary-200">
+                <h3 className="font-semibold text-primary-800 mb-2">To get matched with families who need your care:</h3>
+                <p className="text-sm text-primary-700 mb-2">
+                  Complete your professional profile – so families can understand your expertise and what makes you special.
+                </p>
+                <p className="text-xs text-primary-600 mb-2">
+                  (You may need to register or log in first.)
+                </p>
+                <div className="flex items-center gap-2 text-sm text-primary-700 mb-3">
+                  <span>💫</span>
+                  <span>The more complete your profile, the better your matches.</span>
+                </div>
+                <p className="text-xs text-primary-600">
+                  Care is personal—let's make sure your matches are too.
+                </p>
+              </div>
+
+              {/* Guided Chat Options */}
+              <div className="bg-amber-50 p-4 rounded-lg border border-amber-200">
+                <h3 className="font-semibold text-amber-800 mb-2">In-Person Guided Onboarding with Tavara Team</h3>
+                <p className="text-sm text-amber-700 mb-3">
+                  Guided Chat or Premium Video?
+                </p>
+                <p className="text-xs text-amber-600 mb-3">
+                  Our guided chat uses conversation prompts to help you showcase your expertise safely. Ready to meet families face-to-face? Upgrade to book instant video visits and skip the conversation phase entirely.
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={handleSkipToRegistration}
+                    className="border-amber-300 text-amber-700 hover:bg-amber-50"
+                  >
+                    Start Guided Chat
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={handleBookVideoVisit}
+                    className="border-amber-300 text-amber-700 hover:bg-amber-50"
+                  >
+                    Premium Video Matching
+                  </Button>
+                </div>
               </div>
             </div>
           ) : (
@@ -235,8 +301,15 @@ export const ProfessionalFamilyMatchModal = ({
               <Sparkles className="h-12 w-12 text-gray-400 mx-auto mb-4" />
               <h3 className="text-xl font-medium text-gray-600">No Family Matches Found</h3>
               <p className="text-gray-500 mt-2">
-                Complete your professional profile to get matched with families.
+                Complete your professional profile to get matched with families who need care.
               </p>
+              <Button 
+                variant="default"
+                className="mt-4"
+                onClick={handleSkipToRegistration}
+              >
+                Complete Professional Profile
+              </Button>
             </div>
           )}
         </div>
