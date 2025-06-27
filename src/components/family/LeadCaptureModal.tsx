@@ -261,7 +261,7 @@ export const LeadCaptureModal: React.FC<LeadCaptureModalProps> = ({
                 disabled={isSubmitting}
                 className="w-full bg-primary hover:bg-primary/90"
               >
-                {isSubmitting ? 'Saving Info...' : 'Continue to Care Plans 💙'}
+                {isSubmitting ? 'Saving Info...' : 'Bypass it all to Find Caregiver Matches 💙'}
               </Button>
               
               {onSkipToCaregiverMatching ? (
