@@ -51,6 +51,8 @@ interface JourneyStageCardProps {
     time: string;
     type: 'virtual' | 'in_person';
   };
+  onCaregiverModalTrigger?: () => void;
+  onAnonymousSubscriptionCTA?: () => void;
 }
 
 export const JourneyStageCard: React.FC<JourneyStageCardProps> = ({
@@ -62,7 +64,9 @@ export const JourneyStageCard: React.FC<JourneyStageCardProps> = ({
   subscriptionCTA,
   trackStepAction,
   isAnonymous = false,
-  visitDetails
+  visitDetails,
+  onCaregiverModalTrigger,
+  onAnonymousSubscriptionCTA
 }) => {
   const [isExpanded, setIsExpanded] = useState(true);
   const isMobile = useIsMobile();
@@ -132,10 +136,23 @@ export const JourneyStageCard: React.FC<JourneyStageCardProps> = ({
   };
 
   const handleSubscriptionCTA = () => {
-    if (isAnonymous) {
-      navigate('/auth');
+    if (isAnonymous && onAnonymousSubscriptionCTA) {
+      onAnonymousSubscriptionCTA();
     } else if (subscriptionCTA?.navigateTo) {
       navigate(subscriptionCTA.navigateTo);
+    }
+  };
+
+  const handleStepAction = (step: JourneyStep) => {
+    // For anonymous users and step 4 (caregiver matches), show modal
+    if (isAnonymous && step.step_number === 4 && onCaregiverModalTrigger) {
+      onCaregiverModalTrigger();
+      return;
+    }
+
+    // For logged-in users or other steps, use existing action
+    if (step.action) {
+      step.action();
     }
   };
 
@@ -253,26 +270,13 @@ export const JourneyStageCard: React.FC<JourneyStageCardProps> = ({
                   <p className="text-xs text-gray-600 mb-3">
                     {subscriptionCTA.description}
                   </p>
-                  {isAnonymous ? (
-                    <Button
-                      onClick={handleSubscriptionCTA}
-                      variant="default"
-                      className="mobile-button-responsive mobile-touch-target"
-                    >
-                      {subscriptionCTA.buttonText}
-                    </Button>
-                  ) : (
-                    <SubscriptionTrackingButton
-                      action={subscriptionCTA.action as any}
-                      featureType={subscriptionCTA.featureType}
-                      planId={subscriptionCTA.planId}
-                      navigateTo={subscriptionCTA.navigateTo}
-                      variant="default"
-                      className="mobile-button-responsive mobile-touch-target"
-                    >
-                      {subscriptionCTA.buttonText}
-                    </SubscriptionTrackingButton>
-                  )}
+                  <Button
+                    onClick={handleSubscriptionCTA}
+                    variant="default"
+                    className="mobile-button-responsive mobile-touch-target"
+                  >
+                    {subscriptionCTA.buttonText}
+                  </Button>
                 </div>
               </div>
             </div>
@@ -396,9 +400,7 @@ export const JourneyStageCard: React.FC<JourneyStageCardProps> = ({
                           disabled={!(step.accessible || isAnonymous)}
                           onClick={(e) => {
                             e.stopPropagation();
-                            if (step.action) {
-                              step.action();
-                            }
+                            handleStepAction(step);
                           }}
                         >
                           <span>{getButtonText(step)}</span>
