@@ -57,30 +57,31 @@ export const ProfessionalReadinessChecker = () => {
     }
   }, [user]);
 
-  // Show loading state while checking readiness
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center py-8">
-        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
-        <span className="ml-2 text-sm text-gray-600">Checking your professional status...</span>
-      </div>
-    );
-  }
-
-  // If ready, show the full family matches component
-  if (isReady) {
-    return <DashboardFamilyMatches />;
-  }
-
-  // If not ready, show the readiness modal
+  // Always return a container - never return just the modal
   return (
-    <ProfessionalReadinessModal
-      open={showModal}
-      onOpenChange={setShowModal}
-      onReadinessAchieved={() => {
-        setIsReady(true);
-        setShowModal(false);
-      }}
-    />
+    <div className="professional-readiness-container">
+      {/* Show loading state while checking readiness */}
+      {isLoading && (
+        <div className="flex items-center justify-center py-8">
+          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+          <span className="ml-2 text-sm text-gray-600">Checking your professional status...</span>
+        </div>
+      )}
+
+      {/* Show the full family matches component if ready */}
+      {!isLoading && isReady && <DashboardFamilyMatches />}
+
+      {/* Show the readiness modal if not ready */}
+      {!isLoading && (
+        <ProfessionalReadinessModal
+          open={showModal}
+          onOpenChange={setShowModal}
+          onReadinessAchieved={() => {
+            setIsReady(true);
+            setShowModal(false);
+          }}
+        />
+      )}
+    </div>
   );
 };
