@@ -10,6 +10,7 @@ import { ProfessionalJourneyPreview } from './components/ProfessionalJourneyPrev
 import { ProfessionalJourneyWelcomeCard } from './components/ProfessionalJourneyWelcomeCard';
 import { CommunityJourneyPreview } from './components/CommunityJourneyPreview';
 import { CaregiverMatchingModal } from '@/components/family/CaregiverMatchingModal';
+import { ProfessionalFamilyMatchModal } from '@/components/professional/ProfessionalFamilyMatchModal';
 import { cn } from '@/lib/utils';
 
 interface RoleBasedContentProps {
@@ -41,6 +42,7 @@ export const RoleBasedContent: React.FC<RoleBasedContentProps> = ({
 }) => {
   const { user } = useAuth();
   const [showCaregiverMatchingModal, setShowCaregiverMatchingModal] = useState(false);
+  const [showProfessionalMatchModal, setShowProfessionalMatchModal] = useState(false);
 
   const handleJourneyAction = () => {
     // Navigate to appropriate next step based on role and progress
@@ -73,8 +75,18 @@ export const RoleBasedContent: React.FC<RoleBasedContentProps> = ({
     setShowCaregiverMatchingModal(true);
   };
 
+  // Handle Professional Match click - open modal for anonymous users
+  const handleProfessionalMatchClick = () => {
+    setShowProfessionalMatchModal(true);
+  };
+
   // Handle Quick Family Registration click - redirect to /auth with sign-up preference
   const handleQuickRegistrationClick = () => {
+    window.location.href = '/auth?tab=signup';
+  };
+
+  // Handle Professional Registration click - redirect to /auth with sign-up preference
+  const handleProfessionalRegistrationClick = () => {
     window.location.href = '/auth?tab=signup';
   };
 
@@ -250,7 +262,7 @@ export const RoleBasedContent: React.FC<RoleBasedContentProps> = ({
                     initial={{ scale: 0.9, opacity: 0 }}
                     animate={{ scale: 1, opacity: 1 }}
                     transition={{ delay: 0.2 }}
-                    className="bg-gradient-to-br from-primary/10 via-blue-50 to-purple-50 rounded-2xl p-6 border-4 border-primary/30 relative overflow-hidden"
+                    className="bg-gradient-to-br from-primary/10 via-blue-50 to-purple-50 rounded-2xl p-4 sm:p-6 border-4 border-primary/30 relative overflow-hidden"
                   >
                     {/* Animated background sparkles */}
                     <div className="absolute inset-0">
@@ -266,13 +278,13 @@ export const RoleBasedContent: React.FC<RoleBasedContentProps> = ({
                           animate={{ rotate: [0, 10, -10, 0] }}
                           transition={{ duration: 2, repeat: Infinity }}
                         >
-                          {dashboardRole === 'family' ? <Heart className="h-8 w-8 text-primary" /> : <Users className="h-8 w-8 text-primary" />}
+                          {dashboardRole === 'family' ? <Heart className="h-6 w-6 sm:h-8 sm:w-8 text-primary" /> : <Users className="h-6 w-6 sm:h-8 sm:w-8 text-primary" />}
                         </motion.div>
                         <div>
-                          <h3 className="text-2xl font-bold text-primary">
+                          <h3 className="text-lg sm:text-2xl font-bold text-primary">
                             {dashboardRole === 'family' ? "🎯 FAMILY MAGIC AWAITS!" : "⚡ PROFESSIONAL MAGIC AWAITS!"}
                           </h3>
-                          <p className="text-lg font-semibold text-gray-700">
+                          <p className="text-sm sm:text-lg font-semibold text-gray-700">
                             {dashboardRole === 'family' 
                               ? "Your Perfect Caregiver Is Just ONE CLICK Away!" 
                               : "Families Need YOU Right Now!"
@@ -282,7 +294,7 @@ export const RoleBasedContent: React.FC<RoleBasedContentProps> = ({
                       </div>
                       
                       <div className="space-y-3">
-                        <p className="text-base font-medium text-gray-800">
+                        <p className="text-sm sm:text-base font-medium text-gray-800">
                           {dashboardRole === 'family' 
                             ? "🌟 Stop browsing! Start MATCHING! Get connected with verified, loving caregivers in your area who are ready to care for your family TODAY!"
                             : "🌟 Stop waiting! Start EARNING! Get matched with families in your area who need your caregiving expertise RIGHT NOW!"
@@ -307,9 +319,9 @@ export const RoleBasedContent: React.FC<RoleBasedContentProps> = ({
                               initial={{ opacity: 0, x: -20 }}
                               animate={{ opacity: 1, x: 0 }}
                               transition={{ delay: 0.3 + index * 0.1 }}
-                              className="flex items-center gap-2 text-sm font-medium text-gray-700"
+                              className="flex items-center gap-2 text-xs sm:text-sm font-medium text-gray-700"
                             >
-                              <Zap className="h-4 w-4 text-primary flex-shrink-0" />
+                              <Zap className="h-3 w-3 sm:h-4 sm:w-4 text-primary flex-shrink-0" />
                               <span>{benefit}</span>
                             </motion.div>
                           ))}
@@ -318,7 +330,7 @@ export const RoleBasedContent: React.FC<RoleBasedContentProps> = ({
                     </div>
                   </motion.div>
 
-                  {/* MASSIVE PULSING REGISTRATION CTA - Updated for Family Dashboard */}
+                  {/* MASSIVE PULSING REGISTRATION CTA - Enhanced for Mobile */}
                   <motion.div
                     animate={{ 
                       boxShadow: [
@@ -328,46 +340,53 @@ export const RoleBasedContent: React.FC<RoleBasedContentProps> = ({
                       ]
                     }}
                     transition={{ duration: 2, repeat: Infinity }}
-                    className="bg-gradient-to-r from-primary via-blue-600 to-primary rounded-2xl p-6 border-2 border-primary/20"
+                    className="bg-gradient-to-r from-primary via-blue-600 to-primary rounded-2xl p-4 sm:p-6 border-2 border-primary/20"
                   >
                     <div className="text-center space-y-4">
-                      <h4 className="text-xl font-bold text-white flex items-center justify-center gap-2">
-                        <Sparkles className="h-6 w-6" />
-                        {dashboardRole === 'family' ? "GET YOUR PERFECT MATCH NOW!" : "START YOUR PROFESSIONAL JOURNEY!"}
-                        <Sparkles className="h-6 w-6" />
+                      <h4 className="text-lg sm:text-xl font-bold text-white flex items-center justify-center gap-2 flex-wrap">
+                        <Sparkles className="h-5 w-5 sm:h-6 sm:w-6" />
+                        <span className="text-center">
+                          {dashboardRole === 'family' ? "GET YOUR PERFECT MATCH NOW!" : "GET MATCHED WITH FAMILIES!"}
+                        </span>
+                        <Sparkles className="h-5 w-5 sm:h-6 sm:w-6" />
                       </h4>
                       
-                      <p className="text-base text-blue-100 font-medium">
+                      <p className="text-sm sm:text-base text-blue-100 font-medium px-2">
                         {dashboardRole === 'family' 
                           ? "Join thousands of families who found their perfect caregiver through Tavara!"
                           : "Join hundreds of professionals earning with flexible caregiving jobs!"
                         }
                       </p>
                       
-                      {/* SUPER PROMINENT REGISTRATION BUTTON - Updated for Family Dashboard */}
+                      {/* SUPER PROMINENT REGISTRATION BUTTON - Mobile Optimized */}
                       <motion.div
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.98 }}
+                        className="w-full"
                       >
                         <Button 
                           size="lg" 
-                          className="w-full bg-white text-primary hover:bg-gray-50 text-lg font-bold py-4 px-8 rounded-xl shadow-lg border-2 border-white"
-                          onClick={dashboardRole === 'family' ? handleFindCaregiverClick : () => window.location.href = '/auth'}
+                          className="w-full bg-white text-primary hover:bg-gray-50 text-sm sm:text-lg font-bold py-3 sm:py-4 px-4 sm:px-8 rounded-xl shadow-lg border-2 border-white min-h-[48px]"
+                          onClick={dashboardRole === 'family' ? handleFindCaregiverClick : handleProfessionalMatchClick}
                         >
-                          <Sparkles className="mr-2 h-5 w-5" />
-                          {dashboardRole === 'family' ? "🎯 FIND MY CAREGIVER NOW!" : "⚡ GET MATCHED WITH FAMILIES!"}
-                          <ArrowRight className="ml-2 h-5 w-5" />
+                          <Sparkles className="mr-2 h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
+                          <span className="text-center leading-tight">
+                            {dashboardRole === 'family' ? "🎯 FIND MY CAREGIVER NOW!" : "⚡ GET MATCHED WITH FAMILIES!"}
+                          </span>
+                          <ArrowRight className="ml-2 h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
                         </Button>
                       </motion.div>
                       
-                      {/* SECONDARY PATHWAY BUTTONS - Updated for Family Dashboard */}
-                      <div className="grid grid-cols-1 gap-2 pt-2">
+                      {/* SECONDARY PATHWAY BUTTONS - Mobile Optimized */}
+                      <div className="grid grid-cols-1 gap-2 pt-2 w-full">
                         <Button 
                           variant="outline" 
-                          className="bg-white/20 border-white/30 text-white hover:bg-white/30 font-semibold"
-                          onClick={dashboardRole === 'family' ? handleQuickRegistrationClick : () => window.location.href = '/registration/professional'}
+                          className="w-full bg-white/20 border-white/30 text-white hover:bg-white/30 font-semibold text-sm sm:text-base py-2 sm:py-3 min-h-[44px]"
+                          onClick={dashboardRole === 'family' ? handleQuickRegistrationClick : handleProfessionalRegistrationClick}
                         >
-                          {dashboardRole === 'family' ? "🏠 Quick Family Registration" : "👩‍⚕️ Professional Sign Up"}
+                          <span className="text-center leading-tight">
+                            {dashboardRole === 'family' ? "🏠 Quick Family Registration" : "👩‍⚕️ Care Professionals Sign Up"}
+                          </span>
                         </Button>
                       </div>
                     </div>
@@ -376,12 +395,12 @@ export const RoleBasedContent: React.FC<RoleBasedContentProps> = ({
                   {/* URGENCY MESSAGING */}
                   <div className="bg-amber-50 border-2 border-amber-200 rounded-xl p-4">
                     <div className="flex items-center gap-2 mb-2">
-                      <Clock className="h-5 w-5 text-amber-600" />
-                      <h5 className="font-bold text-amber-800">
+                      <Clock className="h-4 w-4 sm:h-5 sm:w-5 text-amber-600 flex-shrink-0" />
+                      <h5 className="font-bold text-amber-800 text-sm sm:text-base">
                         {dashboardRole === 'family' ? "Don't Wait - Families Like Yours Are Getting Matched RIGHT NOW!" : "Don't Miss Out - New Opportunities Posted Every Hour!"}
                       </h5>
                     </div>
-                    <p className="text-sm text-amber-700 font-medium">
+                    <p className="text-xs sm:text-sm text-amber-700 font-medium">
                       {dashboardRole === 'family' 
                         ? "Every minute you wait, another family finds their perfect caregiver. Join the magic now!"
                         : "Every minute you wait, another professional gets the best family assignments. Start earning today!"
@@ -479,6 +498,14 @@ export const RoleBasedContent: React.FC<RoleBasedContentProps> = ({
         <CaregiverMatchingModal
           open={showCaregiverMatchingModal}
           onOpenChange={setShowCaregiverMatchingModal}
+        />
+      )}
+
+      {/* Professional Family Match Modal for Anonymous Professional Dashboard Users */}
+      {showProfessionalMatchModal && (
+        <ProfessionalFamilyMatchModal
+          open={showProfessionalMatchModal}
+          onOpenChange={setShowProfessionalMatchModal}
         />
       )}
     </div>
