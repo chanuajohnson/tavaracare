@@ -1,10 +1,11 @@
+
 import { Routes, Route } from "react-router-dom";
 import { useAuth } from "@/components/providers/AuthProvider";
 import Index from "@/pages/Index";
 import AuthPage from "@/pages/auth/AuthPage";
 import ResetPassword from "@/pages/auth/ResetPassword";
 import ResetPasswordConfirm from "@/pages/auth/reset-password/ResetPasswordConfirm";
-import FamilyDashboard from "@/pages/dashboards/FamilyDashboard";
+import FamilyDashboard from "@/components/family/FamilyDashboard";
 import ProfessionalDashboard from "@/pages/dashboards/ProfessionalDashboard";
 import CommunityDashboard from "@/pages/dashboards/CommunityDashboard";
 import AdminDashboard from "@/pages/admin/AdminDashboard";
