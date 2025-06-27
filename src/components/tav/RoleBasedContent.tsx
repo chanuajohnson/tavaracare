@@ -1,5 +1,4 @@
-
-import React from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { X, Minimize2, Sparkles, ArrowRight, CheckCircle, Clock, Target, Star, Zap, Heart, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -10,6 +9,7 @@ import { FamilyJourneyPreview } from './components/FamilyJourneyPreview';
 import { ProfessionalJourneyPreview } from './components/ProfessionalJourneyPreview';
 import { ProfessionalJourneyWelcomeCard } from './components/ProfessionalJourneyWelcomeCard';
 import { CommunityJourneyPreview } from './components/CommunityJourneyPreview';
+import { CaregiverMatchingModal } from '@/components/family/CaregiverMatchingModal';
 import { cn } from '@/lib/utils';
 
 interface RoleBasedContentProps {
@@ -40,6 +40,7 @@ export const RoleBasedContent: React.FC<RoleBasedContentProps> = ({
   dashboardRole = null
 }) => {
   const { user } = useAuth();
+  const [showCaregiverMatchingModal, setShowCaregiverMatchingModal] = useState(false);
 
   const handleJourneyAction = () => {
     // Navigate to appropriate next step based on role and progress
@@ -65,6 +66,16 @@ export const RoleBasedContent: React.FC<RoleBasedContentProps> = ({
   const handleBack = () => {
     // Simple back navigation - could be enhanced
     window.history.back();
+  };
+
+  // Handle Find My Caregiver Now click - open modal for anonymous users
+  const handleFindCaregiverClick = () => {
+    setShowCaregiverMatchingModal(true);
+  };
+
+  // Handle Quick Family Registration click - redirect to /auth with sign-up preference
+  const handleQuickRegistrationClick = () => {
+    window.location.href = '/auth?tab=signup';
   };
 
   return (
@@ -307,7 +318,7 @@ export const RoleBasedContent: React.FC<RoleBasedContentProps> = ({
                     </div>
                   </motion.div>
 
-                  {/* MASSIVE PULSING REGISTRATION CTA */}
+                  {/* MASSIVE PULSING REGISTRATION CTA - Updated for Family Dashboard */}
                   <motion.div
                     animate={{ 
                       boxShadow: [
@@ -333,7 +344,7 @@ export const RoleBasedContent: React.FC<RoleBasedContentProps> = ({
                         }
                       </p>
                       
-                      {/* SUPER PROMINENT REGISTRATION BUTTON */}
+                      {/* SUPER PROMINENT REGISTRATION BUTTON - Updated for Family Dashboard */}
                       <motion.div
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.98 }}
@@ -341,7 +352,7 @@ export const RoleBasedContent: React.FC<RoleBasedContentProps> = ({
                         <Button 
                           size="lg" 
                           className="w-full bg-white text-primary hover:bg-gray-50 text-lg font-bold py-4 px-8 rounded-xl shadow-lg border-2 border-white"
-                          onClick={() => window.location.href = '/auth'}
+                          onClick={dashboardRole === 'family' ? handleFindCaregiverClick : () => window.location.href = '/auth'}
                         >
                           <Sparkles className="mr-2 h-5 w-5" />
                           {dashboardRole === 'family' ? "🎯 FIND MY CAREGIVER NOW!" : "⚡ GET MATCHED WITH FAMILIES!"}
@@ -349,12 +360,12 @@ export const RoleBasedContent: React.FC<RoleBasedContentProps> = ({
                         </Button>
                       </motion.div>
                       
-                      {/* SECONDARY PATHWAY BUTTONS */}
+                      {/* SECONDARY PATHWAY BUTTONS - Updated for Family Dashboard */}
                       <div className="grid grid-cols-1 gap-2 pt-2">
                         <Button 
                           variant="outline" 
                           className="bg-white/20 border-white/30 text-white hover:bg-white/30 font-semibold"
-                          onClick={() => window.location.href = dashboardRole === 'family' ? '/registration/family' : '/registration/professional'}
+                          onClick={dashboardRole === 'family' ? handleQuickRegistrationClick : () => window.location.href = '/registration/professional'}
                         >
                           {dashboardRole === 'family' ? "🏠 Quick Family Registration" : "👩‍⚕️ Professional Sign Up"}
                         </Button>
@@ -462,6 +473,14 @@ export const RoleBasedContent: React.FC<RoleBasedContentProps> = ({
         {/* Expandable chat section */}
         <ExpandableChatSection role={role as 'family' | 'professional' | 'community' | null} />
       </div>
+
+      {/* Caregiver Matching Modal for Anonymous Family Dashboard Users */}
+      {showCaregiverMatchingModal && (
+        <CaregiverMatchingModal
+          open={showCaregiverMatchingModal}
+          onOpenChange={setShowCaregiverMatchingModal}
+        />
+      )}
     </div>
   );
 };
