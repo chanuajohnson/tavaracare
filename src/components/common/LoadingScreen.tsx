@@ -22,11 +22,11 @@ const LoadingScreen = ({ message }: LoadingScreenProps) => {
   const [currentMessageIndex, setCurrentMessageIndex] = useState(0);
   const [showSparkles, setShowSparkles] = useState(true);
 
-  // Rotate through magical messages every 2 seconds
+  // Rotate through magical messages every 1.2 seconds
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentMessageIndex((prev) => (prev + 1) % MAGICAL_MESSAGES.length);
-    }, 2000);
+    }, 1200);
 
     return () => clearInterval(interval);
   }, []);
@@ -83,26 +83,47 @@ const LoadingScreen = ({ message }: LoadingScreenProps) => {
 
         {/* Main Content */}
         <div className="relative z-10">
-          {/* Enhanced Loading Spinner with Pulsing Ring */}
-          <div className="relative mb-8">
-            <div className="absolute inset-0 rounded-full bg-primary/20 animate-ping" />
-            <div className="absolute inset-2 rounded-full bg-primary/10 animate-pulse" style={{ animationDelay: '0.5s' }} />
-            <motion.div
-              animate={{ rotate: 360 }}
-              transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-              className="relative bg-gradient-to-r from-primary to-primary/80 rounded-full p-4 shadow-lg"
-            >
-              <Loader2 className="h-8 w-8 animate-spin text-white" />
-            </motion.div>
+          {/* Magical Circle Loading Spinner - Same as Caregiver Matching Modal */}
+          <div className="relative mb-8 flex justify-center">
+            <div className="relative">
+              {/* Outer rotating sparkle ring */}
+              <motion.div
+                animate={{ rotate: 360 }}
+                transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+                className="absolute inset-0 w-20 h-20"
+              >
+                <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1">
+                  <Sparkles className="h-3 w-3 text-primary animate-pulse" />
+                </div>
+                <div className="absolute top-1/2 right-0 transform translate-x-1 -translate-y-1/2">
+                  <Star className="h-2 w-2 text-blue-400 animate-pulse" style={{ animationDelay: '0.5s' }} />
+                </div>
+                <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 translate-y-1">
+                  <Sparkles className="h-2 w-2 text-primary/70 animate-pulse" style={{ animationDelay: '1s' }} />
+                </div>
+                <div className="absolute top-1/2 left-0 transform -translate-x-1 -translate-y-1/2">
+                  <Star className="h-3 w-3 text-amber-400 animate-pulse" style={{ animationDelay: '1.5s' }} />
+                </div>
+              </motion.div>
+
+              {/* Middle pulsing ring */}
+              <div className="absolute inset-2 rounded-full bg-primary/10 animate-pulse" style={{ animationDelay: '0.5s' }} />
+              
+              {/* Inner spinning loader */}
+              <div className="relative bg-white rounded-full p-4 shadow-lg border-2 border-primary/20 w-20 h-20 flex items-center justify-center">
+                <motion.div
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                >
+                  <Loader2 className="h-6 w-6 text-primary" />
+                </motion.div>
+              </div>
+            </div>
           </div>
 
           {/* Magical Message Display */}
           <div className="space-y-4">
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="bg-white/60 backdrop-blur-sm rounded-2xl p-6 border border-primary/20 shadow-lg"
-            >
+            <div className="bg-white/60 backdrop-blur-sm rounded-2xl p-6 border border-primary/20 shadow-lg">
               <div className="flex items-center justify-center gap-2 mb-3">
                 <motion.div
                   animate={{ rotate: [0, 10, -10, 0] }}
@@ -119,22 +140,22 @@ const LoadingScreen = ({ message }: LoadingScreenProps) => {
                 </motion.div>
               </div>
               
-              {/* Rotating Messages */}
+              {/* Rotating Messages - Instant display */}
               <div className="h-8 flex items-center justify-center">
                 <AnimatePresence mode="wait">
                   <motion.p
                     key={currentMessageIndex}
-                    initial={{ opacity: 0, y: 20 }}
+                    initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -20 }}
-                    transition={{ duration: 0.5 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    transition={{ duration: 0.2 }}
                     className="text-base font-semibold text-gray-700 text-center"
                   >
                     {MAGICAL_MESSAGES[currentMessageIndex]}
                   </motion.p>
                 </AnimatePresence>
               </div>
-            </motion.div>
+            </div>
 
             {/* Progress Dots */}
             <div className="flex justify-center space-x-2">
@@ -157,13 +178,9 @@ const LoadingScreen = ({ message }: LoadingScreenProps) => {
 
             {/* Custom Message Override */}
             {message && message !== 'Loading...' && (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="bg-primary/5 rounded-xl p-4 border border-primary/10 mt-4"
-              >
+              <div className="bg-primary/5 rounded-xl p-4 border border-primary/10 mt-4">
                 <p className="text-sm font-medium text-primary">{message}</p>
-              </motion.div>
+              </div>
             )}
           </div>
         </div>
