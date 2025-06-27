@@ -310,7 +310,19 @@ export const CaregiverMatchingModal = ({
                     </motion.div>
                   ) : (
                     <div className="text-center py-6">
-                      <p className="text-gray-500 mb-4">Complete your profile for personalized matches! Our caregivers are matched based on your actual care needs and the unique preferences of those you love.</p>
+                      <p className="text-gray-500 mb-4">To receive truly personalized caregiver matches for your family, you’ll need to:
+
+Create an Account – If you haven’t already, take a minute to register.
+
+Log In – Return anytime to manage your registration, care preferences and explore matches.
+
+Complete Your Family Profile – This step helps us understand your real care needs and the unique preferences of the people you love.
+
+💫 The more complete your profile, the better we can match you with caregivers who are not only qualified but genuinely aligned with your values, routines, and care expectations.
+
+Care is personal. Let’s make sure your matches are too.
+
+</p>
                     </div>
                   )}
 
