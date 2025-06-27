@@ -282,6 +282,12 @@ export const ChatRequestsSection = () => {
     return null;
   }
 
+  // CRITICAL FIX: Only render if there are actual requests
+  if (!isLoading && !authLoading && requests.length === 0) {
+    console.log('[ChatRequestsSection] No requests found - not rendering component');
+    return null;
+  }
+
   const pendingRequests = requests.filter(req => req.status === 'pending');
   const respondedRequests = requests.filter(req => req.status !== 'pending');
 
@@ -337,30 +343,6 @@ export const ChatRequestsSection = () => {
             <span className="ml-2 text-gray-600">
               {authLoading ? 'Loading authentication...' : 'Loading chat requests...'}
             </span>
-          </div>
-        ) : !isProfessional ? (
-          <div className="text-center py-8 text-gray-500">
-            <AlertCircle className="h-12 w-12 mx-auto mb-4 text-orange-400" />
-            <p className="font-medium">Role Verification Required</p>
-            <p className="text-sm">This section is only available to professional caregivers</p>
-            <div className="mt-4 p-4 bg-orange-50 rounded-lg">
-              <p className="text-sm text-orange-700">
-                Current role: {userRole || user?.user_metadata?.role || 'Not set'}
-              </p>
-            </div>
-          </div>
-        ) : requests.length === 0 ? (
-          <div className="text-center py-8 text-gray-500">
-            <MessageCircle className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-            <p className="font-medium">No chat requests yet</p>
-            <p className="text-sm">Families will be able to reach out to you here</p>
-            {/*Chan Removed user facing debug <div className="mt-4 p-4 bg-blue-50 rounded-lg">
-              <p className="text-sm text-blue-700">
-                💡 <strong>Debug Info:</strong> This section shows chat requests from the 
-                <code className="bg-blue-100 px-1 rounded mx-1">caregiver_chat_requests</code> table 
-                where <code className="bg-blue-100 px-1 rounded mx-1">caregiver_id = {user?.id}</code>
-              </p>
-            </div>*/}
           </div>
         ) : (
           <div className="space-y-4">
