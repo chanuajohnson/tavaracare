@@ -98,9 +98,9 @@ export const LeadCaptureModal: React.FC<LeadCaptureModalProps> = ({
         .single();
 
       if (existingLead) {
-        const redirectPath = isProfessionalContext ? '/registration/professional' : '/subscription/features';
+        const redirectPath = '/auth';
         const contextMessage = isProfessionalContext 
-          ? "Taking you to professional registration..."
+          ? "Taking you to sign in..."
           : "Taking you to choose your care plan...";
         
         toast({
@@ -157,7 +157,7 @@ export const LeadCaptureModal: React.FC<LeadCaptureModalProps> = ({
       // Auto-close and redirect after success
       setTimeout(() => {
         onOpenChange(false);
-        const redirectPath = isProfessionalContext ? '/registration/professional' : '/subscription/features';
+        const redirectPath = isProfessionalContext ? '/auth' : '/subscription/features';
         navigate(redirectPath, { 
           state: { 
             email,
@@ -195,6 +195,22 @@ export const LeadCaptureModal: React.FC<LeadCaptureModalProps> = ({
     }
   };
 
+  // Handle professional skip with form validation
+  const handleProfessionalSkip = () => {
+    // Check if form fields are filled when trying to skip
+    if (!whatsappNumber.trim() || !email.trim()) {
+      toast({
+        title: "Please Fill Out Form Fields",
+        description: "Please fill out the form fields first before skipping",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    // If fields are filled, just close modal without redirection
+    onOpenChange(false);
+  };
+
   // Dynamic content based on context
   const getModalContent = () => {
     if (isProfessionalContext) {
@@ -203,9 +219,9 @@ export const LeadCaptureModal: React.FC<LeadCaptureModalProps> = ({
         title: "Start Your Professional Journey",
         description: "Join our network of qualified caregivers and connect with families in need.",
         submitButtonText: "Get Professional Access 💙",
-        skipButtonText: "Skip for now, view registration",
+        skipButtonText: "Skip for now, Skip the registration for an in-person On boarding with Tavara Team",
         successTitle: "Ready to Join Our Professional Network! 💙",
-        successDescription: "Now complete your professional registration to start connecting with families."
+        successDescription: "Now complete your sign in to start connecting with families."
       };
     } else {
       return {
@@ -235,7 +251,7 @@ export const LeadCaptureModal: React.FC<LeadCaptureModalProps> = ({
               {content.successDescription}
             </p>
             <p className="text-sm text-gray-500">
-              {isProfessionalContext ? "Taking you to professional registration..." : "Taking you to care plan options..."}
+              {isProfessionalContext ? "Taking you to sign in..." : "Taking you to care plan options..."}
             </p>
           </div>
         </DialogContent>
@@ -318,10 +334,10 @@ export const LeadCaptureModal: React.FC<LeadCaptureModalProps> = ({
                 <Button
                   type="button"
                   variant="ghost"
-                  onClick={handleSkipToSubscription}
+                  onClick={handleProfessionalSkip}
                   className="w-full text-sm text-gray-600 hover:text-gray-800"
                 >
-                  Skip for now, go to professional registration
+                  {content.skipButtonText}
                 </Button>
               ) : (
                 onSkipToCaregiverMatching ? (
