@@ -49,9 +49,9 @@ export const ProfessionalReadinessChecker = () => {
       
       setIsReady(ready);
       
-      // Show modal if NOT ready
+      // Show modal if NOT ready - immediate display without delay
       if (!ready) {
-        console.log('[ProfessionalReadinessChecker] User not ready, showing modal');
+        console.log('[ProfessionalReadinessChecker] User not ready, showing modal immediately');
         setShowModal(true);
       } else {
         console.log('[ProfessionalReadinessChecker] User is ready, hiding modal');
@@ -83,9 +83,9 @@ export const ProfessionalReadinessChecker = () => {
     hasUser: !!user
   });
 
-  // Always render a container - modal should always be in DOM
+  // Always render a container with the modal
   return (
-    <div>
+    <div className="professional-readiness-container">
       {/* Show loading state while checking readiness */}
       {isLoading && (
         <div className="flex items-center justify-center py-8">

@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { useNavigate } from 'react-router-dom';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Sparkles, CheckCircle2, Circle, FileText, User, ArrowRight, Unlock, Shield, Award, CreditCard, X } from 'lucide-react';
@@ -34,7 +34,9 @@ export const ProfessionalReadinessModal = ({
   console.log('[ProfessionalReadinessModal] Render with props:', {
     open,
     hasUser: !!user,
-    userId: user?.id
+    userId: user?.id,
+    isLoading,
+    readinessChecks
   });
 
   const checkStatus = async () => {
@@ -92,9 +94,9 @@ export const ProfessionalReadinessModal = ({
     } catch (error) {
       console.error('[ProfessionalReadinessModal] Error checking readiness status:', error);
     } finally {
-      setTimeout(() => {
-        setIsLoading(false);
-      }, 800);
+      // Remove artificial delay - show modal content immediately
+      setIsLoading(false);
+      console.log('[ProfessionalReadinessModal] Loading complete, modal should be visible');
     }
   };
 
@@ -130,78 +132,81 @@ export const ProfessionalReadinessModal = ({
         readinessChecks,
         allReady
       });
+      
+      // Debug modal dimensions
+      setTimeout(() => {
+        const modal = document.querySelector('[role="dialog"]');
+        if (modal) {
+          const rect = modal.getBoundingClientRect();
+          console.log('[ProfessionalReadinessModal] Modal dimensions:', {
+            width: rect.width,
+            height: rect.height,
+            top: rect.top,
+            left: rect.left,
+            visible: rect.width > 0 && rect.height > 0
+          });
+        } else {
+          console.log('[ProfessionalReadinessModal] Modal element not found in DOM');
+        }
+      }, 100);
     }
   }, [open, isLoading, readinessChecks, allReady]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[95vw] sm:max-w-md max-h-[90vh] overflow-y-auto mx-auto bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 border-0 shadow-2xl p-4 sm:p-6 relative">
-        {/* Custom Close Button */}
-        <button
-          onClick={() => {
-            console.log('[ProfessionalReadinessModal] Close button clicked');
-            onOpenChange(false);
-          }}
-          className="absolute right-3 top-3 sm:right-4 sm:top-4 z-50 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none bg-white/80 hover:bg-white/100 p-1.5 shadow-sm"
-        >
-          <X className="h-4 w-4" />
-          <span className="sr-only">Close</span>
-        </button>
-
-        <DialogHeader className="text-center space-y-3 sm:space-y-4 pb-2">
+      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto mx-auto">
+        <DialogHeader className="text-center space-y-4 pb-2">
           <div className="mx-auto relative">
-            <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
-              <Unlock className="h-6 w-6 sm:h-8 sm:w-8 text-white" />
+            <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+              <Unlock className="h-8 w-8 text-white" />
             </div>
-            <Sparkles className="absolute -top-1 -right-1 h-4 w-4 sm:h-5 sm:w-5 text-purple-500 animate-pulse" />
+            <Sparkles className="absolute -top-1 -right-1 h-5 w-5 text-purple-500 animate-pulse" />
             <Sparkles className="absolute -bottom-1 -left-1 h-3 w-3 text-blue-500 animate-pulse delay-150" />
           </div>
           
-          <DialogTitle className="text-lg sm:text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+          <DialogTitle className="text-2xl font-bold text-blue-600">
             Unlock Family Matches
           </DialogTitle>
           
-          <p className="text-gray-600 text-xs sm:text-sm leading-relaxed px-2">
+          <DialogDescription className="text-gray-600 text-sm leading-relaxed">
             Complete these steps to start connecting with families who need your care expertise
-          </p>
+          </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 sm:space-y-6 py-3 sm:py-4">
+        <div className="space-y-6 py-4">
           {isLoading ? (
-            <div className="flex flex-col justify-center items-center py-6 sm:py-8 space-y-3 sm:space-y-4">
+            <div className="flex flex-col justify-center items-center py-8 space-y-4">
               <div className="relative">
-                <div className="animate-spin rounded-full h-10 w-10 sm:h-12 sm:w-12 border-4 border-blue-200 border-t-blue-600"></div>
-                <Sparkles className="absolute -top-1 -right-1 h-4 w-4 sm:h-5 sm:w-5 text-blue-500 animate-pulse" />
-                <Sparkles className="absolute -bottom-1 -left-1 h-3 w-3 text-purple-500 animate-pulse delay-150" />
-                <Sparkles className="absolute top-1/2 -left-3 h-2 w-2 text-pink-500 animate-pulse delay-300" />
+                <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-200 border-t-blue-600"></div>
+                <Sparkles className="absolute -top-1 -right-1 h-5 w-5 text-blue-500 animate-pulse" />
               </div>
               <div className="text-center space-y-1">
-                <p className="text-base sm:text-lg font-semibold text-blue-600">
+                <p className="text-lg font-semibold text-blue-600">
                   Checking your progress! ✨
                 </p>
-                <p className="text-xs sm:text-sm text-gray-600">
+                <p className="text-sm text-gray-600">
                   Reviewing your professional readiness...
                 </p>
               </div>
             </div>
           ) : (
-            <div className="space-y-3 sm:space-y-4">
+            <div className="space-y-4">
               {/* Profile Completion Check */}
-              <div className="flex items-center justify-between p-3 sm:p-4 bg-white/70 rounded-lg border border-white/50 shadow-sm">
-                <div className="flex items-center space-x-2 sm:space-x-3 flex-1 min-w-0">
+              <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border">
+                <div className="flex items-center space-x-3 flex-1 min-w-0">
                   {readinessChecks.profileComplete ? (
-                    <CheckCircle2 className="h-4 w-4 sm:h-5 sm:w-5 text-green-500 flex-shrink-0" />
+                    <CheckCircle2 className="h-5 w-5 text-green-500 flex-shrink-0" />
                   ) : (
-                    <Circle className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400 flex-shrink-0" />
+                    <Circle className="h-5 w-5 text-gray-400 flex-shrink-0" />
                   )}
                   <div className="min-w-0 flex-1">
-                    <p className="font-medium text-gray-800 text-sm sm:text-base truncate">Complete Profile</p>
-                    <p className="text-xs sm:text-sm text-gray-600 truncate">Professional type & experience</p>
+                    <p className="font-medium text-gray-800 text-base">Complete Profile</p>
+                    <p className="text-sm text-gray-600">Professional type & experience</p>
                   </div>
                 </div>
-                <div className="flex items-center space-x-1 sm:space-x-2 flex-shrink-0">
+                <div className="flex items-center space-x-2 flex-shrink-0">
                   {readinessChecks.profileComplete && (
-                    <Badge variant="secondary" className="bg-green-100 text-green-700 border-green-200 text-xs hidden sm:inline-flex">
+                    <Badge variant="secondary" className="bg-green-100 text-green-700 border-green-200">
                       Complete
                     </Badge>
                   )}
@@ -209,32 +214,31 @@ export const ProfessionalReadinessModal = ({
                     variant={readinessChecks.profileComplete ? "outline" : "default"}
                     size="sm"
                     onClick={handleProfileAction}
-                    className="flex items-center space-x-1 text-xs px-2 py-1 sm:px-3 sm:py-1 min-h-[36px] sm:min-h-[40px]"
+                    className="flex items-center space-x-1"
                   >
-                    <User className="h-3 w-3 sm:h-4 sm:w-4" />
-                    <span className="hidden sm:inline">{readinessChecks.profileComplete ? 'Edit' : 'Complete'}</span>
-                    <span className="sm:hidden">{readinessChecks.profileComplete ? 'Edit' : 'Add'}</span>
-                    <ArrowRight className="h-2 w-2 sm:h-3 sm:w-3" />
+                    <User className="h-4 w-4" />
+                    <span>{readinessChecks.profileComplete ? 'Edit' : 'Complete'}</span>
+                    <ArrowRight className="h-3 w-3" />
                   </Button>
                 </div>
               </div>
 
               {/* Upload Identification */}
-              <div className="flex items-center justify-between p-3 sm:p-4 bg-white/70 rounded-lg border border-white/50 shadow-sm">
-                <div className="flex items-center space-x-2 sm:space-x-3 flex-1 min-w-0">
+              <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border">
+                <div className="flex items-center space-x-3 flex-1 min-w-0">
                   {readinessChecks.hasIdentification ? (
-                    <CheckCircle2 className="h-4 w-4 sm:h-5 sm:w-5 text-green-500 flex-shrink-0" />
+                    <CheckCircle2 className="h-5 w-5 text-green-500 flex-shrink-0" />
                   ) : (
-                    <Circle className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400 flex-shrink-0" />
+                    <Circle className="h-5 w-5 text-gray-400 flex-shrink-0" />
                   )}
                   <div className="min-w-0 flex-1">
-                    <p className="font-medium text-gray-800 text-sm sm:text-base truncate">Upload Identification</p>
-                    <p className="text-xs sm:text-sm text-gray-600 truncate">Valid ID document</p>
+                    <p className="font-medium text-gray-800 text-base">Upload Identification</p>
+                    <p className="text-sm text-gray-600">Valid ID document</p>
                   </div>
                 </div>
-                <div className="flex items-center space-x-1 sm:space-x-2 flex-shrink-0">
+                <div className="flex items-center space-x-2 flex-shrink-0">
                   {readinessChecks.hasIdentification && (
-                    <Badge variant="secondary" className="bg-green-100 text-green-700 border-green-200 text-xs hidden sm:inline-flex">
+                    <Badge variant="secondary" className="bg-green-100 text-green-700 border-green-200">
                       Uploaded
                     </Badge>
                   )}
@@ -242,32 +246,31 @@ export const ProfessionalReadinessModal = ({
                     variant={readinessChecks.hasIdentification ? "outline" : "default"}
                     size="sm"
                     onClick={() => handleDocumentAction('identification')}
-                    className="flex items-center space-x-1 text-xs px-2 py-1 sm:px-3 sm:py-1 min-h-[36px] sm:min-h-[40px]"
+                    className="flex items-center space-x-1"
                   >
-                    <CreditCard className="h-3 w-3 sm:h-4 sm:w-4" />
-                    <span className="hidden sm:inline">{readinessChecks.hasIdentification ? 'Manage' : 'Upload'}</span>
-                    <span className="sm:hidden">{readinessChecks.hasIdentification ? 'View' : 'Add'}</span>
-                    <ArrowRight className="h-2 w-2 sm:h-3 sm:w-3" />
+                    <CreditCard className="h-4 w-4" />
+                    <span>{readinessChecks.hasIdentification ? 'Manage' : 'Upload'}</span>
+                    <ArrowRight className="h-3 w-3" />
                   </Button>
                 </div>
               </div>
 
               {/* Upload Certificate */}
-              <div className="flex items-center justify-between p-3 sm:p-4 bg-white/70 rounded-lg border border-white/50 shadow-sm">
-                <div className="flex items-center space-x-2 sm:space-x-3 flex-1 min-w-0">
+              <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border">
+                <div className="flex items-center space-x-3 flex-1 min-w-0">
                   {readinessChecks.hasCertificate ? (
-                    <CheckCircle2 className="h-4 w-4 sm:h-5 sm:w-5 text-green-500 flex-shrink-0" />
+                    <CheckCircle2 className="h-5 w-5 text-green-500 flex-shrink-0" />
                   ) : (
-                    <Circle className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400 flex-shrink-0" />
+                    <Circle className="h-5 w-5 text-gray-400 flex-shrink-0" />
                   )}
                   <div className="min-w-0 flex-1">
-                    <p className="font-medium text-gray-800 text-sm sm:text-base truncate">Upload Certification</p>
-                    <p className="text-xs sm:text-sm text-gray-600 truncate">Professional credentials</p>
+                    <p className="font-medium text-gray-800 text-base">Upload Certification</p>
+                    <p className="text-sm text-gray-600">Professional credentials</p>
                   </div>
                 </div>
-                <div className="flex items-center space-x-1 sm:space-x-2 flex-shrink-0">
+                <div className="flex items-center space-x-2 flex-shrink-0">
                   {readinessChecks.hasCertificate && (
-                    <Badge variant="secondary" className="bg-green-100 text-green-700 border-green-200 text-xs hidden sm:inline-flex">
+                    <Badge variant="secondary" className="bg-green-100 text-green-700 border-green-200">
                       Uploaded
                     </Badge>
                   )}
@@ -275,32 +278,31 @@ export const ProfessionalReadinessModal = ({
                     variant={readinessChecks.hasCertificate ? "outline" : "default"}
                     size="sm"
                     onClick={() => handleDocumentAction('certificate')}
-                    className="flex items-center space-x-1 text-xs px-2 py-1 sm:px-3 sm:py-1 min-h-[36px] sm:min-h-[40px]"
+                    className="flex items-center space-x-1"
                   >
-                    <Award className="h-3 w-3 sm:h-4 sm:w-4" />
-                    <span className="hidden sm:inline">{readinessChecks.hasCertificate ? 'Manage' : 'Upload'}</span>
-                    <span className="sm:hidden">{readinessChecks.hasCertificate ? 'View' : 'Add'}</span>
-                    <ArrowRight className="h-2 w-2 sm:h-3 sm:w-3" />
+                    <Award className="h-4 w-4" />
+                    <span>{readinessChecks.hasCertificate ? 'Manage' : 'Upload'}</span>
+                    <ArrowRight className="h-3 w-3" />
                   </Button>
                 </div>
               </div>
 
               {/* Upload Background Check */}
-              <div className="flex items-center justify-between p-3 sm:p-4 bg-white/70 rounded-lg border border-white/50 shadow-sm">
-                <div className="flex items-center space-x-2 sm:space-x-3 flex-1 min-w-0">
+              <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border">
+                <div className="flex items-center space-x-3 flex-1 min-w-0">
                   {readinessChecks.hasBackgroundCheck ? (
-                    <CheckCircle2 className="h-4 w-4 sm:h-5 sm:w-5 text-green-500 flex-shrink-0" />
+                    <CheckCircle2 className="h-5 w-5 text-green-500 flex-shrink-0" />
                   ) : (
-                    <Circle className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400 flex-shrink-0" />
+                    <Circle className="h-5 w-5 text-gray-400 flex-shrink-0" />
                   )}
                   <div className="min-w-0 flex-1">
-                    <p className="font-medium text-gray-800 text-sm sm:text-base">Upload Police Certificate</p>
-                    <p className="text-xs sm:text-sm text-gray-600">To ensure you're a Vetted Professional</p>
+                    <p className="font-medium text-gray-800 text-base">Upload Police Certificate</p>
+                    <p className="text-sm text-gray-600">To ensure you're a Vetted Professional</p>
                   </div>
                 </div>
-                <div className="flex items-center space-x-1 sm:space-x-2 flex-shrink-0">
+                <div className="flex items-center space-x-2 flex-shrink-0">
                   {readinessChecks.hasBackgroundCheck && (
-                    <Badge variant="secondary" className="bg-green-100 text-green-700 border-green-200 text-xs hidden sm:inline-flex">
+                    <Badge variant="secondary" className="bg-green-100 text-green-700 border-green-200">
                       Uploaded
                     </Badge>
                   )}
@@ -308,24 +310,23 @@ export const ProfessionalReadinessModal = ({
                     variant={readinessChecks.hasBackgroundCheck ? "outline" : "default"}
                     size="sm"
                     onClick={() => handleDocumentAction('background_check')}
-                    className="flex items-center space-x-1 text-xs px-2 py-1 sm:px-3 sm:py-1 min-h-[36px] sm:min-h-[40px]"
+                    className="flex items-center space-x-1"
                   >
-                    <Shield className="h-3 w-3 sm:h-4 sm:w-4" />
-                    <span className="hidden sm:inline">{readinessChecks.hasBackgroundCheck ? 'Manage' : 'Upload'}</span>
-                    <span className="sm:hidden">{readinessChecks.hasBackgroundCheck ? 'View' : 'Add'}</span>
-                    <ArrowRight className="h-2 w-2 sm:h-3 sm:w-3" />
+                    <Shield className="h-4 w-4" />
+                    <span>{readinessChecks.hasBackgroundCheck ? 'Manage' : 'Upload'}</span>
+                    <ArrowRight className="h-3 w-3" />
                   </Button>
                 </div>
               </div>
 
               {/* Success State */}
               {allReady && (
-                <div className="text-center p-3 sm:p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg border border-green-200">
+                <div className="text-center p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg border border-green-200">
                   <div className="flex items-center justify-center space-x-2 mb-2">
-                    <CheckCircle2 className="h-4 w-4 sm:h-5 sm:w-5 text-green-600" />
-                    <p className="font-semibold text-green-700 text-sm sm:text-base">All Set!</p>
+                    <CheckCircle2 className="h-5 w-5 text-green-600" />
+                    <p className="font-semibold text-green-700">All Set!</p>
                   </div>
-                  <p className="text-xs sm:text-sm text-green-600">
+                  <p className="text-sm text-green-600">
                     Unlocking your family matches now...
                   </p>
                 </div>
@@ -334,19 +335,19 @@ export const ProfessionalReadinessModal = ({
           )}
         </div>
 
-        <div className="pt-3 sm:pt-4 border-t border-white/30">
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-2">
-            <p className="text-xs text-gray-500 text-center sm:text-left">
+        <div className="pt-4 border-t">
+          <div className="flex items-center justify-between">
+            <p className="text-xs text-gray-500">
               Complete these steps to access our family matching system
             </p>
             <Button
               variant="ghost"
               size="sm"
               onClick={() => {
-                console.log('[ProfessionalReadinessModal] Footer close button clicked');
+                console.log('[ProfessionalReadinessModal] Close button clicked');
                 onOpenChange(false);
               }}
-              className="text-xs text-gray-600 hover:text-gray-800 sm:hidden"
+              className="text-xs text-gray-600 hover:text-gray-800"
             >
               Close
             </Button>
