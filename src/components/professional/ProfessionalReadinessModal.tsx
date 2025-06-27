@@ -27,44 +27,70 @@ export const ProfessionalReadinessModal = ({
   const [readinessChecks, setReadinessChecks] = useState({
     profileComplete: false,
     hasIdentification: false,
-    hasCertificate: false, // Updated from hasCertification
-    hasBackgroundCheck: false // Updated from hasPoliceCleanrace
+    hasCertificate: false,
+    hasBackgroundCheck: false
+  });
+
+  console.log('[ProfessionalReadinessModal] Render with props:', {
+    open,
+    hasUser: !!user,
+    userId: user?.id
   });
 
   const checkStatus = async () => {
-    if (!user?.id) return;
+    if (!user?.id) {
+      console.log('[ProfessionalReadinessModal] No user ID, skipping status check');
+      setIsLoading(false);
+      return;
+    }
 
     try {
       setIsLoading(true);
+      console.log('[ProfessionalReadinessModal] Starting status check for user:', user.id);
       
       const [profile, documents] = await Promise.all([
         fetchProfileData(user.id),
         fetchDocuments(user.id)
       ]);
 
+      console.log('[ProfessionalReadinessModal] Fetched data:', {
+        profile: profile ? {
+          professional_type: profile.professional_type,
+          years_of_experience: profile.years_of_experience
+        } : null,
+        documentsCount: documents.length,
+        documentTypes: documents.map(d => d.document_type)
+      });
+
       const profileComplete = isProfileComplete(profile);
       
       // Check individual document types with correct names
       const documentTypes = documents.map(doc => doc.document_type);
       const hasIdentification = documentTypes.includes('identification');
-      const hasCertificate = documentTypes.includes('certificate'); // Updated
-      const hasBackgroundCheck = documentTypes.includes('background_check'); // Updated
+      const hasCertificate = documentTypes.includes('certificate');
+      const hasBackgroundCheck = documentTypes.includes('background_check');
       
-      setReadinessChecks({
+      const newReadinessChecks = {
         profileComplete,
         hasIdentification,
-        hasCertificate, // Updated
-        hasBackgroundCheck // Updated
-      });
+        hasCertificate,
+        hasBackgroundCheck
+      };
+
+      console.log('[ProfessionalReadinessModal] Readiness checks:', newReadinessChecks);
+      
+      setReadinessChecks(newReadinessChecks);
 
       // If all are complete, notify parent and close modal
-      if (profileComplete && hasIdentification && hasCertificate && hasBackgroundCheck) {
+      const allComplete = profileComplete && hasIdentification && hasCertificate && hasBackgroundCheck;
+      if (allComplete) {
+        console.log('[ProfessionalReadinessModal] All requirements complete, notifying parent');
         setTimeout(() => {
           onReadinessAchieved();
         }, 1000);
       }
     } catch (error) {
-      console.error('Error checking readiness status:', error);
+      console.error('[ProfessionalReadinessModal] Error checking readiness status:', error);
     } finally {
       setTimeout(() => {
         setIsLoading(false);
@@ -73,32 +99,49 @@ export const ProfessionalReadinessModal = ({
   };
 
   useEffect(() => {
+    console.log('[ProfessionalReadinessModal] Effect triggered:', { open, hasUser: !!user });
     if (open && user) {
       checkStatus();
     }
   }, [open, user]);
 
   const handleProfileAction = () => {
+    console.log('[ProfessionalReadinessModal] Profile action clicked');
     const link = getProfessionalRegistrationLink(readinessChecks.profileComplete);
     navigate(link);
   };
 
   const handleDocumentAction = (documentType: string) => {
-    const link = getDocumentNavigationLink(true); // Navigate to documents page
+    console.log('[ProfessionalReadinessModal] Document action clicked:', documentType);
+    const link = getDocumentNavigationLink(true);
     navigate(`${link}&type=${documentType}`);
   };
 
   const allReady = readinessChecks.profileComplete && 
                    readinessChecks.hasIdentification && 
-                   readinessChecks.hasCertificate && // Updated
-                   readinessChecks.hasBackgroundCheck; // Updated
+                   readinessChecks.hasCertificate && 
+                   readinessChecks.hasBackgroundCheck;
+
+  // Debug: Log when modal should be visible
+  useEffect(() => {
+    if (open) {
+      console.log('[ProfessionalReadinessModal] Modal is now open with state:', {
+        isLoading,
+        readinessChecks,
+        allReady
+      });
+    }
+  }, [open, isLoading, readinessChecks, allReady]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-[95vw] sm:max-w-md max-h-[90vh] overflow-y-auto mx-auto bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 border-0 shadow-2xl p-4 sm:p-6 relative">
-        {/* Custom Close Button with better positioning and z-index */}
+        {/* Custom Close Button */}
         <button
-          onClick={() => onOpenChange(false)}
+          onClick={() => {
+            console.log('[ProfessionalReadinessModal] Close button clicked');
+            onOpenChange(false);
+          }}
           className="absolute right-3 top-3 sm:right-4 sm:top-4 z-50 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none bg-white/80 hover:bg-white/100 p-1.5 shadow-sm"
         >
           <X className="h-4 w-4" />
@@ -299,7 +342,10 @@ export const ProfessionalReadinessModal = ({
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => onOpenChange(false)}
+              onClick={() => {
+                console.log('[ProfessionalReadinessModal] Footer close button clicked');
+                onOpenChange(false);
+              }}
               className="text-xs text-gray-600 hover:text-gray-800 sm:hidden"
             >
               Close

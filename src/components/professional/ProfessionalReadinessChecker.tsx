@@ -14,12 +14,14 @@ export const ProfessionalReadinessChecker = () => {
 
   const checkReadiness = async () => {
     if (!user?.id) {
+      console.log('[ProfessionalReadinessChecker] No user ID, setting loading to false');
       setIsLoading(false);
       return;
     }
 
     try {
       setIsLoading(true);
+      console.log('[ProfessionalReadinessChecker] Starting readiness check for user:', user.id);
       
       // Fetch profile and documents data in parallel
       const [profile, documents] = await Promise.all([
@@ -27,13 +29,18 @@ export const ProfessionalReadinessChecker = () => {
         fetchDocuments(user.id)
       ]);
 
+      console.log('[ProfessionalReadinessChecker] Fetched data:', {
+        profile: profile ? 'exists' : 'null',
+        documentsCount: documents ? documents.length : 0
+      });
+
       // Use completionCheckers.ts to determine readiness
       const profileComplete = isProfileComplete(profile);
       const documentsUploaded = hasDocuments(documents);
       
       const ready = profileComplete && documentsUploaded;
       
-      console.log('Professional readiness check:', {
+      console.log('[ProfessionalReadinessChecker] Readiness check results:', {
         userId: user.id,
         profileComplete,
         documentsUploaded,
@@ -41,46 +48,81 @@ export const ProfessionalReadinessChecker = () => {
       });
       
       setIsReady(ready);
-      setShowModal(!ready);
+      
+      // Show modal if NOT ready
+      if (!ready) {
+        console.log('[ProfessionalReadinessChecker] User not ready, showing modal');
+        setShowModal(true);
+      } else {
+        console.log('[ProfessionalReadinessChecker] User is ready, hiding modal');
+        setShowModal(false);
+      }
     } catch (error) {
-      console.error('Error checking professional readiness:', error);
+      console.error('[ProfessionalReadinessChecker] Error checking professional readiness:', error);
       setIsReady(false);
-      setShowModal(true);
+      setShowModal(true); // Show modal on error to be safe
     } finally {
       setIsLoading(false);
     }
   };
 
   useEffect(() => {
+    console.log('[ProfessionalReadinessChecker] Effect triggered, user:', user?.id);
     if (user) {
       checkReadiness();
+    } else {
+      console.log('[ProfessionalReadinessChecker] No user, setting loading to false');
+      setIsLoading(false);
     }
   }, [user]);
 
-  // Show loading state while checking readiness
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center py-8">
-        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
-        <span className="ml-2 text-sm text-gray-600">Checking your professional status...</span>
-      </div>
-    );
-  }
+  console.log('[ProfessionalReadinessChecker] Render state:', {
+    isLoading,
+    isReady,
+    showModal,
+    hasUser: !!user
+  });
 
-  // If ready, show the full family matches component
-  if (isReady) {
-    return <DashboardFamilyMatches />;
-  }
-
-  // If not ready, show the readiness modal
+  // Always render a container - modal should always be in DOM
   return (
-    <ProfessionalReadinessModal
-      open={showModal}
-      onOpenChange={setShowModal}
-      onReadinessAchieved={() => {
-        setIsReady(true);
-        setShowModal(false);
-      }}
-    />
+    <div>
+      {/* Show loading state while checking readiness */}
+      {isLoading && (
+        <div className="flex items-center justify-center py-8">
+          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+          <span className="ml-2 text-sm text-gray-600">Checking your professional status...</span>
+        </div>
+      )}
+
+      {/* If ready and not loading, show the full family matches component */}
+      {!isLoading && isReady && (
+        <DashboardFamilyMatches />
+      )}
+
+      {/* If not ready and not loading, show a placeholder while modal handles the interaction */}
+      {!isLoading && !isReady && (
+        <div className="flex items-center justify-center py-8">
+          <div className="text-center">
+            <p className="text-gray-600">Complete your professional setup to access family matches</p>
+          </div>
+        </div>
+      )}
+
+      {/* Always render the modal - it controls its own visibility */}
+      <ProfessionalReadinessModal
+        open={showModal}
+        onOpenChange={(open) => {
+          console.log('[ProfessionalReadinessChecker] Modal open state changed to:', open);
+          setShowModal(open);
+        }}
+        onReadinessAchieved={() => {
+          console.log('[ProfessionalReadinessChecker] Readiness achieved, refreshing...');
+          setIsReady(true);
+          setShowModal(false);
+          // Optionally refresh the data
+          checkReadiness();
+        }}
+      />
+    </div>
   );
 };
