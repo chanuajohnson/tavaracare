@@ -13,14 +13,12 @@ interface LeadCaptureModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   source?: string;
-  onSkipToCaregiverMatching?: () => void;
 }
 
 export const LeadCaptureModal: React.FC<LeadCaptureModalProps> = ({
   open,
   onOpenChange,
-  source = 'journey_progress',
-  onSkipToCaregiverMatching
+  source = 'journey_progress'
 }) => {
   const [whatsappNumber, setWhatsappNumber] = useState('');
   const [email, setEmail] = useState('');
@@ -170,14 +168,6 @@ export const LeadCaptureModal: React.FC<LeadCaptureModalProps> = ({
     navigate('/subscription/features');
   };
 
-  // Phase 1B: Handle skip to caregiver matching
-  const handleSkipToCaregiverMatching = () => {
-    onOpenChange(false);
-    if (onSkipToCaregiverMatching) {
-      onSkipToCaregiverMatching();
-    }
-  };
-
   if (isSuccess) {
     return (
       <Dialog open={open} onOpenChange={onOpenChange}>
@@ -264,25 +254,14 @@ export const LeadCaptureModal: React.FC<LeadCaptureModalProps> = ({
                 {isSubmitting ? 'Saving Info...' : 'Continue to Care Plans 💙'}
               </Button>
               
-              {onSkipToCaregiverMatching ? (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  onClick={handleSkipToCaregiverMatching}
-                  className="w-full text-sm text-gray-600 hover:text-gray-800"
-                >
-                  Skip for now, see your caregiver match
-                </Button>
-              ) : (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  onClick={handleSkipToSubscription}
-                  className="w-full text-sm text-gray-600 hover:text-gray-800"
-                >
-                  Skip for now, view care plans
-                </Button>
-              )}
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={handleSkipToSubscription}
+                className="w-full text-sm text-gray-600 hover:text-gray-800"
+              >
+                Skip for now, view care plans
+              </Button>
             </div>
           </form>
 

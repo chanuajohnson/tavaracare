@@ -96,7 +96,7 @@ export function ProfessionalCalendar({ carePlanId, loading = false }: Profession
       daysWithShifts[dateStr].allShifts.push(shift);
       
       // Check if this shift belongs to the current user
-      if (shift.caregiverId === user?.id && shift.status === 'confirmed') {
+      if (shift.caregiverId === user?.id && shift.status === 'assigned') {
         daysWithShifts[dateStr].hasUserShift = true;
       } else {
         daysWithShifts[dateStr].hasOtherShifts = true;
@@ -334,7 +334,7 @@ export function ProfessionalCalendar({ carePlanId, loading = false }: Profession
                     <h4 className="font-medium">{shift.title}</h4>
                     <Badge 
                       className={
-                        shift.status === 'confirmed' ? 'bg-green-100 text-green-700' :
+                        shift.status === 'assigned' ? 'bg-green-100 text-green-700' :
                         shift.status === 'completed' ? 'bg-blue-100 text-blue-700' :
                         'bg-yellow-100 text-yellow-700'
                       }

@@ -27,8 +27,7 @@ export const fetchCareTeamMembers = async (planId: string): Promise<CareTeamMemb
           id,
           full_name,
           professional_type,
-          avatar_url,
-          phone_number
+          avatar_url
         )
       `)
       .eq('care_plan_id', planId);
@@ -59,17 +58,13 @@ export const fetchCareTeamMembers = async (planId: string): Promise<CareTeamMemb
       const avatarUrl = typeof profileData === 'object' && profileData !== null 
         ? (profileData as any).avatar_url 
         : null;
-      const phoneNumber = typeof profileData === 'object' && profileData !== null 
-        ? (profileData as any).phone_number 
-        : null;
       
       return {
         ...adaptCareTeamMemberFromDb(member as CareTeamMemberDto),
         professionalDetails: {
           full_name: fullName,
           professional_type: professionalType,
-          avatar_url: avatarUrl,
-          phone_number: phoneNumber
+          avatar_url: avatarUrl
         }
       };
     }).filter(Boolean) as CareTeamMemberWithProfile[];
@@ -133,8 +128,7 @@ export const fetchAllCareTeamMembersForProfessional = async (professionalId: str
           id,
           full_name,
           professional_type,
-          avatar_url,
-          phone_number
+          avatar_url
         )
       `)
       .in('care_plan_id', carePlanIds);
@@ -164,17 +158,13 @@ export const fetchAllCareTeamMembersForProfessional = async (professionalId: str
       const avatarUrl = typeof profileData === 'object' && profileData !== null 
         ? (profileData as any).avatar_url 
         : null;
-      const phoneNumber = typeof profileData === 'object' && profileData !== null 
-        ? (profileData as any).phone_number 
-        : null;
       
       return {
         ...adaptCareTeamMemberFromDb(member as CareTeamMemberDto),
         professionalDetails: {
           full_name: fullName,
           professional_type: professionalType,
-          avatar_url: avatarUrl,
-          phone_number: phoneNumber
+          avatar_url: avatarUrl
         }
       };
     }).filter(Boolean) as CareTeamMemberWithProfile[];

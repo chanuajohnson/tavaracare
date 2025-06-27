@@ -2,11 +2,10 @@
 import { ProfileData, ProfessionalDocument, CareTeamAssignment } from './types';
 
 // Define required document types that professionals must upload
-// Updated to match actual database values
 export const REQUIRED_DOCUMENT_TYPES = [
   'identification', // ID document
-  'certificate', // Professional certification (was 'certification')
-  'background_check' // Background check (was 'police_clearance')
+  'certification', // Professional certification
+  'police_clearance' // Police Character Certificate
 ] as const;
 
 export const isAccountCreated = (userId: string): boolean => {

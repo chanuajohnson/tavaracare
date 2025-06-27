@@ -1,3 +1,4 @@
+
 import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
@@ -7,22 +8,13 @@ import { ArrowRight, FileText, UserCog, Building, Users, ChevronDown, ChevronUp,
 import { Link } from "react-router-dom";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { EnhancedFamilyNextStepsPanel } from "@/components/family/EnhancedFamilyNextStepsPanel";
-import { FamilyReadinessChecker } from "@/components/family/FamilyReadinessChecker";
+import { DashboardCaregiverMatches } from "@/components/family/DashboardCaregiverMatches";
 import { FamilyShortcutMenuBar } from "@/components/family/FamilyShortcutMenuBar";
 import { ProfessionalChatRequestsSection } from "@/components/family/ProfessionalChatRequestsSection";
-import { LeadCaptureModal } from "@/components/family/LeadCaptureModal";
-import { CaregiverMatchingModal } from "@/components/family/CaregiverMatchingModal";
 
 const FamilyDashboard = () => {
   const { user } = useAuth();
   const [isWelcomeCardExpanded, setIsWelcomeCardExpanded] = useState(false);
-  
-  // Phase 1A: Lead Capture Modal state
-  const [showLeadCaptureModal, setShowLeadCaptureModal] = useState(false);
-  const [leadCaptureSource, setLeadCaptureSource] = useState('');
-  
-  // Phase 1B: Caregiver Matching Modal state
-  const [showCaregiverModal, setShowCaregiverModal] = useState(false);
   
   // Ensure dashboard always loads at the top with enhanced scroll behavior
   useEffect(() => {
@@ -42,22 +34,6 @@ const FamilyDashboard = () => {
     setTimeout(scrollToTop, 50);
     setTimeout(scrollToTop, 150);
   }, []);
-  
-  // Phase 1A: Handle lead capture modal triggers
-  const handleLeadCaptureClick = (source: string) => {
-    setLeadCaptureSource(source);
-    setShowLeadCaptureModal(true);
-  };
-  
-  // Phase 1B: Handle caregiver matching modal trigger
-  const handleCaregiverMatchingClick = () => {
-    setShowCaregiverModal(true);
-  };
-  
-  // Phase 1B: Handle skip from lead capture to caregiver matching
-  const handleSkipToCaregiverMatching = () => {
-    setShowCaregiverModal(true);
-  };
   
   const breadcrumbItems = [
     {
@@ -120,27 +96,21 @@ const FamilyDashboard = () => {
                 </p>
                 
                 <div className="flex flex-wrap gap-3 mt-6">
-                  <Button 
-                    variant="default" 
-                    size="sm"
-                    onClick={() => handleLeadCaptureClick('family_dashboard_find_caregivers')}
-                  >
-                    Find Caregivers
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => handleLeadCaptureClick('family_dashboard_create_plan')}
-                  >
-                    Create Care Plan
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => handleLeadCaptureClick('family_dashboard_access_resources')}
-                  >
-                    Access Resources
-                  </Button>
+                  <Link to="/auth">
+                    <Button variant="default" size="sm">
+                      Find Caregivers
+                    </Button>
+                  </Link>
+                  <Link to="/auth">
+                    <Button variant="outline" size="sm">
+                      Create Care Plan
+                    </Button>
+                  </Link>
+                  <Link to="/auth">
+                    <Button variant="outline" size="sm">
+                      Access Resources
+                    </Button>
+                  </Link>
                 </div>
               </CardContent>
             </Card>
@@ -240,26 +210,15 @@ const FamilyDashboard = () => {
                 <p className="text-sm text-gray-600">Track medications and health info</p>
                 <p className="text-sm text-gray-600">Coordinate with care team</p>
               </div>
-              {user ? (
-                <Link to="/care-plans">
-                  <Button 
-                    variant="default"
-                    className="w-full bg-primary hover:bg-primary-600 text-white"
-                  >
-                    Manage Care Plans
-                    <ArrowRight className="ml-2 h-4 w-4" />
-                  </Button>
-                </Link>
-              ) : (
+              <Link to="/care-plans">
                 <Button 
                   variant="default"
                   className="w-full bg-primary hover:bg-primary-600 text-white"
-                  onClick={() => handleLeadCaptureClick('family_dashboard_manage_care')}
                 >
                   Manage Care Plans
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
-              )}
+              </Link>
             </CardContent>
           </Card>
 
@@ -281,33 +240,22 @@ const FamilyDashboard = () => {
                 <p className="text-sm text-gray-600">Emergency contacts and procedures</p>
                 <p className="text-sm text-gray-600">Support group connections</p>
               </div>
-              {user ? (
-                <Link to="/family/resources">
-                  <Button 
-                    variant="default"
-                    className="w-full bg-primary hover:bg-primary-600 text-white"
-                  >
-                    Access Resources
-                    <ArrowRight className="ml-2 h-4 w-4" />
-                  </Button>
-                </Link>
-              ) : (
+              <Link to="/family/resources">
                 <Button 
                   variant="default"
                   className="w-full bg-primary hover:bg-primary-600 text-white"
-                  onClick={() => handleLeadCaptureClick('family_dashboard_access_resources')}
                 >
                   Access Resources
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
-              )}
+              </Link>
             </CardContent>
           </Card>
         </div>
 
-        {/* Family Readiness Checker - Replaces DashboardCaregiverMatches */}
+        {/* Caregiver Matches Section */}
         <div className="mt-8">
-          <FamilyReadinessChecker />
+          <DashboardCaregiverMatches />
         </div>
 
         {/* Community Support */}
@@ -343,45 +291,18 @@ const FamilyDashboard = () => {
                 </div>
               </div>
               
-              {user ? (
-                <Link to="/community">
-                  <Button 
-                    variant="default"
-                    className="w-full bg-primary hover:bg-primary-600 text-white"
-                  >
-                    Explore Community
-                    <ArrowRight className="ml-2 h-4 w-4" />
-                  </Button>
-                </Link>
-              ) : (
+              <Link to="/community">
                 <Button 
                   variant="default"
                   className="w-full bg-primary hover:bg-primary-600 text-white"
-                  onClick={() => handleLeadCaptureClick('family_dashboard_explore_community')}
                 >
                   Explore Community
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
-              )}
+              </Link>
             </CardContent>
           </Card>
         </div>
-
-        {/* Phase 1A: Lead Capture Modal */}
-        <LeadCaptureModal
-          open={showLeadCaptureModal}
-          onOpenChange={setShowLeadCaptureModal}
-          source={leadCaptureSource}
-          onSkipToCaregiverMatching={handleSkipToCaregiverMatching}
-        />
-
-        {/* Phase 1B: Caregiver Matching Modal */}
-        <CaregiverMatchingModal
-          open={showCaregiverModal}
-          onOpenChange={setShowCaregiverModal}
-          referringPagePath="/dashboard/family"
-          referringPageLabel="Family Dashboard"
-        />
       </div>
     </div>
   );

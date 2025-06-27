@@ -37,7 +37,7 @@ export interface CareShift {
   title: string;
   description?: string;
   location?: string;
-  status: 'open' | 'confirmed' | 'completed' | 'cancelled';
+  status: 'open' | 'assigned' | 'completed' | 'cancelled';
   startTime: string;
   endTime: string;
   recurringPattern?: string;
@@ -112,7 +112,7 @@ export interface CareShiftDto {
   title: string;
   description?: string;
   location?: string;
-  status?: 'open' | 'confirmed' | 'completed' | 'cancelled';
+  status?: 'open' | 'assigned' | 'completed' | 'cancelled';
   start_time: string;
   end_time: string;
   recurring_pattern?: string;
@@ -130,7 +130,7 @@ export interface CareShiftInput {
   title: string;
   description?: string;
   location?: string;
-  status?: 'open' | 'confirmed' | 'completed' | 'cancelled';
+  status?: 'open' | 'assigned' | 'completed' | 'cancelled';
   startTime: string;
   endTime: string;
   recurringPattern?: string;

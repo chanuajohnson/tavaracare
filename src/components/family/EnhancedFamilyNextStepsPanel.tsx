@@ -151,16 +151,6 @@ export const EnhancedFamilyNextStepsPanel: React.FC<EnhancedFamilyNextStepsPanel
     }
   };
 
-  // Handle caregiver modal trigger for anonymous users
-  const handleCaregiverModalTrigger = () => {
-    setShowCaregiverMatchingModal(true);
-  };
-
-  // Handle subscription CTA for anonymous users - show caregiver modal first
-  const handleAnonymousSubscriptionCTA = () => {
-    setShowCaregiverMatchingModal(true);
-  };
-
   if (loading) {
     return (
       <motion.div
@@ -308,8 +298,6 @@ export const EnhancedFamilyNextStepsPanel: React.FC<EnhancedFamilyNextStepsPanel
                   trackStepAction={trackStepAction}
                   isAnonymous={isAnonymous}
                   visitDetails={visitDetails}
-                  onCaregiverModalTrigger={handleCaregiverModalTrigger}
-                  onAnonymousSubscriptionCTA={handleAnonymousSubscriptionCTA}
                 />
               </div>
             )
@@ -333,7 +321,7 @@ export const EnhancedFamilyNextStepsPanel: React.FC<EnhancedFamilyNextStepsPanel
                       <Button
                         variant="default"
                         className="bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white font-medium mobile-button-responsive mobile-touch-target"
-                        onClick={handleAnonymousSubscriptionCTA}
+                        onClick={() => navigate('/subscription/features')}
                       >
                         <ArrowRight className="mobile-icon-responsive mr-2" />
                         Choose Care Plan
