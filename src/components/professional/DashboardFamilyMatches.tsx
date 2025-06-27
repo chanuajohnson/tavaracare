@@ -13,7 +13,6 @@ import { Slider } from "@/components/ui/slider";
 import { useTracking } from "@/hooks/useTracking";
 import { toast } from "sonner";
 import { useFamilyMatches } from "@/hooks/useFamilyMatches";
-import { ChatRequestsSection } from "./ChatRequestsSection";
 import { ProfessionalFamilyChatModal } from "./ProfessionalFamilyChatModal";
 import { VideoAvailabilityToggle } from "./VideoAvailabilityToggle";
 import { ProfessionalFamilyMatchModal } from "./ProfessionalFamilyMatchModal";
@@ -160,9 +159,6 @@ export const DashboardFamilyMatches = () => {
 
   return (
     <>
-      {/* Add Chat Requests Section */}
-      <ChatRequestsSection />
-      
       <Card className="mb-8 border-l-4 border-l-primary">
         <CardHeader className="flex flex-row items-center justify-between pb-2">
           <div>
