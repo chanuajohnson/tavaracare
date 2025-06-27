@@ -16,7 +16,7 @@ interface ProfessionalReadinessModalProps {
   onReadinessAchieved: () => void;
 }
 
-export const ProfessionalReadinessModal = ({ 
+const ProfessionalReadinessModal = ({ 
   open, 
   onOpenChange, 
   onReadinessAchieved 
@@ -289,3 +289,40 @@ export const ProfessionalReadinessModal = ({
     </Dialog>
   );
 };
+
+// Create a default Index component
+const Index = () => {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    // Redirect authenticated users to their appropriate dashboard
+    if (user) {
+      const userRole = user.user_metadata?.role || 'family';
+      switch (userRole) {
+        case 'professional':
+          navigate('/dashboard/professional');
+          break;
+        case 'community':
+          navigate('/dashboard/community');
+          break;
+        case 'admin':
+          navigate('/dashboard/admin');
+          break;
+        default:
+          navigate('/dashboard/family');
+      }
+    }
+  }, [user, navigate]);
+
+  // For non-authenticated users, show a landing page or redirect to auth
+  if (!user) {
+    navigate('/auth');
+    return null;
+  }
+
+  return null; // This component handles redirects only
+};
+
+export { ProfessionalReadinessModal };
+export default Index;
