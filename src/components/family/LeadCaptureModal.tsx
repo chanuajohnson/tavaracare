@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase";
-import { Heart, Phone, Mail, CheckCircle } from "lucide-react";
+import { Heart, Phone, Mail, CheckCircle, Briefcase, Users } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 interface LeadCaptureModalProps {
@@ -28,6 +28,9 @@ export const LeadCaptureModal: React.FC<LeadCaptureModalProps> = ({
   const [isSuccess, setIsSuccess] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
+
+  // Determine if this is a professional-focused interaction
+  const isProfessionalContext = source.includes('professional_');
 
   const validateTrinidadPhone = (phone: string): boolean => {
     // Remove all non-digits
@@ -95,18 +98,24 @@ export const LeadCaptureModal: React.FC<LeadCaptureModalProps> = ({
         .single();
 
       if (existingLead) {
+        const redirectPath = isProfessionalContext ? '/registration/professional' : '/subscription/features';
+        const contextMessage = isProfessionalContext 
+          ? "Taking you to professional registration..."
+          : "Taking you to choose your care plan...";
+        
         toast({
           title: "Already Registered",
-          description: "This email or phone number is already in our system. Taking you to choose your care plan...",
+          description: `This email or phone number is already in our system. ${contextMessage}`,
           variant: "default"
         });
         
         setTimeout(() => {
-          navigate('/subscription/features', { 
+          navigate(redirectPath, { 
             state: { 
               email,
               phone: formattedPhone,
-              source: 'existing_lead'
+              source: 'existing_lead',
+              context: isProfessionalContext ? 'professional' : 'family'
             }
           });
         }, 2000);
@@ -117,16 +126,17 @@ export const LeadCaptureModal: React.FC<LeadCaptureModalProps> = ({
       const { error } = await supabase
         .from('feature_interest_tracking')
         .insert({
-          feature_name: 'care_journey_teaser',
+          feature_name: isProfessionalContext ? 'professional_journey_teaser' : 'care_journey_teaser',
           action_type: 'lead_capture',
           user_email: email,
           source_page: source,
           additional_info: {
             whatsapp_number: formattedPhone,
             user_status: 'teaser_viewer',
-            captured_from: 'journey_progress_modal',
+            captured_from: isProfessionalContext ? 'professional_dashboard_modal' : 'journey_progress_modal',
             interest_level: 'high',
-            source_component: source
+            source_component: source,
+            context: isProfessionalContext ? 'professional' : 'family'
           }
         });
 
@@ -134,21 +144,27 @@ export const LeadCaptureModal: React.FC<LeadCaptureModalProps> = ({
 
       setIsSuccess(true);
       
+      const successMessage = isProfessionalContext 
+        ? "Ready to start your professional journey!"
+        : "Now choose your care plan to get matched with caregivers.";
+      
       toast({
         title: "Information Captured! 💙",
-        description: "Now choose your care plan to get matched with caregivers.",
+        description: successMessage,
         variant: "default"
       });
 
       // Auto-close and redirect after success
       setTimeout(() => {
         onOpenChange(false);
-        navigate('/subscription/features', { 
+        const redirectPath = isProfessionalContext ? '/registration/professional' : '/subscription/features';
+        navigate(redirectPath, { 
           state: { 
             email,
             phone: formattedPhone,
             source: 'lead_capture_modal',
-            returnPath: '/family/care-journey-progress'
+            context: isProfessionalContext ? 'professional' : 'family',
+            returnPath: isProfessionalContext ? '/dashboard/professional' : '/family/care-journey-progress'
           }
         });
       }, 3000);
@@ -167,7 +183,8 @@ export const LeadCaptureModal: React.FC<LeadCaptureModalProps> = ({
 
   const handleSkipToSubscription = () => {
     onOpenChange(false);
-    navigate('/subscription/features');
+    const redirectPath = isProfessionalContext ? '/registration/professional' : '/subscription/features';
+    navigate(redirectPath);
   };
 
   // Phase 1B: Handle skip to caregiver matching
@@ -178,6 +195,33 @@ export const LeadCaptureModal: React.FC<LeadCaptureModalProps> = ({
     }
   };
 
+  // Dynamic content based on context
+  const getModalContent = () => {
+    if (isProfessionalContext) {
+      return {
+        icon: <Briefcase className="h-5 w-5 text-primary" />,
+        title: "Start Your Professional Journey",
+        description: "Join our network of qualified caregivers and connect with families in need.",
+        submitButtonText: "Get Professional Access 💙",
+        skipButtonText: "Skip for now, view registration",
+        successTitle: "Ready to Join Our Professional Network! 💙",
+        successDescription: "Now complete your professional registration to start connecting with families."
+      };
+    } else {
+      return {
+        icon: <Heart className="h-5 w-5 text-primary" />,
+        title: "Start Building Your Care Village",
+        description: "Get your personalized caregiver match by choosing the right care plan for your family.",
+        submitButtonText: "Bypass it all to Find Caregiver Matches 💙",
+        skipButtonText: "Skip for now, see your caregiver match",
+        successTitle: "Ready to Choose Your Care Plan! 💙",
+        successDescription: "Now select the care plan that's right for your family to get matched with qualified caregivers."
+      };
+    }
+  };
+
+  const content = getModalContent();
+
   if (isSuccess) {
     return (
       <Dialog open={open} onOpenChange={onOpenChange}>
@@ -185,13 +229,13 @@ export const LeadCaptureModal: React.FC<LeadCaptureModalProps> = ({
           <div className="text-center py-6">
             <CheckCircle className="h-16 w-16 text-green-500 mx-auto mb-4" />
             <h3 className="text-xl font-semibold text-gray-900 mb-2">
-              Ready to Choose Your Care Plan! 💙
+              {content.successTitle}
             </h3>
             <p className="text-gray-600 mb-4">
-              Now select the care plan that's right for your family to get matched with qualified caregivers.
+              {content.successDescription}
             </p>
             <p className="text-sm text-gray-500">
-              Taking you to care plan options...
+              {isProfessionalContext ? "Taking you to professional registration..." : "Taking you to care plan options..."}
             </p>
           </div>
         </DialogContent>
@@ -204,15 +248,15 @@ export const LeadCaptureModal: React.FC<LeadCaptureModalProps> = ({
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-center">
-            <Heart className="h-5 w-5 text-primary" />
-            Start Building Your Care Village
+            {content.icon}
+            {content.title}
           </DialogTitle>
         </DialogHeader>
         
         <div className="space-y-4">
           <div className="text-center">
             <p className="text-sm text-gray-600 mb-4">
-              Get your personalized caregiver match by choosing the right care plan for your family.
+              {content.description}
             </p>
           </div>
 
@@ -232,7 +276,10 @@ export const LeadCaptureModal: React.FC<LeadCaptureModalProps> = ({
                 className="focus:ring-primary focus:border-primary"
               />
               <p className="text-xs text-gray-500">
-                We'll send you care updates and caregiver matches via WhatsApp
+                {isProfessionalContext 
+                  ? "We'll send you professional opportunities and updates via WhatsApp"
+                  : "We'll send you care updates and caregiver matches via WhatsApp"
+                }
               </p>
             </div>
 
@@ -251,7 +298,10 @@ export const LeadCaptureModal: React.FC<LeadCaptureModalProps> = ({
                 className="focus:ring-primary focus:border-primary"
               />
               <p className="text-xs text-gray-500">
-                For care plans, scheduling, and important updates
+                {isProfessionalContext 
+                  ? "For professional opportunities, training, and important updates"
+                  : "For care plans, scheduling, and important updates"
+                }
               </p>
             </div>
 
@@ -261,34 +311,45 @@ export const LeadCaptureModal: React.FC<LeadCaptureModalProps> = ({
                 disabled={isSubmitting}
                 className="w-full bg-primary hover:bg-primary/90"
               >
-                {isSubmitting ? 'Saving Info...' : 'Bypass it all to Find Caregiver Matches 💙'}
+                {isSubmitting ? 'Saving Info...' : content.submitButtonText}
               </Button>
               
-              {onSkipToCaregiverMatching ? (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  onClick={handleSkipToCaregiverMatching}
-                  className="w-full text-sm text-gray-600 hover:text-gray-800"
-                >
-                  Skip for now, see your caregiver match
-                </Button>
-              ) : (
+              {isProfessionalContext ? (
                 <Button
                   type="button"
                   variant="ghost"
                   onClick={handleSkipToSubscription}
                   className="w-full text-sm text-gray-600 hover:text-gray-800"
                 >
-                  Skip for now, view care plans
+                  Skip for now, go to professional registration
                 </Button>
+              ) : (
+                onSkipToCaregiverMatching ? (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={handleSkipToCaregiverMatching}
+                    className="w-full text-sm text-gray-600 hover:text-gray-800"
+                  >
+                    {content.skipButtonText}
+                  </Button>
+                ) : (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={handleSkipToSubscription}
+                    className="w-full text-sm text-gray-600 hover:text-gray-800"
+                  >
+                    Skip for now, view care plans
+                  </Button>
+                )
               )}
             </div>
           </form>
 
           <div className="text-center pt-2">
             <p className="text-xs text-gray-500">
-              By continuing, you agree to receive care-related communications from Tavara
+              By continuing, you agree to receive {isProfessionalContext ? 'professional' : 'care-related'} communications from Tavara
             </p>
           </div>
         </div>
