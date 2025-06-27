@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -299,10 +298,22 @@ export const ProfessionalFamilyMatchingModal = ({
           ) : (
             <div className="text-center py-8">
               <Sparkles className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-xl font-medium text-gray-600">No Family Matches Found</h3>
-              <p className="text-gray-500 mt-2">
-                Complete your professional profile to get matched with families who need care.
-              </p>
+              <h3 className="text-xl font-medium text-gray-600">To get matched with the right family:</h3>
+              <div className="text-gray-500 mt-2 space-y-2">
+                <p>
+                  Complete your professional profile – so we can understand your expertise and what makes you special.
+                </p>
+                <p className="text-sm">
+                  (You may need to register or log in first.)
+                </p>
+                <div className="flex items-center justify-center gap-2 text-sm mt-3">
+                  <span>💫</span>
+                  <span>The more complete your profile, the better your matches.</span>
+                </div>
+                <p className="text-sm italic">
+                  Care is personal—let's make sure your matches are too.
+                </p>
+              </div>
               <Button 
                 variant="default"
                 className="mt-4"
