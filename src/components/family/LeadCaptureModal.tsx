@@ -97,9 +97,9 @@ export const LeadCaptureModal: React.FC<LeadCaptureModalProps> = ({
         .single();
 
       if (existingLead) {
-        const redirectPath = '/auth';
+        const redirectPath = isProfessionalContext ? '/auth?tab=signup' : '/auth';
         const contextMessage = isProfessionalContext 
-          ? "Taking you to sign in..."
+          ? "Taking you to sign up..."
           : "Taking you to choose your care plan...";
         
         toast({
@@ -156,7 +156,7 @@ export const LeadCaptureModal: React.FC<LeadCaptureModalProps> = ({
       // Auto-close and redirect after success
       setTimeout(() => {
         onOpenChange(false);
-        const redirectPath = isProfessionalContext ? '/auth' : '/subscription/features';
+        const redirectPath = isProfessionalContext ? '/auth?tab=signup' : '/subscription/features';
         navigate(redirectPath, { 
           state: { 
             email,
@@ -182,7 +182,7 @@ export const LeadCaptureModal: React.FC<LeadCaptureModalProps> = ({
 
   const handleSkipToSubscription = () => {
     onOpenChange(false);
-    const redirectPath = isProfessionalContext ? '/registration/professional' : '/subscription/features';
+    const redirectPath = isProfessionalContext ? '/auth?tab=signup' : '/subscription/features';
     navigate(redirectPath);
   };
 
