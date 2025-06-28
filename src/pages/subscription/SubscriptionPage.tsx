@@ -52,7 +52,7 @@ const SubscriptionPage = () => {
         description: "Please sign in to access subscription features.",
         variant: "destructive"
       });
-      navigate('/auth', {
+      navigate('/auth?tab=signup', {
         state: {
           returnPath: '/subscription',
           referringPagePath,
@@ -358,7 +358,7 @@ const SubscriptionPage = () => {
         description: "Please sign in to subscribe to a plan.",
         variant: "destructive"
       });
-      navigate('/auth', {
+      navigate('/auth?tab=signup', {
         state: {
           returnPath: '/subscription',
           referringPagePath,
@@ -476,14 +476,14 @@ const SubscriptionPage = () => {
           </CardHeader>
           <CardFooter className="flex justify-between">
             <Button variant="outline" onClick={handleGoBack}>Go Back</Button>
-            <Button onClick={() => navigate('/auth', {
+            <Button onClick={() => navigate('/auth?tab=signup', {
             state: {
               returnPath: '/subscription',
               referringPagePath,
               referringPageLabel
             }
           })}>
-              Sign In
+              Sign Up
             </Button>
           </CardFooter>
         </Card>
