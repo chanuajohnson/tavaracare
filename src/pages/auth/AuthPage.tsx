@@ -10,6 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { MessageCircle, Mail, Phone } from 'lucide-react';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { useWhatsAppAuth } from '@/hooks/useWhatsAppAuth';
+import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 
 const AuthPage = () => {
@@ -17,6 +18,7 @@ const AuthPage = () => {
   const [searchParams] = useSearchParams();
   const defaultTab = searchParams.get('tab') || 'login';
   const [activeTab, setActiveTab] = useState(defaultTab);
+  const [isLoading, setIsLoading] = useState(false);
   
   const navigate = useNavigate();
   const location = useLocation();
@@ -30,6 +32,88 @@ const AuthPage = () => {
       navigate(returnPath, { replace: true });
     }
   }, [user, navigate, location.state]);
+
+  const handleLogin = async (email: string, password: string) => {
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) throw error;
+
+      if (data.user) {
+        toast.success('Successfully logged in!');
+        const returnPath = location.state?.returnPath || '/dashboard/family';
+        navigate(returnPath, { replace: true });
+      }
+    } catch (error: any) {
+      console.error('Login error:', error);
+      throw error; // Re-throw to let LoginForm handle the error display
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSignup = async (
+    email: string, 
+    password: string, 
+    firstName: string, 
+    lastName: string, 
+    role: string, 
+    adminCode?: string
+  ) => {
+    setIsLoading(true);
+    try {
+      // Validate admin code if admin role
+      if (role === 'admin' && adminCode) {
+        const validAdminCode = 'TAVARA_ADMIN_2024'; // You should store this securely
+        if (adminCode !== validAdminCode) {
+          throw new Error('Invalid admin signup code');
+        }
+      }
+
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            first_name: firstName,
+            last_name: lastName,
+            full_name: `${firstName} ${lastName}`,
+            role: role,
+          },
+        },
+      });
+
+      if (error) throw error;
+
+      if (data.user) {
+        toast.success('Account created! Please check your email for verification.');
+      }
+    } catch (error: any) {
+      console.error('Signup error:', error);
+      throw error; // Re-throw to let SignupForm handle the error display
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleForgotPassword = async (email: string) => {
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/auth/reset-password`,
+      });
+
+      if (error) throw error;
+
+      toast.success('Password reset email sent! Please check your inbox.');
+    } catch (error: any) {
+      console.error('Password reset error:', error);
+      toast.error(error.message || 'Failed to send password reset email');
+    }
+  };
 
   const handleWhatsAppSuccess = async (authUrl: string) => {
     try {
@@ -113,7 +197,11 @@ const AuthPage = () => {
             </TabsList>
             
             <TabsContent value="login" className="space-y-4">
-              <LoginForm />
+              <LoginForm 
+                onSubmit={handleLogin}
+                isLoading={isLoading}
+                onForgotPassword={handleForgotPassword}
+              />
               <div className="text-center">
                 <Button
                   variant="link"
@@ -127,7 +215,10 @@ const AuthPage = () => {
             </TabsContent>
             
             <TabsContent value="signup" className="space-y-4">
-              <SignupForm />
+              <SignupForm 
+                onSubmit={handleSignup}
+                isLoading={isLoading}
+              />
               <div className="text-center">
                 <Button
                   variant="link"
