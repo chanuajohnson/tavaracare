@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { MessageCircle, Phone, Shield, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/integrations/supabase/client';
 
 interface WhatsAppAuthProps {
   onSuccess: (authUrl: string) => void;
@@ -58,7 +58,15 @@ export const WhatsAppAuth: React.FC<WhatsAppAuthProps> = ({ onSuccess, onBack })
     setErrorDetails(null);
     
     try {
-      console.log('Sending verification code for:', { phoneNumber, countryCode });
+      console.log('Attempting to send verification code for:', { phoneNumber, countryCode });
+      
+      // First, check if Supabase client is properly configured
+      const { data: testConnection } = await supabase.from('profiles').select('id').limit(1);
+      console.log('Supabase connection test:', testConnection ? 'SUCCESS' : 'FAILED');
+      
+      // Get current session to verify auth context
+      const { data: sessionData } = await supabase.auth.getSession();
+      console.log('Current auth session:', sessionData?.session ? 'EXISTS' : 'NONE');
       
       const { data, error } = await supabase.functions.invoke('whatsapp-verify', {
         body: {
@@ -68,15 +76,27 @@ export const WhatsAppAuth: React.FC<WhatsAppAuthProps> = ({ onSuccess, onBack })
         }
       });
 
-      console.log('Verification response:', data);
+      console.log('Function invoke response:', { data, error });
 
       if (error) {
-        console.error('Supabase function error:', error);
-        toast.error('Network error. Please check your connection and try again.');
+        console.error('Supabase function error details:', {
+          message: error.message,
+          context: error.context,
+          details: error.details
+        });
+        
+        // Provide specific error messages based on error type
+        if (error.message?.includes('fetch')) {
+          toast.error('Network connection failed. Please check your internet connection and try again.');
+        } else if (error.message?.includes('Failed to invoke')) {
+          toast.error('Service temporarily unavailable. Please try again in a moment.');
+        } else {
+          toast.error(`Network error: ${error.message || 'Unable to connect to verification service'}`);
+        }
         return;
       }
 
-      if (data.success) {
+      if (data?.success) {
         setFormattedNumber(data.formatted_number);
         setStep('verify');
         toast.success(`Verification code sent to ${data.formatted_number}!`);
@@ -90,10 +110,10 @@ export const WhatsAppAuth: React.FC<WhatsAppAuthProps> = ({ onSuccess, onBack })
         }
       } else {
         console.error('Verification failed:', data);
-        setErrorDetails(data.debug_info);
+        setErrorDetails(data?.debug_info);
         
         // Show specific error messages based on error type
-        switch (data.error_type) {
+        switch (data?.error_type) {
           case 'formatting_error':
           case 'invalid_format':
             toast.error(data.error || 'Invalid phone number format', {
@@ -107,12 +127,26 @@ export const WhatsAppAuth: React.FC<WhatsAppAuthProps> = ({ onSuccess, onBack })
             toast.error('System error. Please try again in a moment.');
             break;
           default:
-            toast.error(data.error || 'Failed to send verification code');
+            toast.error(data?.error || 'Failed to send verification code');
         }
       }
     } catch (error: any) {
-      console.error('Verification error:', error);
-      toast.error('Failed to send verification code. Please try again.');
+      console.error('Verification error details:', {
+        message: error.message,
+        stack: error.stack,
+        name: error.name
+      });
+      
+      // Enhanced error messages for common network issues
+      if (error.name === 'TypeError' && error.message.includes('fetch')) {
+        toast.error('Connection failed - please check your internet connection');
+      } else if (error.message?.includes('CORS')) {
+        toast.error('Cross-origin request blocked - please try refreshing the page');
+      } else if (error.message?.includes('timeout')) {
+        toast.error('Request timed out - please try again');
+      } else {
+        toast.error(`Connection error: ${error.message || 'Unable to reach verification service'}`);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -145,11 +179,11 @@ export const WhatsAppAuth: React.FC<WhatsAppAuthProps> = ({ onSuccess, onBack })
         return;
       }
 
-      if (data.success) {
+      if (data?.success) {
         setSessionToken(data.session_token);
         await linkOrCreateUser(data.session_token);
       } else {
-        switch (data.error_type) {
+        switch (data?.error_type) {
           case 'verification_failed':
             toast.error('Invalid or expired code', {
               description: 'Please request a new verification code'
@@ -159,7 +193,7 @@ export const WhatsAppAuth: React.FC<WhatsAppAuthProps> = ({ onSuccess, onBack })
             toast.error(data.error || 'Please enter a valid verification code');
             break;
           default:
-            toast.error(data.error || 'Invalid verification code');
+            toast.error(data?.error || 'Invalid verification code');
         }
       }
     } catch (error: any) {
@@ -189,11 +223,11 @@ export const WhatsAppAuth: React.FC<WhatsAppAuthProps> = ({ onSuccess, onBack })
         return;
       }
 
-      if (data.success) {
+      if (data?.success) {
         toast.success(data.user_exists ? 'Welcome back!' : 'Account created successfully!');
         onSuccess(data.auth_url);
       } else {
-        toast.error(data.error || 'Failed to complete authentication');
+        toast.error(data?.error || 'Failed to complete authentication');
       }
     } catch (error: any) {
       console.error('Auth error:', error);

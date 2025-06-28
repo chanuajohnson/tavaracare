@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 interface WhatsAppSession {
@@ -19,6 +19,8 @@ export const useWhatsAppAuth = () => {
   const validateSession = async (sessionToken: string) => {
     setIsLoading(true);
     try {
+      console.log('Validating WhatsApp session token:', sessionToken);
+      
       const { data, error } = await supabase.functions.invoke('whatsapp-auth', {
         body: {
           action: 'validate_session',
@@ -26,17 +28,26 @@ export const useWhatsAppAuth = () => {
         }
       });
 
-      if (error) throw error;
+      console.log('Session validation response:', { data, error });
 
-      if (data.success) {
+      if (error) {
+        console.error('Session validation error:', error);
+        throw error;
+      }
+
+      if (data?.success) {
         setSession(data.session);
         return data.session;
       } else {
+        console.log('Session validation failed:', data?.error);
         setSession(null);
         return null;
       }
     } catch (error: any) {
-      console.error('Session validation error:', error);
+      console.error('Session validation error:', {
+        message: error.message,
+        stack: error.stack
+      });
       setSession(null);
       return null;
     } finally {
@@ -45,6 +56,7 @@ export const useWhatsAppAuth = () => {
   };
 
   const clearSession = () => {
+    console.log('Clearing WhatsApp session');
     setSession(null);
     localStorage.removeItem('whatsapp_session_token');
   };
@@ -53,12 +65,14 @@ export const useWhatsAppAuth = () => {
   useEffect(() => {
     const storedToken = localStorage.getItem('whatsapp_session_token');
     if (storedToken) {
+      console.log('Found stored WhatsApp session token, validating...');
       validateSession(storedToken);
     }
   }, []);
 
   const authenticateWithWhatsApp = async (authUrl: string) => {
     try {
+      console.log('Authenticating with WhatsApp using URL:', authUrl);
       // Navigate to the auth URL to complete Supabase authentication
       window.location.href = authUrl;
     } catch (error: any) {
