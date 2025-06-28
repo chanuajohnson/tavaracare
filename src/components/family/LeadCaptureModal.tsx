@@ -227,11 +227,11 @@ export const LeadCaptureModal: React.FC<LeadCaptureModalProps> = ({
       return {
         icon: <Heart className="h-5 w-5 text-primary" />,
         title: "Start Building Your Care Village",
-        description: "Get your personalized caregiver match by choosing the right care plan for your family.",
-        submitButtonText: "Bypass it all to Find Caregiver Matches 💙",
-        skipButtonText: "Skip for now, see your caregiver match",
-        successTitle: "Ready to Choose Your Care Plan! 💙",
-        successDescription: "Now select the care plan that's right for your family to get matched with qualified caregivers."
+        description: "Get your personalized caregiver match by signing up with Tavara",
+        submitButtonText: "Submit to be contacted about getting started with Tavara 💙",
+        skipButtonText: "Skip for now, get an idea of Tavara caregiver matching",
+        successTitle: "Ready to get started with Tavara! 💙",
+        successDescription: "Now get started so your family can get matched with qualified caregivers."
       };
     }
   };
@@ -251,7 +251,7 @@ export const LeadCaptureModal: React.FC<LeadCaptureModalProps> = ({
               {content.successDescription}
             </p>
             <p className="text-sm text-gray-500">
-              {isProfessionalContext ? "Taking you to sign in..." : "Taking you to care plan options..."}
+              {isProfessionalContext ? "Taking you to sign in..." : "Taking you to begin with Tavara..."}
             </p>
           </div>
         </DialogContent>
@@ -293,8 +293,8 @@ export const LeadCaptureModal: React.FC<LeadCaptureModalProps> = ({
               />
               <p className="text-xs text-gray-500">
                 {isProfessionalContext 
-                  ? "We'll send you professional opportunities and updates via WhatsApp"
-                  : "We'll send you care updates and caregiver matches via WhatsApp"
+                  ? "We'll contact you about your interest in your professional opportunities and updates via WhatsApp"
+                  : "We'll contact you about your interest in your in care updates and caregiver matches via WhatsApp"
                 }
               </p>
             </div>
