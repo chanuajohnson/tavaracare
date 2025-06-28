@@ -18,25 +18,21 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    const { phone_number, country_code = '868', action } = await req.json();
+    const requestBody = await req.json();
+    console.log('WhatsApp verify request:', JSON.stringify(requestBody, null, 2));
+
+    const { phone_number, country_code = '868', action } = requestBody;
     
     if (action === 'send_verification') {
-      // Generate 6-digit verification code
-      const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
-      const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
-
-      // Format the phone number using our database function
-      const { data: formattedData, error: formatError } = await supabase
-        .rpc('format_whatsapp_number', { 
-          phone_input: phone_number, 
-          country_code_input: country_code 
-        });
-
-      if (formatError || !formattedData) {
+      console.log(`Processing verification request for phone: ${phone_number}, country: ${country_code}`);
+      
+      if (!phone_number || phone_number.trim() === '') {
+        console.error('Phone number is missing or empty');
         return new Response(
           JSON.stringify({ 
             success: false, 
-            error: 'Invalid phone number format' 
+            error: 'Phone number is required',
+            error_type: 'validation_error'
           }),
           { 
             status: 400, 
@@ -45,7 +41,66 @@ serve(async (req) => {
         );
       }
 
+      // Generate 6-digit verification code
+      const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
+      const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+      
+      console.log(`Generated verification code: ${verificationCode} for ${phone_number}`);
+
+      // Test the format function first
+      console.log('Testing format_whatsapp_number function...');
+      const { data: formattedData, error: formatError } = await supabase
+        .rpc('format_whatsapp_number', { 
+          phone_input: phone_number, 
+          country_code_input: country_code 
+        });
+
+      console.log('Format function result:', { formattedData, formatError });
+
+      if (formatError) {
+        console.error('Format function error:', formatError);
+        return new Response(
+          JSON.stringify({ 
+            success: false, 
+            error: 'Failed to format phone number: ' + formatError.message,
+            error_type: 'formatting_error',
+            debug_info: {
+              input_phone: phone_number,
+              country_code: country_code,
+              format_error: formatError
+            }
+          }),
+          { 
+            status: 400, 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+          }
+        );
+      }
+
+      if (!formattedData) {
+        console.error('Format function returned null for:', { phone_number, country_code });
+        return new Response(
+          JSON.stringify({ 
+            success: false, 
+            error: 'Invalid phone number format. Please enter a valid Trinidad phone number (e.g., 756-0967 or 868-756-0967)',
+            error_type: 'invalid_format',
+            debug_info: {
+              input_phone: phone_number,
+              country_code: country_code,
+              suggestion: 'Try formats like: 7560967, 868-756-0967, or +1-868-756-0967'
+            }
+          }),
+          { 
+            status: 400, 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+          }
+        );
+      }
+
+      console.log(`Phone number formatted successfully: ${phone_number} -> ${formattedData}`);
+
       // Store verification code in database
+      console.log('Storing verification code in database...');
       const { error: insertError } = await supabase
         .from('whatsapp_auth')
         .upsert({
@@ -59,11 +114,16 @@ serve(async (req) => {
         });
 
       if (insertError) {
-        console.error('Database error:', insertError);
+        console.error('Database insert error:', insertError);
         return new Response(
           JSON.stringify({ 
             success: false, 
-            error: 'Failed to store verification code' 
+            error: 'Failed to store verification code: ' + insertError.message,
+            error_type: 'database_error',
+            debug_info: {
+              insert_error: insertError,
+              formatted_number: formattedData
+            }
           }),
           { 
             status: 500, 
@@ -72,8 +132,10 @@ serve(async (req) => {
         );
       }
 
+      console.log('Verification code stored successfully in database');
+
       // Log the message for WhatsApp sending
-      await supabase
+      const { error: logError } = await supabase
         .from('whatsapp_message_log')
         .insert({
           phone_number: formattedData,
@@ -83,17 +145,28 @@ serve(async (req) => {
           delivery_status: 'pending'
         });
 
+      if (logError) {
+        console.warn('Failed to log WhatsApp message:', logError);
+        // Don't fail the request for logging issues
+      }
+
       // In production, you would send this via WhatsApp Business API
       // For now, we'll return success with the code for testing
-      console.log(`Verification code for ${formattedData}: ${verificationCode}`);
+      console.log(`SUCCESS: Verification code ${verificationCode} ready for ${formattedData}`);
 
       return new Response(
         JSON.stringify({ 
           success: true, 
-          message: 'Verification code sent',
+          message: `Verification code sent to ${formattedData}`,
           formatted_number: formattedData,
           // Remove this in production:
-          debug_code: verificationCode
+          debug_code: verificationCode,
+          debug_info: {
+            input_phone: phone_number,
+            formatted_phone: formattedData,
+            country_code: country_code,
+            expires_at: expiresAt.toISOString()
+          }
         }),
         { 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
@@ -101,7 +174,22 @@ serve(async (req) => {
       );
 
     } else if (action === 'verify_code') {
-      const { verification_code } = await req.json();
+      const { verification_code } = requestBody;
+      console.log(`Verifying code ${verification_code} for phone ${phone_number}`);
+
+      if (!verification_code || verification_code.trim() === '') {
+        return new Response(
+          JSON.stringify({ 
+            success: false, 
+            error: 'Verification code is required',
+            error_type: 'validation_error'
+          }),
+          { 
+            status: 400, 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+          }
+        );
+      }
 
       // Check verification code
       const { data: authData, error: authError } = await supabase
@@ -111,6 +199,8 @@ serve(async (req) => {
         .eq('verification_code', verification_code)
         .gt('code_expires_at', new Date().toISOString())
         .single();
+
+      console.log('Code verification result:', { authData: !!authData, authError });
 
       if (authError || !authData) {
         // Increment failed attempts
@@ -122,10 +212,13 @@ serve(async (req) => {
           })
           .eq('phone_number', phone_number);
 
+        console.log('Code verification failed for:', phone_number);
+
         return new Response(
           JSON.stringify({ 
             success: false, 
-            error: 'Invalid or expired verification code' 
+            error: 'Invalid or expired verification code. Please request a new code.',
+            error_type: 'verification_failed'
           }),
           { 
             status: 400, 
@@ -145,10 +238,12 @@ serve(async (req) => {
         .eq('id', authData.id);
 
       if (updateError) {
+        console.error('Failed to update verification status:', updateError);
         return new Response(
           JSON.stringify({ 
             success: false, 
-            error: 'Failed to verify phone number' 
+            error: 'Failed to verify phone number: ' + updateError.message,
+            error_type: 'database_error'
           }),
           { 
             status: 500, 
@@ -171,10 +266,12 @@ serve(async (req) => {
         });
 
       if (sessionError) {
+        console.error('Failed to create session:', sessionError);
         return new Response(
           JSON.stringify({ 
             success: false, 
-            error: 'Failed to create session' 
+            error: 'Failed to create session: ' + sessionError.message,
+            error_type: 'session_error'
           }),
           { 
             status: 500, 
@@ -182,6 +279,8 @@ serve(async (req) => {
           }
         );
       }
+
+      console.log(`SUCCESS: Phone number ${authData.formatted_number} verified, session created`);
 
       return new Response(
         JSON.stringify({ 
@@ -199,7 +298,8 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         success: false, 
-        error: 'Invalid action' 
+        error: 'Invalid action. Use "send_verification" or "verify_code"',
+        error_type: 'invalid_action'
       }),
       { 
         status: 400, 
@@ -208,11 +308,15 @@ serve(async (req) => {
     );
 
   } catch (error) {
-    console.error('Error in WhatsApp verification:', error);
+    console.error('Unexpected error in WhatsApp verification:', error);
     return new Response(
       JSON.stringify({ 
         success: false, 
-        error: error.message 
+        error: 'Internal server error: ' + error.message,
+        error_type: 'server_error',
+        debug_info: {
+          error_stack: error.stack
+        }
       }),
       { 
         status: 500, 

@@ -73,7 +73,7 @@ CREATE POLICY "Service can insert whatsapp sessions" ON whatsapp_sessions
 CREATE POLICY "Users can update their own whatsapp sessions" ON whatsapp_sessions
   FOR UPDATE USING (user_id = auth.uid());
 
--- Create function to format phone numbers consistently
+-- Create improved function to format phone numbers consistently
 CREATE OR REPLACE FUNCTION format_whatsapp_number(phone_input TEXT, country_code_input TEXT DEFAULT '868')
 RETURNS TEXT
 LANGUAGE plpgsql
@@ -85,23 +85,48 @@ BEGIN
   -- Remove all non-digit characters
   cleaned_number := regexp_replace(phone_input, '[^0-9]', '', 'g');
   
-  -- Handle different input formats
-  IF cleaned_number ~ '^1?868[0-9]{7}$' THEN
-    -- Trinidad format: 868-xxx-xxxx or 1-868-xxx-xxxx
-    formatted_number := '+1' || right(cleaned_number, 10);
-  ELSIF cleaned_number ~ '^[0-9]{7}$' AND country_code_input = '868' THEN
-    -- Local Trinidad format: xxx-xxxx
-    formatted_number := '+1868' || cleaned_number;
-  ELSIF cleaned_number ~ '^[0-9]{10,15}$' THEN
-    -- International format
-    IF left(cleaned_number, 1) != '0' THEN
+  -- Log the cleaning process for debugging
+  -- RAISE LOG 'Formatting phone: input=%, cleaned=%, country=%', phone_input, cleaned_number, country_code_input;
+  
+  -- Handle Trinidad and Tobago specifically (country code 868)
+  IF country_code_input = '868' THEN
+    -- Handle various Trinidad formats
+    IF cleaned_number ~ '^18687[0-9]{6}$' THEN
+      -- Full international: 18687560967
+      formatted_number := '+' || cleaned_number;
+    ELSIF cleaned_number ~ '^8687[0-9]{6}$' THEN
+      -- With country code: 8687560967
+      formatted_number := '+1' || cleaned_number;
+    ELSIF cleaned_number ~ '^7[0-9]{6}$' THEN
+      -- Local 7-digit: 7560967
+      formatted_number := '+1868' || cleaned_number;
+    ELSIF cleaned_number ~ '^6[0-9]{6}$' THEN
+      -- Local 7-digit starting with 6: 6234567
+      formatted_number := '+1868' || cleaned_number;
+    ELSIF cleaned_number ~ '^1868[0-9]{7}$' THEN
+      -- Full format with leading 1: 18687560967
       formatted_number := '+' || cleaned_number;
     ELSE
-      -- Remove leading zero and add country code
-      formatted_number := '+' || country_code_input || right(cleaned_number, -1);
+      -- Invalid Trinidad format
+      RETURN NULL;
     END IF;
+  -- Handle other international formats
+  ELSIF cleaned_number ~ '^1[0-9]{10}$' THEN
+    -- North American format: 15551234567
+    formatted_number := '+' || cleaned_number;
+  ELSIF cleaned_number ~ '^[0-9]{10,15}$' AND left(cleaned_number, 1) != '0' THEN
+    -- General international format (10-15 digits, not starting with 0)
+    formatted_number := '+' || cleaned_number;
+  ELSIF cleaned_number ~ '^0[0-9]{9,14}$' THEN
+    -- Format with leading zero, remove it and add country code
+    formatted_number := '+' || country_code_input || right(cleaned_number, -1);
   ELSE
     -- Invalid format
+    RETURN NULL;
+  END IF;
+  
+  -- Final validation - ensure we have a reasonable phone number
+  IF length(formatted_number) < 8 OR length(formatted_number) > 18 THEN
     RETURN NULL;
   END IF;
   
@@ -136,7 +161,7 @@ BEGIN
   
   -- Validate the number
   IF NEW.formatted_number IS NULL THEN
-    RAISE EXCEPTION 'Invalid phone number format: %', NEW.phone_number;
+    RAISE EXCEPTION 'Invalid phone number format: %. For Trinidad, use formats like: 7560967, 868-756-0967, or +1-868-756-0967', NEW.phone_number;
   END IF;
   
   NEW.updated_at := NOW();
