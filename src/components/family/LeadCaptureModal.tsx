@@ -219,9 +219,9 @@ export const LeadCaptureModal: React.FC<LeadCaptureModalProps> = ({
         title: "Start Your Professional Journey",
         description: "Join our network of qualified caregivers and connect with families in need.",
         submitButtonText: "Get Professional Access 💙",
-        skipButtonText: "Skip for now, Skip the registration for an in-person On boarding with Tavara Team",
+        skipButtonText: "Grab an in-person On boarding with Tavara Team",
         successTitle: "Ready to Join Our Professional Network! 💙",
-        successDescription: "Now complete your sign in to start connecting with families."
+        successDescription: "Complete your sign in to start connecting with families."
       };
     } else {
       return {
@@ -231,7 +231,7 @@ export const LeadCaptureModal: React.FC<LeadCaptureModalProps> = ({
         submitButtonText: "Submit to be contacted about getting started with Tavara 💙",
         skipButtonText: "Skip for now, get an idea of Tavara caregiver matching",
         successTitle: "Ready to get started with Tavara! 💙",
-        successDescription: "Now get started so your family can get matched with qualified caregivers."
+        successDescription: "Your family can get matched with qualified caregivers."
       };
     }
   };
