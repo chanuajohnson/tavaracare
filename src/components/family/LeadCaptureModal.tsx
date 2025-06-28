@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -241,16 +240,16 @@ export const LeadCaptureModal: React.FC<LeadCaptureModalProps> = ({
   if (isSuccess) {
     return (
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-md">
-          <div className="text-center py-6">
-            <CheckCircle className="h-16 w-16 text-green-500 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-gray-900 mb-2">
+        <DialogContent className="w-[95vw] max-w-md mx-2 sm:mx-4">
+          <div className="text-center py-4 sm:py-6 px-2">
+            <CheckCircle className="h-12 w-12 sm:h-16 sm:w-16 text-green-500 mx-auto mb-3 sm:mb-4" />
+            <h3 className="text-lg sm:text-xl font-semibold text-gray-900 mb-2 leading-tight">
               {content.successTitle}
             </h3>
-            <p className="text-gray-600 mb-4">
+            <p className="text-sm sm:text-base text-gray-600 mb-3 sm:mb-4 leading-relaxed">
               {content.successDescription}
             </p>
-            <p className="text-sm text-gray-500">
+            <p className="text-xs sm:text-sm text-gray-500">
               {isProfessionalContext ? "Taking you to sign in..." : "Taking you to begin with Tavara..."}
             </p>
           </div>
@@ -261,25 +260,25 @@ export const LeadCaptureModal: React.FC<LeadCaptureModalProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-center">
+      <DialogContent className="w-[95vw] max-w-md mx-2 sm:mx-4 max-h-[90vh] overflow-y-auto">
+        <DialogHeader className="pb-2 sm:pb-4">
+          <DialogTitle className="flex items-center justify-center gap-2 text-center text-lg sm:text-xl leading-tight px-2">
             {content.icon}
-            {content.title}
+            <span className="break-words">{content.title}</span>
           </DialogTitle>
         </DialogHeader>
         
-        <div className="space-y-4">
+        <div className="space-y-3 sm:space-y-4 px-2 sm:px-0">
           <div className="text-center">
-            <p className="text-sm text-gray-600 mb-4">
+            <p className="text-xs sm:text-sm text-gray-600 mb-3 sm:mb-4 leading-relaxed px-1">
               {content.description}
             </p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="whatsapp" className="flex items-center gap-2">
-                <Phone className="h-4 w-4" />
+              <Label htmlFor="whatsapp" className="flex items-center gap-2 text-sm font-medium">
+                <Phone className="h-3 w-3 sm:h-4 sm:w-4" />
                 WhatsApp Number
               </Label>
               <Input
@@ -289,19 +288,19 @@ export const LeadCaptureModal: React.FC<LeadCaptureModalProps> = ({
                 value={whatsappNumber}
                 onChange={(e) => setWhatsappNumber(e.target.value)}
                 required
-                className="focus:ring-primary focus:border-primary"
+                className="w-full focus:ring-primary focus:border-primary text-sm sm:text-base h-10 sm:h-11"
               />
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-gray-500 leading-tight px-1">
                 {isProfessionalContext 
-                  ? "Interested in  professional opportunities and families"
-                  : "Interested in  professional opportunities and families"
+                  ? "Interested in professional opportunities and families"
+                  : "Interested in professional opportunities and families"
                 }
               </p>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="email" className="flex items-center gap-2">
-                <Mail className="h-4 w-4" />
+              <Label htmlFor="email" className="flex items-center gap-2 text-sm font-medium">
+                <Mail className="h-3 w-3 sm:h-4 sm:w-4" />
                 Email Address
               </Label>
               <Input
@@ -311,9 +310,9 @@ export const LeadCaptureModal: React.FC<LeadCaptureModalProps> = ({
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="focus:ring-primary focus:border-primary"
+                className="w-full focus:ring-primary focus:border-primary text-sm sm:text-base h-10 sm:h-11"
               />
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-gray-500 leading-tight px-1">
                 {isProfessionalContext 
                   ? "For professional opportunities, training, and important updates"
                   : "For care plans, scheduling, and important updates"
@@ -321,13 +320,15 @@ export const LeadCaptureModal: React.FC<LeadCaptureModalProps> = ({
               </p>
             </div>
 
-            <div className="flex flex-col gap-2 pt-2">
+            <div className="flex flex-col gap-2 sm:gap-3 pt-2 sm:pt-3">
               <Button
                 type="submit"
                 disabled={isSubmitting}
-                className="w-full bg-primary hover:bg-primary/90"
+                className="w-full bg-primary hover:bg-primary/90 text-xs sm:text-sm h-10 sm:h-11 px-3 leading-tight"
               >
-                {isSubmitting ? 'Saving Info...' : content.submitButtonText}
+                <span className="break-words text-center">
+                  {isSubmitting ? 'Saving Info...' : content.submitButtonText}
+                </span>
               </Button>
               
               {isProfessionalContext ? (
@@ -335,9 +336,11 @@ export const LeadCaptureModal: React.FC<LeadCaptureModalProps> = ({
                   type="button"
                   variant="ghost"
                   onClick={handleProfessionalSkip}
-                  className="w-full text-sm text-gray-600 hover:text-gray-800"
+                  className="w-full text-xs sm:text-sm text-gray-600 hover:text-gray-800 h-auto py-2 sm:py-3 px-2 leading-tight"
                 >
-                  {content.skipButtonText}
+                  <span className="break-words text-center">
+                    {content.skipButtonText}
+                  </span>
                 </Button>
               ) : (
                 onSkipToCaregiverMatching ? (
@@ -345,26 +348,30 @@ export const LeadCaptureModal: React.FC<LeadCaptureModalProps> = ({
                     type="button"
                     variant="ghost"
                     onClick={handleSkipToCaregiverMatching}
-                    className="w-full text-sm text-gray-600 hover:text-gray-800"
+                    className="w-full text-xs sm:text-sm text-gray-600 hover:text-gray-800 h-auto py-2 sm:py-3 px-2 leading-tight"
                   >
-                    {content.skipButtonText}
+                    <span className="break-words text-center">
+                      {content.skipButtonText}
+                    </span>
                   </Button>
                 ) : (
                   <Button
                     type="button"
                     variant="ghost"
                     onClick={handleSkipToSubscription}
-                    className="w-full text-sm text-gray-600 hover:text-gray-800"
+                    className="w-full text-xs sm:text-sm text-gray-600 hover:text-gray-800 h-auto py-2 sm:py-3 px-2 leading-tight"
                   >
-                    Skip for now, view care plans
+                    <span className="break-words text-center">
+                      Skip for now, view care plans
+                    </span>
                   </Button>
                 )
               )}
             </div>
           </form>
 
-          <div className="text-center pt-2">
-            <p className="text-xs text-gray-500">
+          <div className="text-center pt-1 sm:pt-2">
+            <p className="text-xs text-gray-500 leading-tight px-2">
               By continuing, you agree to receive {isProfessionalContext ? 'professional' : 'care-related'} communications from Tavara
             </p>
           </div>
