@@ -2795,6 +2795,9 @@ export type Database = {
           visit_scheduled_date: string | null
           visit_scheduling_status: string | null
           website: string | null
+          whatsapp_linked_at: string | null
+          whatsapp_phone: string | null
+          whatsapp_verified: boolean | null
           why_choose_caregiving: string | null
           work_type: string | null
           years_of_experience: string | null
@@ -2884,6 +2887,9 @@ export type Database = {
           visit_scheduled_date?: string | null
           visit_scheduling_status?: string | null
           website?: string | null
+          whatsapp_linked_at?: string | null
+          whatsapp_phone?: string | null
+          whatsapp_verified?: boolean | null
           why_choose_caregiving?: string | null
           work_type?: string | null
           years_of_experience?: string | null
@@ -2973,6 +2979,9 @@ export type Database = {
           visit_scheduled_date?: string | null
           visit_scheduling_status?: string | null
           website?: string | null
+          whatsapp_linked_at?: string | null
+          whatsapp_phone?: string | null
+          whatsapp_verified?: boolean | null
           why_choose_caregiving?: string | null
           work_type?: string | null
           years_of_experience?: string | null
@@ -3925,6 +3934,48 @@ export type Database = {
         }
         Relationships: []
       }
+      whatsapp_auth: {
+        Row: {
+          code_expires_at: string | null
+          country_code: string
+          created_at: string | null
+          formatted_number: string
+          id: string
+          is_verified: boolean | null
+          last_verification_attempt: string | null
+          phone_number: string
+          updated_at: string | null
+          verification_attempts: number | null
+          verification_code: string | null
+        }
+        Insert: {
+          code_expires_at?: string | null
+          country_code?: string
+          created_at?: string | null
+          formatted_number: string
+          id?: string
+          is_verified?: boolean | null
+          last_verification_attempt?: string | null
+          phone_number: string
+          updated_at?: string | null
+          verification_attempts?: number | null
+          verification_code?: string | null
+        }
+        Update: {
+          code_expires_at?: string | null
+          country_code?: string
+          created_at?: string | null
+          formatted_number?: string
+          id?: string
+          is_verified?: boolean | null
+          last_verification_attempt?: string | null
+          phone_number?: string
+          updated_at?: string | null
+          verification_attempts?: number | null
+          verification_code?: string | null
+        }
+        Relationships: []
+      }
       whatsapp_message_log: {
         Row: {
           content: string
@@ -3974,6 +4025,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      whatsapp_sessions: {
+        Row: {
+          created_at: string | null
+          expires_at: string
+          id: string
+          is_active: boolean | null
+          phone_number: string
+          session_token: string
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          expires_at: string
+          id?: string
+          is_active?: boolean | null
+          phone_number: string
+          session_token: string
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          expires_at?: string
+          id?: string
+          is_active?: boolean | null
+          phone_number?: string
+          session_token?: string
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
       }
       work_log_expenses: {
         Row: {
@@ -4146,6 +4230,10 @@ export type Database = {
         Args: { booking_id: string; reason?: string }
         Returns: undefined
       }
+      cleanup_expired_whatsapp_codes: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       detect_medication_conflicts: {
         Args: {
           p_medication_id: string
@@ -4160,6 +4248,10 @@ export type Database = {
           status: string
           notes: string
         }[]
+      }
+      format_whatsapp_number: {
+        Args: { phone_input: string; country_code_input?: string }
+        Returns: string
       }
       generate_admin_configured_slots: {
         Args: Record<PropertyKey, never>
@@ -4213,6 +4305,10 @@ export type Database = {
       }
       validate_admin_signup_code: {
         Args: { provided_code: string }
+        Returns: boolean
+      }
+      validate_whatsapp_number: {
+        Args: { phone_input: string }
         Returns: boolean
       }
     }
