@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
+import { getEnvironmentInfo } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { CheckCircle, XCircle, AlertCircle } from 'lucide-react';
 
@@ -30,12 +31,15 @@ export const SupabaseConnectionTester: React.FC = () => {
     try {
       // Test 1: Supabase Client Configuration
       console.log('Testing Supabase client configuration...');
+      const envInfo = getEnvironmentInfo();
       const clientTest = supabase ? 'success' : 'error';
       results.client = clientTest;
       testDetails.client = {
         configured: !!supabase,
-        url: supabase?.supabaseUrl || 'Not configured',
-        key: supabase?.supabaseKey ? 'Set' : 'Missing'
+        environment: envInfo.environment,
+        supabaseUrl: envInfo.supabaseUrl,
+        projectId: envInfo.projectId,
+        usingFallbacks: envInfo.usingFallbacks
       };
 
       // Test 2: Database Connection
