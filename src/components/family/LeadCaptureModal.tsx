@@ -293,7 +293,7 @@ export const LeadCaptureModal: React.FC<LeadCaptureModalProps> = ({
               />
               <p className="text-xs text-gray-500">
                 {isProfessionalContext 
-                  ? "We'll contact you about your interest in your professional opportunities and updates via WhatsApp"
+                  ? "For you interest in your professional opportunities and updates via WhatsApp"
                   : "We'll contact you about your interest in your in care updates and caregiver matches via WhatsApp"
                 }
               </p>
