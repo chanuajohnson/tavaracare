@@ -176,7 +176,7 @@ export default function SubscriptionFeaturesPage() {
             </p>
             <div className="bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 rounded-lg p-4 mb-6">
               <p className="text-sm text-gray-600">
-                ✨ <strong>Special Launch Pricing:</strong> Get full caregiver access for just $7.99 one-time payment
+                ✨ <strong>Launch Waiver:</strong> Get full caregiver access during our launch period
               </p>
             </div>
           </div>
@@ -189,8 +189,12 @@ export default function SubscriptionFeaturesPage() {
                 <CardTitle className="text-2xl text-primary">Caregiver Match Access</CardTitle>
               </div>
               <div className="text-center">
-                <div className="text-4xl font-bold text-primary mb-2">$7.99</div>
-                <div className="text-sm text-muted-foreground">One-time payment • Lifetime access</div>
+                <div className="flex items-center justify-center gap-2 mb-2">
+                  <div className="text-2xl font-bold line-through text-gray-400">$7.99</div>
+                  <div className="text-4xl font-bold text-primary">FREE</div>
+                </div>
+                <div className="text-sm text-green-600 font-medium mb-1">Launch Waiver</div>
+                <div className="text-sm text-muted-foreground">During launch period • Limited time</div>
               </div>
               <CardDescription className="text-lg">
                 Get matched with qualified, verified caregivers in Trinidad & Tobago
@@ -244,10 +248,10 @@ export default function SubscriptionFeaturesPage() {
                   size="lg"
                   className="text-lg px-8 py-6 bg-primary hover:bg-primary/90"
                 >
-                  Get My Caregiver Matches - $7.99 <ArrowRight className="h-5 w-5 ml-2" />
+                  Get My Caregiver Matches - Sign Up with Tavara to get started <ArrowRight className="h-5 w-5 ml-2" />
                 </Button>
                 <p className="text-xs text-muted-foreground mt-3">
-                  Secure payment • Cancel anytime • 30-day money-back guarantee
+                  Tavara.care launch sign up drive
                 </p>
               </div>
             </CardContent>
