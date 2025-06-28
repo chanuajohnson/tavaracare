@@ -227,7 +227,7 @@ export const LeadCaptureModal: React.FC<LeadCaptureModalProps> = ({
       return {
         icon: <Heart className="h-5 w-5 text-primary" />,
         title: "Start Building Your Care Village",
-        description: "Get your personalized caregiver match by signing up with Tavara",
+        description: "Personalized caregiver match by signing up with Tavara",
         submitButtonText: "Submit to be contacted about getting started with Tavara 💙",
         skipButtonText: "Skip for now, get an idea of Tavara caregiver matching",
         successTitle: "Ready to get started with Tavara! 💙",
