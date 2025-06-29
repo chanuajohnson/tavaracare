@@ -3945,6 +3945,7 @@ export type Database = {
           last_verification_attempt: string | null
           phone_number: string
           updated_at: string | null
+          user_metadata: Json | null
           verification_attempts: number | null
           verification_code: string | null
         }
@@ -3958,6 +3959,7 @@ export type Database = {
           last_verification_attempt?: string | null
           phone_number: string
           updated_at?: string | null
+          user_metadata?: Json | null
           verification_attempts?: number | null
           verification_code?: string | null
         }
@@ -3971,6 +3973,7 @@ export type Database = {
           last_verification_attempt?: string | null
           phone_number?: string
           updated_at?: string | null
+          user_metadata?: Json | null
           verification_attempts?: number | null
           verification_code?: string | null
         }
