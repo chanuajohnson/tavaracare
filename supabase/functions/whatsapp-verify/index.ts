@@ -102,7 +102,7 @@ serve(async (req) => {
 
       console.log(`Phone number formatted successfully: ${phone_number} -> ${formattedData}`);
 
-      // Store verification code in database
+      // Store verification code in database with proper upsert conflict handling
       console.log('Storing verification code in database...');
       const { error: insertError } = await supabase
         .from('whatsapp_auth')
@@ -114,6 +114,8 @@ serve(async (req) => {
           code_expires_at: expiresAt.toISOString(),
           verification_attempts: 0,
           is_verified: false
+        }, {
+          onConflict: 'phone_number'
         });
 
       if (insertError) {
