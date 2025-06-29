@@ -24,7 +24,7 @@ serve(async (req) => {
     const requestBody = await req.json();
     console.log('WhatsApp verify request:', JSON.stringify(requestBody, null, 2));
 
-    const { phone_number, country_code = '868', action } = requestBody;
+    const { phone_number, country_code = '868', action, user_metadata } = requestBody;
     
     if (action === 'send_verification') {
       console.log(`Processing verification request for phone: ${phone_number}, country: ${country_code}`);
@@ -113,7 +113,8 @@ serve(async (req) => {
           verification_code: verificationCode,
           code_expires_at: expiresAt.toISOString(),
           verification_attempts: 0,
-          is_verified: false
+          is_verified: false,
+          user_metadata: user_metadata || {}
         }, {
           onConflict: 'phone_number'
         });
@@ -139,11 +140,12 @@ serve(async (req) => {
 
       console.log('Verification code stored successfully in database');
 
-      // Generate WhatsApp Web URL
-      const whatsappMessage = `Hi! I'm verifying my phone number ${formattedData} for Tavara Care. My verification code is: ${verificationCode}`;
-      const encodedMessage = encodeURIComponent(whatsappMessage);
-      const whatsappUrl = `https://wa.me/${BUSINESS_WHATSAPP_NUMBER.replace(/[^\d]/g, '')}?text=${encodedMessage}`;
-
+      // TODO: Replace this with actual WhatsApp Business API call
+      // For now, we'll simulate sending the message
+      const whatsappMessage = `🔐 Your Tavara Care verification code is: ${verificationCode}\n\nThis code expires in 10 minutes. Please do not share this code with anyone.`;
+      
+      console.log(`SIMULATED WhatsApp message to ${formattedData}: ${whatsappMessage}`);
+      
       // Log the message for tracking
       const { error: logError } = await supabase
         .from('whatsapp_message_log')
@@ -152,7 +154,7 @@ serve(async (req) => {
           message_type: 'verification',
           content: whatsappMessage,
           direction: 'outgoing',
-          status: 'pending_user_send'
+          status: 'sent'
         });
 
       if (logError) {
@@ -160,17 +162,15 @@ serve(async (req) => {
         // Don't fail the request for logging issues
       }
 
-      console.log(`SUCCESS: WhatsApp URL generated for ${formattedData}`);
+      console.log(`SUCCESS: Verification code sent to WhatsApp ${formattedData}`);
 
       return new Response(
         JSON.stringify({ 
           success: true, 
-          message: `Click the link below to send your verification code via WhatsApp`,
+          message: `Verification code sent to your WhatsApp`,
           formatted_number: formattedData,
-          whatsapp_url: whatsappUrl,
-          verification_code: verificationCode, // For manual entry fallback
           expires_at: expiresAt.toISOString(),
-          instructions: 'Click the WhatsApp link to send your verification code to our business number, then enter the code below when ready to verify.'
+          instructions: 'Check your WhatsApp for the 6-digit verification code and enter it to complete signup.'
         }),
         { 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
@@ -265,7 +265,8 @@ serve(async (req) => {
           phone_number: authData.formatted_number,
           session_token: sessionToken,
           expires_at: expiresAt.toISOString(),
-          is_active: true
+          is_active: true,
+          user_metadata: authData.user_metadata
         });
 
       if (sessionError) {

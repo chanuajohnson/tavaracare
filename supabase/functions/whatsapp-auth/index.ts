@@ -21,6 +21,8 @@ serve(async (req) => {
     const { session_token, action, user_metadata } = await req.json();
 
     if (action === 'create_or_link_user') {
+      console.log('Creating or linking user with metadata:', user_metadata);
+      
       // Verify session token
       const { data: sessionData, error: sessionError } = await supabase
         .from('whatsapp_sessions')
@@ -31,6 +33,7 @@ serve(async (req) => {
         .single();
 
       if (sessionError || !sessionData) {
+        console.error('Session validation failed:', sessionError);
         return new Response(
           JSON.stringify({ 
             success: false, 
@@ -51,10 +54,12 @@ serve(async (req) => {
         .maybeSingle();
 
       if (existingProfile) {
+        console.log('User already exists, signing them in');
         // User exists, create auth session
         const { data: authUser, error: authError } = await supabase.auth.admin.getUserById(existingProfile.id);
         
         if (authError || !authUser.user) {
+          console.error('Failed to get existing user:', authError);
           return new Response(
             JSON.stringify({ 
               success: false, 
@@ -80,6 +85,7 @@ serve(async (req) => {
         });
 
         if (tokenError) {
+          console.error('Failed to generate auth token:', tokenError);
           return new Response(
             JSON.stringify({ 
               success: false, 
@@ -105,9 +111,12 @@ serve(async (req) => {
         );
       }
 
-      // Create new user
-      const email = `whatsapp_${sessionData.phone_number.replace(/\+/g, '')}@tavara.temp`;
+      // Create new user with proper email format and user metadata
+      const sanitizedPhone = sessionData.phone_number.replace(/[^\d]/g, '');
+      const email = `whatsapp_${sanitizedPhone}@tavara.temp`;
       const password = crypto.randomUUID();
+      
+      console.log('Creating new user with email:', email);
 
       const { data: newUser, error: createError } = await supabase.auth.admin.createUser({
         email,
@@ -116,17 +125,21 @@ serve(async (req) => {
         user_metadata: {
           whatsapp_phone: sessionData.phone_number,
           auth_method: 'whatsapp',
-          ...user_metadata
+          first_name: user_metadata?.first_name || '',
+          last_name: user_metadata?.last_name || '',
+          full_name: user_metadata?.full_name || '',
+          role: user_metadata?.role || 'family'
         },
         email_confirm: true,
         phone_confirm: true
       });
 
       if (createError || !newUser.user) {
+        console.error('Failed to create new user:', createError);
         return new Response(
           JSON.stringify({ 
             success: false, 
-            error: 'Failed to create new user' 
+            error: 'Failed to create new user: ' + (createError?.message || 'Unknown error')
           }),
           { 
             status: 500, 
@@ -135,15 +148,24 @@ serve(async (req) => {
         );
       }
 
-      // Update profile with WhatsApp info
-      await supabase
+      console.log('New user created successfully:', newUser.user.id);
+
+      // The profile will be created automatically by the handle_new_user trigger
+      // But we need to update it with WhatsApp specific info
+      const { error: profileUpdateError } = await supabase
         .from('profiles')
         .update({
           whatsapp_phone: sessionData.phone_number,
           whatsapp_verified: true,
-          whatsapp_linked_at: new Date().toISOString()
+          whatsapp_linked_at: new Date().toISOString(),
+          phone_number: sessionData.phone_number
         })
         .eq('id', newUser.user.id);
+
+      if (profileUpdateError) {
+        console.error('Failed to update profile with WhatsApp info:', profileUpdateError);
+        // Continue anyway, the profile was created
+      }
 
       // Update session with user_id
       await supabase
@@ -158,6 +180,7 @@ serve(async (req) => {
       });
 
       if (tokenError) {
+        console.error('Failed to generate auth token:', tokenError);
         return new Response(
           JSON.stringify({ 
             success: false, 
@@ -169,6 +192,8 @@ serve(async (req) => {
           }
         );
       }
+
+      console.log('User creation complete, returning success');
 
       return new Response(
         JSON.stringify({ 
