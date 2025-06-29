@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { MessageCircle, Phone, Shield, AlertCircle } from 'lucide-react';
+import { MessageCircle, Phone, Shield, AlertCircle, ExternalLink } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -28,13 +28,15 @@ const countryCodes = [
 ];
 
 export const WhatsAppAuth: React.FC<WhatsAppAuthProps> = ({ onSuccess, onBack }) => {
-  const [step, setStep] = useState<'phone' | 'verify' | 'profile'>('phone');
+  const [step, setStep] = useState<'phone' | 'whatsapp' | 'verify'>('phone');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [countryCode, setCountryCode] = useState('868');
   const [verificationCode, setVerificationCode] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [sessionToken, setSessionToken] = useState('');
   const [formattedNumber, setFormattedNumber] = useState('');
+  const [whatsappUrl, setWhatsappUrl] = useState('');
+  const [generatedCode, setGeneratedCode] = useState('');
   const [errorDetails, setErrorDetails] = useState<any>(null);
 
   const getPhoneNumberPlaceholder = () => {
@@ -48,7 +50,7 @@ export const WhatsAppAuth: React.FC<WhatsAppAuthProps> = ({ onSuccess, onBack })
     }
   };
 
-  const sendVerificationCode = async () => {
+  const generateWhatsAppLink = async () => {
     if (!phoneNumber.trim()) {
       toast.error('Please enter your phone number');
       return;
@@ -58,15 +60,7 @@ export const WhatsAppAuth: React.FC<WhatsAppAuthProps> = ({ onSuccess, onBack })
     setErrorDetails(null);
     
     try {
-      console.log('Attempting to send verification code for:', { phoneNumber, countryCode });
-      
-      // First, check if Supabase client is properly configured
-      const { data: testConnection } = await supabase.from('profiles').select('id').limit(1);
-      console.log('Supabase connection test:', testConnection ? 'SUCCESS' : 'FAILED');
-      
-      // Get current session to verify auth context
-      const { data: sessionData } = await supabase.auth.getSession();
-      console.log('Current auth session:', sessionData?.session ? 'EXISTS' : 'NONE');
+      console.log('Generating WhatsApp link for:', { phoneNumber, countryCode });
       
       const { data, error } = await supabase.functions.invoke('whatsapp-verify', {
         body: {
@@ -79,40 +73,21 @@ export const WhatsAppAuth: React.FC<WhatsAppAuthProps> = ({ onSuccess, onBack })
       console.log('Function invoke response:', { data, error });
 
       if (error) {
-        console.error('Supabase function error details:', {
-          message: error.message,
-          context: error.context,
-          details: error.details
-        });
-        
-        // Provide specific error messages based on error type
-        if (error.message?.includes('fetch')) {
-          toast.error('Network connection failed. Please check your internet connection and try again.');
-        } else if (error.message?.includes('Failed to invoke')) {
-          toast.error('Service temporarily unavailable. Please try again in a moment.');
-        } else {
-          toast.error(`Network error: ${error.message || 'Unable to connect to verification service'}`);
-        }
+        console.error('Supabase function error details:', error);
+        toast.error(`Network error: ${error.message || 'Unable to connect to verification service'}`);
         return;
       }
 
       if (data?.success) {
         setFormattedNumber(data.formatted_number);
-        setStep('verify');
-        toast.success(`Verification code sent to ${data.formatted_number}!`);
-        
-        // Show debug code in development
-        if (data.debug_code) {
-          toast.info(`Debug: Your code is ${data.debug_code}`, { 
-            duration: 15000,
-            description: 'This debug info will not appear in production'
-          });
-        }
+        setWhatsappUrl(data.whatsapp_url);
+        setGeneratedCode(data.verification_code);
+        setStep('whatsapp');
+        toast.success(`WhatsApp link generated successfully!`);
       } else {
         console.error('Verification failed:', data);
         setErrorDetails(data?.debug_info);
         
-        // Show specific error messages based on error type
         switch (data?.error_type) {
           case 'formatting_error':
           case 'invalid_format':
@@ -127,26 +102,12 @@ export const WhatsAppAuth: React.FC<WhatsAppAuthProps> = ({ onSuccess, onBack })
             toast.error('System error. Please try again in a moment.');
             break;
           default:
-            toast.error(data?.error || 'Failed to send verification code');
+            toast.error(data?.error || 'Failed to generate WhatsApp link');
         }
       }
     } catch (error: any) {
-      console.error('Verification error details:', {
-        message: error.message,
-        stack: error.stack,
-        name: error.name
-      });
-      
-      // Enhanced error messages for common network issues
-      if (error.name === 'TypeError' && error.message.includes('fetch')) {
-        toast.error('Connection failed - please check your internet connection');
-      } else if (error.message?.includes('CORS')) {
-        toast.error('Cross-origin request blocked - please try refreshing the page');
-      } else if (error.message?.includes('timeout')) {
-        toast.error('Request timed out - please try again');
-      } else {
-        toast.error(`Connection error: ${error.message || 'Unable to reach verification service'}`);
-      }
+      console.error('Error generating WhatsApp link:', error);
+      toast.error(`Connection error: ${error.message || 'Unable to reach verification service'}`);
     } finally {
       setIsLoading(false);
     }
@@ -186,7 +147,7 @@ export const WhatsAppAuth: React.FC<WhatsAppAuthProps> = ({ onSuccess, onBack })
         switch (data?.error_type) {
           case 'verification_failed':
             toast.error('Invalid or expired code', {
-              description: 'Please request a new verification code'
+              description: 'Please check the code you sent via WhatsApp'
             });
             break;
           case 'validation_error':
@@ -243,7 +204,7 @@ export const WhatsAppAuth: React.FC<WhatsAppAuthProps> = ({ onSuccess, onBack })
         </div>
         <CardTitle>Sign in with WhatsApp</CardTitle>
         <CardDescription>
-          Enter your WhatsApp number to receive a verification code
+          Enter your WhatsApp number to get started
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -279,7 +240,7 @@ export const WhatsAppAuth: React.FC<WhatsAppAuthProps> = ({ onSuccess, onBack })
             />
           </div>
           <p className="text-xs text-muted-foreground">
-            We'll send a verification code to this number via WhatsApp
+            We'll generate a WhatsApp message for you to send to our business number
           </p>
           {countryCode === '868' && (
             <p className="text-xs text-blue-600">
@@ -302,14 +263,68 @@ export const WhatsAppAuth: React.FC<WhatsAppAuthProps> = ({ onSuccess, onBack })
 
         <div className="space-y-2">
           <Button 
-            onClick={sendVerificationCode} 
+            onClick={generateWhatsAppLink} 
             disabled={isLoading}
             className="w-full"
           >
-            {isLoading ? 'Sending...' : 'Send Verification Code'}
+            {isLoading ? 'Generating Link...' : 'Generate WhatsApp Link'}
           </Button>
           <Button variant="ghost" onClick={onBack} className="w-full">
             Back to Sign In Options
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+
+  const renderWhatsAppStep = () => (
+    <Card className="w-full max-w-md">
+      <CardHeader className="text-center">
+        <div className="flex justify-center mb-4">
+          <MessageCircle className="h-12 w-12 text-green-600" />
+        </div>
+        <CardTitle>Send Verification via WhatsApp</CardTitle>
+        <CardDescription>
+          Click the button below to open WhatsApp and send your verification code
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="p-4 bg-green-50 border border-green-200 rounded-md">
+          <h4 className="font-medium text-green-800 mb-2">Instructions:</h4>
+          <ol className="text-sm text-green-700 space-y-1">
+            <li>1. Click "Open WhatsApp" below</li>
+            <li>2. Send the pre-filled message to our business number</li>
+            <li>3. Come back here and enter your verification code</li>
+          </ol>
+        </div>
+
+        <div className="space-y-2">
+          <Label>Your verification code:</Label>
+          <div className="p-3 bg-gray-100 rounded-md text-center font-mono text-lg">
+            {generatedCode}
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Keep this code handy - you'll need to enter it after sending the WhatsApp message
+          </p>
+        </div>
+
+        <div className="space-y-2">
+          <Button 
+            onClick={() => window.open(whatsappUrl, '_blank')}
+            className="w-full bg-green-600 hover:bg-green-700"
+          >
+            <ExternalLink className="h-4 w-4 mr-2" />
+            Open WhatsApp
+          </Button>
+          <Button 
+            variant="outline" 
+            onClick={() => setStep('verify')} 
+            className="w-full"
+          >
+            I've sent the message - Enter Code
+          </Button>
+          <Button variant="ghost" onClick={() => setStep('phone')} className="w-full">
+            Change Phone Number
           </Button>
         </div>
       </CardContent>
@@ -324,7 +339,7 @@ export const WhatsAppAuth: React.FC<WhatsAppAuthProps> = ({ onSuccess, onBack })
         </div>
         <CardTitle>Enter Verification Code</CardTitle>
         <CardDescription>
-          We sent a 6-digit code to {formattedNumber}
+          Enter the 6-digit code you sent via WhatsApp to {formattedNumber}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -339,6 +354,9 @@ export const WhatsAppAuth: React.FC<WhatsAppAuthProps> = ({ onSuccess, onBack })
             maxLength={6}
             className="text-center text-lg tracking-widest"
           />
+          <p className="text-xs text-muted-foreground">
+            This should match the code from your WhatsApp message: {generatedCode}
+          </p>
         </div>
 
         <div className="space-y-2">
@@ -349,19 +367,18 @@ export const WhatsAppAuth: React.FC<WhatsAppAuthProps> = ({ onSuccess, onBack })
           >
             {isLoading ? 'Verifying...' : 'Verify Code'}
           </Button>
-          <Button variant="ghost" onClick={() => setStep('phone')} className="w-full">
-            Change Phone Number
+          <Button variant="ghost" onClick={() => setStep('whatsapp')} className="w-full">
+            Back to WhatsApp Step
           </Button>
         </div>
 
         <div className="text-center">
           <Button
             variant="link"
-            onClick={sendVerificationCode}
-            disabled={isLoading}
+            onClick={() => setStep('phone')}
             className="text-sm"
           >
-            Didn't receive the code? Resend
+            Need to generate a new code?
           </Button>
         </div>
       </CardContent>
@@ -371,6 +388,7 @@ export const WhatsAppAuth: React.FC<WhatsAppAuthProps> = ({ onSuccess, onBack })
   return (
     <div className="flex items-center justify-center min-h-[600px] p-4">
       {step === 'phone' && renderPhoneStep()}
+      {step === 'whatsapp' && renderWhatsAppStep()}
       {step === 'verify' && renderVerifyStep()}
     </div>
   );

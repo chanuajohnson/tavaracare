@@ -7,6 +7,9 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-app-version, x-client-env',
 };
 
+// Your WhatsApp Business number
+const BUSINESS_WHATSAPP_NUMBER = '+18687560967';
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -47,7 +50,7 @@ serve(async (req) => {
       
       console.log(`Generated verification code: ${verificationCode} for ${phone_number}`);
 
-      // Test the format function first
+      // Format and validate phone number
       console.log('Testing format_whatsapp_number function...');
       const { data: formattedData, error: formatError } = await supabase
         .rpc('format_whatsapp_number', { 
@@ -134,15 +137,20 @@ serve(async (req) => {
 
       console.log('Verification code stored successfully in database');
 
-      // Log the message for WhatsApp sending
+      // Generate WhatsApp Web URL
+      const whatsappMessage = `Hi! I'm verifying my phone number ${formattedData} for Tavara Care. My verification code is: ${verificationCode}`;
+      const encodedMessage = encodeURIComponent(whatsappMessage);
+      const whatsappUrl = `https://wa.me/${BUSINESS_WHATSAPP_NUMBER.replace(/[^\d]/g, '')}?text=${encodedMessage}`;
+
+      // Log the message for tracking
       const { error: logError } = await supabase
         .from('whatsapp_message_log')
         .insert({
           phone_number: formattedData,
           message_type: 'verification',
-          content: `Your Tavara verification code is: ${verificationCode}. It expires in 10 minutes.`,
+          content: whatsappMessage,
           direction: 'outgoing',
-          delivery_status: 'pending'
+          status: 'pending_user_send'
         });
 
       if (logError) {
@@ -150,23 +158,17 @@ serve(async (req) => {
         // Don't fail the request for logging issues
       }
 
-      // In production, you would send this via WhatsApp Business API
-      // For now, we'll return success with the code for testing
-      console.log(`SUCCESS: Verification code ${verificationCode} ready for ${formattedData}`);
+      console.log(`SUCCESS: WhatsApp URL generated for ${formattedData}`);
 
       return new Response(
         JSON.stringify({ 
           success: true, 
-          message: `Verification code sent to ${formattedData}`,
+          message: `Click the link below to send your verification code via WhatsApp`,
           formatted_number: formattedData,
-          // Remove this in production:
-          debug_code: verificationCode,
-          debug_info: {
-            input_phone: phone_number,
-            formatted_phone: formattedData,
-            country_code: country_code,
-            expires_at: expiresAt.toISOString()
-          }
+          whatsapp_url: whatsappUrl,
+          verification_code: verificationCode, // For manual entry fallback
+          expires_at: expiresAt.toISOString(),
+          instructions: 'Click the WhatsApp link to send your verification code to our business number, then enter the code below when ready to verify.'
         }),
         { 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
