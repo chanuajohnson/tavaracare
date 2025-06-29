@@ -4273,6 +4273,10 @@ export type Database = {
         Args: { feature_id: string; user_id: string }
         Returns: boolean
       }
+      increment_verification_attempts: {
+        Args: { phone_input: string }
+        Returns: undefined
+      }
       reschedule_visit_booking: {
         Args: {
           booking_id: string

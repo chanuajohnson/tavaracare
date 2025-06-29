@@ -205,14 +205,13 @@ serve(async (req) => {
       console.log('Code verification result:', { authData: !!authData, authError });
 
       if (authError || !authData) {
-        // Increment failed attempts
-        await supabase
-          .from('whatsapp_auth')
-          .update({ 
-            verification_attempts: supabase.sql`verification_attempts + 1`,
-            last_verification_attempt: new Date().toISOString()
-          })
-          .eq('phone_number', phone_number);
+        // Increment failed attempts using the new RPC function
+        const { error: incrementError } = await supabase
+          .rpc('increment_verification_attempts', { phone_input: phone_number });
+
+        if (incrementError) {
+          console.error('Failed to increment verification attempts:', incrementError);
+        }
 
         console.log('Code verification failed for:', phone_number);
 
