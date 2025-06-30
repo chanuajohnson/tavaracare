@@ -1,3 +1,4 @@
+
 import { createContext, useContext, useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { Session, User } from '@supabase/supabase-js';
@@ -10,7 +11,7 @@ import { useAuthNavigation } from '@/hooks/auth/useAuthNavigation';
 import { useProfileCompletion } from '@/hooks/auth/useProfileCompletion';
 import { useAuthRedirection } from '@/hooks/auth/useAuthRedirection';
 import { useFeatureUpvote } from '@/hooks/auth/useFeatureUpvote';
-import { shouldSkipRedirectForCurrentFlow, AUTH_FLOW_FLAGS, hasAuthFlowFlag } from '@/utils/authFlowUtils';
+import { shouldSkipRedirectForCurrentFlow, AUTH_FLOW_FLAGS, hasAuthFlowFlag, clearAllAuthFlowFlags } from '@/utils/authFlowUtils';
 
 interface AuthContextType {
   session: Session | null;
@@ -73,6 +74,87 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const isPasswordResetConfirmRoute = location.pathname.includes('/auth/reset-password/confirm');
   const isPasswordRecoveryRef = useRef(false);
   const passwordResetCompleteRef = useRef(false);
+
+  // Enhanced role detection with database fallback
+  const detectUserRole = async (userId: string): Promise<UserRole | null> => {
+    try {
+      console.log('[AuthProvider] DETECTING role for user:', userId);
+      
+      // First check user metadata (fastest)
+      if (user?.user_metadata?.role) {
+        const metadataRole = user.user_metadata.role as UserRole;
+        console.log('[AuthProvider] Role found in metadata:', metadataRole);
+        return metadataRole;
+      }
+
+      // Fallback to database query
+      console.log('[AuthProvider] No metadata role, querying database...');
+      const { data: profile, error } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', userId)
+        .single();
+
+      if (error) {
+        console.error('[AuthProvider] Error fetching role from database:', error);
+        return null;
+      }
+
+      if (profile?.role) {
+        console.log('[AuthProvider] Role found in database:', profile.role);
+        return profile.role as UserRole;
+      }
+
+      console.warn('[AuthProvider] No role found in metadata or database for user:', userId);
+      return null;
+    } catch (error) {
+      console.error('[AuthProvider] Error in detectUserRole:', error);
+      return null;
+    }
+  };
+
+  // Clear problematic flags and force role detection
+  const forceRoleDetectionAndRedirect = async (currentUser: User) => {
+    try {
+      console.log('[AuthProvider] FORCING role detection for user:', currentUser.id);
+      
+      // Clear any problematic auth flow flags
+      clearAllAuthFlowFlags();
+      
+      // Clear any redirect locks
+      sessionStorage.removeItem('TAVARA_REDIRECT_LOCK');
+      sessionStorage.removeItem('TAVARA_REDIRECT_LOCK_TIME');
+      
+      // Force role detection
+      const detectedRole = await detectUserRole(currentUser.id);
+      
+      if (detectedRole) {
+        console.log('[AuthProvider] Role detected, setting and redirecting:', detectedRole);
+        setUserRole(detectedRole);
+        
+        // Force redirect based on role
+        const dashboardRoutes: Record<UserRole, string> = {
+          'family': '/dashboard/family',
+          'professional': '/dashboard/professional',
+          'community': '/dashboard/community',
+          'admin': '/dashboard/admin'
+        };
+        
+        const targetDashboard = dashboardRoutes[detectedRole];
+        
+        // Only redirect if user is on wrong dashboard
+        if (location.pathname !== targetDashboard) {
+          console.log('[AuthProvider] Redirecting from', location.pathname, 'to', targetDashboard);
+          toast.success(`Welcome to your ${detectedRole} dashboard!`);
+          safeNavigate(targetDashboard, { replace: true });
+        }
+      } else {
+        console.warn('[AuthProvider] Could not detect role, staying on current page');
+      }
+    } catch (error) {
+      console.error('[AuthProvider] Error in forceRoleDetectionAndRedirect:', error);
+    }
+  };
 
   // ENHANCED: Detect development environment for better handling
   const isDevelopment = window.location.hostname.includes('lovable.app') || 
@@ -172,6 +254,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       
       // ENHANCED: Clear redirect locks on sign out
       clearRedirectLock();
+      clearAllAuthFlowFlags();
       
       setSession(null);
       setUser(null);
@@ -196,11 +279,29 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setUser(null);
       setUserRole(null);
       clearRedirectLock();
+      clearAllAuthFlowFlags();
       setLoadingWithTimeout(false, 'sign-out-error');
       safeNavigate('/', { skipCheck: true });
       toast.success('You have been signed out successfully');
     }
   };
+
+  // CRITICAL: Force role detection when user is on wrong dashboard
+  useEffect(() => {
+    if (user && !isLoading && !isPasswordRecoveryRef.current) {
+      const isOnWrongDashboard = (
+        (location.pathname === '/dashboard/family' && userRole === 'professional') ||
+        (location.pathname === '/dashboard/professional' && userRole === 'family') ||
+        (location.pathname === '/dashboard/community' && userRole !== 'community') ||
+        (location.pathname === '/dashboard/admin' && userRole !== 'admin')
+      );
+
+      if (isOnWrongDashboard || !userRole) {
+        console.log('[AuthProvider] User on wrong dashboard or no role detected, forcing role detection');
+        forceRoleDetectionAndRedirect(user);
+      }
+    }
+  }, [user, userRole, location.pathname, isLoading]);
 
   // ENHANCED: Handle post-login redirection with improved development support
   useEffect(() => {
@@ -258,7 +359,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       console.log('[AuthProvider] Setting redirect lock and handling redirection');
       setRedirectLock();
       
-      handlePostLoginRedirection();
+      // Force role detection before redirection
+      if (user && !userRole) {
+        console.log('[AuthProvider] No role detected, forcing role detection before redirect');
+        forceRoleDetectionAndRedirect(user);
+      } else {
+        handlePostLoginRedirection();
+      }
+      
       initialRedirectionDoneRef.current = true;
       
       // ENHANCED: Shorter clear timeout for development
@@ -315,22 +423,28 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         console.log('[AuthProvider] Signed out - clearing recovery state');
         isPasswordRecoveryRef.current = false;
         passwordResetCompleteRef.current = false;
+        setUserRole(null);
+        setIsProfileComplete(false);
       }
 
-      // Only proceed with role/toast logic if NOT during special flows
+      // Handle role detection for signed in users
       if (!isPasswordRecoveryRef.current && (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED')) {
         if (newSession?.user) {
-          if (newSession.user.user_metadata?.role) {
-            setUserRole(newSession.user.user_metadata.role);
-          }
+          console.log('[AuthProvider] User signed in, detecting role...');
+          
+          // Force role detection with enhanced logic
+          setTimeout(async () => {
+            const detectedRole = await detectUserRole(newSession.user.id);
+            if (detectedRole) {
+              setUserRole(detectedRole);
+              console.log('[AuthProvider] Role set to:', detectedRole);
+            }
+          }, 100);
           
           if (event === 'SIGNED_IN' && !isPasswordResetConfirmRoute && !passwordResetCompleteRef.current) {
             toast.success('You have successfully logged in!');
           }
         }
-      } else if (event === 'SIGNED_OUT') {
-        setUserRole(null);
-        setIsProfileComplete(false);
       }
 
       // Complete loading only if not on password reset page and not in recovery flow
@@ -342,12 +456,19 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     // Only run initial session check if not on the password reset page and not during specific flows
     if (!isPasswordResetConfirmRoute && !shouldSkipRedirectForCurrentFlow()) {
-      supabase.auth.getSession().then(({ data: { session: initialSession } }) => {
+      supabase.auth.getSession().then(async ({ data: { session: initialSession } }) => {
         setSession(initialSession);
         setUser(initialSession?.user || null);
-        if (initialSession?.user?.user_metadata?.role) {
-          setUserRole(initialSession.user.user_metadata.role);
+        
+        if (initialSession?.user) {
+          // Enhanced role detection on initial load
+          const detectedRole = await detectUserRole(initialSession.user.id);
+          if (detectedRole) {
+            setUserRole(detectedRole);
+            console.log('[AuthProvider] Initial role set to:', detectedRole);
+          }
         }
+        
         setLoadingWithTimeout(false, 'initial-session-check');
         authInitializedRef.current = true;
       });
