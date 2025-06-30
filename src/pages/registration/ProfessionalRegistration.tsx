@@ -272,6 +272,16 @@ const ProfessionalRegistration = () => {
     });
   };
 
+  // Helper function to handle checkbox boolean state changes
+  const handleBooleanCheckboxChange = (
+    checked: boolean | "indeterminate",
+    setter: React.Dispatch<React.SetStateAction<boolean>>
+  ) => {
+    if (typeof checked === 'boolean') {
+      setter(checked);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -296,10 +306,10 @@ const ProfessionalRegistration = () => {
         address: address,
         role: 'professional' as const,
         updated_at: new Date().toISOString(),
-        years_experience: parseInt(yearsExperience) || 0,
+        years_of_experience: yearsExperience,
         certifications: certifications || [],
         specializations: specializations || [],
-        availability: availability.length > 0 ? availability.join(',') : '',
+        availability: availability || [], // Keep as array for database
         custom_schedule: customAvailability || '',
         hourly_rate: hourlyRate || '',
         willing_to_travel: willingToTravel,
@@ -770,7 +780,7 @@ const ProfessionalRegistration = () => {
                   <Checkbox 
                     id="willingToTravel" 
                     checked={willingToTravel}
-                    onCheckedChange={setWillingToTravel}
+                    onCheckedChange={(checked) => handleBooleanCheckboxChange(checked, setWillingToTravel)}
                   />
                   <Label htmlFor="willingToTravel" className="font-normal">
                     🚗 Willing to travel to client locations
@@ -781,7 +791,7 @@ const ProfessionalRegistration = () => {
                   <Checkbox 
                     id="hasTransportation" 
                     checked={hasTransportation}
-                    onCheckedChange={setHasTransportation}
+                    onCheckedChange={(checked) => handleBooleanCheckboxChange(checked, setHasTransportation)}
                   />
                   <Label htmlFor="hasTransportation" className="font-normal">
                     🚙 Have reliable transportation
@@ -792,7 +802,7 @@ const ProfessionalRegistration = () => {
                   <Checkbox 
                     id="backgroundCheck" 
                     checked={backgroundCheck}
-                    onCheckedChange={setBackgroundCheck}
+                    onCheckedChange={(checked) => handleBooleanCheckboxChange(checked, setBackgroundCheck)}
                   />
                   <Label htmlFor="backgroundCheck" className="font-normal">
                     ✅ Background check completed
