@@ -18,6 +18,7 @@ import { Calendar, Sun, Moon, Clock, Loader2 } from "lucide-react";
 import { getPrefillDataFromUrl, applyPrefillDataToForm } from '../../utils/chat/prefillReader';
 import { clearChatSessionData } from '../../utils/chat/chatSessionUtils';
 import { setAuthFlowFlag, AUTH_FLOW_FLAGS } from "@/utils/authFlowUtils";
+import { TRINIDAD_TOBAGO_LOCATIONS } from '../../constants/locations';
 
 // Import standardized shift options from chat registration flows
 import { STANDARDIZED_SHIFT_OPTIONS } from '../../data/chatRegistrationFlows';
@@ -533,13 +534,18 @@ const ProfessionalRegistration = () => {
 
               <div className="space-y-2">
                 <Label htmlFor="address">Location – Your service area *</Label>
-                <Input 
-                  id="address" 
-                  placeholder="Address/City where you provide services" 
-                  value={address} 
-                  onChange={(e) => setAddress(e.target.value)}
-                  required
-                />
+                <Select value={address} onValueChange={setAddress} required>
+                  <SelectTrigger id="address">
+                    <SelectValue placeholder="Select your service area" />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-96">
+                    {TRINIDAD_TOBAGO_LOCATIONS.map((location) => (
+                      <SelectItem key={location.value} value={location.value}>
+                        {location.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </CardContent>
           </Card>
