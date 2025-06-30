@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -97,9 +98,9 @@ export const LeadCaptureModal: React.FC<LeadCaptureModalProps> = ({
         .single();
 
       if (existingLead) {
-        const redirectPath = isProfessionalContext ? '/auth?tab=signup' : '/auth';
+        const redirectPath = '/auth';
         const contextMessage = isProfessionalContext 
-          ? "Taking you to sign up..."
+          ? "Taking you to sign in..."
           : "Taking you to choose your care plan...";
         
         toast({
@@ -156,7 +157,7 @@ export const LeadCaptureModal: React.FC<LeadCaptureModalProps> = ({
       // Auto-close and redirect after success
       setTimeout(() => {
         onOpenChange(false);
-        const redirectPath = isProfessionalContext ? '/auth?tab=signup' : '/subscription/features';
+        const redirectPath = isProfessionalContext ? '/auth' : '/subscription/features';
         navigate(redirectPath, { 
           state: { 
             email,
@@ -182,7 +183,7 @@ export const LeadCaptureModal: React.FC<LeadCaptureModalProps> = ({
 
   const handleSkipToSubscription = () => {
     onOpenChange(false);
-    const redirectPath = isProfessionalContext ? '/auth?tab=signup' : '/subscription/features';
+    const redirectPath = isProfessionalContext ? '/registration/professional' : '/subscription/features';
     navigate(redirectPath);
   };
 
@@ -218,19 +219,19 @@ export const LeadCaptureModal: React.FC<LeadCaptureModalProps> = ({
         title: "Start Your Professional Journey",
         description: "Join our network of qualified caregivers and connect with families in need.",
         submitButtonText: "Get Professional Access 💙",
-        skipButtonText: "Grab an in-person On boarding with Tavara Team",
+        skipButtonText: "Skip for now, Skip the registration for an in-person On boarding with Tavara Team",
         successTitle: "Ready to Join Our Professional Network! 💙",
-        successDescription: "Complete your sign in to start connecting with families."
+        successDescription: "Now complete your sign in to start connecting with families."
       };
     } else {
       return {
         icon: <Heart className="h-5 w-5 text-primary" />,
         title: "Start Building Your Care Village",
-        description: "Personalized caregiver match by signing up with Tavara",
-        submitButtonText: "Submit to be contacted about getting started with Tavara 💙",
-        skipButtonText: "Skip for now, get an idea of Tavara caregiver matching",
-        successTitle: "Ready to get started with Tavara! 💙",
-        successDescription: "Your family can get matched with qualified caregivers."
+        description: "Get your personalized caregiver match by choosing the right care plan for your family.",
+        submitButtonText: "Bypass it all to Find Caregiver Matches 💙",
+        skipButtonText: "Skip for now, see your caregiver match",
+        successTitle: "Ready to Choose Your Care Plan! 💙",
+        successDescription: "Now select the care plan that's right for your family to get matched with qualified caregivers."
       };
     }
   };
@@ -240,17 +241,17 @@ export const LeadCaptureModal: React.FC<LeadCaptureModalProps> = ({
   if (isSuccess) {
     return (
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="w-[95vw] max-w-md mx-2 sm:mx-4">
-          <div className="text-center py-4 sm:py-6 px-2">
-            <CheckCircle className="h-12 w-12 sm:h-16 sm:w-16 text-green-500 mx-auto mb-3 sm:mb-4" />
-            <h3 className="text-lg sm:text-xl font-semibold text-gray-900 mb-2 leading-tight">
+        <DialogContent className="sm:max-w-md">
+          <div className="text-center py-6">
+            <CheckCircle className="h-16 w-16 text-green-500 mx-auto mb-4" />
+            <h3 className="text-xl font-semibold text-gray-900 mb-2">
               {content.successTitle}
             </h3>
-            <p className="text-sm sm:text-base text-gray-600 mb-3 sm:mb-4 leading-relaxed">
+            <p className="text-gray-600 mb-4">
               {content.successDescription}
             </p>
-            <p className="text-xs sm:text-sm text-gray-500">
-              {isProfessionalContext ? "Taking you to sign in..." : "Taking you to begin with Tavara..."}
+            <p className="text-sm text-gray-500">
+              {isProfessionalContext ? "Taking you to sign in..." : "Taking you to care plan options..."}
             </p>
           </div>
         </DialogContent>
@@ -260,25 +261,25 @@ export const LeadCaptureModal: React.FC<LeadCaptureModalProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[95vw] max-w-md mx-2 sm:mx-4 max-h-[90vh] overflow-y-auto">
-        <DialogHeader className="pb-2 sm:pb-4">
-          <DialogTitle className="flex items-center justify-center gap-2 text-center text-lg sm:text-xl leading-tight px-2">
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2 text-center">
             {content.icon}
-            <span className="break-words">{content.title}</span>
+            {content.title}
           </DialogTitle>
         </DialogHeader>
         
-        <div className="space-y-3 sm:space-y-4 px-2 sm:px-0">
+        <div className="space-y-4">
           <div className="text-center">
-            <p className="text-xs sm:text-sm text-gray-600 mb-3 sm:mb-4 leading-relaxed px-1">
+            <p className="text-sm text-gray-600 mb-4">
               {content.description}
             </p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="whatsapp" className="flex items-center gap-2 text-sm font-medium">
-                <Phone className="h-3 w-3 sm:h-4 sm:w-4" />
+              <Label htmlFor="whatsapp" className="flex items-center gap-2">
+                <Phone className="h-4 w-4" />
                 WhatsApp Number
               </Label>
               <Input
@@ -288,19 +289,19 @@ export const LeadCaptureModal: React.FC<LeadCaptureModalProps> = ({
                 value={whatsappNumber}
                 onChange={(e) => setWhatsappNumber(e.target.value)}
                 required
-                className="w-full focus:ring-primary focus:border-primary text-sm sm:text-base h-10 sm:h-11"
+                className="focus:ring-primary focus:border-primary"
               />
-              <p className="text-xs text-gray-500 leading-tight px-1">
+              <p className="text-xs text-gray-500">
                 {isProfessionalContext 
-                  ? "Interested in professional opportunities and families"
-                  : "Interested in professional opportunities and families"
+                  ? "We'll send you professional opportunities and updates via WhatsApp"
+                  : "We'll send you care updates and caregiver matches via WhatsApp"
                 }
               </p>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="email" className="flex items-center gap-2 text-sm font-medium">
-                <Mail className="h-3 w-3 sm:h-4 sm:w-4" />
+              <Label htmlFor="email" className="flex items-center gap-2">
+                <Mail className="h-4 w-4" />
                 Email Address
               </Label>
               <Input
@@ -310,9 +311,9 @@ export const LeadCaptureModal: React.FC<LeadCaptureModalProps> = ({
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="w-full focus:ring-primary focus:border-primary text-sm sm:text-base h-10 sm:h-11"
+                className="focus:ring-primary focus:border-primary"
               />
-              <p className="text-xs text-gray-500 leading-tight px-1">
+              <p className="text-xs text-gray-500">
                 {isProfessionalContext 
                   ? "For professional opportunities, training, and important updates"
                   : "For care plans, scheduling, and important updates"
@@ -320,15 +321,13 @@ export const LeadCaptureModal: React.FC<LeadCaptureModalProps> = ({
               </p>
             </div>
 
-            <div className="flex flex-col gap-2 sm:gap-3 pt-2 sm:pt-3">
+            <div className="flex flex-col gap-2 pt-2">
               <Button
                 type="submit"
                 disabled={isSubmitting}
-                className="w-full bg-primary hover:bg-primary/90 text-xs sm:text-sm h-10 sm:h-11 px-3 leading-tight"
+                className="w-full bg-primary hover:bg-primary/90"
               >
-                <span className="break-words text-center">
-                  {isSubmitting ? 'Saving Info...' : content.submitButtonText}
-                </span>
+                {isSubmitting ? 'Saving Info...' : content.submitButtonText}
               </Button>
               
               {isProfessionalContext ? (
@@ -336,11 +335,9 @@ export const LeadCaptureModal: React.FC<LeadCaptureModalProps> = ({
                   type="button"
                   variant="ghost"
                   onClick={handleProfessionalSkip}
-                  className="w-full text-xs sm:text-sm text-gray-600 hover:text-gray-800 h-auto py-2 sm:py-3 px-2 leading-tight"
+                  className="w-full text-sm text-gray-600 hover:text-gray-800"
                 >
-                  <span className="break-words text-center">
-                    {content.skipButtonText}
-                  </span>
+                  {content.skipButtonText}
                 </Button>
               ) : (
                 onSkipToCaregiverMatching ? (
@@ -348,30 +345,26 @@ export const LeadCaptureModal: React.FC<LeadCaptureModalProps> = ({
                     type="button"
                     variant="ghost"
                     onClick={handleSkipToCaregiverMatching}
-                    className="w-full text-xs sm:text-sm text-gray-600 hover:text-gray-800 h-auto py-2 sm:py-3 px-2 leading-tight"
+                    className="w-full text-sm text-gray-600 hover:text-gray-800"
                   >
-                    <span className="break-words text-center">
-                      {content.skipButtonText}
-                    </span>
+                    {content.skipButtonText}
                   </Button>
                 ) : (
                   <Button
                     type="button"
                     variant="ghost"
                     onClick={handleSkipToSubscription}
-                    className="w-full text-xs sm:text-sm text-gray-600 hover:text-gray-800 h-auto py-2 sm:py-3 px-2 leading-tight"
+                    className="w-full text-sm text-gray-600 hover:text-gray-800"
                   >
-                    <span className="break-words text-center">
-                      Skip for now, view care plans
-                    </span>
+                    Skip for now, view care plans
                   </Button>
                 )
               )}
             </div>
           </form>
 
-          <div className="text-center pt-1 sm:pt-2">
-            <p className="text-xs text-gray-500 leading-tight px-2">
+          <div className="text-center pt-2">
+            <p className="text-xs text-gray-500">
               By continuing, you agree to receive {isProfessionalContext ? 'professional' : 'care-related'} communications from Tavara
             </p>
           </div>

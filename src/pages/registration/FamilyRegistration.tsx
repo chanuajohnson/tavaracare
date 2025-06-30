@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { v4 as uuidv4 } from 'uuid';
-import { useAuth } from '@/components/providers/AuthProvider';
 import { supabase, ensureStorageBuckets, ensureAuthContext } from '../../lib/supabase';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
 import { Input } from '../../components/ui/input';
@@ -9,29 +8,28 @@ import { Label } from '../../components/ui/label';
 import { Button } from '../../components/ui/button';
 import { Checkbox } from '../../components/ui/checkbox';
 import { Textarea } from '../../components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectLabel, SelectGroup } from '../../components/ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { Avatar, AvatarFallback, AvatarImage } from '../../components/ui/avatar';
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { PageViewTracker } from "@/components/tracking/PageViewTracker";
+import { useAuth } from "@/components/providers/AuthProvider";
 import { toast } from 'sonner';
-import { Calendar, Sun, Moon, Clock, Loader2 } from "lucide-react";
+import { Calendar, Sun, Moon, Clock } from "lucide-react";
 import { getPrefillDataFromUrl, applyPrefillDataToForm } from '../../utils/chat/prefillReader';
 import { clearChatSessionData } from '../../utils/chat/chatSessionUtils';
 import { setAuthFlowFlag, AUTH_FLOW_FLAGS } from "@/utils/authFlowUtils";
-import { TRINIDAD_AND_TOBAGO_LOCATIONS, getLocationsByRegion } from '../../constants/locations';
 
 const FamilyRegistration = () => {
   const { user, isLoading: authLoading } = useAuth();
   const [loading, setLoading] = useState(false);
-  const [roleCheckComplete, setRoleCheckComplete] = useState(false);
+  const [profileLoading, setProfileLoading] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [email, setEmail] = useState('');
-  const [location, setLocation] = useState(''); // Standardized location
-  const [address, setAddress] = useState(''); // Detailed address
+  const [address, setAddress] = useState('');
   
   const [careRecipientName, setCareRecipientName] = useState('');
   const [relationship, setRelationship] = useState('');
@@ -46,51 +44,10 @@ const FamilyRegistration = () => {
   const [preferredContactMethod, setPreferredContactMethod] = useState('');
   
   const [prefillApplied, setPrefillApplied] = useState(false);
+  const [profileDataLoaded, setProfileDataLoaded] = useState(false);
   const [shouldAutoSubmit, setShouldAutoSubmit] = useState(false);
-  const [userDataPopulated, setUserDataPopulated] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
   const navigate = useNavigate();
-
-  // Role-based redirect check - this runs first and is critical
-  useEffect(() => {
-    const checkUserRole = async () => {
-      if (!user?.id || roleCheckComplete) return;
-      
-      try {
-        console.log('[FamilyRegistration] Checking user role for:', user.id);
-        
-        // Get user role from profiles table
-        const { data: profile, error } = await supabase
-          .from('profiles')
-          .select('role')
-          .eq('id', user.id)
-          .single();
-        
-        if (error) {
-          console.error('[FamilyRegistration] Error fetching user role:', error);
-          // Check user metadata as fallback
-          const userRole = user.user_metadata?.role;
-          if (userRole === 'professional') {
-            console.log('[FamilyRegistration] Professional user detected from metadata, redirecting');
-            navigate('/registration/professional', { replace: true });
-            return;
-          }
-        } else if (profile?.role === 'professional') {
-          console.log('[FamilyRegistration] Professional user detected from profile, redirecting');
-          navigate('/registration/professional', { replace: true });
-          return;
-        }
-        
-        console.log('[FamilyRegistration] User role check complete, user is family/undefined');
-        setRoleCheckComplete(true);
-      } catch (error) {
-        console.error('[FamilyRegistration] Error in role check:', error);
-        setRoleCheckComplete(true);
-      }
-    };
-
-    checkUserRole();
-  }, [user, navigate, roleCheckComplete]);
 
   // Check for auto-redirect flag from chat
   useEffect(() => {
@@ -116,51 +73,136 @@ const FamilyRegistration = () => {
     };
   }, []);
 
-  // Pre-populate user data from auth context
-  useEffect(() => {
-    if (user && !userDataPopulated) {
-      console.log('Pre-populating user data:', user);
+  // Load existing profile data when user is available
+  const loadExistingProfile = async (userId: string) => {
+    if (profileDataLoaded) return; // Prevent duplicate loads
+    
+    setProfileLoading(true);
+    console.log('Loading existing profile data for user:', userId);
+    
+    try {
+      const { data: profile, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .eq('role', 'family')
+        .maybeSingle();
       
-      // Extract email
+      if (error) {
+        console.error('Error loading profile:', error);
+        return;
+      }
+      
+      if (profile) {
+        console.log('Found existing profile data:', profile);
+        
+        // Prefill basic contact info
+        if (profile.phone_number) setPhoneNumber(profile.phone_number);
+        if (profile.address) setAddress(profile.address);
+        if (profile.avatar_url) setAvatarUrl(profile.avatar_url);
+        
+        // Prefill care recipient info
+        if (profile.care_recipient_name) setCareRecipientName(profile.care_recipient_name);
+        if (profile.relationship) setRelationship(profile.relationship);
+        
+        // Prefill care types (handle as array)
+        if (profile.care_types && Array.isArray(profile.care_types)) {
+          setCareTypes(profile.care_types);
+        }
+        
+        // Prefill special needs (handle as array)
+        if (profile.special_needs && Array.isArray(profile.special_needs)) {
+          setSpecialNeeds(profile.special_needs);
+        }
+        
+        // Prefill care schedule (parse from comma-separated string or array)
+        if (profile.care_schedule) {
+          if (typeof profile.care_schedule === 'string') {
+            setCareSchedule(profile.care_schedule.split(',').filter(s => s.trim()));
+          } else if (Array.isArray(profile.care_schedule)) {
+            setCareSchedule(profile.care_schedule);
+          }
+        }
+        
+        // Prefill custom schedule
+        if (profile.custom_schedule) setCustomCareSchedule(profile.custom_schedule);
+        
+        // Prefill preferences and notes
+        if (profile.budget_preferences) setBudget(profile.budget_preferences);
+        if (profile.caregiver_type) setCaregiverType(profile.caregiver_type);
+        if (profile.caregiver_preferences) setCaregiverPreferences(profile.caregiver_preferences);
+        if (profile.additional_notes) setAdditionalNotes(profile.additional_notes);
+        if (profile.preferred_contact_method) setPreferredContactMethod(profile.preferred_contact_method);
+        
+        setProfileDataLoaded(true);
+        toast.success('Profile data loaded for editing');
+      } else {
+        console.log('No existing profile found - new registration');
+        setProfileDataLoaded(true);
+      }
+    } catch (err) {
+      console.error('Error loading profile:', err);
+    } finally {
+      setProfileLoading(false);
+    }
+  };
+
+  // Load existing profile data when user is available
+  useEffect(() => {
+    if (user && !profileDataLoaded && !profileLoading) {
+      loadExistingProfile(user.id);
+    }
+  }, [user, profileDataLoaded, profileLoading]);
+
+  // Pre-populate form fields when user auth data is available
+  useEffect(() => {
+    if (user && !prefillApplied) {
+      console.log('Pre-populating form with user data:', {
+        email: user.email,
+        metadata: user.user_metadata
+      });
+      
+      // Set email from authenticated user
       if (user.email) {
         setEmail(user.email);
       }
       
-      // Extract names from metadata
-      if (user.user_metadata) {
+      // Extract name information from user metadata (only if not already set from profile)
+      if (user.user_metadata && !firstName && !lastName) {
         const metadata = user.user_metadata;
         
-        // Try different possible field names for first name
+        // Try different possible metadata keys for first/last name
         const possibleFirstNames = ['first_name', 'firstName', 'given_name'];
         const possibleLastNames = ['last_name', 'lastName', 'family_name', 'surname'];
         
-        for (const field of possibleFirstNames) {
-          if (metadata[field]) {
-            setFirstName(metadata[field]);
+        for (const key of possibleFirstNames) {
+          if (metadata[key] && !firstName) {
+            setFirstName(metadata[key]);
+            console.log(`Set first name from ${key}:`, metadata[key]);
             break;
           }
         }
         
-        for (const field of possibleLastNames) {
-          if (metadata[field]) {
-            setLastName(metadata[field]);
+        for (const key of possibleLastNames) {
+          if (metadata[key] && !lastName) {
+            setLastName(metadata[key]);
+            console.log(`Set last name from ${key}:`, metadata[key]);
             break;
           }
         }
         
-        // If we have a full_name but no separate first/last, try to split it
-        if (!firstName && !lastName && metadata.full_name) {
+        // If full_name is available but first/last aren't, try to split it
+        if (metadata.full_name && !firstName && !lastName) {
           const nameParts = metadata.full_name.split(' ');
           if (nameParts.length >= 2) {
             setFirstName(nameParts[0]);
             setLastName(nameParts.slice(1).join(' '));
+            console.log('Split full name:', metadata.full_name);
           }
         }
       }
-      
-      setUserDataPopulated(true);
     }
-  }, [user, userDataPopulated, firstName, lastName]);
+  }, [user, prefillApplied, firstName, lastName]);
 
   const setFormValue = (field: string, value: any) => {
     console.log(`Setting form field ${field} to:`, value);
@@ -177,9 +219,6 @@ const FamilyRegistration = () => {
         break;
       case 'email':
         setEmail(value);
-        break;
-      case 'location':
-        setLocation(value);
         break;
       case 'address':
         setAddress(value);
@@ -218,9 +257,9 @@ const FamilyRegistration = () => {
     }
   };
 
-  // Apply prefill data when available
+  // Apply prefill data when available (for new registrations from chat)
   useEffect(() => {
-    if (!prefillApplied) {
+    if (!prefillApplied && user && profileDataLoaded) {
       console.log('Checking for prefill data...');
       
       const hasPrefill = applyPrefillDataToForm(
@@ -254,7 +293,7 @@ const FamilyRegistration = () => {
       
       setPrefillApplied(true);
     }
-  }, [prefillApplied, shouldAutoSubmit, user]);
+  }, [prefillApplied, shouldAutoSubmit, user, profileDataLoaded]);
 
   const handleCareScheduleChange = (value: string) => {
     setCareSchedule(prev => {
@@ -284,10 +323,24 @@ const FamilyRegistration = () => {
 
     try {
       if (!user?.id) {
-        throw new Error('User ID is missing. Please sign in again.');
+        toast.error('Authentication required. Please sign in again.');
+        navigate('/auth');
+        return;
       }
       
-      if (!firstName || !lastName || !phoneNumber || !location || !address || !careRecipientName || !relationship) {
+      const contextValid = await ensureAuthContext();
+      if (!contextValid) {
+        throw new Error('Authentication context could not be established');
+      }
+      
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError || !sessionData.session) {
+        toast.error('Your session has expired. Please sign in again.');
+        navigate('/auth');
+        return;
+      }
+      
+      if (!firstName || !lastName || !phoneNumber || !address || !careRecipientName || !relationship) {
         toast.error('Please fill in all required fields');
         setLoading(false);
         return;
@@ -329,8 +382,7 @@ const FamilyRegistration = () => {
         full_name: fullName,
         avatar_url: uploadedAvatarUrl,
         phone_number: phoneNumber,
-        location: location, // Standardized location
-        address: address, // Detailed address
+        address: address,
         role: 'family' as const,
         updated_at: new Date().toISOString(),
         care_recipient_name: careRecipientName,
@@ -338,7 +390,7 @@ const FamilyRegistration = () => {
         care_types: careTypes || [],
         special_needs: specialNeeds || [],
         care_schedule: careSchedule.length > 0 ? careSchedule.join(',') : '',
-        custom_schedule: customCareSchedule || '', // Fixed: changed from custom_care_schedule
+        custom_schedule: customCareSchedule || '',
         budget_preferences: budget || '',
         caregiver_type: caregiverType || '',
         caregiver_preferences: caregiverPreferences || '',
@@ -379,34 +431,42 @@ const FamilyRegistration = () => {
     }
   };
 
-  // Show loading state while auth is resolving OR role check is happening
-  if (authLoading || !roleCheckComplete) {
+  // Show loading state while auth is resolving
+  if (authLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
-          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
-          <p className="text-gray-600">Loading your account...</p>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-sm text-gray-600">Loading your account...</p>
         </div>
       </div>
     );
   }
 
-  // Show auth required state if no user
+  // Show auth required message if no user after loading
   if (!user) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center max-w-md mx-auto p-6">
-          <h1 className="text-2xl font-bold mb-4">Authentication Required</h1>
-          <p className="text-gray-600 mb-6">You must be logged in to complete your family registration.</p>
-          <Button onClick={() => navigate('/auth')}>
-            Sign In
-          </Button>
+          <h2 className="text-xl font-semibold text-gray-900 mb-2">Authentication Required</h2>
+          <p className="text-gray-600 mb-4">Please sign in to complete your family registration.</p>
+          <Button onClick={() => navigate('/auth')}>Sign In</Button>
         </div>
       </div>
     );
   }
 
-  const { trinidad, tobago } = getLocationsByRegion();
+  // Show loading state while profile data is being loaded
+  if (profileLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-sm text-gray-600">Loading your profile data...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -478,37 +538,10 @@ const FamilyRegistration = () => {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="location">Location *</Label>
-                <Select value={location} onValueChange={setLocation} required>
-                  <SelectTrigger id="location">
-                    <SelectValue placeholder="Select your location" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectGroup>
-                      <SelectLabel>Trinidad Locations</SelectLabel>
-                      {trinidad.map((loc) => (
-                        <SelectItem key={loc.value} value={loc.value}>
-                          {loc.label}
-                        </SelectItem>
-                      ))}
-                    </SelectGroup>
-                    <SelectGroup>
-                      <SelectLabel>Tobago Locations</SelectLabel>
-                      {tobago.map((loc) => (
-                        <SelectItem key={loc.value} value={loc.value}>
-                          {loc.label}
-                        </SelectItem>
-                      ))}
-                    </SelectGroup>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="address">Detailed Address *</Label>
+                <Label htmlFor="address">Address *</Label>
                 <Textarea 
                   id="address" 
-                  placeholder="Your full street address" 
+                  placeholder="Your full address" 
                   value={address} 
                   onChange={(e) => setAddress(e.target.value)}
                   required
@@ -973,14 +1006,7 @@ const FamilyRegistration = () => {
               Cancel
             </Button>
             <Button type="submit" disabled={loading}>
-              {loading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Submitting...
-                </>
-              ) : (
-                'Complete Registration'
-              )}
+              {loading ? 'Submitting...' : 'Complete Registration'}
             </Button>
           </div>
         </form>

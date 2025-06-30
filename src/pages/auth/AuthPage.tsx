@@ -1,242 +1,262 @@
 
-import React, { useState, useEffect } from 'react';
-import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
-import { LoginForm } from '@/components/auth/LoginForm';
-import { SignupForm } from '@/components/auth/SignupForm';
-import { WhatsAppAuth } from '@/components/auth/WhatsAppAuth';
-import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { MessageCircle, Mail, Phone } from 'lucide-react';
-import { useAuth } from '@/components/providers/AuthProvider';
-import { useWhatsAppAuth } from '@/hooks/useWhatsAppAuth';
-import { supabase } from '@/lib/supabase';
-import { toast } from 'sonner';
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { LoginForm } from "@/components/auth/LoginForm";
+import { SignupForm } from "@/components/auth/SignupForm";
+import { ResetPasswordForm } from "@/components/auth/ResetPasswordForm";
+import { supabase } from "@/lib/supabase";
+import { toast } from "sonner";
+import { useAuth } from "@/components/providers/AuthProvider";
+import { ensureUserProfile, updateUserProfile } from "@/lib/profile-utils";
+import { UserRole } from "@/types/database";
+import { clearAllAuthFlowFlags } from "@/utils/authFlowUtils";
 
-const AuthPage = () => {
-  const [authMethod, setAuthMethod] = useState<'email' | 'whatsapp'>('email');
-  const [searchParams] = useSearchParams();
-  const defaultTab = searchParams.get('tab') || 'login';
-  const [activeTab, setActiveTab] = useState(defaultTab);
+export default function AuthPage() {
   const [isLoading, setIsLoading] = useState(false);
-  
   const navigate = useNavigate();
-  const location = useLocation();
   const { user } = useAuth();
-  const { authenticateWithWhatsApp } = useWhatsAppAuth();
+  const [showResetForm, setShowResetForm] = useState(false);
+  const [resetEmail, setResetEmail] = useState("");
+  const [activeTab, setActiveTab] = useState("login");
 
-  // Redirect if already authenticated
   useEffect(() => {
     if (user) {
-      const returnPath = location.state?.returnPath || '/dashboard/family';
-      navigate(returnPath, { replace: true });
+      console.log("[AuthPage] User already logged in, AuthProvider will handle redirection");
+      return;
     }
-  }, [user, navigate, location.state]);
+
+   const urlParams = new URLSearchParams(window.location.search);
+const action = urlParams.get('action');
+const tab = urlParams.get('tab');
+
+if (action === 'verification-pending') {
+  setActiveTab("login");
+  toast.info("Please check your email and click the verification link to continue.");
+} else if (tab === 'signup') {
+  setActiveTab("signup");
+} else if (tab === 'login') {
+  setActiveTab("login");
+}
+
+  }, [user, navigate]);
 
   const handleLogin = async (email: string, password: string) => {
-    setIsLoading(true);
     try {
+      console.log("[AuthPage] Starting login process...");
+      setIsLoading(true);
+
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
-      if (error) throw error;
-
-      if (data.user) {
-        toast.success('Successfully logged in!');
-        const returnPath = location.state?.returnPath || '/dashboard/family';
-        navigate(returnPath, { replace: true });
+      if (error) {
+        console.error("[AuthPage] Login error:", error.message);
+        throw error;
       }
+
+      console.log("[AuthPage] Login successful:", data.session ? "Has session" : "No session");
+      
+      // Clear all auth flow flags to allow normal redirection after successful login
+      clearAllAuthFlowFlags();
+      
     } catch (error: any) {
-      console.error('Login error:', error);
-      throw error; // Re-throw to let LoginForm handle the error display
+      console.error("[AuthPage] Login error:", error);
+      toast.error(error.message || "Failed to log in");
+      throw error;
     } finally {
       setIsLoading(false);
+      console.log("[AuthPage] Login process completed");
     }
   };
 
-  const handleSignup = async (
-    email: string, 
-    password: string, 
-    firstName: string, 
-    lastName: string, 
-    role: string, 
-    adminCode?: string
-  ) => {
-    setIsLoading(true);
+  const handleSignup = async (email: string, password: string, firstName: string, lastName: string, role: string, adminCode?: string) => {
     try {
-      // Validate admin code if admin role
-      if (role === 'admin' && adminCode) {
-        const validAdminCode = 'TAVARA_ADMIN_2024'; // You should store this securely
-        if (adminCode !== validAdminCode) {
-          throw new Error('Invalid admin signup code');
-        }
-      }
+      console.log("[AuthPage] Starting signup process...");
+      setIsLoading(true);
+
+      const fullName = `${firstName} ${lastName}`;
+
+      // Set up proper redirect URL for email verification
+      const currentDomain = window.location.hostname;
+      const baseDomain = currentDomain.includes('preview--') 
+        ? currentDomain.replace('preview--', '') 
+        : currentDomain;
+      
+      const protocol = window.location.protocol;
+      const port = window.location.port ? `:${window.location.port}` : '';
+      const baseUrl = `${protocol}//${baseDomain}${port}`;
+      
+      console.log("[AuthPage] Using email redirect URL:", baseUrl);
 
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
+          emailRedirectTo: baseUrl, // This ensures users go through RedirectHandler after email verification
           data: {
+            role,
+            full_name: fullName,
             first_name: firstName,
             last_name: lastName,
-            full_name: `${firstName} ${lastName}`,
-            role: role,
+            // Include admin code in metadata for server-side validation
+            ...(role === "admin" && adminCode && { admin_code: adminCode })
           },
         },
       });
 
-      if (error) throw error;
-
-      if (data.user) {
-        toast.success('Account created! Please check your email for verification.');
+      if (error) {
+        console.error("[AuthPage] Signup error:", error.message);
+        throw error;
       }
+
+      console.log("[AuthPage] Signup successful:", data.user ? "User created" : "No user created");
+      
+      if (data.session && data.user) {
+        console.log("[AuthPage] Session created after signup - auto-confirm must be enabled");
+        
+        const userRole = role as UserRole;
+        await ensureUserProfile(data.user.id, userRole);
+        
+        await supabase.auth.updateUser({
+          data: { 
+            role: userRole,
+            full_name: fullName,
+            first_name: firstName,
+            last_name: lastName
+          }
+        });
+        
+        // Clear all auth flow flags to allow normal redirection after successful signup
+        clearAllAuthFlowFlags();
+        
+        const accountType = role === "admin" ? "administrator" : role;
+        toast.success(`${accountType} account created successfully! You'll be redirected to your dashboard shortly.`);
+        return true;
+      } else {
+        console.log("[AuthPage] No session after signup - email verification required");
+        localStorage.setItem('registeringAs', role);
+        localStorage.setItem('registrationRole', role);
+        
+        toast.success("Account created successfully! Please check your email and click the verification link to complete your registration.");
+        return true;
+      }
+
     } catch (error: any) {
-      console.error('Signup error:', error);
-      throw error; // Re-throw to let SignupForm handle the error display
+      console.error("[AuthPage] Signup error:", error);
+      
+      // Provide specific error message for admin code validation
+      if (error.message && error.message.includes('Invalid admin signup code')) {
+        toast.error("Invalid admin code provided. Please check your admin code and try again.");
+      } else {
+        toast.error(error.message || "Failed to create account");
+      }
+      throw error;
     } finally {
       setIsLoading(false);
+      console.log("[AuthPage] Signup process completed");
     }
   };
 
-  const handleForgotPassword = async (email: string) => {
+  const handleResetPassword = async (email: string) => {
     try {
+      console.log("[AuthPage] Starting password reset process...");
+      setIsLoading(true);
+
+      const currentDomain = window.location.hostname;
+      const baseDomain = currentDomain.includes('preview--') 
+        ? currentDomain.replace('preview--', '') 
+        : currentDomain;
+      
+      const protocol = window.location.protocol;
+      const port = window.location.port ? `:${window.location.port}` : '';
+      const baseUrl = `${protocol}//${baseDomain}${port}`;
+      
+      // Fix: Add the /auth prefix to the reset password redirect URL
+      const resetPath = "/auth/reset-password/confirm";
+      const resetPasswordUrl = `${baseUrl}${resetPath}`;
+      
+      console.log("[AuthPage] Using reset password redirect URL:", resetPasswordUrl);
+
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/auth/reset-password`,
+        redirectTo: resetPasswordUrl,
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error("[AuthPage] Password reset error:", error.message);
+        throw error;
+      }
 
-      toast.success('Password reset email sent! Please check your inbox.');
+      console.log("[AuthPage] Password reset email sent successfully");
+      toast.success("Password reset email sent. Please check your inbox.");
+      setShowResetForm(false);
+      
     } catch (error: any) {
-      console.error('Password reset error:', error);
-      toast.error(error.message || 'Failed to send password reset email');
+      console.error("[AuthPage] Password reset error:", error);
+      toast.error(error.message || "Failed to send password reset email");
+      throw error;
+    } finally {
+      setIsLoading(false);
+      console.log("[AuthPage] Password reset process completed");
     }
   };
 
-  const handleWhatsAppSuccess = async (authUrl: string) => {
-    try {
-      await authenticateWithWhatsApp(authUrl);
-    } catch (error) {
-      toast.error('Failed to complete WhatsApp authentication');
-    }
+  const handleForgotPassword = (email: string) => {
+    setResetEmail(email);
+    setShowResetForm(true);
   };
 
-  const renderAuthMethodSelector = () => (
-    <Card className="w-full max-w-md">
-      <CardHeader className="text-center">
-        <CardTitle>Welcome to Tavara</CardTitle>
-        <CardDescription>
-          Choose how you'd like to {activeTab === 'login' ? 'sign in' : 'sign up'}
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <Button
-          variant="outline"
-          className="w-full flex items-center gap-3 h-12"
-          onClick={() => setAuthMethod('whatsapp')}
-        >
-          <MessageCircle className="h-5 w-5 text-green-600" />
-          <div className="text-left">
-            <div className="font-medium">Continue with WhatsApp</div>
-            <div className="text-xs text-muted-foreground">Quick & secure verification</div>
-          </div>
-        </Button>
-
-        <div className="relative">
-          <div className="absolute inset-0 flex items-center">
-            <span className="w-full border-t" />
-          </div>
-          <div className="relative flex justify-center text-xs uppercase">
-            <span className="bg-background px-2 text-muted-foreground">or</span>
-          </div>
-        </div>
-
-        <Button
-          variant="outline"
-          className="w-full flex items-center gap-3 h-12"
-          onClick={() => setAuthMethod('email')}
-        >
-          <Mail className="h-5 w-5 text-blue-600" />
-          <div className="text-left">
-            <div className="font-medium">Continue with Email</div>
-            <div className="text-xs text-muted-foreground">Traditional email & password</div>
-          </div>
-        </Button>
-      </CardContent>
-    </Card>
-  );
-
-  if (authMethod === 'whatsapp') {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
-        <WhatsAppAuth 
-          onSuccess={handleWhatsAppSuccess}
-          onBack={() => setAuthMethod('email')}
-        />
-      </div>
-    );
+  if (user) {
+    return null;
   }
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4">
-      <div className="w-full max-w-md space-y-6">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold">Welcome to Tavara</h1>
-          <p className="text-muted-foreground mt-2">
-            Your trusted care coordination platform
-          </p>
-        </div>
-
-        {authMethod === 'email' ? (
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="login">Sign In</TabsTrigger>
-              <TabsTrigger value="signup">Sign Up</TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="login" className="space-y-4">
-              <LoginForm 
-                onSubmit={handleLogin}
-                isLoading={isLoading}
-                onForgotPassword={handleForgotPassword}
-              />
-              <div className="text-center">
-                <Button
-                  variant="link"
-                  onClick={() => setAuthMethod('whatsapp')}
-                  className="text-sm"
-                >
-                  <MessageCircle className="h-4 w-4 mr-2" />
-                  Sign in with WhatsApp instead
-                </Button>
-              </div>
-            </TabsContent>
-            
-            <TabsContent value="signup" className="space-y-4">
-              <SignupForm 
-                onSubmit={handleSignup}
-                isLoading={isLoading}
-              />
-              <div className="text-center">
-                <Button
-                  variant="link"
-                  onClick={() => setAuthMethod('whatsapp')}
-                  className="text-sm"
-                >
-                  <MessageCircle className="h-4 w-4 mr-2" />
-                  Sign up with WhatsApp instead
-                </Button>
-              </div>
-            </TabsContent>
-          </Tabs>
-        ) : (
-          renderAuthMethodSelector()
-        )}
-      </div>
+    <div className="container flex items-center justify-center py-20">
+      <Card className="w-full max-w-md">
+        <CardHeader>
+          <CardTitle className="text-2xl text-center">Welcome</CardTitle>
+          <CardDescription className="text-center">
+            {showResetForm ? 
+              "Reset your password" : 
+              "Sign in to your account or create a new one"}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {showResetForm ? (
+            <ResetPasswordForm 
+              onSubmit={handleResetPassword} 
+              onBack={() => setShowResetForm(false)}
+              email={resetEmail}
+              isLoading={isLoading}
+            />
+          ) : (
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+              <TabsList className="grid w-full grid-cols-2 mb-6">
+                <TabsTrigger value="login">Login</TabsTrigger>
+                <TabsTrigger value="signup">Sign Up</TabsTrigger>
+              </TabsList>
+              <TabsContent value="login">
+                <LoginForm 
+                  onSubmit={handleLogin} 
+                  isLoading={isLoading}
+                  onForgotPassword={handleForgotPassword} 
+                />
+              </TabsContent>
+              <TabsContent value="signup">
+                <SignupForm 
+                  onSubmit={handleSignup} 
+                  isLoading={isLoading} 
+                />
+              </TabsContent>
+            </Tabs>
+          )}
+        </CardContent>
+        <CardFooter className="flex justify-center text-sm text-muted-foreground">
+          Tavara &copy; {new Date().getFullYear()}
+        </CardFooter>
+      </Card>
     </div>
   );
-};
-
-export default AuthPage;
+}
