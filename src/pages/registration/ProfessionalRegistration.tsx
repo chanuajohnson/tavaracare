@@ -180,6 +180,7 @@ const ProfessionalRegistration = () => {
       case 'hourly_rate':
         setHourlyRate(value);
         break;
+      case 'additional_professional_notes':
       case 'additional_skills':
         setAdditionalSkills(value);
         break;
@@ -314,7 +315,7 @@ const ProfessionalRegistration = () => {
         hourly_rate: hourlyRate || '',
         willing_to_travel: willingToTravel,
         has_transportation: hasTransportation,
-        additional_skills: additionalSkills || '',
+        additional_professional_notes: additionalSkills || '', // FIXED: Use correct database column name
         background_check_status: backgroundCheck ? 'completed' : 'pending',
         references: references || '',
         preferred_contact_method: preferredContactMethod || '',
