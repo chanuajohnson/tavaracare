@@ -9,7 +9,7 @@ import { Label } from '../../components/ui/label';
 import { Button } from '../../components/ui/button';
 import { Checkbox } from '../../components/ui/checkbox';
 import { Textarea } from '../../components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectLabel } from '../../components/ui/select';
 import { Avatar, AvatarFallback, AvatarImage } from '../../components/ui/avatar';
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { PageViewTracker } from "@/components/tracking/PageViewTracker";
@@ -442,20 +442,18 @@ const FamilyRegistration = () => {
                     <SelectValue placeholder="Select your location" />
                   </SelectTrigger>
                   <SelectContent>
-                    <optgroup label="Trinidad">
-                      {trinidad.map((loc) => (
-                        <SelectItem key={loc.value} value={loc.value}>
-                          {loc.label}
-                        </SelectItem>
-                      ))}
-                    </optgroup>
-                    <optgroup label="Tobago">
-                      {tobago.map((loc) => (
-                        <SelectItem key={loc.value} value={loc.value}>
-                          {loc.label}
-                        </SelectItem>
-                      ))}
-                    </optgroup>
+                    <SelectLabel>Trinidad Locations</SelectLabel>
+                    {trinidad.map((loc) => (
+                      <SelectItem key={loc.value} value={loc.value}>
+                        {loc.label}
+                      </SelectItem>
+                    ))}
+                    <SelectLabel>Tobago Locations</SelectLabel>
+                    {tobago.map((loc) => (
+                      <SelectItem key={loc.value} value={loc.value}>
+                        {loc.label}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
