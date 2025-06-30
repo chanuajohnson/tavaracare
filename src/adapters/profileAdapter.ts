@@ -57,6 +57,7 @@ export function adaptProfileToDb(profile: Partial<Profile>): DbProfileInsert {
     full_name: profile.fullName || "",
     avatar_url: profile.avatarUrl,
     phone_number: profile.phoneNumber,
+    location: profile.location, // Standardized location field
     address: profile.address,
     
     // Family-specific fields
@@ -101,7 +102,6 @@ export function adaptProfileToDb(profile: Partial<Profile>): DbProfileInsert {
     has_training: profile.hasTraining,
     
     // Community-specific fields
-    location: profile.location,
     website: profile.website,
     community_roles: profile.communityRoles,
     contribution_interests: profile.contributionInterests,
@@ -129,6 +129,7 @@ export function adaptProfileFromDb(dbProfile: DbProfile): Profile {
     fullName: dbProfile.full_name,
     avatarUrl: dbProfile.avatar_url,
     phoneNumber: dbProfile.phone_number,
+    location: dbProfile.location, // Standardized location field
     address: dbProfile.address,
     
     // Family-specific fields
@@ -173,7 +174,6 @@ export function adaptProfileFromDb(dbProfile: DbProfile): Profile {
     hasTraining: dbProfile.has_training,
     
     // Community-specific fields
-    location: dbProfile.location,
     website: dbProfile.website,
     communityRoles: dbProfile.community_roles,
     contributionInterests: dbProfile.contribution_interests,

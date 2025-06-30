@@ -18,6 +18,7 @@ import { Calendar, Sun, Moon, Clock, Loader2 } from "lucide-react";
 import { getPrefillDataFromUrl, applyPrefillDataToForm } from '../../utils/chat/prefillReader';
 import { clearChatSessionData } from '../../utils/chat/chatSessionUtils';
 import { setAuthFlowFlag, AUTH_FLOW_FLAGS } from "@/utils/authFlowUtils";
+import { TRINIDAD_AND_TOBAGO_LOCATIONS, getLocationsByRegion } from '../../constants/locations';
 
 // Import standardized shift options from chat registration flows
 import { STANDARDIZED_SHIFT_OPTIONS } from '../../data/chatRegistrationFlows';
@@ -31,7 +32,8 @@ const ProfessionalRegistration = () => {
   const [lastName, setLastName] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [email, setEmail] = useState('');
-  const [address, setAddress] = useState('');
+  const [location, setLocation] = useState(''); // Standardized location
+  const [address, setAddress] = useState(''); // Detailed address/service area
   
   const [professionalType, setProfessionalType] = useState('');
   const [otherProfessionalType, setOtherProfessionalType] = useState('');
@@ -136,6 +138,9 @@ const ProfessionalRegistration = () => {
         setEmail(value);
         break;
       case 'location':
+        setLocation(value);
+        break;
+      case 'address':
         setAddress(value);
         break;
       case 'professional_type':
@@ -341,7 +346,7 @@ const ProfessionalRegistration = () => {
         throw new Error('User ID is missing. Please sign in again.');
       }
       
-      if (!firstName || !lastName || !phoneNumber || !address || !professionalType || !yearsOfExperience) {
+      if (!firstName || !lastName || !phoneNumber || !location || !address || !professionalType || !yearsOfExperience) {
         toast.error('Please fill in all required fields');
         setLoading(false);
         return;
@@ -385,7 +390,8 @@ const ProfessionalRegistration = () => {
         full_name: fullName,
         avatar_url: uploadedAvatarUrl,
         phone_number: phoneNumber,
-        address: address,
+        location: location, // Standardized location
+        address: address, // Detailed address/service area
         role: 'professional' as const,
         updated_at: new Date().toISOString(),
         professional_type: finalProfessionalType,
@@ -462,6 +468,8 @@ const ProfessionalRegistration = () => {
     );
   }
 
+  const { trinidad, tobago } = getLocationsByRegion();
+
   return (
     <div className="min-h-screen bg-background">
       <PageViewTracker 
@@ -532,10 +540,35 @@ const ProfessionalRegistration = () => {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="address">Location – Your service area *</Label>
+                <Label htmlFor="location">Primary Location *</Label>
+                <Select value={location} onValueChange={setLocation} required>
+                  <SelectTrigger id="location">
+                    <SelectValue placeholder="Select your primary location" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <optgroup label="Trinidad">
+                      {trinidad.map((loc) => (
+                        <SelectItem key={loc.value} value={loc.value}>
+                          {loc.label}
+                        </SelectItem>
+                      ))}
+                    </optgroup>
+                    <optgroup label="Tobago">
+                      {tobago.map((loc) => (
+                        <SelectItem key={loc.value} value={loc.value}>
+                          {loc.label}
+                        </SelectItem>
+                      ))}
+                    </optgroup>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="address">Service Area Details *</Label>
                 <Input 
                   id="address" 
-                  placeholder="Address/City where you provide services" 
+                  placeholder="Describe your service area or specific regions you cover" 
                   value={address} 
                   onChange={(e) => setAddress(e.target.value)}
                   required
