@@ -193,9 +193,7 @@ const ProfessionalRegistration = () => {
       case 'additional_notes':
         setAdditionalNotes(value);
         break;
-      case 'willing_to_travel':
-        setWillingToTravel(value);
-        break;
+      case 'provides_transportation':
       case 'has_transportation':
         setHasTransportation(value);
         break;
@@ -313,8 +311,7 @@ const ProfessionalRegistration = () => {
         availability: availability || [], // Keep as array for database
         custom_schedule: customAvailability || '',
         hourly_rate: hourlyRate || '',
-        willing_to_travel: willingToTravel,
-        has_transportation: hasTransportation,
+        provides_transportation: hasTransportation, // FIXED: Use correct database column name
         additional_professional_notes: additionalSkills || '', // FIXED: Use correct database column name
         background_check_status: backgroundCheck ? 'completed' : 'pending',
         references: references || '',
