@@ -3983,6 +3983,7 @@ export type Database = {
         Row: {
           content: string
           created_at: string
+          delivery_status: string | null
           direction: string
           id: string
           message_id: string | null
@@ -3990,12 +3991,14 @@ export type Database = {
           phone_number: string
           processed: boolean
           processed_at: string | null
+          status: string | null
           template_name: string | null
           user_id: string | null
         }
         Insert: {
           content: string
           created_at?: string
+          delivery_status?: string | null
           direction: string
           id?: string
           message_id?: string | null
@@ -4003,12 +4006,14 @@ export type Database = {
           phone_number: string
           processed?: boolean
           processed_at?: string | null
+          status?: string | null
           template_name?: string | null
           user_id?: string | null
         }
         Update: {
           content?: string
           created_at?: string
+          delivery_status?: string | null
           direction?: string
           id?: string
           message_id?: string | null
@@ -4016,6 +4021,7 @@ export type Database = {
           phone_number?: string
           processed?: boolean
           processed_at?: string | null
+          status?: string | null
           template_name?: string | null
           user_id?: string | null
         }
