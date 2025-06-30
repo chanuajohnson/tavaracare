@@ -23,6 +23,7 @@ import { TRINIDAD_AND_TOBAGO_LOCATIONS, getLocationsByRegion } from '../../const
 const FamilyRegistration = () => {
   const { user, isLoading: authLoading } = useAuth();
   const [loading, setLoading] = useState(false);
+  const [roleCheckComplete, setRoleCheckComplete] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [firstName, setFirstName] = useState('');
@@ -49,6 +50,47 @@ const FamilyRegistration = () => {
   const [userDataPopulated, setUserDataPopulated] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
   const navigate = useNavigate();
+
+  // Role-based redirect check - this runs first and is critical
+  useEffect(() => {
+    const checkUserRole = async () => {
+      if (!user?.id || roleCheckComplete) return;
+      
+      try {
+        console.log('[FamilyRegistration] Checking user role for:', user.id);
+        
+        // Get user role from profiles table
+        const { data: profile, error } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', user.id)
+          .single();
+        
+        if (error) {
+          console.error('[FamilyRegistration] Error fetching user role:', error);
+          // Check user metadata as fallback
+          const userRole = user.user_metadata?.role;
+          if (userRole === 'professional') {
+            console.log('[FamilyRegistration] Professional user detected from metadata, redirecting');
+            navigate('/registration/professional', { replace: true });
+            return;
+          }
+        } else if (profile?.role === 'professional') {
+          console.log('[FamilyRegistration] Professional user detected from profile, redirecting');
+          navigate('/registration/professional', { replace: true });
+          return;
+        }
+        
+        console.log('[FamilyRegistration] User role check complete, user is family/undefined');
+        setRoleCheckComplete(true);
+      } catch (error) {
+        console.error('[FamilyRegistration] Error in role check:', error);
+        setRoleCheckComplete(true);
+      }
+    };
+
+    checkUserRole();
+  }, [user, navigate, roleCheckComplete]);
 
   // Check for auto-redirect flag from chat
   useEffect(() => {
@@ -337,8 +379,8 @@ const FamilyRegistration = () => {
     }
   };
 
-  // Show loading state while auth is resolving
-  if (authLoading) {
+  // Show loading state while auth is resolving OR role check is happening
+  if (authLoading || !roleCheckComplete) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">

@@ -2,53 +2,46 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { v4 as uuidv4 } from 'uuid';
 import { useAuth } from '@/components/providers/AuthProvider';
-import { supabase, ensureStorageBuckets, ensureAuthContext } from '../../lib/supabase';
+import { supabase, ensureStorageBuckets } from '../../lib/supabase';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
 import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
 import { Button } from '../../components/ui/button';
 import { Checkbox } from '../../components/ui/checkbox';
 import { Textarea } from '../../components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
-import { Avatar, AvatarFallback, AvatarImage } from '../../components/ui/avatar';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectLabel, SelectGroup } from '../../components/ui/select';
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { PageViewTracker } from "@/components/tracking/PageViewTracker";
 import { toast } from 'sonner';
-import { Calendar, Sun, Moon, Clock, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { getPrefillDataFromUrl, applyPrefillDataToForm } from '../../utils/chat/prefillReader';
 import { clearChatSessionData } from '../../utils/chat/chatSessionUtils';
 import { setAuthFlowFlag, AUTH_FLOW_FLAGS } from "@/utils/authFlowUtils";
 import { TRINIDAD_AND_TOBAGO_LOCATIONS, getLocationsByRegion } from '../../constants/locations';
 
-// Import standardized shift options from chat registration flows
-import { STANDARDIZED_SHIFT_OPTIONS } from '../../data/chatRegistrationFlows';
-
 const ProfessionalRegistration = () => {
   const { user, isLoading: authLoading } = useAuth();
   const [loading, setLoading] = useState(false);
-  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
-  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [roleCheckComplete, setRoleCheckComplete] = useState(false);
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [email, setEmail] = useState('');
-  const [location, setLocation] = useState(''); // Standardized location
-  const [address, setAddress] = useState(''); // Detailed address/service area
-  
-  const [professionalType, setProfessionalType] = useState('');
-  const [otherProfessionalType, setOtherProfessionalType] = useState('');
-  const [yearsOfExperience, setYearsOfExperience] = useState('');
-  const [specialties, setSpecialties] = useState<string[]>([]);
+  const [location, setLocation] = useState('');
+  const [address, setAddress] = useState('');
+  const [yearsExperience, setYearsExperience] = useState('');
   const [certifications, setCertifications] = useState<string[]>([]);
-  const [careSchedule, setCareSchedule] = useState<string[]>([]); // Changed from availability to careSchedule
+  const [specializations, setSpecializations] = useState<string[]>([]);
+  const [availability, setAvailability] = useState<string[]>([]);
   const [customAvailability, setCustomAvailability] = useState('');
-  const [preferredLocations, setPreferredLocations] = useState('');
   const [hourlyRate, setHourlyRate] = useState('');
-  const [transportation, setTransportation] = useState('');
-  const [languages, setLanguages] = useState<string[]>([]);
-  const [emergencyContact, setEmergencyContact] = useState('');
-  const [backgroundCheck, setBackgroundCheck] = useState('');
-  const [additionalNotes, setAdditionalNotes] = useState(''); // Changed from additionalInfo to additionalNotes
+  const [willingToTravel, setWillingToTravel] = useState(false);
+  const [hasTransportation, setHasTransportation] = useState(false);
+  const [additionalSkills, setAdditionalSkills] = useState('');
+  const [backgroundCheck, setBackgroundCheck] = useState(false);
+  const [references, setReferences] = useState('');
+  const [preferredContactMethod, setPreferredContactMethod] = useState('');
+  const [additionalNotes, setAdditionalNotes] = useState('');
   
   const [prefillApplied, setPrefillApplied] = useState(false);
   const [shouldAutoSubmit, setShouldAutoSubmit] = useState(false);
@@ -56,7 +49,47 @@ const ProfessionalRegistration = () => {
   const formRef = useRef<HTMLFormElement>(null);
   const navigate = useNavigate();
 
-  // Check for auto-redirect flag from chat
+  // Role-based redirect check - this runs first and is critical
+  useEffect(() => {
+    const checkUserRole = async () => {
+      if (!user?.id || roleCheckComplete) return;
+      
+      try {
+        console.log('[ProfessionalRegistration] Checking user role for:', user.id);
+        
+        // Get user role from profiles table
+        const { data: profile, error } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', user.id)
+          .single();
+        
+        if (error) {
+          console.error('[ProfessionalRegistration] Error fetching user role:', error);
+          // Check user metadata as fallback
+          const userRole = user.user_metadata?.role;
+          if (userRole === 'family') {
+            console.log('[ProfessionalRegistration] Family user detected from metadata, redirecting');
+            navigate('/registration/family', { replace: true });
+            return;
+          }
+        } else if (profile?.role === 'family') {
+          console.log('[ProfessionalRegistration] Family user detected from profile, redirecting');
+          navigate('/registration/family', { replace: true });
+          return;
+        }
+        
+        console.log('[ProfessionalRegistration] User role check complete, user is professional/undefined');
+        setRoleCheckComplete(true);
+      } catch (error) {
+        console.error('[ProfessionalRegistration] Error in role check:', error);
+        setRoleCheckComplete(true);
+      }
+    };
+
+    checkUserRole();
+  }, [user, navigate, roleCheckComplete]);
+
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const sessionId = urlParams.get('session');
@@ -70,54 +103,52 @@ const ProfessionalRegistration = () => {
     }
   }, []);
 
-  // Add availability redirect detection
   useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const shouldScrollToAvailability = urlParams.get('scroll') === 'availability';
-    const isEditMode = urlParams.get('edit') === 'true';
-    
-    if (shouldScrollToAvailability && isEditMode) {
-      // Scroll to availability section after component mounts
-      setTimeout(() => {
-        const availabilitySection = document.getElementById('availability-section');
-        if (availabilitySection) {
-          availabilitySection.scrollIntoView({ 
-            behavior: 'smooth', 
-            block: 'start' 
-          });
-        }
-      }, 500); // Small delay to ensure DOM is ready
-    }
-  }, []);
-
-  useEffect(() => {
-    // Prevent auth redirection by setting specific flag for registration
     setAuthFlowFlag(AUTH_FLOW_FLAGS.SKIP_REGISTRATION_REDIRECT);
     
-    // Clean up on unmount
     return () => {
       sessionStorage.removeItem(AUTH_FLOW_FLAGS.SKIP_REGISTRATION_REDIRECT);
     };
   }, []);
 
-  // Pre-populate user data from auth context or database
   useEffect(() => {
     if (user && !userDataPopulated) {
       console.log('Pre-populating user data:', user);
       
-      // Check if this is edit mode from dashboard
-      const urlParams = new URLSearchParams(window.location.search);
-      const isEditMode = urlParams.get('edit') === 'true';
-      
-      if (isEditMode) {
-        // In edit mode, fetch complete profile data from database
-        fetchCompleteProfileData();
-      } else {
-        // Regular registration, use auth metadata
-        populateFromAuthMetadata();
+      if (user.email) {
+        setEmail(user.email);
       }
       
-      console.log('User data population initiated');
+      if (user.user_metadata) {
+        const metadata = user.user_metadata;
+        
+        const possibleFirstNames = ['first_name', 'firstName', 'given_name'];
+        const possibleLastNames = ['last_name', 'lastName', 'family_name', 'surname'];
+        
+        for (const field of possibleFirstNames) {
+          if (metadata[field]) {
+            setFirstName(metadata[field]);
+            break;
+          }
+        }
+        
+        for (const field of possibleLastNames) {
+          if (metadata[field]) {
+            setLastName(metadata[field]);
+            break;
+          }
+        }
+        
+        if (!firstName && !lastName && metadata.full_name) {
+          const nameParts = metadata.full_name.split(' ');
+          if (nameParts.length >= 2) {
+            setFirstName(nameParts[0]);
+            setLastName(nameParts.slice(1).join(' '));
+          }
+        }
+      }
+      
+      setUserDataPopulated(true);
     }
   }, [user, userDataPopulated, firstName, lastName]);
 
@@ -143,53 +174,45 @@ const ProfessionalRegistration = () => {
       case 'address':
         setAddress(value);
         break;
-      case 'professional_type':
-        setProfessionalType(value);
-        break;
-      case 'other_professional_type':
-        setOtherProfessionalType(value);
-        break;
-      case 'years_of_experience':
-        setYearsOfExperience(value);
+      case 'years_experience':
+        setYearsExperience(value);
         break;
       case 'hourly_rate':
         setHourlyRate(value);
         break;
-      case 'transportation':
-      case 'commute_mode': // Handle both field names for backward compatibility
-        setTransportation(value);
+      case 'additional_skills':
+        setAdditionalSkills(value);
         break;
-      case 'preferred_locations':
-        setPreferredLocations(value);
+      case 'references':
+        setReferences(value);
         break;
-      case 'emergency_contact':
-        setEmergencyContact(value);
+      case 'preferred_contact_method':
+        setPreferredContactMethod(value);
+        break;
+      case 'additional_notes':
+        setAdditionalNotes(value);
+        break;
+      case 'willing_to_travel':
+        setWillingToTravel(value);
+        break;
+      case 'has_transportation':
+        setHasTransportation(value);
         break;
       case 'background_check':
         setBackgroundCheck(value);
         break;
-      case 'additional_notes': // Changed from additional_info to additional_notes
-        setAdditionalNotes(value);
-        break;
-      case 'custom_schedule': // Added mapping for custom_schedule
-        setCustomAvailability(value);
-        break;
       default:
-        // Handle array fields - Updated to handle both specialties and care_services mapping
-        if ((field === 'specialties' || field === 'care_services') && Array.isArray(value)) {
-          setSpecialties(value);
-        } else if (field === 'certifications' && Array.isArray(value)) {
+        if (field === 'certifications' && Array.isArray(value)) {
           setCertifications(value);
-        } else if (field === 'care_schedule' && Array.isArray(value)) {
-          setCareSchedule(value);
-        } else if (field === 'languages' && Array.isArray(value)) {
-          setLanguages(value);
+        } else if (field === 'specializations' && Array.isArray(value)) {
+          setSpecializations(value);
+        } else if (field === 'availability' && Array.isArray(value)) {
+          setAvailability(value);
         }
         break;
     }
   };
 
-  // Apply prefill data when available
   useEffect(() => {
     if (!prefillApplied) {
       console.log('Checking for prefill data...');
@@ -227,104 +250,6 @@ const ProfessionalRegistration = () => {
     }
   }, [prefillApplied, shouldAutoSubmit, user]);
 
-  // Add these functions at line 216 (before handleCareScheduleChange)
-  const fetchCompleteProfileData = async () => {
-    try {
-      const { data: profile, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .single();
-      
-      if (error) throw error;
-      
-      if (profile) {
-        // Pre-fill all form fields with database data
-        setFirstName(profile.first_name || '');
-        setLastName(profile.last_name || '');
-        setPhoneNumber(profile.phone_number || '');
-        setAddress(profile.address || '');
-        setProfessionalType(profile.professional_type || '');
-        // Handle other professional type - if professional_type doesn't match predefined values, it's likely a custom "other" type
-        const predefinedTypes = ['agency', 'nurse', 'hha', 'cna', 'special_needs', 'therapist', 'nutritionist', 'medication', 'elderly', 'holistic', 'gapp'];
-        if (profile.professional_type && !predefinedTypes.includes(profile.professional_type)) {
-          setProfessionalType('other');
-          setOtherProfessionalType(profile.professional_type);
-        }
-        setYearsOfExperience(profile.years_of_experience || '');
-        setSpecialties(profile.care_services || []);
-        setCertifications(profile.certifications || []);
-        setCareSchedule(profile.care_schedule ? profile.care_schedule.split(',') : []);
-        setCustomAvailability(profile.custom_schedule || '');
-        setPreferredLocations(profile.preferred_work_locations || '');
-        setHourlyRate(profile.hourly_rate || '');
-        setTransportation(profile.commute_mode || '');
-        setLanguages(profile.languages || []);
-        setEmergencyContact(profile.emergency_contact || '');
-        setBackgroundCheck(profile.background_check ? 'yes' : '');
-        setAdditionalNotes(profile.additional_notes || '');
-        setAvatarUrl(profile.avatar_url || null);
-      }
-    } catch (error) {
-      console.error('Error fetching profile data:', error);
-      // Fall back to auth metadata if database fetch fails
-      populateFromAuthMetadata();
-    } finally {
-      setUserDataPopulated(true);
-    }
-  };
-
-  const populateFromAuthMetadata = () => {
-    // Extract email
-    if (user.email) {
-      setEmail(user.email);
-    }
-    
-    // Extract names from metadata
-    if (user.user_metadata) {
-      const metadata = user.user_metadata;
-      
-      // Try different possible field names for first name
-      const possibleFirstNames = ['first_name', 'firstName', 'given_name'];
-      const possibleLastNames = ['last_name', 'lastName', 'family_name', 'surname'];
-      
-      for (const field of possibleFirstNames) {
-        if (metadata[field]) {
-          setFirstName(metadata[field]);
-          break;
-        }
-      }
-      
-      for (const field of possibleLastNames) {
-        if (metadata[field]) {
-          setLastName(metadata[field]);
-          break;
-        }
-      }
-      
-      // If we have a full_name but no separate first/last, try to split it
-      if (!firstName && !lastName && metadata.full_name) {
-        const nameParts = metadata.full_name.split(' ');
-        if (nameParts.length >= 2) {
-          setFirstName(nameParts[0]);
-          setLastName(nameParts.slice(1).join(' '));
-        }
-      }
-    }
-    
-    setUserDataPopulated(true);
-  };
-
-  const handleCareScheduleChange = (value: string) => {
-    setCareSchedule(prev => {
-      if (prev.includes(value)) {
-        return prev.filter(item => item !== value);
-      } else {
-        return [...prev, value];
-      }
-    });
-  };
-
   const handleCheckboxArrayChange = (
     value: string, 
     currentArray: string[], 
@@ -337,6 +262,16 @@ const ProfessionalRegistration = () => {
     }
   };
 
+  const handleAvailabilityChange = (value: string) => {
+    setAvailability(prev => {
+      if (prev.includes(value)) {
+        return prev.filter(item => item !== value);
+      } else {
+        return [...prev, value];
+      }
+    });
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -346,67 +281,34 @@ const ProfessionalRegistration = () => {
         throw new Error('User ID is missing. Please sign in again.');
       }
       
-      if (!firstName || !lastName || !phoneNumber || !location || !address || !professionalType || !yearsOfExperience) {
+      if (!firstName || !lastName || !phoneNumber || !location || !address || !yearsExperience) {
         toast.error('Please fill in all required fields');
         setLoading(false);
         return;
       }
 
-      let uploadedAvatarUrl = avatarUrl;
-      
-      if (avatarFile) {
-        try {
-          await ensureStorageBuckets();
-          
-          const fileExt = avatarFile.name.split('.').pop();
-          const fileName = `${uuidv4()}.${fileExt}`;
-          const filePath = `${user.id}/${fileName}`;
-          
-          const { error: uploadError, data } = await supabase.storage
-            .from('avatars')
-            .upload(filePath, avatarFile, {
-              contentType: avatarFile.type,
-              upsert: true,
-            });
-
-          if (uploadError) {
-            console.error('Error uploading avatar:', uploadError);
-            toast.warning('Could not upload profile picture. Continuing with registration.');
-          } else if (data) {
-            const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(filePath);
-            uploadedAvatarUrl = urlData.publicUrl;
-          }
-        } catch (storageErr) {
-          console.error('Storage operation failed:', storageErr);
-          toast.warning('Storage system unavailable. Skipping profile picture.');
-        }
-      }
-
       const fullName = `${firstName} ${lastName}`.trim();
-      const finalProfessionalType = professionalType === 'other' ? otherProfessionalType : professionalType;
-      
       const updates = {
         id: user.id,
         full_name: fullName,
-        avatar_url: uploadedAvatarUrl,
         phone_number: phoneNumber,
-        location: location, // Standardized location
-        address: address, // Detailed address/service area
+        location: location,
+        address: address,
         role: 'professional' as const,
         updated_at: new Date().toISOString(),
-        professional_type: finalProfessionalType,
-        years_of_experience: yearsOfExperience,
-        care_services: specialties || [], // Updated: Map specialties to care_services column
+        years_experience: parseInt(yearsExperience) || 0,
         certifications: certifications || [],
-        care_schedule: careSchedule.join(',') || '', // Changed to match family registration format
-        custom_schedule: customAvailability || '', // Changed from custom_availability to custom_schedule
-        preferred_work_locations: preferredLocations || '',
+        specializations: specializations || [],
+        availability: availability.length > 0 ? availability.join(',') : '',
+        custom_schedule: customAvailability || '',
         hourly_rate: hourlyRate || '',
-        commute_mode: transportation || '', // Updated: Map transportation to commute_mode column
-        languages: languages || [],
-        emergency_contact: emergencyContact || '',
-        background_check: backgroundCheck ? backgroundCheck === 'yes' || backgroundCheck === 'true' : null,
-        additional_notes: additionalNotes || '' // Changed from additional_info to additional_notes
+        willing_to_travel: willingToTravel,
+        has_transportation: hasTransportation,
+        additional_skills: additionalSkills || '',
+        background_check_status: backgroundCheck ? 'completed' : 'pending',
+        references: references || '',
+        preferred_contact_method: preferredContactMethod || '',
+        additional_notes: additionalNotes || ''
       };
 
       console.log('Updating professional profile with data:', updates);
@@ -418,20 +320,18 @@ const ProfessionalRegistration = () => {
       
       if (error) throw error;
       
-      // Get session ID from URL to clear specific flags
       const urlParams = new URLSearchParams(window.location.search);
       const sessionId = urlParams.get('session');
       
-      // Clear chat session data including auto-redirect flag  
       clearChatSessionData(sessionId || undefined);
       
-      // Also clear the auto-redirect flag specifically
       if (sessionId) {
         localStorage.removeItem(`tavara_chat_auto_redirect_${sessionId}`);
         localStorage.removeItem(`tavara_chat_transition_${sessionId}`);
       }
 
-      toast.success('Registration Complete! Your professional caregiver registration has been updated.');
+      toast.success('Registration Complete! Your professional profile has been updated.');
+      
       navigate('/dashboard/professional');
     } catch (error: any) {
       console.error('Error updating profile:', error);
@@ -441,8 +341,8 @@ const ProfessionalRegistration = () => {
     }
   };
 
-  // Show loading state while auth is resolving
-  if (authLoading) {
+  // Show loading state while auth is resolving OR role check is happening
+  if (authLoading || !roleCheckComplete) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
@@ -453,7 +353,6 @@ const ProfessionalRegistration = () => {
     );
   }
 
-  // Show auth required state if no user
   if (!user) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -487,7 +386,7 @@ const ProfessionalRegistration = () => {
       <div className="container max-w-4xl py-10">
         <h1 className="text-3xl font-bold mb-6">Professional Caregiver Registration</h1>
         <p className="text-gray-500 mb-8">
-          Complete your professional profile to connect with families who need your caregiving skills.
+          Complete your professional profile to connect with families in need of care services.
         </p>
 
         <form ref={formRef} onSubmit={handleSubmit} className="space-y-6">
@@ -540,38 +439,41 @@ const ProfessionalRegistration = () => {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="location">Primary Location *</Label>
+                <Label htmlFor="location">Location *</Label>
                 <Select value={location} onValueChange={setLocation} required>
                   <SelectTrigger id="location">
-                    <SelectValue placeholder="Select your primary location" />
+                    <SelectValue placeholder="Select your location" />
                   </SelectTrigger>
                   <SelectContent>
-                    <optgroup label="Trinidad">
+                    <SelectGroup>
+                      <SelectLabel>Trinidad Locations</SelectLabel>
                       {trinidad.map((loc) => (
                         <SelectItem key={loc.value} value={loc.value}>
                           {loc.label}
                         </SelectItem>
                       ))}
-                    </optgroup>
-                    <optgroup label="Tobago">
+                    </SelectGroup>
+                    <SelectGroup>
+                      <SelectLabel>Tobago Locations</SelectLabel>
                       {tobago.map((loc) => (
                         <SelectItem key={loc.value} value={loc.value}>
                           {loc.label}
                         </SelectItem>
                       ))}
-                    </optgroup>
+                    </SelectGroup>
                   </SelectContent>
                 </Select>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="address">Service Area Details *</Label>
-                <Input 
+                <Label htmlFor="address">Detailed Address *</Label>
+                <Textarea 
                   id="address" 
-                  placeholder="Describe your service area or specific regions you cover" 
+                  placeholder="Your full street address" 
                   value={address} 
                   onChange={(e) => setAddress(e.target.value)}
                   required
+                  rows={3}
                 />
               </div>
             </CardContent>
@@ -579,86 +481,81 @@ const ProfessionalRegistration = () => {
 
           <Card className="mb-8">
             <CardHeader>
-              <CardTitle>Professional Experience & Specialties</CardTitle>
+              <CardTitle>Professional Experience</CardTitle>
               <CardDescription>
-                Share your caregiving experience and areas of expertise.
+                Share your experience and qualifications in caregiving.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="professional-type" className="mb-1">Professional Role <span className="text-red-500">*</span></Label>
-                <Select value={professionalType} onValueChange={setProfessionalType} required>
-                  <SelectTrigger id="professional-type">
-                    <SelectValue placeholder="Select your role" />
+                <Label htmlFor="yearsExperience">Years of Experience *</Label>
+                <Select value={yearsExperience} onValueChange={setYearsExperience} required>
+                  <SelectTrigger id="yearsExperience">
+                    <SelectValue placeholder="Select years of experience" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="agency">👨‍👦 Professional Agency</SelectItem>
-                    <SelectItem value="nurse">🏥 Licensed Nurse (LPN/RN/BSN)</SelectItem>
-                    <SelectItem value="hha">🏠 Home Health Aide (HHA)</SelectItem>
-                    <SelectItem value="cna">👩‍⚕️ Certified Nursing Assistant (CNA)</SelectItem>
-                    <SelectItem value="special_needs">🧠 Special Needs Caregiver</SelectItem>
-                    <SelectItem value="therapist">🏋️ Physical / Occupational Therapist</SelectItem>
-                    <SelectItem value="nutritionist">🍽️ Nutritional & Dietary Specialist</SelectItem>
-                    <SelectItem value="medication">💊 Medication Management Expert</SelectItem>
-                    <SelectItem value="elderly">👨‍🦽 Elderly & Mobility Support</SelectItem>
-                    <SelectItem value="holistic">🌱 Holistic Care & Wellness</SelectItem>
-                    <SelectItem value="gapp">👨‍👦 The Geriatric Adolescent Partnership Programme (GAPP)</SelectItem>
-                    <SelectItem value="other">⚕️ Other (Please specify)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              {professionalType === 'other' && (
-                <div className="space-y-2">
-                  <Label htmlFor="other-professional-type" className="mb-1">Specify Professional Role <span className="text-red-500">*</span></Label>
-                  <Input
-                    id="other-professional-type"
-                    placeholder="Specify your professional role"
-                    value={otherProfessionalType}
-                    onChange={(e) => setOtherProfessionalType(e.target.value)}
-                    required={professionalType === 'other'}
-                  />
-                </div>
-              )}
-
-              <div className="space-y-2">
-                <Label htmlFor="yearsOfExperience">Years of Experience *</Label>
-                <Select value={yearsOfExperience} onValueChange={setYearsOfExperience} required>
-                  <SelectTrigger id="yearsOfExperience">
-                    <SelectValue placeholder="Select your experience level" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Less than 1 year">Less than 1 year</SelectItem>
-                    <SelectItem value="1-2 years">1-2 years</SelectItem>
-                    <SelectItem value="3-5 years">3-5 years</SelectItem>
-                    <SelectItem value="6-10 years">6-10 years</SelectItem>
-                    <SelectItem value="More than 10 years">More than 10 years</SelectItem>
+                    <SelectItem value="0">Less than 1 year</SelectItem>
+                    <SelectItem value="1">1 year</SelectItem>
+                    <SelectItem value="2">2 years</SelectItem>
+                    <SelectItem value="3">3 years</SelectItem>
+                    <SelectItem value="4">4 years</SelectItem>
+                    <SelectItem value="5">5+ years</SelectItem>
+                    <SelectItem value="10">10+ years</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
               <div className="space-y-2">
-                <Label>Care Specialties – What type of care do you provide? (Select all that apply)</Label>
+                <Label>Certifications (Select all that apply)</Label>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                   {[
-                    { id: 'specialty-inhome', label: '🏠 In-Home Care', value: 'In-Home Care' },
-                    { id: 'specialty-medical', label: '🏥 Medical Support', value: 'Medical Support' },
-                    { id: 'specialty-therapeutic', label: '🌱 Therapeutic Support', value: 'Therapeutic Support' },
-                    { id: 'specialty-specialneeds', label: '🎓 Special Needs Support', value: 'Special Needs Support' },
-                    { id: 'specialty-cognitive', label: '🧠 Cognitive & Memory Care', value: 'Cognitive & Memory Care' },
-                    { id: 'specialty-mobility', label: '♿ Mobility Assistance', value: 'Mobility Assistance' },
-                    { id: 'specialty-medication', label: '💊 Medication Management', value: 'Medication Management' },
-                    { id: 'specialty-nutrition', label: '🍽️ Nutritional Assistance', value: 'Nutritional Assistance' },
-                    { id: 'specialty-household', label: '🧹 Household Assistance', value: 'Household Assistance' }
+                    { id: 'cna', label: '🏥 Certified Nursing Assistant (CNA)', value: 'cna' },
+                    { id: 'home_health_aide', label: '🏠 Home Health Aide', value: 'home_health_aide' },
+                    { id: 'cpr_certified', label: '❤️ CPR Certified', value: 'cpr_certified' },
+                    { id: 'first_aid', label: '🩹 First Aid Certified', value: 'first_aid' },
+                    { id: 'medication_admin', label: '💊 Medication Administration', value: 'medication_admin' },
+                    { id: 'dementia_care', label: '🧠 Dementia Care Specialist', value: 'dementia_care' },
+                    { id: 'physical_therapy', label: '🏃 Physical Therapy Assistant', value: 'physical_therapy' },
+                    { id: 'other_cert', label: '✏️ Other (please specify in notes)', value: 'other_cert' }
                   ].map((item) => (
                     <div key={item.id} className="flex items-start space-x-2">
                       <Checkbox 
                         id={item.id} 
-                        checked={specialties.includes(item.value)}
+                        checked={certifications.includes(item.value)}
                         onCheckedChange={() => handleCheckboxArrayChange(
                           item.value, 
-                          specialties, 
-                          setSpecialties
+                          certifications, 
+                          setCertifications
+                        )}
+                        className="mt-1"
+                      />
+                      <Label htmlFor={item.id} className="font-normal">{item.label}</Label>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Specializations (Select all that apply)</Label>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                  {[
+                    { id: 'elderly_care', label: '👴 Elderly Care', value: 'elderly_care' },
+                    { id: 'disability_care', label: '♿ Disability Care', value: 'disability_care' },
+                    { id: 'alzheimers', label: '🧠 Alzheimer\'s Care', value: 'alzheimers' },
+                    { id: 'post_surgery', label: '🏥 Post-Surgery Recovery', value: 'post_surgery' },
+                    { id: 'chronic_illness', label: '📋 Chronic Illness Management', value: 'chronic_illness' },
+                    { id: 'palliative_care', label: '🕊️ Palliative Care', value: 'palliative_care' },
+                    { id: 'companionship', label: '👥 Companionship Care', value: 'companionship' },
+                    { id: 'respite_care', label: '🔄 Respite Care', value: 'respite_care' }
+                  ].map((item) => (
+                    <div key={item.id} className="flex items-start space-x-2">
+                      <Checkbox 
+                        id={item.id} 
+                        checked={specializations.includes(item.value)}
+                        onCheckedChange={() => handleCheckboxArrayChange(
+                          item.value, 
+                          specializations, 
+                          setSpecializations
                         )}
                         className="mt-1"
                       />
@@ -670,242 +567,165 @@ const ProfessionalRegistration = () => {
             </CardContent>
           </Card>
 
-          <Card className="mb-8" id="availability-section">
+          <Card className="mb-8">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Calendar className="h-5 w-5" />
-                📅 Availability & Schedule Preferences
-              </CardTitle>
+              <CardTitle>📅 Availability & Scheduling</CardTitle>
               <CardDescription>
-                Let families know when you're available to provide care services.
+                When are you available to provide care services?
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="space-y-4">
-                <Label className="text-base font-medium">Your Availability – When are you available to work?</Label>
-                <p className="text-sm text-gray-500 mb-4">Select all time slots when you're available to provide care. This helps us match you with families who need care during these hours.</p>
-                
+                <Label className="text-base font-medium">Availability Schedule</Label>
                 <div className="space-y-5">
                   <div className="space-y-3">
                     <div className="flex items-center gap-2">
-                      <Calendar className="h-5 w-5 text-primary" />
-                      <span className="font-medium">Standard Weekday Shifts</span>
+                      <span className="font-medium">Weekday Shifts</span>
                     </div>
                     <div className="pl-7 space-y-3">
                       <div className="flex items-start space-x-2">
                         <Checkbox 
-                          id="mon_fri_8am_4pm" 
-                          checked={careSchedule.includes('mon_fri_8am_4pm')}
-                          onCheckedChange={() => handleCareScheduleChange('mon_fri_8am_4pm')}
+                          id="weekday-morning" 
+                          checked={availability.includes('weekday_morning')}
+                          onCheckedChange={() => handleAvailabilityChange('weekday_morning')}
                         />
-                        <Label htmlFor="mon_fri_8am_4pm" className="font-normal">
-                          ☀️ Monday – Friday, 8 AM – 4 PM (Standard daytime coverage)
+                        <Label htmlFor="weekday-morning" className="font-normal">
+                          ☀️ Weekday Morning (6 AM - 12 PM)
                         </Label>
                       </div>
                       <div className="flex items-start space-x-2">
                         <Checkbox 
-                          id="mon_fri_8am_6pm" 
-                          checked={careSchedule.includes('mon_fri_8am_6pm')}
-                          onCheckedChange={() => handleCareScheduleChange('mon_fri_8am_6pm')}
+                          id="weekday-afternoon" 
+                          checked={availability.includes('weekday_afternoon')}
+                          onCheckedChange={() => handleAvailabilityChange('weekday_afternoon')}
                         />
-                        <Label htmlFor="mon_fri_8am_6pm" className="font-normal">
-                          🕕 Monday – Friday, 8 AM – 6 PM (Extended daytime coverage)
+                        <Label htmlFor="weekday-afternoon" className="font-normal">
+                          🌞 Weekday Afternoon (12 PM - 6 PM)
                         </Label>
                       </div>
                       <div className="flex items-start space-x-2">
                         <Checkbox 
-                          id="mon_fri_6am_6pm" 
-                          checked={careSchedule.includes('mon_fri_6am_6pm')}
-                          onCheckedChange={() => handleCareScheduleChange('mon_fri_6am_6pm')}
+                          id="weekday-evening" 
+                          checked={availability.includes('weekday_evening')}
+                          onCheckedChange={() => handleAvailabilityChange('weekday_evening')}
                         />
-                        <Label htmlFor="mon_fri_6am_6pm" className="font-normal">
-                          🕕 Monday – Friday, 6 AM – 6 PM (Full daytime coverage)
+                        <Label htmlFor="weekday-evening" className="font-normal">
+                          🌆 Weekday Evening (6 PM - 12 AM)
+                        </Label>
+                      </div>
+                      <div className="flex items-start space-x-2">
+                        <Checkbox 
+                          id="weekday-overnight" 
+                          checked={availability.includes('weekday_overnight')}
+                          onCheckedChange={() => handleAvailabilityChange('weekday_overnight')}
+                        />
+                        <Label htmlFor="weekday-overnight" className="font-normal">
+                          🌙 Weekday Overnight (12 AM - 6 AM)
                         </Label>
                       </div>
                     </div>
                   </div>
-                  
+
                   <div className="space-y-3">
                     <div className="flex items-center gap-2">
-                      <Sun className="h-5 w-5 text-primary" />
                       <span className="font-medium">Weekend Shifts</span>
                     </div>
                     <div className="pl-7 space-y-3">
                       <div className="flex items-start space-x-2">
                         <Checkbox 
-                          id="sat_sun_6am_6pm" 
-                          checked={careSchedule.includes('sat_sun_6am_6pm')}
-                          onCheckedChange={() => handleCareScheduleChange('sat_sun_6am_6pm')}
+                          id="weekend-morning" 
+                          checked={availability.includes('weekend_morning')}
+                          onCheckedChange={() => handleAvailabilityChange('weekend_morning')}
                         />
-                        <Label htmlFor="sat_sun_6am_6pm" className="font-normal">
-                          🌞 Saturday – Sunday, 6 AM – 6 PM (Weekend daytime coverage)
+                        <Label htmlFor="weekend-morning" className="font-normal">
+                          ☀️ Weekend Morning (6 AM - 12 PM)
                         </Label>
                       </div>
                       <div className="flex items-start space-x-2">
                         <Checkbox 
-                          id="sat_sun_8am_4pm" 
-                          checked={careSchedule.includes('sat_sun_8am_4pm')}
-                          onCheckedChange={() => handleCareScheduleChange('sat_sun_8am_4pm')}
+                          id="weekend-afternoon" 
+                          checked={availability.includes('weekend_afternoon')}
+                          onCheckedChange={() => handleAvailabilityChange('weekend_afternoon')}
                         />
-                        <Label htmlFor="sat_sun_8am_4pm" className="font-normal">
-                          ☀️ Saturday – Sunday, 8 AM – 4 PM (Weekend standard hours)
+                        <Label htmlFor="weekend-afternoon" className="font-normal">
+                          🌞 Weekend Afternoon (12 PM - 6 PM)
+                        </Label>
+                      </div>
+                      <div className="flex items-start space-x-2">
+                        <Checkbox 
+                          id="weekend-evening" 
+                          checked={availability.includes('weekend_evening')}
+                          onCheckedChange={() => handleAvailabilityChange('weekend_evening')}
+                        />
+                        <Label htmlFor="weekend-evening" className="font-normal">
+                          🌆 Weekend Evening (6 PM - 12 AM)
+                        </Label>
+                      </div>
+                      <div className="flex items-start space-x-2">
+                        <Checkbox 
+                          id="weekend-overnight" 
+                          checked={availability.includes('weekend_overnight')}
+                          onCheckedChange={() => handleAvailabilityChange('weekend_overnight')}
+                        />
+                        <Label htmlFor="weekend-overnight" className="font-normal">
+                          🌙 Weekend Overnight (12 AM - 6 AM)
                         </Label>
                       </div>
                     </div>
                   </div>
-                  
+
                   <div className="space-y-3">
                     <div className="flex items-center gap-2">
-                      <Moon className="h-5 w-5 text-primary" />
-                      <span className="font-medium">Evening & Overnight Shifts</span>
+                      <span className="font-medium">Special Availability</span>
                     </div>
                     <div className="pl-7 space-y-3">
                       <div className="flex items-start space-x-2">
                         <Checkbox 
-                          id="weekday_evening_4pm_6am" 
-                          checked={careSchedule.includes('weekday_evening_4pm_6am')}
-                          onCheckedChange={() => handleCareScheduleChange('weekday_evening_4pm_6am')}
+                          id="on-call" 
+                          checked={availability.includes('on_call')}
+                          onCheckedChange={() => handleAvailabilityChange('on_call')}
                         />
-                        <Label htmlFor="weekday_evening_4pm_6am" className="font-normal">
-                          🌙 Weekday Evening Shift (4 PM – 6 AM)
+                        <Label htmlFor="on-call" className="font-normal">
+                          📞 On-Call / Emergency Availability
                         </Label>
                       </div>
                       <div className="flex items-start space-x-2">
                         <Checkbox 
-                          id="weekday_evening_4pm_8am" 
-                          checked={careSchedule.includes('weekday_evening_4pm_8am')}
-                          onCheckedChange={() => handleCareScheduleChange('weekday_evening_4pm_8am')}
+                          id="live-in" 
+                          checked={availability.includes('live_in')}
+                          onCheckedChange={() => handleAvailabilityChange('live_in')}
                         />
-                        <Label htmlFor="weekday_evening_4pm_8am" className="font-normal">
-                          🌙 Weekday Evening Shift (4 PM – 8 AM)
+                        <Label htmlFor="live-in" className="font-normal">
+                          🏡 Live-In Care Assignments
                         </Label>
                       </div>
-                      <div className="flex items-start space-x-2">
-                        <Checkbox 
-                          id="weekday_evening_5pm_5am" 
-                          checked={careSchedule.includes('weekday_evening_5pm_5am')}
-                          onCheckedChange={() => handleCareScheduleChange('weekday_evening_5pm_5am')}
-                        />
-                        <Label htmlFor="weekday_evening_5pm_5am" className="font-normal">
-                          🌙 Weekday Evening Shift (5 PM – 5 AM)
-                        </Label>
-                      </div>
-                      <div className="flex items-start space-x-2">
-                        <Checkbox 
-                          id="weekday_evening_5pm_8am" 
-                          checked={careSchedule.includes('weekday_evening_5pm_8am')}
-                          onCheckedChange={() => handleCareScheduleChange('weekday_evening_5pm_8am')}
-                        />
-                        <Label htmlFor="weekday_evening_5pm_8am" className="font-normal">
-                          🌙 Weekday Evening Shift (5 PM – 8 AM)
-                        </Label>
-                      </div>
-                      <div className="flex items-start space-x-2">
-                        <Checkbox 
-                          id="weekday_evening_6pm_6am" 
-                          checked={careSchedule.includes('weekday_evening_6pm_6am')}
-                          onCheckedChange={() => handleCareScheduleChange('weekday_evening_6pm_6am')}
-                        />
-                        <Label htmlFor="weekday_evening_6pm_6am" className="font-normal">
-                          🌙 Weekday Evening Shift (6 PM – 6 AM)
-                        </Label>
-                      </div>
-                      <div className="flex items-start space-x-2">
-                        <Checkbox 
-                          id="weekday_evening_6pm_8am" 
-                          checked={careSchedule.includes('weekday_evening_6pm_8am')}
-                          onCheckedChange={() => handleCareScheduleChange('weekday_evening_6pm_8am')}
-                        />
-                        <Label htmlFor="weekday_evening_6pm_8am" className="font-normal">
-                          🌙 Weekday Evening Shift (6 PM – 8 AM)
-                        </Label>
-                      </div>
-                      <div className="flex items-start space-x-2">
-                        <Checkbox 
-                          id="weekend_evening_4pm_6am" 
-                          checked={careSchedule.includes('weekend_evening_4pm_6am')}
-                          onCheckedChange={() => handleCareScheduleChange('weekend_evening_4pm_6am')}
-                        />
-                        <Label htmlFor="weekend_evening_4pm_6am" className="font-normal">
-                          🌆 Weekend Evening Shift (4 PM – 6 AM)
-                        </Label>
-                      </div>
-                      <div className="flex items-start space-x-2">
-                        <Checkbox 
-                          id="weekend_evening_6pm_6am" 
-                          checked={careSchedule.includes('weekend_evening_6pm_6am')}
-                          onCheckedChange={() => handleCareScheduleChange('weekend_evening_6pm_6am')}
-                        />
-                        <Label htmlFor="weekend_evening_6pm_6am" className="font-normal">
-                          🌆 Weekend Evening Shift (6 PM – 6 AM)
-                        </Label>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-2">
-                      <Clock className="h-5 w-5 text-primary" />
-                      <span className="font-medium">Extended Coverage Options</span>
-                    </div>
-                    <div className="pl-7 space-y-3">
                       <div className="flex items-start space-x-2">
                         <Checkbox 
                           id="flexible" 
-                          checked={careSchedule.includes('flexible')}
-                          onCheckedChange={() => handleCareScheduleChange('flexible')}
+                          checked={availability.includes('flexible')}
+                          onCheckedChange={() => handleAvailabilityChange('flexible')}
                         />
                         <Label htmlFor="flexible" className="font-normal">
-                          ⏳ Flexible / On-Demand Availability
+                          ⏰ Flexible / Negotiable Schedule
                         </Label>
                       </div>
                       <div className="flex items-start space-x-2">
                         <Checkbox 
-                          id="live_in_care" 
-                          checked={careSchedule.includes('live_in_care')}
-                          onCheckedChange={() => handleCareScheduleChange('live_in_care')}
+                          id="custom-availability" 
+                          checked={availability.includes('custom')}
+                          onCheckedChange={() => handleAvailabilityChange('custom')}
                         />
-                        <Label htmlFor="live_in_care" className="font-normal">
-                          🏡 Live-In Care (Full-time in-home support)
-                        </Label>
-                      </div>
-                      <div className="flex items-start space-x-2">
-                        <Checkbox 
-                          id="24_7_care" 
-                          checked={careSchedule.includes('24_7_care')}
-                          onCheckedChange={() => handleCareScheduleChange('24_7_care')}
-                        />
-                        <Label htmlFor="24_7_care" className="font-normal">
-                          🕐 24/7 Care Availability
-                        </Label>
-                      </div>
-                      <div className="flex items-start space-x-2">
-                        <Checkbox 
-                          id="around_clock_shifts" 
-                          checked={careSchedule.includes('around_clock_shifts')}
-                          onCheckedChange={() => handleCareScheduleChange('around_clock_shifts')}
-                        />
-                        <Label htmlFor="around_clock_shifts" className="font-normal">
-                          🌅 Around-the-Clock Shifts (Multiple caregivers rotating)
-                        </Label>
-                      </div>
-                      <div className="flex items-start space-x-2">
-                        <Checkbox 
-                          id="other" 
-                          checked={careSchedule.includes('other')}
-                          onCheckedChange={() => handleCareScheduleChange('other')}
-                        />
-                        <Label htmlFor="other" className="font-normal">
-                          ✏️ Other (Custom shift — specify your hours)
+                        <Label htmlFor="custom-availability" className="font-normal">
+                          ✏️ Other (Custom availability)
                         </Label>
                       </div>
                       
-                      {careSchedule.includes('other') && (
+                      {availability.includes('custom') && (
                         <div className="pt-2 pl-6">
                           <Label htmlFor="customAvailability" className="text-sm mb-1 block">Please specify your custom availability:</Label>
                           <Textarea
                             id="customAvailability"
-                            placeholder="Describe your specific availability"
+                            placeholder="Describe your specific availability schedule"
                             value={customAvailability}
                             onChange={(e) => setCustomAvailability(e.target.value)}
                             rows={2}
@@ -917,30 +737,67 @@ const ProfessionalRegistration = () => {
                   </div>
                 </div>
               </div>
+            </CardContent>
+          </Card>
 
+          <Card className="mb-8">
+            <CardHeader>
+              <CardTitle>Rate & Logistics</CardTitle>
+              <CardDescription>
+                Tell us about your rates and logistics preferences.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="hourlyRate">Preferred Hourly Rate</Label>
-                <Input 
-                  id="hourlyRate" 
-                  placeholder="e.g., $25/hour or Negotiable" 
-                  value={hourlyRate} 
-                  onChange={(e) => setHourlyRate(e.target.value)}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="transportation">Transportation</Label>
-                <Select value={transportation} onValueChange={setTransportation}>
-                  <SelectTrigger id="transportation">
-                    <SelectValue placeholder="Do you have reliable transportation?" />
+                <Select value={hourlyRate} onValueChange={setHourlyRate}>
+                  <SelectTrigger id="hourlyRate">
+                    <SelectValue placeholder="Select your preferred hourly rate" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Own vehicle">Own vehicle</SelectItem>
-                    <SelectItem value="Public transportation">Public transportation</SelectItem>
-                    <SelectItem value="Both">Both</SelectItem>
-                    <SelectItem value="Need assistance">Need assistance with transportation</SelectItem>
+                    <SelectItem value="15_20">$15-$20/hour</SelectItem>
+                    <SelectItem value="20_25">$20-$25/hour</SelectItem>
+                    <SelectItem value="25_30">$25-$30/hour</SelectItem>
+                    <SelectItem value="30_35">$30-$35/hour</SelectItem>
+                    <SelectItem value="35_plus">$35+/hour</SelectItem>
+                    <SelectItem value="negotiable">Negotiable</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+
+              <div className="space-y-4">
+                <div className="flex items-center space-x-2">
+                  <Checkbox 
+                    id="willingToTravel" 
+                    checked={willingToTravel}
+                    onCheckedChange={setWillingToTravel}
+                  />
+                  <Label htmlFor="willingToTravel" className="font-normal">
+                    🚗 Willing to travel to client locations
+                  </Label>
+                </div>
+
+                <div className="flex items-center space-x-2">
+                  <Checkbox 
+                    id="hasTransportation" 
+                    checked={hasTransportation}
+                    onCheckedChange={setHasTransportation}
+                  />
+                  <Label htmlFor="hasTransportation" className="font-normal">
+                    🚙 Have reliable transportation
+                  </Label>
+                </div>
+
+                <div className="flex items-center space-x-2">
+                  <Checkbox 
+                    id="backgroundCheck" 
+                    checked={backgroundCheck}
+                    onCheckedChange={setBackgroundCheck}
+                  />
+                  <Label htmlFor="backgroundCheck" className="font-normal">
+                    ✅ Background check completed
+                  </Label>
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -949,15 +806,52 @@ const ProfessionalRegistration = () => {
             <CardHeader>
               <CardTitle>Additional Information</CardTitle>
               <CardDescription>
-                Any additional notes about your experience or preferences.
+                Share any additional skills or information that would help families.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
+                <Label htmlFor="additionalSkills">Additional Skills</Label>
+                <Textarea 
+                  id="additionalSkills" 
+                  placeholder="Languages spoken, special training, hobbies, etc." 
+                  value={additionalSkills} 
+                  onChange={(e) => setAdditionalSkills(e.target.value)}
+                  rows={3}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="references">References</Label>
+                <Textarea 
+                  id="references" 
+                  placeholder="Previous employers, supervisors, or clients who can provide references" 
+                  value={references} 
+                  onChange={(e) => setReferences(e.target.value)}
+                  rows={3}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="preferredContactMethod">Preferred Contact Method</Label>
+                <Select value={preferredContactMethod} onValueChange={setPreferredContactMethod}>
+                  <SelectTrigger id="preferredContactMethod">
+                    <SelectValue placeholder="Select preferred contact method" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="phone">📞 Phone</SelectItem>
+                    <SelectItem value="email">📧 Email</SelectItem>
+                    <SelectItem value="text">💬 Text Message</SelectItem>
+                    <SelectItem value="whatsapp">📱 WhatsApp</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
                 <Label htmlFor="additionalNotes">Additional Notes</Label>
                 <Textarea 
                   id="additionalNotes" 
-                  placeholder="Any additional information about your experience, preferences, or availability" 
+                  placeholder="Any additional information you'd like families to know" 
                   value={additionalNotes} 
                   onChange={(e) => setAdditionalNotes(e.target.value)}
                   rows={3}
