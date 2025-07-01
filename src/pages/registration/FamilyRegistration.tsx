@@ -46,12 +46,17 @@ const FamilyRegistration = () => {
   const [prefillApplied, setPrefillApplied] = useState(false);
   const [shouldAutoSubmit, setShouldAutoSubmit] = useState(false);
   const [userDataPopulated, setUserDataPopulated] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
   const navigate = useNavigate();
 
+  // Check for edit mode
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
+    const editMode = urlParams.get('edit') === 'true';
     const sessionId = urlParams.get('session');
+    
+    setIsEditMode(editMode);
     
     if (sessionId) {
       const shouldAutoRedirect = localStorage.getItem(`tavara_chat_auto_redirect_${sessionId}`);
@@ -70,46 +75,126 @@ const FamilyRegistration = () => {
     };
   }, []);
 
+  // Fetch complete profile data for edit mode
+  const fetchCompleteProfileData = async () => {
+    if (!user?.id) return;
+
+    try {
+      console.log('Fetching complete profile data for edit mode...');
+      
+      const { data: profile, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+
+      if (error) {
+        console.error('Error fetching profile:', error);
+        toast.error('Failed to load profile data');
+        return;
+      }
+
+      if (profile) {
+        console.log('Profile data loaded:', profile);
+        
+        // Populate basic info
+        if (profile.full_name) {
+          const nameParts = profile.full_name.split(' ');
+          setFirstName(nameParts[0] || '');
+          setLastName(nameParts.slice(1).join(' ') || '');
+        }
+        
+        setPhoneNumber(profile.phone_number || '');
+        setAddress(profile.address || '');
+        
+        // Populate care recipient info
+        setCareRecipientName(profile.care_recipient_name || '');
+        setRelationship(profile.relationship || '');
+        
+        // Populate care needs
+        if (profile.care_types && Array.isArray(profile.care_types)) {
+          setCareTypes(profile.care_types);
+        }
+        if (profile.special_needs && Array.isArray(profile.special_needs)) {
+          setSpecialNeeds(profile.special_needs);
+        }
+        
+        // Populate schedule
+        if (profile.care_schedule) {
+          const scheduleArray = typeof profile.care_schedule === 'string' 
+            ? profile.care_schedule.split(',').map(s => s.trim())
+            : profile.care_schedule;
+          setCareSchedule(scheduleArray);
+        }
+        setCustomCareSchedule(profile.custom_care_schedule || '');
+        
+        // Populate preferences
+        setBudget(profile.budget_preferences || '');
+        setCaregiverType(profile.caregiver_type || '');
+        setCaregiverPreferences(profile.caregiver_preferences || '');
+        setAdditionalNotes(profile.additional_notes || '');
+        setPreferredContactMethod(profile.preferred_contact_method || '');
+        
+        // Set avatar
+        setAvatarUrl(profile.avatar_url || null);
+        
+        console.log('Profile data successfully populated in form');
+      }
+    } catch (error) {
+      console.error('Error in fetchCompleteProfileData:', error);
+      toast.error('Failed to load profile data');
+    }
+  };
+
+  // User data population - handles both edit mode and new registration
   useEffect(() => {
     if (user && !userDataPopulated) {
-      console.log('Pre-populating user data:', user);
+      console.log('User data population triggered, isEditMode:', isEditMode);
       
-      if (user.email) {
-        setEmail(user.email);
-      }
-      
-      if (user.user_metadata) {
-        const metadata = user.user_metadata;
+      if (isEditMode) {
+        // Edit mode: fetch complete profile data
+        fetchCompleteProfileData();
+      } else {
+        // New registration: use auth metadata
+        console.log('Pre-populating user data from auth metadata:', user);
         
-        const possibleFirstNames = ['first_name', 'firstName', 'given_name'];
-        const possibleLastNames = ['last_name', 'lastName', 'family_name', 'surname'];
-        
-        for (const field of possibleFirstNames) {
-          if (metadata[field]) {
-            setFirstName(metadata[field]);
-            break;
-          }
+        if (user.email) {
+          setEmail(user.email);
         }
         
-        for (const field of possibleLastNames) {
-          if (metadata[field]) {
-            setLastName(metadata[field]);
-            break;
+        if (user.user_metadata) {
+          const metadata = user.user_metadata;
+          
+          const possibleFirstNames = ['first_name', 'firstName', 'given_name'];
+          const possibleLastNames = ['last_name', 'lastName', 'family_name', 'surname'];
+          
+          for (const field of possibleFirstNames) {
+            if (metadata[field]) {
+              setFirstName(metadata[field]);
+              break;
+            }
           }
-        }
-        
-        if (!firstName && !lastName && metadata.full_name) {
-          const nameParts = metadata.full_name.split(' ');
-          if (nameParts.length >= 2) {
-            setFirstName(nameParts[0]);
-            setLastName(nameParts.slice(1).join(' '));
+          
+          for (const field of possibleLastNames) {
+            if (metadata[field]) {
+              setLastName(metadata[field]);
+              break;
+            }
+          }
+          
+          if (!firstName && !lastName && metadata.full_name) {
+            const nameParts = metadata.full_name.split(' ');
+            if (nameParts.length >= 2) {
+              setFirstName(nameParts[0]);
+              setLastName(nameParts.slice(1).join(' '));
+            }
           }
         }
       }
       
       setUserDataPopulated(true);
     }
-  }, [user, userDataPopulated, firstName, lastName]);
+  }, [user, userDataPopulated, isEditMode, firstName, lastName]);
 
   const setFormValue = (field: string, value: any) => {
     console.log(`Setting form field ${field} to:`, value);
@@ -163,8 +248,9 @@ const FamilyRegistration = () => {
     }
   };
 
+  // Apply prefill data when available (only for new registrations, not edit mode)
   useEffect(() => {
-    if (!prefillApplied) {
+    if (!prefillApplied && !isEditMode) {
       console.log('Checking for prefill data...');
       
       const hasPrefill = applyPrefillDataToForm(
@@ -198,7 +284,7 @@ const FamilyRegistration = () => {
       
       setPrefillApplied(true);
     }
-  }, [prefillApplied, shouldAutoSubmit, user]);
+  }, [prefillApplied, shouldAutoSubmit, user, isEditMode]);
 
   const handleCareScheduleChange = (value: string) => {
     setCareSchedule(prev => {
@@ -320,7 +406,7 @@ const FamilyRegistration = () => {
         localStorage.removeItem(`tavara_chat_transition_${sessionId}`);
       }
 
-      toast.success('Registration Complete! Your family profile has been updated.');
+      toast.success(isEditMode ? 'Profile Updated Successfully!' : 'Registration Complete! Your family profile has been updated.');
       
       navigate('/dashboard/family');
     } catch (error: any) {
@@ -366,14 +452,19 @@ const FamilyRegistration = () => {
       <DashboardHeader 
         breadcrumbItems={[
           { label: "Family Dashboard", path: "/dashboard/family" },
-          { label: "Family Registration", path: "/registration/family" }
+          { label: isEditMode ? "Edit Profile" : "Family Registration", path: "/registration/family" }
         ]} 
       />
       
       <div className="container max-w-4xl py-10">
-        <h1 className="text-3xl font-bold mb-6">Family Care Registration</h1>
+        <h1 className="text-3xl font-bold mb-6">
+          {isEditMode ? 'Edit Family Profile' : 'Family Care Registration'}
+        </h1>
         <p className="text-gray-500 mb-8">
-          Complete your family profile to find the right caregiver for your loved one.
+          {isEditMode 
+            ? 'Update your family profile information and care needs.'
+            : 'Complete your family profile to find the right caregiver for your loved one.'
+          }
         </p>
 
         <form ref={formRef} onSubmit={handleSubmit} className="space-y-6">
@@ -893,17 +984,17 @@ const FamilyRegistration = () => {
           </Card>
 
           <div className="flex justify-end gap-4">
-            <Button type="button" variant="outline" onClick={() => navigate('/')}>
+            <Button type="button" variant="outline" onClick={() => navigate('/dashboard/family')}>
               Cancel
             </Button>
             <Button type="submit" disabled={loading}>
               {loading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Submitting...
+                  {isEditMode ? 'Updating...' : 'Submitting...'}
                 </>
               ) : (
-                'Complete Registration'
+                isEditMode ? 'Update Profile' : 'Complete Registration'
               )}
             </Button>
           </div>
