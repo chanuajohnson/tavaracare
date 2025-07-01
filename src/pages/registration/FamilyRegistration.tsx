@@ -119,14 +119,14 @@ const FamilyRegistration = () => {
           setSpecialNeeds(profile.special_needs);
         }
         
-        // Populate schedule
+        // Populate schedule - use custom_schedule instead of custom_care_schedule
         if (profile.care_schedule) {
           const scheduleArray = typeof profile.care_schedule === 'string' 
             ? profile.care_schedule.split(',').map(s => s.trim())
             : profile.care_schedule;
           setCareSchedule(scheduleArray);
         }
-        setCustomCareSchedule(profile.custom_care_schedule || '');
+        setCustomCareSchedule(profile.custom_schedule || '');
         
         // Populate preferences
         setBudget(profile.budget_preferences || '');
