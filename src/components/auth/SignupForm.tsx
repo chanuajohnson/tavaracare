@@ -1,8 +1,9 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { EyeIcon, EyeOffIcon, Loader2, MailIcon, ShieldCheckIcon } from "lucide-react";
+import { EyeIcon, EyeOffIcon, Loader2, MailIcon, ShieldCheckIcon, MessageCircle } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { UserRole } from "@/types/database";
 import { toast } from "sonner";
@@ -23,6 +24,7 @@ export function SignupForm({ onSubmit, isLoading }: SignupFormProps) {
   const [showPassword, setShowPassword] = useState(false);
   const [formSubmitted, setFormSubmitted] = useState(false);
   const [submissionStatus, setSubmissionStatus] = useState<"idle" | "submitting" | "success" | "error">("idle");
+  const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -70,6 +72,11 @@ export function SignupForm({ onSubmit, isLoading }: SignupFormProps) {
       setFormSubmitted(false);
       setSubmissionStatus("error");
     }
+  };
+
+  const handleWhatsAppSignup = () => {
+    const roleParam = role ? `?role=${role}` : '';
+    navigate(`/auth/whatsapp${roleParam}`);
   };
 
   // If signup was successful, show a confirmation page with next steps
@@ -250,6 +257,16 @@ export function SignupForm({ onSubmit, isLoading }: SignupFormProps) {
         ) : (
           "Create account"
         )}
+      </Button>
+      <Button 
+        type="button" 
+        variant="outline" 
+        className="w-full mt-4" 
+        onClick={handleWhatsAppSignup}
+        disabled={isLoading || formSubmitted}
+      >
+        <MessageCircle className="mr-2 h-4 w-4" />
+        Create account via WhatsApp
       </Button>
     </form>
   );

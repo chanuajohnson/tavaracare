@@ -1,9 +1,9 @@
-
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { EyeIcon, EyeOffIcon, Loader2 } from "lucide-react";
+import { EyeIcon, EyeOffIcon, Loader2, MessageCircle } from "lucide-react";
 import { toast } from "sonner";
 
 interface LoginFormProps {
@@ -17,6 +17,7 @@ export function LoginForm({ onSubmit, isLoading, onForgotPassword }: LoginFormPr
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [localLoading, setLocalLoading] = useState(false);
+  const navigate = useNavigate();
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -45,6 +46,10 @@ export function LoginForm({ onSubmit, isLoading, onForgotPassword }: LoginFormPr
       return;
     }
     onForgotPassword(email);
+  };
+
+  const handleWhatsAppSignIn = () => {
+    navigate('/auth/whatsapp');
   };
 
   // Use either the passed in loading state or our local one
@@ -114,6 +119,16 @@ export function LoginForm({ onSubmit, isLoading, onForgotPassword }: LoginFormPr
         ) : (
           "Log in"
         )}
+      </Button>
+      <Button 
+        type="button" 
+        variant="outline" 
+        className="w-full mt-4" 
+        onClick={handleWhatsAppSignIn}
+        disabled={showLoading}
+      >
+        <MessageCircle className="mr-2 h-4 w-4" />
+        Sign in via WhatsApp
       </Button>
     </form>
   );
