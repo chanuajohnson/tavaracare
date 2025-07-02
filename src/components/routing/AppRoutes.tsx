@@ -1,8 +1,8 @@
-
 import { Routes, Route } from "react-router-dom";
 import { useAuth } from "@/components/providers/AuthProvider";
 import Index from "@/pages/Index";
 import AuthPage from "@/pages/auth/AuthPage";
+import WhatsAppLogin from "@/pages/auth/WhatsAppLogin";
 import ResetPassword from "@/pages/auth/ResetPassword";
 import ResetPasswordConfirm from "@/pages/auth/reset-password/ResetPasswordConfirm";
 import FamilyDashboard from "@/components/family/FamilyDashboard";
@@ -74,6 +74,7 @@ export const AppRoutes = () => {
       {/* Public Routes */}
       <Route path="/" element={<Index />} />
       <Route path="/auth" element={<AuthPage />} />
+      <Route path="/auth/whatsapp" element={<WhatsAppLogin />} />
       <Route path="/auth/reset-password" element={<ResetPassword />} />
       <Route path="/auth/reset-password/confirm" element={<ResetPasswordConfirm />} />
       <Route path="/features" element={<FeaturesPage />} />
