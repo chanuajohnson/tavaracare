@@ -14,9 +14,13 @@ serve(async (req) => {
   }
 
   try {
+    console.log('WhatsApp auth verify-code function called');
+    
     const { phoneNumber, verificationCode, role } = await req.json();
+    console.log('Request data:', { phoneNumber: phoneNumber ? '[MASKED]' : 'missing', verificationCode: verificationCode ? '[MASKED]' : 'missing', role });
 
     if (!phoneNumber || !verificationCode || !role) {
+      console.error('Missing required fields');
       return new Response(
         JSON.stringify({ error: 'Phone number, verification code, and role are required' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -24,10 +28,18 @@ serve(async (req) => {
     }
 
     // Initialize Supabase client
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    );
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    
+    if (!supabaseUrl || !supabaseKey) {
+      console.error('Missing Supabase environment variables');
+      return new Response(
+        JSON.stringify({ error: 'Server configuration error' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const supabase = createClient(supabaseUrl, supabaseKey);
 
     // Get the verification record
     const { data: authRecord, error: fetchError } = await supabase
@@ -44,10 +56,13 @@ serve(async (req) => {
       );
     }
 
+    console.log('Auth record found:', { id: authRecord.id, attempts: authRecord.verification_attempts });
+
     // Check if code has expired
     const now = new Date();
     const expiresAt = new Date(authRecord.code_expires_at);
     if (now > expiresAt) {
+      console.log('Verification code expired');
       return new Response(
         JSON.stringify({ error: 'Verification code has expired. Please request a new one.' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -56,6 +71,7 @@ serve(async (req) => {
 
     // Check verification attempts
     if (authRecord.verification_attempts >= 5) {
+      console.log('Too many verification attempts');
       return new Response(
         JSON.stringify({ error: 'Too many verification attempts. Please request a new code.' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -64,6 +80,8 @@ serve(async (req) => {
 
     // Verify the code
     if (authRecord.verification_code !== verificationCode) {
+      console.log('Invalid verification code provided');
+      
       // Increment verification attempts
       await supabase
         .from('whatsapp_auth')
@@ -79,6 +97,8 @@ serve(async (req) => {
       );
     }
 
+    console.log('Verification code is valid');
+
     // Code is valid, create or get user
     const email = `${phoneNumber.replace(/[^0-9]/g, '')}@whatsapp.tavara.care`;
     
@@ -88,7 +108,10 @@ serve(async (req) => {
     let user;
     if (existingUser.user) {
       user = existingUser.user;
+      console.log('Existing user found');
     } else {
+      console.log('Creating new user');
+      
       // Create new user
       const { data: newUser, error: createError } = await supabase.auth.admin.createUser({
         email: email,
@@ -105,11 +128,12 @@ serve(async (req) => {
       if (createError) {
         console.error('User creation error:', createError);
         return new Response(
-          JSON.stringify({ error: 'Failed to create user account' }),
+          JSON.stringify({ error: 'Failed to create user account', details: createError.message }),
           { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
       user = newUser.user;
+      console.log('New user created successfully');
     }
 
     // Mark verification as complete
@@ -122,29 +146,41 @@ serve(async (req) => {
       })
       .eq('phone_number', phoneNumber);
 
+    console.log('Verification marked as complete');
+
     // Generate session for the user
+    const redirectUrl = req.headers.get('origin') || 'http://localhost:3000';
+    const dashboardRoute = `${redirectUrl}/dashboard/${role}`;
+    
     const { data: sessionData, error: sessionError } = await supabase.auth.admin.generateLink({
       type: 'magiclink',
       email: email,
       options: {
-        redirectTo: `${req.headers.get('origin') || 'http://localhost:3000'}/dashboard/${role}`
+        redirectTo: dashboardRoute
       }
     });
 
     if (sessionError) {
       console.error('Session generation error:', sessionError);
       return new Response(
-        JSON.stringify({ error: 'Failed to create session' }),
+        JSON.stringify({ error: 'Failed to create session', details: sessionError.message }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+
+    console.log('Session created successfully');
 
     return new Response(
       JSON.stringify({ 
         success: true,
         message: 'Phone number verified successfully',
-        user: user,
-        session_url: sessionData.properties?.action_link
+        user: {
+          id: user.id,
+          email: user.email,
+          phone: user.phone
+        },
+        session_url: sessionData.properties?.action_link,
+        redirect_to: dashboardRoute
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
@@ -152,7 +188,11 @@ serve(async (req) => {
   } catch (error) {
     console.error('Error in whatsapp-auth-verify-code:', error);
     return new Response(
-      JSON.stringify({ error: 'Internal server error' }),
+      JSON.stringify({ 
+        error: 'Internal server error', 
+        details: error.message,
+        stack: error.stack 
+      }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }

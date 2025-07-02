@@ -14,9 +14,13 @@ serve(async (req) => {
   }
 
   try {
+    console.log('WhatsApp auth send-code function called');
+    
     const { phoneNumber, role, countryCode = '1' } = await req.json();
+    console.log('Request data:', { phoneNumber: phoneNumber ? '[MASKED]' : 'missing', role, countryCode });
 
     if (!phoneNumber || !role) {
+      console.error('Missing required fields:', { phoneNumber: !!phoneNumber, role: !!role });
       return new Response(
         JSON.stringify({ error: 'Phone number and role are required' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -24,10 +28,18 @@ serve(async (req) => {
     }
 
     // Initialize Supabase client
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    );
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    
+    if (!supabaseUrl || !supabaseKey) {
+      console.error('Missing Supabase environment variables');
+      return new Response(
+        JSON.stringify({ error: 'Server configuration error' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const supabase = createClient(supabaseUrl, supabaseKey);
 
     // Format phone number
     const cleanNumber = phoneNumber.replace(/[^0-9]/g, '');
@@ -41,11 +53,13 @@ serve(async (req) => {
       formattedNumber = `+${countryCode}${cleanNumber}`;
     }
 
+    console.log('Formatted phone number created');
+
     // Generate 6-digit verification code
     const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes from now
 
-    console.log(`Generated verification code ${verificationCode} for ${formattedNumber}`);
+    console.log(`Generated verification code for ${formattedNumber}`);
 
     // Store verification code in database
     const { error: dbError } = await supabase
@@ -64,15 +78,17 @@ serve(async (req) => {
     if (dbError) {
       console.error('Database error:', dbError);
       return new Response(
-        JSON.stringify({ error: 'Failed to store verification code' }),
+        JSON.stringify({ error: 'Failed to store verification code', details: dbError.message }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Send WhatsApp message
+    console.log('Verification code stored in database');
+
+    // Try to send WhatsApp message
     try {
       const whatsappResponse = await sendWhatsAppMessage(formattedNumber, verificationCode);
-      console.log('WhatsApp API response:', whatsappResponse);
+      console.log('WhatsApp message sent successfully');
       
       return new Response(
         JSON.stringify({ 
@@ -85,13 +101,14 @@ serve(async (req) => {
     } catch (whatsappError) {
       console.error('WhatsApp sending failed:', whatsappError);
       
-      // For development, we'll still return success but log the error
+      // For development, we'll still return success but include the code for testing
       return new Response(
         JSON.stringify({ 
           success: true, 
           message: 'Verification code generated (WhatsApp delivery pending)',
           formatted_number: formattedNumber,
-          dev_code: verificationCode // Only for development
+          dev_code: verificationCode, // Only for development
+          warning: 'WhatsApp API not configured - using development mode'
         }),
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
@@ -100,7 +117,11 @@ serve(async (req) => {
   } catch (error) {
     console.error('Error in whatsapp-auth-send-code:', error);
     return new Response(
-      JSON.stringify({ error: 'Internal server error' }),
+      JSON.stringify({ 
+        error: 'Internal server error', 
+        details: error.message,
+        stack: error.stack 
+      }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
@@ -111,7 +132,7 @@ async function sendWhatsAppMessage(phoneNumber: string, verificationCode: string
   const whatsappPhoneId = Deno.env.get('WHATSAPP_PHONE_NUMBER_ID');
   
   if (!whatsappToken || !whatsappPhoneId) {
-    throw new Error('WhatsApp credentials not configured');
+    throw new Error('WhatsApp credentials not configured - Please set WHATSAPP_ACCESS_TOKEN and WHATSAPP_PHONE_NUMBER_ID');
   }
 
   const message = `Your Tavara verification code is: ${verificationCode}. This code expires in 10 minutes.`;
@@ -135,7 +156,7 @@ async function sendWhatsAppMessage(phoneNumber: string, verificationCode: string
   if (!response.ok) {
     const errorData = await response.text();
     console.error('WhatsApp API error:', errorData);
-    throw new Error(`WhatsApp API error: ${response.status}`);
+    throw new Error(`WhatsApp API error: ${response.status} - ${errorData}`);
   }
 
   return await response.json();

@@ -6,10 +6,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { MessageCircle, Loader2, ArrowLeft } from "lucide-react";
+import { MessageCircle, Loader2, ArrowLeft, AlertCircle, CheckCircle } from "lucide-react";
 import { UserRole } from "@/types/database";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export default function WhatsAppAuthPage() {
   const [phoneNumber, setPhoneNumber] = useState("");
@@ -19,6 +20,8 @@ export default function WhatsAppAuthPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [formattedNumber, setFormattedNumber] = useState("");
   const [devCode, setDevCode] = useState(""); // For development
+  const [errorDetails, setErrorDetails] = useState<string>("");
+  const [isDevelopmentMode, setIsDevelopmentMode] = useState(false);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
@@ -38,6 +41,7 @@ export default function WhatsAppAuthPage() {
     }
 
     setIsLoading(true);
+    setErrorDetails("");
     
     try {
       console.log('Sending verification code to:', phoneNumber, 'with role:', role);
@@ -51,8 +55,9 @@ export default function WhatsAppAuthPage() {
       });
 
       if (error) {
-        console.error('Error sending code:', error);
-        toast.error("Failed to send verification code. Please try again.");
+        console.error('Edge function error:', error);
+        setErrorDetails(`Function error: ${error.message}`);
+        toast.error("Failed to send verification code. Please check your connection and try again.");
         return;
       }
 
@@ -60,19 +65,23 @@ export default function WhatsAppAuthPage() {
       
       if (data.success) {
         setFormattedNumber(data.formatted_number);
+        setIsDevelopmentMode(!!data.warning);
+        
         if (data.dev_code) {
           setDevCode(data.dev_code);
-          toast.success(`Code sent! (Dev: ${data.dev_code})`);
+          toast.success(`Code sent! (Dev mode: ${data.dev_code})`);
         } else {
           toast.success("Verification code sent via WhatsApp!");
         }
         setStep("verify");
       } else {
+        setErrorDetails(data.error || "Unknown error occurred");
         toast.error(data.error || "Failed to send verification code");
       }
     } catch (error: any) {
-      console.error("Error sending verification code:", error);
-      toast.error("Failed to send verification code. Please try again.");
+      console.error("Network error:", error);
+      setErrorDetails(`Network error: ${error.message}`);
+      toast.error("Network error. Please check your connection and try again.");
     } finally {
       setIsLoading(false);
     }
@@ -87,6 +96,7 @@ export default function WhatsAppAuthPage() {
     }
 
     setIsLoading(true);
+    setErrorDetails("");
     
     try {
       console.log('Verifying code:', verificationCode, 'for phone:', phoneNumber);
@@ -100,7 +110,8 @@ export default function WhatsAppAuthPage() {
       });
 
       if (error) {
-        console.error('Error verifying code:', error);
+        console.error('Edge function error:', error);
+        setErrorDetails(`Function error: ${error.message}`);
         toast.error("Failed to verify code. Please try again.");
         return;
       }
@@ -112,6 +123,7 @@ export default function WhatsAppAuthPage() {
         
         // If we have a session URL, redirect to it for automatic login
         if (data.session_url) {
+          console.log('Redirecting to session URL:', data.session_url);
           window.location.href = data.session_url;
         } else {
           // Fallback: redirect to appropriate dashboard
@@ -124,11 +136,13 @@ export default function WhatsAppAuthPage() {
           navigate(dashboardRoutes[role]);
         }
       } else {
+        setErrorDetails(data.error || "Verification failed");
         toast.error(data.error || "Invalid verification code");
       }
     } catch (error: any) {
-      console.error("Error verifying code:", error);
-      toast.error("Failed to verify code. Please try again.");
+      console.error("Network error:", error);
+      setErrorDetails(`Network error: ${error.message}`);
+      toast.error("Network error. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -138,8 +152,17 @@ export default function WhatsAppAuthPage() {
     if (step === "verify") {
       setStep("phone");
       setVerificationCode("");
+      setErrorDetails("");
     } else {
       navigate("/auth");
+    }
+  };
+
+  const handleRetry = () => {
+    setErrorDetails("");
+    if (step === "verify") {
+      setStep("phone");
+      setVerificationCode("");
     }
   };
 
@@ -171,6 +194,28 @@ export default function WhatsAppAuthPage() {
           </div>
         </CardHeader>
         <CardContent>
+          {errorDetails && (
+            <Alert variant="destructive" className="mb-4">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription className="text-sm">
+                <strong>Error:</strong> {errorDetails}
+                <Button variant="outline" size="sm" onClick={handleRetry} className="ml-2">
+                  Retry
+                </Button>
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {isDevelopmentMode && step === "verify" && (
+            <Alert className="mb-4">
+              <CheckCircle className="h-4 w-4" />
+              <AlertDescription>
+                <strong>Development Mode:</strong> WhatsApp API not configured. 
+                {devCode && <span className="block font-mono mt-1">Code: {devCode}</span>}
+              </AlertDescription>
+            </Alert>
+          )}
+
           {step === "phone" ? (
             <form onSubmit={handleSendCode} className="space-y-4">
               <div className="space-y-2">
@@ -270,6 +315,7 @@ export default function WhatsAppAuthPage() {
                   setStep("phone");
                   setVerificationCode("");
                   setDevCode("");
+                  setErrorDetails("");
                 }}
                 disabled={isLoading}
               >
