@@ -5,8 +5,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { MessageCircle, Mail } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import LoginForm from '@/components/auth/LoginForm';
-import SignupForm from '@/components/auth/SignupForm';
+import { LoginForm } from '@/components/auth/LoginForm';
+import { SignupForm } from '@/components/auth/SignupForm';
 
 const AuthPage = () => {
   const navigate = useNavigate();
@@ -17,32 +17,6 @@ const AuthPage = () => {
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-gray-900">Welcome to Tavara</h1>
           <p className="text-gray-600 mt-2">Sign in to your account or create a new one</p>
-        </div>
-
-        {/* WhatsApp Login Option */}
-        <Card className="mb-6">
-          <CardContent className="pt-6">
-            <Button
-              onClick={() => navigate('/auth/whatsapp')}
-              className="w-full bg-green-600 hover:bg-green-700 text-white"
-              size="lg"
-            >
-              <MessageCircle className="mr-2 h-5 w-5" />
-              Continue with WhatsApp
-            </Button>
-            <p className="text-xs text-center text-gray-500 mt-2">
-              Sign in using your WhatsApp number
-            </p>
-          </CardContent>
-        </Card>
-
-        <div className="relative mb-6">
-          <div className="absolute inset-0 flex items-center">
-            <span className="w-full border-t" />
-          </div>
-          <div className="relative flex justify-center text-xs uppercase">
-            <span className="bg-background px-2 text-muted-foreground">Or continue with email</span>
-          </div>
         </div>
 
         {/* Email Login/Signup */}
@@ -64,13 +38,42 @@ const AuthPage = () => {
               </TabsList>
               <TabsContent value="login">
                 <LoginForm />
+                
+                {/* WhatsApp Sign In Button */}
+                <div className="mt-6 pt-4 border-t border-gray-200">
+                  <Button
+                    onClick={() => navigate('/auth/whatsapp')}
+                    variant="outline"
+                    className="w-full border-green-300 text-green-700 hover:bg-green-50"
+                  >
+                    <MessageCircle className="mr-2 h-4 w-4" />
+                    Sign in via WhatsApp
+                  </Button>
+                </div>
               </TabsContent>
               <TabsContent value="signup">
                 <SignupForm />
+                
+                {/* WhatsApp Create Account Button */}
+                <div className="mt-6 pt-4 border-t border-gray-200">
+                  <Button
+                    onClick={() => navigate('/auth/whatsapp')}
+                    variant="outline"
+                    className="w-full border-green-300 text-green-700 hover:bg-green-50"
+                  >
+                    <MessageCircle className="mr-2 h-4 w-4" />
+                    Create account via WhatsApp
+                  </Button>
+                </div>
               </TabsContent>
             </Tabs>
           </CardContent>
         </Card>
+        
+        {/* Footer */}
+        <div className="text-center mt-6 text-sm text-gray-500">
+          Tavara © 2025
+        </div>
       </div>
     </div>
   );

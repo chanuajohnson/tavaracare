@@ -5,18 +5,15 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { EyeIcon, EyeOffIcon, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { supabase } from "@/lib/supabase";
+import { useNavigate } from "react-router-dom";
 
-interface LoginFormProps {
-  onSubmit: (email: string, password: string) => Promise<any>;
-  isLoading: boolean;
-  onForgotPassword: (email: string) => void;
-}
-
-export function LoginForm({ onSubmit, isLoading, onForgotPassword }: LoginFormProps) {
+export function LoginForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [localLoading, setLocalLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const navigate = useNavigate();
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -27,15 +24,30 @@ export function LoginForm({ onSubmit, isLoading, onForgotPassword }: LoginFormPr
     }
     
     try {
-      setLocalLoading(true);
+      setIsLoading(true);
       console.log("[LoginForm] Submitting login form...");
-      await onSubmit(email, password);
+      
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      if (data.user) {
+        toast.success("Login successful!");
+        // Redirect will be handled by auth state change
+        navigate('/');
+      }
+      
       console.log("[LoginForm] Login form submission completed");
     } catch (error: any) {
       console.error("[LoginForm] Error during form submission:", error);
       toast.error(error.message || "Failed to log in");
     } finally {
-      setLocalLoading(false);
+      setIsLoading(false);
     }
   };
 
@@ -44,11 +56,8 @@ export function LoginForm({ onSubmit, isLoading, onForgotPassword }: LoginFormPr
       toast.error("Please enter your email address");
       return;
     }
-    onForgotPassword(email);
+    navigate('/auth/reset-password', { state: { email } });
   };
-
-  // Use either the passed in loading state or our local one
-  const showLoading = isLoading || localLoading;
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
@@ -62,7 +71,7 @@ export function LoginForm({ onSubmit, isLoading, onForgotPassword }: LoginFormPr
           onChange={(e) => setEmail(e.target.value)}
           required
           autoComplete="email"
-          disabled={showLoading}
+          disabled={isLoading}
         />
       </div>
       <div className="space-y-2">
@@ -76,7 +85,7 @@ export function LoginForm({ onSubmit, isLoading, onForgotPassword }: LoginFormPr
             onChange={(e) => setPassword(e.target.value)}
             required
             autoComplete="current-password"
-            disabled={showLoading}
+            disabled={isLoading}
           />
           <Button
             type="button"
@@ -84,7 +93,7 @@ export function LoginForm({ onSubmit, isLoading, onForgotPassword }: LoginFormPr
             size="icon"
             className="absolute right-0 top-0 h-full px-3"
             onClick={() => setShowPassword(!showPassword)}
-            disabled={showLoading}
+            disabled={isLoading}
           >
             {showPassword ? <EyeOffIcon className="h-4 w-4" /> : <EyeIcon className="h-4 w-4" />}
           </Button>
@@ -96,7 +105,7 @@ export function LoginForm({ onSubmit, isLoading, onForgotPassword }: LoginFormPr
           variant="link" 
           className="p-0 h-auto text-sm text-muted-foreground"
           onClick={handleForgotPassword}
-          disabled={showLoading}
+          disabled={isLoading}
         >
           Forgot password?
         </Button>
@@ -104,9 +113,9 @@ export function LoginForm({ onSubmit, isLoading, onForgotPassword }: LoginFormPr
       <Button 
         type="submit" 
         className="w-full mt-6" 
-        disabled={showLoading}
+        disabled={isLoading}
       >
-        {showLoading ? (
+        {isLoading ? (
           <>
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             Logging in...
