@@ -5,15 +5,18 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { EyeIcon, EyeOffIcon, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { supabase } from "@/lib/supabase";
-import { useNavigate } from "react-router-dom";
 
-export function LoginForm() {
+interface LoginFormProps {
+  onSubmit: (email: string, password: string) => Promise<any>;
+  isLoading: boolean;
+  onForgotPassword: (email: string) => void;
+}
+
+export function LoginForm({ onSubmit, isLoading, onForgotPassword }: LoginFormProps) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const navigate = useNavigate();
+  const [localLoading, setLocalLoading] = useState(false);
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -24,30 +27,15 @@ export function LoginForm() {
     }
     
     try {
-      setIsLoading(true);
+      setLocalLoading(true);
       console.log("[LoginForm] Submitting login form...");
-      
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-
-      if (error) {
-        throw error;
-      }
-
-      if (data.user) {
-        toast.success("Login successful!");
-        // Redirect will be handled by auth state change
-        navigate('/');
-      }
-      
+      await onSubmit(email, password);
       console.log("[LoginForm] Login form submission completed");
     } catch (error: any) {
       console.error("[LoginForm] Error during form submission:", error);
       toast.error(error.message || "Failed to log in");
     } finally {
-      setIsLoading(false);
+      setLocalLoading(false);
     }
   };
 
@@ -56,8 +44,11 @@ export function LoginForm() {
       toast.error("Please enter your email address");
       return;
     }
-    navigate('/auth/reset-password', { state: { email } });
+    onForgotPassword(email);
   };
+
+  // Use either the passed in loading state or our local one
+  const showLoading = isLoading || localLoading;
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
@@ -71,7 +62,7 @@ export function LoginForm() {
           onChange={(e) => setEmail(e.target.value)}
           required
           autoComplete="email"
-          disabled={isLoading}
+          disabled={showLoading}
         />
       </div>
       <div className="space-y-2">
@@ -85,7 +76,7 @@ export function LoginForm() {
             onChange={(e) => setPassword(e.target.value)}
             required
             autoComplete="current-password"
-            disabled={isLoading}
+            disabled={showLoading}
           />
           <Button
             type="button"
@@ -93,7 +84,7 @@ export function LoginForm() {
             size="icon"
             className="absolute right-0 top-0 h-full px-3"
             onClick={() => setShowPassword(!showPassword)}
-            disabled={isLoading}
+            disabled={showLoading}
           >
             {showPassword ? <EyeOffIcon className="h-4 w-4" /> : <EyeIcon className="h-4 w-4" />}
           </Button>
@@ -105,7 +96,7 @@ export function LoginForm() {
           variant="link" 
           className="p-0 h-auto text-sm text-muted-foreground"
           onClick={handleForgotPassword}
-          disabled={isLoading}
+          disabled={showLoading}
         >
           Forgot password?
         </Button>
@@ -113,9 +104,9 @@ export function LoginForm() {
       <Button 
         type="submit" 
         className="w-full mt-6" 
-        disabled={isLoading}
+        disabled={showLoading}
       >
-        {isLoading ? (
+        {showLoading ? (
           <>
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             Logging in...

@@ -1,16 +1,19 @@
-
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { EyeIcon, EyeOffIcon, Loader2, MailIcon, ShieldCheckIcon } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { UserRole } from "@/types/database";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 
-type UserRole = "family" | "professional" | "community" | "admin";
+interface SignupFormProps {
+  onSubmit: (email: string, password: string, firstName: string, lastName: string, role: string, adminCode?: string) => Promise<any>;
+  isLoading: boolean;
+}
 
-export function SignupForm() {
+export function SignupForm({ onSubmit, isLoading }: SignupFormProps) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [firstName, setFirstName] = useState("");
@@ -18,7 +21,6 @@ export function SignupForm() {
   const [role, setRole] = useState<UserRole>("family");
   const [adminCode, setAdminCode] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
   const [formSubmitted, setFormSubmitted] = useState(false);
   const [submissionStatus, setSubmissionStatus] = useState<"idle" | "submitting" | "success" | "error">("idle");
 
@@ -44,33 +46,14 @@ export function SignupForm() {
     try {
       setFormSubmitted(true);
       setSubmissionStatus("submitting");
-      setIsLoading(true);
       console.log('SignupForm submitting with role:', role);
       
       // Store the registration role in localStorage for redirect handling after email verification
       localStorage.setItem('registeringAs', role);
       localStorage.setItem('registrationRole', role);
       
-      const redirectUrl = `${window.location.origin}/`;
-      
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          emailRedirectTo: redirectUrl,
-          data: {
-            first_name: firstName,
-            last_name: lastName,
-            full_name: `${firstName} ${lastName}`.trim(),
-            role: role,
-            admin_code: role === "admin" ? adminCode : undefined
-          }
-        }
-      });
-
-      if (error) {
-        throw error;
-      }
+      // Pass the registration to the parent component
+      await onSubmit(email, password, firstName, lastName, role, role === "admin" ? adminCode : undefined);
       
       setSubmissionStatus("success");
       
@@ -86,8 +69,6 @@ export function SignupForm() {
       
       setFormSubmitted(false);
       setSubmissionStatus("error");
-    } finally {
-      setIsLoading(false);
     }
   };
 
