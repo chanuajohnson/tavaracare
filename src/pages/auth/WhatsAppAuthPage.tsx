@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { MessageCircle, Loader2, ArrowLeft } from "lucide-react";
 import { UserRole } from "@/types/database";
 import { toast } from "sonner";
+import { supabase } from "@/lib/supabase";
 
 export default function WhatsAppAuthPage() {
   const [phoneNumber, setPhoneNumber] = useState("");
@@ -16,6 +17,8 @@ export default function WhatsAppAuthPage() {
   const [role, setRole] = useState<UserRole>("family");
   const [step, setStep] = useState<"phone" | "verify">("phone");
   const [isLoading, setIsLoading] = useState(false);
+  const [formattedNumber, setFormattedNumber] = useState("");
+  const [devCode, setDevCode] = useState(""); // For development
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
@@ -37,12 +40,36 @@ export default function WhatsAppAuthPage() {
     setIsLoading(true);
     
     try {
-      // TODO: Implement WhatsApp verification logic with Supabase
-      // For now, simulate sending a code
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      console.log('Sending verification code to:', phoneNumber, 'with role:', role);
       
-      toast.success("Verification code sent via WhatsApp!");
-      setStep("verify");
+      const { data, error } = await supabase.functions.invoke('whatsapp-auth-send-code', {
+        body: {
+          phoneNumber: phoneNumber.trim(),
+          role: role,
+          countryCode: '1'
+        }
+      });
+
+      if (error) {
+        console.error('Error sending code:', error);
+        toast.error("Failed to send verification code. Please try again.");
+        return;
+      }
+
+      console.log('Send code response:', data);
+      
+      if (data.success) {
+        setFormattedNumber(data.formatted_number);
+        if (data.dev_code) {
+          setDevCode(data.dev_code);
+          toast.success(`Code sent! (Dev: ${data.dev_code})`);
+        } else {
+          toast.success("Verification code sent via WhatsApp!");
+        }
+        setStep("verify");
+      } else {
+        toast.error(data.error || "Failed to send verification code");
+      }
     } catch (error: any) {
       console.error("Error sending verification code:", error);
       toast.error("Failed to send verification code. Please try again.");
@@ -62,24 +89,46 @@ export default function WhatsAppAuthPage() {
     setIsLoading(true);
     
     try {
-      // TODO: Implement WhatsApp verification with Supabase Auth
-      // For now, simulate verification
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      console.log('Verifying code:', verificationCode, 'for phone:', phoneNumber);
       
-      toast.success("Phone number verified successfully!");
-      
-      // Redirect to appropriate dashboard based on role
-      const dashboardRoutes: Record<UserRole, string> = {
-        'family': '/dashboard/family',
-        'professional': '/dashboard/professional',
-        'community': '/dashboard/community',
-        'admin': '/dashboard/admin'
-      };
-      
-      navigate(dashboardRoutes[role]);
+      const { data, error } = await supabase.functions.invoke('whatsapp-auth-verify-code', {
+        body: {
+          phoneNumber: phoneNumber.trim(),
+          verificationCode: verificationCode.trim(),
+          role: role
+        }
+      });
+
+      if (error) {
+        console.error('Error verifying code:', error);
+        toast.error("Failed to verify code. Please try again.");
+        return;
+      }
+
+      console.log('Verify code response:', data);
+
+      if (data.success) {
+        toast.success("Phone number verified successfully!");
+        
+        // If we have a session URL, redirect to it for automatic login
+        if (data.session_url) {
+          window.location.href = data.session_url;
+        } else {
+          // Fallback: redirect to appropriate dashboard
+          const dashboardRoutes: Record<UserRole, string> = {
+            'family': '/dashboard/family',
+            'professional': '/dashboard/professional',
+            'community': '/dashboard/community',
+            'admin': '/dashboard/admin'
+          };
+          navigate(dashboardRoutes[role]);
+        }
+      } else {
+        toast.error(data.error || "Invalid verification code");
+      }
     } catch (error: any) {
       console.error("Error verifying code:", error);
-      toast.error("Invalid verification code. Please try again.");
+      toast.error("Failed to verify code. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -185,12 +234,17 @@ export default function WhatsAppAuthPage() {
                 />
                 <p className="text-sm text-gray-500">
                   Check your WhatsApp for the verification code
+                  {devCode && (
+                    <span className="block mt-1 text-blue-600 font-mono">
+                      Dev code: {devCode}
+                    </span>
+                  )}
                 </p>
               </div>
               
               <div className="bg-gray-50 p-3 rounded-md">
                 <p className="text-sm text-gray-600">
-                  <strong>Phone:</strong> {phoneNumber}
+                  <strong>Phone:</strong> {formattedNumber || phoneNumber}
                 </p>
                 <p className="text-sm text-gray-600">
                   <strong>Account Type:</strong> {role === "admin" ? "Administrator" : role.charAt(0).toUpperCase() + role.slice(1)}
@@ -215,6 +269,7 @@ export default function WhatsAppAuthPage() {
                 onClick={() => {
                   setStep("phone");
                   setVerificationCode("");
+                  setDevCode("");
                 }}
                 disabled={isLoading}
               >
