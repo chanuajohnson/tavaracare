@@ -241,7 +241,7 @@ const FamilyDashboard = () => {
                 <p className="text-sm text-gray-600">Coordinate with care team</p>
               </div>
               {user ? (
-                <Link to="/care-plans">
+                <Link to="/family/care-management">
                   <Button 
                     variant="default"
                     className="w-full bg-primary hover:bg-primary-600 text-white"
