@@ -95,9 +95,14 @@ export const useChatPersistence = (caregiverId: string) => {
       if (!matchingFlow) {
         // Try to match by stage_data containing chat request info
         matchingFlow = conversationFlows?.find(flow => {
-          const stageData = flow.stage_data || {};
-          return stageData.chatRequestId === activeRequest.id || 
-                 stageData.caregiverId === caregiverId;
+          const stageData = flow.stage_data;
+          // Type guard to ensure stageData is an object
+          if (stageData && typeof stageData === 'object' && !Array.isArray(stageData)) {
+            const stageDataObj = stageData as { [key: string]: any };
+            return stageDataObj.chatRequestId === activeRequest.id || 
+                   stageDataObj.caregiverId === caregiverId;
+          }
+          return false;
         });
         console.log('[ChatPersistence] Matched flow by stage_data:', matchingFlow);
       }
