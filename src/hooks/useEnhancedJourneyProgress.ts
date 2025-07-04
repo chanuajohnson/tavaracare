@@ -1,11 +1,12 @@
-
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { toast } from 'sonner';
 
 export const useEnhancedJourneyProgress = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [steps, setSteps] = useState<any[]>([]);
   const [profile, setProfile] = useState<any>(null);
@@ -185,7 +186,7 @@ export const useEnhancedJourneyProgress = () => {
         detailed_explanation: 'Complete your name and basic account setup',
         time_estimate_minutes: 5,
         is_optional: false,
-        action: () => console.log('Navigate to profile setup')
+        action: () => navigate('/profile/edit')
       },
       {
         id: "2",
@@ -200,7 +201,10 @@ export const useEnhancedJourneyProgress = () => {
         detailed_explanation: 'Fill out care needs, schedule, and preferences',
         time_estimate_minutes: 15,
         is_optional: false,
-        action: () => console.log('Navigate to registration')
+        action: () => {
+          const isCompleted = calculateRegistrationCompletion();
+          navigate(isCompleted ? '/registration/family?edit=true' : '/registration/family');
+        }
       },
       {
         id: "5",
@@ -215,7 +219,10 @@ export const useEnhancedJourneyProgress = () => {
         detailed_explanation: 'Provide detailed information about care needs',
         time_estimate_minutes: 20,
         is_optional: false,
-        action: () => console.log('Navigate to care assessment')
+        action: () => {
+          const isCompleted = !!careAssessment?.id;
+          navigate(isCompleted ? '/family/care-assessment?mode=edit' : '/family/care-assessment');
+        }
       },
       {
         id: "6",
@@ -230,7 +237,7 @@ export const useEnhancedJourneyProgress = () => {
         detailed_explanation: 'Add personal details about your care recipient',
         time_estimate_minutes: 10,
         is_optional: false,
-        action: () => console.log('Navigate to story')
+        action: () => navigate('/family/story')
       },
       {
         id: "7",
