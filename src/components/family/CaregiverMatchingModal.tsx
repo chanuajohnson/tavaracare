@@ -36,7 +36,7 @@ export const CaregiverMatchingModal = ({
   const [showChatModal, setShowChatModal] = useState(false);
   const { caregivers, isLoading: caregiverLoading, dataLoaded } = useCaregiverMatches(true);
 
-  // DEBUG: Add comprehensive logging for modal state
+  // Enhanced DEBUG logging
   console.log('[CaregiverMatchingModal] RENDER - Props received:', {
     open,
     referringPagePath,
@@ -53,6 +53,7 @@ export const CaregiverMatchingModal = ({
     caregiversCount: caregivers.length
   });
 
+  // Simplified loading effect - reduce from 4.5s to 2s for faster testing
   useEffect(() => {
     console.log('[CaregiverMatchingModal] EFFECT - Modal open changed:', { open, wasOpen: !open });
     
@@ -61,20 +62,20 @@ export const CaregiverMatchingModal = ({
       setIsLoading(true);
       setCurrentMessageIndex(0);
       
-      // Cycle through magical messages every 1.5 seconds
+      // Simplified message cycling - faster for debugging
       const messageInterval = setInterval(() => {
         setCurrentMessageIndex(prev => {
           const newIndex = (prev + 1) % MAGICAL_MESSAGES.length;
           console.log('[CaregiverMatchingModal] EFFECT - Message cycle:', { prev, newIndex });
           return newIndex;
         });
-      }, 1500);
+      }, 800); // Faster cycling
 
-      // Show the magical loading for 4.5 seconds total (3 messages) - SAME AS PAGE
+      // Reduced loading time for debugging
       const loadingTimer = setTimeout(() => {
         console.log('[CaregiverMatchingModal] EFFECT - Loading timer completed, showing content');
         setIsLoading(false);
-      }, 4500);
+      }, 2000); // Reduced from 4500ms
 
       return () => {
         console.log('[CaregiverMatchingModal] EFFECT - Cleanup intervals and timers');
@@ -96,8 +97,12 @@ export const CaregiverMatchingModal = ({
     currentMessage: currentMessage?.text
   });
 
-  // DEBUG: Log before render
   console.log('[CaregiverMatchingModal] RENDER - About to render Dialog with open:', open);
+
+  // Add visual confirmation that component is rendering
+  if (open) {
+    console.log('🚨 MODAL SHOULD BE VISIBLE NOW - open=true');
+  }
 
   return (
     <>
@@ -109,14 +114,32 @@ export const CaregiverMatchingModal = ({
         }}
       >
         <DialogContent 
-          className="max-w-4xl max-h-[90vh] overflow-y-auto bg-gray-50"
-          style={{ zIndex: 9999 }} // Ensure high z-index
+          className="max-w-4xl max-h-[90vh] overflow-y-auto bg-white border-4 border-red-500"
+          style={{ 
+            zIndex: 99999, // Much higher z-index
+            position: 'fixed',
+            backgroundColor: 'white',
+            border: '4px solid red' // Make it very visible
+          }}
           onOpenAutoFocus={() => console.log('[CaregiverMatchingModal] DIALOG - Auto focus triggered')}
           onCloseAutoFocus={() => console.log('[CaregiverMatchingModal] DIALOG - Close auto focus triggered')}
         >
-          {/* DEBUG: Add visual indicator that modal is rendering */}
-          <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '2px', backgroundColor: 'red', zIndex: 10000 }}>
-            {/* This red bar should be visible if modal is rendering */}
+          {/* DEBUG: Visual indicator that modal is rendering */}
+          <div style={{ 
+            position: 'absolute', 
+            top: 0, 
+            left: 0, 
+            width: '100%', 
+            height: '20px', 
+            backgroundColor: 'lime', 
+            zIndex: 100000,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: '12px',
+            fontWeight: 'bold'
+          }}>
+            🟢 MODAL IS RENDERING - open={open ? 'TRUE' : 'FALSE'}
           </div>
           
           <MatchingTracker 
@@ -128,7 +151,7 @@ export const CaregiverMatchingModal = ({
             }}
           />
           
-          <DialogHeader className="space-y-4">
+          <DialogHeader className="space-y-4 mt-6">
             <DialogTitle className="text-2xl font-bold text-primary-900">
               Your Caregiver Match
             </DialogTitle>
@@ -137,7 +160,7 @@ export const CaregiverMatchingModal = ({
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-6">
+          <div className="space-y-6 p-4">
             <AnimatePresence mode="wait">
               {isLoading ? (
                 <motion.div
