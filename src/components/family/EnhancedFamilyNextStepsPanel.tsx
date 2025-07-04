@@ -1,4 +1,3 @@
-
 import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -185,7 +184,7 @@ export const EnhancedFamilyNextStepsPanel: React.FC<EnhancedFamilyNextStepsPanel
   const stageGroups = groupStepsByStage();
   const stagesToDisplay = showAllSteps 
     ? Object.values(stageGroups) 
-    : [stageGroups.foundation];
+    : [stageGroups.foundation, stageGroups.scheduling].filter(stage => stage.steps.length > 0);
 
   return (
     <>
