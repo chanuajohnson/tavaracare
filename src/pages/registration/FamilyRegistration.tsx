@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { v4 as uuidv4 } from 'uuid';
-import { useAuth } from '@/components/providers/AuthProvider';
 import { supabase, ensureStorageBuckets, ensureAuthContext } from '../../lib/supabase';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
 import { Input } from '../../components/ui/input';
@@ -14,14 +13,14 @@ import { Avatar, AvatarFallback, AvatarImage } from '../../components/ui/avatar'
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { PageViewTracker } from "@/components/tracking/PageViewTracker";
 import { toast } from 'sonner';
-import { Calendar, Sun, Moon, Clock, Loader2 } from "lucide-react";
+import { Calendar, Sun, Moon, Clock, AlertCircle } from "lucide-react";
 import { getPrefillDataFromUrl, applyPrefillDataToForm } from '../../utils/chat/prefillReader';
 import { clearChatSessionData } from '../../utils/chat/chatSessionUtils';
 import { setAuthFlowFlag, AUTH_FLOW_FLAGS } from "@/utils/authFlowUtils";
-import { TRINIDAD_TOBAGO_LOCATIONS } from '../../constants/locations';
+import { useAuth } from '@/components/providers/AuthProvider';
 
 const FamilyRegistration = () => {
-  const { user, isLoading: authLoading } = useAuth();
+  const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
@@ -45,18 +44,33 @@ const FamilyRegistration = () => {
   
   const [prefillApplied, setPrefillApplied] = useState(false);
   const [shouldAutoSubmit, setShouldAutoSubmit] = useState(false);
-  const [userDataPopulated, setUserDataPopulated] = useState(false);
-  const [isEditMode, setIsEditMode] = useState(false);
+  const [validationErrors, setValidationErrors] = useState<string[]>([]);
   const formRef = useRef<HTMLFormElement>(null);
   const navigate = useNavigate();
 
-  // Check for edit mode
+  // Load user data and pre-populate form
+  useEffect(() => {
+    if (user) {
+      // Pre-populate email from authenticated user
+      setEmail(user.email || '');
+      
+      // Pre-populate name from user metadata if available
+      if (user.user_metadata) {
+        const metadata = user.user_metadata;
+        if (metadata.first_name) setFirstName(metadata.first_name);
+        if (metadata.last_name) setLastName(metadata.last_name);
+        if (metadata.full_name && !metadata.first_name && !metadata.last_name) {
+          const nameParts = metadata.full_name.split(' ');
+          setFirstName(nameParts[0] || '');
+          setLastName(nameParts.slice(1).join(' ') || '');
+        }
+      }
+    }
+  }, [user]);
+
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
-    const editMode = urlParams.get('edit') === 'true';
     const sessionId = urlParams.get('session');
-    
-    setIsEditMode(editMode);
     
     if (sessionId) {
       const shouldAutoRedirect = localStorage.getItem(`tavara_chat_auto_redirect_${sessionId}`);
@@ -74,127 +88,6 @@ const FamilyRegistration = () => {
       sessionStorage.removeItem(AUTH_FLOW_FLAGS.SKIP_REGISTRATION_REDIRECT);
     };
   }, []);
-
-  // Fetch complete profile data for edit mode
-  const fetchCompleteProfileData = async () => {
-    if (!user?.id) return;
-
-    try {
-      console.log('Fetching complete profile data for edit mode...');
-      
-      const { data: profile, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .single();
-
-      if (error) {
-        console.error('Error fetching profile:', error);
-        toast.error('Failed to load profile data');
-        return;
-      }
-
-      if (profile) {
-        console.log('Profile data loaded:', profile);
-        
-        // Populate basic info
-        if (profile.full_name) {
-          const nameParts = profile.full_name.split(' ');
-          setFirstName(nameParts[0] || '');
-          setLastName(nameParts.slice(1).join(' ') || '');
-        }
-        
-        setPhoneNumber(profile.phone_number || '');
-        setAddress(profile.address || '');
-        
-        // Populate care recipient info
-        setCareRecipientName(profile.care_recipient_name || '');
-        setRelationship(profile.relationship || '');
-        
-        // Populate care needs
-        if (profile.care_types && Array.isArray(profile.care_types)) {
-          setCareTypes(profile.care_types);
-        }
-        if (profile.special_needs && Array.isArray(profile.special_needs)) {
-          setSpecialNeeds(profile.special_needs);
-        }
-        
-        // Populate schedule - use custom_schedule instead of custom_care_schedule
-        if (profile.care_schedule) {
-          const scheduleArray = typeof profile.care_schedule === 'string' 
-            ? profile.care_schedule.split(',').map(s => s.trim())
-            : profile.care_schedule;
-          setCareSchedule(scheduleArray);
-        }
-        setCustomCareSchedule(profile.custom_schedule || '');
-        
-        // Populate preferences
-        setBudget(profile.budget_preferences || '');
-        setCaregiverType(profile.caregiver_type || '');
-        setCaregiverPreferences(profile.caregiver_preferences || '');
-        setAdditionalNotes(profile.additional_notes || '');
-        setPreferredContactMethod(profile.preferred_contact_method || '');
-        
-        // Set avatar
-        setAvatarUrl(profile.avatar_url || null);
-        
-        console.log('Profile data successfully populated in form');
-      }
-    } catch (error) {
-      console.error('Error in fetchCompleteProfileData:', error);
-      toast.error('Failed to load profile data');
-    }
-  };
-
-  // User data population - handles both edit mode and new registration
-  useEffect(() => {
-    if (user && !userDataPopulated) {
-      console.log('User data population triggered, isEditMode:', isEditMode);
-      
-      if (isEditMode) {
-        // Edit mode: fetch complete profile data
-        fetchCompleteProfileData();
-      } else {
-        // New registration: use auth metadata
-        console.log('Pre-populating user data from auth metadata:', user);
-        
-        if (user.email) {
-          setEmail(user.email);
-        }
-        
-        if (user.user_metadata) {
-          const metadata = user.user_metadata;
-          
-          const possibleFirstNames = ['first_name', 'firstName', 'given_name'];
-          const possibleLastNames = ['last_name', 'lastName', 'family_name', 'surname'];
-          
-          for (const field of possibleFirstNames) {
-            if (metadata[field]) {
-              setFirstName(metadata[field]);
-              break;
-            }
-          }
-          
-          for (const field of possibleLastNames) {
-            if (metadata[field]) {
-              setLastName(metadata[field]);
-              break;
-            }
-          }
-          
-          if (!firstName && !lastName && metadata.full_name) {
-            const nameParts = metadata.full_name.split(' ');
-            if (nameParts.length >= 2) {
-              setFirstName(nameParts[0]);
-              setLastName(nameParts.slice(1).join(' '));
-            }
-          }
-        }
-      }
-      
-      setUserDataPopulated(true);
-    }
-  }, [user, userDataPopulated, isEditMode, firstName, lastName]);
 
   const setFormValue = (field: string, value: any) => {
     console.log(`Setting form field ${field} to:`, value);
@@ -248,9 +141,8 @@ const FamilyRegistration = () => {
     }
   };
 
-  // Apply prefill data when available (only for new registrations, not edit mode)
   useEffect(() => {
-    if (!prefillApplied && !isEditMode) {
+    if (!prefillApplied) {
       console.log('Checking for prefill data...');
       
       const hasPrefill = applyPrefillDataToForm(
@@ -284,7 +176,7 @@ const FamilyRegistration = () => {
       
       setPrefillApplied(true);
     }
-  }, [prefillApplied, shouldAutoSubmit, user, isEditMode]);
+  }, [prefillApplied, shouldAutoSubmit, user]);
 
   const handleCareScheduleChange = (value: string) => {
     setCareSchedule(prev => {
@@ -308,8 +200,44 @@ const FamilyRegistration = () => {
     }
   };
 
+  const validateForm = () => {
+    const errors: string[] = [];
+
+    // Basic required fields
+    if (!firstName) errors.push('First Name is required');
+    if (!lastName) errors.push('Last Name is required');
+    if (!phoneNumber) errors.push('Phone Number is required');
+    if (!address) errors.push('Address is required');
+    if (!careRecipientName) errors.push('Care Recipient Name is required');
+    if (!relationship) errors.push('Relationship is required');
+
+    // Care-specific validation - require at least one selection
+    if (careTypes.length === 0) {
+      errors.push('Please select at least one type of care assistance needed');
+    }
+
+    if (careSchedule.length === 0) {
+      errors.push('Please select at least one care schedule option');
+    }
+
+    setValidationErrors(errors);
+    return errors.length === 0;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validate form before submission
+    if (!validateForm()) {
+      toast.error('Please complete all required fields and care preferences');
+      // Scroll to first error
+      const firstErrorElement = document.querySelector('.border-red-500');
+      if (firstErrorElement) {
+        firstErrorElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -327,12 +255,6 @@ const FamilyRegistration = () => {
       
       if (!user?.id) {
         throw new Error('User ID is missing. Please sign in again.');
-      }
-      
-      if (!firstName || !lastName || !phoneNumber || !address || !careRecipientName || !relationship) {
-        toast.error('Please fill in all required fields');
-        setLoading(false);
-        return;
       }
 
       let uploadedAvatarUrl = avatarUrl;
@@ -379,7 +301,7 @@ const FamilyRegistration = () => {
         care_types: careTypes || [],
         special_needs: specialNeeds || [],
         care_schedule: careSchedule.length > 0 ? careSchedule.join(',') : '',
-        custom_schedule: customCareSchedule || '',
+        custom_care_schedule: customCareSchedule || '',
         budget_preferences: budget || '',
         caregiver_type: caregiverType || '',
         caregiver_preferences: caregiverPreferences || '',
@@ -406,7 +328,7 @@ const FamilyRegistration = () => {
         localStorage.removeItem(`tavara_chat_transition_${sessionId}`);
       }
 
-      toast.success(isEditMode ? 'Profile Updated Successfully!' : 'Registration Complete! Your family profile has been updated.');
+      toast.success('Registration Complete! Your family profile has been updated.');
       
       navigate('/dashboard/family');
     } catch (error: any) {
@@ -416,31 +338,6 @@ const FamilyRegistration = () => {
       setLoading(false);
     }
   };
-
-  if (authLoading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
-          <p className="text-gray-600">Loading your account...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!user) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center max-w-md mx-auto p-6">
-          <h1 className="text-2xl font-bold mb-4">Authentication Required</h1>
-          <p className="text-gray-600 mb-6">You must be logged in to complete your family registration.</p>
-          <Button onClick={() => navigate('/auth')}>
-            Sign In
-          </Button>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -452,22 +349,33 @@ const FamilyRegistration = () => {
       <DashboardHeader 
         breadcrumbItems={[
           { label: "Family Dashboard", path: "/dashboard/family" },
-          { label: isEditMode ? "Edit Profile" : "Family Registration", path: "/registration/family" }
+          { label: "Family Registration", path: "/registration/family" }
         ]} 
       />
       
       <div className="container max-w-4xl py-10">
-        <h1 className="text-3xl font-bold mb-6">
-          {isEditMode ? 'Edit Family Profile' : 'Family Care Registration'}
-        </h1>
+        <h1 className="text-3xl font-bold mb-6">Family Care Registration</h1>
         <p className="text-gray-500 mb-8">
-          {isEditMode 
-            ? 'Update your family profile information and care needs.'
-            : 'Complete your family profile to find the right caregiver for your loved one.'
-          }
+          Complete your family profile to find the right caregiver for your loved one.
         </p>
 
+        {/* Validation Errors Display */}
+        {validationErrors.length > 0 && (
+          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+            <div className="flex items-center gap-2 mb-2">
+              <AlertCircle className="h-5 w-5 text-red-500" />
+              <h3 className="font-medium text-red-800">Please complete the following:</h3>
+            </div>
+            <ul className="list-disc list-inside text-sm text-red-700 space-y-1">
+              {validationErrors.map((error, index) => (
+                <li key={index}>{error}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+
         <form ref={formRef} onSubmit={handleSubmit} className="space-y-6">
+          {/* Personal & Contact Information */}
           <Card className="mb-8">
             <CardHeader>
               <CardTitle>Personal & Contact Information</CardTitle>
@@ -485,6 +393,7 @@ const FamilyRegistration = () => {
                     value={firstName} 
                     onChange={(e) => setFirstName(e.target.value)}
                     required 
+                    className={validationErrors.some(e => e.includes('First Name')) ? 'border-red-500' : ''}
                   />
                 </div>
                 <div className="space-y-2">
@@ -495,6 +404,7 @@ const FamilyRegistration = () => {
                     value={lastName} 
                     onChange={(e) => setLastName(e.target.value)}
                     required 
+                    className={validationErrors.some(e => e.includes('Last Name')) ? 'border-red-500' : ''}
                   />
                 </div>
               </div>
@@ -513,27 +423,26 @@ const FamilyRegistration = () => {
                   value={phoneNumber} 
                   onChange={(e) => setPhoneNumber(e.target.value)}
                   required 
+                  className={validationErrors.some(e => e.includes('Phone Number')) ? 'border-red-500' : ''}
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="address">Location *</Label>
-                <Select value={address} onValueChange={setAddress} required>
-                  <SelectTrigger id="address">
-                    <SelectValue placeholder="Select your location" />
-                  </SelectTrigger>
-                  <SelectContent className="max-h-96">
-                    {TRINIDAD_TOBAGO_LOCATIONS.map((location) => (
-                      <SelectItem key={location.value} value={location.value}>
-                        {location.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Label htmlFor="address">Address *</Label>
+                <Textarea 
+                  id="address" 
+                  placeholder="Your full address" 
+                  value={address} 
+                  onChange={(e) => setAddress(e.target.value)}
+                  required
+                  rows={3}
+                  className={validationErrors.some(e => e.includes('Address')) ? 'border-red-500' : ''}
+                />
               </div>
             </CardContent>
           </Card>
 
+          {/* Care Recipient Information */}
           <Card className="mb-8">
             <CardHeader>
               <CardTitle>Care Recipient Information</CardTitle>
@@ -550,13 +459,14 @@ const FamilyRegistration = () => {
                   value={careRecipientName} 
                   onChange={(e) => setCareRecipientName(e.target.value)}
                   required 
+                  className={validationErrors.some(e => e.includes('Care Recipient Name')) ? 'border-red-500' : ''}
                 />
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="relationship">Relationship to Care Recipient *</Label>
                 <Select value={relationship} onValueChange={setRelationship} required>
-                  <SelectTrigger id="relationship">
+                  <SelectTrigger id="relationship" className={validationErrors.some(e => e.includes('Relationship')) ? 'border-red-500' : ''}>
                     <SelectValue placeholder="Select relationship" />
                   </SelectTrigger>
                   <SelectContent>
@@ -572,16 +482,20 @@ const FamilyRegistration = () => {
             </CardContent>
           </Card>
 
-          <Card className="mb-8">
+          {/* Care Needs & Preferences - Now Required */}
+          <Card className={`mb-8 ${validationErrors.some(e => e.includes('care assistance')) ? 'border-red-500' : ''}`}>
             <CardHeader>
-              <CardTitle>Care Needs & Preferences</CardTitle>
+              <CardTitle className="flex items-center gap-2">
+                Care Needs & Preferences *
+                <span className="text-red-500">*Required</span>
+              </CardTitle>
               <CardDescription>
-                Share the types of care assistance needed and any special needs.
+                Share the types of care assistance needed and any special needs. Please select at least one option.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label>Care Types – What type of care assistance do you need? (Select all that apply)</Label>
+                <Label>Care Types – What type of care assistance do you need? (Select all that apply) *</Label>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                   {[
                     { id: 'personal_care', label: '🧼 Personal Care (bathing, dressing, toileting)', value: 'personal_care' },
@@ -608,6 +522,9 @@ const FamilyRegistration = () => {
                     </div>
                   ))}
                 </div>
+                {validationErrors.some(e => e.includes('care assistance')) && (
+                  <p className="text-sm text-red-600 mt-1">Please select at least one type of care assistance</p>
+                )}
               </div>
 
               <div className="space-y-2">
@@ -645,16 +562,20 @@ const FamilyRegistration = () => {
             </CardContent>
           </Card>
 
-          <Card className="mb-8">
+          {/* Care Schedule & Availability - Now Required */}
+          <Card className={`mb-8 ${validationErrors.some(e => e.includes('care schedule')) ? 'border-red-500' : ''}`}>
             <CardHeader>
-              <CardTitle>📅 Care Schedule & Availability</CardTitle>
+              <CardTitle className="flex items-center gap-2">
+                📅 Care Schedule & Availability *
+                <span className="text-red-500">*Required</span>
+              </CardTitle>
               <CardDescription>
-                When do you need care support? Select all time slots that work for your family.
+                When do you need care support? Select all time slots that work for your family. Please select at least one option.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="space-y-4">
-                <Label className="text-base font-medium">Care Schedule – When do you need caregiving support?</Label>
+                <Label className="text-base font-medium">Care Schedule – When do you need caregiving support? *</Label>
                 <p className="text-sm text-gray-500 mb-4">Select all time slots when you need care assistance. This helps us match you with caregivers who are available during these hours.</p>
                 
                 <div className="space-y-5">
@@ -889,10 +810,14 @@ const FamilyRegistration = () => {
                     </div>
                   </div>
                 </div>
+                {validationErrors.some(e => e.includes('care schedule')) && (
+                  <p className="text-sm text-red-600 mt-1">Please select at least one care schedule option</p>
+                )}
               </div>
             </CardContent>
           </Card>
 
+          {/* Budget & Caregiver Preferences */}
           <Card className="mb-8">
             <CardHeader>
               <CardTitle>Budget & Caregiver Preferences</CardTitle>
@@ -947,6 +872,7 @@ const FamilyRegistration = () => {
             </CardContent>
           </Card>
 
+          {/* Additional Information */}
           <Card className="mb-8">
             <CardHeader>
               <CardTitle>Additional Information</CardTitle>
@@ -984,18 +910,11 @@ const FamilyRegistration = () => {
           </Card>
 
           <div className="flex justify-end gap-4">
-            <Button type="button" variant="outline" onClick={() => navigate('/dashboard/family')}>
+            <Button type="button" variant="outline" onClick={() => navigate('/')}>
               Cancel
             </Button>
             <Button type="submit" disabled={loading}>
-              {loading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  {isEditMode ? 'Updating...' : 'Submitting...'}
-                </>
-              ) : (
-                isEditMode ? 'Update Profile' : 'Complete Registration'
-              )}
+              {loading ? 'Submitting...' : 'Complete Registration'}
             </Button>
           </div>
         </form>
