@@ -13,9 +13,13 @@ export const useEnhancedJourneyProgress = () => {
   const [careAssessment, setCareAssessment] = useState<any>(null);
   const [careRecipient, setCareRecipient] = useState<any>(null);
   const [visitDetails, setVisitDetails] = useState<any>(null);
+  
+  // Modal states
   const [showScheduleModal, setShowScheduleModal] = useState(false);
+  const [showInternalScheduleModal, setShowInternalScheduleModal] = useState(false);
   const [showCancelVisitModal, setShowCancelVisitModal] = useState(false);
   const [showCaregiverMatchingModal, setShowCaregiverMatchingModal] = useState(false);
+  const [showLeadCaptureModal, setShowLeadCaptureModal] = useState(false);
 
   const fetchUserData = async () => {
     if (!user?.id) return;
@@ -101,78 +105,6 @@ export const useEnhancedJourneyProgress = () => {
     fetchUserData();
   }, [user?.id]);
 
-  // Calculate completion status for each step
-  const calculateSteps = () => {
-    if (!profile) return [];
-
-    console.log('Calculating steps with profile:', profile);
-
-    const steps = [
-      {
-        id: 1,
-        step_number: 1,
-        title: "Welcome & Profile Setup",
-        description: "Basic account information",
-        completed: !!profile?.full_name,
-        accessible: true,
-        action: () => console.log('Navigate to profile setup')
-      },
-      {
-        id: 2,
-        step_number: 2,
-        title: "Complete your registration",
-        description: "Family care details and preferences",
-        completed: calculateRegistrationCompletion(),
-        accessible: true,
-        action: () => console.log('Navigate to registration')
-      },
-      {
-        id: 5,
-        step_number: 5,
-        title: "Care Assessment",
-        description: "Detailed care needs evaluation",
-        completed: !!careAssessment?.id,
-        accessible: true,
-        action: () => console.log('Navigate to care assessment')
-      },
-      {
-        id: 6,
-        step_number: 6,
-        title: "Share Loved One's Story",
-        description: "Personal details and preferences",
-        completed: !!(careRecipient?.id && careRecipient?.full_name),
-        accessible: true,
-        action: () => console.log('Navigate to story')
-      },
-      {
-        id: 7,
-        step_number: 7,
-        title: "View Caregiver Matches",
-        description: "Browse potential caregivers",
-        completed: false,
-        accessible: calculateCaregiverMatchesAccessible(),
-        action: () => setShowCaregiverMatchingModal(true)
-      },
-      {
-        id: 10,
-        step_number: 10,
-        title: "Schedule Visit",
-        description: "Book your Tavara.Care assessment visit",
-        completed: !!visitDetails?.id,
-        accessible: true,
-        action: () => {
-          if (visitDetails?.id) {
-            setShowCancelVisitModal(true);
-          } else {
-            setShowScheduleModal(true);
-          }
-        }
-      }
-    ];
-
-    return steps;
-  };
-
   // Enhanced registration completion logic using correct database field names
   const calculateRegistrationCompletion = () => {
     if (!profile) {
@@ -233,11 +165,119 @@ export const useEnhancedJourneyProgress = () => {
     return registrationComplete && hasAssessment;
   };
 
+  // Calculate completion status for each step
+  const calculateSteps = () => {
+    if (!profile) return [];
+
+    console.log('Calculating steps with profile:', profile);
+
+    const steps = [
+      {
+        id: 1,
+        step_number: 1,
+        title: "Welcome & Profile Setup",
+        description: "Basic account information",
+        completed: !!profile?.full_name,
+        accessible: true,
+        category: 'foundation',
+        icon_name: 'user',
+        tooltip_content: 'Set up your basic profile information',
+        detailed_explanation: 'Complete your name and basic account setup',
+        action: () => console.log('Navigate to profile setup')
+      },
+      {
+        id: 2,
+        step_number: 2,
+        title: "Complete your registration",
+        description: "Family care details and preferences",
+        completed: calculateRegistrationCompletion(),
+        accessible: true,
+        category: 'foundation',
+        icon_name: 'clipboard',
+        tooltip_content: 'Complete your family registration form',
+        detailed_explanation: 'Fill out care needs, schedule, and preferences',
+        action: () => console.log('Navigate to registration')
+      },
+      {
+        id: 5,
+        step_number: 5,
+        title: "Care Assessment",
+        description: "Detailed care needs evaluation",
+        completed: !!careAssessment?.id,
+        accessible: true,
+        category: 'foundation',
+        icon_name: 'file-check',
+        tooltip_content: 'Complete detailed care assessment',
+        detailed_explanation: 'Provide detailed information about care needs',
+        action: () => console.log('Navigate to care assessment')
+      },
+      {
+        id: 6,
+        step_number: 6,
+        title: "Share Loved One's Story",
+        description: "Personal details and preferences",
+        completed: !!(careRecipient?.id && careRecipient?.full_name),
+        accessible: true,
+        category: 'foundation',
+        icon_name: 'heart',
+        tooltip_content: 'Share your loved one\'s story',
+        detailed_explanation: 'Add personal details about your care recipient',
+        action: () => console.log('Navigate to story')
+      },
+      {
+        id: 7,
+        step_number: 7,
+        title: "View Caregiver Matches",
+        description: "Browse potential caregivers",
+        completed: false,
+        accessible: calculateCaregiverMatchesAccessible(),
+        category: 'scheduling',
+        icon_name: 'users',
+        tooltip_content: 'Browse matched caregivers',
+        detailed_explanation: 'View and connect with potential caregivers',
+        action: () => setShowCaregiverMatchingModal(true)
+      },
+      {
+        id: 10,
+        step_number: 10,
+        title: "Schedule Visit",
+        description: "Book your Tavara.Care assessment visit",
+        completed: !!visitDetails?.id,
+        accessible: true,
+        category: 'scheduling',
+        icon_name: 'calendar',
+        tooltip_content: 'Schedule your care assessment visit',
+        detailed_explanation: 'Book a visit from our care coordinators',
+        action: () => {
+          if (visitDetails?.id) {
+            setShowCancelVisitModal(true);
+          } else {
+            setShowScheduleModal(true);
+          }
+        }
+      }
+    ];
+
+    return steps;
+  };
+
   const steps_calculated = calculateSteps();
+  const completedSteps = steps_calculated.filter(step => step.completed).length;
+  const totalSteps = steps_calculated.length;
+  const completionPercentage = totalSteps > 0 ? Math.round((completedSteps / totalSteps) * 100) : 0;
+  const nextStep = steps_calculated.find(step => !step.completed && step.accessible);
+  const currentStage = 'foundation'; // Default stage
+
+  // Mock paths for compatibility
+  const paths = [
+    { id: 'foundation', name: 'Foundation', steps: steps_calculated.filter(s => s.category === 'foundation') },
+    { id: 'scheduling', name: 'Scheduling', steps: steps_calculated.filter(s => s.category === 'scheduling') }
+  ];
 
   const onVisitScheduled = (visitData: any) => {
     setVisitDetails(visitData);
     setShowScheduleModal(false);
+    setShowInternalScheduleModal(false);
     toast.success('Visit scheduled successfully!');
     fetchUserData(); // Refresh data
   };
@@ -249,22 +289,38 @@ export const useEnhancedJourneyProgress = () => {
     fetchUserData(); // Refresh data
   };
 
+  const trackStepAction = (stepId: number, action: string) => {
+    console.log(`Step ${stepId} action: ${action}`);
+  };
+
+  const isAnonymous = !user;
+
   return {
     loading,
     steps: steps_calculated,
+    paths,
     profile,
     carePlans,
     careAssessment,
     careRecipient,
     visitDetails,
+    completionPercentage,
+    nextStep,
+    currentStage,
     showScheduleModal,
     setShowScheduleModal,
+    showInternalScheduleModal,
+    setShowInternalScheduleModal,
     showCancelVisitModal,
     setShowCancelVisitModal,
     showCaregiverMatchingModal,
     setShowCaregiverMatchingModal,
+    showLeadCaptureModal,
+    setShowLeadCaptureModal,
     onVisitScheduled,
     onVisitCancelled,
+    trackStepAction,
+    isAnonymous,
     refreshData: fetchUserData
   };
 };
