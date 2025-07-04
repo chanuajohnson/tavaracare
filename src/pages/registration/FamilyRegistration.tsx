@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { v4 as uuidv4 } from 'uuid';
 import { supabase, ensureStorageBuckets, ensureAuthContext } from '../../lib/supabase';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
@@ -22,7 +22,11 @@ import { TRINIDAD_TOBAGO_LOCATIONS } from '../../constants/locations';
 
 const FamilyRegistration = () => {
   const { user } = useAuth();
+  const [searchParams] = useSearchParams();
+  const isEditMode = searchParams.get('edit') === 'true';
+  
   const [loading, setLoading] = useState(false);
+  const [dataLoading, setDataLoading] = useState(true);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [firstName, setFirstName] = useState('');
@@ -50,11 +54,78 @@ const FamilyRegistration = () => {
   const formRef = useRef<HTMLFormElement>(null);
   const navigate = useNavigate();
 
+  // Function to fetch existing profile data
+  const fetchExistingProfileData = async () => {
+    if (!user?.id || !isEditMode) {
+      setDataLoading(false);
+      return;
+    }
+
+    try {
+      console.log('Fetching existing profile data for edit mode...');
+      
+      const { data: profile, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .eq('role', 'family')
+        .maybeSingle();
+
+      if (error) {
+        console.error('Error fetching profile:', error);
+        toast.error('Failed to load existing profile data');
+        setDataLoading(false);
+        return;
+      }
+
+      if (profile) {
+        console.log('Found existing profile data:', profile);
+        
+        // Populate basic info
+        setFirstName(profile.full_name?.split(' ')[0] || '');
+        setLastName(profile.full_name?.split(' ').slice(1).join(' ') || '');
+        setPhoneNumber(profile.phone_number || '');
+        setLocation(profile.location || '');
+        setAddress(profile.address || '');
+        setAvatarUrl(profile.avatar_url || null);
+        
+        // Populate care recipient info
+        setCareRecipientName(profile.care_recipient_name || '');
+        setRelationship(profile.relationship || '');
+        
+        // Populate care needs (handle arrays)
+        setCareTypes(profile.care_types || []);
+        setSpecialNeeds(profile.special_needs || []);
+        
+        // Populate care schedule (convert from comma-separated string to array)
+        if (profile.care_schedule) {
+          const scheduleArray = profile.care_schedule.split(',').map((s: string) => s.trim()).filter((s: string) => s.length > 0);
+          setCareSchedule(scheduleArray);
+        }
+        setCustomCareSchedule(profile.custom_schedule || '');
+        
+        // Populate preferences
+        setBudget(profile.budget_preferences || '');
+        setCaregiverType(profile.caregiver_type || '');
+        setCaregiverPreferences(profile.caregiver_preferences || '');
+        setAdditionalNotes(profile.additional_notes || '');
+        setPreferredContactMethod(profile.preferred_contact_method || '');
+      }
+    } catch (error) {
+      console.error('Error in fetchExistingProfileData:', error);
+      toast.error('Failed to load profile data');
+    } finally {
+      setDataLoading(false);
+    }
+  };
+
+  // Load user metadata and existing profile data
   useEffect(() => {
     if (user) {
       setEmail(user.email || '');
       
-      if (user.user_metadata) {
+      // Only load metadata if not in edit mode (edit mode will fetch from database)
+      if (!isEditMode && user.user_metadata) {
         const metadata = user.user_metadata;
         if (metadata.first_name) setFirstName(metadata.first_name);
         if (metadata.last_name) setLastName(metadata.last_name);
@@ -64,21 +135,27 @@ const FamilyRegistration = () => {
           setLastName(nameParts.slice(1).join(' ') || '');
         }
       }
+      
+      // Fetch existing profile data if in edit mode
+      fetchExistingProfileData();
     }
-  }, [user]);
+  }, [user, isEditMode]);
 
+  // Check for auto-redirect flag from chat (only if not in edit mode)
   useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const sessionId = urlParams.get('session');
-    
-    if (sessionId) {
-      const shouldAutoRedirect = localStorage.getItem(`tavara_chat_auto_redirect_${sessionId}`);
-      if (shouldAutoRedirect === "true") {
-        console.log("Auto-submit flag detected from chat flow");
-        setShouldAutoSubmit(true);
+    if (!isEditMode) {
+      const urlParams = new URLSearchParams(window.location.search);
+      const sessionId = urlParams.get('session');
+      
+      if (sessionId) {
+        const shouldAutoRedirect = localStorage.getItem(`tavara_chat_auto_redirect_${sessionId}`);
+        if (shouldAutoRedirect === "true") {
+          console.log("Auto-submit flag detected from chat flow");
+          setShouldAutoSubmit(true);
+        }
       }
     }
-  }, []);
+  }, [isEditMode]);
 
   useEffect(() => {
     setAuthFlowFlag(AUTH_FLOW_FLAGS.SKIP_REGISTRATION_REDIRECT);
@@ -143,8 +220,9 @@ const FamilyRegistration = () => {
     }
   };
 
+  // Apply prefill data when available (only if not in edit mode)
   useEffect(() => {
-    if (!prefillApplied) {
+    if (!prefillApplied && !isEditMode) {
       console.log('Checking for prefill data...');
       
       const hasPrefill = applyPrefillDataToForm(
@@ -178,7 +256,7 @@ const FamilyRegistration = () => {
       
       setPrefillApplied(true);
     }
-  }, [prefillApplied, shouldAutoSubmit, user]);
+  }, [prefillApplied, shouldAutoSubmit, user, isEditMode]);
 
   const handleCareScheduleChange = (value: string) => {
     setCareSchedule(prev => {
@@ -331,17 +409,24 @@ const FamilyRegistration = () => {
       
       if (error) throw error;
       
-      const urlParams = new URLSearchParams(window.location.search);
-      const sessionId = urlParams.get('session');
-      
-      clearChatSessionData(sessionId || undefined);
-      
-      if (sessionId) {
-        localStorage.removeItem(`tavara_chat_auto_redirect_${sessionId}`);
-        localStorage.removeItem(`tavara_chat_transition_${sessionId}`);
+      // Only clear chat session data if not in edit mode
+      if (!isEditMode) {
+        const urlParams = new URLSearchParams(window.location.search);
+        const sessionId = urlParams.get('session');
+        
+        clearChatSessionData(sessionId || undefined);
+        
+        if (sessionId) {
+          localStorage.removeItem(`tavara_chat_auto_redirect_${sessionId}`);
+          localStorage.removeItem(`tavara_chat_transition_${sessionId}`);
+        }
       }
 
-      toast.success('Registration Complete! Your family profile has been updated.');
+      const successMessage = isEditMode 
+        ? 'Profile Updated! Your family profile has been successfully updated.'
+        : 'Registration Complete! Your family profile has been updated.';
+      
+      toast.success(successMessage);
       
       navigate('/dashboard/family');
     } catch (error: any) {
@@ -351,6 +436,28 @@ const FamilyRegistration = () => {
       setLoading(false);
     }
   };
+
+  // Show loading while fetching data in edit mode
+  if (dataLoading && isEditMode) {
+    return (
+      <div className="min-h-screen bg-background">
+        <DashboardHeader 
+          breadcrumbItems={[
+            { label: "Family Dashboard", path: "/dashboard/family" },
+            { label: "Edit Family Profile", path: "/registration/family?edit=true" }
+          ]} 
+        />
+        <div className="container max-w-4xl py-10">
+          <div className="flex items-center justify-center py-20">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+              <p className="text-gray-500">Loading your profile data...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -362,14 +469,19 @@ const FamilyRegistration = () => {
       <DashboardHeader 
         breadcrumbItems={[
           { label: "Family Dashboard", path: "/dashboard/family" },
-          { label: "Family Registration", path: "/registration/family" }
+          { label: isEditMode ? "Edit Family Profile" : "Family Registration", path: `/registration/family${isEditMode ? '?edit=true' : ''}` }
         ]} 
       />
       
       <div className="container max-w-4xl py-10">
-        <h1 className="text-3xl font-bold mb-6">Family Care Registration</h1>
+        <h1 className="text-3xl font-bold mb-6">
+          {isEditMode ? 'Edit Family Care Profile' : 'Family Care Registration'}
+        </h1>
         <p className="text-gray-500 mb-8">
-          Complete your family profile to find the right caregiver for your loved one.
+          {isEditMode 
+            ? 'Update your family profile information and care preferences.'
+            : 'Complete your family profile to find the right caregiver for your loved one.'
+          }
         </p>
 
         {/* Validation Errors Display */}
@@ -950,11 +1062,11 @@ const FamilyRegistration = () => {
           </Card>
 
           <div className="flex justify-end gap-4">
-            <Button type="button" variant="outline" onClick={() => navigate('/')}>
+            <Button type="button" variant="outline" onClick={() => navigate('/dashboard/family')}>
               Cancel
             </Button>
             <Button type="submit" disabled={loading}>
-              {loading ? 'Submitting...' : 'Complete Registration'}
+              {loading ? 'Saving...' : (isEditMode ? 'Update Profile' : 'Complete Registration')}
             </Button>
           </div>
         </form>
