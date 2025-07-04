@@ -173,7 +173,7 @@ export const useEnhancedJourneyProgress = () => {
 
     const steps = [
       {
-        id: 1,
+        id: "1",
         step_number: 1,
         title: "Welcome & Profile Setup",
         description: "Basic account information",
@@ -188,7 +188,7 @@ export const useEnhancedJourneyProgress = () => {
         action: () => console.log('Navigate to profile setup')
       },
       {
-        id: 2,
+        id: "2",
         step_number: 2,
         title: "Complete your registration",
         description: "Family care details and preferences",
@@ -203,7 +203,7 @@ export const useEnhancedJourneyProgress = () => {
         action: () => console.log('Navigate to registration')
       },
       {
-        id: 5,
+        id: "5",
         step_number: 5,
         title: "Care Assessment",
         description: "Detailed care needs evaluation",
@@ -218,7 +218,7 @@ export const useEnhancedJourneyProgress = () => {
         action: () => console.log('Navigate to care assessment')
       },
       {
-        id: 6,
+        id: "6",
         step_number: 6,
         title: "Share Loved One's Story",
         description: "Personal details and preferences",
@@ -233,7 +233,7 @@ export const useEnhancedJourneyProgress = () => {
         action: () => console.log('Navigate to story')
       },
       {
-        id: 7,
+        id: "7",
         step_number: 7,
         title: "View Caregiver Matches",
         description: "Browse potential caregivers",
@@ -248,7 +248,7 @@ export const useEnhancedJourneyProgress = () => {
         action: () => setShowCaregiverMatchingModal(true)
       },
       {
-        id: 10,
+        id: "10",
         step_number: 10,
         title: "Schedule Visit",
         description: "Book your Tavara.Care assessment visit",
@@ -287,7 +287,7 @@ export const useEnhancedJourneyProgress = () => {
       name: 'Foundation', 
       path_name: 'Foundation',
       path_description: 'Set up your profile and care needs',
-      step_ids: steps_calculated.filter(s => s.category === 'foundation').map(s => s.id.toString()),
+      step_ids: steps_calculated.filter(s => s.category === 'foundation').map(s => parseInt(s.id)),
       path_color: 'blue',
       is_recommended: true,
       steps: steps_calculated.filter(s => s.category === 'foundation') 
@@ -297,15 +297,14 @@ export const useEnhancedJourneyProgress = () => {
       name: 'Scheduling', 
       path_name: 'Scheduling',
       path_description: 'Meet your care team and coordinate services',
-      step_ids: steps_calculated.filter(s => s.category === 'scheduling').map(s => s.id.toString()),
+      step_ids: steps_calculated.filter(s => s.category === 'scheduling').map(s => parseInt(s.id)),
       path_color: 'green',
       is_recommended: false,
       steps: steps_calculated.filter(s => s.category === 'scheduling') 
     }
   ];
 
-  const onVisitScheduled = (visitData: any) => {
-    setVisitDetails(visitData);
+  const onVisitScheduled = () => {
     setShowScheduleModal(false);
     setShowInternalScheduleModal(false);
     toast.success('Visit scheduled successfully!');
