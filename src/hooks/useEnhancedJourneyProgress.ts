@@ -183,6 +183,8 @@ export const useEnhancedJourneyProgress = () => {
         icon_name: 'user',
         tooltip_content: 'Set up your basic profile information',
         detailed_explanation: 'Complete your name and basic account setup',
+        time_estimate_minutes: 5,
+        is_optional: false,
         action: () => console.log('Navigate to profile setup')
       },
       {
@@ -196,6 +198,8 @@ export const useEnhancedJourneyProgress = () => {
         icon_name: 'clipboard',
         tooltip_content: 'Complete your family registration form',
         detailed_explanation: 'Fill out care needs, schedule, and preferences',
+        time_estimate_minutes: 15,
+        is_optional: false,
         action: () => console.log('Navigate to registration')
       },
       {
@@ -209,6 +213,8 @@ export const useEnhancedJourneyProgress = () => {
         icon_name: 'file-check',
         tooltip_content: 'Complete detailed care assessment',
         detailed_explanation: 'Provide detailed information about care needs',
+        time_estimate_minutes: 20,
+        is_optional: false,
         action: () => console.log('Navigate to care assessment')
       },
       {
@@ -222,6 +228,8 @@ export const useEnhancedJourneyProgress = () => {
         icon_name: 'heart',
         tooltip_content: 'Share your loved one\'s story',
         detailed_explanation: 'Add personal details about your care recipient',
+        time_estimate_minutes: 10,
+        is_optional: false,
         action: () => console.log('Navigate to story')
       },
       {
@@ -235,6 +243,8 @@ export const useEnhancedJourneyProgress = () => {
         icon_name: 'users',
         tooltip_content: 'Browse matched caregivers',
         detailed_explanation: 'View and connect with potential caregivers',
+        time_estimate_minutes: 30,
+        is_optional: false,
         action: () => setShowCaregiverMatchingModal(true)
       },
       {
@@ -248,6 +258,8 @@ export const useEnhancedJourneyProgress = () => {
         icon_name: 'calendar',
         tooltip_content: 'Schedule your care assessment visit',
         detailed_explanation: 'Book a visit from our care coordinators',
+        time_estimate_minutes: 10,
+        is_optional: false,
         action: () => {
           if (visitDetails?.id) {
             setShowCancelVisitModal(true);
@@ -268,10 +280,28 @@ export const useEnhancedJourneyProgress = () => {
   const nextStep = steps_calculated.find(step => !step.completed && step.accessible);
   const currentStage = 'foundation'; // Default stage
 
-  // Mock paths for compatibility
+  // Create paths with proper JourneyPath interface properties
   const paths = [
-    { id: 'foundation', name: 'Foundation', steps: steps_calculated.filter(s => s.category === 'foundation') },
-    { id: 'scheduling', name: 'Scheduling', steps: steps_calculated.filter(s => s.category === 'scheduling') }
+    { 
+      id: 'foundation', 
+      name: 'Foundation', 
+      path_name: 'Foundation',
+      path_description: 'Set up your profile and care needs',
+      step_ids: steps_calculated.filter(s => s.category === 'foundation').map(s => s.id.toString()),
+      path_color: 'blue',
+      is_recommended: true,
+      steps: steps_calculated.filter(s => s.category === 'foundation') 
+    },
+    { 
+      id: 'scheduling', 
+      name: 'Scheduling', 
+      path_name: 'Scheduling',
+      path_description: 'Meet your care team and coordinate services',
+      step_ids: steps_calculated.filter(s => s.category === 'scheduling').map(s => s.id.toString()),
+      path_color: 'green',
+      is_recommended: false,
+      steps: steps_calculated.filter(s => s.category === 'scheduling') 
+    }
   ];
 
   const onVisitScheduled = (visitData: any) => {
@@ -289,7 +319,7 @@ export const useEnhancedJourneyProgress = () => {
     fetchUserData(); // Refresh data
   };
 
-  const trackStepAction = (stepId: number, action: string) => {
+  const trackStepAction = (stepId: string, action: string) => {
     console.log(`Step ${stepId} action: ${action}`);
   };
 
