@@ -12,6 +12,7 @@ import { FamilyShortcutMenuBar } from "@/components/family/FamilyShortcutMenuBar
 import { ProfessionalChatRequestsSection } from "@/components/family/ProfessionalChatRequestsSection";
 import { LeadCaptureModal } from "@/components/family/LeadCaptureModal";
 import { CaregiverMatchingModal } from "@/components/family/CaregiverMatchingModal";
+import { toast } from "sonner";
 
 const FamilyDashboard = () => {
   const { user } = useAuth();
@@ -57,6 +58,13 @@ const FamilyDashboard = () => {
   // Phase 1B: Handle skip from lead capture to caregiver matching
   const handleSkipToCaregiverMatching = () => {
     setShowCaregiverModal(true);
+  };
+
+  // Handler for Family Resources "Coming Soon" toast
+  const handleAccessResourcesClick = () => {
+    toast.info("Coming Soon", {
+      description: "Family resources and support tools are currently being developed and will be available soon."
+    });
   };
   
   const breadcrumbItems = [
@@ -137,7 +145,7 @@ const FamilyDashboard = () => {
                   <Button 
                     variant="outline" 
                     size="sm"
-                    onClick={() => handleLeadCaptureClick('family_dashboard_access_resources')}
+                    onClick={handleAccessResourcesClick}
                   >
                     Access Resources
                   </Button>
@@ -281,26 +289,14 @@ const FamilyDashboard = () => {
                 <p className="text-sm text-gray-600">Emergency contacts and procedures</p>
                 <p className="text-sm text-gray-600">Support group connections</p>
               </div>
-              {user ? (
-                <Link to="/family/resources">
-                  <Button 
-                    variant="default"
-                    className="w-full bg-primary hover:bg-primary-600 text-white"
-                  >
-                    Access Resources
-                    <ArrowRight className="ml-2 h-4 w-4" />
-                  </Button>
-                </Link>
-              ) : (
-                <Button 
-                  variant="default"
-                  className="w-full bg-primary hover:bg-primary-600 text-white"
-                  onClick={() => handleLeadCaptureClick('family_dashboard_access_resources')}
-                >
-                  Access Resources
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
-              )}
+              <Button 
+                variant="default"
+                className="w-full bg-primary hover:bg-primary-600 text-white"
+                onClick={handleAccessResourcesClick}
+              >
+                Access Resources
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
             </CardContent>
           </Card>
         </div>
