@@ -54,7 +54,18 @@ export const WhatsAppTemplateManager = () => {
         .order('created_at', { ascending: false });
       
       if (error) throw error;
-      setTemplates(data || []);
+      
+      // Map database fields to our interface
+      const mappedTemplates = (data || []).map(item => ({
+        id: item.id,
+        title: item.name,
+        message: item.message_template,
+        target_audience: item.role,
+        created_at: item.created_at,
+        updated_at: item.updated_at
+      }));
+      
+      setTemplates(mappedTemplates);
     } catch (error) {
       console.error('Error loading templates:', error);
       toast.error('Failed to load templates');
@@ -65,9 +76,18 @@ export const WhatsAppTemplateManager = () => {
 
   const handleCreate = async () => {
     try {
+      // Map our interface fields to database fields
+      const dbData = {
+        name: formData.title,
+        message_template: formData.message,
+        role: formData.target_audience,
+        message_type: 'admin_template_nudge',
+        stage: 'manual'
+      };
+      
       const { error } = await supabase
         .from('nudge_templates')
-        .insert([formData]);
+        .insert([dbData]);
       
       if (error) throw error;
       
@@ -85,9 +105,16 @@ export const WhatsAppTemplateManager = () => {
     if (!editingTemplate) return;
     
     try {
+      // Map our interface fields to database fields
+      const dbData = {
+        name: formData.title,
+        message_template: formData.message,
+        role: formData.target_audience
+      };
+      
       const { error } = await supabase
         .from('nudge_templates')
-        .update(formData)
+        .update(dbData)
         .eq('id', editingTemplate.id);
       
       if (error) throw error;
