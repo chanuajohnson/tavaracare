@@ -87,10 +87,10 @@ export function FamilyShortcutMenuBar() {
             </Link>
           )}
           
-          {/* Edit buttons for completed steps */}
+          {/* Edit buttons for completed steps - Updated with prefill parameters */}
           {showRegistrationEdit && (
             <Link 
-              to="/registration/family"
+              to="/registration/family?mode=edit&prefill=true"
               onClick={() => handleTrackButtonClick('navigation_click', 'edit_profile')}
             >
               <Button variant="outline" size="sm" className="flex items-center gap-1">

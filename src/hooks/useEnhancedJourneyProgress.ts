@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { supabase } from '@/lib/supabase';
@@ -698,8 +697,13 @@ export const useEnhancedJourneyProgress = (): JourneyProgressData => {
       case 1: // Account creation/profile edit
         navigate('/profile/edit');
         return;
-      case 2: // Complete registration
-        navigate('/registration/family');
+      case 2: // Complete registration - Updated with prefill logic
+        // If data exists, edit existing with prefill; otherwise create new
+        if (step.completed) {
+          navigate('/registration/family?mode=edit&prefill=true');
+        } else {
+          navigate('/registration/family');
+        }
         return;
       case 5: // Care assessment (step 5 in database)
         // If data exists, edit existing; otherwise create new
@@ -734,11 +738,26 @@ export const useEnhancedJourneyProgress = (): JourneyProgressData => {
           navigate('/family/care-management/create');
         }
         return;
-      case 10: // Schedule visit
-        setShowScheduleModal(true);
+      case 10: // Schedule initial visit
+        if (visitDetails) {
+          setShowCancelVisitModal(true);
+        } else {
+          setShowScheduleModal(true);
+        }
+        return;
+      case 11: // Schedule trial day
+        navigate('/family/schedule-trial');
+        return;
+      case 12: // Pay for trial day
+        navigate('/family/trial-payment');
+        return;
+      case 13: // Begin trial
+        navigate('/family/trial-start');
+        return;
+      case 14: // Choose care path
+        navigate('/family/care-model-selection');
         return;
       default:
-        // For other steps, use the link_path if available
         if (step.link_path) {
           navigate(step.link_path);
         }
@@ -747,7 +766,8 @@ export const useEnhancedJourneyProgress = (): JourneyProgressData => {
 
   // Calculate completion percentage
   const completedSteps = steps.filter(step => step.completed).length;
-  const completionPercentage = steps.length > 0 ? Math.round((completedSteps / steps.length) * 100) : 0;
+  const totalSteps = steps.length;
+  const completionPercentage = totalSteps > 0 ? Math.round((completedSteps / totalSteps) * 100) : 0;
 
   // Find next step
   const nextStep = steps.find(step => !step.completed && step.accessible);
