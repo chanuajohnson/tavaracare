@@ -18,6 +18,7 @@ import { getPrefillDataFromUrl, applyPrefillDataToForm } from '../../utils/chat/
 import { clearChatSessionData } from '../../utils/chat/chatSessionUtils';
 import { setAuthFlowFlag, AUTH_FLOW_FLAGS } from "@/utils/authFlowUtils";
 import { useAuth } from '@/components/providers/AuthProvider';
+import { TRINIDAD_TOBAGO_LOCATIONS } from '../../constants/locations';
 
 const FamilyRegistration = () => {
   const { user } = useAuth();
@@ -28,6 +29,7 @@ const FamilyRegistration = () => {
   const [lastName, setLastName] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [email, setEmail] = useState('');
+  const [location, setLocation] = useState('');
   const [address, setAddress] = useState('');
   
   const [careRecipientName, setCareRecipientName] = useState('');
@@ -48,13 +50,10 @@ const FamilyRegistration = () => {
   const formRef = useRef<HTMLFormElement>(null);
   const navigate = useNavigate();
 
-  // Load user data and pre-populate form
   useEffect(() => {
     if (user) {
-      // Pre-populate email from authenticated user
       setEmail(user.email || '');
       
-      // Pre-populate name from user metadata if available
       if (user.user_metadata) {
         const metadata = user.user_metadata;
         if (metadata.first_name) setFirstName(metadata.first_name);
@@ -104,6 +103,9 @@ const FamilyRegistration = () => {
         break;
       case 'email':
         setEmail(value);
+        break;
+      case 'location':
+        setLocation(value);
         break;
       case 'address':
         setAddress(value);
@@ -207,6 +209,7 @@ const FamilyRegistration = () => {
     if (!firstName) errors.push('First Name is required');
     if (!lastName) errors.push('Last Name is required');
     if (!phoneNumber) errors.push('Phone Number is required');
+    if (!location) errors.push('Location is required');
     if (!address) errors.push('Address is required');
     if (!careRecipientName) errors.push('Care Recipient Name is required');
     if (!relationship) errors.push('Relationship is required');
@@ -218,6 +221,15 @@ const FamilyRegistration = () => {
 
     if (careSchedule.length === 0) {
       errors.push('Please select at least one care schedule option');
+    }
+
+    // Budget & Caregiver Preferences validation
+    if (!budget) {
+      errors.push('Budget range is required');
+    }
+
+    if (!caregiverType) {
+      errors.push('Type of caregiver preferred is required');
     }
 
     setValidationErrors(errors);
@@ -293,6 +305,7 @@ const FamilyRegistration = () => {
         full_name: fullName,
         avatar_url: uploadedAvatarUrl,
         phone_number: phoneNumber,
+        location: location,
         address: address,
         role: 'family' as const,
         updated_at: new Date().toISOString(),
@@ -428,10 +441,28 @@ const FamilyRegistration = () => {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="address">Address *</Label>
+                <Label htmlFor="location">Location *</Label>
+                <Select value={location} onValueChange={setLocation} required>
+                  <SelectTrigger id="location" className={validationErrors.some(e => e.includes('Location')) ? 'border-red-500' : ''}>
+                    <SelectValue placeholder="Select your location" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white z-50">
+                    <div className="max-h-60 overflow-y-auto">
+                      {TRINIDAD_TOBAGO_LOCATIONS.map((location) => (
+                        <SelectItem key={location.value} value={location.value}>
+                          {location.label}
+                        </SelectItem>
+                      ))}
+                    </div>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="address">Specific Address *</Label>
                 <Textarea 
                   id="address" 
-                  placeholder="Your full address" 
+                  placeholder="Your specific address (street, building, etc.)" 
                   value={address} 
                   onChange={(e) => setAddress(e.target.value)}
                   required
@@ -817,22 +848,25 @@ const FamilyRegistration = () => {
             </CardContent>
           </Card>
 
-          {/* Budget & Caregiver Preferences */}
-          <Card className="mb-8">
+          {/* Budget & Caregiver Preferences - Now Required */}
+          <Card className={`mb-8 ${validationErrors.some(e => e.includes('Budget') || e.includes('caregiver')) ? 'border-red-500' : ''}`}>
             <CardHeader>
-              <CardTitle>Budget & Caregiver Preferences</CardTitle>
+              <CardTitle className="flex items-center gap-2">
+                Budget & Caregiver Preferences *
+                <span className="text-red-500">*Required</span>
+              </CardTitle>
               <CardDescription>
-                Share your budget and preferences for caregivers.
+                Share your budget and preferences for caregivers. These fields are required to help us match you with suitable caregivers.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="budget">Budget Range</Label>
-                <Select value={budget} onValueChange={setBudget}>
-                  <SelectTrigger id="budget">
+                <Label htmlFor="budget">Budget Range *</Label>
+                <Select value={budget} onValueChange={setBudget} required>
+                  <SelectTrigger id="budget" className={validationErrors.some(e => e.includes('Budget')) ? 'border-red-500' : ''}>
                     <SelectValue placeholder="Select your budget range" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="bg-white z-50">
                     <SelectItem value="under_15">Under $15/hour</SelectItem>
                     <SelectItem value="15_20">$15-$20/hour</SelectItem>
                     <SelectItem value="20_25">$20-$25/hour</SelectItem>
@@ -841,15 +875,18 @@ const FamilyRegistration = () => {
                     <SelectItem value="not_sure">Not sure yet</SelectItem>
                   </SelectContent>
                 </Select>
+                {validationErrors.some(e => e.includes('Budget')) && (
+                  <p className="text-sm text-red-600 mt-1">Budget range is required</p>
+                )}
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="caregiverType">Type of Caregiver Preferred</Label>
-                <Select value={caregiverType} onValueChange={setCaregiverType}>
-                  <SelectTrigger id="caregiverType">
+                <Label htmlFor="caregiverType">Type of Caregiver Preferred *</Label>
+                <Select value={caregiverType} onValueChange={setCaregiverType} required>
+                  <SelectTrigger id="caregiverType" className={validationErrors.some(e => e.includes('caregiver')) ? 'border-red-500' : ''}>
                     <SelectValue placeholder="Select caregiver type" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="bg-white z-50">
                     <SelectItem value="professional">👩‍⚕️ Professional Caregiver (trained, experienced)</SelectItem>
                     <SelectItem value="nurse">🏥 Nurse (RN or LPN)</SelectItem>
                     <SelectItem value="companion">👥 Companion Caregiver (non-medical)</SelectItem>
@@ -857,6 +894,9 @@ const FamilyRegistration = () => {
                     <SelectItem value="no_preference">🤷 No specific preference</SelectItem>
                   </SelectContent>
                 </Select>
+                {validationErrors.some(e => e.includes('caregiver')) && (
+                  <p className="text-sm text-red-600 mt-1">Type of caregiver preferred is required</p>
+                )}
               </div>
 
               <div className="space-y-2">
