@@ -1,4 +1,3 @@
-
 import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
@@ -12,6 +11,7 @@ import { FamilyReadinessChecker } from "@/components/family/FamilyReadinessCheck
 import { FamilyShortcutMenuBar } from "@/components/family/FamilyShortcutMenuBar";
 import { ProfessionalChatRequestsSection } from "@/components/family/ProfessionalChatRequestsSection";
 import { LeadCaptureModal } from "@/components/family/LeadCaptureModal";
+import { CaregiverMatchingModal } from "@/components/family/CaregiverMatchingModal";
 
 const FamilyDashboard = () => {
   const { user } = useAuth();
@@ -20,6 +20,9 @@ const FamilyDashboard = () => {
   // Phase 1A: Lead Capture Modal state
   const [showLeadCaptureModal, setShowLeadCaptureModal] = useState(false);
   const [leadCaptureSource, setLeadCaptureSource] = useState('');
+  
+  // Phase 1B: Caregiver Matching Modal state
+  const [showCaregiverModal, setShowCaregiverModal] = useState(false);
   
   // Ensure dashboard always loads at the top with enhanced scroll behavior
   useEffect(() => {
@@ -44,6 +47,16 @@ const FamilyDashboard = () => {
   const handleLeadCaptureClick = (source: string) => {
     setLeadCaptureSource(source);
     setShowLeadCaptureModal(true);
+  };
+  
+  // Phase 1B: Handle caregiver matching modal trigger
+  const handleCaregiverMatchingClick = () => {
+    setShowCaregiverModal(true);
+  };
+  
+  // Phase 1B: Handle skip from lead capture to caregiver matching
+  const handleSkipToCaregiverMatching = () => {
+    setShowCaregiverModal(true);
   };
   
   const breadcrumbItems = [
@@ -359,10 +372,15 @@ const FamilyDashboard = () => {
           open={showLeadCaptureModal}
           onOpenChange={setShowLeadCaptureModal}
           source={leadCaptureSource}
-          onSkipToCaregiverMatching={() => {
-            // This will be handled by the hook state in the parent page
-            console.log('Skip to caregiver matching from lead capture');
-          }}
+          onSkipToCaregiverMatching={handleSkipToCaregiverMatching}
+        />
+
+        {/* Phase 1B: Caregiver Matching Modal */}
+        <CaregiverMatchingModal
+          open={showCaregiverModal}
+          onOpenChange={setShowCaregiverModal}
+          referringPagePath="/dashboard/family"
+          referringPageLabel="Family Dashboard"
         />
       </div>
     </div>

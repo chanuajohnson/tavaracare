@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -36,112 +35,37 @@ export const CaregiverMatchingModal = ({
   const [showChatModal, setShowChatModal] = useState(false);
   const { caregivers, isLoading: caregiverLoading, dataLoaded } = useCaregiverMatches(true);
 
-  // Enhanced DEBUG logging
-  console.log('[CaregiverMatchingModal] RENDER - Props received:', {
-    open,
-    referringPagePath,
-    referringPageLabel,
-    timestamp: new Date().toISOString()
-  });
-
-  console.log('[CaregiverMatchingModal] RENDER - Internal state:', {
-    isLoading,
-    currentMessageIndex,
-    showChatModal,
-    caregiverLoading,
-    dataLoaded,
-    caregiversCount: caregivers.length
-  });
-
-  // Simplified loading effect - reduce from 4.5s to 2s for faster testing
   useEffect(() => {
-    console.log('[CaregiverMatchingModal] EFFECT - Modal open changed:', { open, wasOpen: !open });
-    
     if (open) {
-      console.log('[CaregiverMatchingModal] EFFECT - Modal opening, initializing...');
+      console.log('CaregiverMatchingModal opened');
       setIsLoading(true);
       setCurrentMessageIndex(0);
       
-      // Simplified message cycling - faster for debugging
+      // Cycle through magical messages every 1.5 seconds
       const messageInterval = setInterval(() => {
-        setCurrentMessageIndex(prev => {
-          const newIndex = (prev + 1) % MAGICAL_MESSAGES.length;
-          console.log('[CaregiverMatchingModal] EFFECT - Message cycle:', { prev, newIndex });
-          return newIndex;
-        });
-      }, 800); // Faster cycling
+        setCurrentMessageIndex(prev => (prev + 1) % MAGICAL_MESSAGES.length);
+      }, 1500);
 
-      // Reduced loading time for debugging
+      // Show the magical loading for 4.5 seconds total (3 messages) - SAME AS PAGE
       const loadingTimer = setTimeout(() => {
-        console.log('[CaregiverMatchingModal] EFFECT - Loading timer completed, showing content');
         setIsLoading(false);
-      }, 2000); // Reduced from 4500ms
+        console.log('CaregiverMatchingModal loading complete');
+      }, 4500);
 
       return () => {
-        console.log('[CaregiverMatchingModal] EFFECT - Cleanup intervals and timers');
         clearInterval(messageInterval);
         clearTimeout(loadingTimer);
       };
-    } else {
-      console.log('[CaregiverMatchingModal] EFFECT - Modal closed, resetting state');
-      setIsLoading(true);
-      setCurrentMessageIndex(0);
     }
   }, [open]);
 
   const bestMatch = caregivers[0];
   const currentMessage = MAGICAL_MESSAGES[currentMessageIndex];
 
-  console.log('[CaregiverMatchingModal] RENDER - Computed values:', {
-    bestMatch: bestMatch ? { id: bestMatch.id, name: bestMatch.full_name } : null,
-    currentMessage: currentMessage?.text
-  });
-
-  console.log('[CaregiverMatchingModal] RENDER - About to render Dialog with open:', open);
-
-  // Add visual confirmation that component is rendering
-  if (open) {
-    console.log('🚨 MODAL SHOULD BE VISIBLE NOW - open=true');
-  }
-
   return (
     <>
-      <Dialog 
-        open={open} 
-        onOpenChange={(newOpen) => {
-          console.log('[CaregiverMatchingModal] DIALOG - onOpenChange called:', { newOpen, currentOpen: open });
-          onOpenChange(newOpen);
-        }}
-      >
-        <DialogContent 
-          className="max-w-4xl max-h-[90vh] overflow-y-auto bg-white border-4 border-red-500"
-          style={{ 
-            zIndex: 99999, // Much higher z-index
-            position: 'fixed',
-            backgroundColor: 'white',
-            border: '4px solid red' // Make it very visible
-          }}
-          onOpenAutoFocus={() => console.log('[CaregiverMatchingModal] DIALOG - Auto focus triggered')}
-          onCloseAutoFocus={() => console.log('[CaregiverMatchingModal] DIALOG - Close auto focus triggered')}
-        >
-          {/* DEBUG: Visual indicator that modal is rendering */}
-          <div style={{ 
-            position: 'absolute', 
-            top: 0, 
-            left: 0, 
-            width: '100%', 
-            height: '20px', 
-            backgroundColor: 'lime', 
-            zIndex: 100000,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: '12px',
-            fontWeight: 'bold'
-          }}>
-            🟢 MODAL IS RENDERING - open={open ? 'TRUE' : 'FALSE'}
-          </div>
-          
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-gray-50">
           <MatchingTracker 
             matchingType="caregiver" 
             additionalData={{
@@ -151,7 +75,7 @@ export const CaregiverMatchingModal = ({
             }}
           />
           
-          <DialogHeader className="space-y-4 mt-6">
+          <DialogHeader className="space-y-4">
             <DialogTitle className="text-2xl font-bold text-primary-900">
               Your Caregiver Match
             </DialogTitle>
@@ -160,7 +84,7 @@ export const CaregiverMatchingModal = ({
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-6 p-4">
+          <div className="space-y-6">
             <AnimatePresence mode="wait">
               {isLoading ? (
                 <motion.div
@@ -386,45 +310,43 @@ export const CaregiverMatchingModal = ({
                     </motion.div>
                   ) : (
                     <div className="text-center py-6">
-                      <p className="text-gray-500 mb-4">
-                        <div className="text-center py-6">
-                          <div className="max-w-md mx-auto space-y-4">
-                            <h3 className="text-lg font-semibold text-gray-800 mb-4">
-                              To get matched with the right caregiver for your family:
-                            </h3>
-                            
-                            <div className="text-left space-y-3">
-                              <div className="flex items-start gap-3">
-                                <div className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
-                                <p className="text-gray-600">
-                                  <span className="font-medium">Complete your family profile</span> – so we can understand your real care needs and what matters most.
-                                </p>
-                              </div>
-                              
-                              <div className="flex items-start gap-3">
-                                <div className="w-2 h-2 bg-purple-500 rounded-full mt-2 flex-shrink-0"></div>
-                                <p className="text-gray-600 text-sm italic">
-                                  (You may need to register or log in first.)
-                                </p>
-                              </div>
-                            </div>
-                            
-                            <div className="mt-6 p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg border border-blue-200">
-                              <div className="flex items-start gap-2">
-                                <span className="text-xl">💫</span>
-                                <div className="text-left">
-                                  <p className="text-sm font-medium text-gray-800 mb-1">
-                                    The more complete your profile, the better your matches.
-                                  </p>
-                                  <p className="text-sm text-gray-600">
-                                    Care is personal—let's make sure your matches are too.
-                                  </p>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      </p>
+                      <p className="text-gray-500 mb-4"> <div className="text-center py-6">
+  <div className="max-w-md mx-auto space-y-4">
+    <h3 className="text-lg font-semibold text-gray-800 mb-4">
+      To get matched with the right caregiver for your family:
+    </h3>
+    
+    <div className="text-left space-y-3">
+      <div className="flex items-start gap-3">
+        <div className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
+        <p className="text-gray-600">
+          <span className="font-medium">Complete your family profile</span> – so we can understand your real care needs and what matters most.
+        </p>
+      </div>
+      
+      <div className="flex items-start gap-3">
+        <div className="w-2 h-2 bg-purple-500 rounded-full mt-2 flex-shrink-0"></div>
+        <p className="text-gray-600 text-sm italic">
+          (You may need to register or log in first.)
+        </p>
+      </div>
+    </div>
+    
+    <div className="mt-6 p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg border border-blue-200">
+      <div className="flex items-start gap-2">
+        <span className="text-xl">💫</span>
+        <div className="text-left">
+          <p className="text-sm font-medium text-gray-800 mb-1">
+            The more complete your profile, the better your matches.
+          </p>
+          <p className="text-sm text-gray-600">
+            Care is personal—let's make sure your matches are too.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div></p>
                     </div>
                   )}
 
