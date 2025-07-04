@@ -25,7 +25,7 @@ export const useChatButtonState = (caregiverId: string) => {
   });
 
   useEffect(() => {
-    console.log(`[useChatButtonState] Button state update for caregiver: ${caregiverId}`);
+    console.log(`[useChatButtonState] State update for caregiver: ${caregiverId}`);
     console.log(`[useChatButtonState] Chat state:`, chatState);
     console.log(`[useChatButtonState] Persistence loading:`, persistenceLoading);
 
@@ -42,6 +42,7 @@ export const useChatButtonState = (caregiverId: string) => {
 
     if (!chatState || !chatState.hasStartedChat) {
       // No chat started yet
+      console.log('[useChatButtonState] No active chat - showing start button');
       setButtonState({
         buttonText: 'Start Guided Chat',
         isDisabled: false,
@@ -53,6 +54,8 @@ export const useChatButtonState = (caregiverId: string) => {
     }
 
     // Chat exists, show split button based on stage
+    console.log(`[useChatButtonState] Active chat found - stage: ${chatState.currentStage}`);
+    
     switch (chatState.currentStage) {
       case 'introduction':
       case 'interest_expression':

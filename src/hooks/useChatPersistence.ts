@@ -23,59 +23,104 @@ export const useChatPersistence = (caregiverId: string) => {
   const loadChatState = async () => {
     try {
       setIsLoading(true);
+      console.log(`[ChatPersistence] Loading state for caregiver: ${caregiverId}`);
       
-      // First check localStorage for session state
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        console.log('[ChatPersistence] No authenticated user found');
+        setIsLoading(false);
+        return;
+      }
+
+      console.log(`[ChatPersistence] User ID: ${user.id}, Caregiver ID: ${caregiverId}`);
+
+      // First, query chat requests for this family-caregiver pair
+      const { data: chatRequests, error: requestError } = await supabase
+        .from('caregiver_chat_requests')
+        .select('*')
+        .eq('family_user_id', user.id)
+        .eq('caregiver_id', caregiverId)
+        .order('created_at', { ascending: false });
+
+      if (requestError) {
+        console.error('[ChatPersistence] Error fetching chat requests:', requestError);
+        setIsLoading(false);
+        return;
+      }
+
+      console.log(`[ChatPersistence] Found ${chatRequests?.length || 0} chat requests:`, chatRequests);
+
+      // Find the most recent non-cancelled request
+      const activeRequest = chatRequests?.find(req => req.status !== 'cancelled');
+      
+      if (!activeRequest) {
+        console.log('[ChatPersistence] No active chat requests found');
+        setIsLoading(false);
+        return;
+      }
+
+      console.log('[ChatPersistence] Active request found:', activeRequest);
+
+      // Now look for conversation flows related to this request
+      const { data: conversationFlows, error: flowError } = await supabase
+        .from('chat_conversation_flows')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (flowError) {
+        console.error('[ChatPersistence] Error fetching conversation flows:', flowError);
+      }
+
+      console.log(`[ChatPersistence] Found ${conversationFlows?.length || 0} conversation flows:`, conversationFlows);
+
+      // Try to find a conversation flow that matches this chat request
+      // Check both session_id from localStorage and stage_data for chatRequestId
       const localKey = `chat_state_${caregiverId}`;
       const localState = localStorage.getItem(localKey);
       let parsedLocalState = null;
       
       if (localState) {
         parsedLocalState = JSON.parse(localState);
-        console.log('[ChatPersistence] Loaded from localStorage:', parsedLocalState);
+        console.log('[ChatPersistence] Local state found:', parsedLocalState);
       }
 
-      // Check database for any existing chat requests
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      // Query both chat requests and conversation flows
-      const [requestResult, flowResult] = await Promise.all([
-        supabase
-          .from('caregiver_chat_requests')
-          .select('*')
-          .eq('family_user_id', user.id)
-          .eq('caregiver_id', caregiverId)
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .maybeSingle(),
-        supabase
-          .from('chat_conversation_flows')
-          .select('*')
-          .eq('session_id', parsedLocalState?.sessionId || '')
-          .maybeSingle()
-      ]);
-
-      const existingRequest = requestResult.data;
-      const existingFlow = flowResult.data;
-
-      console.log('[ChatPersistence] Database state:', { existingRequest, existingFlow });
-
-      if (existingRequest || existingFlow || parsedLocalState) {
-        const persistedState: ChatState = {
-          sessionId: parsedLocalState?.sessionId || existingFlow?.session_id || crypto.randomUUID(),
-          caregiverId,
-          currentStage: existingFlow?.current_stage || 
-                       (existingRequest?.status === 'pending' ? 'waiting_acceptance' : 
-                        existingRequest?.status === 'accepted' ? 'guided_qa' : 'introduction'),
-          hasStartedChat: !!(existingRequest || existingFlow || parsedLocalState?.hasStartedChat),
-          chatRequestId: existingRequest?.id || parsedLocalState?.chatRequestId,
-          conversationFlowId: existingFlow?.id
-        };
-        
-        setChatState(persistedState);
-        localStorage.setItem(localKey, JSON.stringify(persistedState));
-        console.log('[ChatPersistence] Synced with database:', persistedState);
+      let matchingFlow = null;
+      
+      if (parsedLocalState?.sessionId) {
+        // First try to match by session_id
+        matchingFlow = conversationFlows?.find(flow => flow.session_id === parsedLocalState.sessionId);
+        console.log('[ChatPersistence] Matched flow by session_id:', matchingFlow);
       }
+      
+      if (!matchingFlow) {
+        // Try to match by stage_data containing chat request info
+        matchingFlow = conversationFlows?.find(flow => {
+          const stageData = flow.stage_data || {};
+          return stageData.chatRequestId === activeRequest.id || 
+                 stageData.caregiverId === caregiverId;
+        });
+        console.log('[ChatPersistence] Matched flow by stage_data:', matchingFlow);
+      }
+
+      // Reconstruct chat state from database findings
+      const reconstructedState: ChatState = {
+        sessionId: matchingFlow?.session_id || parsedLocalState?.sessionId || crypto.randomUUID(),
+        caregiverId,
+        currentStage: matchingFlow?.current_stage || 
+                     (activeRequest.status === 'pending' ? 'waiting_acceptance' : 
+                      activeRequest.status === 'accepted' ? 'guided_qa' : 'introduction'),
+        hasStartedChat: true, // We found an active request, so chat has started
+        chatRequestId: activeRequest.id,
+        conversationFlowId: matchingFlow?.id
+      };
+
+      console.log('[ChatPersistence] Reconstructed state:', reconstructedState);
+      
+      setChatState(reconstructedState);
+      
+      // Update localStorage with reconstructed state
+      localStorage.setItem(localKey, JSON.stringify(reconstructedState));
+      
     } catch (error) {
       console.error('[ChatPersistence] Error loading chat state:', error);
     } finally {
@@ -101,7 +146,12 @@ export const useChatPersistence = (caregiverId: string) => {
   const cancelChatRequest = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user || !chatState?.chatRequestId) return { success: false, error: 'No active chat request to cancel' };
+      if (!user || !chatState?.chatRequestId) {
+        console.error('[ChatPersistence] Cannot cancel - missing user or chat request ID');
+        return { success: false, error: 'No active chat request to cancel' };
+      }
+
+      console.log(`[ChatPersistence] Cancelling chat request: ${chatState.chatRequestId}`);
 
       // Update the chat request status to cancelled
       const { error } = await supabase

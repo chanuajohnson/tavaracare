@@ -38,6 +38,10 @@ export const CaregiverMatchCard = ({
 }: CaregiverMatchCardProps) => {
   const { buttonState, hasActiveChat, cancelChatRequest } = useChatButtonState(caregiver.id);
 
+  console.log(`[CaregiverMatchCard] Rendering for caregiver: ${caregiver.id}`);
+  console.log(`[CaregiverMatchCard] Button state:`, buttonState);
+  console.log(`[CaregiverMatchCard] Has active chat: ${hasActiveChat}`);
+
   const handleChatClick = () => {
     console.log(`[CaregiverMatchCard] Chat button clicked for caregiver: ${caregiver.id}`);
     console.log(`[CaregiverMatchCard] Has active chat: ${hasActiveChat}, Button state:`, buttonState);
