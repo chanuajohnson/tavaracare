@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { MessageSquare, Users, Send, Loader2 } from "lucide-react";
 import { supabase } from '@/lib/supabase';
 import { toast } from "sonner";
+import { UserRole } from '@/utils/supabaseTypes';
 
 interface User {
   id: string;
@@ -50,9 +51,9 @@ export const SendNudgeModal = ({ open, onOpenChange, template }: SendNudgeModalP
         .select('id, full_name, phone_number, role')
         .not('phone_number', 'is', null);
 
-      // Filter by target audience
+      // Filter by target audience with proper type casting
       if (template.target_audience && template.target_audience !== 'all') {
-        query = query.eq('role', template.target_audience);
+        query = query.eq('role', template.target_audience as UserRole);
       }
 
       const { data, error } = await query;

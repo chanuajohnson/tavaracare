@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -46,8 +47,9 @@ export const WhatsAppTemplateManager = () => {
 
   const loadTemplates = async () => {
     try {
+      // Use the correct table name: nudge_templates
       const { data, error } = await supabase
-        .from('whatsapp_message_templates')
+        .from('nudge_templates')
         .select('*')
         .order('created_at', { ascending: false });
       
@@ -64,7 +66,7 @@ export const WhatsAppTemplateManager = () => {
   const handleCreate = async () => {
     try {
       const { error } = await supabase
-        .from('whatsapp_message_templates')
+        .from('nudge_templates')
         .insert([formData]);
       
       if (error) throw error;
@@ -84,7 +86,7 @@ export const WhatsAppTemplateManager = () => {
     
     try {
       const { error } = await supabase
-        .from('whatsapp_message_templates')
+        .from('nudge_templates')
         .update(formData)
         .eq('id', editingTemplate.id);
       
@@ -106,7 +108,7 @@ export const WhatsAppTemplateManager = () => {
     
     try {
       const { error } = await supabase
-        .from('whatsapp_message_templates')
+        .from('nudge_templates')
         .delete()
         .eq('id', templateToDelete);
       
