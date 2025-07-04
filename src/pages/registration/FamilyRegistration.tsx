@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { v4 as uuidv4 } from 'uuid';
+import { useAuth } from '@/components/providers/AuthProvider';
 import { supabase, ensureStorageBuckets, ensureAuthContext } from '../../lib/supabase';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
 import { Input } from '../../components/ui/input';
@@ -13,14 +14,14 @@ import { Avatar, AvatarFallback, AvatarImage } from '../../components/ui/avatar'
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { PageViewTracker } from "@/components/tracking/PageViewTracker";
 import { toast } from 'sonner';
-import { Calendar, Sun, Moon, Clock } from "lucide-react";
+import { Calendar, Sun, Moon, Clock, Loader2 } from "lucide-react";
 import { getPrefillDataFromUrl, applyPrefillDataToForm } from '../../utils/chat/prefillReader';
 import { clearChatSessionData } from '../../utils/chat/chatSessionUtils';
 import { setAuthFlowFlag, AUTH_FLOW_FLAGS } from "@/utils/authFlowUtils";
-import { useAuth } from '@/components/providers/AuthProvider';
+import { TRINIDAD_TOBAGO_LOCATIONS } from '../../constants/locations';
 
 const FamilyRegistration = () => {
-  const { user, isLoading } = useAuth();
+  const { user, isLoading: authLoading } = useAuth();
   const [loading, setLoading] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
@@ -44,13 +45,18 @@ const FamilyRegistration = () => {
   
   const [prefillApplied, setPrefillApplied] = useState(false);
   const [shouldAutoSubmit, setShouldAutoSubmit] = useState(false);
+  const [userDataPopulated, setUserDataPopulated] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
   const navigate = useNavigate();
 
-  // Check for auto-redirect flag from chat
+  // Check for edit mode
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
+    const editMode = urlParams.get('edit') === 'true';
     const sessionId = urlParams.get('session');
+    
+    setIsEditMode(editMode);
     
     if (sessionId) {
       const shouldAutoRedirect = localStorage.getItem(`tavara_chat_auto_redirect_${sessionId}`);
@@ -62,42 +68,133 @@ const FamilyRegistration = () => {
   }, []);
 
   useEffect(() => {
-    // Prevent auth redirection by setting specific flag for registration
     setAuthFlowFlag(AUTH_FLOW_FLAGS.SKIP_REGISTRATION_REDIRECT);
     
-    // Clean up on unmount
     return () => {
       sessionStorage.removeItem(AUTH_FLOW_FLAGS.SKIP_REGISTRATION_REDIRECT);
     };
   }, []);
 
-  // Pre-populate user information from auth context
-  useEffect(() => {
-    if (user && !prefillApplied) {
-      console.log('Pre-populating user data from auth context:', user);
+  // Fetch complete profile data for edit mode
+  const fetchCompleteProfileData = async () => {
+    if (!user?.id) return;
+
+    try {
+      console.log('Fetching complete profile data for edit mode...');
       
-      // Extract first name and last name from user metadata
-      const firstName = user.user_metadata?.first_name || user.user_metadata?.firstName || '';
-      const lastName = user.user_metadata?.last_name || user.user_metadata?.lastName || '';
-      
-      // If we have a full_name but no separate first/last, try to split it
-      if (!firstName && !lastName && user.user_metadata?.full_name) {
-        const nameParts = user.user_metadata.full_name.split(' ');
-        setFirstName(nameParts[0] || '');
-        setLastName(nameParts.slice(1).join(' ') || '');
-      } else {
-        setFirstName(firstName);
-        setLastName(lastName);
+      const { data: profile, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+
+      if (error) {
+        console.error('Error fetching profile:', error);
+        toast.error('Failed to load profile data');
+        return;
       }
-      
-      // Pre-populate email
-      if (user.email) {
-        setEmail(user.email);
+
+      if (profile) {
+        console.log('Profile data loaded:', profile);
+        
+        // Populate basic info
+        if (profile.full_name) {
+          const nameParts = profile.full_name.split(' ');
+          setFirstName(nameParts[0] || '');
+          setLastName(nameParts.slice(1).join(' ') || '');
+        }
+        
+        setPhoneNumber(profile.phone_number || '');
+        setAddress(profile.address || '');
+        
+        // Populate care recipient info
+        setCareRecipientName(profile.care_recipient_name || '');
+        setRelationship(profile.relationship || '');
+        
+        // Populate care needs
+        if (profile.care_types && Array.isArray(profile.care_types)) {
+          setCareTypes(profile.care_types);
+        }
+        if (profile.special_needs && Array.isArray(profile.special_needs)) {
+          setSpecialNeeds(profile.special_needs);
+        }
+        
+        // Populate schedule - use custom_schedule instead of custom_care_schedule
+        if (profile.care_schedule) {
+          const scheduleArray = typeof profile.care_schedule === 'string' 
+            ? profile.care_schedule.split(',').map(s => s.trim())
+            : profile.care_schedule;
+          setCareSchedule(scheduleArray);
+        }
+        setCustomCareSchedule(profile.custom_schedule || '');
+        
+        // Populate preferences
+        setBudget(profile.budget_preferences || '');
+        setCaregiverType(profile.caregiver_type || '');
+        setCaregiverPreferences(profile.caregiver_preferences || '');
+        setAdditionalNotes(profile.additional_notes || '');
+        setPreferredContactMethod(profile.preferred_contact_method || '');
+        
+        // Set avatar
+        setAvatarUrl(profile.avatar_url || null);
+        
+        console.log('Profile data successfully populated in form');
       }
-      
-      toast.success('Your profile information has been pre-filled from your account');
+    } catch (error) {
+      console.error('Error in fetchCompleteProfileData:', error);
+      toast.error('Failed to load profile data');
     }
-  }, [user, prefillApplied]);
+  };
+
+  // User data population - handles both edit mode and new registration
+  useEffect(() => {
+    if (user && !userDataPopulated) {
+      console.log('User data population triggered, isEditMode:', isEditMode);
+      
+      if (isEditMode) {
+        // Edit mode: fetch complete profile data
+        fetchCompleteProfileData();
+      } else {
+        // New registration: use auth metadata
+        console.log('Pre-populating user data from auth metadata:', user);
+        
+        if (user.email) {
+          setEmail(user.email);
+        }
+        
+        if (user.user_metadata) {
+          const metadata = user.user_metadata;
+          
+          const possibleFirstNames = ['first_name', 'firstName', 'given_name'];
+          const possibleLastNames = ['last_name', 'lastName', 'family_name', 'surname'];
+          
+          for (const field of possibleFirstNames) {
+            if (metadata[field]) {
+              setFirstName(metadata[field]);
+              break;
+            }
+          }
+          
+          for (const field of possibleLastNames) {
+            if (metadata[field]) {
+              setLastName(metadata[field]);
+              break;
+            }
+          }
+          
+          if (!firstName && !lastName && metadata.full_name) {
+            const nameParts = metadata.full_name.split(' ');
+            if (nameParts.length >= 2) {
+              setFirstName(nameParts[0]);
+              setLastName(nameParts.slice(1).join(' '));
+            }
+          }
+        }
+      }
+      
+      setUserDataPopulated(true);
+    }
+  }, [user, userDataPopulated, isEditMode, firstName, lastName]);
 
   const setFormValue = (field: string, value: any) => {
     console.log(`Setting form field ${field} to:`, value);
@@ -140,7 +237,6 @@ const FamilyRegistration = () => {
         setAdditionalNotes(value);
         break;
       default:
-        // Handle array fields
         if (field === 'care_types' && Array.isArray(value)) {
           setCareTypes(value);
         } else if (field === 'special_needs' && Array.isArray(value)) {
@@ -152,9 +248,9 @@ const FamilyRegistration = () => {
     }
   };
 
-  // Apply prefill data when available
+  // Apply prefill data when available (only for new registrations, not edit mode)
   useEffect(() => {
-    if (!prefillApplied) {
+    if (!prefillApplied && !isEditMode) {
       console.log('Checking for prefill data...');
       
       const hasPrefill = applyPrefillDataToForm(
@@ -188,7 +284,7 @@ const FamilyRegistration = () => {
       
       setPrefillApplied(true);
     }
-  }, [prefillApplied, shouldAutoSubmit, user]);
+  }, [prefillApplied, shouldAutoSubmit, user, isEditMode]);
 
   const handleCareScheduleChange = (value: string) => {
     setCareSchedule(prev => {
@@ -217,10 +313,20 @@ const FamilyRegistration = () => {
     setLoading(true);
 
     try {
-      if (!user?.id) {
-        toast.error('You must be signed in to complete registration');
+      const contextValid = await ensureAuthContext();
+      if (!contextValid) {
+        throw new Error('Authentication context could not be established');
+      }
+      
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError || !sessionData.session) {
+        toast.error('Your session has expired. Please sign in again.');
         navigate('/auth');
         return;
+      }
+      
+      if (!user?.id) {
+        throw new Error('User ID is missing. Please sign in again.');
       }
       
       if (!firstName || !lastName || !phoneNumber || !address || !careRecipientName || !relationship) {
@@ -273,7 +379,7 @@ const FamilyRegistration = () => {
         care_types: careTypes || [],
         special_needs: specialNeeds || [],
         care_schedule: careSchedule.length > 0 ? careSchedule.join(',') : '',
-        custom_schedule: customCareSchedule || '', // Fixed: changed from custom_care_schedule to custom_schedule
+        custom_care_schedule: customCareSchedule || '',
         budget_preferences: budget || '',
         caregiver_type: caregiverType || '',
         caregiver_preferences: caregiverPreferences || '',
@@ -290,20 +396,17 @@ const FamilyRegistration = () => {
       
       if (error) throw error;
       
-      // Get session ID from URL to clear specific flags
       const urlParams = new URLSearchParams(window.location.search);
       const sessionId = urlParams.get('session');
       
-      // Clear chat session data including auto-redirect flag
       clearChatSessionData(sessionId || undefined);
       
-      // Also clear the auto-redirect flag specifically
       if (sessionId) {
         localStorage.removeItem(`tavara_chat_auto_redirect_${sessionId}`);
         localStorage.removeItem(`tavara_chat_transition_${sessionId}`);
       }
 
-      toast.success('Registration Complete! Your family profile has been updated.');
+      toast.success(isEditMode ? 'Profile Updated Successfully!' : 'Registration Complete! Your family profile has been updated.');
       
       navigate('/dashboard/family');
     } catch (error: any) {
@@ -314,22 +417,29 @@ const FamilyRegistration = () => {
     }
   };
 
-  // Show loading state while auth is resolving
-  if (isLoading) {
+  if (authLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary mx-auto"></div>
-          <p className="mt-4 text-lg">Loading your profile...</p>
+          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+          <p className="text-gray-600">Loading your account...</p>
         </div>
       </div>
     );
   }
 
-  // Redirect to auth if not authenticated
   if (!user) {
-    navigate('/auth');
-    return null;
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center max-w-md mx-auto p-6">
+          <h1 className="text-2xl font-bold mb-4">Authentication Required</h1>
+          <p className="text-gray-600 mb-6">You must be logged in to complete your family registration.</p>
+          <Button onClick={() => navigate('/auth')}>
+            Sign In
+          </Button>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -342,14 +452,19 @@ const FamilyRegistration = () => {
       <DashboardHeader 
         breadcrumbItems={[
           { label: "Family Dashboard", path: "/dashboard/family" },
-          { label: "Family Registration", path: "/registration/family" }
+          { label: isEditMode ? "Edit Profile" : "Family Registration", path: "/registration/family" }
         ]} 
       />
       
       <div className="container max-w-4xl py-10">
-        <h1 className="text-3xl font-bold mb-6">Family Care Registration</h1>
+        <h1 className="text-3xl font-bold mb-6">
+          {isEditMode ? 'Edit Family Profile' : 'Family Care Registration'}
+        </h1>
         <p className="text-gray-500 mb-8">
-          Complete your family profile to find the right caregiver for your loved one.
+          {isEditMode 
+            ? 'Update your family profile information and care needs.'
+            : 'Complete your family profile to find the right caregiver for your loved one.'
+          }
         </p>
 
         <form ref={formRef} onSubmit={handleSubmit} className="space-y-6">
@@ -402,15 +517,19 @@ const FamilyRegistration = () => {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="address">Address *</Label>
-                <Textarea 
-                  id="address" 
-                  placeholder="Your full address" 
-                  value={address} 
-                  onChange={(e) => setAddress(e.target.value)}
-                  required
-                  rows={3}
-                />
+                <Label htmlFor="address">Location *</Label>
+                <Select value={address} onValueChange={setAddress} required>
+                  <SelectTrigger id="address">
+                    <SelectValue placeholder="Select your location" />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-96">
+                    {TRINIDAD_TOBAGO_LOCATIONS.map((location) => (
+                      <SelectItem key={location.value} value={location.value}>
+                        {location.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </CardContent>
           </Card>
@@ -557,22 +676,22 @@ const FamilyRegistration = () => {
                       </div>
                       <div className="flex items-start space-x-2">
                         <Checkbox 
-                          id="weekday-early" 
-                          checked={careSchedule.includes('mon_fri_6am_2pm')}
-                          onCheckedChange={() => handleCareScheduleChange('mon_fri_6am_2pm')}
+                          id="weekday-extended-8-6" 
+                          checked={careSchedule.includes('mon_fri_8am_6pm')}
+                          onCheckedChange={() => handleCareScheduleChange('mon_fri_8am_6pm')}
                         />
-                        <Label htmlFor="weekday-early" className="font-normal">
-                          🌅 Monday – Friday, 6 AM – 2 PM (Early morning coverage)
+                        <Label htmlFor="weekday-extended-8-6" className="font-normal">
+                          🕕 Monday – Friday, 8 AM – 6 PM (Extended daytime coverage)
                         </Label>
                       </div>
                       <div className="flex items-start space-x-2">
                         <Checkbox 
-                          id="weekday-late" 
-                          checked={careSchedule.includes('mon_fri_12pm_8pm')}
-                          onCheckedChange={() => handleCareScheduleChange('mon_fri_12pm_8pm')}
+                          id="weekday-extended-6-6" 
+                          checked={careSchedule.includes('mon_fri_6am_6pm')}
+                          onCheckedChange={() => handleCareScheduleChange('mon_fri_6am_6pm')}
                         />
-                        <Label htmlFor="weekday-late" className="font-normal">
-                          🌇 Monday – Friday, 12 PM – 8 PM (Late afternoon coverage)
+                        <Label htmlFor="weekday-extended-6-6" className="font-normal">
+                          🕕 Monday – Friday, 6 AM – 6 PM (Extended daytime coverage)
                         </Label>
                       </div>
                     </div>
@@ -587,21 +706,21 @@ const FamilyRegistration = () => {
                       <div className="flex items-start space-x-2">
                         <Checkbox 
                           id="weekend-day" 
-                          checked={careSchedule.includes('sat_sun_8am_4pm')}
-                          onCheckedChange={() => handleCareScheduleChange('sat_sun_8am_4pm')}
+                          checked={careSchedule.includes('sat_sun_6am_6pm')}
+                          onCheckedChange={() => handleCareScheduleChange('sat_sun_6am_6pm')}
                         />
                         <Label htmlFor="weekend-day" className="font-normal">
-                          Weekend Days, 8 AM – 4 PM
+                          🌞 Saturday – Sunday, 6 AM – 6 PM (Weekend daytime coverage)
                         </Label>
                       </div>
                       <div className="flex items-start space-x-2">
                         <Checkbox 
-                          id="weekend-full" 
-                          checked={careSchedule.includes('sat_sun_full')}
-                          onCheckedChange={() => handleCareScheduleChange('sat_sun_full')}
+                          id="weekend-standard" 
+                          checked={careSchedule.includes('sat_sun_8am_4pm')}
+                          onCheckedChange={() => handleCareScheduleChange('sat_sun_8am_4pm')}
                         />
-                        <Label htmlFor="weekend-full" className="font-normal">
-                          Full Weekend Coverage
+                        <Label htmlFor="weekend-standard" className="font-normal">
+                          ☀️ Saturday – Sunday, 8 AM – 4 PM (Weekend standard hours)
                         </Label>
                       </div>
                     </div>
@@ -615,32 +734,83 @@ const FamilyRegistration = () => {
                     <div className="pl-7 space-y-3">
                       <div className="flex items-start space-x-2">
                         <Checkbox 
-                          id="evening-shift" 
-                          checked={careSchedule.includes('evenings_6pm_10pm')}
-                          onCheckedChange={() => handleCareScheduleChange('evenings_6pm_10pm')}
+                          id="evening-4-6" 
+                          checked={careSchedule.includes('weekday_evening_4pm_6am')}
+                          onCheckedChange={() => handleCareScheduleChange('weekday_evening_4pm_6am')}
                         />
-                        <Label htmlFor="evening-shift" className="font-normal">
-                          Evenings (6 PM – 10 PM)
+                        <Label htmlFor="evening-4-6" className="font-normal">
+                          🌙 Weekday Evening Shift (4 PM – 6 AM)
                         </Label>
                       </div>
                       <div className="flex items-start space-x-2">
                         <Checkbox 
-                          id="overnight-shift" 
-                          checked={careSchedule.includes('overnights_10pm_6am')}
-                          onCheckedChange={() => handleCareScheduleChange('overnights_10pm_6am')}
+                          id="evening-4-8" 
+                          checked={careSchedule.includes('weekday_evening_4pm_8am')}
+                          onCheckedChange={() => handleCareScheduleChange('weekday_evening_4pm_8am')}
                         />
-                        <Label htmlFor="overnight-shift" className="font-normal">
-                          Overnights (10 PM – 6 AM)
+                        <Label htmlFor="evening-4-8" className="font-normal">
+                          🌙 Weekday Evening Shift (4 PM – 8 AM)
                         </Label>
                       </div>
                       <div className="flex items-start space-x-2">
                         <Checkbox 
-                          id="24-hour-care" 
-                          checked={careSchedule.includes('24_hour_care')}
-                          onCheckedChange={() => handleCareScheduleChange('24_hour_care')}
+                          id="evening-5-5" 
+                          checked={careSchedule.includes('weekday_evening_5pm_5am')}
+                          onCheckedChange={() => handleCareScheduleChange('weekday_evening_5pm_5am')}
                         />
-                        <Label htmlFor="24-hour-care" className="font-normal">
-                          24-Hour Care
+                        <Label htmlFor="evening-5-5" className="font-normal">
+                          🌙 Weekday Evening Shift (5 PM – 5 AM)
+                        </Label>
+                      </div>
+                      <div className="flex items-start space-x-2">
+                        <Checkbox 
+                          id="evening-5-8" 
+                          checked={careSchedule.includes('weekday_evening_5pm_8am')}
+                          onCheckedChange={() => handleCareScheduleChange('weekday_evening_5pm_8am')}
+                        />
+                        <Label htmlFor="evening-5-8" className="font-normal">
+                          🌙 Weekday Evening Shift (5 PM – 8 AM)
+                        </Label>
+                      </div>
+                      <div className="flex items-start space-x-2">
+                        <Checkbox 
+                          id="evening-6-6" 
+                          checked={careSchedule.includes('weekday_evening_6pm_6am')}
+                          onCheckedChange={() => handleCareScheduleChange('weekday_evening_6pm_6am')}
+                        />
+                        <Label htmlFor="evening-6-6" className="font-normal">
+                          🌙 Weekday Evening Shift (6 PM – 6 AM)
+                        </Label>
+                      </div>
+                      <div className="flex items-start space-x-2">
+                        <Checkbox 
+                          id="evening-6-8" 
+                          checked={careSchedule.includes('weekday_evening_6pm_8am')}
+                          onCheckedChange={() => handleCareScheduleChange('weekday_evening_6pm_8am')}
+                        />
+                        <Label htmlFor="evening-6-8" className="font-normal">
+                          🌙 Weekday Evening Shift (6 PM – 8 AM)
+                        </Label>
+                      </div>
+                      
+                      <div className="flex items-start space-x-2">
+                        <Checkbox 
+                          id="weekend-evening-4-6" 
+                          checked={careSchedule.includes('weekend_evening_4pm_6am')}
+                          onCheckedChange={() => handleCareScheduleChange('weekend_evening_4pm_6am')}
+                        />
+                        <Label htmlFor="weekend-evening-4-6" className="font-normal">
+                          🌆 Weekend Evening Shift (4 PM – 6 AM)
+                        </Label>
+                      </div>
+                      <div className="flex items-start space-x-2">
+                        <Checkbox 
+                          id="weekend-evening-6-6" 
+                          checked={careSchedule.includes('weekend_evening_6pm_6am')}
+                          onCheckedChange={() => handleCareScheduleChange('weekend_evening_6pm_6am')}
+                        />
+                        <Label htmlFor="weekend-evening-6-6" className="font-normal">
+                          🌆 Weekend Evening Shift (6 PM – 6 AM)
                         </Label>
                       </div>
                     </div>
@@ -654,61 +824,71 @@ const FamilyRegistration = () => {
                     <div className="pl-7 space-y-3">
                       <div className="flex items-start space-x-2">
                         <Checkbox 
-                          id="as-needed" 
-                          checked={careSchedule.includes('as_needed')}
-                          onCheckedChange={() => handleCareScheduleChange('as_needed')}
+                          id="flexible" 
+                          checked={careSchedule.includes('flexible')}
+                          onCheckedChange={() => handleCareScheduleChange('flexible')}
                         />
-                        <Label htmlFor="as-needed" className="font-normal">
-                          As Needed (Flexible hours)
+                        <Label htmlFor="flexible" className="font-normal">
+                          ⏳ Flexible / On-Demand Availability
                         </Label>
                       </div>
                       <div className="flex items-start space-x-2">
                         <Checkbox 
-                          id="temporary-care" 
-                          checked={careSchedule.includes('temporary_care')}
-                          onCheckedChange={() => handleCareScheduleChange('temporary_care')}
+                          id="live-in" 
+                          checked={careSchedule.includes('live_in_care')}
+                          onCheckedChange={() => handleCareScheduleChange('live_in_care')}
                         />
-                        <Label htmlFor="temporary-care" className="font-normal">
-                          Temporary or Short-Term Care
+                        <Label htmlFor="live-in" className="font-normal">
+                          🏡 Live-In Care (Full-time in-home support)
                         </Label>
                       </div>
                       <div className="flex items-start space-x-2">
                         <Checkbox 
-                          id="respite-care" 
-                          checked={careSchedule.includes('respite_care')}
-                          onCheckedChange={() => handleCareScheduleChange('respite_care')}
+                          id="care-24-7" 
+                          checked={careSchedule.includes('24_7_care')}
+                          onCheckedChange={() => handleCareScheduleChange('24_7_care')}
                         />
-                        <Label htmlFor="respite-care" className="font-normal">
-                          Respite Care (Caregiver relief)
+                        <Label htmlFor="care-24-7" className="font-normal">
+                          🕐 24/7 Care Availability
                         </Label>
                       </div>
                       <div className="flex items-start space-x-2">
                         <Checkbox 
-                          id="other" 
+                          id="around-clock" 
+                          checked={careSchedule.includes('around_clock_shifts')}
+                          onCheckedChange={() => handleCareScheduleChange('around_clock_shifts')}
+                        />
+                        <Label htmlFor="around-clock" className="font-normal">
+                          🌅 Around-the-Clock Shifts (Multiple caregivers rotating)
+                        </Label>
+                      </div>
+                      <div className="flex items-start space-x-2">
+                        <Checkbox 
+                          id="other-schedule" 
                           checked={careSchedule.includes('other')}
                           onCheckedChange={() => handleCareScheduleChange('other')}
                         />
-                        <Label htmlFor="other" className="font-normal">
-                          Other (Please specify below)
+                        <Label htmlFor="other-schedule" className="font-normal">
+                          ✏️ Other (Custom schedule — specify your hours)
                         </Label>
                       </div>
+                      
+                      {careSchedule.includes('other') && (
+                        <div className="pt-2 pl-6">
+                          <Label htmlFor="customCareSchedule" className="text-sm mb-1 block">Please specify your custom care schedule:</Label>
+                          <Textarea
+                            id="customCareSchedule"
+                            placeholder="Describe your specific care schedule needs"
+                            value={customCareSchedule}
+                            onChange={(e) => setCustomCareSchedule(e.target.value)}
+                            rows={2}
+                            className="w-full"
+                          />
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
-
-                {careSchedule.includes('other') && (
-                  <div className="pt-2 pl-6">
-                    <Label htmlFor="customCareSchedule" className="text-sm mb-1 block">Please specify your custom care schedule:</Label>
-                    <Textarea
-                      id="customCareSchedule"
-                      placeholder="Describe your specific care schedule needs"
-                      value={customCareSchedule}
-                      onChange={(e) => setCustomCareSchedule(e.target.value)}
-                      rows={2}
-                      className="w-full"
-                    />
-                  </div>
-                )}
               </div>
             </CardContent>
           </Card>
@@ -717,41 +897,48 @@ const FamilyRegistration = () => {
             <CardHeader>
               <CardTitle>Budget & Caregiver Preferences</CardTitle>
               <CardDescription>
-                Let us know your budget and what you're looking for in a caregiver.
+                Share your budget and preferences for caregivers.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="budget">Budget Preferences</Label>
-                <Input 
-                  id="budget" 
-                  placeholder="Enter your budget range or hourly rate" 
-                  value={budget} 
-                  onChange={(e) => setBudget(e.target.value)}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="caregiverType">Preferred Caregiver Type</Label>
-                <Select value={caregiverType} onValueChange={setCaregiverType}>
-                  <SelectTrigger id="caregiverType">
-                    <SelectValue placeholder="Select caregiver type" />
+                <Label htmlFor="budget">Budget Range</Label>
+                <Select value={budget} onValueChange={setBudget}>
+                  <SelectTrigger id="budget">
+                    <SelectValue placeholder="Select your budget range" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="certified_nurse">Certified Nurse</SelectItem>
-                    <SelectItem value="home_health_aide">Home Health Aide</SelectItem>
-                    <SelectItem value="personal_care_aide">Personal Care Aide</SelectItem>
-                    <SelectItem value="companion">Companion</SelectItem>
-                    <SelectItem value="any">Any</SelectItem>
+                    <SelectItem value="under_15">Under $15/hour</SelectItem>
+                    <SelectItem value="15_20">$15-$20/hour</SelectItem>
+                    <SelectItem value="20_25">$20-$25/hour</SelectItem>
+                    <SelectItem value="25_30">$25-$30/hour</SelectItem>
+                    <SelectItem value="30_plus">$30+/hour</SelectItem>
+                    <SelectItem value="not_sure">Not sure yet</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="caregiverPreferences">Caregiver Preferences</Label>
+                <Label htmlFor="caregiverType">Type of Caregiver Preferred</Label>
+                <Select value={caregiverType} onValueChange={setCaregiverType}>
+                  <SelectTrigger id="caregiverType">
+                    <SelectValue placeholder="Select caregiver type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="professional">👩‍⚕️ Professional Caregiver (trained, experienced)</SelectItem>
+                    <SelectItem value="nurse">🏥 Nurse (RN or LPN)</SelectItem>
+                    <SelectItem value="companion">👥 Companion Caregiver (non-medical)</SelectItem>
+                    <SelectItem value="specialized">🔬 Specialized Care Provider</SelectItem>
+                    <SelectItem value="no_preference">🤷 No specific preference</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="caregiverPreferences">Specific Preferences for Caregiver</Label>
                 <Textarea 
                   id="caregiverPreferences" 
-                  placeholder="List any specific preferences for the caregiver (e.g., experience with specific conditions, language skills)" 
+                  placeholder="Any preferences regarding language, experience, etc." 
                   value={caregiverPreferences} 
                   onChange={(e) => setCaregiverPreferences(e.target.value)}
                   rows={3}
@@ -764,44 +951,51 @@ const FamilyRegistration = () => {
             <CardHeader>
               <CardTitle>Additional Information</CardTitle>
               <CardDescription>
-                Anything else you'd like us to know?
+                Anything else you'd like to share about your care needs.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="preferredContactMethod">Preferred Contact Method</Label>
-                <Select value={preferredContactMethod} onValueChange={setPreferredContactMethod}>
-                  <SelectTrigger id="preferredContactMethod">
-                    <SelectValue placeholder="Select contact method" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="phone">Phone</SelectItem>
-                    <SelectItem value="email">Email</SelectItem>
-                    <SelectItem value="text">Text Message</SelectItem>
-                    <SelectItem value="whatsapp">WhatsApp</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
                 <Label htmlFor="additionalNotes">Additional Notes</Label>
                 <Textarea 
                   id="additionalNotes" 
-                  placeholder="Any other information or special requests" 
+                  placeholder="Any additional details that would help us understand your situation better" 
                   value={additionalNotes} 
                   onChange={(e) => setAdditionalNotes(e.target.value)}
                   rows={3}
                 />
               </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="preferredContactMethod">Preferred Contact Method</Label>
+                <Select value={preferredContactMethod} onValueChange={setPreferredContactMethod}>
+                  <SelectTrigger id="preferredContactMethod">
+                    <SelectValue placeholder="Select preferred contact method" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="phone">📞 Phone</SelectItem>
+                    <SelectItem value="email">📧 Email</SelectItem>
+                    <SelectItem value="text">💬 Text Message</SelectItem>
+                    <SelectItem value="whatsapp">📱 WhatsApp</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </CardContent>
           </Card>
 
           <div className="flex justify-end gap-4">
-            <Button type="button" variant="outline" onClick={() => navigate('/')}>
+            <Button type="button" variant="outline" onClick={() => navigate('/dashboard/family')}>
               Cancel
             </Button>
             <Button type="submit" disabled={loading}>
-              {loading ? 'Submitting...' : 'Complete Registration'}
+              {loading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  {isEditMode ? 'Updating...' : 'Submitting...'}
+                </>
+              ) : (
+                isEditMode ? 'Update Profile' : 'Complete Registration'
+              )}
             </Button>
           </div>
         </form>
