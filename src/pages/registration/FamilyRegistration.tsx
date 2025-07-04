@@ -314,7 +314,7 @@ const FamilyRegistration = () => {
         care_types: careTypes || [],
         special_needs: specialNeeds || [],
         care_schedule: careSchedule.length > 0 ? careSchedule.join(',') : '',
-        custom_care_schedule: customCareSchedule || '',
+        custom_schedule: customCareSchedule || '',
         budget_preferences: budget || '',
         caregiver_type: caregiverType || '',
         caregiver_preferences: caregiverPreferences || '',
