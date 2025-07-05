@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -10,7 +9,7 @@ import { User, Mail, MapPin, Calendar, CheckCircle2, Clock, Send, ArrowRight, Ci
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import { useUserSpecificProgress } from "@/hooks/useUserSpecificProgress";
-import { useSharedFamilyJourneyData } from "@/hooks/useSharedFamilyJourneyData";
+import { useEnhancedJourneyProgress } from "@/hooks/useEnhancedJourneyProgress";
 import { useSpecificUserProfessionalProgress } from "@/hooks/useSpecificUserProfessionalProgress";
 import { UserWithProgress } from "@/types/adminTypes";
 import { PhoneNumberEditor } from "./PhoneNumberEditor";
@@ -47,8 +46,8 @@ export function UserDetailModal({ user, open, onOpenChange, onRefresh }: UserDet
   const userId = React.useMemo(() => user?.id || '', [user?.id]);
   const userRole = React.useMemo(() => user?.role as UserRole || 'family', [user?.role]);
   
-  // Use role-specific hooks for proper journey data
-  const familyProgress = useSharedFamilyJourneyData(userRole === 'family' ? userId : '');
+  // Use enhanced journey progress for family users to match Family Dashboard
+  const enhancedProgress = useEnhancedJourneyProgress();
   const professionalProgress = useSpecificUserProfessionalProgress(userRole === 'professional' ? userId : '');
   const otherProgress = useUserSpecificProgress(
     userRole !== 'family' && userRole !== 'professional' ? userId : '', 
@@ -59,15 +58,15 @@ export function UserDetailModal({ user, open, onOpenChange, onRefresh }: UserDet
   const progressData = React.useMemo(() => {
     if (userRole === 'family') {
       return {
-        loading: familyProgress.loading,
-        completionPercentage: familyProgress.completionPercentage,
-        nextStep: familyProgress.nextStep ? {
-          step_number: familyProgress.nextStep.id,
-          title: familyProgress.nextStep.title
+        loading: enhancedProgress.loading,
+        completionPercentage: enhancedProgress.completionPercentage,
+        nextStep: enhancedProgress.nextStep ? {
+          step_number: enhancedProgress.nextStep.step_number || parseInt(enhancedProgress.nextStep.id),
+          title: enhancedProgress.nextStep.title
         } as NormalizedNextStep : undefined,
-        steps: familyProgress.steps.map(step => ({
-          id: step.id.toString(),
-          step_number: step.id,
+        steps: enhancedProgress.steps.map(step => ({
+          id: step.id,
+          step_number: step.step_number || parseInt(step.id),
           title: step.title,
           description: step.description,
           completed: step.completed
@@ -106,7 +105,7 @@ export function UserDetailModal({ user, open, onOpenChange, onRefresh }: UserDet
         })) as NormalizedStep[]
       };
     }
-  }, [userRole, familyProgress, professionalProgress, otherProgress]);
+  }, [userRole, enhancedProgress, professionalProgress, otherProgress]);
 
   const { loading, completionPercentage, nextStep, steps } = progressData;
 
