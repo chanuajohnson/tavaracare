@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/components/providers/AuthProvider';
@@ -24,33 +24,18 @@ export const useEnhancedJourneyProgress = () => {
   const [showCaregiverMatchingModal, setShowCaregiverMatchingModal] = useState(false);
   const [showLeadCaptureModal, setShowLeadCaptureModal] = useState(false);
 
-  // Generate mock steps for anonymous users (now includes all 11 steps)
+  // Generate mock steps for anonymous users (now includes all 12 steps)
   const generateMockStepsForAnonymous = () => {
     return [
       {
         id: "1",
         step_number: 1,
-        title: "Welcome & Profile Setup",
-        description: "Basic account information",
+        title: "Complete Your Profile",
+        description: "Add your contact information and care preferences",
         completed: true,
         accessible: true,
         category: 'foundation',
         icon_name: 'User',
-        tooltip_content: 'Set up your basic profile information',
-        detailed_explanation: 'Complete your name and basic account setup',
-        time_estimate_minutes: 5,
-        is_optional: false,
-        action: () => {}
-      },
-      {
-        id: "2",
-        step_number: 2,
-        title: "Complete your registration",
-        description: "Family care details and preferences",
-        completed: true,
-        accessible: true,
-        category: 'foundation',
-        icon_name: 'Clipboard',
         tooltip_content: 'Complete your family registration form',
         detailed_explanation: 'Fill out care needs, schedule, and preferences',
         time_estimate_minutes: 15,
@@ -58,10 +43,10 @@ export const useEnhancedJourneyProgress = () => {
         action: () => {}
       },
       {
-        id: "5",
-        step_number: 5,
-        title: "Care Assessment",
-        description: "Detailed care needs evaluation",
+        id: "2",
+        step_number: 2,
+        title: "Complete Initial Care Assessment",
+        description: "Help us understand your care needs better",
         completed: false,
         accessible: true,
         category: 'foundation',
@@ -73,10 +58,10 @@ export const useEnhancedJourneyProgress = () => {
         action: () => {}
       },
       {
-        id: "6",
-        step_number: 6,
-        title: "Share Loved One's Story",
-        description: "Personal details and preferences",
+        id: "3",
+        step_number: 3,
+        title: "Complete Your Loved One's Legacy Story",
+        description: "Honor the voices, memories, and wisdom of those we care for",
         completed: false,
         accessible: true,
         category: 'foundation',
@@ -84,17 +69,17 @@ export const useEnhancedJourneyProgress = () => {
         tooltip_content: 'Share your loved one\'s story',
         detailed_explanation: 'Add personal details about your care recipient',
         time_estimate_minutes: 10,
-        is_optional: false,
+        is_optional: true,
         action: () => {}
       },
       {
-        id: "7",
-        step_number: 7,
-        title: "View Caregiver Matches",
-        description: "Browse potential caregivers",
+        id: "4",
+        step_number: 4,
+        title: "See Your Instant Caregiver Matches",
+        description: "Unlock personalized caregiver recommendations",
         completed: false,
         accessible: false,
-        category: 'scheduling',
+        category: 'foundation',
         icon_name: 'Users',
         tooltip_content: 'Browse matched caregivers',
         detailed_explanation: 'View and connect with potential caregivers',
@@ -103,10 +88,40 @@ export const useEnhancedJourneyProgress = () => {
         action: () => {}
       },
       {
-        id: "8",
-        step_number: 8,
-        title: "Schedule Visit",
-        description: "Book your Tavara.Care assessment visit",
+        id: "5",
+        step_number: 5,
+        title: "Set Up Medication Management",
+        description: "Add medications and set up schedules",
+        completed: false,
+        accessible: true,
+        category: 'foundation',
+        icon_name: 'Pill',
+        tooltip_content: 'Manage medications for your care plan',
+        detailed_explanation: 'Set up medication schedules and tracking',
+        time_estimate_minutes: 15,
+        is_optional: false,
+        action: () => {}
+      },
+      {
+        id: "6",
+        step_number: 6,
+        title: "Set Up Meal Management",
+        description: "Plan meals and create grocery lists",
+        completed: false,
+        accessible: true,
+        category: 'foundation',
+        icon_name: 'Utensils',
+        tooltip_content: 'Plan meals for your care plan',
+        detailed_explanation: 'Set up meal planning and grocery management',
+        time_estimate_minutes: 15,
+        is_optional: false,
+        action: () => {}
+      },
+      {
+        id: "7",
+        step_number: 7,
+        title: "Schedule Your Tavara.Care Visit",
+        description: "Meet your match and care coordinator virtually or in person",
         completed: false,
         accessible: true,
         category: 'scheduling',
@@ -114,6 +129,21 @@ export const useEnhancedJourneyProgress = () => {
         tooltip_content: 'Schedule your care assessment visit',
         detailed_explanation: 'Book a visit from our care coordinators',
         time_estimate_minutes: 10,
+        is_optional: false,
+        action: () => {}
+      },
+      {
+        id: "8",
+        step_number: 8,
+        title: "Confirm Your Visit",
+        description: "Your visit has been scheduled and confirmed",
+        completed: false,
+        accessible: false,
+        category: 'scheduling',
+        icon_name: 'CheckCircle',
+        tooltip_content: 'Visit confirmation completed',
+        detailed_explanation: 'Your care coordinator visit is confirmed',
+        time_estimate_minutes: 0,
         is_optional: false,
         action: () => {}
       },
@@ -370,32 +400,19 @@ export const useEnhancedJourneyProgress = () => {
 
     const hasTrialPayment = trialPayments && trialPayments.length > 0;
     const isTrialAccessible = calculateTrialAccessible();
+    const isVisitScheduled = !!visitDetails?.id;
+    const isVisitConfirmed = visitDetails?.status === 'confirmed';
 
     const steps = [
       {
         id: "1",
         step_number: 1,
-        title: "Welcome & Profile Setup",
-        description: "Basic account information",
-        completed: !!profile?.full_name,
-        accessible: true,
-        category: 'foundation',
-        icon_name: 'User',
-        tooltip_content: 'Set up your basic profile information',
-        detailed_explanation: 'Complete your name and basic account setup',
-        time_estimate_minutes: 5,
-        is_optional: false,
-        action: () => navigate('/profile/edit')
-      },
-      {
-        id: "2",
-        step_number: 2,
-        title: "Complete your registration",
-        description: "Family care details and preferences",
+        title: "Complete Your Profile",
+        description: "Add your contact information and care preferences",
         completed: calculateRegistrationCompletion(),
         accessible: true,
         category: 'foundation',
-        icon_name: 'Clipboard',
+        icon_name: 'User',
         tooltip_content: 'Complete your family registration form',
         detailed_explanation: 'Fill out care needs, schedule, and preferences',
         time_estimate_minutes: 15,
@@ -406,10 +423,10 @@ export const useEnhancedJourneyProgress = () => {
         }
       },
       {
-        id: "5",
-        step_number: 5,
-        title: "Care Assessment",
-        description: "Detailed care needs evaluation",
+        id: "2",
+        step_number: 2,
+        title: "Complete Initial Care Assessment",
+        description: "Help us understand your care needs better",
         completed: !!careAssessment?.id,
         accessible: true,
         category: 'foundation',
@@ -424,10 +441,10 @@ export const useEnhancedJourneyProgress = () => {
         }
       },
       {
-        id: "6",
-        step_number: 6,
-        title: "Share Loved One's Story",
-        description: "Personal details and preferences",
+        id: "3",
+        step_number: 3,
+        title: "Complete Your Loved One's Legacy Story",
+        description: "Honor the voices, memories, and wisdom of those we care for",
         completed: !!(careRecipient?.id && careRecipient?.full_name),
         accessible: true,
         category: 'foundation',
@@ -435,17 +452,17 @@ export const useEnhancedJourneyProgress = () => {
         tooltip_content: 'Share your loved one\'s story',
         detailed_explanation: 'Add personal details about your care recipient',
         time_estimate_minutes: 10,
-        is_optional: false,
+        is_optional: true,
         action: () => navigate('/family/story')
       },
       {
-        id: "7",
-        step_number: 7,
-        title: "View Caregiver Matches",
-        description: "Browse potential caregivers",
+        id: "4",
+        step_number: 4,
+        title: "See Your Instant Caregiver Matches",
+        description: "Unlock personalized caregiver recommendations",
         completed: false,
         accessible: calculateCaregiverMatchesAccessible(),
-        category: 'scheduling',
+        category: 'foundation',
         icon_name: 'Users',
         tooltip_content: 'Browse matched caregivers',
         detailed_explanation: 'View and connect with potential caregivers',
@@ -454,11 +471,41 @@ export const useEnhancedJourneyProgress = () => {
         action: () => setShowCaregiverMatchingModal(true)
       },
       {
-        id: "8",
-        step_number: 8,
-        title: "Schedule Visit",
-        description: "Book your Tavara.Care assessment visit",
-        completed: !!visitDetails?.id,
+        id: "5",
+        step_number: 5,
+        title: "Set Up Medication Management",
+        description: "Add medications and set up schedules",
+        completed: !!(carePlans && carePlans.length > 0), // Simplified for now
+        accessible: true,
+        category: 'foundation',
+        icon_name: 'Pill',
+        tooltip_content: 'Manage medications for your care plan',
+        detailed_explanation: 'Set up medication schedules and tracking',
+        time_estimate_minutes: 15,
+        is_optional: false,
+        action: () => navigate('/family/medication-management')
+      },
+      {
+        id: "6",
+        step_number: 6,
+        title: "Set Up Meal Management",
+        description: "Plan meals and create grocery lists",
+        completed: !!(carePlans && carePlans.length > 0), // Simplified for now
+        accessible: true,
+        category: 'foundation',
+        icon_name: 'Utensils',
+        tooltip_content: 'Plan meals for your care plan',
+        detailed_explanation: 'Set up meal planning and grocery management',
+        time_estimate_minutes: 15,
+        is_optional: false,
+        action: () => navigate('/family/meal-management')
+      },
+      {
+        id: "7",
+        step_number: 7,
+        title: "Schedule Your Tavara.Care Visit",
+        description: "Meet your match and care coordinator virtually or in person",
+        completed: isVisitScheduled,
         accessible: true,
         category: 'scheduling',
         icon_name: 'Calendar',
@@ -475,12 +522,29 @@ export const useEnhancedJourneyProgress = () => {
         }
       },
       {
+        id: "8",
+        step_number: 8,
+        title: "Confirm Your Visit",
+        description: "Your visit has been scheduled and confirmed",
+        completed: isVisitConfirmed,
+        accessible: isVisitScheduled,
+        category: 'scheduling',
+        icon_name: 'CheckCircle',
+        tooltip_content: 'Visit confirmation completed',
+        detailed_explanation: 'Your care coordinator visit is confirmed',
+        time_estimate_minutes: 0,
+        is_optional: false,
+        action: () => {
+          toast.info("Visit confirmation will be completed by our care coordinators");
+        }
+      },
+      {
         id: "9",
         step_number: 9,
         title: "Schedule Trial Day (Optional)",
         description: "Choose a trial date with your matched caregiver",
         completed: hasTrialPayment,
-        accessible: isTrialAccessible,
+        accessible: isVisitConfirmed,
         category: 'trial',
         icon_name: 'Calendar',
         tooltip_content: 'Schedule optional trial with caregiver',
@@ -497,7 +561,7 @@ export const useEnhancedJourneyProgress = () => {
         title: "Pay for Trial Day (Optional)",
         description: "Pay a one-time fee of $320 TTD for an 8-hour caregiver experience",
         completed: hasTrialPayment,
-        accessible: isTrialAccessible,
+        accessible: isVisitConfirmed,
         category: 'trial',
         icon_name: 'CreditCard',
         tooltip_content: 'Complete trial payment',
@@ -531,7 +595,7 @@ export const useEnhancedJourneyProgress = () => {
         title: "Rate & Choose Your Path",
         description: "Decide between: Hire your caregiver ($40/hr) or Subscribe to Tavara ($45/hr)",
         completed: !!visitNotes?.care_model,
-        accessible: !!visitDetails?.id || hasTrialPayment,
+        accessible: isVisitConfirmed || hasTrialPayment,
         category: 'conversion',
         icon_name: 'Star',
         tooltip_content: 'Choose your care model',
