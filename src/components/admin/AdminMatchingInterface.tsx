@@ -11,6 +11,32 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { User, Heart, Clock, MapPin, Star } from 'lucide-react';
 
+interface FamilyProfile {
+  id: string;
+  full_name: string;
+  phone_number: string;
+  address: string;
+  role: string;
+}
+
+interface CareNeeds {
+  id: string;
+  care_recipient_name: string;
+  primary_contact_name: string;
+  primary_contact_phone: string;
+  preferred_time_start: string;
+  preferred_time_end: string;
+}
+
+interface Caregiver {
+  id: string;
+  full_name: string;
+  phone_number: string;
+  address: string;
+  years_experience: number;
+  available_immediately: boolean;
+}
+
 interface AdminMatchingInterfaceProps {
   familyUserId: string;
   onClose: () => void;
@@ -22,9 +48,9 @@ export const AdminMatchingInterface: React.FC<AdminMatchingInterfaceProps> = ({
   onClose,
   onMatchAssigned
 }) => {
-  const [familyProfile, setFamilyProfile] = useState<any>(null);
-  const [careNeeds, setCareNeeds] = useState<any>(null);
-  const [availableCaregivers, setAvailableCaregivers] = useState<any[]>([]);
+  const [familyProfile, setFamilyProfile] = useState<FamilyProfile | null>(null);
+  const [careNeeds, setCareNeeds] = useState<CareNeeds | null>(null);
+  const [availableCaregivers, setAvailableCaregivers] = useState<Caregiver[]>([]);
   const [selectedCaregiver, setSelectedCaregiver] = useState<string>('');
   const [interventionType, setInterventionType] = useState<string>('manual_match');
   const [reason, setReason] = useState<string>('');
@@ -42,7 +68,7 @@ export const AdminMatchingInterface: React.FC<AdminMatchingInterfaceProps> = ({
       // Fetch family profile
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
-        .select('*')
+        .select('id, full_name, phone_number, address, role')
         .eq('id', familyUserId)
         .single();
 
@@ -52,9 +78,9 @@ export const AdminMatchingInterface: React.FC<AdminMatchingInterfaceProps> = ({
       // Fetch care needs
       const { data: needs, error: needsError } = await supabase
         .from('care_needs_family')
-        .select('*')
+        .select('id, care_recipient_name, primary_contact_name, primary_contact_phone, preferred_time_start, preferred_time_end')
         .eq('profile_id', familyUserId)
-        .single();
+        .maybeSingle();
 
       if (needsError && needsError.code !== 'PGRST116') {
         console.error('Error fetching care needs:', needsError);
@@ -71,7 +97,7 @@ export const AdminMatchingInterface: React.FC<AdminMatchingInterfaceProps> = ({
     try {
       const { data: caregivers, error } = await supabase
         .from('profiles')
-        .select('*')
+        .select('id, full_name, phone_number, address, years_experience, available_immediately')
         .eq('role', 'professional')
         .eq('profile_complete', true)
         .order('created_at', { ascending: false });
@@ -136,13 +162,13 @@ export const AdminMatchingInterface: React.FC<AdminMatchingInterfaceProps> = ({
     }
   };
 
-  const getCaregiverMatchScore = (caregiver: any) => {
+  const getCaregiverMatchScore = (caregiver: Caregiver) => {
     // Simple matching algorithm based on available data
     let score = 50; // Base score
     
-    if (careNeeds) {
+    if (careNeeds && familyProfile) {
       // Location proximity (placeholder logic)
-      if (caregiver.address && familyProfile?.address) {
+      if (caregiver.address && familyProfile.address) {
         score += 20;
       }
       
@@ -175,7 +201,6 @@ export const AdminMatchingInterface: React.FC<AdminMatchingInterfaceProps> = ({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <p className="font-medium">{familyProfile.full_name}</p>
-                <p className="text-sm text-gray-600">{familyProfile.email}</p>
                 <p className="text-sm text-gray-600">{familyProfile.phone_number}</p>
               </div>
               <div>
@@ -252,7 +277,7 @@ export const AdminMatchingInterface: React.FC<AdminMatchingInterfaceProps> = ({
                   <div className="flex justify-between items-start">
                     <div>
                       <p className="font-medium">{caregiver.full_name}</p>
-                      <p className="text-sm text-gray-600">{caregiver.email}</p>
+                      <p className="text-sm text-gray-600">{caregiver.phone_number}</p>
                       {caregiver.years_experience && (
                         <p className="text-sm text-gray-600">
                           {caregiver.years_experience} years experience

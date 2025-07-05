@@ -24,6 +24,11 @@ export const AdminVisitScheduleManager: React.FC = () => {
     window.history.replaceState(null, '', `#${value}`);
   };
 
+  const handleRequestScheduled = () => {
+    // Refresh relevant components when a request is scheduled
+    console.log('Request scheduled, refreshing components');
+  };
+
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="mb-8">
@@ -54,7 +59,7 @@ export const AdminVisitScheduleManager: React.FC = () => {
         </TabsList>
 
         <TabsContent value="queue" className="space-y-6">
-          <AdminSchedulingQueue />
+          <AdminSchedulingQueue onRequestScheduled={handleRequestScheduled} />
         </TabsContent>
 
         <TabsContent value="matching" className="space-y-6">
@@ -62,11 +67,18 @@ export const AdminVisitScheduleManager: React.FC = () => {
         </TabsContent>
 
         <TabsContent value="calendar" className="space-y-6">
-          <AdminCalendarView />
+          <AdminCalendarView 
+            bookings={[]} 
+            adminConfig={null} 
+            onBookingUpdate={handleRequestScheduled}
+          />
         </TabsContent>
 
         <TabsContent value="settings" className="space-y-6">
-          <AdminScheduleSettings />
+          <AdminScheduleSettings 
+            adminConfig={null} 
+            onConfigUpdate={handleRequestScheduled}
+          />
         </TabsContent>
       </Tabs>
     </div>

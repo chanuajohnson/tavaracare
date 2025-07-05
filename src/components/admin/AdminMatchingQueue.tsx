@@ -12,11 +12,9 @@ import { AdminMatchingInterface } from './AdminMatchingInterface';
 interface MatchingQueueUser {
   id: string;
   full_name: string;
-  email: string;
   phone_number: string;
   created_at: string;
-  journey_step: number;
-  needs_admin_intervention: boolean;
+  role: string;
   care_needs?: any;
   manual_assignments?: any[];
 }
@@ -35,31 +33,52 @@ export const AdminMatchingQueue: React.FC = () => {
     try {
       setLoading(true);
       
-      // Fetch family users who have completed Step 4 (Caregiver Matches) but need intervention
+      // Fetch family users who need caregiver matching
       const { data: users, error } = await supabase
         .from('profiles')
         .select(`
           id,
           full_name,
-          email,
           phone_number,
           created_at,
-          journey_step,
-          needs_admin_intervention,
-          care_needs_family(*),
-          manual_caregiver_assignments(*)
+          role,
+          care_recipient_name,
+          relationship
         `)
         .eq('role', 'family')
-        .gte('journey_step', 4)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
 
-      // Filter users who either need admin intervention or have no manual assignments yet
-      const filteredUsers = (users || []).filter(user => 
-        user.needs_admin_intervention || 
-        !user.manual_caregiver_assignments?.length ||
-        user.journey_step >= 4
+      // Get care needs for these users
+      const userIds = users?.map(u => u.id) || [];
+      const { data: careNeeds, error: careNeedsError } = await supabase
+        .from('care_needs_family')
+        .select('*')
+        .in('profile_id', userIds);
+
+      if (careNeedsError) throw careNeedsError;
+
+      // Get manual assignments for these users
+      const { data: assignments, error: assignmentsError } = await supabase
+        .from('manual_caregiver_assignments')
+        .select('*')
+        .in('family_user_id', userIds)
+        .eq('is_active', true);
+
+      if (assignmentsError) throw assignmentsError;
+
+      // Combine the data
+      const enrichedUsers = (users || []).map(user => ({
+        ...user,
+        care_needs: careNeeds?.find(cn => cn.profile_id === user.id),
+        manual_assignments: assignments?.filter(a => a.family_user_id === user.id) || []
+      }));
+
+      // Filter users who need matching (no active assignments or specific criteria)
+      const filteredUsers = enrichedUsers.filter(user => 
+        user.manual_assignments.length === 0 || 
+        user.role === 'family'
       );
 
       setQueueUsers(filteredUsers);
@@ -87,17 +106,19 @@ export const AdminMatchingQueue: React.FC = () => {
       (Date.now() - new Date(user.created_at).getTime()) / (1000 * 60 * 60 * 24)
     );
     
-    if (user.needs_admin_intervention) return { level: 'high', label: 'High Priority' };
-    if (daysSinceSignup > 7) return { level: 'medium', label: 'Medium Priority' };
+    if (user.manual_assignments?.length === 0 && daysSinceSignup > 7) {
+      return { level: 'high', label: 'High Priority' };
+    }
+    if (daysSinceSignup > 3) return { level: 'medium', label: 'Medium Priority' };
     return { level: 'low', label: 'Standard' };
   };
 
   const getStatusBadge = (user: any) => {
-    if (user.manual_caregiver_assignments?.length > 0) {
+    if (user.manual_assignments?.length > 0) {
       return <Badge variant="default">Assigned</Badge>;
     }
-    if (user.needs_admin_intervention) {
-      return <Badge variant="destructive">Needs Intervention</Badge>;
+    if (!user.care_needs) {
+      return <Badge variant="destructive">No Assessment</Badge>;
     }
     return <Badge variant="secondary">Pending Match</Badge>;
   };
@@ -158,25 +179,27 @@ export const AdminMatchingQueue: React.FC = () => {
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-gray-600">
                         <div>
                           <p className="font-medium">Contact</p>
-                          <p>{user.email}</p>
-                          <p>{user.phone_number}</p>
+                          <p>{user.phone_number || 'No phone provided'}</p>
+                          <p className="text-xs">Role: {user.role}</p>
                         </div>
                         <div>
-                          <p className="font-medium">Journey Progress</p>
-                          <p>Step {user.journey_step}/7</p>
+                          <p className="font-medium">Registration</p>
                           <p className="text-xs">
-                            Registered {new Date(user.created_at).toLocaleDateString()}
+                            {new Date(user.created_at).toLocaleDateString()}
+                          </p>
+                          <p className="text-xs">
+                            {Math.floor((Date.now() - new Date(user.created_at).getTime()) / (1000 * 60 * 60 * 24))} days ago
                           </p>
                         </div>
                         <div>
-                          <p className="font-medium">Care Needs</p>
+                          <p className="font-medium">Care Info</p>
                           <p>
-                            {user.care_needs_family?.[0]?.care_recipient_name || 'Not specified'}
+                            {user.care_recipient_name || 'Not specified'}
                           </p>
-                          {user.needs_admin_intervention && (
-                            <div className="flex items-center gap-1 text-red-600 mt-1">
+                          {user.manual_assignments?.length === 0 && (
+                            <div className="flex items-center gap-1 text-orange-600 mt-1">
                               <AlertCircle className="h-3 w-3" />
-                              <span className="text-xs">Intervention Required</span>
+                              <span className="text-xs">No Caregiver Assigned</span>
                             </div>
                           )}
                         </div>
@@ -191,12 +214,11 @@ export const AdminMatchingQueue: React.FC = () => {
                         <Users className="h-4 w-4 mr-2" />
                         Manual Match
                       </Button>
-                      {user.manual_caregiver_assignments?.length > 0 && (
+                      {user.manual_assignments?.length > 0 && (
                         <Button 
                           variant="outline"
                           size="sm"
                           onClick={() => {
-                            // TODO: Navigate to visit scheduling with this user pre-selected
                             toast.info('Redirecting to visit scheduling...');
                           }}
                         >

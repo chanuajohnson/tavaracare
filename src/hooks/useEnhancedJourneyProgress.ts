@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
@@ -453,7 +452,10 @@ export const useEnhancedJourneyProgress = () => {
         detailed_explanation: 'Add personal details about your care recipient',
         time_estimate_minutes: 10,
         is_optional: true,
-        action: () => navigate('/family/story')
+        action: () => {
+          const isCompleted = !!(careRecipient?.id && careRecipient?.full_name);
+          navigate(isCompleted ? '/family/story?edit=true' : '/family/story');
+        }
       },
       {
         id: "4",

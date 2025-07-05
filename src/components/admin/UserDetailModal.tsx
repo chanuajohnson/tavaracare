@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
@@ -44,7 +45,7 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
           .from('care_needs_family')
           .select('*')
           .eq('profile_id', user.id)
-          .single();
+          .maybeSingle();
 
         if (needsError && needsError.code !== 'PGRST116') {
           console.error('Error fetching care needs:', needsError);
@@ -58,7 +59,7 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
         .from('user_journey_progress')
         .select('*')
         .eq('user_id', user.id)
-        .single();
+        .maybeSingle();
 
       if (progressError && progressError.code !== 'PGRST116') {
         console.error('Error fetching journey progress:', progressError);
@@ -109,15 +110,9 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <div className="flex items-center gap-2">
-                      <Mail className="h-4 w-4 text-gray-500" />
-                      <span className="text-sm">{user.email}</span>
+                      <Phone className="h-4 w-4 text-gray-500" />
+                      <span className="text-sm">{user.phone_number || 'No phone provided'}</span>
                     </div>
-                    {user.phone_number && (
-                      <div className="flex items-center gap-2">
-                        <Phone className="h-4 w-4 text-gray-500" />
-                        <span className="text-sm">{user.phone_number}</span>
-                      </div>
-                    )}
                     {user.address && (
                       <div className="flex items-center gap-2">
                         <MapPin className="h-4 w-4 text-gray-500" />
