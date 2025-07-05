@@ -15,6 +15,7 @@ export const useEnhancedJourneyProgress = () => {
   const [careAssessment, setCareAssessment] = useState<any>(null);
   const [careRecipient, setCareRecipient] = useState<any>(null);
   const [visitDetails, setVisitDetails] = useState<any>(null);
+  const [trialPayments, setTrialPayments] = useState<any[]>([]);
   
   // Modal states
   const [showScheduleModal, setShowScheduleModal] = useState(false);
@@ -23,7 +24,7 @@ export const useEnhancedJourneyProgress = () => {
   const [showCaregiverMatchingModal, setShowCaregiverMatchingModal] = useState(false);
   const [showLeadCaptureModal, setShowLeadCaptureModal] = useState(false);
 
-  // Generate mock steps for anonymous users
+  // Generate mock steps for anonymous users (now includes all 11 steps)
   const generateMockStepsForAnonymous = () => {
     return [
       {
@@ -102,8 +103,8 @@ export const useEnhancedJourneyProgress = () => {
         action: () => {}
       },
       {
-        id: "10",
-        step_number: 10,
+        id: "8",
+        step_number: 8,
         title: "Schedule Visit",
         description: "Book your Tavara.Care assessment visit",
         completed: false,
@@ -112,6 +113,66 @@ export const useEnhancedJourneyProgress = () => {
         icon_name: 'Calendar',
         tooltip_content: 'Schedule your care assessment visit',
         detailed_explanation: 'Book a visit from our care coordinators',
+        time_estimate_minutes: 10,
+        is_optional: false,
+        action: () => {}
+      },
+      {
+        id: "9",
+        step_number: 9,
+        title: "Schedule Trial Day (Optional)",
+        description: "Choose a trial date with your matched caregiver",
+        completed: false,
+        accessible: false,
+        category: 'trial',
+        icon_name: 'Calendar',
+        tooltip_content: 'Schedule optional trial with caregiver',
+        detailed_explanation: 'Optional step before choosing your care model',
+        time_estimate_minutes: 15,
+        is_optional: true,
+        action: () => {}
+      },
+      {
+        id: "10",
+        step_number: 10,
+        title: "Pay for Trial Day (Optional)",
+        description: "Pay a one-time fee of $320 TTD for an 8-hour caregiver experience",
+        completed: false,
+        accessible: false,
+        category: 'trial',
+        icon_name: 'CreditCard',
+        tooltip_content: 'Complete trial payment',
+        detailed_explanation: 'Pay for your optional trial day',
+        time_estimate_minutes: 5,
+        is_optional: true,
+        action: () => {}
+      },
+      {
+        id: "11",
+        step_number: 11,
+        title: "Begin Your Trial (Optional)",
+        description: "Your caregiver begins the scheduled trial session",
+        completed: false,
+        accessible: false,
+        category: 'trial',
+        icon_name: 'Play',
+        tooltip_content: 'Start your trial experience',
+        detailed_explanation: 'Begin your trial with the matched caregiver',
+        time_estimate_minutes: 480,
+        is_optional: true,
+        action: () => {}
+      },
+      {
+        id: "12",
+        step_number: 12,
+        title: "Rate & Choose Your Path",
+        description: "Decide between: Hire your caregiver ($40/hr) or Subscribe to Tavara ($45/hr)",
+        completed: false,
+        accessible: false,
+        category: 'conversion',
+        icon_name: 'Star',
+        tooltip_content: 'Choose your care model',
+        detailed_explanation: 'Select your preferred care arrangement',
         time_estimate_minutes: 10,
         is_optional: false,
         action: () => {}
@@ -196,6 +257,20 @@ export const useEnhancedJourneyProgress = () => {
         setVisitDetails(visitData);
       }
 
+      // Fetch trial payments
+      const { data: trialPaymentsData, error: trialPaymentsError } = await supabase
+        .from('payment_transactions')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('transaction_type', 'trial_day')
+        .eq('status', 'completed');
+
+      if (trialPaymentsError) {
+        console.error('Error fetching trial payments:', trialPaymentsError);
+      } else {
+        setTrialPayments(trialPaymentsData || []);
+      }
+
     } catch (error) {
       console.error('Error in fetchUserData:', error);
     } finally {
@@ -269,6 +344,11 @@ export const useEnhancedJourneyProgress = () => {
     return registrationComplete && hasAssessment;
   };
 
+  // Calculate if trial steps are accessible
+  const calculateTrialAccessible = () => {
+    return !!visitDetails?.id && visitDetails?.status === 'confirmed';
+  };
+
   // Calculate completion status for each step
   const calculateSteps = () => {
     // Return mock steps for anonymous users
@@ -279,6 +359,17 @@ export const useEnhancedJourneyProgress = () => {
     if (!profile) return [];
 
     console.log('Calculating steps with profile:', profile);
+
+    // Parse visit notes for care model
+    let visitNotes = null;
+    try {
+      visitNotes = profile?.visit_notes ? JSON.parse(profile.visit_notes) : null;
+    } catch (error) {
+      console.error('Error parsing visit notes:', error);
+    }
+
+    const hasTrialPayment = trialPayments && trialPayments.length > 0;
+    const isTrialAccessible = calculateTrialAccessible();
 
     const steps = [
       {
@@ -363,8 +454,8 @@ export const useEnhancedJourneyProgress = () => {
         action: () => setShowCaregiverMatchingModal(true)
       },
       {
-        id: "10",
-        step_number: 10,
+        id: "8",
+        step_number: 8,
         title: "Schedule Visit",
         description: "Book your Tavara.Care assessment visit",
         completed: !!visitDetails?.id,
@@ -381,6 +472,74 @@ export const useEnhancedJourneyProgress = () => {
           } else {
             setShowScheduleModal(true);
           }
+        }
+      },
+      {
+        id: "9",
+        step_number: 9,
+        title: "Schedule Trial Day (Optional)",
+        description: "Choose a trial date with your matched caregiver",
+        completed: hasTrialPayment,
+        accessible: isTrialAccessible,
+        category: 'trial',
+        icon_name: 'Calendar',
+        tooltip_content: 'Schedule optional trial with caregiver',
+        detailed_explanation: 'Optional step before choosing your care model',
+        time_estimate_minutes: 15,
+        is_optional: true,
+        action: () => {
+          toast.info("Trial scheduling will be available after your visit is confirmed");
+        }
+      },
+      {
+        id: "10",
+        step_number: 10,
+        title: "Pay for Trial Day (Optional)",
+        description: "Pay a one-time fee of $320 TTD for an 8-hour caregiver experience",
+        completed: hasTrialPayment,
+        accessible: isTrialAccessible,
+        category: 'trial',
+        icon_name: 'CreditCard',
+        tooltip_content: 'Complete trial payment',
+        detailed_explanation: 'Pay for your optional trial day',
+        time_estimate_minutes: 5,
+        is_optional: true,
+        action: () => {
+          toast.info("Trial payment will be available after scheduling");
+        }
+      },
+      {
+        id: "11",
+        step_number: 11,
+        title: "Begin Your Trial (Optional)",
+        description: "Your caregiver begins the scheduled trial session",
+        completed: hasTrialPayment,
+        accessible: hasTrialPayment,
+        category: 'trial',
+        icon_name: 'Play',
+        tooltip_content: 'Start your trial experience',
+        detailed_explanation: 'Begin your trial with the matched caregiver',
+        time_estimate_minutes: 480,
+        is_optional: true,
+        action: () => {
+          toast.info("Trial will begin on your scheduled date");
+        }
+      },
+      {
+        id: "12",
+        step_number: 12,
+        title: "Rate & Choose Your Path",
+        description: "Decide between: Hire your caregiver ($40/hr) or Subscribe to Tavara ($45/hr)",
+        completed: !!visitNotes?.care_model,
+        accessible: !!visitDetails?.id || hasTrialPayment,
+        category: 'conversion',
+        icon_name: 'Star',
+        tooltip_content: 'Choose your care model',
+        detailed_explanation: 'Select your preferred care arrangement',
+        time_estimate_minutes: 10,
+        is_optional: false,
+        action: () => {
+          toast.info("Care model selection will be available after your visit or trial");
         }
       }
     ];
@@ -416,6 +575,26 @@ export const useEnhancedJourneyProgress = () => {
       path_color: 'green',
       is_recommended: false,
       steps: steps_calculated.filter(s => s.category === 'scheduling') 
+    },
+    { 
+      id: 'trial', 
+      name: 'Trial', 
+      path_name: 'Trial',
+      path_description: 'Optional trial experience with caregivers',
+      step_ids: steps_calculated.filter(s => s.category === 'trial').map(s => parseInt(s.id)),
+      path_color: 'purple',
+      is_recommended: false,
+      steps: steps_calculated.filter(s => s.category === 'trial') 
+    },
+    { 
+      id: 'conversion', 
+      name: 'Conversion', 
+      path_name: 'Conversion',
+      path_description: 'Choose your care model and begin service',
+      step_ids: steps_calculated.filter(s => s.category === 'conversion').map(s => parseInt(s.id)),
+      path_color: 'orange',
+      is_recommended: false,
+      steps: steps_calculated.filter(s => s.category === 'conversion') 
     }
   ];
 
