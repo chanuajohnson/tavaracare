@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,7 +7,6 @@ import { JourneyStepTooltip } from "./JourneyStepTooltip";
 import { SubscriptionTrackingButton } from "@/components/subscription/SubscriptionTrackingButton";
 import { useIsMobile, useIsSmallMobile } from "@/hooks/use-mobile";
 import { useNavigate } from "react-router-dom";
-import { toast } from "sonner";
 import * as LucideIcons from "lucide-react";
 
 interface JourneyStep {
@@ -54,6 +52,7 @@ interface JourneyStageCardProps {
   };
   onCaregiverModalTrigger?: () => void;
   onAnonymousSubscriptionCTA?: () => void;
+  onAnonymousStepClick?: (stepTitle: string, stepCategory: string) => boolean;
 }
 
 export const JourneyStageCard: React.FC<JourneyStageCardProps> = ({
@@ -67,7 +66,8 @@ export const JourneyStageCard: React.FC<JourneyStageCardProps> = ({
   isAnonymous = false,
   visitDetails,
   onCaregiverModalTrigger,
-  onAnonymousSubscriptionCTA
+  onAnonymousSubscriptionCTA,
+  onAnonymousStepClick
 }) => {
   const [isExpanded, setIsExpanded] = useState(true);
   const isMobile = useIsMobile();
@@ -146,7 +146,6 @@ export const JourneyStageCard: React.FC<JourneyStageCardProps> = ({
 
   const handleSubscriptionCTA = () => {
     if (isAnonymous) {
-      toast.info("🌟 This is just a demo of the Tavara experience! Sign up or sign in to start your real care journey.");
       if (onAnonymousSubscriptionCTA) {
         onAnonymousSubscriptionCTA();
       }
@@ -157,8 +156,16 @@ export const JourneyStageCard: React.FC<JourneyStageCardProps> = ({
 
   const handleStepAction = (step: JourneyStep) => {
     if (isAnonymous) {
-      toast.info("🌟 This is just a demo of the Tavara experience! Sign up or sign in to start your real care journey.");
+      // Check if this is a high-value step that should trigger lead capture
+      const highValueSteps = ['View Matches', 'Start Assessment', 'Share Your Loved Ones Story', 'View Care Giver Matches'];
+      const shouldTriggerLeadCapture = highValueSteps.some(hvStep => step.title.includes(hvStep.split(' ')[0]) || step.title === hvStep);
       
+      if (shouldTriggerLeadCapture && onAnonymousStepClick) {
+        const modalTriggered = onAnonymousStepClick(step.title, step.category);
+        if (modalTriggered) return;
+      }
+      
+      // For step 4 (View Matches), also trigger caregiver modal after lead capture
       if (step.step_number === 4 && onCaregiverModalTrigger) {
         onCaregiverModalTrigger();
         return;

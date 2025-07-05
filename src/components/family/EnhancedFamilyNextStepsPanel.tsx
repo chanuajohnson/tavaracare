@@ -12,6 +12,7 @@ import { JourneyPathVisualization } from "./JourneyPathVisualization";
 import { JourneyStageCard } from "./JourneyStageCard";
 import { useEnhancedJourneyProgress } from "@/hooks/useEnhancedJourneyProgress";
 import { useIsMobile, useIsSmallMobile } from "@/hooks/use-mobile";
+import { useState } from "react";
 
 interface EnhancedFamilyNextStepsPanelProps {
   showAllSteps?: boolean;
@@ -45,6 +46,41 @@ export const EnhancedFamilyNextStepsPanel: React.FC<EnhancedFamilyNextStepsPanel
     isAnonymous,
     onVisitCancelled
   } = useEnhancedJourneyProgress();
+
+  // Enhanced lead capture state management
+  const [leadCaptureSource, setLeadCaptureSource] = useState('');
+
+  // Family-specific step to source mapping for lead capture
+  const getLeadCaptureSource = (stepTitle: string, stepCategory: string): string => {
+    const sourceMap: Record<string, string> = {
+      'View Matches': 'family_journey_step_matches',
+      'Start Assessment': 'family_journey_step_assessment', 
+      'Edit Care Assessment': 'family_journey_step_assessment',
+      'Share Your Loved Ones Story': 'family_journey_step_story',
+      'View Care Giver Matches': 'family_journey_step_caregiver_matches',
+      'Schedule Visit': 'family_journey_step_visit'
+    };
+    
+    // Check for partial matches in step titles
+    for (const [key, source] of Object.entries(sourceMap)) {
+      if (stepTitle.includes(key) || stepTitle === key) {
+        return source;
+      }
+    }
+    
+    // Fallback to category-based source
+    return `family_journey_step_${stepCategory}`;
+  };
+
+  // Enhanced anonymous step click handler
+  const handleAnonymousStepClick = (stepTitle: string, stepCategory: string): boolean => {
+    if (!isAnonymous) return false;
+    
+    const source = getLeadCaptureSource(stepTitle, stepCategory);
+    setLeadCaptureSource(source);
+    setShowLeadCaptureModal(true);
+    return true; // Indicates modal was triggered
+  };
 
   const groupStepsByStage = () => {
     const stages = {
@@ -141,6 +177,7 @@ export const EnhancedFamilyNextStepsPanel: React.FC<EnhancedFamilyNextStepsPanel
 
   const handleViewCompleteJourney = () => {
     if (isAnonymous) {
+      setLeadCaptureSource('family_journey_complete_view');
       setShowLeadCaptureModal(true);
     } else {
       navigate('/family/care-journey-progress');
@@ -152,7 +189,12 @@ export const EnhancedFamilyNextStepsPanel: React.FC<EnhancedFamilyNextStepsPanel
   };
 
   const handleAnonymousSubscriptionCTA = () => {
-    setShowCaregiverMatchingModal(true);
+    if (isAnonymous) {
+      setLeadCaptureSource('family_journey_subscription_cta');
+      setShowLeadCaptureModal(true);
+    } else {
+      setShowCaregiverMatchingModal(true);
+    }
   };
 
   if (loading) {
@@ -315,6 +357,7 @@ export const EnhancedFamilyNextStepsPanel: React.FC<EnhancedFamilyNextStepsPanel
                   visitDetails={visitDetails}
                   onCaregiverModalTrigger={handleCaregiverModalTrigger}
                   onAnonymousSubscriptionCTA={handleAnonymousSubscriptionCTA}
+                  onAnonymousStepClick={handleAnonymousStepClick}
                 />
               </div>
             )
@@ -400,10 +443,13 @@ export const EnhancedFamilyNextStepsPanel: React.FC<EnhancedFamilyNextStepsPanel
         referringPageLabel={showAllSteps ? "Care Journey Progress" : "Family Dashboard"}
       />
 
+      {/* Enhanced Lead Capture Modal for Anonymous Users */}
       {isAnonymous && (
         <LeadCaptureModal
           open={showLeadCaptureModal}
           onOpenChange={setShowLeadCaptureModal}
+          source={leadCaptureSource}
+          onSkipToCaregiverMatching={() => setShowCaregiverMatchingModal(true)}
         />
       )}
     </>
