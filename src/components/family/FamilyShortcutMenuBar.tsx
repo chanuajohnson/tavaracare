@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -8,13 +7,16 @@ import { useAuth } from "@/components/providers/AuthProvider";
 import { useTracking } from "@/hooks/useTracking";
 import { useEnhancedJourneyProgress } from "@/hooks/useEnhancedJourneyProgress";
 
-export function FamilyShortcutMenuBar() {
+interface FamilyShortcutMenuBarProps {
+  onCaregiverMatchesClick?: () => void;
+}
+
+export function FamilyShortcutMenuBar({ onCaregiverMatchesClick }: FamilyShortcutMenuBarProps) {
   const { isProfileComplete } = useAuth();
   const { trackEngagement } = useTracking();
   const { 
     steps, 
     visitDetails, 
-    setShowCaregiverMatchingModal,
     loading
   } = useEnhancedJourneyProgress();
 
@@ -51,7 +53,9 @@ export function FamilyShortcutMenuBar() {
 
   const handleCaregiverMatchesClick = () => {
     handleTrackButtonClick('milestone_achievement', 'view_caregiver_matches');
-    setShowCaregiverMatchingModal(true);
+    if (onCaregiverMatchesClick) {
+      onCaregiverMatchesClick();
+    }
   };
 
   return (
