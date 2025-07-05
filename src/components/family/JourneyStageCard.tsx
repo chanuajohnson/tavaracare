@@ -8,6 +8,7 @@ import { JourneyStepTooltip } from "./JourneyStepTooltip";
 import { SubscriptionTrackingButton } from "@/components/subscription/SubscriptionTrackingButton";
 import { useIsMobile, useIsSmallMobile } from "@/hooks/use-mobile";
 import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 import * as LucideIcons from "lucide-react";
 
 interface JourneyStep {
@@ -144,17 +145,24 @@ export const JourneyStageCard: React.FC<JourneyStageCardProps> = ({
   };
 
   const handleSubscriptionCTA = () => {
-    if (isAnonymous && onAnonymousSubscriptionCTA) {
-      onAnonymousSubscriptionCTA();
+    if (isAnonymous) {
+      toast.info("🌟 This is just a demo of the Tavara experience! Sign up or sign in to start your real care journey.");
+      if (onAnonymousSubscriptionCTA) {
+        onAnonymousSubscriptionCTA();
+      }
     } else if (subscriptionCTA?.navigateTo) {
       navigate(subscriptionCTA.navigateTo);
     }
   };
 
   const handleStepAction = (step: JourneyStep) => {
-    if (isAnonymous && step.step_number === 4 && onCaregiverModalTrigger) {
-      onCaregiverModalTrigger();
-      return;
+    if (isAnonymous) {
+      toast.info("🌟 This is just a demo of the Tavara experience! Sign up or sign in to start your real care journey.");
+      
+      if (step.step_number === 4 && onCaregiverModalTrigger) {
+        onCaregiverModalTrigger();
+        return;
+      }
     }
 
     if (step.action) {
