@@ -4,7 +4,7 @@ import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { CheckCircle2, Clock, Circle } from "lucide-react";
 import { useUserSpecificProgress } from "@/hooks/useUserSpecificProgress";
-import { useEnhancedJourneyProgress } from "@/hooks/useEnhancedJourneyProgress";
+import { useSharedFamilyJourneyData } from "@/hooks/useSharedFamilyJourneyData";
 import { useSpecificUserProfessionalProgress } from "@/hooks/useSpecificUserProfessionalProgress";
 import type { UserRole } from "@/types/userRoles";
 
@@ -13,14 +13,9 @@ interface MiniJourneyProgressProps {
   userRole: UserRole;
 }
 
-// Temporary context provider for the enhanced journey hook
-const TempUserProvider = ({ userId, children }: { userId: string, children: React.ReactNode }) => {
-  return <>{children}</>;
-};
-
 export const MiniJourneyProgress: React.FC<MiniJourneyProgressProps> = ({ userId, userRole }) => {
-  // Use enhanced journey progress for family users to match Family Dashboard
-  const enhancedProgress = useEnhancedJourneyProgress();
+  // Use user-specific hooks that take userId parameter
+  const familyProgress = useSharedFamilyJourneyData(userRole === 'family' ? userId : '');
   const professionalProgress = useSpecificUserProfessionalProgress(userRole === 'professional' ? userId : '');
   const otherProgress = useUserSpecificProgress(
     userRole !== 'family' && userRole !== 'professional' ? userId : '', 
@@ -29,12 +24,7 @@ export const MiniJourneyProgress: React.FC<MiniJourneyProgressProps> = ({ userId
 
   // Choose the appropriate progress data based on user role
   const progressData = userRole === 'family' 
-    ? {
-        loading: enhancedProgress.loading,
-        completionPercentage: enhancedProgress.completionPercentage,
-        nextStep: enhancedProgress.nextStep,
-        steps: enhancedProgress.steps
-      }
+    ? familyProgress 
     : userRole === 'professional'
     ? {
         loading: professionalProgress.loading,
