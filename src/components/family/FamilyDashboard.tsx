@@ -1,5 +1,5 @@
+import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { useEffect, useState } from "react";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,7 @@ import { FamilyReadinessChecker } from "@/components/family/FamilyReadinessCheck
 import { FamilyShortcutMenuBar } from "@/components/family/FamilyShortcutMenuBar";
 import { ProfessionalChatRequestsSection } from "@/components/family/ProfessionalChatRequestsSection";
 import { LeadCaptureModal } from "@/components/family/LeadCaptureModal";
+import { CaregiverMatchingModal } from "@/components/family/CaregiverMatchingModal";
 import { useEnhancedJourneyProgress } from "@/hooks/useEnhancedJourneyProgress";
 import { toast } from "sonner";
 
@@ -23,7 +24,7 @@ const FamilyDashboard = () => {
   const [leadCaptureSource, setLeadCaptureSource] = useState('');
   
   // Get modal state from the hook instead of managing locally
-  const { setShowCaregiverMatchingModal } = useEnhancedJourneyProgress();
+  const { showCaregiverMatchingModal, setShowCaregiverMatchingModal } = useEnhancedJourneyProgress();
   
   // Ensure dashboard always loads at the top with enhanced scroll behavior
   useEffect(() => {
@@ -364,6 +365,14 @@ const FamilyDashboard = () => {
           onOpenChange={setShowLeadCaptureModal}
           source={leadCaptureSource}
           onSkipToCaregiverMatching={handleSkipToCaregiverMatching}
+        />
+
+        {/* Caregiver Matching Modal - Using hook's state */}
+        <CaregiverMatchingModal
+          open={showCaregiverMatchingModal}
+          onOpenChange={setShowCaregiverMatchingModal}
+          referringPagePath="/dashboard/family"
+          referringPageLabel="Family Dashboard"
         />
       </div>
     </div>
