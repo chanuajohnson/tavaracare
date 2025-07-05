@@ -7,6 +7,7 @@ import { ScheduleVisitModal } from "./ScheduleVisitModal";
 import { InternalSchedulingModal } from "./InternalSchedulingModal";
 import { CancelVisitDialog } from "./CancelVisitDialog";
 import { LeadCaptureModal } from "./LeadCaptureModal";
+import { CaregiverMatchingModal } from "./CaregiverMatchingModal";
 import { JourneyPathVisualization } from "./JourneyPathVisualization";
 import { JourneyStageCard } from "./JourneyStageCard";
 import { useEnhancedJourneyProgress } from "@/hooks/useEnhancedJourneyProgress";
@@ -36,6 +37,7 @@ export const EnhancedFamilyNextStepsPanel: React.FC<EnhancedFamilyNextStepsPanel
     setShowInternalScheduleModal,
     showCancelVisitModal,
     setShowCancelVisitModal,
+    showCaregiverMatchingModal,
     setShowCaregiverMatchingModal,
     showLeadCaptureModal,
     setShowLeadCaptureModal,
@@ -432,6 +434,13 @@ export const EnhancedFamilyNextStepsPanel: React.FC<EnhancedFamilyNextStepsPanel
         onOpenChange={setShowCancelVisitModal}
         visitDetails={visitDetails}
         onVisitCancelled={onVisitCancelled}
+      />
+
+      <CaregiverMatchingModal
+        open={showCaregiverMatchingModal}
+        onOpenChange={setShowCaregiverMatchingModal}
+        referringPagePath={showAllSteps ? "/family/care-journey-progress" : "/dashboard/family"}
+        referringPageLabel={showAllSteps ? "Care Journey Progress" : "Family Dashboard"}
       />
 
       {/* Enhanced Lead Capture Modal for Anonymous Users */}
