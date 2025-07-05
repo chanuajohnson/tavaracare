@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
@@ -22,8 +23,108 @@ export const useEnhancedJourneyProgress = () => {
   const [showCaregiverMatchingModal, setShowCaregiverMatchingModal] = useState(false);
   const [showLeadCaptureModal, setShowLeadCaptureModal] = useState(false);
 
+  // Generate mock steps for anonymous users
+  const generateMockStepsForAnonymous = () => {
+    return [
+      {
+        id: "1",
+        step_number: 1,
+        title: "Welcome & Profile Setup",
+        description: "Basic account information",
+        completed: true,
+        accessible: true,
+        category: 'foundation',
+        icon_name: 'User',
+        tooltip_content: 'Set up your basic profile information',
+        detailed_explanation: 'Complete your name and basic account setup',
+        time_estimate_minutes: 5,
+        is_optional: false,
+        action: () => {}
+      },
+      {
+        id: "2",
+        step_number: 2,
+        title: "Complete your registration",
+        description: "Family care details and preferences",
+        completed: true,
+        accessible: true,
+        category: 'foundation',
+        icon_name: 'Clipboard',
+        tooltip_content: 'Complete your family registration form',
+        detailed_explanation: 'Fill out care needs, schedule, and preferences',
+        time_estimate_minutes: 15,
+        is_optional: false,
+        action: () => {}
+      },
+      {
+        id: "5",
+        step_number: 5,
+        title: "Care Assessment",
+        description: "Detailed care needs evaluation",
+        completed: false,
+        accessible: true,
+        category: 'foundation',
+        icon_name: 'FileCheck',
+        tooltip_content: 'Complete detailed care assessment',
+        detailed_explanation: 'Provide detailed information about care needs',
+        time_estimate_minutes: 20,
+        is_optional: false,
+        action: () => {}
+      },
+      {
+        id: "6",
+        step_number: 6,
+        title: "Share Loved One's Story",
+        description: "Personal details and preferences",
+        completed: false,
+        accessible: true,
+        category: 'foundation',
+        icon_name: 'Heart',
+        tooltip_content: 'Share your loved one\'s story',
+        detailed_explanation: 'Add personal details about your care recipient',
+        time_estimate_minutes: 10,
+        is_optional: false,
+        action: () => {}
+      },
+      {
+        id: "7",
+        step_number: 7,
+        title: "View Caregiver Matches",
+        description: "Browse potential caregivers",
+        completed: false,
+        accessible: false,
+        category: 'scheduling',
+        icon_name: 'Users',
+        tooltip_content: 'Browse matched caregivers',
+        detailed_explanation: 'View and connect with potential caregivers',
+        time_estimate_minutes: 30,
+        is_optional: false,
+        action: () => {}
+      },
+      {
+        id: "10",
+        step_number: 10,
+        title: "Schedule Visit",
+        description: "Book your Tavara.Care assessment visit",
+        completed: false,
+        accessible: true,
+        category: 'scheduling',
+        icon_name: 'Calendar',
+        tooltip_content: 'Schedule your care assessment visit',
+        detailed_explanation: 'Book a visit from our care coordinators',
+        time_estimate_minutes: 10,
+        is_optional: false,
+        action: () => {}
+      }
+    ];
+  };
+
   const fetchUserData = async () => {
-    if (!user?.id) return;
+    // Handle anonymous users immediately
+    if (!user?.id) {
+      setLoading(false);
+      return;
+    }
 
     try {
       setLoading(true);
@@ -108,7 +209,7 @@ export const useEnhancedJourneyProgress = () => {
 
   // Enhanced registration completion logic using correct database field names
   const calculateRegistrationCompletion = () => {
-    if (!profile) {
+    if (!profile || !user) {
       console.log('Registration completion: No profile data');
       return false;
     }
@@ -154,6 +255,8 @@ export const useEnhancedJourneyProgress = () => {
 
   // Calculate if caregiver matches are accessible
   const calculateCaregiverMatchesAccessible = () => {
+    if (!user) return false;
+    
     const registrationComplete = calculateRegistrationCompletion();
     const hasAssessment = !!careAssessment?.id;
     
@@ -168,6 +271,11 @@ export const useEnhancedJourneyProgress = () => {
 
   // Calculate completion status for each step
   const calculateSteps = () => {
+    // Return mock steps for anonymous users
+    if (!user) {
+      return generateMockStepsForAnonymous();
+    }
+
     if (!profile) return [];
 
     console.log('Calculating steps with profile:', profile);
@@ -181,7 +289,7 @@ export const useEnhancedJourneyProgress = () => {
         completed: !!profile?.full_name,
         accessible: true,
         category: 'foundation',
-        icon_name: 'user',
+        icon_name: 'User',
         tooltip_content: 'Set up your basic profile information',
         detailed_explanation: 'Complete your name and basic account setup',
         time_estimate_minutes: 5,
@@ -196,7 +304,7 @@ export const useEnhancedJourneyProgress = () => {
         completed: calculateRegistrationCompletion(),
         accessible: true,
         category: 'foundation',
-        icon_name: 'clipboard',
+        icon_name: 'Clipboard',
         tooltip_content: 'Complete your family registration form',
         detailed_explanation: 'Fill out care needs, schedule, and preferences',
         time_estimate_minutes: 15,
@@ -214,7 +322,7 @@ export const useEnhancedJourneyProgress = () => {
         completed: !!careAssessment?.id,
         accessible: true,
         category: 'foundation',
-        icon_name: 'file-check',
+        icon_name: 'FileCheck',
         tooltip_content: 'Complete detailed care assessment',
         detailed_explanation: 'Provide detailed information about care needs',
         time_estimate_minutes: 20,
@@ -232,7 +340,7 @@ export const useEnhancedJourneyProgress = () => {
         completed: !!(careRecipient?.id && careRecipient?.full_name),
         accessible: true,
         category: 'foundation',
-        icon_name: 'heart',
+        icon_name: 'Heart',
         tooltip_content: 'Share your loved one\'s story',
         detailed_explanation: 'Add personal details about your care recipient',
         time_estimate_minutes: 10,
@@ -247,7 +355,7 @@ export const useEnhancedJourneyProgress = () => {
         completed: false,
         accessible: calculateCaregiverMatchesAccessible(),
         category: 'scheduling',
-        icon_name: 'users',
+        icon_name: 'Users',
         tooltip_content: 'Browse matched caregivers',
         detailed_explanation: 'View and connect with potential caregivers',
         time_estimate_minutes: 30,
@@ -262,7 +370,7 @@ export const useEnhancedJourneyProgress = () => {
         completed: !!visitDetails?.id,
         accessible: true,
         category: 'scheduling',
-        icon_name: 'calendar',
+        icon_name: 'Calendar',
         tooltip_content: 'Schedule your care assessment visit',
         detailed_explanation: 'Book a visit from our care coordinators',
         time_estimate_minutes: 10,
@@ -315,14 +423,18 @@ export const useEnhancedJourneyProgress = () => {
     setShowScheduleModal(false);
     setShowInternalScheduleModal(false);
     toast.success('Visit scheduled successfully!');
-    fetchUserData(); // Refresh data
+    if (user) {
+      fetchUserData(); // Only refresh data for authenticated users
+    }
   };
 
   const onVisitCancelled = () => {
     setVisitDetails(null);
     setShowCancelVisitModal(false);
     toast.success('Visit cancelled successfully');
-    fetchUserData(); // Refresh data
+    if (user) {
+      fetchUserData(); // Only refresh data for authenticated users
+    }
   };
 
   const trackStepAction = (stepId: string, action: string) => {
