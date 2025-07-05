@@ -11,7 +11,7 @@ import { FamilyReadinessChecker } from "@/components/family/FamilyReadinessCheck
 import { FamilyShortcutMenuBar } from "@/components/family/FamilyShortcutMenuBar";
 import { ProfessionalChatRequestsSection } from "@/components/family/ProfessionalChatRequestsSection";
 import { LeadCaptureModal } from "@/components/family/LeadCaptureModal";
-import { CaregiverMatchingModal } from "@/components/family/CaregiverMatchingModal";
+import { useEnhancedJourneyProgress } from "@/hooks/useEnhancedJourneyProgress";
 import { toast } from "sonner";
 
 const FamilyDashboard = () => {
@@ -22,8 +22,8 @@ const FamilyDashboard = () => {
   const [showLeadCaptureModal, setShowLeadCaptureModal] = useState(false);
   const [leadCaptureSource, setLeadCaptureSource] = useState('');
   
-  // Phase 1B: Caregiver Matching Modal state
-  const [showCaregiverModal, setShowCaregiverModal] = useState(false);
+  // Get modal state from the hook instead of managing locally
+  const { setShowCaregiverMatchingModal } = useEnhancedJourneyProgress();
   
   // Ensure dashboard always loads at the top with enhanced scroll behavior
   useEffect(() => {
@@ -50,14 +50,9 @@ const FamilyDashboard = () => {
     setShowLeadCaptureModal(true);
   };
   
-  // Phase 1B: Handle caregiver matching modal trigger
-  const handleCaregiverMatchingClick = () => {
-    setShowCaregiverModal(true);
-  };
-  
-  // Phase 1B: Handle skip from lead capture to caregiver matching
+  // Phase 1B: Handle skip from lead capture to caregiver matching - use hook's modal state
   const handleSkipToCaregiverMatching = () => {
-    setShowCaregiverModal(true);
+    setShowCaregiverMatchingModal(true);
   };
 
   // Handler for Family Resources "Coming Soon" toast
@@ -369,14 +364,6 @@ const FamilyDashboard = () => {
           onOpenChange={setShowLeadCaptureModal}
           source={leadCaptureSource}
           onSkipToCaregiverMatching={handleSkipToCaregiverMatching}
-        />
-
-        {/* Phase 1B: Caregiver Matching Modal */}
-        <CaregiverMatchingModal
-          open={showCaregiverModal}
-          onOpenChange={setShowCaregiverModal}
-          referringPagePath="/dashboard/family"
-          referringPageLabel="Family Dashboard"
         />
       </div>
     </div>
