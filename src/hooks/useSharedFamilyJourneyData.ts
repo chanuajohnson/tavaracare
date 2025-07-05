@@ -129,10 +129,10 @@ export const useSharedFamilyJourneyData = (userId: string): SharedFamilyJourneyD
     try {
       setLoading(true);
       
-      // Get user profile completion and visit status
+      // Get comprehensive profile data for enhanced registration completion check
       const { data: profile } = await supabase
         .from('profiles')
-        .select('full_name, phone_number, visit_scheduling_status, visit_scheduled_date, visit_notes')
+        .select('full_name, phone_number, address, care_recipient_name, relationship, care_types, care_schedule, budget_preferences, caregiver_type, visit_scheduling_status, visit_scheduled_date, visit_notes')
         .eq('id', userId)
         .maybeSingle();
 
@@ -185,13 +185,35 @@ export const useSharedFamilyJourneyData = (userId: string): SharedFamilyJourneyD
 
       const hasTrialPayment = trialPayments && trialPayments.length > 0;
 
-      // Update step completion status
+      // Update step completion status with enhanced registration logic
       const updatedSteps = steps.map(step => {
         let completed = false;
         
         switch (step.id) {
-          case 1: // Profile completion
-            completed = !!(profile?.full_name);
+          case 1: // Enhanced Profile completion - matches useEnhancedJourneyProgress logic
+            completed = !!(
+              profile?.full_name &&
+              profile?.phone_number &&
+              profile?.address &&
+              profile?.care_recipient_name &&
+              profile?.relationship &&
+              profile?.care_types &&
+              profile?.care_schedule &&
+              profile?.budget_preferences &&
+              profile?.caregiver_type
+            );
+            console.log('Step 1 (Profile) completion check:', {
+              fullName: !!profile?.full_name,
+              phoneNumber: !!profile?.phone_number,
+              address: !!profile?.address,
+              careRecipientName: !!profile?.care_recipient_name,
+              relationship: !!profile?.relationship,
+              careTypes: !!profile?.care_types,
+              careSchedule: !!profile?.care_schedule,
+              budgetPreferences: !!profile?.budget_preferences,
+              caregiverType: !!profile?.caregiver_type,
+              completed
+            });
             break;
           case 2: // Care assessment
             completed = !!careAssessment;
