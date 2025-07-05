@@ -167,6 +167,73 @@ export type Database = {
           },
         ]
       }
+      admin_match_interventions: {
+        Row: {
+          admin_id: string
+          admin_match_score: number | null
+          caregiver_id: string
+          created_at: string | null
+          family_user_id: string
+          id: string
+          intervention_type: string
+          notes: string | null
+          original_match_score: number | null
+          reason: string | null
+          status: string
+          updated_at: string | null
+        }
+        Insert: {
+          admin_id: string
+          admin_match_score?: number | null
+          caregiver_id: string
+          created_at?: string | null
+          family_user_id: string
+          id?: string
+          intervention_type: string
+          notes?: string | null
+          original_match_score?: number | null
+          reason?: string | null
+          status?: string
+          updated_at?: string | null
+        }
+        Update: {
+          admin_id?: string
+          admin_match_score?: number | null
+          caregiver_id?: string
+          created_at?: string | null
+          family_user_id?: string
+          id?: string
+          intervention_type?: string
+          notes?: string | null
+          original_match_score?: number | null
+          reason?: string | null
+          status?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "admin_match_interventions_admin_id_fkey"
+            columns: ["admin_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "admin_match_interventions_caregiver_id_fkey"
+            columns: ["caregiver_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "admin_match_interventions_family_user_id_fkey"
+            columns: ["family_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       admin_visit_config: {
         Row: {
           advance_booking_days: number
@@ -2119,6 +2186,77 @@ export type Database = {
             columns: ["lesson_id"]
             isOneToOne: false
             referencedRelation: "module_lessons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      manual_caregiver_assignments: {
+        Row: {
+          assigned_by_admin_id: string
+          assignment_reason: string | null
+          caregiver_id: string
+          created_at: string | null
+          family_user_id: string
+          id: string
+          is_active: boolean | null
+          match_score: number | null
+          updated_at: string | null
+          visit_booking_id: string | null
+          visit_scheduled: boolean | null
+        }
+        Insert: {
+          assigned_by_admin_id: string
+          assignment_reason?: string | null
+          caregiver_id: string
+          created_at?: string | null
+          family_user_id: string
+          id?: string
+          is_active?: boolean | null
+          match_score?: number | null
+          updated_at?: string | null
+          visit_booking_id?: string | null
+          visit_scheduled?: boolean | null
+        }
+        Update: {
+          assigned_by_admin_id?: string
+          assignment_reason?: string | null
+          caregiver_id?: string
+          created_at?: string | null
+          family_user_id?: string
+          id?: string
+          is_active?: boolean | null
+          match_score?: number | null
+          updated_at?: string | null
+          visit_booking_id?: string | null
+          visit_scheduled?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "manual_caregiver_assignments_assigned_by_admin_id_fkey"
+            columns: ["assigned_by_admin_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "manual_caregiver_assignments_caregiver_id_fkey"
+            columns: ["caregiver_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "manual_caregiver_assignments_family_user_id_fkey"
+            columns: ["family_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "manual_caregiver_assignments_visit_booking_id_fkey"
+            columns: ["visit_booking_id"]
+            isOneToOne: false
+            referencedRelation: "visit_bookings"
             referencedColumns: ["id"]
           },
         ]

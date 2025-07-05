@@ -1,473 +1,238 @@
-import React from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
-import { Separator } from "@/components/ui/separator";
-import { User, Mail, MapPin, Calendar, CheckCircle2, Clock, Send, ArrowRight, Circle } from "lucide-react";
-import { supabase } from "@/lib/supabase";
-import { toast } from "sonner";
-import { useUserSpecificProgress } from "@/hooks/useUserSpecificProgress";
-import { useSharedFamilyJourneyData } from "@/hooks/useSharedFamilyJourneyData";
-import { useSpecificUserProfessionalProgress } from "@/hooks/useSpecificUserProfessionalProgress";
-import { UserWithProgress } from "@/types/adminTypes";
-import { PhoneNumberEditor } from "./PhoneNumberEditor";
-import { TemplateSelector } from "./TemplateSelector";
-import type { UserRole } from "@/types/userRoles";
+import React, { useState, useEffect } from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
+import { User, Mail, Phone, MapPin, Calendar, Users, Activity } from 'lucide-react';
+import { UserMatchingActions } from './UserMatchingActions';
 
 interface UserDetailModalProps {
-  user: UserWithProgress | null;
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  onRefresh: () => void;
+  user: any;
+  isOpen: boolean;
+  onClose: () => void;
+  onUserUpdate: () => void;
 }
 
-// Normalized step interface for consistent display
-interface NormalizedStep {
-  id: string;
-  step_number: number;
-  title: string;
-  description: string;
-  completed: boolean;
-}
+export const UserDetailModal: React.FC<UserDetailModalProps> = ({
+  user,
+  isOpen,
+  onClose,
+  onUserUpdate
+}) => {
+  const [careNeeds, setCareNeeds] = useState<any>(null);
+  const [journeyProgress, setJourneyProgress] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
 
-interface NormalizedNextStep {
-  step_number: number;
-  title: string;
-}
-
-export function UserDetailModal({ user, open, onOpenChange, onRefresh }: UserDetailModalProps) {
-  const [sending, setSending] = React.useState(false);
-  const [userPhoneNumber, setUserPhoneNumber] = React.useState<string | null>(null);
-  const [showTemplateSelector, setShowTemplateSelector] = React.useState(false);
-  
-  // Stabilize the parameters to prevent hooks violations
-  const userId = React.useMemo(() => user?.id || '', [user?.id]);
-  const userRole = React.useMemo(() => user?.role as UserRole || 'family', [user?.role]);
-  
-  // Use user-specific hooks that take userId parameter
-  const familyProgress = useSharedFamilyJourneyData(userRole === 'family' ? userId : '');
-  const professionalProgress = useSpecificUserProfessionalProgress(userRole === 'professional' ? userId : '');
-  const otherProgress = useUserSpecificProgress(
-    userRole !== 'family' && userRole !== 'professional' ? userId : '', 
-    userRole
-  );
-
-  // Normalize the progress data to have consistent step_number properties
-  const progressData = React.useMemo(() => {
-    if (userRole === 'family') {
-      return {
-        loading: familyProgress.loading,
-        completionPercentage: familyProgress.completionPercentage,
-        nextStep: familyProgress.nextStep ? {
-          step_number: familyProgress.nextStep.id,
-          title: familyProgress.nextStep.title
-        } as NormalizedNextStep : undefined,
-        steps: familyProgress.steps.map(step => ({
-          id: step.id.toString(),
-          step_number: step.id,
-          title: step.title,
-          description: step.description,
-          completed: step.completed
-        })) as NormalizedStep[]
-      };
-    } else if (userRole === 'professional') {
-      return {
-        loading: professionalProgress.loading,
-        completionPercentage: professionalProgress.completionPercentage,
-        nextStep: professionalProgress.nextStep ? {
-          step_number: professionalProgress.nextStep.id,
-          title: professionalProgress.nextStep.title
-        } as NormalizedNextStep : undefined,
-        steps: professionalProgress.steps.map(step => ({
-          id: step.id.toString(),
-          step_number: step.id,
-          title: step.title,
-          description: step.description,
-          completed: step.completed
-        })) as NormalizedStep[]
-      };
-    } else {
-      return {
-        loading: otherProgress.loading,
-        completionPercentage: otherProgress.completionPercentage,
-        nextStep: otherProgress.nextStep ? {
-          step_number: otherProgress.nextStep.step_number,
-          title: otherProgress.nextStep.title
-        } as NormalizedNextStep : undefined,
-        steps: otherProgress.steps.map(step => ({
-          id: step.id,
-          step_number: step.step_number,
-          title: step.title,
-          description: step.description,
-          completed: step.completed
-        })) as NormalizedStep[]
-      };
+  useEffect(() => {
+    if (user && isOpen) {
+      fetchUserDetails();
     }
-  }, [userRole, familyProgress, professionalProgress, otherProgress]);
+  }, [user, isOpen]);
 
-  const { loading, completionPercentage, nextStep, steps } = progressData;
+  const fetchUserDetails = async () => {
+    if (!user) return;
 
-  // Initialize phone number state when user changes
-  React.useEffect(() => {
-    setUserPhoneNumber(user?.phone_number || null);
-  }, [user?.phone_number]);
+    try {
+      setLoading(true);
 
-  // Early return after all hooks are called
+      // Fetch care needs for family users
+      if (user.role === 'family') {
+        const { data: needs, error: needsError } = await supabase
+          .from('care_needs_family')
+          .select('*')
+          .eq('profile_id', user.id)
+          .single();
+
+        if (needsError && needsError.code !== 'PGRST116') {
+          console.error('Error fetching care needs:', needsError);
+        } else {
+          setCareNeeds(needs);
+        }
+      }
+
+      // Fetch journey progress
+      const { data: progress, error: progressError } = await supabase
+        .from('user_journey_progress')
+        .select('*')
+        .eq('user_id', user.id)
+        .single();
+
+      if (progressError && progressError.code !== 'PGRST116') {
+        console.error('Error fetching journey progress:', progressError);
+      } else {
+        setJourneyProgress(progress);
+      }
+    } catch (error) {
+      console.error('Error fetching user details:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   if (!user) return null;
 
-  const sendNudgeEmail = async (stepType: string) => {
-    setSending(true);
-    try {
-      console.log('Sending nudge email to user:', user.id, 'Type:', stepType);
-      
-      const { error } = await supabase.functions.invoke('send-nudge-email', {
-        body: { 
-          userId: user.id,
-          userEmail: user.email,
-          userName: user.full_name || 'User',
-          userRole: user.role,
-          currentStep: nextStep?.step_number || steps.length,
-          stepType
-        }
-      });
-
-      if (error) throw error;
-      
-      toast.success(`Email nudge sent to ${user.full_name || user.email}`);
-      onRefresh();
-    } catch (error: any) {
-      console.error('Error sending email nudge:', error);
-      toast.error(`Failed to send email nudge: ${error.message}`);
-    } finally {
-      setSending(false);
-    }
-  };
-
-  const handleWhatsAppMessage = (message: string) => {
-    if (!userPhoneNumber) {
-      toast.error('No phone number available');
-      return;
-    }
-
-    // Clean phone number for WhatsApp (remove + and any spaces)
-    const cleanPhone = userPhoneNumber.replace(/[\s+]/g, '');
-    
-    // Create WhatsApp URL and open it
-    const whatsappUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
-    window.open(whatsappUrl, '_blank');
-    
-    // Log the WhatsApp interaction
-    supabase.from('cta_engagement_tracking').insert({
-      user_id: user.id,
-      action_type: 'admin_whatsapp_template_sent',
-      session_id: `admin-${Date.now()}`,
-      additional_data: {
-        message_preview: message.substring(0, 100),
-        phone_number: userPhoneNumber,
-        admin_user_id: null, // Will be filled by RLS
-        timestamp: new Date().toISOString()
-      }
-    }).then(() => {
-      toast.success(`WhatsApp message sent to ${user.full_name || user.email}`);
-    });
-  };
-
-  const advanceUserStep = async () => {
-    try {
-      const currentStepNumber = nextStep?.step_number || steps.length;
-      const totalSteps = steps.length;
-      const newStep = Math.min(currentStepNumber + 1, totalSteps);
-      
-      const { error } = await supabase
-        .from('user_journey_progress')
-        .upsert({
-          user_id: user.id,
-          role: user.role,
-          current_step: newStep,
-          total_steps: totalSteps,
-          completion_percentage: Math.round((newStep / totalSteps) * 100),
-          last_activity_at: new Date().toISOString()
-        });
-
-      if (error) throw error;
-      
-      toast.success(`Advanced ${user.full_name || user.email} to step ${newStep}`);
-      onRefresh();
-    } catch (error: any) {
-      console.error('Error advancing step:', error);
-      toast.error(`Failed to advance step: ${error.message}`);
-    }
-  };
-
-  const handlePhoneNumberUpdate = (newPhoneNumber: string | null) => {
-    setUserPhoneNumber(newPhoneNumber);
-    // Trigger a refresh to update the user data
-    onRefresh();
-  };
-
-  // Check if user is at schedule visit stage or beyond for financial proposals
-  const isAtScheduleVisitStage = completionPercentage >= 70; // Adjust threshold as needed
-
-  // Role-specific information
-  let roleSpecificInfo = null;
-  if (user.role === 'family') {
-    roleSpecificInfo = (
-      <Card>
-        <CardHeader>
-          <CardTitle>Family-Specific Information</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p>Details specific to family users go here.</p>
-        </CardContent>
-      </Card>
-    );
-  } else if (user.role === 'professional') {
-    roleSpecificInfo = (
-      <Card>
-        <CardHeader>
-          <CardTitle>Professional-Specific Information</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p>Details specific to professional users go here.</p>
-        </CardContent>
-      </Card>
-    );
-  } else if (user.role === 'community') {
-    roleSpecificInfo = (
-      <Card>
-        <CardHeader>
-          <CardTitle>Community-Specific Information</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p>Details specific to community users go here.</p>
-        </CardContent>
-      </Card>
-    );
-  }
-
   return (
-    <>
-      <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <User className="h-5 w-5" />
-              {user.full_name || 'Unnamed User'}
-              <Badge variant={user.email_verified ? "default" : "secondary"}>
-                {user.email_verified ? "Verified" : "Unverified"}
-              </Badge>
-            </DialogTitle>
-          </DialogHeader>
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <User className="h-5 w-5" />
+            {user.full_name || 'User Details'}
+          </DialogTitle>
+        </DialogHeader>
 
-          <div className="space-y-6">
-            {/* User Overview */}
-            <Card>
-              <CardHeader>
-                <CardTitle>{user.full_name || 'User Details'}</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2">
-                      <Mail className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm">{user.email}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <User className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm capitalize">{user.role}</span>
-                    </div>
-                    {user.location && (
-                      <div className="flex items-center gap-2">
-                        <MapPin className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-sm">{user.location}</span>
-                      </div>
-                    )}
-                    {/* Enhanced Phone Number Editor */}
-                    <PhoneNumberEditor
-                      userId={user.id}
-                      currentPhoneNumber={userPhoneNumber}
-                      userName={user.full_name || user.email}
-                      onPhoneNumberUpdate={handlePhoneNumberUpdate}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2">
-                      <Calendar className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm">Joined {new Date(user.created_at).toLocaleDateString()}</span>
-                    </div>
-                    {user.last_login_at && (
-                      <div className="flex items-center gap-2">
-                        <Clock className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-sm">Last login {new Date(user.last_login_at).toLocaleDateString()}</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+        <Tabs defaultValue="profile" className="space-y-4">
+          <TabsList className="grid w-full grid-cols-4">
+            <TabsTrigger value="profile">Profile</TabsTrigger>
+            <TabsTrigger value="journey">Journey</TabsTrigger>
+            {user.role === 'family' && (
+              <TabsTrigger value="matching">Matching</TabsTrigger>
+            )}
+            <TabsTrigger value="activity">Activity</TabsTrigger>
+          </TabsList>
 
-            {/* Journey Progress */}
+          <TabsContent value="profile" className="space-y-4">
+            {/* Basic Profile Information */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center justify-between">
-                  {user.role.charAt(0).toUpperCase() + user.role.slice(1)} Journey Progress
-                  <Badge variant="outline">
-                    {completionPercentage}% Complete
+                  <span>Profile Information</span>
+                  <Badge variant={user.role === 'admin' ? 'destructive' : user.role === 'professional' ? 'default' : 'secondary'}>
+                    {user.role}
                   </Badge>
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <Progress value={completionPercentage} className="w-full" />
-                
-                {loading ? (
-                  <div className="text-center py-4">
-                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto"></div>
-                    <p className="text-sm text-gray-500 mt-2">Loading journey progress...</p>
-                  </div>
-                ) : (
+              <CardContent className="space-y-3">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    {steps.map((step) => {
-                      const isCurrent = nextStep?.step_number === step.step_number;
-                      
-                      return (
-                        <div key={step.id} className={`flex items-center gap-2 p-2 rounded ${
-                          isCurrent ? 'bg-blue-50 border border-blue-200' : 
-                          step.completed ? 'bg-green-50' : 'bg-gray-50'
-                        }`}>
-                          {step.completed ? (
-                            <CheckCircle2 className="h-4 w-4 text-green-500" />
-                          ) : isCurrent ? (
-                            <Clock className="h-4 w-4 text-blue-500" />
-                          ) : (
-                            <Circle className="h-4 w-4 text-gray-300" />
-                          )}
-                          <span className={`text-sm flex-1 ${isCurrent ? 'font-medium text-blue-700' : ''}`}>
-                            {step.step_number}. {step.title}
-                          </span>
-                          <span className="text-xs text-muted-foreground">
-                            {step.description}
-                          </span>
-                          {isCurrent && (
-                            <Badge variant="secondary" className="ml-auto">
-                              Current
-                            </Badge>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            {roleSpecificInfo}
-
-            <Separator />
-
-            {/* Enhanced Admin Actions with Template System */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Admin Actions</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {/* Primary Communication Actions */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    <Button 
-                      onClick={() => sendNudgeEmail('current_step')}
-                      disabled={sending}
-                      className="flex items-center gap-2"
-                    >
-                      <Mail className="h-4 w-4" />
-                      Email Current Step
-                    </Button>
-                    
-                    <Button 
-                      onClick={() => setShowTemplateSelector(true)}
-                      disabled={!userPhoneNumber}
-                      variant="outline"
-                      className="flex items-center gap-2 bg-green-50 border-green-200 text-green-700 hover:bg-green-100"
-                    >
-                      <Send className="h-4 w-4" />
-                      WhatsApp with Template
-                    </Button>
-                    
-                    <Button 
-                      onClick={advanceUserStep}
-                      disabled={completionPercentage >= 100}
-                      variant="outline"
-                      className="flex items-center gap-2"
-                    >
-                      <ArrowRight className="h-4 w-4" />
-                      Advance Step
-                    </Button>
-                  </div>
-                  
-                  {/* Welcome Messages */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <Button 
-                      onClick={() => sendNudgeEmail('welcome')}
-                      disabled={sending}
-                      variant="outline"
-                      className="flex items-center gap-2"
-                    >
-                      <Mail className="h-4 w-4" />
-                      Send Welcome Email
-                    </Button>
-                  </div>
-
-                  {/* Financial Proposal Actions - Show only if at schedule visit stage */}
-                  {isAtScheduleVisitStage && (
-                    <div className="border-t pt-4">
-                      <h4 className="text-sm font-medium text-gray-700 mb-2">Financial Proposals & Payment Options</h4>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <Button 
-                          onClick={() => sendNudgeEmail('financial_proposal')}
-                          disabled={sending}
-                          variant="outline"
-                          className="flex items-center gap-2 bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100"
-                        >
-                          <Mail className="h-4 w-4" />
-                          Email Financial Proposal
-                        </Button>
+                    <div className="flex items-center gap-2">
+                      <Mail className="h-4 w-4 text-gray-500" />
+                      <span className="text-sm">{user.email}</span>
+                    </div>
+                    {user.phone_number && (
+                      <div className="flex items-center gap-2">
+                        <Phone className="h-4 w-4 text-gray-500" />
+                        <span className="text-sm">{user.phone_number}</span>
                       </div>
-                      <p className="text-xs text-muted-foreground mt-2">
-                        Available because user is at "Schedule Visit" stage or beyond
-                      </p>
+                    )}
+                    {user.address && (
+                      <div className="flex items-center gap-2">
+                        <MapPin className="h-4 w-4 text-gray-500" />
+                        <span className="text-sm">{user.address}</span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <Calendar className="h-4 w-4 text-gray-500" />
+                      <span className="text-sm">
+                        Joined {new Date(user.created_at).toLocaleDateString()}
+                      </span>
                     </div>
-                  )}
-
-                  {/* Phone Number Status */}
-                  {!userPhoneNumber && (
-                    <div className="bg-amber-50 border border-amber-200 rounded-md p-3">
-                      <p className="text-sm text-amber-700">
-                        📞 No phone number on file - WhatsApp options are disabled. Add a phone number above to enable WhatsApp communication.
-                      </p>
-                    </div>
-                  )}
+                    {user.last_login_at && (
+                      <div className="flex items-center gap-2">
+                        <Activity className="h-4 w-4 text-gray-500" />
+                        <span className="text-sm">
+                          Last active {new Date(user.last_login_at).toLocaleDateString()}
+                        </span>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </CardContent>
             </Card>
-          </div>
-        </DialogContent>
-      </Dialog>
 
-      {/* Template Selector Dialog */}
-      <TemplateSelector
-        open={showTemplateSelector}
-        onOpenChange={setShowTemplateSelector}
-        userRole={user.role as 'family' | 'professional' | 'community'}
-        userName={user.full_name || 'User'}
-        userPhone={userPhoneNumber || ''}
-        userProgress={{
-          completion_percentage: completionPercentage,
-          current_step: nextStep?.step_number,
-          next_step: nextStep
-        }}
-        onSendMessage={handleWhatsAppMessage}
-      />
-    </>
+            {/* Care Needs for Family Users */}
+            {user.role === 'family' && careNeeds && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Care Requirements</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <h4 className="font-medium mb-2">Care Recipient</h4>
+                      <p className="text-sm text-gray-600">
+                        {careNeeds.care_recipient_name || 'Not specified'}
+                      </p>
+                    </div>
+                    <div>
+                      <h4 className="font-medium mb-2">Primary Contact</h4>
+                      <p className="text-sm text-gray-600">
+                        {careNeeds.primary_contact_name || 'Not specified'}
+                      </p>
+                      {careNeeds.primary_contact_phone && (
+                        <p className="text-sm text-gray-600">
+                          {careNeeds.primary_contact_phone}
+                        </p>
+                      )}
+                    </div>
+                    {careNeeds.preferred_time_start && careNeeds.preferred_time_end && (
+                      <div>
+                        <h4 className="font-medium mb-2">Preferred Time</h4>
+                        <p className="text-sm text-gray-600">
+                          {careNeeds.preferred_time_start} - {careNeeds.preferred_time_end}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </TabsContent>
+
+          <TabsContent value="journey" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Journey Progress</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {journeyProgress ? (
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <span>Current Step</span>
+                      <Badge variant="outline">
+                        {journeyProgress.current_step}/{journeyProgress.total_steps}
+                      </Badge>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div 
+                        className="bg-blue-600 h-2 rounded-full" 
+                        style={{ width: `${journeyProgress.completion_percentage}%` }}
+                      ></div>
+                    </div>
+                    <p className="text-sm text-gray-600">
+                      {journeyProgress.completion_percentage}% complete
+                    </p>
+                  </div>
+                ) : (
+                  <p className="text-gray-600">No journey data available</p>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {user.role === 'family' && (
+            <TabsContent value="matching" className="space-y-4">
+              <UserMatchingActions user={user} onUserUpdate={onUserUpdate} />
+            </TabsContent>
+          )}
+
+          <TabsContent value="activity" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Recent Activity</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-gray-600">Activity tracking coming soon...</p>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+      </DialogContent>
+    </Dialog>
   );
-}
+};
