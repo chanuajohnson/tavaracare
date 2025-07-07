@@ -156,9 +156,9 @@ export function RoleBasedUserGrid({ users, selectedUsers, onUserSelect, onRefres
 
       <UserDetailModal
         user={selectedUser}
-        open={isModalOpen}
-        onOpenChange={setIsModalOpen}
-        onRefresh={onRefresh || (() => {})}
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onUserUpdate={onRefresh || (() => {})}
       />
     </div>
   );

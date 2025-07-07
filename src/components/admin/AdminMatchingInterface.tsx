@@ -33,7 +33,6 @@ interface Caregiver {
   full_name: string;
   phone_number: string;
   address: string;
-  years_experience: number;
   available_immediately: boolean;
 }
 
@@ -97,7 +96,7 @@ export const AdminMatchingInterface: React.FC<AdminMatchingInterfaceProps> = ({
     try {
       const { data: caregivers, error } = await supabase
         .from('profiles')
-        .select('id, full_name, phone_number, address, years_experience, available_immediately')
+        .select('id, full_name, phone_number, address, available_immediately')
         .eq('role', 'professional')
         .eq('profile_complete', true)
         .order('created_at', { ascending: false });
@@ -172,14 +171,9 @@ export const AdminMatchingInterface: React.FC<AdminMatchingInterfaceProps> = ({
         score += 20;
       }
       
-      // Experience match
-      if (caregiver.years_experience && caregiver.years_experience >= 2) {
-        score += 15;
-      }
-      
       // Availability match (placeholder)
       if (caregiver.available_immediately) {
-        score += 15;
+        score += 30;
       }
     }
     
@@ -278,11 +272,6 @@ export const AdminMatchingInterface: React.FC<AdminMatchingInterfaceProps> = ({
                     <div>
                       <p className="font-medium">{caregiver.full_name}</p>
                       <p className="text-sm text-gray-600">{caregiver.phone_number}</p>
-                      {caregiver.years_experience && (
-                        <p className="text-sm text-gray-600">
-                          {caregiver.years_experience} years experience
-                        </p>
-                      )}
                     </div>
                     <div className="text-right">
                       <div className="flex items-center gap-1">

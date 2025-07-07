@@ -41,9 +41,7 @@ export const AdminMatchingQueue: React.FC = () => {
           full_name,
           phone_number,
           created_at,
-          role,
-          care_recipient_name,
-          relationship
+          role
         `)
         .eq('role', 'family')
         .order('created_at', { ascending: false });
@@ -194,7 +192,7 @@ export const AdminMatchingQueue: React.FC = () => {
                         <div>
                           <p className="font-medium">Care Info</p>
                           <p>
-                            {user.care_recipient_name || 'Not specified'}
+                            {user.care_needs?.care_recipient_name || 'Not specified'}
                           </p>
                           {user.manual_assignments?.length === 0 && (
                             <div className="flex items-center gap-1 text-orange-600 mt-1">
