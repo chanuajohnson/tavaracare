@@ -2,10 +2,11 @@
 import { useEffect, useState } from 'react';
 import { LoadingState } from '@/components/auth/reset-password/LoadingState';
 import { ErrorState } from '@/components/auth/reset-password/ErrorState';
-import { PasswordResetForm } from '@/components/auth/reset-password/PasswordResetForm';
+import PasswordResetForm from '@/components/auth/reset-password/PasswordResetForm';
 import { extractResetTokens } from '@/utils/authResetUtils';
 import { supabase } from '@/integrations/supabase/client';
 import { VALIDATION_TIMEOUT_MS, logResetAttempt } from '@/utils/passwordResetUtils';
+import { setAuthFlowFlag, clearAuthFlowFlag, AUTH_FLOW_FLAGS } from '@/utils/authFlowUtils';
 
 const ResetPasswordConfirm = () => {
   const [isLoading, setIsLoading] = useState(true);
@@ -23,8 +24,8 @@ const ResetPasswordConfirm = () => {
         console.log('[Reset] Starting session validation on reset-password/confirm page');
         console.log('[Reset] URL:', window.location.href);
         
-        // Prevent any automatic redirects while on this page
-        sessionStorage.setItem('skipPostLoginRedirect', 'true');
+        // Prevent any automatic redirects while on this page using specific flag
+        setAuthFlowFlag(AUTH_FLOW_FLAGS.SKIP_PASSWORD_RESET_REDIRECT);
         
         // Extract tokens from query parameters
         const { access_token, refresh_token, token, type, email, error } = extractResetTokens();
@@ -110,8 +111,8 @@ const ResetPasswordConfirm = () => {
     validateResetSession();
     
     return () => {
-      // Clear the skip redirect flag when leaving this page
-      sessionStorage.removeItem('skipPostLoginRedirect');
+      // Clear the specific skip redirect flag when leaving this page
+      clearAuthFlowFlag(AUTH_FLOW_FLAGS.SKIP_PASSWORD_RESET_REDIRECT);
     };
   }, [emailAddress]);
 

@@ -87,6 +87,23 @@ const isCaregiverMatchingAction = (actionType: string): boolean => {
 };
 
 /**
+ * Send event to Google Analytics
+ */
+const sendToGoogleAnalytics = (actionType: TrackingActionType, additionalData: Record<string, any>) => {
+  try {
+    if (typeof window !== 'undefined' && window.gtag) {
+      window.gtag('event', actionType, {
+        event_category: 'user_engagement',
+        event_label: additionalData.user_role || 'anonymous',
+        custom_parameters: additionalData
+      });
+    }
+  } catch (error) {
+    console.error("Error sending to Google Analytics:", error);
+  }
+};
+
+/**
  * Hook for tracking user engagement across the platform
  */
 export function useTracking(options: TrackingOptions = {}) {
@@ -104,6 +121,12 @@ export function useTracking(options: TrackingOptions = {}) {
     // Skip tracking if disabled in options
     if (options.disabled) {
       console.log('[Tracking disabled by options]', actionType, additionalData);
+      return;
+    }
+    
+    // Skip tracking for admin users
+    if (user?.role === 'admin') {
+      console.log('[Tracking disabled for admin user]', actionType, additionalData);
       return;
     }
     
@@ -131,6 +154,9 @@ export function useTracking(options: TrackingOptions = {}) {
         user_profile_complete: isProfileComplete || false,
       };
       
+      // Send to Google Analytics
+      sendToGoogleAnalytics(actionType, enhancedData);
+      
       // Record the tracking event in Supabase
       const { error } = await supabase.from('cta_engagement_tracking').insert({
         user_id: user?.id || null,
@@ -140,7 +166,7 @@ export function useTracking(options: TrackingOptions = {}) {
       });
       
       if (error) {
-        console.error("Error tracking engagement:", error);
+        console.error("Error tracking engagement in Supabase:", error);
       }
     } catch (error) {
       console.error("Error in trackEngagement:", error);

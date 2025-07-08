@@ -3,7 +3,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { MessageSquare, Users, Calendar, TrendingUp, BarChart, Clock } from "lucide-react";
+import { MessageSquare, Users, Calendar, TrendingUp, BarChart, Clock, Video, MessageCircle, Settings } from "lucide-react";
 import { AdminUserManagement } from "@/components/admin/AdminUserManagement";
 import { FeatureInterestTracker } from "@/components/admin/FeatureInterestTracker";
 import { FeedbackManagement } from "@/components/admin/FeedbackManagement";
@@ -36,6 +36,10 @@ export default function AdminDashboard() {
     return () => clearInterval(interval);
   }, []);
 
+  const handleHeroVideoClick = () => {
+    navigate('/admin/hero-video-management');
+  };
+
   const handleVisitScheduleClick = () => {
     // Navigate directly to the queue tab if there are pending requests
     if (pendingSchedulingCount > 0) {
@@ -53,6 +57,18 @@ export default function AdminDashboard() {
     navigate('/admin/user-journey');
   };
 
+  const handleWhatsAppNudgeClick = () => {
+    navigate('/admin/whatsapp-nudge');
+  };
+
+  const handlePlatformAnalyticsClick = () => {
+    navigate('/admin/platform-analytics');
+  };
+
+  const handleShiftManagementClick = () => {
+    navigate('/admin/shift-management');
+  };
+
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="mb-8">
@@ -63,19 +79,46 @@ export default function AdminDashboard() {
       </div>
 
       {/* Quick Actions */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4 mb-8">
+        <Button
+          onClick={handleHeroVideoClick}
+          className="h-20 flex flex-col items-center justify-center gap-2"
+          variant="outline"
+        >
+          <Video className="h-6 w-6" />
+          <span className="text-sm font-medium text-center leading-tight">Hero Video Management</span>
+        </Button>
+
         <Button
           onClick={handleVisitScheduleClick}
           className="h-20 flex flex-col items-center justify-center gap-2 relative"
           variant="outline"
         >
           <Calendar className="h-6 w-6" />
-          <span className="text-sm font-medium">Visit Schedule Management</span>
+          <span className="text-sm font-medium text-center leading-tight">Visit Schedule Management</span>
           {pendingSchedulingCount > 0 && (
             <div className="absolute -top-1 -right-1 bg-orange-500 text-white text-xs rounded-full w-6 h-6 flex items-center justify-center">
               {pendingSchedulingCount}
             </div>
           )}
+        </Button>
+
+        <Button
+          onClick={handleShiftManagementClick}
+          className="h-20 flex flex-col items-center justify-center gap-2"
+          variant="outline"
+        >
+          <Settings className="h-6 w-6" />
+          <span className="text-sm font-medium text-center leading-tight">Shift Configuration Management</span>
+        </Button>
+
+        <Button
+          onClick={handleWhatsAppNudgeClick}
+          className="h-20 flex flex-col items-center justify-center gap-2"
+          variant="outline"
+        >
+          <MessageCircle className="h-6 w-6" />
+          <span className="text-sm font-medium text-center leading-tight">WhatsApp Nudge System</span>
         </Button>
         
         <Button
@@ -84,7 +127,7 @@ export default function AdminDashboard() {
           variant="outline"
         >
           <MessageSquare className="h-6 w-6" />
-          <span className="text-sm font-medium">TAVARA Feedback</span>
+          <span className="text-sm font-medium text-center leading-tight">TAVARA Feedback</span>
         </Button>
         
         <Button
@@ -93,16 +136,16 @@ export default function AdminDashboard() {
           variant="outline"
         >
           <TrendingUp className="h-6 w-6" />
-          <span className="text-sm font-medium">User Journey Analytics</span>
+          <span className="text-sm font-medium text-center leading-tight">User Journey Analytics</span>
         </Button>
         
         <Button
+          onClick={handlePlatformAnalyticsClick}
           className="h-20 flex flex-col items-center justify-center gap-2"
           variant="outline"
-          disabled
         >
           <BarChart className="h-6 w-6" />
-          <span className="text-sm font-medium">Platform Analytics</span>
+          <span className="text-sm font-medium text-center leading-tight">Platform Analytics</span>
         </Button>
       </div>
 

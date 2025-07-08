@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle2, AlertCircle, ArrowLeft, Crown, XCircle, Clock } from "lucide-react";
+import { CheckCircle2, AlertCircle, ArrowLeft, Crown, XCircle, Clock, Video, MessageCircle } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { toast } from "@/components/ui/use-toast";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
@@ -12,25 +12,26 @@ import { useTracking } from "@/hooks/useTracking";
 import { supabase } from "@/integrations/supabase/client";
 import { PayPalScriptProvider } from "@paypal/react-paypal-js";
 import { PayPalSubscribeButton } from "@/components/subscription/PayPalSubscribeButton";
+
 const SubscriptionPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const {
-    user,
-    userRole,
-    requireAuth
-  } = useAuth();
-  const {
-    trackEngagement
-  } = useTracking();
+  const { user, userRole, requireAuth } = useAuth();
+  const { trackEngagement } = useTracking();
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
   const [processingPayment, setProcessingPayment] = useState(false);
   const [userSubscription, setUserSubscription] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  
   const returnPath = location.state?.returnPath || (userRole === 'professional' ? "/dashboard/professional" : "/dashboard/family");
   const featureType = location.state?.featureType || "premium feature";
   const referringPagePath = location.state?.referringPagePath || returnPath;
   const referringPageLabel = location.state?.referringPageLabel || "Dashboard";
+  
+  // Check if this is video call related
+  const isVideoCallFeature = featureType?.toLowerCase().includes('video') || 
+                            featureType?.toLowerCase().includes('call');
+  
   const breadcrumbItems = [{
     label: "Dashboard",
     path: referringPagePath.split('/').slice(0, 3).join('/')
@@ -41,7 +42,9 @@ const SubscriptionPage = () => {
     label: "Subscription",
     path: "/subscription"
   }];
+  
   const paypalClientId = import.meta.env.VITE_PAYPAL_CLIENT_ID || "sb";
+
   useEffect(() => {
     if (!user) {
       toast({
@@ -81,6 +84,7 @@ const SubscriptionPage = () => {
     };
     fetchUserSubscription();
   }, [user, userRole, navigate, referringPagePath, referringPageLabel]);
+  
   const getUserSpecificPlans = () => {
     if (userRole === 'professional' || referringPagePath.includes('professional') || location.state?.fromProfessionalFeatures) {
       return professionalPlans;
@@ -90,35 +94,36 @@ const SubscriptionPage = () => {
     }
     return referringPagePath.includes('professional') ? professionalPlans : familyPlans;
   };
+  
   const familyPlans = [{
     id: "basic",
     name: "Family Basic",
     price: "Free",
     period: "",
-    description: "Limited access to essential family features",
+    description: "Unlimited chat with all matched caregivers",
     features: [{
-      name: "View 3 caregiver profiles per day",
+      name: "Unlimited caregiver chat",
       included: true
     }, {
-      name: "Basic message board access (read-only)",
+      name: "View matched caregiver profiles",
       included: true
     }, {
-      name: "Limited job posting (1 active)",
+      name: "Basic care need posting",
       included: true
     }, {
       name: "Email support",
       included: true
     }, {
-      name: "Post care need requests",
+      name: "Instant video calls with caregivers",
       included: false
     }, {
-      name: "View full caregiver profiles",
+      name: "Skip chat phase entirely",
       included: false
     }, {
-      name: "Unlimited caregiver matching",
+      name: "30-minute video sessions",
       included: false
     }, {
-      name: "Priority support",
+      name: "Priority caregiver matching",
       included: false
     }],
     popular: false,
@@ -129,30 +134,30 @@ const SubscriptionPage = () => {
     name: "Family Care",
     price: "$14.99",
     period: "monthly",
-    description: "Enhanced features for active caregiving families",
+    description: "Enhanced features plus instant video calls with caregivers",
     features: [{
-      name: "View 3 caregiver profiles per day",
+      name: "Unlimited caregiver chat",
       included: true
     }, {
-      name: "Basic message board access (read-only)",
+      name: "View matched caregiver profiles",
       included: true
     }, {
-      name: "Limited job posting (1 active)",
+      name: "Basic care need posting",
       included: true
     }, {
       name: "Email support",
       included: true
     }, {
-      name: "Post care need requests",
+      name: "Instant video calls with caregivers",
       included: true
     }, {
-      name: "View full caregiver profiles",
+      name: "Skip chat phase entirely",
       included: true
     }, {
-      name: "Unlimited caregiver matching",
-      included: false
+      name: "30-minute video sessions",
+      included: true
     }, {
-      name: "Priority support",
+      name: "Priority caregiver matching",
       included: false
     }],
     popular: true,
@@ -163,36 +168,37 @@ const SubscriptionPage = () => {
     name: "Family Premium",
     price: "$29.99",
     period: "monthly",
-    description: "Complete access for families with ongoing care needs",
+    description: "Complete access with priority matching and extended video sessions",
     features: [{
-      name: "View 3 caregiver profiles per day",
+      name: "Unlimited caregiver chat",
       included: true
     }, {
-      name: "Basic message board access (read-only)",
+      name: "View matched caregiver profiles",
       included: true
     }, {
-      name: "Limited job posting (1 active)",
+      name: "Basic care need posting",
       included: true
     }, {
       name: "Email support",
       included: true
     }, {
-      name: "Post care need requests",
+      name: "Instant video calls with caregivers",
       included: true
     }, {
-      name: "View full caregiver profiles",
+      name: "Skip chat phase entirely",
       included: true
     }, {
-      name: "Unlimited caregiver matching",
+      name: "30-minute video sessions",
       included: true
     }, {
-      name: "Priority support",
+      name: "Priority caregiver matching",
       included: true
     }],
     popular: false,
     buttonColor: "bg-primary hover:bg-primary/90",
     buttonText: "Upgrade to Premium"
   }];
+  
   const professionalPlans = [{
     id: "basic",
     name: "Professional Basic",
@@ -296,10 +302,13 @@ const SubscriptionPage = () => {
     buttonColor: "bg-primary hover:bg-primary/90",
     buttonText: "Upgrade to Expert"
   }];
+  
   const plans = getUserSpecificPlans();
+  
   const isCurrentPlan = (planId: string) => {
     return userSubscription === planId;
   };
+  
   const getPlanAction = (planId: string) => {
     if (!userSubscription) return "upgrade";
     const planRank = {
@@ -315,6 +324,7 @@ const SubscriptionPage = () => {
     if (newRank < currentRank) return "downgrade";
     return "same";
   };
+  
   const getButtonText = (plan: any) => {
     if (isCurrentPlan(plan.id)) {
       return "Current Plan";
@@ -327,6 +337,7 @@ const SubscriptionPage = () => {
     }
     return plan.buttonText;
   };
+  
   const getButtonColor = (plan: any) => {
     if (isCurrentPlan(plan.id)) {
       return "bg-muted text-muted-foreground hover:bg-muted/90";
@@ -339,6 +350,7 @@ const SubscriptionPage = () => {
     }
     return plan.buttonColor;
   };
+  
   const handleSubscribe = async (planId: string) => {
     if (!user) {
       toast({
@@ -437,9 +449,11 @@ const SubscriptionPage = () => {
       setProcessingPayment(false);
     }
   };
+  
   const handleGoBack = () => {
     navigate(-1);
   };
+  
   const ComingSoonBanner = () => <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6 flex items-start gap-3">
       <Clock className="h-5 w-5 text-blue-500 mt-0.5 flex-shrink-0" />
       <div>
@@ -450,6 +464,7 @@ const SubscriptionPage = () => {
         </p>
       </div>
     </div>;
+  
   if (!user) {
     return <div className="min-h-screen bg-background flex items-center justify-center p-4">
         <Card className="w-full max-w-md">
@@ -474,6 +489,7 @@ const SubscriptionPage = () => {
         </Card>
       </div>;
   }
+  
   if (isLoading) {
     return <div className="min-h-screen bg-background flex items-center justify-center p-4">
         <div className="text-center">
@@ -482,6 +498,7 @@ const SubscriptionPage = () => {
         </div>
       </div>;
   }
+  
   return <PayPalScriptProvider options={{
     "client-id": paypalClientId,
     currency: "USD",
@@ -503,7 +520,11 @@ const SubscriptionPage = () => {
         }} className="space-y-6">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
-                <h1 className="text-3xl font-bold">Subscribe to Access Premium Features</h1>
+                <h1 className="text-3xl font-bold">
+                  {isVideoCallFeature 
+                    ? 'Unlock Instant Video Calls' 
+                    : 'Subscribe to Access Premium Features'}
+                </h1>
                 {featureType && <p className="text-lg text-primary mt-2">
                     <span className="font-medium">Feature: {featureType}</span>
                   </p>}
@@ -518,11 +539,21 @@ const SubscriptionPage = () => {
             
             <div className="bg-muted/30 border p-4 rounded-lg">
               <div className="flex items-start gap-2">
-                <Crown className="h-5 w-5 text-yellow-500 mt-1 flex-shrink-0" />
+                {isVideoCallFeature ? (
+                  <Video className="h-5 w-5 text-purple-500 mt-1 flex-shrink-0" />
+                ) : (
+                  <Crown className="h-5 w-5 text-yellow-500 mt-1 flex-shrink-0" />
+                )}
                 <div>
-                  <h3 className="font-semibold text-lg">Upgrade to Unlock {featureType}</h3>
+                  <h3 className="font-semibold text-lg">
+                    {isVideoCallFeature 
+                      ? 'Upgrade to Skip Chat & Meet Face-to-Face'
+                      : `Upgrade to Unlock ${featureType}`}
+                  </h3>
                   <p className="text-muted-foreground">
-                    Choose the plan that best fits your needs to access this premium feature and more.
+                    {isVideoCallFeature 
+                      ? 'Chat is free and unlimited. Upgrade to book instant video calls and meet your caregivers face-to-face without the text conversation phase.'
+                      : 'Choose the plan that best fits your needs to access this premium feature and more.'}
                   </p>
                   {userSubscription && <p className="mt-2 text-sm">
                       <span className="font-medium">Your Current Plan:</span> {plans.find(p => p.id === userSubscription)?.name || "Basic"}
@@ -539,7 +570,11 @@ const SubscriptionPage = () => {
                     {plan.popular && <Badge className="absolute -top-3 right-4 bg-primary">Most Popular</Badge>}
                     {isCurrentUserPlan}
                     <CardHeader>
-                      <CardTitle>{plan.name}</CardTitle>
+                      <CardTitle className="flex items-center gap-2">
+                        {plan.name}
+                        {plan.id === 'basic' && <MessageCircle className="h-4 w-4 text-green-500" />}
+                        {plan.id !== 'basic' && <Video className="h-4 w-4 text-purple-500" />}
+                      </CardTitle>
                       <div className="flex items-end gap-1">
                         <span className="text-3xl font-bold">{plan.price}</span>
                         {plan.period && <span className="text-gray-500">/{plan.period}</span>}
@@ -592,8 +627,6 @@ const SubscriptionPage = () => {
                   </Card>;
             })}
             </div>
-            
-            
           </motion.div>
         </div>
       </div>

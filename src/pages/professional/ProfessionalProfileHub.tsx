@@ -87,6 +87,7 @@ const ProfessionalProfileHub = () => {
   const [selectedCarePlanId, setSelectedCarePlanId] = useState<string | null>(null);
   const [careTeamMembers, setCareTeamMembers] = useState<CareTeamMember[]>([]);
   const [isTrainingExpanded, setIsTrainingExpanded] = useState(false);
+  const [documentsData, setDocumentsData] = useState<any[]>([]); // Add documents state for smart navigation
   
   // Get initial tab from URL params, with different defaults based on care plan assignments
   const tabFromUrl = searchParams.get('tab');
@@ -111,7 +112,8 @@ const ProfessionalProfileHub = () => {
     if (user) {
       Promise.all([
         fetchProfessionalProfile(),
-        fetchCarePlanAssignments()
+        fetchCarePlanAssignments(),
+        fetchDocumentsData() // Add documents fetch for smart navigation
       ]).finally(() => {
         setLoading(false);
       });
@@ -264,6 +266,27 @@ const ProfessionalProfileHub = () => {
     }
   };
 
+  const fetchDocumentsData = async () => {
+    try {
+      console.log("Fetching documents for smart navigation:", user?.id);
+      
+      const { data: documents, error } = await supabase
+        .from('professional_documents')
+        .select('*')
+        .eq('user_id', user?.id);
+
+      if (error) {
+        console.error("Error fetching documents:", error);
+        return;
+      }
+
+      console.log("Documents data for smart navigation:", documents);
+      setDocumentsData(documents || []);
+    } catch (error) {
+      console.error("Error in fetchDocumentsData:", error);
+    }
+  };
+
   const fetchCareTeamMembers = async (carePlanId: string) => {
     try {
       console.log("Fetching team members for care plan:", carePlanId);
@@ -337,9 +360,29 @@ const ProfessionalProfileHub = () => {
 
   const selectedCarePlan = carePlanAssignments.find(assignment => assignment.carePlanId === selectedCarePlanId);
 
+  // Updated certificate upload success handler with smart navigation
   const handleCertificateUploadSuccess = () => {
     toast.success("Document uploaded successfully! Redirecting to documents tab...");
     setActiveTab("documents");
+    // Refresh documents data after upload
+    fetchDocumentsData();
+  };
+
+  // Smart document navigation handler
+  const handleDocumentNavigation = () => {
+    const hasExistingDocuments = documentsData && documentsData.length > 0;
+    
+    if (hasExistingDocuments) {
+      // User has documents, navigate to manage view
+      setActiveTab("documents");
+      // Could also use URL params to specify manage mode
+      window.history.pushState({}, '', '/professional/profile?tab=documents&action=manage');
+    } else {
+      // New user, navigate to upload view
+      setActiveTab("documents");
+      // Could also use URL params to specify upload mode
+      window.history.pushState({}, '', '/professional/profile?tab=documents&action=upload');
+    }
   };
 
   if (loading) {
@@ -426,7 +469,6 @@ const ProfessionalProfileHub = () => {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-8">
-                    {/* Training Progress Tracker - Now inside the expandable section */}
                     <TrainingProgressTracker />
                     <TrainingProgramSection />
                     <TrainingModulesSection />

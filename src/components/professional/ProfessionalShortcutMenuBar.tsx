@@ -39,15 +39,15 @@ export function ProfessionalShortcutMenuBar() {
     try {
       setCheckingProfile(true);
       
-      // Use exact same logic as NextStepsPanel and useProfessionalProgress for consistency
+      // Select full_name to check if profile has been completed via form submission
       const { data: profile } = await supabase
         .from('profiles')
-        .select('professional_type, years_of_experience')
+        .select('full_name')
         .eq('id', user.id)
         .maybeSingle();
       
-      // Profile is complete if both professional_type and years_of_experience exist
-      const isComplete = profile && profile.professional_type && profile.years_of_experience;
+      // Profile is complete if full_name exists (set after successful form submission)
+      const isComplete = profile && profile.full_name;
       setProfileComplete(!!isComplete);
     } catch (error) {
       console.error("Error checking profile completion:", error);

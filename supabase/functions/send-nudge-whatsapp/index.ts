@@ -18,14 +18,52 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    const { target_users, message_type, custom_message, care_plan_id, shift_details } = await req.json();
+    const requestBody = await req.json();
+    console.log('WhatsApp nudge request body:', requestBody);
     
-    console.log('WhatsApp nudge request:', { target_users, message_type, care_plan_id, shift_details });
+    // Handle both old format (target_users) and new format (userIds) for compatibility
+    const userIds = requestBody.userIds || requestBody.target_users;
+    const message = requestBody.message || requestBody.custom_message;
+    const templateId = requestBody.templateId || requestBody.message_type;
+    
+    // Extract additional parameters for schedule sharing
+    const { care_plan_id, shift_details, schedule_period } = requestBody;
+    
+    console.log('Processed parameters:', { userIds, templateId, care_plan_id, shift_details, schedule_period });
 
     let recipients = [];
-    let messageTemplate = '';
+    let messageTemplate = message;
 
-    if (message_type === 'emergency_shift_coverage' && care_plan_id && shift_details) {
+    // Handle schedule sharing message types
+    if (['weekly_schedule_update', 'biweekly_schedule_update', 'monthly_schedule_update'].includes(templateId)) {
+      console.log('Processing schedule sharing request for care plan:', care_plan_id);
+      
+      if (!care_plan_id || !userIds || userIds.length === 0) {
+        throw new Error('Care plan ID and target users are required for schedule sharing');
+      }
+
+      // Get care team members for the care plan
+      const { data: teamMembers, error: teamError } = await supabase
+        .from('care_team_members')
+        .select(`
+          caregiver_id,
+          caregiver:profiles!caregiver_id(full_name, phone_number)
+        `)
+        .eq('care_plan_id', care_plan_id)
+        .in('caregiver_id', userIds)
+        .eq('status', 'active');
+
+      if (teamError) {
+        console.error('Error fetching team members for schedule sharing:', teamError);
+        throw new Error('Failed to fetch care team members');
+      }
+
+      recipients = teamMembers?.filter(member => member.caregiver?.phone_number) || [];
+      messageTemplate = message || getDefaultScheduleMessage(templateId, schedule_period);
+
+      console.log('Schedule sharing recipients:', recipients.length);
+      
+    } else if (templateId === 'emergency_shift_coverage' && care_plan_id && shift_details) {
       // Get care team members for emergency shift coverage
       const { data: teamMembers, error: teamError } = await supabase
         .from('care_team_members')
@@ -81,12 +119,12 @@ This is TIME SENSITIVE - first to respond gets the shift.
 Thank you for your quick response!
 - TAV, Tavara Care Coordinator`;
 
-    } else if (target_users && target_users.length > 0) {
+    } else if (userIds && userIds.length > 0) {
       // Handle regular nudging (existing functionality)
       const { data: users, error: usersError } = await supabase
         .from('profiles')
         .select('id, full_name, phone_number')
-        .in('id', target_users);
+        .in('id', userIds);
 
       if (usersError) {
         console.error('Error fetching users:', usersError);
@@ -94,7 +132,7 @@ Thank you for your quick response!
       }
 
       recipients = users?.filter(user => user.phone_number) || [];
-      messageTemplate = custom_message || getDefaultNudgeMessage(message_type);
+      messageTemplate = message || getDefaultNudgeMessage(templateId);
     } else {
       throw new Error('Invalid request: missing required parameters');
     }
@@ -123,7 +161,7 @@ Thank you for your quick response!
           phone_number: recipient.phone_number || recipient.caregiver?.phone_number,
           user_id: recipient.id || recipient.caregiver_id,
           direction: 'outgoing',
-          message_type: message_type,
+          message_type: templateId,
           content: messageTemplate,
           processed: true,
           processed_at: new Date().toISOString()
@@ -138,18 +176,26 @@ Thank you for your quick response!
         }
 
         // Record the nudge in assistant_nudges table
+        const nudgeContext: any = {
+          message_type: templateId,
+          phone_number: recipient.phone_number || recipient.caregiver?.phone_number,
+          care_plan_id
+        };
+
+        // Add context specific to message type
+        if (templateId === 'emergency_shift_coverage') {
+          nudgeContext.shift_details = shift_details;
+        } else if (['weekly_schedule_update', 'biweekly_schedule_update', 'monthly_schedule_update'].includes(templateId)) {
+          nudgeContext.schedule_period = schedule_period;
+        }
+
         const { error: nudgeError } = await supabase
           .from('assistant_nudges')
           .insert({
             user_id: recipient.id || recipient.caregiver_id,
             message: messageTemplate,
             status: 'sent',
-            context: {
-              message_type,
-              phone_number: recipient.phone_number || recipient.caregiver?.phone_number,
-              care_plan_id,
-              shift_details: message_type === 'emergency_shift_coverage' ? shift_details : undefined
-            }
+            context: nudgeContext
           });
 
         if (nudgeError) {
@@ -209,4 +255,24 @@ function getDefaultNudgeMessage(messageType: string): string {
   };
   
   return templates[messageType as keyof typeof templates] || templates.general;
+}
+
+function getDefaultScheduleMessage(messageType: string, schedulePeriod?: string): string {
+  const periodLabels = {
+    weekly: 'Weekly',
+    biweekly: 'Bi-Weekly', 
+    monthly: 'Monthly'
+  };
+  
+  const period = schedulePeriod || 'weekly';
+  const label = periodLabels[period as keyof typeof periodLabels] || 'Schedule';
+  
+  return `📅 ${label} Schedule Update
+
+Your care schedule has been updated. Please check the details and contact your care coordinator if you have any questions.
+
+🔗 Login to your dashboard to view full details
+
+Questions? Reply to this message!
+- Chan 💙`;
 }

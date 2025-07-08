@@ -20,40 +20,40 @@ export const detectFieldType = (userRole: string | null, questionIndex: number):
     return null;
   }
   
-  const label = (questionDetails.label || "").toLowerCase();
+  const text = (questionDetails.text || "").toLowerCase();
   const id = (questionDetails.id || "").toLowerCase();
   
-  console.log(`[fieldDetection] Analyzing question: "${label}" (id: ${id})`);
+  console.log(`[fieldDetection] Analyzing question: "${text}" (id: ${id})`);
   
-  if (label.includes("email") || id.includes("email")) {
+  if (text.includes("email") || id.includes("email")) {
     console.log(`[fieldDetection] Detected email field type`);
     return "email";
   } else if (
-    label.includes("phone") || 
+    text.includes("phone") || 
     id.includes("phone") || 
-    label.includes("contact number") || 
+    text.includes("contact number") || 
     id.includes("contact_number") ||
-    label.includes("telephone")
+    text.includes("telephone")
   ) {
     console.log(`[fieldDetection] Detected phone field type`);
     return "phone";
   } else if (
-    label.includes("name") || 
+    text.includes("name") || 
     id.includes("name") ||
-    label.includes("first name") || 
+    text.includes("first name") || 
     id.includes("first_name") ||
-    label.includes("last name") || 
+    text.includes("last name") || 
     id.includes("last_name") ||
-    label.includes("full name")
+    text.includes("full name")
   ) {
     console.log(`[fieldDetection] Detected name field type`);
     return "name";
   } else if (
-    label.includes("budget") ||
+    text.includes("budget") ||
     id.includes("budget") ||
-    label.includes("cost") ||
-    label.includes("price") ||
-    label.includes("hour")
+    text.includes("cost") ||
+    text.includes("price") ||
+    text.includes("hour")
   ) {
     console.log(`[fieldDetection] Detected budget field type`);
     return "budget";
@@ -140,16 +140,11 @@ export const generateQuestionOptions = (userRole: string | null, questionIndex: 
   
   if (!questionDetails) return undefined;
   
-  if (['select', 'multiselect', 'checkbox'].includes(questionDetails.type)) {
+  if (questionDetails.type === 'select' || questionDetails.type === 'multi-select') {
     return questionDetails.options?.map(option => ({
-      id: option,
-      label: option
+      id: option.value,
+      label: option.label
     }));
-  } else if (questionDetails.type === 'confirm') {
-    return [
-      { id: "yes", label: "Yes" },
-      { id: "no", label: "No" }
-    ];
   }
   
   return undefined;
