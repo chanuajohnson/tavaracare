@@ -292,7 +292,7 @@ export const ShiftCalendar: React.FC<ShiftCalendarProps> = ({
                   <h4 className="font-medium">{shift.title}</h4>
                   <Badge 
                     className={
-                      shift.status === 'assigned' ? 'bg-green-100 text-green-700' :
+                      shift.status === 'confirmed' ? 'bg-green-100 text-green-700' :
                       shift.status === 'completed' ? 'bg-blue-100 text-blue-700' :
                       'bg-yellow-100 text-yellow-700'
                     }

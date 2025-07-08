@@ -13,10 +13,15 @@ import { DashboardFamilyMatches } from "@/components/professional/DashboardFamil
 import { CaregiverMatchingCard } from "@/components/professional/CaregiverMatchingCard";
 import { ProfessionalShortcutMenuBar } from "@/components/professional/ProfessionalShortcutMenuBar";
 import { CaregiverHealthCard } from "@/components/professional/CaregiverHealthCard";
+import { ChatRequestsSection } from "@/components/professional/ChatRequestsSection";
+import { ProfessionalReadinessChecker } from "@/components/professional/ProfessionalReadinessChecker";
+import { LeadCaptureModal } from "@/components/family/LeadCaptureModal";
 
 const ProfessionalDashboard = () => {
   const { user } = useAuth();
   const [isHealthCardExpanded, setIsHealthCardExpanded] = useState(false);
+  const [showLeadCaptureModal, setShowLeadCaptureModal] = useState(false);
+  const [leadCaptureSource, setLeadCaptureSource] = useState('');
   
   // Ensure dashboard always loads at the top with enhanced scroll behavior
   useEffect(() => {
@@ -43,6 +48,14 @@ const ProfessionalDashboard = () => {
       path: "/dashboard/professional",
     },
   ];
+
+  // Handle CTA clicks for anonymous users
+  const handleCTAClick = (source: string) => {
+    if (!user) {
+      setLeadCaptureSource(source);
+      setShowLeadCaptureModal(true);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -71,6 +84,18 @@ const ProfessionalDashboard = () => {
         {/* Quick Access Menu Bar - Only show when user is logged in */}
         {user && <ProfessionalShortcutMenuBar />}
 
+        {/* Add Chat Requests Section - Only for logged-in users */}
+        {user && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.1 }}
+            className="mt-8"
+          >
+            <ChatRequestsSection />
+          </motion.div>
+        )}
+
         {!user ? (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -86,21 +111,27 @@ const ProfessionalDashboard = () => {
                 </p>
                 
                 <div className="flex flex-wrap gap-3 mt-6">
-                  <Link to="/auth">
-                    <Button variant="default" size="sm">
-                      View Professional Tools
-                    </Button>
-                  </Link>
-                  <Link to="/auth">
-                    <Button variant="outline" size="sm">
-                      Connect with Clients
-                    </Button>
-                  </Link>
-                  <Link to="/auth">
-                    <Button variant="outline" size="sm">
-                      Upvote Features
-                    </Button>
-                  </Link>
+                  <Button 
+                    variant="default" 
+                    size="sm"
+                    onClick={() => handleCTAClick('professional_dashboard_tools')}
+                  >
+                    View Professional Tools
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => handleCTAClick('professional_dashboard_clients')}
+                  >
+                    Connect with Clients
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => handleCTAClick('professional_dashboard_features')}
+                  >
+                    Upvote Features
+                  </Button>
                 </div>
               </CardContent>
             </Card>
@@ -173,21 +204,26 @@ const ProfessionalDashboard = () => {
                 <p className="text-sm text-gray-600">Update Skills & Experience</p>
                 <p className="text-sm text-gray-600">Set Availability & Preferences</p>
               </div>
-              <Link to="/professional/profile">
+              {user ? (
+                <Link to="/professional/profile">
+                  <Button 
+                    variant="default"
+                    className="w-full bg-primary hover:bg-primary-600 text-white"
+                  >
+                    View Profile Hub
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
+                </Link>
+              ) : (
                 <Button 
                   variant="default"
                   className="w-full bg-primary hover:bg-primary-600 text-white"
+                  onClick={() => handleCTAClick('professional_dashboard_profile')}
                 >
                   View Profile Hub
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
-              </Link>
-              <div className="pt-4">
-                <UpvoteFeatureButton
-                  featureTitle="Professional Profile Management"
-                  buttonText="Upvote this Feature"
-                />
-              </div>
+              )}
             </CardContent>
           </Card>
 
@@ -209,30 +245,35 @@ const ProfessionalDashboard = () => {
                 <p className="text-sm text-gray-600">Document Management</p>
                 <p className="text-sm text-gray-600">Administrative Support</p>
               </div>
-              <Link to="/professional/profile?tab=admin-assistant">
+              {user ? (
+                <Link to="/professional/profile?tab=admin-assistant">
+                  <Button 
+                    variant="default"
+                    className="w-full bg-primary hover:bg-primary-600 text-white"
+                  >
+                    Access Tools
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
+                </Link>
+              ) : (
                 <Button 
                   variant="default"
                   className="w-full bg-primary hover:bg-primary-600 text-white"
+                  onClick={() => handleCTAClick('professional_dashboard_admin')}
                 >
                   Access Tools
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
-              </Link>
-              <div className="pt-4">
-                <UpvoteFeatureButton
-                  featureTitle="Admin Assistant Tools"
-                  buttonText="Upvote this Feature"
-                />
-              </div>
+              )}
             </CardContent>
           </Card>
         </div>
 
         <CaregiverMatchingCard />
 
-        {/* Family Matches Section */}
-        <div className="mt-8">
-          <DashboardFamilyMatches />
+        {/* Professional Readiness-Gated Family Matches Section */}
+        <div id="family-matches" className="mt-8">
+          <ProfessionalReadinessChecker />
         </div>
 
         {/* Professional Agency */}
@@ -268,25 +309,38 @@ const ProfessionalDashboard = () => {
                 </div>
               </div>
               
-              <Link to="/features">
+              {user ? (
+                <Link to="/features">
+                  <Button 
+                    variant="default"
+                    className="w-full bg-primary hover:bg-primary-600 text-white"
+                  >
+                    Learn About Agency Features
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
+                </Link>
+              ) : (
                 <Button 
                   variant="default"
                   className="w-full bg-primary hover:bg-primary-600 text-white"
+                  onClick={() => handleCTAClick('professional_dashboard_agency')}
                 >
                   Learn About Agency Features
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
-              </Link>
-              
-              <div className="pt-4">
-                <UpvoteFeatureButton
-                  featureTitle="Professional Agency Management"
-                  buttonText="Upvote this Feature"
-                />
-              </div>
+              )}
             </CardContent>
           </Card>
         </div>
+
+        {/* Lead Capture Modal for Anonymous Users */}
+        {!user && (
+          <LeadCaptureModal
+            open={showLeadCaptureModal}
+            onOpenChange={setShowLeadCaptureModal}
+            source={leadCaptureSource}
+          />
+        )}
       </div>
     </div>
   );

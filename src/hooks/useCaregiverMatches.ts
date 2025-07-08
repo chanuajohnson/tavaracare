@@ -14,36 +14,68 @@ interface Caregiver {
   years_of_experience: string | null;
   match_score: number;
   is_premium: boolean;
+  shift_compatibility_score?: number;
+  match_explanation?: string;
+  availability_schedule?: string[] | null;
 }
 
-const MOCK_CAREGIVERS: Caregiver[] = [{
-  id: "1",
-  full_name: "Maria Santos",
-  avatar_url: null,
-  location: "Port of Spain",
-  care_types: ["Elderly Care", "Companionship"],
-  years_of_experience: "5+ years",
-  match_score: 95,
-  is_premium: false
-}, {
-  id: "2", 
-  full_name: "James Mitchell",
-  avatar_url: null,
-  location: "San Fernando",
-  care_types: ["Special Needs", "Medical Support"],
-  years_of_experience: "8+ years",
-  match_score: 89,
-  is_premium: true
-}, {
-  id: "3",
-  full_name: "Sarah Johnson",
-  avatar_url: null,
-  location: "Arima",
-  care_types: ["Child Care", "Housekeeping"],
-  years_of_experience: "3+ years", 
-  match_score: 82,
-  is_premium: false
-}];
+interface FamilyScheduleData {
+  care_schedule?: string;
+  care_types?: string[] | null;
+  special_needs?: string[] | null;
+}
+
+// Parse care schedule string into array
+const parseCareSchedule = (scheduleString: string | null | undefined): string[] => {
+  if (!scheduleString) return [];
+  
+  try {
+    const parsed = JSON.parse(scheduleString);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return scheduleString.split(',').map(s => s.trim()).filter(s => s.length > 0);
+  }
+};
+
+// Shift compatibility scoring algorithm
+const calculateShiftCompatibility = (familySchedule: string[], caregiverSchedule: string[]): number => {
+  if (!familySchedule || familySchedule.length === 0) return 70; // Default good score
+  if (!caregiverSchedule || caregiverSchedule.length === 0) return 60; // Slightly lower
+  
+  let compatibilityScore = 0;
+  let totalPossibleMatches = familySchedule.length;
+  
+  // Direct matches get full points
+  const directMatches = familySchedule.filter(shift => caregiverSchedule.includes(shift));
+  compatibilityScore += directMatches.length * 100;
+  
+  // Flexible caregivers get bonus points
+  if (caregiverSchedule.includes('flexible') || caregiverSchedule.includes('24_7_care')) {
+    compatibilityScore += familySchedule.length * 75;
+  }
+  
+  // Live-in care matches most needs
+  if (caregiverSchedule.includes('live_in_care')) {
+    compatibilityScore += familySchedule.length * 85;
+  }
+  
+  // Calculate final percentage
+  const maxScore = totalPossibleMatches * 100;
+  return Math.min(100, Math.round((compatibilityScore / maxScore) * 100));
+};
+
+// Generate match explanation
+const generateMatchExplanation = (shiftScore: number): string => {
+  if (shiftScore >= 90) {
+    return "Excellent schedule match - this caregiver's availability perfectly aligns with your needs";
+  } else if (shiftScore >= 75) {
+    return "Great schedule compatibility - most of your preferred times are covered";
+  } else if (shiftScore >= 60) {
+    return "Good availability overlap - some schedule coordination may be needed";
+  } else {
+    return "Schedule compatibility requires coordination between both parties";
+  }
+};
 
 export const useCaregiverMatches = (showOnlyBestMatch: boolean = true) => {
   const { user } = useAuth();
@@ -52,25 +84,22 @@ export const useCaregiverMatches = (showOnlyBestMatch: boolean = true) => {
   const [error, setError] = useState<string | null>(null);
   const { trackEngagement } = useTracking();
   
-  // Use ref to prevent multiple simultaneous requests only
   const loadingRef = useRef(false);
-  // Cache processed caregivers to prevent regeneration
   const processedCaregiversRef = useRef<Caregiver[] | null>(null);
 
   const loadCaregivers = useCallback(async () => {
-    // Only prevent multiple simultaneous calls, not legitimate reloads
     if (loadingRef.current || !user) {
       return;
     }
     
-    console.log('Starting caregiver load for user:', user.id);
+    console.log('Loading real caregivers for user:', user.id);
     loadingRef.current = true;
     
     try {
       setIsLoading(true);
       setError(null);
 
-      // If we already have processed caregivers for this session, use them
+      // If we already have processed caregivers, use them
       if (processedCaregiversRef.current) {
         const finalCaregivers = showOnlyBestMatch 
           ? processedCaregiversRef.current.slice(0, 1) 
@@ -81,63 +110,71 @@ export const useCaregiverMatches = (showOnlyBestMatch: boolean = true) => {
         return;
       }
 
-      // Try to fetch real professional data first
+      // Fetch family's care schedule and preferences
+      let familyScheduleData: FamilyScheduleData = {};
+      try {
+        const { data: familyProfile, error: profileError } = await supabase
+          .from('profiles')
+          .select('care_schedule, care_types, special_needs')
+          .eq('id', user.id)
+          .maybeSingle();
+        
+        if (!profileError && familyProfile) {
+          familyScheduleData = familyProfile;
+        }
+      } catch (profileErr) {
+        console.warn("Could not fetch family profile for schedule matching:", profileErr);
+      }
+
+      // Parse family's care schedule
+      const familyCareSchedule = parseCareSchedule(familyScheduleData.care_schedule);
+      console.log('Family care schedule:', familyCareSchedule);
+
+      // Fetch ONLY real professional data
       const { data: professionalUsers, error: professionalError } = await supabase
         .from('profiles')
         .select('*')
         .eq('role', 'professional')
+        .not('full_name', 'is', null) // Ensure they have a name
         .limit(showOnlyBestMatch ? 3 : 10);
       
       if (professionalError) {
-        console.warn("Error fetching professional users:", professionalError);
-        // Fall back to mock data on error
-        const fallbackCaregivers = showOnlyBestMatch 
-          ? MOCK_CAREGIVERS.slice(0, 1) 
-          : MOCK_CAREGIVERS;
-        processedCaregiversRef.current = MOCK_CAREGIVERS; // Cache full list
-        setCaregivers(fallbackCaregivers);
-        await trackEngagement('caregiver_matches_view', { 
-          data_source: 'mock_data_fallback',
-          caregiver_count: fallbackCaregivers.length,
-          view_context: showOnlyBestMatch ? 'dashboard_widget' : 'matching_page',
-          error: professionalError.message
-        });
+        console.error("Error fetching professional users:", professionalError);
+        setError("Unable to load caregiver matches. Please try again.");
         return;
       }
 
       if (!professionalUsers || professionalUsers.length === 0) {
-        console.log("No professional users found, using mock data");
-        const fallbackCaregivers = showOnlyBestMatch 
-          ? MOCK_CAREGIVERS.slice(0, 1) 
-          : MOCK_CAREGIVERS;
-        processedCaregiversRef.current = MOCK_CAREGIVERS; // Cache full list
-        setCaregivers(fallbackCaregivers);
+        console.log("No professional users found in database");
+        setError("No caregivers are currently available. Please check back later.");
+        setCaregivers([]);
         await trackEngagement('caregiver_matches_view', { 
-          data_source: 'mock_data',
-          caregiver_count: fallbackCaregivers.length,
+          data_source: 'real_data',
+          caregiver_count: 0,
           view_context: showOnlyBestMatch ? 'dashboard_widget' : 'matching_page',
+          error: 'no_professionals_found'
         });
         return;
       }
 
-      // Process real caregiver data with consistent scoring
-      const realCaregivers: Caregiver[] = professionalUsers.map((professional, index) => {
-        // Use consistent hash-based scoring instead of random
+      // Process real caregiver data ONLY
+      const realCaregivers: Caregiver[] = professionalUsers.map((professional) => {
+        // Use consistent hash-based scoring for repeatability
         const hashCode = (str: string) => {
           let hash = 0;
           for (let i = 0; i < str.length; i++) {
             const char = str.charCodeAt(i);
             hash = ((hash << 5) - hash) + char;
-            hash = hash & hash; // Convert to 32-bit integer
+            hash = hash & hash;
           }
           return Math.abs(hash);
         };
         
         const hash = hashCode(professional.id + user.id);
-        const matchScore = 75 + (hash % 25); // Score between 75-99
+        const baseMatchScore = 75 + (hash % 25); // Score between 75-99
         const isPremium = (hash % 10) < 3; // 30% chance of premium
         
-        // Parse care_types if it's a string, otherwise use as array or default
+        // Parse care_types
         let careTypes: string[] = ['General Care'];
         if (professional.care_types) {
           if (typeof professional.care_types === 'string') {
@@ -150,60 +187,55 @@ export const useCaregiverMatches = (showOnlyBestMatch: boolean = true) => {
             careTypes = professional.care_types;
           }
         }
+
+        // Parse professional's availability schedule
+        const professionalSchedule = parseCareSchedule(professional.care_schedule);
+        
+        // Calculate shift compatibility
+        const shiftCompatibility = calculateShiftCompatibility(familyCareSchedule, professionalSchedule);
+        const matchExplanation = generateMatchExplanation(shiftCompatibility);
+        
+        // Blend base match score with shift compatibility
+        const finalMatchScore = Math.round((baseMatchScore * 0.6) + (shiftCompatibility * 0.4));
         
         return {
-          id: professional.id,
+          id: professional.id, // Real UUID from database
           full_name: professional.full_name || 'Professional Caregiver',
           avatar_url: professional.avatar_url,
           location: professional.location || 'Trinidad and Tobago',
           care_types: careTypes,
           years_of_experience: professional.years_of_experience || '2+ years',
-          match_score: matchScore,
-          is_premium: isPremium
+          match_score: finalMatchScore,
+          is_premium: isPremium,
+          shift_compatibility_score: shiftCompatibility,
+          match_explanation: matchExplanation,
+          availability_schedule: professionalSchedule
         };
       });
       
-      // Sort by match score descending to ensure best match first
       realCaregivers.sort((a, b) => b.match_score - a.match_score);
-      
-      // Cache the processed caregivers
       processedCaregiversRef.current = realCaregivers;
       
       console.log("Loaded real professional users:", realCaregivers.length);
 
-      let finalCaregivers: Caregiver[];
-      if (showOnlyBestMatch) {
-        finalCaregivers = realCaregivers.slice(0, 1);
-      } else {
-        finalCaregivers = realCaregivers;
-      }
+      const finalCaregivers = showOnlyBestMatch 
+        ? realCaregivers.slice(0, 1) 
+        : realCaregivers;
 
       await trackEngagement('caregiver_matches_view', {
-        data_source: 'real_data',
+        data_source: 'real_data_only',
         real_caregiver_count: finalCaregivers.length,
-        mock_caregiver_count: 0,
         view_context: showOnlyBestMatch ? 'dashboard_widget' : 'matching_page',
-        caregiver_names: finalCaregivers.map(c => c.full_name)
+        caregiver_names: finalCaregivers.map(c => c.full_name),
+        shift_compatibility_enabled: true,
+        family_schedule_items: familyCareSchedule.length
       });
       
       setCaregivers(finalCaregivers);
     } catch (error) {
       console.error("Error loading caregivers:", error);
-      setError(error instanceof Error ? error.message : "Unknown error");
-      
-      // Use fallback data on error
-      const fallbackCaregivers = showOnlyBestMatch 
-        ? MOCK_CAREGIVERS.slice(0, 1) 
-        : MOCK_CAREGIVERS;
-      processedCaregiversRef.current = MOCK_CAREGIVERS; // Cache full list
-      setCaregivers(fallbackCaregivers);
-      
-      await trackEngagement('caregiver_matches_view', {
-        data_source: 'mock_data_error_fallback',
-        caregiver_count: fallbackCaregivers.length,
-        view_context: showOnlyBestMatch ? 'dashboard_widget' : 'matching_page',
-        error: error instanceof Error ? error.message : "Unknown error"
-      });
+      setError(error instanceof Error ? error.message : "Unknown error loading caregivers");
+      setCaregivers([]);
     } finally {
       setIsLoading(false);
       loadingRef.current = false;
@@ -213,7 +245,6 @@ export const useCaregiverMatches = (showOnlyBestMatch: boolean = true) => {
   useEffect(() => {
     if (user) {
       console.log('useCaregiverMatches effect triggered for user:', user.id);
-      // Small delay to prevent rapid successive calls
       const timer = setTimeout(() => {
         loadCaregivers();
       }, 100);

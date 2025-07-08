@@ -4,12 +4,12 @@ import { motion, AnimatePresence } from "framer-motion";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Shield, Sparkles } from "lucide-react";
+import { Shield, Sparkles, MessageCircle } from "lucide-react";
 import { SubscriptionFeatureLink } from "@/components/subscription/SubscriptionFeatureLink";
 import { MatchingTracker } from "@/components/tracking/MatchingTracker";
 import { useCaregiverMatches } from "@/hooks/useCaregiverMatches";
 import { CaregiverMatchCard } from "@/components/family/CaregiverMatchCard";
-import { CaregiverProfileModal } from "@/components/family/CaregiverProfileModal";
+import { CaregiverChatModal } from "@/components/family/CaregiverChatModal";
 
 const MAGICAL_MESSAGES = [
   { text: "Hold on, we are finding your perfect match! ✨", subtext: "Analyzing your care needs and preferences..." },
@@ -20,7 +20,7 @@ const MAGICAL_MESSAGES = [
 const FamilyMatchingPage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [currentMessageIndex, setCurrentMessageIndex] = useState(0);
-  const [showProfileModal, setShowProfileModal] = useState(false);
+  const [showChatModal, setShowChatModal] = useState(false);
   const { caregivers, dataLoaded } = useCaregiverMatches(true); // Show only best match
 
   useEffect(() => {
@@ -128,12 +128,12 @@ const FamilyMatchingPage = () => {
           <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
             <CardContent className="p-6">
               <div className="flex items-center space-x-3 mb-3">
-                <Shield className="h-6 w-6 text-blue-600" />
-                <h3 className="text-lg font-semibold text-blue-900">Premium Matching Service</h3>
+                <MessageCircle className="h-6 w-6 text-blue-600" />
+                <h3 className="text-lg font-semibold text-blue-900">Premium Matching Service 💬</h3>
               </div>
               <p className="text-blue-800 mb-4">
-                You're viewing your best match. Unlock our full caregiver network with verified professionals, 
-                background checks, and personalized matching based on your exact requirements.
+                Start a TAV-moderated conversation with your match! Get 3 messages per day to learn about their 
+                experience and approach. Upgrade for unlimited messaging and direct contact information.
               </p>
               <SubscriptionFeatureLink
                 featureType="Full Caregiver Access"
@@ -142,7 +142,7 @@ const FamilyMatchingPage = () => {
                 referringPageLabel="Caregiver Matching"
               >
                 <Button className="bg-blue-600 hover:bg-blue-700 text-white">
-                  Unlock All Matches
+                  Unlock Unlimited Messaging
                 </Button>
               </SubscriptionFeatureLink>
             </CardContent>
@@ -155,7 +155,7 @@ const FamilyMatchingPage = () => {
                 <div className="flex items-center justify-between">
                   <div className="space-y-1">
                     <CardTitle className="text-xl">Your Perfect Match</CardTitle>
-                    <CardDescription className="text-base">Recommended based on your care needs</CardDescription>
+                    <CardDescription className="text-base">Start chatting to learn more about their experience</CardDescription>
                   </div>
                 </div>
               </CardHeader>
@@ -167,15 +167,17 @@ const FamilyMatchingPage = () => {
                   referringPagePath="/family/matching"
                   referringPageLabel="Caregiver Matching"
                   showUnlockButton={false}
+                  onStartChat={() => setShowChatModal(true)}
                 />
                 
                 <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <Button 
                     variant="default" 
                     className="w-full bg-green-600 hover:bg-green-700"
-                    onClick={() => setShowProfileModal(true)}
+                    onClick={() => setShowChatModal(true)}
                   >
-                    View Full Profile
+                    <MessageCircle className="h-4 w-4 mr-2" />
+                    Start Conversation
                   </Button>
                   
                   <SubscriptionFeatureLink
@@ -201,12 +203,12 @@ const FamilyMatchingPage = () => {
           <Card className="bg-amber-50 border-amber-200">
             <CardContent className="p-4">
               <div className="flex items-start space-x-3">
-                <Sparkles className="h-5 w-5 text-amber-600 mt-0.5" />
+                <MessageCircle className="h-5 w-5 text-amber-600 mt-0.5" />
                 <div>
-                  <h4 className="font-medium text-amber-900 mb-1">Why am I seeing only one match?</h4>
+                  <h4 className="font-medium text-amber-900 mb-1">Why start with chat?</h4>
                   <p className="text-sm text-amber-800">
-                    This is your perfect match based on compatibility. Premium members get access to our full network 
-                    of verified caregivers, advanced filtering options, and unlimited matches based on your specific needs.
+                    TAV moderates your conversation to keep it professional and safe. Get to know your caregiver's 
+                    experience and approach before upgrading to full contact information and unlimited matches.
                   </p>
                 </div>
               </div>
@@ -215,11 +217,11 @@ const FamilyMatchingPage = () => {
         </motion.div>
       </div>
 
-      {/* Profile Modal */}
+      {/* Chat Modal */}
       {bestMatch && (
-        <CaregiverProfileModal
-          open={showProfileModal}
-          onOpenChange={setShowProfileModal}
+        <CaregiverChatModal
+          open={showChatModal}
+          onOpenChange={setShowChatModal}
           caregiver={bestMatch}
         />
       )}

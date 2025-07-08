@@ -1,4 +1,3 @@
-
 import { supabase } from '@/lib/supabase';
 import { 
   ShiftCoverageRequest, 
@@ -264,21 +263,43 @@ export const shiftCoverageService = {
   },
 
   async updateShiftAssignment(claimId: string): Promise<void> {
-    // Get claim details and update the original shift
-    const { data: claim } = await supabase
-      .from('shift_coverage_claims')
-      .select(`
-        claiming_caregiver_id,
-        coverage_request:shift_coverage_requests!inner(shift_id)
-      `)
-      .eq('id', claimId)
-      .single();
+    try {
+      // Get claim details and update the original shift
+      const { data: claim } = await supabase
+        .from('shift_coverage_claims')
+        .select(`
+          claiming_caregiver_id,
+          coverage_request:shift_coverage_requests!inner(shift_id)
+        `)
+        .eq('id', claimId)
+        .single();
 
-    if (claim) {
-      await supabase
-        .from('care_shifts')
-        .update({ caregiver_id: claim.claiming_caregiver_id })
-        .eq('id', claim.coverage_request.shift_id);
+      if (claim) {
+        console.log('Updating shift assignment:', {
+          shiftId: claim.coverage_request.shift_id,
+          newCaregiverId: claim.claiming_caregiver_id
+        });
+
+        // Update both caregiver_id AND status to 'confirmed'
+        const { error: updateError } = await supabase
+          .from('care_shifts')
+          .update({ 
+            caregiver_id: claim.claiming_caregiver_id,
+            status: 'confirmed',
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', claim.coverage_request.shift_id);
+
+        if (updateError) {
+          console.error('Error updating shift assignment:', updateError);
+          throw updateError;
+        }
+
+        console.log('Successfully updated shift assignment');
+      }
+    } catch (error) {
+      console.error('Error in updateShiftAssignment:', error);
+      throw error;
     }
   },
 

@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Users, ArrowLeft, Sparkles } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { useEnhancedJourneyProgress } from '@/hooks/useEnhancedJourneyProgress';
 
 interface FamilyJourneyPreviewProps {
   onBack: () => void;
@@ -11,16 +12,7 @@ interface FamilyJourneyPreviewProps {
 
 export const FamilyJourneyPreview: React.FC<FamilyJourneyPreviewProps> = ({ onBack }) => {
   const navigate = useNavigate();
-
-  const familySteps = [
-    "Complete your family profile",
-    "Care needs assessment", 
-    "Tell your loved one's story",
-    "Review caregiver matches",
-    "Set up medication management",
-    "Plan meals and nutrition",
-    "Schedule your first visit"
-  ];
+  const journeyProgress = useEnhancedJourneyProgress();
 
   return (
     <motion.div
@@ -47,23 +39,39 @@ export const FamilyJourneyPreview: React.FC<FamilyJourneyPreviewProps> = ({ onBa
         </p>
       </div>
 
-      {/* Journey Preview */}
+      {/* Journey Preview with Real Progress */}
       <div className="bg-blue-50 rounded-lg p-3 border border-blue-200">
         <div className="flex justify-between items-center mb-2">
           <span className="text-sm font-medium">Your Journey Ahead</span>
-          <span className="text-sm text-blue-600 font-semibold">0%</span>
+          <span className="text-sm text-blue-600 font-semibold">{journeyProgress.completionPercentage}%</span>
         </div>
         <div className="w-full bg-blue-200 rounded-full h-2 mb-3">
-          <div className="bg-blue-600 h-2 rounded-full w-0" />
+          <div 
+            className="bg-blue-600 h-2 rounded-full transition-all duration-300" 
+            style={{ width: `${journeyProgress.completionPercentage}%` }}
+          />
         </div>
         
+        {/* Display actual journey steps */}
         <div className="space-y-2">
-          {familySteps.map((step, index) => (
-            <div key={index} className="flex items-center gap-2 text-xs">
-              <div className="w-4 h-4 rounded-full border border-blue-300 bg-white flex items-center justify-center flex-shrink-0">
-                <span className="text-xs text-blue-400 font-semibold">{index + 1}</span>
+          {journeyProgress.steps.slice(0, 7).map((step, index) => (
+            <div key={step.id} className="flex items-center gap-2 text-xs">
+              <div className={`w-4 h-4 rounded-full border flex items-center justify-center flex-shrink-0 ${
+                step.completed 
+                  ? 'border-blue-600 bg-blue-600 text-white' 
+                  : 'border-blue-300 bg-white'
+              }`}>
+                {step.completed ? (
+                  <span className="text-xs">✓</span>
+                ) : (
+                  <span className="text-xs text-blue-400 font-semibold">{index + 1}</span>
+                )}
               </div>
-              <span className="text-blue-700 leading-tight">{step}</span>
+              <span className={`leading-tight ${
+                step.completed ? 'text-blue-800 font-medium' : 'text-blue-700'
+              }`}>
+                {step.title}
+              </span>
             </div>
           ))}
         </div>
@@ -75,9 +83,28 @@ export const FamilyJourneyPreview: React.FC<FamilyJourneyPreviewProps> = ({ onBa
           variant="default" 
           size="sm" 
           className="w-full h-auto py-3 bg-blue-600 hover:bg-blue-700"
-          onClick={() => navigate('/auth?tab=signup&role=family')}
+          onClick={() => {
+            if (journeyProgress.isAnonymous) {
+              navigate('/auth?tab=signup&role=family');
+            } else if (journeyProgress.nextStep) {
+              // Use the next step's action if available
+              const nextStep = journeyProgress.steps.find(s => s.id === journeyProgress.nextStep?.id);
+              if (nextStep?.action) {
+                nextStep.action();
+              } else {
+                navigate('/dashboard/family');
+              }
+            } else {
+              navigate('/dashboard/family');
+            }
+          }}
         >
-          Get Started on Your Journey
+          {journeyProgress.isAnonymous 
+            ? 'Get Started on Your Journey' 
+            : journeyProgress.nextStep 
+              ? `Continue: ${journeyProgress.nextStep.title}`
+              : 'View Dashboard'
+          }
         </Button>
         
         <Button 

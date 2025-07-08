@@ -7,7 +7,7 @@ import { PageViewTracker } from "@/components/tracking/PageViewTracker";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useCarePlanData } from "@/hooks/useCarePlanData";
 import { CareTeamMemberWithProfile } from "@/types/careTypes";
-import { ChefHat } from "lucide-react";
+import { ChefHat, FileText } from "lucide-react";
 
 import { CareTeamTab } from "@/components/care-plan/CareTeamTab";
 import { PlanDetailsTab } from "@/components/care-plan/PlanDetailsTab";
@@ -20,6 +20,7 @@ import { CarePlanLoadingState } from "@/components/care-plan/CarePlanLoadingStat
 import { CarePlanNotFound } from "@/components/care-plan/CarePlanNotFound";
 import { RemoveTeamMemberDialog } from "@/components/care-plan/RemoveTeamMemberDialog";
 import { MealPlanner } from "@/components/meal-planning/MealPlanner";
+import { ShiftReportGenerator } from "@/components/care-plan/ShiftReportGenerator";
 
 const CarePlanDetailPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -110,14 +111,18 @@ const CarePlanDetailPage = () => {
           <TabsList className="mb-6">
             <TabsTrigger value="details">Plan Details</TabsTrigger>
             <TabsTrigger value="team">Care Team</TabsTrigger>
-            <TabsTrigger value="medications">Medications</TabsTrigger>
-            <TabsTrigger value="meals" className="flex items-center gap-2">
-              <ChefHat className="h-4 w-4" />
-              Meals
-            </TabsTrigger>
             <TabsTrigger value="schedule">Schedule</TabsTrigger>
-            <TabsTrigger value="reports">Reports</TabsTrigger>
             <TabsTrigger value="payroll">Payroll & Hours</TabsTrigger>
+            <TabsTrigger value="medications">Medications</TabsTrigger>
+            <TabsTrigger value="reports">Reports</TabsTrigger>
+            <TabsTrigger value="meals">
+              <ChefHat className="mr-2 h-4 w-4" />
+              Meal Planning
+            </TabsTrigger>
+            <TabsTrigger value="shift-reports">
+              <FileText className="mr-2 h-4 w-4" />
+              Shift Reports
+            </TabsTrigger>
           </TabsList>
           
           <TabsContent value="details">
@@ -148,12 +153,22 @@ const CarePlanDetailPage = () => {
           
           <TabsContent value="schedule">
             <EnhancedScheduleTab
-              carePlanId={id}
-              familyId={user.id}
+              carePlanId={id!}
+              carePlanTitle={carePlan?.title || 'Care Plan'}
+              familyId={carePlan?.familyId || user.id}
               careShifts={careShifts}
               careTeamMembers={careTeamMembers}
               onShiftUpdated={reloadCareShifts}
               onDeleteShift={handleDeleteShift}
+            />
+          </TabsContent>
+
+          <TabsContent value="shift-reports">
+            <ShiftReportGenerator
+              carePlanId={id}
+              careShifts={careShifts}
+              careTeamMembers={careTeamMembers}
+              carePlanTitle={carePlan.title}
             />
           </TabsContent>
 

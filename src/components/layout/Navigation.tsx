@@ -1,4 +1,3 @@
-
 import { Link, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/components/providers/AuthProvider';
@@ -149,10 +148,6 @@ export function Navigation() {
               <>
                 <Link to="/about" className="text-gray-700 hover:text-primary">
                   About
-                </Link>
-                
-                <Link to="/features" className="text-gray-700 hover:text-primary">
-                  Features
                 </Link>
                 
                 {isSpecificUser && (

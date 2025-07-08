@@ -12,4 +12,14 @@ interface Window {
    * React global instance
    */
   React?: typeof import('react');
+  
+  /**
+   * Google Analytics data layer
+   */
+  dataLayer?: any[];
+  
+  /**
+   * Google Analytics gtag function
+   */
+  gtag?: (...args: any[]) => void;
 }

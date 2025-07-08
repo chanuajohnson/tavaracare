@@ -3,7 +3,7 @@ import React, { useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Breadcrumb } from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
-import { Home, Lock, CheckCircle, ArrowRight, Heart, Users, Shield, Star, Sparkles } from 'lucide-react';
+import { Home, Lock, CheckCircle, ArrowRight, Heart, Users, Shield, Star, Sparkles, Video } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAuth } from "@/components/providers/AuthProvider";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
@@ -19,6 +19,10 @@ export default function SubscriptionFeaturesPage() {
                         source === 'journey_progress_panel' || 
                         source === 'existing_lead' ||
                         !user; // Anonymous users are likely from demo
+
+  // Check if this is video call related
+  const isVideoCallFeature = featureType?.toLowerCase().includes('video') || 
+                            featureType?.toLowerCase().includes('call');
 
   // Default dashboard path based on user role if not provided
   const defaultDashboardPath = userRole === 'family' 
@@ -47,6 +51,17 @@ export default function SubscriptionFeaturesPage() {
         "Save and compare your favorite caregivers"
       ];
     }
+
+    if (isVideoCallFeature) {
+      return [
+        "Instant video calls with matched caregivers",
+        "Skip the text chat phase entirely",
+        "30-minute secure video sessions",
+        "TAV-moderated professional meetings",
+        "Schedule multiple caregiver interviews back-to-back",
+        "Record session notes and caregiver responses"
+      ];
+    }
     
     switch(featureType?.toLowerCase()) {
       case 'caregiver matching':
@@ -56,7 +71,7 @@ export default function SubscriptionFeaturesPage() {
         return [
           "Access unlimited caregiver profiles and matches",
           "View complete caregiver backgrounds, experience, and certifications",
-          "Direct messaging with caregivers for interviews and coordination",
+          "Free unlimited messaging with all caregivers",
           "Save favorites and create comparison lists",
           "Advanced filtering by skills, availability, and location",
           "Priority access to new caregiver registrations"
@@ -286,17 +301,25 @@ export default function SubscriptionFeaturesPage() {
         {/* Hero Section */}
         <div className="text-center mb-8">
           <div className="flex items-center justify-center gap-2 mb-4">
-            <Sparkles className="h-8 w-8 text-primary" />
+            {isVideoCallFeature ? (
+              <Video className="h-8 w-8 text-primary" />
+            ) : (
+              <Sparkles className="h-8 w-8 text-primary" />
+            )}
             <h1 className="text-4xl font-bold">
-              {featureType === 'caregiver matching' || featureType === 'unlock matches' || featureType === 'view caregiver profile' || featureType === 'browse all matches'
+              {isVideoCallFeature
+                ? 'Unlock Instant Video Calls' 
+                : featureType === 'caregiver matching' || featureType === 'unlock matches' || featureType === 'view caregiver profile' || featureType === 'browse all matches'
                 ? 'Unlock Caregiver Matching' 
                 : `Unlock ${featureType || 'Premium Features'}`}
             </h1>
           </div>
           <p className="text-xl text-muted-foreground mb-6">
-            {planType === 'family' ? 
-              'Get full access to Trinidad & Tobago\'s most trusted caregiver network.' :
-              'Boost your professional profile and access more opportunities.'}
+            {isVideoCallFeature ? 
+              'Skip the chat phase and meet your caregivers face-to-face instantly.' :
+              planType === 'family' ? 
+                'Get full access to Trinidad & Tobago\'s most trusted caregiver network.' :
+                'Boost your professional profile and access more opportunities.'}
           </p>
         </div>
 
@@ -306,15 +329,23 @@ export default function SubscriptionFeaturesPage() {
             <Card className="border-2 border-primary/20">
               <CardHeader>
                 <div className="flex items-center gap-2">
-                  <Lock className="h-5 w-5 text-primary" />
+                  {isVideoCallFeature ? (
+                    <Video className="h-5 w-5 text-primary" />
+                  ) : (
+                    <Lock className="h-5 w-5 text-primary" />
+                  )}
                   <CardTitle className="text-xl">
-                    {featureType === 'caregiver matching' || featureType === 'unlock matches' || featureType === 'view caregiver profile' || featureType === 'browse all matches'
+                    {isVideoCallFeature
+                      ? 'Instant Video Calls with Caregivers'
+                      : featureType === 'caregiver matching' || featureType === 'unlock matches' || featureType === 'view caregiver profile' || featureType === 'browse all matches'
                       ? 'Caregiver Matching & Profiles' 
                       : `Premium ${featureType || 'Feature'}`}
                   </CardTitle>
                 </div>
                 <CardDescription>
-                  Upgrade to access this feature and unlock the full Tavara experience
+                  {isVideoCallFeature 
+                    ? 'Upgrade to skip chat and meet caregivers instantly via secure video calls'
+                    : 'Upgrade to access this feature and unlock the full Tavara experience'}
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -322,7 +353,9 @@ export default function SubscriptionFeaturesPage() {
                   <div className="bg-gradient-to-r from-primary/10 to-primary/5 p-4 rounded-lg border border-primary/20">
                     <h3 className="font-semibold mb-3 flex items-center gap-2">
                       <Star className="h-5 w-5 text-primary" />
-                      What you'll get with premium access:
+                      {isVideoCallFeature 
+                        ? 'What you\'ll get with video call access:'
+                        : 'What you\'ll get with premium access:'}
                     </h3>
                     <ul className="space-y-2">
                       {featureBenefits.map((benefit, index) => (
@@ -335,11 +368,17 @@ export default function SubscriptionFeaturesPage() {
                   </div>
                   
                   <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
-                    <h3 className="font-semibold mb-2 text-blue-800">Why families choose Tavara Premium:</h3>
+                    <h3 className="font-semibold mb-2 text-blue-800">
+                      {isVideoCallFeature 
+                        ? 'Why families choose video calls:'
+                        : 'Why families choose Tavara Premium:'}
+                    </h3>
                     <p className="text-sm text-blue-700">
-                      {planType === 'family' ? 
-                        'Finding the right caregiver is crucial for your loved one\'s wellbeing. Our premium matching system helps you connect with qualified, background-checked caregivers faster and more effectively than anywhere else in Trinidad & Tobago.' :
-                        'Stand out from other professionals and get more job opportunities with our premium professional features.'}
+                      {isVideoCallFeature ?
+                        'Save time and get a better sense of your caregiver match through face-to-face conversation. Video calls help you assess communication style, professionalism, and comfort level before making your decision.' :
+                        planType === 'family' ? 
+                          'Finding the right caregiver is crucial for your loved one\'s wellbeing. Our premium matching system helps you connect with qualified, background-checked caregivers faster and more effectively than anywhere else in Trinidad & Tobago.' :
+                          'Stand out from other professionals and get more job opportunities with our premium professional features.'}
                     </p>
                   </div>
                 </div>
@@ -392,7 +431,16 @@ export default function SubscriptionFeaturesPage() {
                 size="lg"
                 className="flex items-center gap-2"
               >
-                Unlock Premium Access <ArrowRight className="h-4 w-4" />
+                {isVideoCallFeature ? (
+                  <>
+                    <Video className="h-4 w-4" />
+                    Unlock Video Calls <ArrowRight className="h-4 w-4" />
+                  </>
+                ) : (
+                  <>
+                    Unlock Premium Access <ArrowRight className="h-4 w-4" />
+                  </>
+                )}
               </Button>
               
               <Button 
@@ -410,7 +458,9 @@ export default function SubscriptionFeaturesPage() {
               <CardHeader>
                 <CardTitle className="text-xl">Choose Your Plan</CardTitle>
                 <CardDescription>
-                  Get started with premium access today
+                  {isVideoCallFeature 
+                    ? 'Get instant video access today'
+                    : 'Get started with premium access today'}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -418,39 +468,41 @@ export default function SubscriptionFeaturesPage() {
                   <>
                     <div className="p-4 border-2 border-primary rounded-lg bg-gradient-to-r from-primary/5 to-primary/10">
                       <div className="text-center mb-3">
-                        <h3 className="font-semibold text-primary text-lg">Caregiver Access</h3>
-                        <div className="text-3xl font-bold text-primary">$7.99</div>
-                        <div className="text-sm text-muted-foreground">One-time payment</div>
+                        <h3 className="font-semibold text-primary text-lg">
+                          {isVideoCallFeature ? 'Video Call Access' : 'Caregiver Access'}
+                        </h3>
+                        <div className="text-3xl font-bold text-primary">$14.99</div>
+                        <div className="text-sm text-muted-foreground">Monthly subscription</div>
                       </div>
                       <ul className="space-y-2 text-sm mb-4">
                         <li className="flex items-center gap-2">
                           <CheckCircle className="h-4 w-4 text-green-500" />
-                          Unlimited caregiver matches
+                          Unlimited caregiver chat (free)
                         </li>
                         <li className="flex items-center gap-2">
                           <CheckCircle className="h-4 w-4 text-green-500" />
-                          Full profile access
+                          {isVideoCallFeature ? 'Instant video calls' : 'Full profile access'}
                         </li>
                         <li className="flex items-center gap-2">
                           <CheckCircle className="h-4 w-4 text-green-500" />
-                          Direct messaging
+                          {isVideoCallFeature ? '30-minute sessions' : 'Advanced search & filters'}
                         </li>
                         <li className="flex items-center gap-2">
                           <CheckCircle className="h-4 w-4 text-green-500" />
-                          Advanced search & filters
+                          {isVideoCallFeature ? 'TAV-moderated meetings' : 'Priority matching'}
                         </li>
                       </ul>
                       <Button 
                         className="w-full" 
                         onClick={handleSubscribeClick}
                       >
-                        Get Access Now
+                        {isVideoCallFeature ? 'Get Video Access' : 'Get Access Now'}
                       </Button>
                     </div>
                     
                     <div className="text-center p-3 text-sm text-muted-foreground">
-                      <p>✨ <strong>Limited Time:</strong> Usually $19.99/month</p>
-                      <p>🔒 <strong>Secure Payment:</strong> One-time fee, lifetime access</p>
+                      <p>💬 <strong>Free:</strong> Unlimited chat with all caregivers</p>
+                      <p>📹 <strong>Premium:</strong> {isVideoCallFeature ? 'Skip chat, meet instantly' : 'Enhanced matching & profiles'}</p>
                     </div>
                   </>
                 ) : (
