@@ -13,14 +13,16 @@ import { Slider } from "@/components/ui/slider";
 import { useTracking } from "@/hooks/useTracking";
 import { toast } from "sonner";
 import { useFamilyMatches } from "@/hooks/useFamilyMatches";
-import { ChatRequestsSection } from "./ChatRequestsSection";
 import { ProfessionalFamilyChatModal } from "./ProfessionalFamilyChatModal";
+import { VideoAvailabilityToggle } from "./VideoAvailabilityToggle";
+import { ProfessionalFamilyMatchModal } from "./ProfessionalFamilyMatchModal";
 
 export const DashboardFamilyMatches = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [showFilters, setShowFilters] = useState(false);
   const [showChatModal, setShowChatModal] = useState(false);
+  const [showFamilyMatchModal, setShowFamilyMatchModal] = useState(false);
   const [selectedFamily, setSelectedFamily] = useState<any>(null);
   const { trackEngagement } = useTracking();
   
@@ -157,9 +159,6 @@ export const DashboardFamilyMatches = () => {
 
   return (
     <>
-      {/* Add Chat Requests Section */}
-      <ChatRequestsSection />
-      
       <Card className="mb-8 border-l-4 border-l-primary">
         <CardHeader className="flex flex-row items-center justify-between pb-2">
           <div>
@@ -173,20 +172,7 @@ export const DashboardFamilyMatches = () => {
               <Filter className="h-4 w-4" />
               {showFilters ? "Hide Filters" : "Show Filters"}
             </Button>
-            <Button variant="default" className="flex items-center gap-1" onClick={() => {
-              trackEngagement('view_all_family_matches_click', {
-                source: 'dashboard_widget'
-              });
-              navigate("/family/matching", {
-                state: {
-                  referringPagePath: "/dashboard/professional",
-                  referringPageLabel: "Professional Dashboard"
-                }
-              });
-            }}>
-              View All
-              <ArrowRight className="h-4 w-4" />
-            </Button>
+            <VideoAvailabilityToggle />
           </div>
         </CardHeader>
         
@@ -290,6 +276,9 @@ export const DashboardFamilyMatches = () => {
                         <div className="text-xs text-blue-600 mt-1">
                           * Name protected until connected
                         </div>
+                        <div className="text-xs text-gray-500 font-mono mt-1">
+                          ID: {family.id?.substring(0, 8) || 'N/A'}
+                        </div>
                         <div className="flex items-center justify-center sm:justify-start gap-1 text-sm text-gray-500">
                           <MapPin className="h-3.5 w-3.5" />
                           <span>{family.location}</span>
@@ -391,17 +380,16 @@ export const DashboardFamilyMatches = () => {
                 </div>
               ))}
               
-              <Button variant="outline" className="w-full mt-2" onClick={() => {
-                trackEngagement('view_all_family_matches_click', {
-                  source: 'dashboard_widget'
-                });
-                navigate("/family/matching", {
-                  state: {
-                    referringPagePath: "/dashboard/professional",
-                    referringPageLabel: "Professional Dashboard"
-                  }
-                });
-              }}>
+              <Button 
+                variant="outline" 
+                className="w-full mt-2" 
+                onClick={() => {
+                  trackEngagement('view_family_match_modal_click', {
+                    source: 'dashboard_widget'
+                  });
+                  setShowFamilyMatchModal(true);
+                }}
+              >
                 View All Family Matches
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
@@ -425,6 +413,16 @@ export const DashboardFamilyMatches = () => {
           family={selectedFamily}
         />
       )}
+
+      {/* Professional Family Match Modal */}
+      <ProfessionalFamilyMatchModal
+        open={showFamilyMatchModal}
+        onOpenChange={setShowFamilyMatchModal}
+        onChatWithFamily={(family) => {
+          setSelectedFamily(family);
+          setShowChatModal(true);
+        }}
+      />
     </>
   );
 };

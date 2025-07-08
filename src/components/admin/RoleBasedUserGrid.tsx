@@ -6,8 +6,9 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { MiniJourneyProgress } from './MiniJourneyProgress';
 import { UserDetailModal } from './UserDetailModal';
 import { UserWithProgress } from '@/types/adminTypes';
-import { Users, User, Building, Shield, Mail, Phone, MapPin } from 'lucide-react';
+import { Users, User, Building, Shield, Mail, Phone, MapPin, UserCheck, UserX } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { MatchingStatusToggle } from './MatchingStatusToggle';
 
 interface RoleBasedUserGridProps {
   users: UserWithProgress[];
@@ -110,6 +111,19 @@ export function RoleBasedUserGrid({ users, selectedUsers, onUserSelect, onRefres
             userId={user.id} 
             userRole={user.role as any}
           />
+          
+          {/* Matching Status for Professionals */}
+          {user.role === 'professional' && (
+            <div className="pt-2 border-t">
+              <MatchingStatusToggle
+                userId={user.id}
+                currentStatus={user.available_for_matching ?? true}
+                userFullName={user.full_name || 'Unknown User'}
+                onStatusChange={onRefresh || (() => {})}
+                compact={true}
+              />
+            </div>
+          )}
         </div>
       </div>
     </motion.div>
@@ -156,9 +170,9 @@ export function RoleBasedUserGrid({ users, selectedUsers, onUserSelect, onRefres
 
       <UserDetailModal
         user={selectedUser}
-        open={isModalOpen}
-        onOpenChange={setIsModalOpen}
-        onRefresh={onRefresh || (() => {})}
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onUserUpdate={onRefresh || (() => {})}
       />
     </div>
   );

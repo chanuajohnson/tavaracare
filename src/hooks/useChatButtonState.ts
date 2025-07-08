@@ -7,19 +7,25 @@ interface ChatButtonState {
   isDisabled: boolean;
   variant: 'default' | 'secondary' | 'outline';
   showSpinner: boolean;
+  showSplitButton: boolean;
+  splitButtons?: {
+    continue: { text: string; variant: 'default' | 'secondary' | 'outline' };
+    cancel: { text: string; variant: 'default' | 'secondary' | 'outline' };
+  };
 }
 
 export const useChatButtonState = (caregiverId: string) => {
-  const { chatState, isLoading: persistenceLoading } = useChatPersistence(caregiverId);
+  const { chatState, isLoading: persistenceLoading, cancelChatRequest } = useChatPersistence(caregiverId);
   const [buttonState, setButtonState] = useState<ChatButtonState>({
     buttonText: 'Start Guided Chat',
     isDisabled: false,
     variant: 'default',
-    showSpinner: false
+    showSpinner: false,
+    showSplitButton: false
   });
 
   useEffect(() => {
-    console.log(`[useChatButtonState] Button state update for caregiver: ${caregiverId}`);
+    console.log(`[useChatButtonState] State update for caregiver: ${caregiverId}`);
     console.log(`[useChatButtonState] Chat state:`, chatState);
     console.log(`[useChatButtonState] Persistence loading:`, persistenceLoading);
 
@@ -28,49 +34,56 @@ export const useChatButtonState = (caregiverId: string) => {
         buttonText: 'Loading...',
         isDisabled: true,
         variant: 'outline',
-        showSpinner: true
+        showSpinner: true,
+        showSplitButton: false
       });
       return;
     }
 
     if (!chatState || !chatState.hasStartedChat) {
       // No chat started yet
+      console.log('[useChatButtonState] No active chat - showing start button');
       setButtonState({
         buttonText: 'Start Guided Chat',
         isDisabled: false,
         variant: 'default',
-        showSpinner: false
+        showSpinner: false,
+        showSplitButton: false
       });
       return;
     }
 
-    // Chat exists, update based on stage
+    // Chat exists, show split button based on stage
+    console.log(`[useChatButtonState] Active chat found - stage: ${chatState.currentStage}`);
+    
     switch (chatState.currentStage) {
       case 'introduction':
       case 'interest_expression':
+      case 'guided_qa':
         setButtonState({
           buttonText: 'Continue Chat',
           isDisabled: false,
           variant: 'default',
-          showSpinner: false
+          showSpinner: false,
+          showSplitButton: true,
+          splitButtons: {
+            continue: { text: 'Continue Chat', variant: 'default' },
+            cancel: { text: 'Cancel Request', variant: 'outline' }
+          }
         });
         break;
       
       case 'waiting_acceptance':
         setButtonState({
           buttonText: 'Request Sent',
-          isDisabled: true,
-          variant: 'secondary',
-          showSpinner: false
-        });
-        break;
-      
-      case 'guided_qa':
-        setButtonState({
-          buttonText: 'Continue Chat',
           isDisabled: false,
-          variant: 'default',
-          showSpinner: false
+          variant: 'secondary',
+          showSpinner: false,
+          showSplitButton: true,
+          splitButtons: {
+            continue: { text: 'Request Sent', variant: 'secondary' },
+            cancel: { text: 'Cancel Request', variant: 'outline' }
+          }
         });
         break;
       
@@ -79,21 +92,18 @@ export const useChatButtonState = (caregiverId: string) => {
           buttonText: 'Start Guided Chat',
           isDisabled: false,
           variant: 'default',
-          showSpinner: false
+          showSpinner: false,
+          showSplitButton: false
         });
     }
 
-    console.log(`[useChatButtonState] Final button state:`, {
-      buttonText: buttonState.buttonText,
-      isDisabled: buttonState.isDisabled,
-      variant: buttonState.variant,
-      showSpinner: buttonState.showSpinner
-    });
+    console.log(`[useChatButtonState] Final button state:`, buttonState);
   }, [chatState, persistenceLoading, caregiverId]);
 
   return {
     buttonState,
     hasActiveChat: !!chatState?.hasStartedChat,
-    chatStage: chatState?.currentStage
+    chatStage: chatState?.currentStage,
+    cancelChatRequest
   };
 };

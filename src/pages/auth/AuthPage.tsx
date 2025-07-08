@@ -129,6 +129,19 @@ if (action === 'verification-pending') {
           }
         });
         
+        // Send Facebook Conversions API event for family signups (only on production)
+        if (userRole === 'family' && window.location.hostname === 'tavara.care') {
+          try {
+            await supabase.functions.invoke('facebook-conversions-api', {
+              body: { email: data.user.email }
+            });
+            console.log('Facebook CAPI CompleteRegistration event sent for family signup');
+          } catch (error) {
+            console.error('Failed to send Facebook CAPI event:', error);
+            // Don't block the signup flow for CAPI failures
+          }
+        }
+        
         // Clear all auth flow flags to allow normal redirection after successful signup
         clearAllAuthFlowFlags();
         

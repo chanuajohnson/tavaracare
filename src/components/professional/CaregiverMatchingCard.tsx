@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Check, ArrowRight, Users } from "lucide-react";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { useTracking } from "@/hooks/useTracking";
-import { CaregiverMatchingModal } from "@/components/family/CaregiverMatchingModal";
+import { ProfessionalFamilyMatchingModal } from "./ProfessionalFamilyMatchingModal";
 
 export const CaregiverMatchingCard = () => {
   const { user, isProfileComplete } = useAuth();
@@ -28,7 +28,7 @@ export const CaregiverMatchingCard = () => {
         user_status: user ? (isProfileComplete ? 'complete_profile' : 'incomplete_profile') : 'logged_out'
       });
       
-      // Open the matching modal
+      // Open the professional family matching modal
       setShowMatchingModal(true);
     } catch (error) {
       console.error("Error in handleFindFamiliesClick:", error);
@@ -109,8 +109,8 @@ export const CaregiverMatchingCard = () => {
         </CardContent>
       </Card>
 
-      {/* Matching Modal */}
-      <CaregiverMatchingModal
+      {/* Professional Family Matching Modal */}
+      <ProfessionalFamilyMatchingModal
         open={showMatchingModal}
         onOpenChange={setShowMatchingModal}
         referringPagePath="/dashboard/professional"

@@ -1,5 +1,5 @@
-
 import { ProfessionalStep } from './types';
+import { getMissingDocumentTypes } from './completionCheckers';
 
 export const baseSteps = [
   { 
@@ -69,13 +69,13 @@ export const getDocumentNavigationLink = (hasDocuments: boolean): string => {
 
 export const getProfessionalRegistrationLink = (isCompleted: boolean): string => {
   if (isCompleted) {
-    return "/registration/professional?scroll=availability&edit=true";
+    return "/registration/professional?scroll=firstName&edit=true";
   } else {
     return "/registration/professional";
   }
 };
 
-export const getButtonText = (step: typeof baseSteps[0], completed: boolean, accessible: boolean, hasDocuments?: boolean): string => {
+export const getButtonText = (step: typeof baseSteps[0], completed: boolean, accessible: boolean, hasDocuments?: boolean, documents?: any[]): string => {
   if (!accessible) {
     return "🔒 Locked";
   }
@@ -85,7 +85,17 @@ export const getButtonText = (step: typeof baseSteps[0], completed: boolean, acc
       case 1: return "✓ Account Created";
       case 2: return "✓ Edit Profile";
       case 3: return "Edit Availability";
-      case 4: return hasDocuments ? "Manage Documents" : "View Documents";
+      case 4: 
+        if (hasDocuments) {
+          return "Manage Documents";
+        } else {
+          // Show specific missing document types
+          const missingTypes = documents ? getMissingDocumentTypes(documents) : [];
+          if (missingTypes.length > 0) {
+            return `Upload Missing: ${missingTypes.join(', ')}`;
+          }
+          return "View Documents";
+        }
       case 5: return "View Family Matches";
       case 6: return "Continue Training";
       default: return "✓ Complete";
@@ -96,7 +106,13 @@ export const getButtonText = (step: typeof baseSteps[0], completed: boolean, acc
     case 1: return "Complete Setup";
     case 2: return "Complete Profile";
     case 3: return "Set Availability";
-    case 4: return "Upload Documents";
+    case 4: 
+      // Show specific missing document types for incomplete state
+      const missingTypes = documents ? getMissingDocumentTypes(documents) : [];
+      if (missingTypes.length > 0) {
+        return `Upload Required: ${missingTypes.join(', ')}`;
+      }
+      return "Upload Documents";
     case 5: return "View Family Matches";
     case 6: return "Start Training";
     default: return "Complete";

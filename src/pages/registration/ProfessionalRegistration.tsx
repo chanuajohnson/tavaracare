@@ -18,6 +18,7 @@ import { Calendar, Sun, Moon, Clock, Loader2 } from "lucide-react";
 import { getPrefillDataFromUrl, applyPrefillDataToForm } from '../../utils/chat/prefillReader';
 import { clearChatSessionData } from '../../utils/chat/chatSessionUtils';
 import { setAuthFlowFlag, AUTH_FLOW_FLAGS } from "@/utils/authFlowUtils";
+import { TRINIDAD_TOBAGO_LOCATIONS } from '../../constants/locations';
 
 // Import standardized shift options from chat registration flows
 import { STANDARDIZED_SHIFT_OPTIONS } from '../../data/chatRegistrationFlows';
@@ -33,6 +34,8 @@ const ProfessionalRegistration = () => {
   const [email, setEmail] = useState('');
   const [address, setAddress] = useState('');
   
+  const [professionalType, setProfessionalType] = useState('');
+  const [otherProfessionalType, setOtherProfessionalType] = useState('');
   const [yearsOfExperience, setYearsOfExperience] = useState('');
   const [specialties, setSpecialties] = useState<string[]>([]);
   const [certifications, setCertifications] = useState<string[]>([]);
@@ -136,6 +139,12 @@ const ProfessionalRegistration = () => {
       case 'location':
         setAddress(value);
         break;
+      case 'professional_type':
+        setProfessionalType(value);
+        break;
+      case 'other_professional_type':
+        setOtherProfessionalType(value);
+        break;
       case 'years_of_experience':
         setYearsOfExperience(value);
         break;
@@ -231,6 +240,13 @@ const ProfessionalRegistration = () => {
         setLastName(profile.last_name || '');
         setPhoneNumber(profile.phone_number || '');
         setAddress(profile.address || '');
+        setProfessionalType(profile.professional_type || '');
+        // Handle other professional type - if professional_type doesn't match predefined values, it's likely a custom "other" type
+        const predefinedTypes = ['agency', 'nurse', 'hha', 'cna', 'special_needs', 'therapist', 'nutritionist', 'medication', 'elderly', 'holistic', 'gapp'];
+        if (profile.professional_type && !predefinedTypes.includes(profile.professional_type)) {
+          setProfessionalType('other');
+          setOtherProfessionalType(profile.professional_type);
+        }
         setYearsOfExperience(profile.years_of_experience || '');
         setSpecialties(profile.care_services || []);
         setCertifications(profile.certifications || []);
@@ -326,7 +342,7 @@ const ProfessionalRegistration = () => {
         throw new Error('User ID is missing. Please sign in again.');
       }
       
-      if (!firstName || !lastName || !phoneNumber || !address || !yearsOfExperience) {
+      if (!firstName || !lastName || !phoneNumber || !address || !professionalType || !yearsOfExperience) {
         toast.error('Please fill in all required fields');
         setLoading(false);
         return;
@@ -363,6 +379,8 @@ const ProfessionalRegistration = () => {
       }
 
       const fullName = `${firstName} ${lastName}`.trim();
+      const finalProfessionalType = professionalType === 'other' ? otherProfessionalType : professionalType;
+      
       const updates = {
         id: user.id,
         full_name: fullName,
@@ -371,6 +389,7 @@ const ProfessionalRegistration = () => {
         address: address,
         role: 'professional' as const,
         updated_at: new Date().toISOString(),
+        professional_type: finalProfessionalType,
         years_of_experience: yearsOfExperience,
         care_services: specialties || [], // Updated: Map specialties to care_services column
         certifications: certifications || [],
@@ -515,13 +534,18 @@ const ProfessionalRegistration = () => {
 
               <div className="space-y-2">
                 <Label htmlFor="address">Location – Your service area *</Label>
-                <Input 
-                  id="address" 
-                  placeholder="Address/City where you provide services" 
-                  value={address} 
-                  onChange={(e) => setAddress(e.target.value)}
-                  required
-                />
+                <Select value={address} onValueChange={setAddress} required>
+                  <SelectTrigger id="address">
+                    <SelectValue placeholder="Select your service area" />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-96">
+                    {TRINIDAD_TOBAGO_LOCATIONS.map((location) => (
+                      <SelectItem key={location.value} value={location.value}>
+                        {location.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </CardContent>
           </Card>
@@ -534,6 +558,42 @@ const ProfessionalRegistration = () => {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="professional-type" className="mb-1">Professional Role <span className="text-red-500">*</span></Label>
+                <Select value={professionalType} onValueChange={setProfessionalType} required>
+                  <SelectTrigger id="professional-type">
+                    <SelectValue placeholder="Select your role" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="agency">👨‍👦 Professional Agency</SelectItem>
+                    <SelectItem value="nurse">🏥 Licensed Nurse (LPN/RN/BSN)</SelectItem>
+                    <SelectItem value="hha">🏠 Home Health Aide (HHA)</SelectItem>
+                    <SelectItem value="cna">👩‍⚕️ Certified Nursing Assistant (CNA)</SelectItem>
+                    <SelectItem value="special_needs">🧠 Special Needs Caregiver</SelectItem>
+                    <SelectItem value="therapist">🏋️ Physical / Occupational Therapist</SelectItem>
+                    <SelectItem value="nutritionist">🍽️ Nutritional & Dietary Specialist</SelectItem>
+                    <SelectItem value="medication">💊 Medication Management Expert</SelectItem>
+                    <SelectItem value="elderly">👨‍🦽 Elderly & Mobility Support</SelectItem>
+                    <SelectItem value="holistic">🌱 Holistic Care & Wellness</SelectItem>
+                    <SelectItem value="gapp">👨‍👦 The Geriatric Adolescent Partnership Programme (GAPP)</SelectItem>
+                    <SelectItem value="other">⚕️ Other (Please specify)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              {professionalType === 'other' && (
+                <div className="space-y-2">
+                  <Label htmlFor="other-professional-type" className="mb-1">Specify Professional Role <span className="text-red-500">*</span></Label>
+                  <Input
+                    id="other-professional-type"
+                    placeholder="Specify your professional role"
+                    value={otherProfessionalType}
+                    onChange={(e) => setOtherProfessionalType(e.target.value)}
+                    required={professionalType === 'other'}
+                  />
+                </div>
+              )}
+
               <div className="space-y-2">
                 <Label htmlFor="yearsOfExperience">Years of Experience *</Label>
                 <Select value={yearsOfExperience} onValueChange={setYearsOfExperience} required>

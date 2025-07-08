@@ -7,6 +7,11 @@ export type Json =
   | Json[]
 
 export type Database = {
+  // Allows to automatically instanciate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
+  __InternalSupabase: {
+    PostgrestVersion: "12.2.3 (519615d)"
+  }
   public: {
     Tables: {
       admin_availability_slots: {
@@ -163,6 +168,73 @@ export type Database = {
             columns: ["template_id"]
             isOneToOne: false
             referencedRelation: "nudge_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      admin_match_interventions: {
+        Row: {
+          admin_id: string
+          admin_match_score: number | null
+          caregiver_id: string
+          created_at: string | null
+          family_user_id: string
+          id: string
+          intervention_type: string
+          notes: string | null
+          original_match_score: number | null
+          reason: string | null
+          status: string
+          updated_at: string | null
+        }
+        Insert: {
+          admin_id: string
+          admin_match_score?: number | null
+          caregiver_id: string
+          created_at?: string | null
+          family_user_id: string
+          id?: string
+          intervention_type: string
+          notes?: string | null
+          original_match_score?: number | null
+          reason?: string | null
+          status?: string
+          updated_at?: string | null
+        }
+        Update: {
+          admin_id?: string
+          admin_match_score?: number | null
+          caregiver_id?: string
+          created_at?: string | null
+          family_user_id?: string
+          id?: string
+          intervention_type?: string
+          notes?: string | null
+          original_match_score?: number | null
+          reason?: string | null
+          status?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "admin_match_interventions_admin_id_fkey"
+            columns: ["admin_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "admin_match_interventions_caregiver_id_fkey"
+            columns: ["caregiver_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "admin_match_interventions_family_user_id_fkey"
+            columns: ["family_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -2123,6 +2195,77 @@ export type Database = {
           },
         ]
       }
+      manual_caregiver_assignments: {
+        Row: {
+          assigned_by_admin_id: string
+          assignment_reason: string | null
+          caregiver_id: string
+          created_at: string | null
+          family_user_id: string
+          id: string
+          is_active: boolean | null
+          match_score: number | null
+          updated_at: string | null
+          visit_booking_id: string | null
+          visit_scheduled: boolean | null
+        }
+        Insert: {
+          assigned_by_admin_id: string
+          assignment_reason?: string | null
+          caregiver_id: string
+          created_at?: string | null
+          family_user_id: string
+          id?: string
+          is_active?: boolean | null
+          match_score?: number | null
+          updated_at?: string | null
+          visit_booking_id?: string | null
+          visit_scheduled?: boolean | null
+        }
+        Update: {
+          assigned_by_admin_id?: string
+          assignment_reason?: string | null
+          caregiver_id?: string
+          created_at?: string | null
+          family_user_id?: string
+          id?: string
+          is_active?: boolean | null
+          match_score?: number | null
+          updated_at?: string | null
+          visit_booking_id?: string | null
+          visit_scheduled?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "manual_caregiver_assignments_assigned_by_admin_id_fkey"
+            columns: ["assigned_by_admin_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "manual_caregiver_assignments_caregiver_id_fkey"
+            columns: ["caregiver_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "manual_caregiver_assignments_family_user_id_fkey"
+            columns: ["family_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "manual_caregiver_assignments_visit_booking_id_fkey"
+            columns: ["visit_booking_id"]
+            isOneToOne: false
+            referencedRelation: "visit_bookings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       meal_plan_items: {
         Row: {
           created_at: string
@@ -2717,6 +2860,7 @@ export type Database = {
           admin_scheduling_requested_at: string | null
           administers_medication: boolean | null
           availability: string[] | null
+          available_for_matching: boolean
           avatar_url: string | null
           background_check: boolean | null
           background_check_proof_url: string | null
@@ -2788,12 +2932,16 @@ export type Database = {
           tech_interests: string[] | null
           updated_at: string | null
           verification_badge_earned_at: string | null
+          video_available: boolean | null
           visit_notes: string | null
           visit_payment_reference: string | null
           visit_payment_status: string | null
           visit_scheduled_date: string | null
           visit_scheduling_status: string | null
           website: string | null
+          whatsapp_linked_at: string | null
+          whatsapp_phone: string | null
+          whatsapp_verified: boolean | null
           why_choose_caregiving: string | null
           work_type: string | null
           years_of_experience: string | null
@@ -2805,6 +2953,7 @@ export type Database = {
           admin_scheduling_requested_at?: string | null
           administers_medication?: boolean | null
           availability?: string[] | null
+          available_for_matching?: boolean
           avatar_url?: string | null
           background_check?: boolean | null
           background_check_proof_url?: string | null
@@ -2876,12 +3025,16 @@ export type Database = {
           tech_interests?: string[] | null
           updated_at?: string | null
           verification_badge_earned_at?: string | null
+          video_available?: boolean | null
           visit_notes?: string | null
           visit_payment_reference?: string | null
           visit_payment_status?: string | null
           visit_scheduled_date?: string | null
           visit_scheduling_status?: string | null
           website?: string | null
+          whatsapp_linked_at?: string | null
+          whatsapp_phone?: string | null
+          whatsapp_verified?: boolean | null
           why_choose_caregiving?: string | null
           work_type?: string | null
           years_of_experience?: string | null
@@ -2893,6 +3046,7 @@ export type Database = {
           admin_scheduling_requested_at?: string | null
           administers_medication?: boolean | null
           availability?: string[] | null
+          available_for_matching?: boolean
           avatar_url?: string | null
           background_check?: boolean | null
           background_check_proof_url?: string | null
@@ -2964,12 +3118,16 @@ export type Database = {
           tech_interests?: string[] | null
           updated_at?: string | null
           verification_badge_earned_at?: string | null
+          video_available?: boolean | null
           visit_notes?: string | null
           visit_payment_reference?: string | null
           visit_payment_status?: string | null
           visit_scheduled_date?: string | null
           visit_scheduling_status?: string | null
           website?: string | null
+          whatsapp_linked_at?: string | null
+          whatsapp_phone?: string | null
+          whatsapp_verified?: boolean | null
           why_choose_caregiving?: string | null
           work_type?: string | null
           years_of_experience?: string | null
@@ -3922,10 +4080,56 @@ export type Database = {
         }
         Relationships: []
       }
+      whatsapp_auth: {
+        Row: {
+          code_expires_at: string | null
+          country_code: string
+          created_at: string | null
+          formatted_number: string
+          id: string
+          is_verified: boolean | null
+          last_verification_attempt: string | null
+          phone_number: string
+          updated_at: string | null
+          user_metadata: Json | null
+          verification_attempts: number | null
+          verification_code: string | null
+        }
+        Insert: {
+          code_expires_at?: string | null
+          country_code?: string
+          created_at?: string | null
+          formatted_number: string
+          id?: string
+          is_verified?: boolean | null
+          last_verification_attempt?: string | null
+          phone_number: string
+          updated_at?: string | null
+          user_metadata?: Json | null
+          verification_attempts?: number | null
+          verification_code?: string | null
+        }
+        Update: {
+          code_expires_at?: string | null
+          country_code?: string
+          created_at?: string | null
+          formatted_number?: string
+          id?: string
+          is_verified?: boolean | null
+          last_verification_attempt?: string | null
+          phone_number?: string
+          updated_at?: string | null
+          user_metadata?: Json | null
+          verification_attempts?: number | null
+          verification_code?: string | null
+        }
+        Relationships: []
+      }
       whatsapp_message_log: {
         Row: {
           content: string
           created_at: string
+          delivery_status: string | null
           direction: string
           id: string
           message_id: string | null
@@ -3933,12 +4137,14 @@ export type Database = {
           phone_number: string
           processed: boolean
           processed_at: string | null
+          status: string | null
           template_name: string | null
           user_id: string | null
         }
         Insert: {
           content: string
           created_at?: string
+          delivery_status?: string | null
           direction: string
           id?: string
           message_id?: string | null
@@ -3946,12 +4152,14 @@ export type Database = {
           phone_number: string
           processed?: boolean
           processed_at?: string | null
+          status?: string | null
           template_name?: string | null
           user_id?: string | null
         }
         Update: {
           content?: string
           created_at?: string
+          delivery_status?: string | null
           direction?: string
           id?: string
           message_id?: string | null
@@ -3959,6 +4167,7 @@ export type Database = {
           phone_number?: string
           processed?: boolean
           processed_at?: string | null
+          status?: string | null
           template_name?: string | null
           user_id?: string | null
         }
@@ -3971,6 +4180,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      whatsapp_sessions: {
+        Row: {
+          created_at: string | null
+          expires_at: string
+          id: string
+          is_active: boolean | null
+          phone_number: string
+          session_token: string
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          expires_at: string
+          id?: string
+          is_active?: boolean | null
+          phone_number: string
+          session_token: string
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          expires_at?: string
+          id?: string
+          is_active?: boolean | null
+          phone_number?: string
+          session_token?: string
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
       }
       work_log_expenses: {
         Row: {
@@ -4143,6 +4385,10 @@ export type Database = {
         Args: { booking_id: string; reason?: string }
         Returns: undefined
       }
+      cleanup_expired_whatsapp_codes: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       detect_medication_conflicts: {
         Args: {
           p_medication_id: string
@@ -4157,6 +4403,10 @@ export type Database = {
           status: string
           notes: string
         }[]
+      }
+      format_whatsapp_number: {
+        Args: { phone_input: string; country_code_input?: string }
+        Returns: string
       }
       generate_admin_configured_slots: {
         Args: Record<PropertyKey, never>
@@ -4178,6 +4428,10 @@ export type Database = {
         Args: { feature_id: string; user_id: string }
         Returns: boolean
       }
+      increment_verification_attempts: {
+        Args: { phone_input: string }
+        Returns: undefined
+      }
       reschedule_visit_booking: {
         Args: {
           booking_id: string
@@ -4196,6 +4450,10 @@ export type Database = {
         Args: { plan_id: string; new_status: string }
         Returns: undefined
       }
+      update_video_availability: {
+        Args: { user_id_param: string; available: boolean }
+        Returns: undefined
+      }
       update_visit_payment_status: {
         Args: {
           user_id_param: string
@@ -4206,6 +4464,10 @@ export type Database = {
       }
       validate_admin_signup_code: {
         Args: { provided_code: string }
+        Returns: boolean
+      }
+      validate_whatsapp_number: {
+        Args: { phone_input: string }
         Returns: boolean
       }
     }
@@ -4266,21 +4528,25 @@ export type Database = {
   }
 }
 
-type DefaultSchema = Database[Extract<keyof Database, "public">]
+type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
+
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
 
 export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
-    | { schema: keyof Database },
+    | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof Database
+    schema: keyof DatabaseWithoutInternals
   }
-    ? keyof (Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-        Database[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
     : never = never,
-> = DefaultSchemaTableNameOrOptions extends { schema: keyof Database }
-  ? (Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-      Database[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
       Row: infer R
     }
     ? R
@@ -4298,14 +4564,16 @@ export type Tables<
 export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
-    | { schema: keyof Database },
+    | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof Database
+    schema: keyof DatabaseWithoutInternals
   }
-    ? keyof Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
     : never = never,
-> = DefaultSchemaTableNameOrOptions extends { schema: keyof Database }
-  ? Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
       Insert: infer I
     }
     ? I
@@ -4321,14 +4589,16 @@ export type TablesInsert<
 export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
-    | { schema: keyof Database },
+    | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof Database
+    schema: keyof DatabaseWithoutInternals
   }
-    ? keyof Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
     : never = never,
-> = DefaultSchemaTableNameOrOptions extends { schema: keyof Database }
-  ? Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
       Update: infer U
     }
     ? U
@@ -4344,14 +4614,16 @@ export type TablesUpdate<
 export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
-    | { schema: keyof Database },
+    | { schema: keyof DatabaseWithoutInternals },
   EnumName extends DefaultSchemaEnumNameOrOptions extends {
-    schema: keyof Database
+    schema: keyof DatabaseWithoutInternals
   }
-    ? keyof Database[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
     : never = never,
-> = DefaultSchemaEnumNameOrOptions extends { schema: keyof Database }
-  ? Database[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+> = DefaultSchemaEnumNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
   : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
     ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
     : never
@@ -4359,14 +4631,16 @@ export type Enums<
 export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
-    | { schema: keyof Database },
+    | { schema: keyof DatabaseWithoutInternals },
   CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
-    schema: keyof Database
+    schema: keyof DatabaseWithoutInternals
   }
-    ? keyof Database[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
     : never = never,
-> = PublicCompositeTypeNameOrOptions extends { schema: keyof Database }
-  ? Database[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+> = PublicCompositeTypeNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
   : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
     ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
     : never

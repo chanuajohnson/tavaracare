@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { v4 as uuidv4 } from 'uuid';
 import { supabase, ensureStorageBuckets, ensureAuthContext } from '../../lib/supabase';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
@@ -12,23 +12,28 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Avatar, AvatarFallback, AvatarImage } from '../../components/ui/avatar';
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { PageViewTracker } from "@/components/tracking/PageViewTracker";
-import { useAuth } from "@/components/providers/AuthProvider";
 import { toast } from 'sonner';
-import { Calendar, Sun, Moon, Clock } from "lucide-react";
+import { Calendar, Sun, Moon, Clock, AlertCircle } from "lucide-react";
 import { getPrefillDataFromUrl, applyPrefillDataToForm } from '../../utils/chat/prefillReader';
 import { clearChatSessionData } from '../../utils/chat/chatSessionUtils';
 import { setAuthFlowFlag, AUTH_FLOW_FLAGS } from "@/utils/authFlowUtils";
+import { useAuth } from '@/components/providers/AuthProvider';
+import { TRINIDAD_TOBAGO_LOCATIONS } from '../../constants/locations';
 
 const FamilyRegistration = () => {
-  const { user, isLoading: authLoading } = useAuth();
+  const { user } = useAuth();
+  const [searchParams] = useSearchParams();
+  const isEditMode = searchParams.get('edit') === 'true';
+  
   const [loading, setLoading] = useState(false);
-  const [profileLoading, setProfileLoading] = useState(false);
+  const [dataLoading, setDataLoading] = useState(true);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [email, setEmail] = useState('');
+  const [location, setLocation] = useState('');
   const [address, setAddress] = useState('');
   
   const [careRecipientName, setCareRecipientName] = useState('');
@@ -44,165 +49,121 @@ const FamilyRegistration = () => {
   const [preferredContactMethod, setPreferredContactMethod] = useState('');
   
   const [prefillApplied, setPrefillApplied] = useState(false);
-  const [profileDataLoaded, setProfileDataLoaded] = useState(false);
   const [shouldAutoSubmit, setShouldAutoSubmit] = useState(false);
+  const [validationErrors, setValidationErrors] = useState<string[]>([]);
   const formRef = useRef<HTMLFormElement>(null);
   const navigate = useNavigate();
 
-  // Check for auto-redirect flag from chat
+  // Function to fetch existing profile data
+  const fetchExistingProfileData = async () => {
+    if (!user?.id || !isEditMode) {
+      setDataLoading(false);
+      return;
+    }
+
+    try {
+      console.log('Fetching existing profile data for edit mode...');
+      
+      const { data: profile, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .eq('role', 'family')
+        .maybeSingle();
+
+      if (error) {
+        console.error('Error fetching profile:', error);
+        toast.error('Failed to load existing profile data');
+        setDataLoading(false);
+        return;
+      }
+
+      if (profile) {
+        console.log('Found existing profile data:', profile);
+        
+        // Populate basic info
+        setFirstName(profile.full_name?.split(' ')[0] || '');
+        setLastName(profile.full_name?.split(' ').slice(1).join(' ') || '');
+        setPhoneNumber(profile.phone_number || '');
+        setLocation(profile.location || '');
+        setAddress(profile.address || '');
+        setAvatarUrl(profile.avatar_url || null);
+        
+        // Populate care recipient info
+        setCareRecipientName(profile.care_recipient_name || '');
+        setRelationship(profile.relationship || '');
+        
+        // Populate care needs (handle arrays)
+        setCareTypes(profile.care_types || []);
+        setSpecialNeeds(profile.special_needs || []);
+        
+        // Populate care schedule (convert from comma-separated string to array)
+        if (profile.care_schedule) {
+          const scheduleArray = profile.care_schedule.split(',').map((s: string) => s.trim()).filter((s: string) => s.length > 0);
+          setCareSchedule(scheduleArray);
+        }
+        setCustomCareSchedule(profile.custom_schedule || '');
+        
+        // Populate preferences
+        setBudget(profile.budget_preferences || '');
+        setCaregiverType(profile.caregiver_type || '');
+        setCaregiverPreferences(profile.caregiver_preferences || '');
+        setAdditionalNotes(profile.additional_notes || '');
+        setPreferredContactMethod(profile.preferred_contact_method || '');
+      }
+    } catch (error) {
+      console.error('Error in fetchExistingProfileData:', error);
+      toast.error('Failed to load profile data');
+    } finally {
+      setDataLoading(false);
+    }
+  };
+
+  // Load user metadata and existing profile data
   useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const sessionId = urlParams.get('session');
-    
-    if (sessionId) {
-      const shouldAutoRedirect = localStorage.getItem(`tavara_chat_auto_redirect_${sessionId}`);
-      if (shouldAutoRedirect === "true") {
-        console.log("Auto-submit flag detected from chat flow");
-        setShouldAutoSubmit(true);
+    if (user) {
+      setEmail(user.email || '');
+      
+      // Only load metadata if not in edit mode (edit mode will fetch from database)
+      if (!isEditMode && user.user_metadata) {
+        const metadata = user.user_metadata;
+        if (metadata.first_name) setFirstName(metadata.first_name);
+        if (metadata.last_name) setLastName(metadata.last_name);
+        if (metadata.full_name && !metadata.first_name && !metadata.last_name) {
+          const nameParts = metadata.full_name.split(' ');
+          setFirstName(nameParts[0] || '');
+          setLastName(nameParts.slice(1).join(' ') || '');
+        }
+      }
+      
+      // Fetch existing profile data if in edit mode
+      fetchExistingProfileData();
+    }
+  }, [user, isEditMode]);
+
+  // Check for auto-redirect flag from chat (only if not in edit mode)
+  useEffect(() => {
+    if (!isEditMode) {
+      const urlParams = new URLSearchParams(window.location.search);
+      const sessionId = urlParams.get('session');
+      
+      if (sessionId) {
+        const shouldAutoRedirect = localStorage.getItem(`tavara_chat_auto_redirect_${sessionId}`);
+        if (shouldAutoRedirect === "true") {
+          console.log("Auto-submit flag detected from chat flow");
+          setShouldAutoSubmit(true);
+        }
       }
     }
-  }, []);
+  }, [isEditMode]);
 
   useEffect(() => {
-    // Prevent auth redirection by setting specific flag for registration
     setAuthFlowFlag(AUTH_FLOW_FLAGS.SKIP_REGISTRATION_REDIRECT);
     
-    // Clean up on unmount
     return () => {
       sessionStorage.removeItem(AUTH_FLOW_FLAGS.SKIP_REGISTRATION_REDIRECT);
     };
   }, []);
-
-  // Load existing profile data when user is available
-  const loadExistingProfile = async (userId: string) => {
-    if (profileDataLoaded) return; // Prevent duplicate loads
-    
-    setProfileLoading(true);
-    console.log('Loading existing profile data for user:', userId);
-    
-    try {
-      const { data: profile, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .eq('role', 'family')
-        .maybeSingle();
-      
-      if (error) {
-        console.error('Error loading profile:', error);
-        return;
-      }
-      
-      if (profile) {
-        console.log('Found existing profile data:', profile);
-        
-        // Prefill basic contact info
-        if (profile.phone_number) setPhoneNumber(profile.phone_number);
-        if (profile.address) setAddress(profile.address);
-        if (profile.avatar_url) setAvatarUrl(profile.avatar_url);
-        
-        // Prefill care recipient info
-        if (profile.care_recipient_name) setCareRecipientName(profile.care_recipient_name);
-        if (profile.relationship) setRelationship(profile.relationship);
-        
-        // Prefill care types (handle as array)
-        if (profile.care_types && Array.isArray(profile.care_types)) {
-          setCareTypes(profile.care_types);
-        }
-        
-        // Prefill special needs (handle as array)
-        if (profile.special_needs && Array.isArray(profile.special_needs)) {
-          setSpecialNeeds(profile.special_needs);
-        }
-        
-        // Prefill care schedule (parse from comma-separated string or array)
-        if (profile.care_schedule) {
-          if (typeof profile.care_schedule === 'string') {
-            setCareSchedule(profile.care_schedule.split(',').filter(s => s.trim()));
-          } else if (Array.isArray(profile.care_schedule)) {
-            setCareSchedule(profile.care_schedule);
-          }
-        }
-        
-        // Prefill custom schedule
-        if (profile.custom_schedule) setCustomCareSchedule(profile.custom_schedule);
-        
-        // Prefill preferences and notes
-        if (profile.budget_preferences) setBudget(profile.budget_preferences);
-        if (profile.caregiver_type) setCaregiverType(profile.caregiver_type);
-        if (profile.caregiver_preferences) setCaregiverPreferences(profile.caregiver_preferences);
-        if (profile.additional_notes) setAdditionalNotes(profile.additional_notes);
-        if (profile.preferred_contact_method) setPreferredContactMethod(profile.preferred_contact_method);
-        
-        setProfileDataLoaded(true);
-        toast.success('Profile data loaded for editing');
-      } else {
-        console.log('No existing profile found - new registration');
-        setProfileDataLoaded(true);
-      }
-    } catch (err) {
-      console.error('Error loading profile:', err);
-    } finally {
-      setProfileLoading(false);
-    }
-  };
-
-  // Load existing profile data when user is available
-  useEffect(() => {
-    if (user && !profileDataLoaded && !profileLoading) {
-      loadExistingProfile(user.id);
-    }
-  }, [user, profileDataLoaded, profileLoading]);
-
-  // Pre-populate form fields when user auth data is available
-  useEffect(() => {
-    if (user && !prefillApplied) {
-      console.log('Pre-populating form with user data:', {
-        email: user.email,
-        metadata: user.user_metadata
-      });
-      
-      // Set email from authenticated user
-      if (user.email) {
-        setEmail(user.email);
-      }
-      
-      // Extract name information from user metadata (only if not already set from profile)
-      if (user.user_metadata && !firstName && !lastName) {
-        const metadata = user.user_metadata;
-        
-        // Try different possible metadata keys for first/last name
-        const possibleFirstNames = ['first_name', 'firstName', 'given_name'];
-        const possibleLastNames = ['last_name', 'lastName', 'family_name', 'surname'];
-        
-        for (const key of possibleFirstNames) {
-          if (metadata[key] && !firstName) {
-            setFirstName(metadata[key]);
-            console.log(`Set first name from ${key}:`, metadata[key]);
-            break;
-          }
-        }
-        
-        for (const key of possibleLastNames) {
-          if (metadata[key] && !lastName) {
-            setLastName(metadata[key]);
-            console.log(`Set last name from ${key}:`, metadata[key]);
-            break;
-          }
-        }
-        
-        // If full_name is available but first/last aren't, try to split it
-        if (metadata.full_name && !firstName && !lastName) {
-          const nameParts = metadata.full_name.split(' ');
-          if (nameParts.length >= 2) {
-            setFirstName(nameParts[0]);
-            setLastName(nameParts.slice(1).join(' '));
-            console.log('Split full name:', metadata.full_name);
-          }
-        }
-      }
-    }
-  }, [user, prefillApplied, firstName, lastName]);
 
   const setFormValue = (field: string, value: any) => {
     console.log(`Setting form field ${field} to:`, value);
@@ -219,6 +180,9 @@ const FamilyRegistration = () => {
         break;
       case 'email':
         setEmail(value);
+        break;
+      case 'location':
+        setLocation(value);
         break;
       case 'address':
         setAddress(value);
@@ -245,7 +209,6 @@ const FamilyRegistration = () => {
         setAdditionalNotes(value);
         break;
       default:
-        // Handle array fields
         if (field === 'care_types' && Array.isArray(value)) {
           setCareTypes(value);
         } else if (field === 'special_needs' && Array.isArray(value)) {
@@ -257,9 +220,9 @@ const FamilyRegistration = () => {
     }
   };
 
-  // Apply prefill data when available (for new registrations from chat)
+  // Apply prefill data when available (only if not in edit mode)
   useEffect(() => {
-    if (!prefillApplied && user && profileDataLoaded) {
+    if (!prefillApplied && !isEditMode) {
       console.log('Checking for prefill data...');
       
       const hasPrefill = applyPrefillDataToForm(
@@ -293,7 +256,7 @@ const FamilyRegistration = () => {
       
       setPrefillApplied(true);
     }
-  }, [prefillApplied, shouldAutoSubmit, user, profileDataLoaded]);
+  }, [prefillApplied, shouldAutoSubmit, user, isEditMode]);
 
   const handleCareScheduleChange = (value: string) => {
     setCareSchedule(prev => {
@@ -317,17 +280,57 @@ const FamilyRegistration = () => {
     }
   };
 
+  const validateForm = () => {
+    const errors: string[] = [];
+
+    // Basic required fields
+    if (!firstName) errors.push('First Name is required');
+    if (!lastName) errors.push('Last Name is required');
+    if (!phoneNumber) errors.push('Phone Number is required');
+    if (!location) errors.push('Location is required');
+    if (!address) errors.push('Address is required');
+    if (!careRecipientName) errors.push('Care Recipient Name is required');
+    if (!relationship) errors.push('Relationship is required');
+
+    // Care-specific validation - require at least one selection
+    if (careTypes.length === 0) {
+      errors.push('Please select at least one type of care assistance needed');
+    }
+
+    if (careSchedule.length === 0) {
+      errors.push('Please select at least one care schedule option');
+    }
+
+    // Budget & Caregiver Preferences validation
+    if (!budget) {
+      errors.push('Budget range is required');
+    }
+
+    if (!caregiverType) {
+      errors.push('Type of caregiver preferred is required');
+    }
+
+    setValidationErrors(errors);
+    return errors.length === 0;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validate form before submission
+    if (!validateForm()) {
+      toast.error('Please complete all required fields and care preferences');
+      // Scroll to first error
+      const firstErrorElement = document.querySelector('.border-red-500');
+      if (firstErrorElement) {
+        firstErrorElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+      return;
+    }
+
     setLoading(true);
 
     try {
-      if (!user?.id) {
-        toast.error('Authentication required. Please sign in again.');
-        navigate('/auth');
-        return;
-      }
-      
       const contextValid = await ensureAuthContext();
       if (!contextValid) {
         throw new Error('Authentication context could not be established');
@@ -340,10 +343,8 @@ const FamilyRegistration = () => {
         return;
       }
       
-      if (!firstName || !lastName || !phoneNumber || !address || !careRecipientName || !relationship) {
-        toast.error('Please fill in all required fields');
-        setLoading(false);
-        return;
+      if (!user?.id) {
+        throw new Error('User ID is missing. Please sign in again.');
       }
 
       let uploadedAvatarUrl = avatarUrl;
@@ -382,6 +383,7 @@ const FamilyRegistration = () => {
         full_name: fullName,
         avatar_url: uploadedAvatarUrl,
         phone_number: phoneNumber,
+        location: location,
         address: address,
         role: 'family' as const,
         updated_at: new Date().toISOString(),
@@ -407,20 +409,24 @@ const FamilyRegistration = () => {
       
       if (error) throw error;
       
-      // Get session ID from URL to clear specific flags
-      const urlParams = new URLSearchParams(window.location.search);
-      const sessionId = urlParams.get('session');
-      
-      // Clear chat session data including auto-redirect flag
-      clearChatSessionData(sessionId || undefined);
-      
-      // Also clear the auto-redirect flag specifically
-      if (sessionId) {
-        localStorage.removeItem(`tavara_chat_auto_redirect_${sessionId}`);
-        localStorage.removeItem(`tavara_chat_transition_${sessionId}`);
+      // Only clear chat session data if not in edit mode
+      if (!isEditMode) {
+        const urlParams = new URLSearchParams(window.location.search);
+        const sessionId = urlParams.get('session');
+        
+        clearChatSessionData(sessionId || undefined);
+        
+        if (sessionId) {
+          localStorage.removeItem(`tavara_chat_auto_redirect_${sessionId}`);
+          localStorage.removeItem(`tavara_chat_transition_${sessionId}`);
+        }
       }
 
-      toast.success('Registration Complete! Your family profile has been updated.');
+      const successMessage = isEditMode 
+        ? 'Profile Updated! Your family profile has been successfully updated.'
+        : 'Registration Complete! Your family profile has been updated.';
+      
+      toast.success(successMessage);
       
       navigate('/dashboard/family');
     } catch (error: any) {
@@ -431,38 +437,23 @@ const FamilyRegistration = () => {
     }
   };
 
-  // Show loading state while auth is resolving
-  if (authLoading) {
+  // Show loading while fetching data in edit mode
+  if (dataLoading && isEditMode) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-sm text-gray-600">Loading your account...</p>
-        </div>
-      </div>
-    );
-  }
-
-  // Show auth required message if no user after loading
-  if (!user) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center max-w-md mx-auto p-6">
-          <h2 className="text-xl font-semibold text-gray-900 mb-2">Authentication Required</h2>
-          <p className="text-gray-600 mb-4">Please sign in to complete your family registration.</p>
-          <Button onClick={() => navigate('/auth')}>Sign In</Button>
-        </div>
-      </div>
-    );
-  }
-
-  // Show loading state while profile data is being loaded
-  if (profileLoading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-sm text-gray-600">Loading your profile data...</p>
+      <div className="min-h-screen bg-background">
+        <DashboardHeader 
+          breadcrumbItems={[
+            { label: "Family Dashboard", path: "/dashboard/family" },
+            { label: "Edit Family Profile", path: "/registration/family?edit=true" }
+          ]} 
+        />
+        <div className="container max-w-4xl py-10">
+          <div className="flex items-center justify-center py-20">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+              <p className="text-gray-500">Loading your profile data...</p>
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -478,17 +469,38 @@ const FamilyRegistration = () => {
       <DashboardHeader 
         breadcrumbItems={[
           { label: "Family Dashboard", path: "/dashboard/family" },
-          { label: "Family Registration", path: "/registration/family" }
+          { label: isEditMode ? "Edit Family Profile" : "Family Registration", path: `/registration/family${isEditMode ? '?edit=true' : ''}` }
         ]} 
       />
       
       <div className="container max-w-4xl py-10">
-        <h1 className="text-3xl font-bold mb-6">Family Care Registration</h1>
+        <h1 className="text-3xl font-bold mb-6">
+          {isEditMode ? 'Edit Family Care Profile' : 'Family Care Registration'}
+        </h1>
         <p className="text-gray-500 mb-8">
-          Complete your family profile to find the right caregiver for your loved one.
+          {isEditMode 
+            ? 'Update your family profile information and care preferences.'
+            : 'Complete your family profile to find the right caregiver for your loved one.'
+          }
         </p>
 
+        {/* Validation Errors Display */}
+        {validationErrors.length > 0 && (
+          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+            <div className="flex items-center gap-2 mb-2">
+              <AlertCircle className="h-5 w-5 text-red-500" />
+              <h3 className="font-medium text-red-800">Please complete the following:</h3>
+            </div>
+            <ul className="list-disc list-inside text-sm text-red-700 space-y-1">
+              {validationErrors.map((error, index) => (
+                <li key={index}>{error}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+
         <form ref={formRef} onSubmit={handleSubmit} className="space-y-6">
+          {/* Personal & Contact Information */}
           <Card className="mb-8">
             <CardHeader>
               <CardTitle>Personal & Contact Information</CardTitle>
@@ -506,6 +518,7 @@ const FamilyRegistration = () => {
                     value={firstName} 
                     onChange={(e) => setFirstName(e.target.value)}
                     required 
+                    className={validationErrors.some(e => e.includes('First Name')) ? 'border-red-500' : ''}
                   />
                 </div>
                 <div className="space-y-2">
@@ -516,6 +529,7 @@ const FamilyRegistration = () => {
                     value={lastName} 
                     onChange={(e) => setLastName(e.target.value)}
                     required 
+                    className={validationErrors.some(e => e.includes('Last Name')) ? 'border-red-500' : ''}
                   />
                 </div>
               </div>
@@ -534,23 +548,44 @@ const FamilyRegistration = () => {
                   value={phoneNumber} 
                   onChange={(e) => setPhoneNumber(e.target.value)}
                   required 
+                  className={validationErrors.some(e => e.includes('Phone Number')) ? 'border-red-500' : ''}
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="address">Address *</Label>
+                <Label htmlFor="location">Location *</Label>
+                <Select value={location} onValueChange={setLocation} required>
+                  <SelectTrigger id="location" className={validationErrors.some(e => e.includes('Location')) ? 'border-red-500' : ''}>
+                    <SelectValue placeholder="Select your location" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white z-50">
+                    <div className="max-h-60 overflow-y-auto">
+                      {TRINIDAD_TOBAGO_LOCATIONS.map((location) => (
+                        <SelectItem key={location.value} value={location.value}>
+                          {location.label}
+                        </SelectItem>
+                      ))}
+                    </div>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="address">Specific Address *</Label>
                 <Textarea 
                   id="address" 
-                  placeholder="Your full address" 
+                  placeholder="Your specific address (street, building, etc.)" 
                   value={address} 
                   onChange={(e) => setAddress(e.target.value)}
                   required
                   rows={3}
+                  className={validationErrors.some(e => e.includes('Address')) ? 'border-red-500' : ''}
                 />
               </div>
             </CardContent>
           </Card>
 
+          {/* Care Recipient Information */}
           <Card className="mb-8">
             <CardHeader>
               <CardTitle>Care Recipient Information</CardTitle>
@@ -567,13 +602,14 @@ const FamilyRegistration = () => {
                   value={careRecipientName} 
                   onChange={(e) => setCareRecipientName(e.target.value)}
                   required 
+                  className={validationErrors.some(e => e.includes('Care Recipient Name')) ? 'border-red-500' : ''}
                 />
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="relationship">Relationship to Care Recipient *</Label>
                 <Select value={relationship} onValueChange={setRelationship} required>
-                  <SelectTrigger id="relationship">
+                  <SelectTrigger id="relationship" className={validationErrors.some(e => e.includes('Relationship')) ? 'border-red-500' : ''}>
                     <SelectValue placeholder="Select relationship" />
                   </SelectTrigger>
                   <SelectContent>
@@ -589,16 +625,20 @@ const FamilyRegistration = () => {
             </CardContent>
           </Card>
 
-          <Card className="mb-8">
+          {/* Care Needs & Preferences - Now Required */}
+          <Card className={`mb-8 ${validationErrors.some(e => e.includes('care assistance')) ? 'border-red-500' : ''}`}>
             <CardHeader>
-              <CardTitle>Care Needs & Preferences</CardTitle>
+              <CardTitle className="flex items-center gap-2">
+                Care Needs & Preferences *
+                <span className="text-red-500">*Required</span>
+              </CardTitle>
               <CardDescription>
-                Share the types of care assistance needed and any special needs.
+                Share the types of care assistance needed and any special needs. Please select at least one option.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label>Care Types – What type of care assistance do you need? (Select all that apply)</Label>
+                <Label>Care Types – What type of care assistance do you need? (Select all that apply) *</Label>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                   {[
                     { id: 'personal_care', label: '🧼 Personal Care (bathing, dressing, toileting)', value: 'personal_care' },
@@ -625,6 +665,9 @@ const FamilyRegistration = () => {
                     </div>
                   ))}
                 </div>
+                {validationErrors.some(e => e.includes('care assistance')) && (
+                  <p className="text-sm text-red-600 mt-1">Please select at least one type of care assistance</p>
+                )}
               </div>
 
               <div className="space-y-2">
@@ -662,16 +705,20 @@ const FamilyRegistration = () => {
             </CardContent>
           </Card>
 
-          <Card className="mb-8">
+          {/* Care Schedule & Availability - Now Required */}
+          <Card className={`mb-8 ${validationErrors.some(e => e.includes('care schedule')) ? 'border-red-500' : ''}`}>
             <CardHeader>
-              <CardTitle>📅 Care Schedule & Availability</CardTitle>
+              <CardTitle className="flex items-center gap-2">
+                📅 Care Schedule & Availability *
+                <span className="text-red-500">*Required</span>
+              </CardTitle>
               <CardDescription>
-                When do you need care support? Select all time slots that work for your family.
+                When do you need care support? Select all time slots that work for your family. Please select at least one option.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="space-y-4">
-                <Label className="text-base font-medium">Care Schedule – When do you need caregiving support?</Label>
+                <Label className="text-base font-medium">Care Schedule – When do you need caregiving support? *</Label>
                 <p className="text-sm text-gray-500 mb-4">Select all time slots when you need care assistance. This helps us match you with caregivers who are available during these hours.</p>
                 
                 <div className="space-y-5">
@@ -810,7 +857,6 @@ const FamilyRegistration = () => {
                         </Label>
                       </div>
                       
-                      {/* Weekend Evening Shifts */}
                       <div className="flex items-start space-x-2">
                         <Checkbox 
                           id="weekend-evening-4-6" 
@@ -907,25 +953,32 @@ const FamilyRegistration = () => {
                     </div>
                   </div>
                 </div>
+                {validationErrors.some(e => e.includes('care schedule')) && (
+                  <p className="text-sm text-red-600 mt-1">Please select at least one care schedule option</p>
+                )}
               </div>
             </CardContent>
           </Card>
 
-          <Card className="mb-8">
+          {/* Budget & Caregiver Preferences - Now Required */}
+          <Card className={`mb-8 ${validationErrors.some(e => e.includes('Budget') || e.includes('caregiver')) ? 'border-red-500' : ''}`}>
             <CardHeader>
-              <CardTitle>Budget & Caregiver Preferences</CardTitle>
+              <CardTitle className="flex items-center gap-2">
+                Budget & Caregiver Preferences *
+                <span className="text-red-500">*Required</span>
+              </CardTitle>
               <CardDescription>
-                Share your budget and preferences for caregivers.
+                Share your budget and preferences for caregivers. These fields are required to help us match you with suitable caregivers.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="budget">Budget Range</Label>
-                <Select value={budget} onValueChange={setBudget}>
-                  <SelectTrigger id="budget">
+                <Label htmlFor="budget">Budget Range *</Label>
+                <Select value={budget} onValueChange={setBudget} required>
+                  <SelectTrigger id="budget" className={validationErrors.some(e => e.includes('Budget')) ? 'border-red-500' : ''}>
                     <SelectValue placeholder="Select your budget range" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="bg-white z-50">
                     <SelectItem value="under_15">Under $15/hour</SelectItem>
                     <SelectItem value="15_20">$15-$20/hour</SelectItem>
                     <SelectItem value="20_25">$20-$25/hour</SelectItem>
@@ -934,15 +987,18 @@ const FamilyRegistration = () => {
                     <SelectItem value="not_sure">Not sure yet</SelectItem>
                   </SelectContent>
                 </Select>
+                {validationErrors.some(e => e.includes('Budget')) && (
+                  <p className="text-sm text-red-600 mt-1">Budget range is required</p>
+                )}
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="caregiverType">Type of Caregiver Preferred</Label>
-                <Select value={caregiverType} onValueChange={setCaregiverType}>
-                  <SelectTrigger id="caregiverType">
+                <Label htmlFor="caregiverType">Type of Caregiver Preferred *</Label>
+                <Select value={caregiverType} onValueChange={setCaregiverType} required>
+                  <SelectTrigger id="caregiverType" className={validationErrors.some(e => e.includes('caregiver')) ? 'border-red-500' : ''}>
                     <SelectValue placeholder="Select caregiver type" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="bg-white z-50">
                     <SelectItem value="professional">👩‍⚕️ Professional Caregiver (trained, experienced)</SelectItem>
                     <SelectItem value="nurse">🏥 Nurse (RN or LPN)</SelectItem>
                     <SelectItem value="companion">👥 Companion Caregiver (non-medical)</SelectItem>
@@ -950,6 +1006,9 @@ const FamilyRegistration = () => {
                     <SelectItem value="no_preference">🤷 No specific preference</SelectItem>
                   </SelectContent>
                 </Select>
+                {validationErrors.some(e => e.includes('caregiver')) && (
+                  <p className="text-sm text-red-600 mt-1">Type of caregiver preferred is required</p>
+                )}
               </div>
 
               <div className="space-y-2">
@@ -965,6 +1024,7 @@ const FamilyRegistration = () => {
             </CardContent>
           </Card>
 
+          {/* Additional Information */}
           <Card className="mb-8">
             <CardHeader>
               <CardTitle>Additional Information</CardTitle>
@@ -1002,11 +1062,11 @@ const FamilyRegistration = () => {
           </Card>
 
           <div className="flex justify-end gap-4">
-            <Button type="button" variant="outline" onClick={() => navigate('/')}>
+            <Button type="button" variant="outline" onClick={() => navigate('/dashboard/family')}>
               Cancel
             </Button>
             <Button type="submit" disabled={loading}>
-              {loading ? 'Submitting...' : 'Complete Registration'}
+              {loading ? 'Saving...' : (isEditMode ? 'Update Profile' : 'Complete Registration')}
             </Button>
           </div>
         </form>
