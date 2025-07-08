@@ -31,25 +31,67 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
   const [careNeeds, setCareNeeds] = useState<any>(null);
   const [loading, setLoading] = useState(false);
 
-  // Use the same journey progress hooks as MiniJourneyProgress
-  const familyProgress = useSharedFamilyJourneyData(user?.role === 'family' ? user.id : '');
-  const professionalProgress = useSpecificUserProfessionalProgress(user?.role === 'professional' ? user.id : '');
+  // Only call hooks when user and role are valid
+  const shouldCallFamilyHook = user?.role === 'family' && user?.id;
+  const shouldCallProfessionalHook = user?.role === 'professional' && user?.id;
+  const shouldCallOtherHook = user?.role && user?.role !== 'family' && user?.role !== 'professional' && user?.id;
+
+  // Use hooks conditionally with proper fallbacks
+  const familyProgress = useSharedFamilyJourneyData(shouldCallFamilyHook ? user.id : '');
+  const professionalProgress = useSpecificUserProfessionalProgress(shouldCallProfessionalHook ? user.id : '');
   const otherProgress = useUserSpecificProgress(
-    user?.role !== 'family' && user?.role !== 'professional' ? user.id : '', 
-    user?.role as UserRole
+    shouldCallOtherHook ? user.id : '', 
+    shouldCallOtherHook ? (user.role as UserRole) : 'family'
   );
 
-  // Choose the appropriate progress data based on user role with proper null checks
-  const journeyProgress = user?.role === 'family' 
-    ? familyProgress 
-    : user?.role === 'professional'
-    ? {
-        loading: professionalProgress?.loading || false,
-        completionPercentage: professionalProgress?.completionPercentage || 0,
-        nextStep: professionalProgress?.nextStep || null,
-        steps: professionalProgress?.steps || []
-      }
-    : otherProgress || { loading: false, completionPercentage: 0, nextStep: null, steps: [] };
+  // Safely choose the appropriate progress data with comprehensive null checks
+  const getJourneyProgress = () => {
+    if (!user?.role || !user?.id) {
+      return {
+        loading: false,
+        completionPercentage: 0,
+        nextStep: null,
+        steps: []
+      };
+    }
+
+    if (user.role === 'family' && familyProgress) {
+      return {
+        loading: familyProgress.loading || false,
+        completionPercentage: familyProgress.completionPercentage || 0,
+        nextStep: familyProgress.nextStep || null,
+        steps: Array.isArray(familyProgress.steps) ? familyProgress.steps : []
+      };
+    }
+
+    if (user.role === 'professional' && professionalProgress) {
+      return {
+        loading: professionalProgress.loading || false,
+        completionPercentage: professionalProgress.completionPercentage || 0,
+        nextStep: professionalProgress.nextStep || null,
+        steps: Array.isArray(professionalProgress.steps) ? professionalProgress.steps : []
+      };
+    }
+
+    if (otherProgress) {
+      return {
+        loading: otherProgress.loading || false,
+        completionPercentage: otherProgress.completionPercentage || 0,
+        nextStep: otherProgress.nextStep || null,
+        steps: Array.isArray(otherProgress.steps) ? otherProgress.steps : []
+      };
+    }
+
+    // Fallback for any case
+    return {
+      loading: false,
+      completionPercentage: 0,
+      nextStep: null,
+      steps: []
+    };
+  };
+
+  const journeyProgress = getJourneyProgress();
 
   useEffect(() => {
     if (user && isOpen) {
@@ -108,8 +150,8 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
 
   if (!user) return null;
 
-  // Safely access steps with null checks
-  const steps = journeyProgress?.steps || [];
+  // Safely access steps with comprehensive null checks
+  const steps = Array.isArray(journeyProgress?.steps) ? journeyProgress.steps : [];
   const completionPercentage = journeyProgress?.completionPercentage || 0;
   const nextStep = journeyProgress?.nextStep || null;
   const isProgressLoading = journeyProgress?.loading || false;
@@ -240,7 +282,7 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
                               {getProgressLabel()}
                             </h3>
                             <p className="text-sm text-gray-600">
-                              {steps.filter(s => s.completed).length} of {steps.length} steps completed
+                              {steps.filter(s => s?.completed).length} of {steps.length} steps completed
                             </p>
                           </div>
                         </div>
@@ -251,44 +293,58 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
                       <Progress value={completionPercentage} className="h-3" />
                     </div>
 
-                    {/* Step Details */}
-                    {steps.length > 0 && (
+                    {/* Step Details with comprehensive null checks */}
+                    {steps.length > 0 ? (
                       <div className="space-y-3">
                         <h4 className="font-medium text-gray-900">Journey Steps</h4>
                         <div className="space-y-2">
-                          {steps.map((step, index) => (
-                            <div key={step.id || index} className="flex items-center gap-3 p-3 rounded-lg border">
-                              <div className="flex-shrink-0">
-                                {step.completed ? (
-                                  <CheckCircle2 className="h-5 w-5 text-green-600" />
-                                ) : step.accessible ? (
-                                  <Circle className="h-5 w-5 text-blue-600" />
-                                ) : (
-                                  <Circle className="h-5 w-5 text-gray-400" />
-                                )}
+                          {steps.map((step, index) => {
+                            // Safely access step properties with fallbacks
+                            const stepId = step?.id || step?.step_number || index;
+                            const stepTitle = step?.title || 'Untitled Step';
+                            const stepDescription = step?.description || 'No description available';
+                            const isCompleted = Boolean(step?.completed);
+                            const isAccessible = step?.accessible !== false; // Default to true if not specified
+                            const isOptional = Boolean(step?.optional || step?.is_optional);
+
+                            return (
+                              <div key={stepId} className="flex items-center gap-3 p-3 rounded-lg border">
+                                <div className="flex-shrink-0">
+                                  {isCompleted ? (
+                                    <CheckCircle2 className="h-5 w-5 text-green-600" />
+                                  ) : isAccessible ? (
+                                    <Circle className="h-5 w-5 text-blue-600" />
+                                  ) : (
+                                    <Circle className="h-5 w-5 text-gray-400" />
+                                  )}
+                                </div>
+                                <div className="flex-1">
+                                  <h5 className={`font-medium ${isCompleted ? 'text-green-800' : isAccessible ? 'text-gray-900' : 'text-gray-500'}`}>
+                                    {stepTitle}
+                                  </h5>
+                                  <p className="text-sm text-gray-600">{stepDescription}</p>
+                                  {isOptional && (
+                                    <Badge variant="outline" className="mt-1 text-xs">Optional</Badge>
+                                  )}
+                                </div>
+                                <div className="flex-shrink-0">
+                                  <Badge variant={isCompleted ? 'default' : isAccessible ? 'secondary' : 'outline'}>
+                                    {isCompleted ? 'Complete' : isAccessible ? 'Available' : 'Locked'}
+                                  </Badge>
+                                </div>
                               </div>
-                              <div className="flex-1">
-                                <h5 className={`font-medium ${step.completed ? 'text-green-800' : step.accessible ? 'text-gray-900' : 'text-gray-500'}`}>
-                                  {step.title || 'Untitled Step'}
-                                </h5>
-                                <p className="text-sm text-gray-600">{step.description || 'No description available'}</p>
-                                {step.optional && (
-                                  <Badge variant="outline" className="mt-1 text-xs">Optional</Badge>
-                                )}
-                              </div>
-                              <div className="flex-shrink-0">
-                                <Badge variant={step.completed ? 'default' : step.accessible ? 'secondary' : 'outline'}>
-                                  {step.completed ? 'Complete' : step.accessible ? 'Available' : 'Locked'}
-                                </Badge>
-                              </div>
-                            </div>
-                          ))}
+                            );
+                          })}
                         </div>
+                      </div>
+                    ) : (
+                      <div className="text-center py-8 text-gray-500">
+                        <p>No journey progress data available for this user.</p>
                       </div>
                     )}
 
-                    {/* Next Step Recommendation */}
-                    {nextStep && (
+                    {/* Next Step Recommendation with null checks */}
+                    {nextStep && nextStep.title && (
                       <Card className="bg-blue-50 border-blue-200">
                         <CardContent className="pt-4">
                           <div className="flex items-start gap-3">
@@ -296,7 +352,7 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
                             <div>
                               <h4 className="font-medium text-blue-900">Next Recommended Step</h4>
                               <p className="text-sm text-blue-800 mt-1">
-                                {nextStep.title || 'Continue with your journey'}
+                                {nextStep.title}
                               </p>
                               {nextStep.description && (
                                 <p className="text-sm text-blue-700 mt-1">
@@ -307,13 +363,6 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
                           </div>
                         </CardContent>
                       </Card>
-                    )}
-
-                    {/* No Progress Available */}
-                    {steps.length === 0 && !isProgressLoading && (
-                      <div className="text-center py-8 text-gray-500">
-                        <p>No journey progress data available for this user.</p>
-                      </div>
                     )}
                   </div>
                 )}
