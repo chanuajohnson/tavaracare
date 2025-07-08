@@ -19,7 +19,9 @@
       gtag('config', 'G-GSZ843MWBM');
     </script>
     <!-- Meta Pixel Code -->
-    <script>
+<script>
+  // Only load Facebook Pixel on production domain (tavara.care)
+  if (window.location.hostname === 'tavara.care') {
     !function(f,b,e,v,n,t,s)
     {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
     n.callMethod.apply(n,arguments):n.queue.push(arguments)};
@@ -30,16 +32,20 @@
     'https://connect.facebook.net/en_US/fbevents.js');
     fbq('init', '1356411628792394');
     fbq('track', 'PageView');
-    </script>
-    <!-- End Meta Pixel Code -->
+  }
+</script>
+<!-- End Meta Pixel Code -->
   </head>
 
   <body>
-    <!-- Meta Pixel Noscript -->
-    <noscript><img height="1" width="1" style="display:none"
-    src="https://www.facebook.com/tr?id=1356411628792394&ev=PageView&noscript=1"
-    /></noscript>
-    <!-- End Meta Pixel Noscript -->
+   <!-- Meta Pixel Noscript -->
+<script>
+if (window.location.hostname === 'tavara.care') {
+  document.write('<noscript><img height="1" width="1" style="display:none" src="https://www.facebook.com/tr?id=1356411628792394&ev=PageView&noscript=1" /></noscript>');
+}
+</script>
+<!-- End Meta Pixel Noscript -->
+
     <div id="root"></div>
     <!-- IMPORTANT: DO NOT REMOVE THIS SCRIPT TAG OR THIS VERY COMMENT! -->
     <script src="https://cdn.gpteng.co/gptengineer.js" type="module"></script>
