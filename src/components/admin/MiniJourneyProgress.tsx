@@ -14,7 +14,7 @@ interface MiniJourneyProgressProps {
 }
 
 export const MiniJourneyProgress: React.FC<MiniJourneyProgressProps> = ({ userId, userRole }) => {
-  // Use different hooks based on user role
+  // Use user-specific hooks that take userId parameter
   const familyProgress = useSharedFamilyJourneyData(userRole === 'family' ? userId : '');
   const professionalProgress = useSpecificUserProfessionalProgress(userRole === 'professional' ? userId : '');
   const otherProgress = useUserSpecificProgress(

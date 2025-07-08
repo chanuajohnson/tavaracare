@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { Session, User } from '@supabase/supabase-js';
@@ -75,19 +74,37 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const isPasswordRecoveryRef = useRef(false);
   const passwordResetCompleteRef = useRef(false);
 
-  // Helper function to check for redirect lock
+  // ENHANCED: Detect development environment for better handling
+  const isDevelopment = window.location.hostname.includes('lovable.app') || 
+                       window.location.hostname === 'localhost';
+
+  // Helper function to check for redirect lock with development override
   const hasRedirectLock = () => {
+    if (isDevelopment) {
+      // In development, be more lenient with redirect locks
+      const lockTime = sessionStorage.getItem('TAVARA_REDIRECT_LOCK_TIME');
+      if (lockTime) {
+        const timeDiff = Date.now() - parseInt(lockTime);
+        // Clear lock after 3 seconds in development
+        if (timeDiff > 3000) {
+          clearRedirectLock();
+          return false;
+        }
+      }
+    }
     return sessionStorage.getItem('TAVARA_REDIRECT_LOCK') === 'true';
   };
 
-  // Helper function to set redirect lock
+  // ENHANCED: Helper function to set redirect lock with timestamp
   const setRedirectLock = () => {
     sessionStorage.setItem('TAVARA_REDIRECT_LOCK', 'true');
+    sessionStorage.setItem('TAVARA_REDIRECT_LOCK_TIME', Date.now().toString());
   };
 
   // Helper function to clear redirect lock
   const clearRedirectLock = () => {
     sessionStorage.removeItem('TAVARA_REDIRECT_LOCK');
+    sessionStorage.removeItem('TAVARA_REDIRECT_LOCK_TIME');
   };
   
   useEffect(() => {
@@ -107,6 +124,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       isPasswordRecoveryRef.current = false;
       passwordResetCompleteRef.current = true;
       sessionStorage.removeItem('passwordResetComplete');
+    }
+
+    // ENHANCED: Clear redirect lock when navigating to auth page
+    if (location.pathname === '/auth') {
+      console.log('[AuthProvider] On auth page, clearing any redirect locks');
+      clearRedirectLock();
     }
   }, [location.pathname]);
 
@@ -147,6 +170,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       console.log('[AuthProvider] Signing out...');
       setLoadingWithTimeout(true, 'sign-out');
       
+      // ENHANCED: Clear redirect locks on sign out
+      clearRedirectLock();
+      
       setSession(null);
       setUser(null);
       setUserRole(null);
@@ -169,28 +195,33 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setSession(null);
       setUser(null);
       setUserRole(null);
+      clearRedirectLock();
       setLoadingWithTimeout(false, 'sign-out-error');
       safeNavigate('/', { skipCheck: true });
       toast.success('You have been signed out successfully');
     }
   };
 
-  // Handle post-login redirection only when appropriate
+  // ENHANCED: Handle post-login redirection with improved development support
   useEffect(() => {
     // CRITICAL: Check skip flags first
     const skipEmailVerification = hasAuthFlowFlag(AUTH_FLOW_FLAGS.SKIP_EMAIL_VERIFICATION_REDIRECT);
     const skipRedirectForFlow = shouldSkipRedirectForCurrentFlow();
+    const currentRedirectLock = hasRedirectLock();
     
-    console.log('[AuthProvider] Redirect check:', {
+    console.log('[AuthProvider] ENHANCED Redirect check:', {
       isLoading,
       hasUser: !!user,
       hasSession: !!session,
+      userRole,
       isPasswordResetRoute: isPasswordResetConfirmRoute,
       isPasswordRecovery: isPasswordRecoveryRef.current,
       skipEmailVerification,
       skipRedirectForFlow,
-      hasRedirectLock: hasRedirectLock(),
-      location: location.pathname
+      hasRedirectLock: currentRedirectLock,
+      location: location.pathname,
+      isDevelopment,
+      userMetadata: user?.user_metadata
     });
     
     const shouldSkipRedirect = 
@@ -200,34 +231,44 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       isPasswordResetConfirmRoute || 
       isPasswordRecoveryRef.current ||
       skipRedirectForFlow ||
-      hasRedirectLock();
+      currentRedirectLock;
     
     if (shouldSkipRedirect) {
       if (skipEmailVerification) {
         console.log('[AuthProvider] SKIPPING post-login redirect - email verification flag is active');
       } else if (skipRedirectForFlow) {
         console.log('[AuthProvider] SKIPPING post-login redirect due to other auth flow flags');
-      } else if (hasRedirectLock()) {
+      } else if (currentRedirectLock) {
         console.log('[AuthProvider] SKIPPING post-login redirect - redirect lock is active');
+        // ENHANCED: In development, auto-clear locks after user interaction
+        if (isDevelopment && location.pathname === '/auth') {
+          setTimeout(() => {
+            console.log('[AuthProvider] Development mode: Auto-clearing redirect lock after 2s');
+            clearRedirectLock();
+          }, 2000);
+        }
       }
       return;
     }
     
     console.log('[AuthProvider] User loaded. Handling redirection...');
     
-    if (!initialRedirectionDoneRef.current || location.pathname === '/auth') {
-      // Set redirect lock before handling redirection
+    // ENHANCED: Always attempt redirection if user is on auth page with valid session
+    if (location.pathname === '/auth' || !initialRedirectionDoneRef.current) {
+      console.log('[AuthProvider] Setting redirect lock and handling redirection');
       setRedirectLock();
       
       handlePostLoginRedirection();
       initialRedirectionDoneRef.current = true;
       
-      // Clear redirect lock after a delay
+      // ENHANCED: Shorter clear timeout for development
+      const clearTimeout = isDevelopment ? 1500 : 2000;
       setTimeout(() => {
+        console.log('[AuthProvider] Clearing redirect lock after successful redirection');
         clearRedirectLock();
-      }, 2000);
+      }, clearTimeout);
     }
-  }, [isLoading, user, session, userRole, location.pathname, isPasswordResetConfirmRoute]);
+  }, [isLoading, user, session, userRole, location.pathname, isPasswordResetConfirmRoute, isDevelopment]);
 
   useEffect(() => {
     console.log('[AuthProvider] Initial auth check started');

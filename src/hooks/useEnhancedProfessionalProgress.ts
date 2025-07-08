@@ -1,7 +1,9 @@
+
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { supabase } from '@/lib/supabase';
 import { useNavigate } from 'react-router-dom';
+import { getDocumentNavigationLink, getProfessionalRegistrationLink } from './professional/stepDefinitions';
 
 export interface ProfessionalJourneyStage {
   id: string;
@@ -18,6 +20,7 @@ export interface ProfessionalStep {
   title: string;
   description: string;
   completed: boolean;
+  accessible: boolean;
   link: string;
   buttonText: string;
   action: () => void;
@@ -67,19 +70,19 @@ export const useEnhancedProfessionalProgress = (): ProfessionalProgressData => {
       isCompleted: false
     },
     {
-      id: 'matching',
-      name: 'Matching',
-      description: 'Set availability and enable family matching',
-      color: 'bg-purple-500',
+      id: 'active',
+      name: 'Active Professional',
+      description: 'Receive assignments and grow your career',
+      color: 'bg-green-500',
       completionPercentage: 0,
       isActive: false,
       isCompleted: false
     },
     {
-      id: 'active',
-      name: 'Active Professional',
-      description: 'Receive assignments and grow your career',
-      color: 'bg-green-500',
+      id: 'training',
+      name: 'Training',
+      description: 'Complete optional training modules to enhance your skills',
+      color: 'bg-yellow-500',
       completionPercentage: 0,
       isActive: false,
       isCompleted: false
@@ -89,41 +92,59 @@ export const useEnhancedProfessionalProgress = (): ProfessionalProgressData => {
   const [currentStages, setCurrentStages] = useState<ProfessionalJourneyStage[]>(stages);
 
   const handleStepAction = (step: ProfessionalStep) => {
+    if (!step.accessible) {
+      return; // Don't allow navigation for locked steps
+    }
+    
     if (step.modalAction) {
-      // Handle modal actions for interactive steps
       switch (step.modalAction) {
         case 'document_upload':
-          // Navigate to profile with document upload focus
-          navigate('/professional/profile?tab=documents&action=upload');
+          const hasDocuments = documentsData && documentsData.length > 0;
+          const documentLink = getDocumentNavigationLink(hasDocuments);
+          navigate(documentLink);
           break;
         case 'training_modules':
           navigate('/professional/training');
           break;
         case 'availability_setup':
-          navigate('/professional/profile?tab=availability&action=setup');
+          navigate('/registration/professional?scroll=availability&edit=true');
           break;
         default:
           navigate(step.link);
       }
     } else {
-      navigate(step.link);
+      if (step.id === 5) {
+        // For family matches, scroll to the family matches section
+        navigate('/dashboard/professional');
+        setTimeout(() => {
+          const element = document.getElementById('family-matches');
+          if (element) {
+            element.scrollIntoView({ behavior: 'smooth' });
+          }
+        }, 100);
+      } else {
+        navigate(step.link);
+      }
     }
   };
 
   const handleDemoStepAction = () => {
-    // For non-logged-in users, redirect to auth page
     navigate('/auth');
   };
 
   const getButtonText = (step: ProfessionalStep) => {
+    if (!step.accessible) {
+      return "🔒 Locked";
+    }
+    
     if (step.completed) {
       switch (step.id) {
         case 1: return "✓ Account Created";
-        case 2: return "✓ Profile Complete";
-        case 3: return "View Documents";
-        case 4: return "Edit Availability";
-        case 5: return "Continue Training";
-        case 6: return "View Assignments";
+        case 2: return "✓ Edit Profile";
+        case 3: return "Edit Availability";
+        case 4: return "View Documents";
+        case 5: return "View Family Matches";
+        case 6: return "Continue Training";
         default: return "✓ Complete";
       }
     }
@@ -131,16 +152,16 @@ export const useEnhancedProfessionalProgress = (): ProfessionalProgressData => {
     switch (step.id) {
       case 1: return "Complete Setup";
       case 2: return "Complete Profile";
-      case 3: return "Upload Documents";
-      case 4: return "Set Availability";
-      case 5: return "Start Training";
-      case 6: return "Get Assignments";
+      case 3: return "Set Availability";
+      case 4: return "Upload Documents";
+      case 5: return "View Family Matches";
+      case 6: return "Start Training";
       default: return "Complete";
     }
   };
 
-  // Base steps definition
-  const baseSteps: Omit<ProfessionalStep, 'completed' | 'action' | 'buttonText'>[] = [
+  // Base steps definition with dynamic links
+  const baseSteps: Omit<ProfessionalStep, 'completed' | 'action' | 'buttonText' | 'accessible'>[] = [
     { 
       id: 1, 
       title: "Create your account", 
@@ -152,7 +173,7 @@ export const useEnhancedProfessionalProgress = (): ProfessionalProgressData => {
     },
     { 
       id: 2, 
-      title: "Complete your professional profile", 
+      title: "Edit your professional registration", 
       description: "Add your experience, certifications, and specialties", 
       link: "/registration/professional",
       category: "profile",
@@ -161,6 +182,16 @@ export const useEnhancedProfessionalProgress = (): ProfessionalProgressData => {
     },
     { 
       id: 3, 
+      title: "Set your availability preferences", 
+      description: "Configure your work schedule and location preferences", 
+      link: "/registration/professional?scroll=availability&edit=true",
+      category: "availability",
+      stage: "foundation",
+      isInteractive: true,
+      modalAction: "availability_setup"
+    },
+    { 
+      id: 4, 
       title: "Upload certifications & documents", 
       description: "Verify your credentials and background", 
       link: "/professional/profile?tab=documents",
@@ -170,33 +201,23 @@ export const useEnhancedProfessionalProgress = (): ProfessionalProgressData => {
       modalAction: "document_upload"
     },
     { 
-      id: 4, 
-      title: "Set your availability preferences", 
-      description: "Configure your work schedule and location preferences", 
-      link: "/professional/profile?tab=availability",
-      category: "availability",
-      stage: "matching",
-      isInteractive: true,
-      modalAction: "availability_setup"
+      id: 5, 
+      title: "Match with Tavara Families", 
+      description: "Get matched with families and begin your caregiving journey", 
+      link: "/dashboard/professional#family-matches",
+      category: "assignments",
+      stage: "active",
+      isInteractive: false
     },
     { 
-      id: 5, 
+      id: 6, 
       title: "Complete training modules", 
       description: "Enhance your skills with our professional development courses", 
       link: "/professional/training",
       category: "training",
-      stage: "qualification",
+      stage: "training",
       isInteractive: true,
       modalAction: "training_modules"
-    },
-    { 
-      id: 6, 
-      title: "Start receiving assignments", 
-      description: "Get matched with families and begin your caregiving journey", 
-      link: "/professional/profile?tab=assignments",
-      category: "assignments",
-      stage: "active",
-      isInteractive: false
     }
   ];
 
@@ -204,19 +225,24 @@ export const useEnhancedProfessionalProgress = (): ProfessionalProgressData => {
   const generateDemoData = () => {
     const demoSteps: ProfessionalStep[] = baseSteps.map(baseStep => {
       let completed = false;
+      let accessible = true;
 
-      // Set demo completion status - first 2 steps completed
       switch (baseStep.id) {
-        case 1: // Account creation
+        case 1:
           completed = true;
           break;
-        case 2: // Professional profile
+        case 2:
           completed = true;
           break;
-        case 3: // Documents upload - this will be the "next" step
-        case 4: // Availability
-        case 5: // Training modules
-        case 6: // Assignments
+        case 3:
+        case 4:
+          completed = false;
+          break;
+        case 5:
+          completed = false;
+          accessible = false; // Demo shows locked state
+          break;
+        case 6:
         default:
           completed = false;
           break;
@@ -225,8 +251,9 @@ export const useEnhancedProfessionalProgress = (): ProfessionalProgressData => {
       return {
         ...baseStep,
         completed,
-        action: handleDemoStepAction, // All demo actions redirect to auth
-        buttonText: getButtonText({ ...baseStep, completed, action: () => {}, buttonText: '' })
+        accessible,
+        action: handleDemoStepAction,
+        buttonText: getButtonText({ ...baseStep, completed, accessible, action: () => {}, buttonText: '' })
       };
     });
 
@@ -278,34 +305,50 @@ export const useEnhancedProfessionalProgress = (): ProfessionalProgressData => {
 
       const steps: ProfessionalStep[] = baseSteps.map(baseStep => {
         let completed = false;
+        let stepLink = baseStep.link;
 
-        // Check completion status for each step
         switch (baseStep.id) {
           case 1: // Account creation
             completed = !!user;
             break;
           case 2: // Professional profile
-            completed = !!(profile?.professional_type && profile?.years_of_experience);
+            completed = !!(profile?.full_name);
+            // Use dynamic link based on completion status
+            stepLink = getProfessionalRegistrationLink(completed);
             break;
-          case 3: // Documents upload
+          case 3: // Availability
+            completed = !!(profile?.care_schedule && profile.care_schedule.length > 0);
+            break;
+          case 4: // Documents upload
             completed = (documents?.length || 0) > 0;
+            stepLink = getDocumentNavigationLink(completed);
             break;
-          case 4: // Availability
-            completed = !!(profile?.availability && profile.availability.length > 0);
-            break;
-          case 5: // Training modules - check if professional_type is set and certifications exist
-            completed = !!(profile?.professional_type && profile?.certifications && profile.certifications.length > 0);
-            break;
-          case 6: // Assignments
+          case 5: // Assignments
             completed = (assignments?.length || 0) > 0;
             break;
+          case 6: // Training modules
+            completed = !!(profile?.professional_type && profile?.certifications && profile.certifications.length > 0);
+            break;
+        }
+
+        // Determine accessibility - Step 5 is only accessible if steps 1-4 are completed
+        let accessible = true;
+        if (baseStep.id === 5) {
+          const step1Complete = !!user;
+          const step2Complete = !!(profile?.full_name);
+          const step3Complete = !!(profile?.care_schedule && profile.care_schedule.length > 0);
+          const step4Complete = (documents?.length || 0) > 0;
+          
+          accessible = step1Complete && step2Complete && step3Complete && step4Complete;
         }
 
         return {
           ...baseStep,
+          link: stepLink,
           completed,
-          action: () => handleStepAction({ ...baseStep, completed, action: () => {}, buttonText: '' }),
-          buttonText: getButtonText({ ...baseStep, completed, action: () => {}, buttonText: '' })
+          accessible,
+          action: () => handleStepAction({ ...baseStep, link: stepLink, completed, accessible, action: () => {}, buttonText: '' }),
+          buttonText: getButtonText({ ...baseStep, completed, accessible, action: () => {}, buttonText: '' })
         };
       });
 
@@ -337,7 +380,6 @@ export const useEnhancedProfessionalProgress = (): ProfessionalProgressData => {
 
   const refreshProgress = async () => {
     if (!user) {
-      // For non-logged-in users, provide demo data immediately
       const { steps: demoSteps, stages: demoStages } = generateDemoData();
       setSteps(demoSteps);
       setCurrentStages(demoStages);
@@ -352,13 +394,11 @@ export const useEnhancedProfessionalProgress = (): ProfessionalProgressData => {
 
   useEffect(() => {
     if (!user) {
-      // For non-logged-in users, provide demo data immediately
       const { steps: demoSteps, stages: demoStages } = generateDemoData();
       setSteps(demoSteps);
       setCurrentStages(demoStages);
       setLoading(false);
     } else {
-      // For logged-in users, fetch real data
       refreshProgress();
     }
   }, [user]);
@@ -366,7 +406,7 @@ export const useEnhancedProfessionalProgress = (): ProfessionalProgressData => {
   const completedSteps = steps.filter(step => step.completed).length;
   const totalSteps = steps.length;
   const overallProgress = Math.round((completedSteps / totalSteps) * 100);
-  const nextStep = steps.find(step => !step.completed);
+  const nextStep = steps.find(step => !step.completed && step.accessible);
   
   // Determine current stage
   const currentStage = currentStages.find(stage => stage.isActive)?.id || 

@@ -1,307 +1,220 @@
 
-import React from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
-import { Separator } from "@/components/ui/separator";
-import { User, Mail, MapPin, Calendar, CheckCircle2, Clock, Send, ArrowRight, Circle } from "lucide-react";
-import { supabase } from "@/lib/supabase";
-import { toast } from "sonner";
-import { useUserSpecificProgress } from "@/hooks/useUserSpecificProgress";
-import { useSharedFamilyJourneyData } from "@/hooks/useSharedFamilyJourneyData";
-import { useSpecificUserProfessionalProgress } from "@/hooks/useSpecificUserProfessionalProgress";
-import { UserWithProgress } from "@/types/adminTypes";
-import { PhoneNumberEditor } from "./PhoneNumberEditor";
-import { TemplateSelector } from "./TemplateSelector";
-import type { UserRole } from "@/types/userRoles";
+import React, { useState, useEffect, useRef } from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Progress } from '@/components/ui/progress';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
+import { User, Mail, Phone, MapPin, Calendar, Users, Activity, CheckCircle2, Clock, Circle } from 'lucide-react';
+import { UserMatchingActions } from './UserMatchingActions';
+import { MatchingStatusToggle } from './MatchingStatusToggle';
+import { useSharedFamilyJourneyData } from '@/hooks/useSharedFamilyJourneyData';
+import { useSpecificUserProfessionalProgress } from '@/hooks/useSpecificUserProfessionalProgress';
+import { useUserSpecificProgress } from '@/hooks/useUserSpecificProgress';
+import type { UserRole } from '@/types/userRoles';
 
 interface UserDetailModalProps {
-  user: UserWithProgress | null;
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  onRefresh: () => void;
+  user: any;
+  isOpen: boolean;
+  onClose: () => void;
+  onUserUpdate: () => void;
 }
 
-// Normalized step interface for consistent display
-interface NormalizedStep {
-  id: string;
-  step_number: number;
-  title: string;
-  description: string;
-  completed: boolean;
-}
+export const UserDetailModal: React.FC<UserDetailModalProps> = ({
+  user,
+  isOpen,
+  onClose,
+  onUserUpdate
+}) => {
+  const [careNeeds, setCareNeeds] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
 
-interface NormalizedNextStep {
-  step_number: number;
-  title: string;
-}
+  // Only call hooks when user and role are valid
+  const shouldCallFamilyHook = user?.role === 'family' && user?.id;
+  const shouldCallProfessionalHook = user?.role === 'professional' && user?.id;
+  const shouldCallOtherHook = user?.role && user?.role !== 'family' && user?.role !== 'professional' && user?.id;
 
-export function UserDetailModal({ user, open, onOpenChange, onRefresh }: UserDetailModalProps) {
-  const [sending, setSending] = React.useState(false);
-  const [userPhoneNumber, setUserPhoneNumber] = React.useState<string | null>(null);
-  const [showTemplateSelector, setShowTemplateSelector] = React.useState(false);
-  
-  // Stabilize the parameters to prevent hooks violations
-  const userId = React.useMemo(() => user?.id || '', [user?.id]);
-  const userRole = React.useMemo(() => user?.role as UserRole || 'family', [user?.role]);
-  
-  // Use role-specific hooks for proper journey data
-  const familyProgress = useSharedFamilyJourneyData(userRole === 'family' ? userId : '');
-  const professionalProgress = useSpecificUserProfessionalProgress(userRole === 'professional' ? userId : '');
+  // Use hooks conditionally with proper fallbacks
+  const familyProgress = useSharedFamilyJourneyData(shouldCallFamilyHook ? user.id : '');
+  const professionalProgress = useSpecificUserProfessionalProgress(shouldCallProfessionalHook ? user.id : '');
   const otherProgress = useUserSpecificProgress(
-    userRole !== 'family' && userRole !== 'professional' ? userId : '', 
-    userRole
+    shouldCallOtherHook ? user.id : '', 
+    shouldCallOtherHook ? (user.role as UserRole) : 'family'
   );
 
-  // Normalize the progress data to have consistent step_number properties
-  const progressData = React.useMemo(() => {
-    if (userRole === 'family') {
+  // Safely choose the appropriate progress data with comprehensive null checks
+  const getJourneyProgress = () => {
+    if (!user?.role || !user?.id) {
       return {
-        loading: familyProgress.loading,
-        completionPercentage: familyProgress.completionPercentage,
-        nextStep: familyProgress.nextStep ? {
-          step_number: familyProgress.nextStep.id,
-          title: familyProgress.nextStep.title
-        } as NormalizedNextStep : undefined,
-        steps: familyProgress.steps.map(step => ({
-          id: step.id.toString(),
-          step_number: step.id,
-          title: step.title,
-          description: step.description,
-          completed: step.completed
-        })) as NormalizedStep[]
-      };
-    } else if (userRole === 'professional') {
-      return {
-        loading: professionalProgress.loading,
-        completionPercentage: professionalProgress.completionPercentage,
-        nextStep: professionalProgress.nextStep ? {
-          step_number: professionalProgress.nextStep.id,
-          title: professionalProgress.nextStep.title
-        } as NormalizedNextStep : undefined,
-        steps: professionalProgress.steps.map(step => ({
-          id: step.id.toString(),
-          step_number: step.id,
-          title: step.title,
-          description: step.description,
-          completed: step.completed
-        })) as NormalizedStep[]
-      };
-    } else {
-      return {
-        loading: otherProgress.loading,
-        completionPercentage: otherProgress.completionPercentage,
-        nextStep: otherProgress.nextStep ? {
-          step_number: otherProgress.nextStep.step_number,
-          title: otherProgress.nextStep.title
-        } as NormalizedNextStep : undefined,
-        steps: otherProgress.steps.map(step => ({
-          id: step.id,
-          step_number: step.step_number,
-          title: step.title,
-          description: step.description,
-          completed: step.completed
-        })) as NormalizedStep[]
+        loading: false,
+        completionPercentage: 0,
+        nextStep: null,
+        steps: []
       };
     }
-  }, [userRole, familyProgress, professionalProgress, otherProgress]);
 
-  const { loading, completionPercentage, nextStep, steps } = progressData;
+    if (user.role === 'family' && familyProgress) {
+      return {
+        loading: familyProgress.loading || false,
+        completionPercentage: familyProgress.completionPercentage || 0,
+        nextStep: familyProgress.nextStep || null,
+        steps: Array.isArray(familyProgress.steps) ? familyProgress.steps : []
+      };
+    }
 
-  // Initialize phone number state when user changes
-  React.useEffect(() => {
-    setUserPhoneNumber(user?.phone_number || null);
-  }, [user?.phone_number]);
+    if (user.role === 'professional' && professionalProgress) {
+      return {
+        loading: professionalProgress.loading || false,
+        completionPercentage: professionalProgress.completionPercentage || 0,
+        nextStep: professionalProgress.nextStep || null,
+        steps: Array.isArray(professionalProgress.steps) ? professionalProgress.steps : []
+      };
+    }
 
-  // Early return after all hooks are called
+    if (otherProgress) {
+      return {
+        loading: otherProgress.loading || false,
+        completionPercentage: otherProgress.completionPercentage || 0,
+        nextStep: otherProgress.nextStep || null,
+        steps: Array.isArray(otherProgress.steps) ? otherProgress.steps : []
+      };
+    }
+
+    // Fallback for any case
+    return {
+      loading: false,
+      completionPercentage: 0,
+      nextStep: null,
+      steps: []
+    };
+  };
+
+  const journeyProgress = getJourneyProgress();
+
+  useEffect(() => {
+    if (user && isOpen) {
+      fetchUserDetails();
+    }
+  }, [user, isOpen]);
+
+  const fetchUserDetails = async () => {
+    if (!user) return;
+
+    try {
+      setLoading(true);
+
+      // Fetch care needs for family users
+      if (user.role === 'family') {
+        const { data: needs, error: needsError } = await supabase
+          .from('care_needs_family')
+          .select('*')
+          .eq('profile_id', user.id)
+          .maybeSingle();
+
+        if (needsError && needsError.code !== 'PGRST116') {
+          console.error('Error fetching care needs:', needsError);
+        } else {
+          setCareNeeds(needs);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching user details:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getStatusColor = () => {
+    const percentage = journeyProgress?.completionPercentage || 0;
+    if (percentage >= 100) return 'text-green-600';
+    if (percentage >= 50) return 'text-blue-600';
+    if (percentage > 0) return 'text-yellow-600';
+    return 'text-gray-600';
+  };
+
+  const getStatusIcon = () => {
+    const percentage = journeyProgress?.completionPercentage || 0;
+    if (percentage >= 100) return <CheckCircle2 className="h-5 w-5 text-green-600" />;
+    if (percentage >= 50) return <Clock className="h-5 w-5 text-blue-600" />;
+    return <Circle className="h-5 w-5 text-yellow-600" />;
+  };
+
+  const getProgressLabel = () => {
+    const percentage = journeyProgress?.completionPercentage || 0;
+    if (percentage >= 100) return "Journey Complete";
+    if (journeyProgress?.nextStep?.title) return journeyProgress.nextStep.title;
+    return "Getting Started";
+  };
+
   if (!user) return null;
 
-  const sendNudgeEmail = async (stepType: string) => {
-    setSending(true);
-    try {
-      console.log('Sending nudge email to user:', user.id, 'Type:', stepType);
-      
-      const { error } = await supabase.functions.invoke('send-nudge-email', {
-        body: { 
-          userId: user.id,
-          userEmail: user.email,
-          userName: user.full_name || 'User',
-          userRole: user.role,
-          currentStep: nextStep?.step_number || steps.length,
-          stepType
-        }
-      });
-
-      if (error) throw error;
-      
-      toast.success(`Email nudge sent to ${user.full_name || user.email}`);
-      onRefresh();
-    } catch (error: any) {
-      console.error('Error sending email nudge:', error);
-      toast.error(`Failed to send email nudge: ${error.message}`);
-    } finally {
-      setSending(false);
-    }
-  };
-
-  const handleWhatsAppMessage = (message: string) => {
-    if (!userPhoneNumber) {
-      toast.error('No phone number available');
-      return;
-    }
-
-    // Clean phone number for WhatsApp (remove + and any spaces)
-    const cleanPhone = userPhoneNumber.replace(/[\s+]/g, '');
-    
-    // Create WhatsApp URL and open it
-    const whatsappUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
-    window.open(whatsappUrl, '_blank');
-    
-    // Log the WhatsApp interaction
-    supabase.from('cta_engagement_tracking').insert({
-      user_id: user.id,
-      action_type: 'admin_whatsapp_template_sent',
-      session_id: `admin-${Date.now()}`,
-      additional_data: {
-        message_preview: message.substring(0, 100),
-        phone_number: userPhoneNumber,
-        admin_user_id: null, // Will be filled by RLS
-        timestamp: new Date().toISOString()
-      }
-    }).then(() => {
-      toast.success(`WhatsApp message sent to ${user.full_name || user.email}`);
-    });
-  };
-
-  const advanceUserStep = async () => {
-    try {
-      const currentStepNumber = nextStep?.step_number || steps.length;
-      const totalSteps = steps.length;
-      const newStep = Math.min(currentStepNumber + 1, totalSteps);
-      
-      const { error } = await supabase
-        .from('user_journey_progress')
-        .upsert({
-          user_id: user.id,
-          role: user.role,
-          current_step: newStep,
-          total_steps: totalSteps,
-          completion_percentage: Math.round((newStep / totalSteps) * 100),
-          last_activity_at: new Date().toISOString()
-        });
-
-      if (error) throw error;
-      
-      toast.success(`Advanced ${user.full_name || user.email} to step ${newStep}`);
-      onRefresh();
-    } catch (error: any) {
-      console.error('Error advancing step:', error);
-      toast.error(`Failed to advance step: ${error.message}`);
-    }
-  };
-
-  const handlePhoneNumberUpdate = (newPhoneNumber: string | null) => {
-    setUserPhoneNumber(newPhoneNumber);
-    // Trigger a refresh to update the user data
-    onRefresh();
-  };
-
-  // Check if user is at schedule visit stage or beyond for financial proposals
-  const isAtScheduleVisitStage = completionPercentage >= 70; // Adjust threshold as needed
-
-  // Role-specific information
-  let roleSpecificInfo = null;
-  if (user.role === 'family') {
-    roleSpecificInfo = (
-      <Card>
-        <CardHeader>
-          <CardTitle>Family-Specific Information</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p>Details specific to family users go here.</p>
-        </CardContent>
-      </Card>
-    );
-  } else if (user.role === 'professional') {
-    roleSpecificInfo = (
-      <Card>
-        <CardHeader>
-          <CardTitle>Professional-Specific Information</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p>Details specific to professional users go here.</p>
-        </CardContent>
-      </Card>
-    );
-  } else if (user.role === 'community') {
-    roleSpecificInfo = (
-      <Card>
-        <CardHeader>
-          <CardTitle>Community-Specific Information</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p>Details specific to community users go here.</p>
-        </CardContent>
-      </Card>
-    );
-  }
+  // Safely access steps with comprehensive null checks
+  const steps = Array.isArray(journeyProgress?.steps) ? journeyProgress.steps : [];
+  const completionPercentage = journeyProgress?.completionPercentage || 0;
+  const nextStep = journeyProgress?.nextStep || null;
+  const isProgressLoading = journeyProgress?.loading || false;
 
   return (
-    <>
-      <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <User className="h-5 w-5" />
-              {user.full_name || 'Unnamed User'}
-              <Badge variant={user.email_verified ? "default" : "secondary"}>
-                {user.email_verified ? "Verified" : "Unverified"}
-              </Badge>
-            </DialogTitle>
-          </DialogHeader>
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <User className="h-5 w-5" />
+            {user.full_name || 'User Details'}
+          </DialogTitle>
+        </DialogHeader>
 
-          <div className="space-y-6">
-            {/* User Overview */}
+        <Tabs defaultValue="profile" className="space-y-4">
+          <TabsList className="grid w-full grid-cols-4">
+            <TabsTrigger value="profile">Profile</TabsTrigger>
+            <TabsTrigger value="journey">Journey</TabsTrigger>
+            {user.role === 'family' && (
+              <TabsTrigger value="matching">Matching</TabsTrigger>
+            )}
+            <TabsTrigger value="activity">Activity</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="profile" className="space-y-4">
+            {/* Basic Profile Information */}
             <Card>
               <CardHeader>
-                <CardTitle>{user.full_name || 'User Details'}</CardTitle>
+                <CardTitle className="flex items-center justify-between">
+                  <span>Profile Information</span>
+                  <Badge variant={user.role === 'admin' ? 'destructive' : user.role === 'professional' ? 'default' : 'secondary'}>
+                    {user.role}
+                  </Badge>
+                </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-3">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <div className="flex items-center gap-2">
-                      <Mail className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm">{user.email}</span>
+                      <Phone className="h-4 w-4 text-gray-500" />
+                      <span className="text-sm">{user.phone_number || 'No phone provided'}</span>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <User className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm capitalize">{user.role}</span>
-                    </div>
-                    {user.location && (
+                    {user.address && (
                       <div className="flex items-center gap-2">
-                        <MapPin className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-sm">{user.location}</span>
+                        <MapPin className="h-4 w-4 text-gray-500" />
+                        <span className="text-sm">{user.address}</span>
                       </div>
                     )}
-                    {/* Enhanced Phone Number Editor */}
-                    <PhoneNumberEditor
-                      userId={user.id}
-                      currentPhoneNumber={userPhoneNumber}
-                      userName={user.full_name || user.email}
-                      onPhoneNumberUpdate={handlePhoneNumberUpdate}
-                    />
                   </div>
                   <div className="space-y-2">
                     <div className="flex items-center gap-2">
-                      <Calendar className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm">Joined {new Date(user.created_at).toLocaleDateString()}</span>
+                      <Calendar className="h-4 w-4 text-gray-500" />
+                      <span className="text-sm">
+                        Joined {new Date(user.created_at).toLocaleDateString()}
+                      </span>
                     </div>
                     {user.last_login_at && (
                       <div className="flex items-center gap-2">
-                        <Clock className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-sm">Last login {new Date(user.last_login_at).toLocaleDateString()}</span>
+                        <Activity className="h-4 w-4 text-gray-500" />
+                        <span className="text-sm">
+                          Last active {new Date(user.last_login_at).toLocaleDateString()}
+                        </span>
                       </div>
                     )}
                   </div>
@@ -309,166 +222,183 @@ export function UserDetailModal({ user, open, onOpenChange, onRefresh }: UserDet
               </CardContent>
             </Card>
 
-            {/* Journey Progress */}
+            {/* Care Needs for Family Users */}
+            {user.role === 'family' && careNeeds && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Care Requirements</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <h4 className="font-medium mb-2">Care Recipient</h4>
+                      <p className="text-sm text-gray-600">
+                        {careNeeds.care_recipient_name || 'Not specified'}
+                      </p>
+                    </div>
+                    <div>
+                      <h4 className="font-medium mb-2">Primary Contact</h4>
+                      <p className="text-sm text-gray-600">
+                        {careNeeds.primary_contact_name || 'Not specified'}
+                      </p>
+                      {careNeeds.primary_contact_phone && (
+                        <p className="text-sm text-gray-600">
+                          {careNeeds.primary_contact_phone}
+                        </p>
+                      )}
+                    </div>
+                    {careNeeds.preferred_time_start && careNeeds.preferred_time_end && (
+                      <div>
+                        <h4 className="font-medium mb-2">Preferred Time</h4>
+                        <p className="text-sm text-gray-600">
+                          {careNeeds.preferred_time_start} - {careNeeds.preferred_time_end}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Matching Status for Professional Users */}
+            {user.role === 'professional' && (
+              <MatchingStatusToggle
+                userId={user.id}
+                currentStatus={user.available_for_matching ?? true}
+                userFullName={user.full_name || 'Unknown User'}
+                onStatusChange={onUserUpdate}
+              />
+            )}
+          </TabsContent>
+
+          <TabsContent value="journey" className="space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center justify-between">
-                  {user.role.charAt(0).toUpperCase() + user.role.slice(1)} Journey Progress
-                  <Badge variant="outline">
-                    {completionPercentage}% Complete
-                  </Badge>
-                </CardTitle>
+                <CardTitle>Journey Progress</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <Progress value={completionPercentage} className="w-full" />
-                
-                {loading ? (
+              <CardContent>
+                {isProgressLoading ? (
                   <div className="text-center py-4">
-                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto"></div>
-                    <p className="text-sm text-gray-500 mt-2">Loading journey progress...</p>
+                    <div className="text-sm text-gray-500">Loading progress...</div>
                   </div>
                 ) : (
-                  <div className="space-y-2">
-                    {steps.map((step) => {
-                      const isCurrent = nextStep?.step_number === step.step_number;
-                      
-                      return (
-                        <div key={step.id} className={`flex items-center gap-2 p-2 rounded ${
-                          isCurrent ? 'bg-blue-50 border border-blue-200' : 
-                          step.completed ? 'bg-green-50' : 'bg-gray-50'
-                        }`}>
-                          {step.completed ? (
-                            <CheckCircle2 className="h-4 w-4 text-green-500" />
-                          ) : isCurrent ? (
-                            <Clock className="h-4 w-4 text-blue-500" />
-                          ) : (
-                            <Circle className="h-4 w-4 text-gray-300" />
-                          )}
-                          <span className={`text-sm flex-1 ${isCurrent ? 'font-medium text-blue-700' : ''}`}>
-                            {step.step_number}. {step.title}
-                          </span>
-                          <span className="text-xs text-muted-foreground">
-                            {step.description}
-                          </span>
-                          {isCurrent && (
-                            <Badge variant="secondary" className="ml-auto">
-                              Current
-                            </Badge>
-                          )}
+                  <div className="space-y-6">
+                    {/* Overall Progress */}
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          {getStatusIcon()}
+                          <div>
+                            <h3 className={`font-medium ${getStatusColor()}`}>
+                              {getProgressLabel()}
+                            </h3>
+                            <p className="text-sm text-gray-600">
+                              {steps.filter(s => s?.completed).length} of {steps.length} steps completed
+                            </p>
+                          </div>
                         </div>
-                      );
-                    })}
+                        <Badge variant="outline" className="text-lg px-3 py-1">
+                          {completionPercentage}%
+                        </Badge>
+                      </div>
+                      <Progress value={completionPercentage} className="h-3" />
+                    </div>
+
+                    {/* Step Details with comprehensive null checks */}
+                    {steps.length > 0 ? (
+                      <div className="space-y-3">
+                        <h4 className="font-medium text-gray-900">Journey Steps</h4>
+                        <div className="space-y-2">
+                          {steps.map((step, index) => {
+                            // Safely access step properties with fallbacks
+                            const stepId = step?.id || step?.step_number || index;
+                            const stepTitle = step?.title || 'Untitled Step';
+                            const stepDescription = step?.description || 'No description available';
+                            const isCompleted = Boolean(step?.completed);
+                            const isAccessible = step?.accessible !== false; // Default to true if not specified
+                            const isOptional = Boolean(step?.optional || step?.is_optional);
+
+                            return (
+                              <div key={stepId} className="flex items-center gap-3 p-3 rounded-lg border">
+                                <div className="flex-shrink-0">
+                                  {isCompleted ? (
+                                    <CheckCircle2 className="h-5 w-5 text-green-600" />
+                                  ) : isAccessible ? (
+                                    <Circle className="h-5 w-5 text-blue-600" />
+                                  ) : (
+                                    <Circle className="h-5 w-5 text-gray-400" />
+                                  )}
+                                </div>
+                                <div className="flex-1">
+                                  <h5 className={`font-medium ${isCompleted ? 'text-green-800' : isAccessible ? 'text-gray-900' : 'text-gray-500'}`}>
+                                    {stepTitle}
+                                  </h5>
+                                  <p className="text-sm text-gray-600">{stepDescription}</p>
+                                  {isOptional && (
+                                    <Badge variant="outline" className="mt-1 text-xs">Optional</Badge>
+                                  )}
+                                </div>
+                                <div className="flex-shrink-0">
+                                  <Badge variant={isCompleted ? 'default' : isAccessible ? 'secondary' : 'outline'}>
+                                    {isCompleted ? 'Complete' : isAccessible ? 'Available' : 'Locked'}
+                                  </Badge>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="text-center py-8 text-gray-500">
+                        <p>No journey progress data available for this user.</p>
+                      </div>
+                    )}
+
+                    {/* Next Step Recommendation with null checks */}
+                    {nextStep && nextStep.title && (
+                      <Card className="bg-blue-50 border-blue-200">
+                        <CardContent className="pt-4">
+                          <div className="flex items-start gap-3">
+                            <Clock className="h-5 w-5 text-blue-600 mt-0.5" />
+                            <div>
+                              <h4 className="font-medium text-blue-900">Next Recommended Step</h4>
+                              <p className="text-sm text-blue-800 mt-1">
+                                {nextStep.title}
+                              </p>
+                              {nextStep.description && (
+                                <p className="text-sm text-blue-700 mt-1">
+                                  {nextStep.description}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    )}
                   </div>
                 )}
               </CardContent>
             </Card>
+          </TabsContent>
 
-            {roleSpecificInfo}
+          {user.role === 'family' && (
+            <TabsContent value="matching" className="space-y-4">
+              <UserMatchingActions user={user} onUserUpdate={onUserUpdate} />
+            </TabsContent>
+          )}
 
-            <Separator />
-
-            {/* Enhanced Admin Actions with Template System */}
+          <TabsContent value="activity" className="space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle>Admin Actions</CardTitle>
+                <CardTitle>Recent Activity</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  {/* Primary Communication Actions */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    <Button 
-                      onClick={() => sendNudgeEmail('current_step')}
-                      disabled={sending}
-                      className="flex items-center gap-2"
-                    >
-                      <Mail className="h-4 w-4" />
-                      Email Current Step
-                    </Button>
-                    
-                    <Button 
-                      onClick={() => setShowTemplateSelector(true)}
-                      disabled={!userPhoneNumber}
-                      variant="outline"
-                      className="flex items-center gap-2 bg-green-50 border-green-200 text-green-700 hover:bg-green-100"
-                    >
-                      <Send className="h-4 w-4" />
-                      WhatsApp with Template
-                    </Button>
-                    
-                    <Button 
-                      onClick={advanceUserStep}
-                      disabled={completionPercentage >= 100}
-                      variant="outline"
-                      className="flex items-center gap-2"
-                    >
-                      <ArrowRight className="h-4 w-4" />
-                      Advance Step
-                    </Button>
-                  </div>
-                  
-                  {/* Welcome Messages */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <Button 
-                      onClick={() => sendNudgeEmail('welcome')}
-                      disabled={sending}
-                      variant="outline"
-                      className="flex items-center gap-2"
-                    >
-                      <Mail className="h-4 w-4" />
-                      Send Welcome Email
-                    </Button>
-                  </div>
-
-                  {/* Financial Proposal Actions - Show only if at schedule visit stage */}
-                  {isAtScheduleVisitStage && (
-                    <div className="border-t pt-4">
-                      <h4 className="text-sm font-medium text-gray-700 mb-2">Financial Proposals & Payment Options</h4>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <Button 
-                          onClick={() => sendNudgeEmail('financial_proposal')}
-                          disabled={sending}
-                          variant="outline"
-                          className="flex items-center gap-2 bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100"
-                        >
-                          <Mail className="h-4 w-4" />
-                          Email Financial Proposal
-                        </Button>
-                      </div>
-                      <p className="text-xs text-muted-foreground mt-2">
-                        Available because user is at "Schedule Visit" stage or beyond
-                      </p>
-                    </div>
-                  )}
-
-                  {/* Phone Number Status */}
-                  {!userPhoneNumber && (
-                    <div className="bg-amber-50 border border-amber-200 rounded-md p-3">
-                      <p className="text-sm text-amber-700">
-                        📞 No phone number on file - WhatsApp options are disabled. Add a phone number above to enable WhatsApp communication.
-                      </p>
-                    </div>
-                  )}
-                </div>
+                <p className="text-gray-600">Activity tracking coming soon...</p>
               </CardContent>
             </Card>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Template Selector Dialog */}
-      <TemplateSelector
-        open={showTemplateSelector}
-        onOpenChange={setShowTemplateSelector}
-        userRole={user.role as 'family' | 'professional' | 'community'}
-        userName={user.full_name || 'User'}
-        userPhone={userPhoneNumber || ''}
-        userProgress={{
-          completion_percentage: completionPercentage,
-          current_step: nextStep?.step_number,
-          next_step: nextStep
-        }}
-        onSendMessage={handleWhatsAppMessage}
-      />
-    </>
+          </TabsContent>
+        </Tabs>
+      </DialogContent>
+    </Dialog>
   );
-}
+};

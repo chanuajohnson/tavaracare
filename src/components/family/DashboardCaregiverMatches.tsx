@@ -3,17 +3,17 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Users, Sparkles, Calendar } from "lucide-react";
+import { ArrowRight, Users, Sparkles, Calendar, MessageCircle } from "lucide-react";
 import { SubscriptionFeatureLink } from "@/components/subscription/SubscriptionFeatureLink";
 import { useCaregiverMatches } from "@/hooks/useCaregiverMatches";
 import { CaregiverMatchCard } from "./CaregiverMatchCard";
-import { CaregiverProfileModal } from "./CaregiverProfileModal";
+import { CaregiverChatModal } from "./CaregiverChatModal";
 import { CaregiverMatchingModal } from "./CaregiverMatchingModal";
 
 export const DashboardCaregiverMatches = () => {
   const { user } = useAuth();
   const { caregivers, isLoading: hookLoading } = useCaregiverMatches(true);
-  const [showProfileModal, setShowProfileModal] = useState(false);
+  const [showChatModal, setShowChatModal] = useState(false);
   const [showMatchingModal, setShowMatchingModal] = useState(false);
   
   // Single loading state that ensures consistent behavior
@@ -56,7 +56,10 @@ export const DashboardCaregiverMatches = () => {
       <Card className="mb-8 border-l-4 border-l-primary">
         <CardHeader className="flex flex-row items-center justify-between pb-2">
           <div>
-            <CardTitle className="text-xl">Your Caregiver Match</CardTitle>
+            <CardTitle className="text-xl flex items-center gap-2">
+              Your Caregiver Match
+              <MessageCircle className="h-5 w-5 text-blue-600" />
+            </CardTitle>
             <p className="text-sm text-gray-500">
               1 caregiver matches your care needs and schedule
             </p>
@@ -100,7 +103,7 @@ export const DashboardCaregiverMatches = () => {
                 referringPagePath="/dashboard/family"
                 referringPageLabel="Family Dashboard"
                 showUnlockButton={false}
-                onUnlockProfile={() => setShowProfileModal(true)}
+                onStartChat={() => setShowChatModal(true)}
               />
               
               {/* Enhanced compatibility display */}
@@ -125,9 +128,10 @@ export const DashboardCaregiverMatches = () => {
                 <Button 
                   variant="default" 
                   className="w-full"
-                  onClick={() => setShowProfileModal(true)}
+                  onClick={() => setShowChatModal(true)}
                 >
-                  Unlock Profile
+                  <MessageCircle className="h-4 w-4 mr-2" />
+                  Chat with Match
                 </Button>
                 
                 <Button 
@@ -155,11 +159,11 @@ export const DashboardCaregiverMatches = () => {
         </CardContent>
       </Card>
 
-      {/* Profile Modal */}
+      {/* Chat Modal */}
       {bestMatch && (
-        <CaregiverProfileModal
-          open={showProfileModal}
-          onOpenChange={setShowProfileModal}
+        <CaregiverChatModal
+          open={showChatModal}
+          onOpenChange={setShowChatModal}
           caregiver={bestMatch}
         />
       )}

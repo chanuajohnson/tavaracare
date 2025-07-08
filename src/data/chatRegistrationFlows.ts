@@ -36,6 +36,7 @@ export const STANDARDIZED_SHIFT_OPTIONS = [
   { value: "mon_fri_6am_6pm", label: "🕕 Monday – Friday, 6 AM – 6 PM (Full daytime coverage)" },
   
   // Weekend Shifts
+  { value: "sat_sun_8am_6pm", label: "🌞 Saturday – Sunday, 8 AM – 6 PM (Main Weekend daytime coverage)" },
   { value: "sat_sun_6am_6pm", label: "🌞 Saturday – Sunday, 6 AM – 6 PM (Weekend daytime coverage)" },
   { value: "sat_sun_8am_4pm", label: "☀️ Saturday – Sunday, 8 AM – 4 PM (Weekend standard hours)" },
   
