@@ -20,6 +20,7 @@ interface Profile {
   last_login_at?: string;
   phone_number?: string;
   email?: string;
+  available_for_matching?: boolean;
 }
 
 interface UserWithProfile {
@@ -58,7 +59,8 @@ export const AdminUserManagement = () => {
       professional_type: undefined, // Add if available in your data
       years_of_experience: undefined, // Add if available in your data
       care_types: [], // Add if available in your data
-      specialized_care: [] // Add if available in your data
+      specialized_care: [], // Add if available in your data
+      available_for_matching: user.profile?.available_for_matching
     };
   });
 

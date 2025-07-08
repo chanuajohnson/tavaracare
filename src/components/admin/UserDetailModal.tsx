@@ -10,6 +10,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { User, Mail, Phone, MapPin, Calendar, Users, Activity, CheckCircle2, Clock, Circle } from 'lucide-react';
 import { UserMatchingActions } from './UserMatchingActions';
+import { MatchingStatusToggle } from './MatchingStatusToggle';
 import { useSharedFamilyJourneyData } from '@/hooks/useSharedFamilyJourneyData';
 import { useSpecificUserProfessionalProgress } from '@/hooks/useSpecificUserProfessionalProgress';
 import { useUserSpecificProgress } from '@/hooks/useUserSpecificProgress';
@@ -257,6 +258,16 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
                   </div>
                 </CardContent>
               </Card>
+            )}
+
+            {/* Matching Status for Professional Users */}
+            {user.role === 'professional' && (
+              <MatchingStatusToggle
+                userId={user.id}
+                currentStatus={user.available_for_matching ?? true}
+                userFullName={user.full_name || 'Unknown User'}
+                onStatusChange={onUserUpdate}
+              />
             )}
           </TabsContent>
 

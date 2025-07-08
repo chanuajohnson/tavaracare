@@ -2860,6 +2860,7 @@ export type Database = {
           admin_scheduling_requested_at: string | null
           administers_medication: boolean | null
           availability: string[] | null
+          available_for_matching: boolean
           avatar_url: string | null
           background_check: boolean | null
           background_check_proof_url: string | null
@@ -2952,6 +2953,7 @@ export type Database = {
           admin_scheduling_requested_at?: string | null
           administers_medication?: boolean | null
           availability?: string[] | null
+          available_for_matching?: boolean
           avatar_url?: string | null
           background_check?: boolean | null
           background_check_proof_url?: string | null
@@ -3044,6 +3046,7 @@ export type Database = {
           admin_scheduling_requested_at?: string | null
           administers_medication?: boolean | null
           availability?: string[] | null
+          available_for_matching?: boolean
           avatar_url?: string | null
           background_check?: boolean | null
           background_check_proof_url?: string | null
