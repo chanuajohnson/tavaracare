@@ -116,6 +116,7 @@ if (action === 'verification-pending') {
       
       if (data.session && data.user) {
         console.log("[AuthPage] Session created after signup - auto-confirm must be enabled");
+        console.log("[AuthPage] Immediate signup path detected - no email verification required");
         
         const userRole = role as UserRole;
         await ensureUserProfile(data.user.id, userRole);
@@ -131,13 +132,14 @@ if (action === 'verification-pending') {
         
         // Send Facebook Conversions API event for family signups (only on production)
         if (userRole === 'family' && window.location.hostname === 'tavara.care') {
+          console.log('[AuthPage] Triggering Facebook CAPI for family user immediate signup');
           try {
             await supabase.functions.invoke('facebook-conversions-api', {
               body: { email: data.user.email }
             });
-            console.log('Facebook CAPI CompleteRegistration event sent for family signup');
+            console.log('[AuthPage] Facebook CAPI CompleteRegistration event sent for family immediate signup');
           } catch (error) {
-            console.error('Failed to send Facebook CAPI event:', error);
+            console.error('[AuthPage] Failed to send Facebook CAPI event:', error);
             // Don't block the signup flow for CAPI failures
           }
         }
@@ -150,6 +152,7 @@ if (action === 'verification-pending') {
         return true;
       } else {
         console.log("[AuthPage] No session after signup - email verification required");
+        console.log("[AuthPage] Email verification signup path detected - CAPI will be triggered after email verification");
         localStorage.setItem('registeringAs', role);
         localStorage.setItem('registrationRole', role);
         
