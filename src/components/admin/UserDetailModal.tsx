@@ -19,6 +19,45 @@ import { useComprehensiveUserData } from '@/hooks/admin/useComprehensiveUserData
 import { downloadUserReport, type ReportOptions } from '@/services/admin/userReportGenerator';
 import type { UserRole } from '@/types/userRoles';
 
+// Import formatting functions from the PDF generator to ensure UI consistency
+const formatCareSchedule = (careSchedule: string | null): string => {
+  if (!careSchedule) return 'Not specified';
+  
+  const scheduleMap: Record<string, string> = {
+    'mon_fri_8am_4pm': 'Monday-Friday, 8:00 AM - 4:00 PM',
+    'mon_fri_8am_6pm': 'Monday-Friday, 8:00 AM - 6:00 PM', 
+    'mon_fri_6am_6pm': 'Monday-Friday, 6:00 AM - 6:00 PM',
+    'sat_sun_6am_6pm': 'Saturday-Sunday, 6:00 AM - 6:00 PM',
+    'sat_sun_8am_4pm': 'Saturday-Sunday, 8:00 AM - 4:00 PM',
+    'weekday_evening_4pm_6am': 'Weekday Evening, 4:00 PM - 6:00 AM',
+    'weekday_evening_4pm_8am': 'Weekday Evening, 4:00 PM - 8:00 AM',
+    'weekday_evening_5pm_5am': 'Weekday Evening, 5:00 PM - 5:00 AM',
+    'weekday_evening_5pm_8am': 'Weekday Evening, 5:00 PM - 8:00 AM',
+    'weekday_evening_6pm_6am': 'Weekday Evening, 6:00 PM - 6:00 AM',
+    'weekday_evening_6pm_8am': 'Weekday Evening, 6:00 PM - 8:00 AM',
+    'weekend_evening_4pm_6am': 'Weekend Evening, 4:00 PM - 6:00 AM',
+    'weekend_evening_6pm_6am': 'Weekend Evening, 6:00 PM - 6:00 AM',
+    'flexible': 'Flexible/On-Demand',
+    'live_in_care': 'Live-In Care',
+    '24_7_care': '24/7 Care',
+    'around_clock_shifts': 'Around-the-Clock Shifts',
+    'other': 'Custom Schedule'
+  };
+
+  const schedules = careSchedule.split(',').map(s => s.trim());
+  return schedules.map(s => scheduleMap[s] || s).join(', ');
+};
+
+const formatArray = (arr: any[] | null | undefined, fallback: string = 'None specified'): string => {
+  if (!arr || arr.length === 0) return fallback;
+  return arr.join(', ');
+};
+
+const formatBoolean = (value: boolean | null | undefined): string => {
+  if (value === null || value === undefined) return 'Not specified';
+  return value ? 'Yes' : 'No';
+};
+
 interface UserDetailModalProps {
   user: any;
   isOpen: boolean;
@@ -505,50 +544,99 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
                       {/* Basic Profile */}
                       <Card className="p-4">
                         <h5 className="font-medium mb-2">Profile Information</h5>
-                        <div className="grid grid-cols-2 gap-2 text-sm">
-                          <div>Full Name: {comprehensiveData.profile.full_name || 'Not provided'}</div>
-                          <div>Role: {comprehensiveData.profile.role}</div>
-                          <div>Phone: {comprehensiveData.profile.phone_number || 'Not provided'}</div>
-                          <div>Address: {comprehensiveData.profile.address || 'Not provided'}</div>
+                        <div className="grid grid-cols-1 gap-2 text-sm">
+                          <div><strong>Full Name:</strong> {comprehensiveData.profile.full_name || 'Not provided'}</div>
+                          <div><strong>Role:</strong> {comprehensiveData.profile.role}</div>
+                          <div><strong>Phone:</strong> {comprehensiveData.profile.phone_number || 'Not provided'}</div>
+                          <div><strong>Address:</strong> {comprehensiveData.profile.address || 'Not provided'}</div>
+                          <div><strong>Preferred Contact Method:</strong> {comprehensiveData.profile.preferred_contact_method || 'Not specified'}</div>
+                          <div><strong>Care Hours:</strong> {formatCareSchedule(comprehensiveData.profile.care_schedule)}</div>
                           {comprehensiveData.profile.role === 'family' && (
                             <>
-                              <div>Care Recipient: {comprehensiveData.profile.care_recipient_name || 'Not provided'}</div>
-                              <div>Relationship: {comprehensiveData.profile.relationship || 'Not provided'}</div>
+                              <div><strong>Care Recipient:</strong> {comprehensiveData.profile.care_recipient_name || 'Not provided'}</div>
+                              <div><strong>Relationship:</strong> {comprehensiveData.profile.relationship || 'Not provided'}</div>
                             </>
                           )}
                           {comprehensiveData.profile.role === 'professional' && (
                             <>
-                              <div>Experience: {comprehensiveData.profile.years_of_experience || 'Not provided'} years</div>
-                              <div>Available: {comprehensiveData.profile.available_for_matching ? 'Yes' : 'No'}</div>
+                              <div><strong>Experience:</strong> {comprehensiveData.profile.years_of_experience || 'Not provided'} years</div>
+                              <div><strong>Available for Matching:</strong> {comprehensiveData.profile.available_for_matching ? 'Yes' : 'No'}</div>
                             </>
                           )}
                         </div>
                       </Card>
 
-                      {/* Care Assessment (Family only) */}
-                      {comprehensiveData.profile.role === 'family' && comprehensiveData.careNeeds && (
+                      {/* Family Profile Details */}
+                      {comprehensiveData.profile.role === 'family' && (
                         <Card className="p-4">
-                          <h5 className="font-medium mb-2">Care Assessment</h5>
+                          <h5 className="font-medium mb-2">Family Profile Details</h5>
                           <div className="text-sm space-y-1">
-                            <div>Care Hours: {comprehensiveData.careNeeds.preferred_time_start || 'Not specified'} - {comprehensiveData.careNeeds.preferred_time_end || 'Not specified'}</div>
-                            <div>Medical Conditions: {comprehensiveData.careNeeds.diagnosed_conditions || 'None listed'}</div>
-                            <div>Primary Contact: {comprehensiveData.careNeeds.primary_contact_name || 'Not provided'}</div>
-                            {comprehensiveData.careNeeds.additional_notes && (
-                              <div>Notes: {comprehensiveData.careNeeds.additional_notes}</div>
-                            )}
+                            <div><strong>Care Types:</strong> {formatArray(comprehensiveData.profile.care_types)}</div>
+                            <div><strong>Special Needs:</strong> {formatArray(comprehensiveData.profile.special_needs)}</div>
+                            <div><strong>Budget Preferences:</strong> {comprehensiveData.profile.budget_preferences || 'Not specified'}</div>
+                            <div><strong>Caregiver Type:</strong> {comprehensiveData.profile.caregiver_type || 'Not specified'}</div>
+                            <div><strong>Caregiver Preferences:</strong> {comprehensiveData.profile.caregiver_preferences || 'Not specified'}</div>
+                            <div><strong>Custom Care Schedule:</strong> {comprehensiveData.profile.custom_care_schedule || 'Not specified'}</div>
+                            <div><strong>Additional Notes:</strong> {comprehensiveData.profile.additional_notes || 'None provided'}</div>
                           </div>
                         </Card>
                       )}
+
+                      {/* Professional Capabilities & Services */}
+                      {comprehensiveData.profile.role === 'professional' && (
+                        <Card className="p-4">
+                          <h5 className="font-medium mb-2">Professional Capabilities & Services</h5>
+                          <div className="text-sm space-y-1">
+                            <div><strong>Bio:</strong> {comprehensiveData.profile.bio || 'Not provided'}</div>
+                            <div><strong>Certifications:</strong> {formatArray(comprehensiveData.profile.certifications)}</div>
+                            <div><strong>Specializations:</strong> {formatArray(comprehensiveData.profile.specializations)}</div>
+                            <div><strong>Languages:</strong> {formatArray(comprehensiveData.profile.languages)}</div>
+                            <div><strong>Care Services:</strong> {formatArray(comprehensiveData.profile.care_services)}</div>
+                            <div><strong>Care Types:</strong> {formatArray(comprehensiveData.profile.care_types)}</div>
+                            <div><strong>Caregiving Areas:</strong> {formatArray(comprehensiveData.profile.caregiving_areas)}</div>
+                            <div><strong>Professional Type:</strong> {comprehensiveData.profile.professional_type || 'Not specified'}</div>
+                            <div><strong>Caregiver Type:</strong> {comprehensiveData.profile.caregiver_type || 'Not specified'}</div>
+                            <div><strong>Housekeeping Available:</strong> {formatBoolean(comprehensiveData.profile.housekeeping_available)}</div>
+                            <div><strong>Transportation Available:</strong> {formatBoolean(comprehensiveData.profile.transportation_available)}</div>
+                            <div><strong>Meal Preparation Available:</strong> {formatBoolean(comprehensiveData.profile.meal_preparation_available)}</div>
+                            <div><strong>Personal Care Available:</strong> {formatBoolean(comprehensiveData.profile.personal_care_available)}</div>
+                            <div><strong>Companionship Available:</strong> {formatBoolean(comprehensiveData.profile.companionship_available)}</div>
+                            <div><strong>Work Locations:</strong> {formatArray(comprehensiveData.profile.work_locations)}</div>
+                            <div><strong>Video Available:</strong> {formatBoolean(comprehensiveData.profile.video_available)}</div>
+                            <div><strong>Expected Hourly Rate:</strong> {comprehensiveData.profile.expected_hourly_rate ? `$${comprehensiveData.profile.expected_hourly_rate}` : 'Not specified'}</div>
+                          </div>
+                        </Card>
+                      )}
+
+                      {/* Administrative Status */}
+                      <Card className="p-4">
+                        <h5 className="font-medium mb-2">Administrative Status</h5>
+                        <div className="text-sm space-y-1">
+                          <div><strong>Visit Payment Status:</strong> {comprehensiveData.profile.visit_payment_status || 'Not specified'}</div>
+                          <div><strong>Visit Type Preference:</strong> {comprehensiveData.profile.visit_type_preference || 'Not specified'}</div>
+                          <div><strong>Ready for Admin Scheduling:</strong> {formatBoolean(comprehensiveData.profile.ready_for_admin_scheduling)}</div>
+                          <div><strong>Background Check Completed:</strong> {formatBoolean(comprehensiveData.profile.background_check_completed)}</div>
+                          <div><strong>Visit Payment Reference:</strong> {comprehensiveData.profile.visit_payment_reference || 'Not specified'}</div>
+                          {comprehensiveData.profile.admin_visit_scheduled_date && (
+                            <div><strong>Admin Visit Scheduled:</strong> {new Date(comprehensiveData.profile.admin_visit_scheduled_date).toLocaleDateString()}</div>
+                          )}
+                          {comprehensiveData.profile.admin_visit_completed_date && (
+                            <div><strong>Admin Visit Completed:</strong> {new Date(comprehensiveData.profile.admin_visit_completed_date).toLocaleDateString()}</div>
+                          )}
+                        </div>
+                      </Card>
 
                       {/* Care Recipient Profile (Family only) */}
                       {comprehensiveData.profile.role === 'family' && comprehensiveData.careRecipient && (
                         <Card className="p-4">
                           <h5 className="font-medium mb-2">Care Recipient Profile</h5>
                           <div className="text-sm space-y-1">
-                            <div>Birth Year: {comprehensiveData.careRecipient.birth_year || 'Not provided'}</div>
-                            <div>Personality: {comprehensiveData.careRecipient.personality_traits?.join(', ') || 'None listed'}</div>
-                            <div>Interests: {comprehensiveData.careRecipient.hobbies_interests?.join(', ') || 'None listed'}</div>
-                            <div>Career: {comprehensiveData.careRecipient.career_fields?.join(', ') || 'None listed'}</div>
+                            <div><strong>Birth Year:</strong> {comprehensiveData.careRecipient.birth_year || 'Not provided'}</div>
+                            <div><strong>Personality:</strong> {formatArray(comprehensiveData.careRecipient.personality_traits)}</div>
+                            <div><strong>Interests:</strong> {formatArray(comprehensiveData.careRecipient.hobbies_interests)}</div>
+                            <div><strong>Career:</strong> {formatArray(comprehensiveData.careRecipient.career_fields)}</div>
+                            <div><strong>Challenges:</strong> {formatArray(comprehensiveData.careRecipient.challenges)}</div>
+                            <div><strong>Cultural Preferences:</strong> {comprehensiveData.careRecipient.cultural_preferences || 'Not specified'}</div>
                           </div>
                         </Card>
                       )}
