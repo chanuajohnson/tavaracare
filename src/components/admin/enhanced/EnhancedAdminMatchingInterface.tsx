@@ -368,7 +368,7 @@ export const EnhancedAdminMatchingInterface: React.FC<EnhancedAdminMatchingInter
 
   const filteredCaregivers = availableCaregivers.filter(caregiver => {
     const matchesSearch = caregiver.full_name.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesSpecialty = !filterSpecialty || caregiver.care_types?.includes(filterSpecialty);
+    const matchesSpecialty = !filterSpecialty || filterSpecialty === 'all' || caregiver.care_types?.includes(filterSpecialty);
     const matchesMinScore = caregiver.overall_quality_score >= minMatchScore;
     
     return matchesSearch && matchesSpecialty && matchesMinScore;
@@ -503,7 +503,7 @@ export const EnhancedAdminMatchingInterface: React.FC<EnhancedAdminMatchingInter
                   <SelectValue placeholder="All specialties" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All specialties</SelectItem>
+                  <SelectItem value="all">All specialties</SelectItem>
                   <SelectItem value="personal_care">Personal Care</SelectItem>
                   <SelectItem value="medication_management">Medication Management</SelectItem>
                   <SelectItem value="mobility_assistance">Mobility Assistance</SelectItem>
@@ -519,7 +519,7 @@ export const EnhancedAdminMatchingInterface: React.FC<EnhancedAdminMatchingInter
                   <SelectValue placeholder="All availability" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All availability</SelectItem>
+                  <SelectItem value="all">All availability</SelectItem>
                   <SelectItem value="weekday">Weekday</SelectItem>
                   <SelectItem value="weekend">Weekend</SelectItem>
                   <SelectItem value="overnight">Overnight</SelectItem>
