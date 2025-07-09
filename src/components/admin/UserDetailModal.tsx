@@ -362,8 +362,8 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
               </Card>
             )}
 
-            {/* Matching Status for Professional Users */}
-            {user.role === 'professional' && (
+            {/* Matching Status for Professional and Family Users */}
+            {(user.role === 'professional' || user.role === 'family') && (
               <MatchingStatusToggle
                 userId={user.id}
                 currentStatus={user.available_for_matching ?? true}
