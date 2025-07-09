@@ -6,14 +6,17 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
+import { Switch } from '@/components/ui/switch';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { User, Mail, Phone, MapPin, Calendar, Users, Activity, CheckCircle2, Clock, Circle } from 'lucide-react';
+import { User, Mail, Phone, MapPin, Calendar, Users, Activity, CheckCircle2, Clock, Circle, FileText, Download, Share, Shield, Eye } from 'lucide-react';
 import { UserMatchingActions } from './UserMatchingActions';
 import { MatchingStatusToggle } from './MatchingStatusToggle';
 import { useSharedFamilyJourneyData } from '@/hooks/useSharedFamilyJourneyData';
 import { useSpecificUserProfessionalProgress } from '@/hooks/useSpecificUserProfessionalProgress';
 import { useUserSpecificProgress } from '@/hooks/useUserSpecificProgress';
+import { useComprehensiveUserData } from '@/hooks/admin/useComprehensiveUserData';
+import { downloadUserReport, type ReportOptions } from '@/services/admin/userReportGenerator';
 import type { UserRole } from '@/types/userRoles';
 
 interface UserDetailModalProps {
@@ -31,6 +34,8 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
 }) => {
   const [careNeeds, setCareNeeds] = useState<any>(null);
   const [loading, setLoading] = useState(false);
+  const [reportLoading, setReportLoading] = useState(false);
+  const [anonymousReport, setAnonymousReport] = useState(false);
 
   // Only call hooks when user and role are valid
   const shouldCallFamilyHook = user?.role === 'family' && user?.id;
@@ -43,6 +48,12 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
   const otherProgress = useUserSpecificProgress(
     shouldCallOtherHook ? user.id : '', 
     shouldCallOtherHook ? (user.role as UserRole) : 'family'
+  );
+
+  // Comprehensive user data for reports
+  const { data: comprehensiveData, loading: dataLoading } = useComprehensiveUserData(
+    user?.id || '', 
+    user?.role
   );
 
   // Safely choose the appropriate progress data with comprehensive null checks
@@ -149,6 +160,57 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
     return "Getting Started";
   };
 
+  const handleGenerateReport = async () => {
+    if (!comprehensiveData) {
+      toast.error('User data not available for report generation');
+      return;
+    }
+
+    setReportLoading(true);
+    try {
+      const reportOptions: ReportOptions = {
+        anonymous: anonymousReport,
+        includePersonalDetails: !anonymousReport,
+        includeAssessmentData: true,
+        includeChatHistory: true
+      };
+
+      const fileName = await downloadUserReport(comprehensiveData, reportOptions);
+      toast.success(`Report generated: ${fileName}`);
+    } catch (error) {
+      console.error('Error generating report:', error);
+      toast.error('Failed to generate report');
+    } finally {
+      setReportLoading(false);
+    }
+  };
+
+  const handleShareViaWhatsApp = async () => {
+    if (!user?.id) {
+      toast.error('User ID not available');
+      return;
+    }
+
+    try {
+      const reportType = anonymousReport ? 'Anonymous' : 'Complete';
+      const message = `📋 ${reportType} User Report Available\n\nUser: ${user.full_name || 'N/A'}\nRole: ${user.role}\nGenerated: ${new Date().toLocaleDateString()}\n\nReport contains ${anonymousReport ? 'care/professional details without personal information' : 'complete user information including assessment data'}.`;
+
+      const { error } = await supabase.functions.invoke('send-nudge-whatsapp', {
+        body: {
+          userIds: [user.id],
+          message: message,
+          templateId: null
+        }
+      });
+
+      if (error) throw error;
+      toast.success('Report shared via WhatsApp');
+    } catch (error) {
+      console.error('Error sharing via WhatsApp:', error);
+      toast.error('Failed to share via WhatsApp');
+    }
+  };
+
   if (!user) return null;
 
   // Safely access steps with comprehensive null checks
@@ -168,12 +230,13 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
         </DialogHeader>
 
         <Tabs defaultValue="profile" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="profile">Profile</TabsTrigger>
             <TabsTrigger value="journey">Journey</TabsTrigger>
             {user.role === 'family' && (
               <TabsTrigger value="matching">Matching</TabsTrigger>
             )}
+            <TabsTrigger value="reports">Reports</TabsTrigger>
             <TabsTrigger value="activity">Activity</TabsTrigger>
           </TabsList>
 
@@ -386,6 +449,162 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
               <UserMatchingActions user={user} onUserUpdate={onUserUpdate} />
             </TabsContent>
           )}
+
+          <TabsContent value="reports" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <FileText className="h-5 w-5" />
+                  User Report Generator
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {dataLoading ? (
+                  <div className="text-center py-4">
+                    <div className="text-sm text-gray-500">Loading comprehensive user data...</div>
+                  </div>
+                ) : comprehensiveData ? (
+                  <>
+                    {/* Report Summary */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <Card className="p-4">
+                        <div className="flex items-center gap-2">
+                          <CheckCircle2 className={`h-4 w-4 ${comprehensiveData.registrationComplete ? 'text-green-600' : 'text-gray-400'}`} />
+                          <span className="text-sm font-medium">Registration</span>
+                        </div>
+                        <p className="text-xs text-gray-600 mt-1">
+                          {comprehensiveData.registrationComplete ? 'Complete' : 'Incomplete'}
+                        </p>
+                      </Card>
+                      
+                      <Card className="p-4">
+                        <div className="flex items-center gap-2">
+                          <CheckCircle2 className={`h-4 w-4 ${comprehensiveData.assessmentComplete ? 'text-green-600' : 'text-gray-400'}`} />
+                          <span className="text-sm font-medium">Assessment</span>
+                        </div>
+                        <p className="text-xs text-gray-600 mt-1">
+                          {comprehensiveData.assessmentComplete ? 'Complete' : 'Incomplete'}
+                        </p>
+                      </Card>
+                      
+                      <Card className="p-4">
+                        <div className="flex items-center gap-2">
+                          <Activity className="h-4 w-4 text-blue-600" />
+                          <span className="text-sm font-medium">Chat History</span>
+                        </div>
+                        <p className="text-xs text-gray-600 mt-1">
+                          {comprehensiveData.chatbotResponses.length} responses
+                        </p>
+                      </Card>
+                    </div>
+
+                    {/* Comprehensive Data Display */}
+                    <div className="space-y-4">
+                      <h4 className="font-medium text-gray-900">Available Data</h4>
+                      
+                      {/* Basic Profile */}
+                      <Card className="p-4">
+                        <h5 className="font-medium mb-2">Profile Information</h5>
+                        <div className="grid grid-cols-2 gap-2 text-sm">
+                          <div>Full Name: {comprehensiveData.profile.full_name || 'Not provided'}</div>
+                          <div>Role: {comprehensiveData.profile.role}</div>
+                          <div>Phone: {comprehensiveData.profile.phone_number || 'Not provided'}</div>
+                          <div>Address: {comprehensiveData.profile.address || 'Not provided'}</div>
+                          {comprehensiveData.profile.role === 'family' && (
+                            <>
+                              <div>Care Recipient: {comprehensiveData.profile.care_recipient_name || 'Not provided'}</div>
+                              <div>Relationship: {comprehensiveData.profile.relationship || 'Not provided'}</div>
+                            </>
+                          )}
+                          {comprehensiveData.profile.role === 'professional' && (
+                            <>
+                              <div>Experience: {comprehensiveData.profile.years_of_experience || 'Not provided'} years</div>
+                              <div>Available: {comprehensiveData.profile.available_for_matching ? 'Yes' : 'No'}</div>
+                            </>
+                          )}
+                        </div>
+                      </Card>
+
+                      {/* Care Assessment (Family only) */}
+                      {comprehensiveData.profile.role === 'family' && comprehensiveData.careNeeds && (
+                        <Card className="p-4">
+                          <h5 className="font-medium mb-2">Care Assessment</h5>
+                          <div className="text-sm space-y-1">
+                            <div>Care Hours: {comprehensiveData.careNeeds.preferred_time_start || 'Not specified'} - {comprehensiveData.careNeeds.preferred_time_end || 'Not specified'}</div>
+                            <div>Medical Conditions: {comprehensiveData.careNeeds.diagnosed_conditions || 'None listed'}</div>
+                            <div>Primary Contact: {comprehensiveData.careNeeds.primary_contact_name || 'Not provided'}</div>
+                            {comprehensiveData.careNeeds.additional_notes && (
+                              <div>Notes: {comprehensiveData.careNeeds.additional_notes}</div>
+                            )}
+                          </div>
+                        </Card>
+                      )}
+
+                      {/* Care Recipient Profile (Family only) */}
+                      {comprehensiveData.profile.role === 'family' && comprehensiveData.careRecipient && (
+                        <Card className="p-4">
+                          <h5 className="font-medium mb-2">Care Recipient Profile</h5>
+                          <div className="text-sm space-y-1">
+                            <div>Birth Year: {comprehensiveData.careRecipient.birth_year || 'Not provided'}</div>
+                            <div>Personality: {comprehensiveData.careRecipient.personality_traits?.join(', ') || 'None listed'}</div>
+                            <div>Interests: {comprehensiveData.careRecipient.hobbies_interests?.join(', ') || 'None listed'}</div>
+                            <div>Career: {comprehensiveData.careRecipient.career_fields?.join(', ') || 'None listed'}</div>
+                          </div>
+                        </Card>
+                      )}
+                    </div>
+
+                    {/* Report Options */}
+                    <div className="border-t pt-4">
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-2">
+                          <Shield className="h-4 w-4" />
+                          <span className="text-sm font-medium">Anonymous Report</span>
+                        </div>
+                        <Switch
+                          checked={anonymousReport}
+                          onCheckedChange={setAnonymousReport}
+                          aria-label="Generate anonymous report"
+                        />
+                      </div>
+                      
+                      <p className="text-xs text-gray-600 mb-4">
+                        {anonymousReport 
+                          ? 'Personal details (name, phone, address) will be removed from the report'
+                          : 'Complete report with all personal and assessment information'
+                        }
+                      </p>
+
+                      {/* Action Buttons */}
+                      <div className="flex gap-2">
+                        <Button 
+                          onClick={handleGenerateReport}
+                          disabled={reportLoading}
+                          className="flex items-center gap-2"
+                        >
+                          <Download className="h-4 w-4" />
+                          {reportLoading ? 'Generating...' : 'Download PDF'}
+                        </Button>
+                        
+                        <Button 
+                          variant="outline"
+                          onClick={handleShareViaWhatsApp}
+                          className="flex items-center gap-2"
+                        >
+                          <Share className="h-4 w-4" />
+                          Share via WhatsApp
+                        </Button>
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <div className="text-center py-8 text-gray-500">
+                    <p>No comprehensive data available for this user.</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
 
           <TabsContent value="activity" className="space-y-4">
             <Card>
