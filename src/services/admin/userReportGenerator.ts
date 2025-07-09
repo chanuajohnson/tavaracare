@@ -10,6 +10,50 @@ export interface ReportOptions {
   includeChatHistory: boolean;
 }
 
+// Helper functions for data formatting
+const formatCareSchedule = (careSchedule: string | null): string => {
+  if (!careSchedule) return 'Not specified';
+  
+  const scheduleMap: Record<string, string> = {
+    'mon_fri_8am_4pm': 'Monday-Friday, 8:00 AM - 4:00 PM',
+    'mon_fri_8am_6pm': 'Monday-Friday, 8:00 AM - 6:00 PM', 
+    'mon_fri_6am_6pm': 'Monday-Friday, 6:00 AM - 6:00 PM',
+    'sat_sun_6am_6pm': 'Saturday-Sunday, 6:00 AM - 6:00 PM',
+    'sat_sun_8am_4pm': 'Saturday-Sunday, 8:00 AM - 4:00 PM',
+    'weekday_evening_4pm_6am': 'Weekday Evening, 4:00 PM - 6:00 AM',
+    'weekday_evening_4pm_8am': 'Weekday Evening, 4:00 PM - 8:00 AM',
+    'weekday_evening_5pm_5am': 'Weekday Evening, 5:00 PM - 5:00 AM',
+    'weekday_evening_5pm_8am': 'Weekday Evening, 5:00 PM - 8:00 AM',
+    'weekday_evening_6pm_6am': 'Weekday Evening, 6:00 PM - 6:00 AM',
+    'weekday_evening_6pm_8am': 'Weekday Evening, 6:00 PM - 8:00 AM',
+    'weekend_evening_4pm_6am': 'Weekend Evening, 4:00 PM - 6:00 AM',
+    'weekend_evening_6pm_6am': 'Weekend Evening, 6:00 PM - 6:00 AM',
+    'flexible': 'Flexible/On-Demand',
+    'live_in_care': 'Live-In Care',
+    '24_7_care': '24/7 Care',
+    'around_clock_shifts': 'Around-the-Clock Shifts',
+    'other': 'Custom Schedule'
+  };
+
+  const schedules = careSchedule.split(',').map(s => s.trim());
+  return schedules.map(s => scheduleMap[s] || s).join(', ');
+};
+
+const formatArray = (arr: any[] | null | undefined, fallback: string = 'None specified'): string => {
+  if (!arr || arr.length === 0) return fallback;
+  return arr.join(', ');
+};
+
+const formatBoolean = (value: boolean | null | undefined): string => {
+  if (value === null || value === undefined) return 'Not specified';
+  return value ? 'Yes' : 'No';
+};
+
+const formatCurrency = (value: number | null | undefined): string => {
+  if (!value) return 'Not specified';
+  return `$${value.toFixed(2)}`;
+};
+
 export const generateUserReportPDF = async (
   userData: ComprehensiveUserData,
   options: ReportOptions = {
@@ -53,7 +97,7 @@ export const generateUserReportPDF = async (
   doc.text(`Generated on: ${format(new Date(), 'PPP')}`, margin, yPosition);
   yPosition += 15;
 
-  // Basic Information Section
+  // Enhanced Basic Information Section
   checkPageBreak(40);
   doc.setFontSize(16);
   doc.setTextColor(0, 0, 0);
@@ -74,20 +118,13 @@ export const generateUserReportPDF = async (
   basicInfo.push(['Role', profile.role || 'Not specified']);
   basicInfo.push(['Registration Date', profile.created_at ? format(new Date(profile.created_at), 'PPP') : 'Unknown']);
   basicInfo.push(['Last Updated', profile.updated_at ? format(new Date(profile.updated_at), 'PPP') : 'Unknown']);
+  basicInfo.push(['Preferred Contact Method', profile.preferred_contact_method || 'Not specified']);
   
-  if (profile.role === 'family' && !options.anonymous) {
-    basicInfo.push(['Care Recipient', profile.care_recipient_name || 'Not provided']);
-    basicInfo.push(['Relationship', profile.relationship || 'Not provided']);
-  }
-
-  if (profile.role === 'professional') {
-    if (!options.anonymous) {
-      basicInfo.push(['Years of Experience', profile.years_of_experience?.toString() || 'Not provided']);
-    }
-    basicInfo.push(['Certifications', profile.certifications?.join(', ') || 'None listed']);
-    basicInfo.push(['Specializations', profile.specializations?.join(', ') || 'None listed']);
-    basicInfo.push(['Languages', profile.languages?.join(', ') || 'None listed']);
-    basicInfo.push(['Available for Matching', profile.available_for_matching ? 'Yes' : 'No']);
+  // Care schedule - this was the missing piece!
+  if (profile.care_schedule) {
+    basicInfo.push(['Care Hours', formatCareSchedule(profile.care_schedule)]);
+  } else {
+    basicInfo.push(['Care Hours', 'Not specified']);
   }
 
   // Add basic info table
@@ -98,6 +135,136 @@ export const generateUserReportPDF = async (
     styles: { fontSize: 10 },
     headStyles: { fillColor: [59, 130, 246] },
     margin: { left: margin, right: margin }
+  });
+
+  yPosition = (doc as any).lastAutoTable.finalY + 15;
+
+  // Family-Specific Comprehensive Section
+  if (profile.role === 'family') {
+    checkPageBreak(40);
+    doc.setFontSize(16);
+    doc.text('Family Profile Details', margin, yPosition);
+    yPosition += 10;
+
+    const familyDetails: Array<[string, string]> = [];
+    
+    if (!options.anonymous) {
+      familyDetails.push(['Care Recipient', profile.care_recipient_name || 'Not provided']);
+      familyDetails.push(['Relationship', profile.relationship || 'Not provided']);
+    }
+    
+    familyDetails.push(['Care Types', formatArray(profile.care_types)]);
+    familyDetails.push(['Special Needs', formatArray(profile.special_needs)]);
+    familyDetails.push(['Budget Preferences', profile.budget_preferences || 'Not specified']);
+    familyDetails.push(['Caregiver Type', profile.caregiver_type || 'Not specified']);
+    familyDetails.push(['Caregiver Preferences', profile.caregiver_preferences || 'Not specified']);
+    familyDetails.push(['Custom Care Schedule', profile.custom_care_schedule || 'Not specified']);
+    familyDetails.push(['Additional Notes', profile.additional_notes || 'None provided']);
+
+    autoTable(doc, {
+      startY: yPosition,
+      head: [['Family Profile', 'Details']],
+      body: familyDetails,
+      styles: { fontSize: 10 },
+      headStyles: { fillColor: [34, 197, 94] },
+      margin: { left: margin, right: margin },
+      columnStyles: {
+        1: { cellWidth: contentWidth * 0.65 }
+      }
+    });
+
+    yPosition = (doc as any).lastAutoTable.finalY + 15;
+  }
+
+  // Professional Services & Capabilities Section
+  if (profile.role === 'professional') {
+    checkPageBreak(40);
+    doc.setFontSize(16);
+    doc.text('Professional Capabilities & Services', margin, yPosition);
+    yPosition += 10;
+
+    const professionalDetails: Array<[string, string]> = [];
+    
+    if (!options.anonymous) {
+      professionalDetails.push(['Years of Experience', profile.years_of_experience?.toString() || 'Not provided']);
+      professionalDetails.push(['Bio', profile.bio || 'Not provided']);
+    }
+    
+    professionalDetails.push(['Certifications', formatArray(profile.certifications)]);
+    professionalDetails.push(['Specializations', formatArray(profile.specializations)]);
+    professionalDetails.push(['Languages', formatArray(profile.languages)]);
+    professionalDetails.push(['Care Services', formatArray(profile.care_services)]);
+    professionalDetails.push(['Care Types', formatArray(profile.care_types)]);
+    professionalDetails.push(['Caregiving Areas', formatArray(profile.caregiving_areas)]);
+    professionalDetails.push(['Professional Type', profile.professional_type || 'Not specified']);
+    professionalDetails.push(['Caregiver Type', profile.caregiver_type || 'Not specified']);
+    
+    // Service offerings
+    professionalDetails.push(['Housekeeping Available', formatBoolean(profile.housekeeping_available)]);
+    professionalDetails.push(['Transportation Available', formatBoolean(profile.transportation_available)]);
+    professionalDetails.push(['Meal Preparation Available', formatBoolean(profile.meal_preparation_available)]);
+    professionalDetails.push(['Personal Care Available', formatBoolean(profile.personal_care_available)]);
+    professionalDetails.push(['Companionship Available', formatBoolean(profile.companionship_available)]);
+    
+    // Work preferences
+    professionalDetails.push(['Work Locations', formatArray(profile.work_locations)]);
+    professionalDetails.push(['Video Available', formatBoolean(profile.video_available)]);
+    professionalDetails.push(['Available for Matching', formatBoolean(profile.available_for_matching)]);
+    
+    // Experience and rates
+    if (!options.anonymous) {
+      professionalDetails.push(['Expected Hourly Rate', formatCurrency(profile.expected_hourly_rate)]);
+      professionalDetails.push(['Years Experience', profile.years_experience?.toString() || 'Not specified']);
+    }
+
+    autoTable(doc, {
+      startY: yPosition,
+      head: [['Professional Details', 'Information']],
+      body: professionalDetails,
+      styles: { fontSize: 10 },
+      headStyles: { fillColor: [168, 85, 247] },
+      margin: { left: margin, right: margin },
+      columnStyles: {
+        1: { cellWidth: contentWidth * 0.65 }
+      }
+    });
+
+    yPosition = (doc as any).lastAutoTable.finalY + 15;
+  }
+
+  // Administrative Status Section
+  checkPageBreak(40);
+  doc.setFontSize(16);
+  doc.text('Administrative Status', margin, yPosition);
+  yPosition += 10;
+
+  const adminStatus: Array<[string, string]> = [];
+  
+  adminStatus.push(['Visit Payment Status', profile.visit_payment_status || 'Not specified']);
+  adminStatus.push(['Visit Type Preference', profile.visit_type_preference || 'Not specified']);
+  adminStatus.push(['Ready for Admin Scheduling', formatBoolean(profile.ready_for_admin_scheduling)]);
+  adminStatus.push(['Background Check Completed', formatBoolean(profile.background_check_completed)]);
+  
+  if (!options.anonymous) {
+    adminStatus.push(['Visit Payment Reference', profile.visit_payment_reference || 'Not specified']);
+    if (profile.admin_visit_scheduled_date) {
+      adminStatus.push(['Admin Visit Scheduled', format(new Date(profile.admin_visit_scheduled_date), 'PPP')]);
+    }
+    if (profile.last_login_at) {
+      adminStatus.push(['Last Login', format(new Date(profile.last_login_at), 'PPP')]);
+    }
+  }
+
+  autoTable(doc, {
+    startY: yPosition,
+    head: [['Administrative Item', 'Status']],
+    body: adminStatus,
+    styles: { fontSize: 10 },
+    headStyles: { fillColor: [249, 115, 22] },
+    margin: { left: margin, right: margin },
+    columnStyles: {
+      1: { cellWidth: contentWidth * 0.65 }
+    }
   });
 
   yPosition = (doc as any).lastAutoTable.finalY + 15;
