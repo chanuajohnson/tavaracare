@@ -273,21 +273,27 @@ export const useCaregiverMatches = (showOnlyBestMatch: boolean = true) => {
           algorithm_version: 'v1.0'
         }));
 
+        console.log('Attempting to save automatic assignments:', automatedMatches);
+
         // Upsert automatic assignments (insert or update)
-        const { error: upsertError } = await supabase
+        const { data: upsertData, error: upsertError } = await supabase
           .from('automatic_assignments')
           .upsert(automatedMatches, {
             onConflict: 'family_user_id,caregiver_id',
             ignoreDuplicates: false
-          });
+          })
+          .select();
         
         if (upsertError) {
-          console.warn('Could not save automatic assignments:', upsertError);
+          console.error('Failed to save automatic assignments:', upsertError);
+          toast.error('Failed to save automatic assignments to database');
         } else {
-          console.log('Saved automatic assignments for tracking:', automatedMatches.length);
+          console.log('Successfully saved automatic assignments:', upsertData);
+          toast.success(`Saved ${automatedMatches.length} automatic assignments to database`);
         }
       } catch (saveError) {
-        console.warn('Error saving automatic assignments:', saveError);
+        console.error('Error saving automatic assignments:', saveError);
+        toast.error('Error saving automatic assignments: ' + (saveError as Error).message);
       }
       
       realCaregivers.sort((a, b) => b.match_score - a.match_score);

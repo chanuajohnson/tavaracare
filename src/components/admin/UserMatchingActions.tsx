@@ -260,6 +260,9 @@ export const UserMatchingActions: React.FC<UserMatchingActionsProps> = ({
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-medium">Caregiver Matching</h3>
+        <div className="text-sm text-muted-foreground">
+          User ID: {user.id} | Email: {user.email}
+        </div>
         <div className="flex gap-2">
           {hasStaleAssignments && (
             <Button 
