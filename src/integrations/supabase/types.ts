@@ -344,6 +344,60 @@ export type Database = {
         }
         Relationships: []
       }
+      automatic_assignments: {
+        Row: {
+          algorithm_version: string | null
+          caregiver_id: string
+          created_at: string | null
+          family_user_id: string
+          id: string
+          is_active: boolean | null
+          match_explanation: string | null
+          match_score: number
+          shift_compatibility_score: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          algorithm_version?: string | null
+          caregiver_id: string
+          created_at?: string | null
+          family_user_id: string
+          id?: string
+          is_active?: boolean | null
+          match_explanation?: string | null
+          match_score: number
+          shift_compatibility_score?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          algorithm_version?: string | null
+          caregiver_id?: string
+          created_at?: string | null
+          family_user_id?: string
+          id?: string
+          is_active?: boolean | null
+          match_explanation?: string | null
+          match_score?: number
+          shift_compatibility_score?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "automatic_assignments_caregiver_id_fkey"
+            columns: ["caregiver_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "automatic_assignments_family_user_id_fkey"
+            columns: ["family_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       calendar_events: {
         Row: {
           calendar_id: string
@@ -4389,6 +4443,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
+      cleanup_stale_assignments: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
       detect_medication_conflicts: {
         Args: {
           p_medication_id: string
@@ -4402,6 +4460,16 @@ export type Database = {
           administered_by_role: string
           status: string
           notes: string
+        }[]
+      }
+      detect_stale_assignments: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          assignment_type: string
+          assignment_id: string
+          family_user_id: string
+          caregiver_id: string
+          issue: string
         }[]
       }
       format_whatsapp_number: {
@@ -4440,6 +4508,10 @@ export type Database = {
           new_time: string
           reason?: string
         }
+        Returns: undefined
+      }
+      reset_user_assignments: {
+        Args: { target_family_user_id: string }
         Returns: undefined
       }
       update_care_plan_status: {

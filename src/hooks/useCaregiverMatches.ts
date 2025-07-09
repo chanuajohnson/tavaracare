@@ -262,6 +262,34 @@ export const useCaregiverMatches = (showOnlyBestMatch: boolean = true) => {
         };
       });
       
+      // Save automatic assignments to database for tracking
+      try {
+        const automatedMatches = realCaregivers.map(caregiver => ({
+          family_user_id: user.id,
+          caregiver_id: caregiver.id,
+          match_score: caregiver.match_score,
+          shift_compatibility_score: caregiver.shift_compatibility_score,
+          match_explanation: caregiver.match_explanation,
+          algorithm_version: 'v1.0'
+        }));
+
+        // Upsert automatic assignments (insert or update)
+        const { error: upsertError } = await supabase
+          .from('automatic_assignments')
+          .upsert(automatedMatches, {
+            onConflict: 'family_user_id,caregiver_id',
+            ignoreDuplicates: false
+          });
+        
+        if (upsertError) {
+          console.warn('Could not save automatic assignments:', upsertError);
+        } else {
+          console.log('Saved automatic assignments for tracking:', automatedMatches.length);
+        }
+      } catch (saveError) {
+        console.warn('Error saving automatic assignments:', saveError);
+      }
+      
       realCaregivers.sort((a, b) => b.match_score - a.match_score);
       processedCaregiversRef.current = realCaregivers;
       

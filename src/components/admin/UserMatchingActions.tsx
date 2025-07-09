@@ -4,9 +4,10 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Users, Eye, Calendar, UserCheck } from 'lucide-react';
+import { Users, Eye, Calendar, UserCheck, RotateCcw, AlertTriangle, Settings, Database } from 'lucide-react';
 import { AdminMatchingInterface } from './AdminMatchingInterface';
 import { EnhancedAdminMatchingInterface } from './enhanced/EnhancedAdminMatchingInterface';
 
@@ -15,13 +16,40 @@ interface UserMatchingActionsProps {
   onUserUpdate: () => void;
 }
 
+interface AssignmentData {
+  id: string;
+  type: 'automatic' | 'manual' | 'intervention';
+  caregiver_name: string;
+  caregiver_email: string;
+  match_score: number;
+  status: string;
+  created_at: string;
+  admin_name?: string;
+  visit_scheduled?: boolean;
+  match_explanation?: string;
+  intervention_type?: string;
+  reason?: string;
+}
+
+interface StaleAssignment {
+  assignment_type: string;
+  assignment_id: string;
+  family_user_id: string;
+  caregiver_id: string;
+  issue: string;
+}
+
 export const UserMatchingActions: React.FC<UserMatchingActionsProps> = ({
   user,
   onUserUpdate
 }) => {
   const [manualAssignments, setManualAssignments] = useState<any[]>([]);
   const [interventions, setInterventions] = useState<any[]>([]);
+  const [automaticAssignments, setAutomaticAssignments] = useState<any[]>([]);
+  const [staleAssignments, setStaleAssignments] = useState<StaleAssignment[]>([]);
   const [showMatchingInterface, setShowMatchingInterface] = useState(false);
+  const [showResetDialog, setShowResetDialog] = useState(false);
+  const [showStaleDialog, setShowStaleDialog] = useState(false);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -59,6 +87,33 @@ export const UserMatchingActions: React.FC<UserMatchingActionsProps> = ({
 
       if (interventionError) throw interventionError;
       setInterventions(interventionData || []);
+
+      // Fetch automatic assignments
+      const { data: automaticData, error: automaticError } = await supabase
+        .from('automatic_assignments')
+        .select(`
+          *,
+          caregiver:profiles!caregiver_id(full_name, email)
+        `)
+        .eq('family_user_id', user.id)
+        .eq('is_active', true)
+        .order('created_at', { ascending: false });
+
+      if (automaticError) throw automaticError;
+      setAutomaticAssignments(automaticData || []);
+
+      // Fetch stale assignments
+      const { data: staleData, error: staleError } = await supabase
+        .rpc('detect_stale_assignments');
+
+      if (staleError) {
+        console.warn('Error fetching stale assignments:', staleError);
+      } else {
+        const userStaleAssignments = staleData?.filter(
+          (stale: StaleAssignment) => stale.family_user_id === user.id
+        ) || [];
+        setStaleAssignments(userStaleAssignments);
+      }
     } catch (error) {
       console.error('Error fetching matching data:', error);
     }
@@ -72,6 +127,48 @@ export const UserMatchingActions: React.FC<UserMatchingActionsProps> = ({
     } catch (error) {
       console.error('Error scheduling visit:', error);
       toast.error('Failed to schedule visit');
+    }
+  };
+
+  const handleResetAssignments = async () => {
+    try {
+      setLoading(true);
+      const { error } = await supabase
+        .rpc('reset_user_assignments', { 
+          target_family_user_id: user.id 
+        });
+
+      if (error) throw error;
+      
+      toast.success('All assignments have been reset');
+      fetchMatchingData();
+      onUserUpdate();
+      setShowResetDialog(false);
+    } catch (error) {
+      console.error('Error resetting assignments:', error);
+      toast.error('Failed to reset assignments: ' + (error as Error).message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCleanupStaleAssignments = async () => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .rpc('cleanup_stale_assignments');
+
+      if (error) throw error;
+      
+      toast.success('Stale assignments cleaned up: ' + data);
+      fetchMatchingData();
+      onUserUpdate();
+      setShowStaleDialog(false);
+    } catch (error) {
+      console.error('Error cleaning up stale assignments:', error);
+      toast.error('Failed to cleanup stale assignments: ' + (error as Error).message);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -96,46 +193,151 @@ export const UserMatchingActions: React.FC<UserMatchingActionsProps> = ({
     }
   };
 
+  // Combine all assignments for comprehensive view
+  const getAllAssignments = (): AssignmentData[] => {
+    const allAssignments: AssignmentData[] = [];
+
+    // Add automatic assignments
+    automaticAssignments.forEach(assignment => {
+      allAssignments.push({
+        id: assignment.id,
+        type: 'automatic',
+        caregiver_name: assignment.caregiver?.full_name || 'Unknown',
+        caregiver_email: assignment.caregiver?.email || '',
+        match_score: assignment.match_score,
+        status: assignment.is_active ? 'Active' : 'Inactive',
+        created_at: assignment.created_at,
+        match_explanation: assignment.match_explanation
+      });
+    });
+
+    // Add manual assignments
+    manualAssignments.forEach(assignment => {
+      allAssignments.push({
+        id: assignment.id,
+        type: 'manual',
+        caregiver_name: assignment.caregiver?.full_name || 'Unknown',
+        caregiver_email: assignment.caregiver?.email || '',
+        match_score: assignment.match_score,
+        status: assignment.is_active ? 'Active' : 'Inactive',
+        created_at: assignment.created_at,
+        admin_name: assignment.admin?.full_name,
+        visit_scheduled: assignment.visit_scheduled
+      });
+    });
+
+    // Add interventions
+    interventions.forEach(intervention => {
+      allAssignments.push({
+        id: intervention.id,
+        type: 'intervention',
+        caregiver_name: intervention.caregiver?.full_name || 'Unknown',
+        caregiver_email: intervention.caregiver?.email || '',
+        match_score: intervention.admin_match_score || 0,
+        status: intervention.status,
+        created_at: intervention.created_at,
+        admin_name: intervention.admin?.full_name,
+        intervention_type: intervention.intervention_type,
+        reason: intervention.reason
+      });
+    });
+
+    // Sort by creation date (newest first)
+    return allAssignments.sort((a, b) => 
+      new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    );
+  };
+
   if (user?.role !== 'family') {
     return null;
   }
+
+  const allAssignments = getAllAssignments();
+  const hasAnyAssignments = allAssignments.length > 0;
+  const hasStaleAssignments = staleAssignments.length > 0;
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-medium">Caregiver Matching</h3>
-        <Button 
-          onClick={() => setShowMatchingInterface(true)}
-          size="sm"
-        >
-          <Users className="h-4 w-4 mr-2" />
-          Manual Match
-        </Button>
+        <div className="flex gap-2">
+          {hasStaleAssignments && (
+            <Button 
+              onClick={() => setShowStaleDialog(true)}
+              size="sm"
+              variant="outline"
+            >
+              <AlertTriangle className="h-4 w-4 mr-2 text-orange-500" />
+              Stale Data ({staleAssignments.length})
+            </Button>
+          )}
+          {hasAnyAssignments && (
+            <Button 
+              onClick={() => setShowResetDialog(true)}
+              size="sm"
+              variant="outline"
+            >
+              <RotateCcw className="h-4 w-4 mr-2" />
+              Reset All
+            </Button>
+          )}
+          <Button 
+            onClick={() => setShowMatchingInterface(true)}
+            size="sm"
+          >
+            <Users className="h-4 w-4 mr-2" />
+            Manual Match
+          </Button>
+        </div>
       </div>
 
-      {/* Current Assignments */}
-      {manualAssignments.length > 0 && (
+      {/* Comprehensive Assignment View */}
+      {hasAnyAssignments ? (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Active Assignments</CardTitle>
+            <CardTitle className="text-base">All Assignments ({allAssignments.length})</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            {manualAssignments.map((assignment) => (
-              <div key={assignment.id} className="flex items-center justify-between p-3 border rounded">
-                <div>
-                  <p className="font-medium">{assignment.caregiver?.full_name}</p>
-                  <p className="text-sm text-gray-600">{assignment.caregiver?.email}</p>
+            {allAssignments.map((assignment) => (
+              <div key={`${assignment.type}-${assignment.id}`} className="flex items-center justify-between p-3 border rounded">
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-1">
+                    <p className="font-medium">{assignment.caregiver_name}</p>
+                    <Badge variant={
+                      assignment.type === 'automatic' ? 'secondary' : 
+                      assignment.type === 'manual' ? 'default' : 'outline'
+                    }>
+                      {assignment.type === 'automatic' ? 'Algorithm' : 
+                       assignment.type === 'manual' ? 'Manual' : 'Override'}
+                    </Badge>
+                  </div>
+                  <p className="text-sm text-gray-600">{assignment.caregiver_email}</p>
                   <div className="flex items-center gap-2 mt-1">
                     <Badge variant="outline">
                       Score: {assignment.match_score}%
                     </Badge>
-                    <Badge variant={assignment.visit_scheduled ? 'default' : 'secondary'}>
-                      {assignment.visit_scheduled ? 'Visit Scheduled' : 'No Visit Yet'}
+                    <Badge variant={assignment.status === 'Active' || assignment.status === 'active' ? 'default' : 'secondary'}>
+                      {assignment.status}
                     </Badge>
+                    {assignment.visit_scheduled && (
+                      <Badge variant="default">Visit Scheduled</Badge>
+                    )}
                   </div>
+                  {assignment.match_explanation && (
+                    <p className="text-xs text-gray-500 mt-1">{assignment.match_explanation}</p>
+                  )}
+                  {assignment.admin_name && (
+                    <p className="text-xs text-gray-500 mt-1">By: {assignment.admin_name}</p>
+                  )}
+                  {assignment.reason && (
+                    <p className="text-xs text-gray-500 mt-1">{assignment.reason}</p>
+                  )}
                 </div>
                 <div className="flex gap-2">
-                  {!assignment.visit_scheduled && (
+                  <p className="text-xs text-gray-500">
+                    {new Date(assignment.created_at).toLocaleDateString()}
+                  </p>
+                  {assignment.type === 'manual' && !assignment.visit_scheduled && (
                     <Button 
                       size="sm" 
                       variant="outline"
@@ -145,56 +347,22 @@ export const UserMatchingActions: React.FC<UserMatchingActionsProps> = ({
                       Schedule
                     </Button>
                   )}
-                  <Button 
-                    size="sm" 
-                    variant="destructive"
-                    onClick={() => handleDeactivateAssignment(assignment.id)}
-                    disabled={loading}
-                  >
-                    Deactivate
-                  </Button>
+                  {assignment.type === 'manual' && (
+                    <Button 
+                      size="sm" 
+                      variant="destructive"
+                      onClick={() => handleDeactivateAssignment(assignment.id)}
+                      disabled={loading}
+                    >
+                      Deactivate
+                    </Button>
+                  )}
                 </div>
               </div>
             ))}
           </CardContent>
         </Card>
-      )}
-
-      {/* Intervention History */}
-      {interventions.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Intervention History</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2 max-h-40 overflow-y-auto">
-              {interventions.map((intervention) => (
-                <div key={intervention.id} className="text-sm border-l-2 border-blue-200 pl-3">
-                  <div className="flex items-center justify-between">
-                    <span className="font-medium">
-                      {intervention.intervention_type.replace('_', ' ').toUpperCase()}
-                    </span>
-                    <Badge variant="outline">
-                      {intervention.status}
-                    </Badge>
-                  </div>
-                  <p className="text-gray-600">
-                    {intervention.caregiver?.full_name} • {intervention.admin?.full_name}
-                  </p>
-                  <p className="text-gray-500">
-                    {new Date(intervention.created_at).toLocaleDateString()}
-                  </p>
-                  {intervention.reason && (
-                    <p className="text-sm text-gray-600 mt-1">{intervention.reason}</p>
-                  )}
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {manualAssignments.length === 0 && interventions.length === 0 && (
+      ) : (
         <Card>
           <CardContent className="py-6 text-center">
             <UserCheck className="h-8 w-8 mx-auto mb-2 text-gray-400" />
@@ -221,6 +389,62 @@ export const UserMatchingActions: React.FC<UserMatchingActionsProps> = ({
           />
         </DialogContent>
       </Dialog>
+
+      {/* Reset Assignments Dialog */}
+      <AlertDialog open={showResetDialog} onOpenChange={setShowResetDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Reset All Assignments</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will deactivate all assignments for this family user:
+              <br />• {automaticAssignments.length} automatic assignments
+              <br />• {manualAssignments.length} manual assignments  
+              <br />• {interventions.filter(i => i.status === 'active').length} active interventions
+              <br /><br />
+              This action cannot be undone. Are you sure you want to continue?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleResetAssignments}
+              disabled={loading}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {loading ? 'Resetting...' : 'Reset All Assignments'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Stale Data Cleanup Dialog */}
+      <AlertDialog open={showStaleDialog} onOpenChange={setShowStaleDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Cleanup Stale Assignments</AlertDialogTitle>
+            <AlertDialogDescription>
+              Found {staleAssignments.length} stale assignments with issues:
+              <br /><br />
+              {staleAssignments.map((stale, index) => (
+                <div key={index} className="text-sm">
+                  • {stale.assignment_type}: {stale.issue}
+                </div>
+              ))}
+              <br />
+              This will deactivate all assignments with missing users. Continue?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleCleanupStaleAssignments}
+              disabled={loading}
+            >
+              {loading ? 'Cleaning...' : 'Cleanup Stale Data'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
