@@ -8,6 +8,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Users, Eye, Calendar, UserCheck } from 'lucide-react';
 import { AdminMatchingInterface } from './AdminMatchingInterface';
+import { EnhancedAdminMatchingInterface } from './enhanced/EnhancedAdminMatchingInterface';
 
 interface UserMatchingActionsProps {
   user: any;
@@ -209,7 +210,7 @@ export const UserMatchingActions: React.FC<UserMatchingActionsProps> = ({
           <DialogHeader>
             <DialogTitle>Manual Caregiver Matching</DialogTitle>
           </DialogHeader>
-          <AdminMatchingInterface
+          <EnhancedAdminMatchingInterface
             familyUserId={user.id}
             onClose={() => setShowMatchingInterface(false)}
             onMatchAssigned={() => {
