@@ -4447,6 +4447,28 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: string
       }
+      create_admin_assignment: {
+        Args: {
+          target_family_user_id: string
+          target_caregiver_id: string
+          calculated_match_score: number
+          admin_override_score?: number
+          assignment_reason?: string
+          assignment_notes?: string
+        }
+        Returns: string
+      }
+      create_automatic_assignment: {
+        Args: {
+          target_family_user_id: string
+          target_caregiver_id: string
+          calculated_match_score: number
+          calculated_shift_compatibility_score?: number
+          assignment_explanation?: string
+          algorithm_version_param?: string
+        }
+        Returns: string
+      }
       detect_medication_conflicts: {
         Args: {
           p_medication_id: string
@@ -4513,6 +4535,10 @@ export type Database = {
       reset_user_assignments: {
         Args: { target_family_user_id: string }
         Returns: undefined
+      }
+      trigger_automatic_assignment_process: {
+        Args: { target_family_user_id?: string }
+        Returns: string
       }
       update_care_plan_status: {
         Args: { plan_id: string; new_status: string }

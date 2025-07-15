@@ -262,38 +262,25 @@ export const useCaregiverMatches = (showOnlyBestMatch: boolean = true) => {
         };
       });
       
-      // Save automatic assignments to database for tracking
+      // Family users can now only VIEW their assignments, not create them
+      // Assignment creation is handled by the truly automatic system and admin controls
+      console.log('Displaying caregiver matches from existing assignments and admin overrides');
+      
+      // Check for existing automatic assignments for this family user
       try {
-        const automatedMatches = realCaregivers.map(caregiver => ({
-          family_user_id: user.id,
-          caregiver_id: caregiver.id,
-          match_score: caregiver.match_score,
-          shift_compatibility_score: caregiver.shift_compatibility_score,
-          match_explanation: caregiver.match_explanation,
-          algorithm_version: 'v1.0'
-        }));
-
-        console.log('Attempting to save automatic assignments:', automatedMatches);
-
-        // Upsert automatic assignments (insert or update)
-        const { data: upsertData, error: upsertError } = await supabase
+        const { data: existingAssignments, error: assignmentError } = await supabase
           .from('automatic_assignments')
-          .upsert(automatedMatches, {
-            onConflict: 'family_user_id,caregiver_id',
-            ignoreDuplicates: false
-          })
-          .select();
+          .select('*')
+          .eq('family_user_id', user.id)
+          .eq('is_active', true);
         
-        if (upsertError) {
-          console.error('Failed to save automatic assignments:', upsertError);
-          toast.error('Failed to save automatic assignments to database');
+        if (assignmentError) {
+          console.warn('Could not fetch existing assignments:', assignmentError);
         } else {
-          console.log('Successfully saved automatic assignments:', upsertData);
-          toast.success(`Saved ${automatedMatches.length} automatic assignments to database`);
+          console.log('Found existing automatic assignments:', existingAssignments?.length || 0);
         }
-      } catch (saveError) {
-        console.error('Error saving automatic assignments:', saveError);
-        toast.error('Error saving automatic assignments: ' + (saveError as Error).message);
+      } catch (fetchError) {
+        console.warn('Error fetching existing assignments:', fetchError);
       }
       
       realCaregivers.sort((a, b) => b.match_score - a.match_score);
