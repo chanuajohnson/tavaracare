@@ -69,7 +69,7 @@ export const UserMatchingActions: React.FC<UserMatchingActionsProps> = ({
         .from('manual_caregiver_assignments')
         .select(`
           *,
-          caregiver:profiles!caregiver_id(full_name, email),
+          caregiver:profiles!caregiver_id(full_name),
           admin:profiles!assigned_by_admin_id(full_name)
         `)
         .eq('family_user_id', user.id)
@@ -83,7 +83,7 @@ export const UserMatchingActions: React.FC<UserMatchingActionsProps> = ({
         .from('admin_match_interventions')
         .select(`
           *,
-          caregiver:profiles!caregiver_id(full_name, email),
+          caregiver:profiles!caregiver_id(full_name),
           admin:profiles!admin_id(full_name)
         `)
         .eq('family_user_id', user.id)
@@ -97,7 +97,7 @@ export const UserMatchingActions: React.FC<UserMatchingActionsProps> = ({
         .from('automatic_assignments')
         .select(`
           *,
-          caregiver:profiles!caregiver_id(full_name, email)
+          caregiver:profiles!caregiver_id(full_name)
         `)
         .eq('family_user_id', user.id)
         .eq('is_active', true)
@@ -111,7 +111,7 @@ export const UserMatchingActions: React.FC<UserMatchingActionsProps> = ({
         .from('care_team_members')
         .select(`
           *,
-          caregiver:profiles!caregiver_id(full_name, email)
+          caregiver:profiles!caregiver_id(full_name)
         `)
         .eq('family_id', user.id)
         .order('created_at', { ascending: false });
@@ -220,7 +220,7 @@ export const UserMatchingActions: React.FC<UserMatchingActionsProps> = ({
         id: assignment.id,
         type: 'automatic',
         caregiver_name: assignment.caregiver?.full_name || 'Unknown',
-        caregiver_email: assignment.caregiver?.email || '',
+        caregiver_email: '',
         match_score: assignment.match_score,
         status: assignment.is_active ? 'Active' : 'Inactive',
         created_at: assignment.created_at,
@@ -234,7 +234,7 @@ export const UserMatchingActions: React.FC<UserMatchingActionsProps> = ({
         id: assignment.id,
         type: 'manual',
         caregiver_name: assignment.caregiver?.full_name || 'Unknown',
-        caregiver_email: assignment.caregiver?.email || '',
+        caregiver_email: '',
         match_score: assignment.match_score,
         status: assignment.is_active ? 'Active' : 'Inactive',
         created_at: assignment.created_at,
@@ -249,7 +249,7 @@ export const UserMatchingActions: React.FC<UserMatchingActionsProps> = ({
         id: intervention.id,
         type: 'intervention',
         caregiver_name: intervention.caregiver?.full_name || 'Unknown',
-        caregiver_email: intervention.caregiver?.email || '',
+        caregiver_email: '',
         match_score: intervention.admin_match_score || 0,
         status: intervention.status,
         created_at: intervention.created_at,
@@ -265,7 +265,7 @@ export const UserMatchingActions: React.FC<UserMatchingActionsProps> = ({
         id: member.id,
         type: 'team_member',
         caregiver_name: member.caregiver?.full_name || 'Unknown',
-        caregiver_email: member.caregiver?.email || '',
+        caregiver_email: '',
         match_score: 100, // Team members are considered perfect matches
         status: member.status || 'active',
         created_at: member.created_at,
@@ -349,7 +349,9 @@ export const UserMatchingActions: React.FC<UserMatchingActionsProps> = ({
                        assignment.type === 'team_member' ? 'Team Member' : 'Override'}
                     </Badge>
                   </div>
-                  <p className="text-sm text-gray-600">{assignment.caregiver_email}</p>
+                  {assignment.caregiver_email && (
+                    <p className="text-sm text-gray-600">{assignment.caregiver_email}</p>
+                  )}
                   <div className="flex items-center gap-2 mt-1">
                     <Badge variant="outline">
                       Score: {assignment.match_score}%
