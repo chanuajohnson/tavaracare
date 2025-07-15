@@ -10,7 +10,7 @@ import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { toast } from 'sonner';
 import { useAdminAssignments } from '@/hooks/useAdminAssignments';
-import { Users, UserPlus, Bot, Settings, Eye, Clock, Award } from 'lucide-react';
+import { Users, UserPlus, Bot, Settings, Eye, Clock, Award, User, DollarSign, Shield, FileText } from 'lucide-react';
 
 interface FamilyUser {
   id: string;
@@ -41,6 +41,20 @@ interface Assignment {
   };
 }
 
+interface CareTeamMember {
+  id: string;
+  role: string;
+  status: string;
+  regular_rate: number;
+  overtime_rate: number;
+  created_at: string;
+  caregiver: {
+    id: string;
+    full_name: string;
+    location: string;
+  };
+}
+
 export const AdminAssignmentInterface: React.FC = () => {
   const {
     createAdminAssignment,
@@ -63,7 +77,9 @@ export const AdminAssignmentInterface: React.FC = () => {
   const [existingAssignments, setExistingAssignments] = useState<{
     automatic: Assignment[];
     admin: Assignment[];
-  }>({ automatic: [], admin: [] });
+    manual: Assignment[];
+    careTeam: CareTeamMember[];
+  }>({ automatic: [], admin: [], manual: [], careTeam: [] });
   const [activeTab, setActiveTab] = useState<'create' | 'trigger' | 'view'>('create');
 
   // Load initial data
@@ -92,7 +108,14 @@ export const AdminAssignmentInterface: React.FC = () => {
             match_score: a.admin_match_score || a.original_match_score,
             created_at: a.created_at,
             caregiver: a.caregiver
-          }))
+          })),
+          manual: assignments.manual.map(a => ({
+            id: a.id,
+            match_score: a.match_score,
+            created_at: a.created_at,
+            caregiver: a.caregiver
+          })),
+          careTeam: assignments.careTeam
         });
       }
     };
@@ -133,7 +156,14 @@ export const AdminAssignmentInterface: React.FC = () => {
           match_score: a.admin_match_score || a.original_match_score,
           created_at: a.created_at,
           caregiver: a.caregiver
-        }))
+        })),
+        manual: assignments.manual.map(a => ({
+          id: a.id,
+          match_score: a.match_score,
+          created_at: a.created_at,
+          caregiver: a.caregiver
+        })),
+        careTeam: assignments.careTeam
       });
     }
   };
@@ -151,7 +181,14 @@ export const AdminAssignmentInterface: React.FC = () => {
           match_score: a.admin_match_score || a.original_match_score,
           created_at: a.created_at,
           caregiver: a.caregiver
-        }))
+        })),
+        manual: assignments.manual.map(a => ({
+          id: a.id,
+          match_score: a.match_score,
+          created_at: a.created_at,
+          caregiver: a.caregiver
+        })),
+        careTeam: assignments.careTeam
       });
     }
   };
@@ -425,15 +462,39 @@ export const AdminAssignmentInterface: React.FC = () => {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
+              {/* Assignment Summary */}
+              <div className="bg-muted/50 p-4 rounded-md mb-4">
+                <h3 className="font-semibold mb-2">Assignment Summary</h3>
+                <div className="grid grid-cols-4 gap-4 text-sm">
+                  <div className="text-center">
+                    <p className="font-medium text-lg">{existingAssignments.automatic.length}</p>
+                    <p className="text-muted-foreground">🤖 Automatic</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="font-medium text-lg">{existingAssignments.admin.length}</p>
+                    <p className="text-muted-foreground">👨‍💼 Admin</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="font-medium text-lg">{existingAssignments.manual.length}</p>
+                    <p className="text-muted-foreground">✋ Manual</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="font-medium text-lg">{existingAssignments.careTeam.length}</p>
+                    <p className="text-muted-foreground">👥 Care Team</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Automatic Assignments */}
               {existingAssignments.automatic.length > 0 && (
                 <div>
                   <h4 className="font-semibold mb-2 flex items-center gap-2">
                     <Bot className="h-4 w-4" />
-                    Automatic Assignments
+                    🤖 Automatic Assignments
                   </h4>
                   <ScrollArea className="h-48">
                     {existingAssignments.automatic.map((assignment) => (
-                      <div key={assignment.id} className="bg-muted p-3 rounded-md mb-2">
+                      <div key={assignment.id} className="bg-muted p-3 rounded-md mb-2 border-l-4 border-blue-500">
                         <p className="font-medium">{assignment.caregiver.full_name}</p>
                         <p className="text-sm text-muted-foreground">
                           Location: {assignment.caregiver.location}
@@ -454,15 +515,16 @@ export const AdminAssignmentInterface: React.FC = () => {
                 </div>
               )}
 
+              {/* Admin Assignments */}
               {existingAssignments.admin.length > 0 && (
                 <div>
                   <h4 className="font-semibold mb-2 flex items-center gap-2">
                     <Settings className="h-4 w-4" />
-                    Admin Assignments
+                    👨‍💼 Admin Assignments
                   </h4>
                   <ScrollArea className="h-48">
                     {existingAssignments.admin.map((assignment) => (
-                      <div key={assignment.id} className="bg-muted p-3 rounded-md mb-2">
+                      <div key={assignment.id} className="bg-muted p-3 rounded-md mb-2 border-l-4 border-purple-500">
                         <p className="font-medium">{assignment.caregiver.full_name}</p>
                         <p className="text-sm text-muted-foreground">
                           Location: {assignment.caregiver.location}
@@ -483,7 +545,77 @@ export const AdminAssignmentInterface: React.FC = () => {
                 </div>
               )}
 
-              {existingAssignments.automatic.length === 0 && existingAssignments.admin.length === 0 && (
+              {/* Manual Assignments */}
+              {existingAssignments.manual.length > 0 && (
+                <div>
+                  <h4 className="font-semibold mb-2 flex items-center gap-2">
+                    <User className="h-4 w-4" />
+                    ✋ Manual Assignments
+                  </h4>
+                  <ScrollArea className="h-48">
+                    {existingAssignments.manual.map((assignment) => (
+                      <div key={assignment.id} className="bg-muted p-3 rounded-md mb-2 border-l-4 border-orange-500">
+                        <p className="font-medium">{assignment.caregiver.full_name}</p>
+                        <p className="text-sm text-muted-foreground">
+                          Location: {assignment.caregiver.location}
+                        </p>
+                        <div className="flex items-center gap-2 mt-1">
+                          <Badge variant="secondary">
+                            <Award className="h-3 w-3 mr-1" />
+                            {assignment.match_score}% match
+                          </Badge>
+                          <Badge variant="outline">
+                            <Clock className="h-3 w-3 mr-1" />
+                            {new Date(assignment.created_at).toLocaleDateString()}
+                          </Badge>
+                        </div>
+                      </div>
+                    ))}
+                  </ScrollArea>
+                </div>
+              )}
+
+              {/* Care Team Members */}
+              {existingAssignments.careTeam.length > 0 && (
+                <div>
+                  <h4 className="font-semibold mb-2 flex items-center gap-2">
+                    <Users className="h-4 w-4" />
+                    👥 Care Team Members
+                  </h4>
+                  <ScrollArea className="h-48">
+                    {existingAssignments.careTeam.map((member) => (
+                      <div key={member.id} className="bg-muted p-3 rounded-md mb-2 border-l-4 border-green-500">
+                        <p className="font-medium">{member.caregiver.full_name}</p>
+                        <p className="text-sm text-muted-foreground">
+                          Location: {member.caregiver.location}
+                        </p>
+                        <div className="flex items-center gap-2 mt-1">
+                          <Badge variant="secondary">
+                            <User className="h-3 w-3 mr-1" />
+                            {member.role}
+                          </Badge>
+                          {member.regular_rate && (
+                            <Badge variant="outline">
+                              <DollarSign className="h-3 w-3 mr-1" />
+                              ${member.regular_rate}/hr
+                            </Badge>
+                          )}
+                          <Badge variant="outline">
+                            <Clock className="h-3 w-3 mr-1" />
+                            {new Date(member.created_at).toLocaleDateString()}
+                          </Badge>
+                        </div>
+                      </div>
+                    ))}
+                  </ScrollArea>
+                </div>
+              )}
+
+              {/* No Assignments Message */}
+              {existingAssignments.automatic.length === 0 && 
+               existingAssignments.admin.length === 0 && 
+               existingAssignments.manual.length === 0 && 
+               existingAssignments.careTeam.length === 0 && (
                 <p className="text-muted-foreground">No existing assignments found for this family user.</p>
               )}
             </div>
