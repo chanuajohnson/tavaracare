@@ -39,7 +39,7 @@ export const useCurrentAssignments = () => {
             created_at,
             status,
             notes,
-            profiles!family_user_id (
+            profiles!admin_match_interventions_family_user_id_fkey (
               id,
               full_name
             )
@@ -59,11 +59,11 @@ export const useCurrentAssignments = () => {
             status,
             notes,
             care_plan_id,
-            profiles!family_id (
+            profiles!care_team_members_family_id_fkey (
               id,
               full_name
             ),
-            care_plans!care_plan_id (
+            care_plans!care_team_members_care_plan_id_fkey (
               id,
               title
             )
@@ -83,7 +83,7 @@ export const useCurrentAssignments = () => {
             created_at,
             is_active,
             match_explanation,
-            profiles!family_user_id (
+            profiles!automatic_assignments_family_user_id_fkey (
               id,
               full_name
             )
@@ -96,8 +96,15 @@ export const useCurrentAssignments = () => {
         // Transform and combine all assignments
         const allAssignments: CurrentAssignment[] = [];
 
+        console.log('Raw query results:', {
+          manualMatches,
+          careTeamAssignments,
+          automaticAssignments
+        });
+
         // Add manual matches (highest priority)
         manualMatches?.forEach(match => {
+          console.log('Processing manual match:', match);
           if (match.profiles) {
             allAssignments.push({
               id: match.id,
@@ -109,11 +116,14 @@ export const useCurrentAssignments = () => {
               matchScore: match.admin_match_score,
               notes: match.notes
             });
+          } else {
+            console.warn('Manual match missing profiles:', match);
           }
         });
 
         // Add care team assignments
         careTeamAssignments?.forEach(assignment => {
+          console.log('Processing care team assignment:', assignment);
           if (assignment.profiles) {
             allAssignments.push({
               id: assignment.id,
@@ -126,11 +136,14 @@ export const useCurrentAssignments = () => {
               status: assignment.status,
               notes: assignment.notes
             });
+          } else {
+            console.warn('Care team assignment missing profiles:', assignment);
           }
         });
 
         // Add automatic assignments (lowest priority)
         automaticAssignments?.forEach(assignment => {
+          console.log('Processing automatic assignment:', assignment);
           if (assignment.profiles) {
             allAssignments.push({
               id: assignment.id,
@@ -142,6 +155,8 @@ export const useCurrentAssignments = () => {
               matchScore: assignment.match_score,
               notes: assignment.match_explanation
             });
+          } else {
+            console.warn('Automatic assignment missing profiles:', assignment);
           }
         });
 
@@ -154,6 +169,7 @@ export const useCurrentAssignments = () => {
           return new Date(b.assignmentDate).getTime() - new Date(a.assignmentDate).getTime();
         });
 
+        console.log('Final assignments array:', allAssignments);
         setAssignments(allAssignments);
       } catch (error) {
         console.error('Error fetching current assignments:', error);
