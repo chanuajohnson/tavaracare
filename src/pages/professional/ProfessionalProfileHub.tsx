@@ -174,63 +174,113 @@ const ProfessionalProfileHub = () => {
     try {
       console.log("Fetching care plan assignments for professional:", user?.id);
       
-      // First, get all care team assignments for this professional
-      const { data: rawAssignments, error: assignmentsError } = await supabase
-        .from('care_team_members')
-        .select('*')
-        .eq('caregiver_id', user?.id);
+      // Fetch both care team assignments AND admin manual matches
+      const [careTeamResult, adminMatchResult] = await Promise.all([
+        // Regular care team assignments
+        supabase
+          .from('care_team_members')
+          .select('*')
+          .eq('caregiver_id', user?.id),
+        
+        // Admin manual matches
+        supabase
+          .from('admin_match_interventions')
+          .select('*')
+          .eq('caregiver_id', user?.id)
+          .eq('status', 'active')
+      ]);
+
+      const { data: rawAssignments, error: assignmentsError } = careTeamResult;
+      const { data: adminMatches, error: adminMatchError } = adminMatchResult;
 
       if (assignmentsError) {
         throw assignmentsError;
       }
 
-      console.log("Raw care team assignments:", rawAssignments);
-      console.log("Total care team assignments found:", rawAssignments?.length || 0);
+      if (adminMatchError) {
+        console.warn("Error fetching admin matches:", adminMatchError);
+      }
 
-      if (!rawAssignments || rawAssignments.length === 0) {
-        console.log("No care team assignments found for professional");
+      console.log("Raw care team assignments:", rawAssignments);
+      console.log("Admin manual matches:", adminMatches);
+      console.log("Total care team assignments found:", rawAssignments?.length || 0);
+      console.log("Total admin matches found:", adminMatches?.length || 0);
+
+      // Create assignments list from both sources
+      const allAssignments = [...(rawAssignments || [])];
+      const allCarePlanIds = new Set(allAssignments.map(a => a.care_plan_id));
+
+      // Add admin matches as assignments (they don't have care_plan_id, so we'll handle them separately)
+      const adminAssignments = (adminMatches || []).map(match => ({
+        id: `admin_${match.id}`,
+        care_plan_id: null, // Admin matches don't have care plans
+        family_id: match.family_user_id,
+        caregiver_id: match.caregiver_id,
+        role: 'manually_assigned',
+        status: 'active',
+        notes: match.notes || `Admin assigned: ${match.reason || 'Manual match'}`,
+        created_at: match.created_at,
+        is_admin_match: true,
+        admin_match_data: match
+      }));
+
+      console.log("Created admin assignments:", adminAssignments);
+      
+      // Combine all assignments
+      const combinedAssignments = [...allAssignments, ...adminAssignments];
+
+      if (combinedAssignments.length === 0) {
+        console.log("No assignments found for professional");
         setCarePlanAssignments([]);
         return;
       }
 
-      // Extract unique care plan IDs
+      // Extract unique care plan IDs (only from regular assignments)
       const carePlanIds = [...new Set(rawAssignments.map(assignment => assignment.care_plan_id))];
       console.log("Care plan IDs to fetch:", carePlanIds);
       console.log("Number of care plan IDs to fetch:", carePlanIds.length);
 
-      // Fetch care plan details
-      const { data: carePlansData, error: carePlansError } = await supabase
-        .from('care_plans')
-        .select('*')
-        .in('id', carePlanIds);
+      // Extract unique family IDs from both regular assignments and admin matches
+      const familyIdsFromAssignments = new Set(rawAssignments.map(a => a.family_id));
+      const familyIdsFromAdminMatches = new Set(adminMatches?.map(m => m.family_user_id) || []);
+      const allFamilyIds = [...new Set([...familyIdsFromAssignments, ...familyIdsFromAdminMatches])];
+      console.log("All family IDs to fetch:", allFamilyIds);
+
+      // Fetch care plan details and family profiles in parallel
+      const [carePlansResult, familyProfilesResult] = await Promise.all([
+        // Fetch care plans (only for regular assignments)
+        carePlanIds.length > 0 ? supabase
+          .from('care_plans')
+          .select('*')
+          .in('id', carePlanIds) : { data: [], error: null },
+        
+        // Fetch family profiles (for both regular and admin assignments)
+        allFamilyIds.length > 0 ? supabase
+          .from('profiles')
+          .select('id, full_name, avatar_url, phone_number')
+          .in('id', allFamilyIds) : { data: [], error: null }
+      ]);
+
+      const { data: carePlansData, error: carePlansError } = carePlansResult;
+      const { data: familyProfilesData, error: familyProfilesError } = familyProfilesResult;
 
       if (carePlansError) {
         throw carePlansError;
       }
 
-      console.log("Raw care plans data:", carePlansData);
-      console.log("Number of care plans retrieved:", carePlansData?.length || 0);
-
-      // Extract unique family IDs from care plans
-      const familyIds = [...new Set(carePlansData?.map(plan => plan.family_id) || [])];
-      console.log("Family IDs to fetch:", familyIds);
-
-      // Fetch family profiles
-      const { data: familyProfilesData, error: familyProfilesError } = await supabase
-        .from('profiles')
-        .select('id, full_name, avatar_url, phone_number')
-        .in('id', familyIds);
-
       if (familyProfilesError) {
         throw familyProfilesError;
       }
 
+      console.log("Raw care plans data:", carePlansData);
+      console.log("Number of care plans retrieved:", carePlansData?.length || 0);
       console.log("Raw family profiles data:", familyProfilesData);
+      console.log("Number of family profiles retrieved:", familyProfilesData?.length || 0);
 
-      // Transform the data to match our expected structure
-      const transformedAssignments: CarePlanAssignment[] = rawAssignments.map(assignment => {
+      // Transform regular assignments
+      const transformedRegularAssignments: CarePlanAssignment[] = rawAssignments.map(assignment => {
         const carePlan = carePlansData?.find(plan => plan.id === assignment.care_plan_id);
-        const familyProfile = familyProfilesData?.find(profile => profile.id === carePlan?.family_id);
+        const familyProfile = familyProfilesData?.find(profile => profile.id === assignment.family_id);
 
         return {
           id: assignment.id,
@@ -256,10 +306,43 @@ const ProfessionalProfileHub = () => {
         };
       });
 
-      console.log("Transformed care plans:", transformedAssignments);
-      console.log("Number of transformed care plans:", transformedAssignments.length);
+      // Transform admin matches to assignment format
+      const transformedAdminAssignments: CarePlanAssignment[] = adminAssignments.map(assignment => {
+        const familyProfile = familyProfilesData?.find(profile => profile.id === assignment.family_id);
+
+        return {
+          id: assignment.id,
+          carePlanId: null, // Admin matches don't have care plans
+          familyId: assignment.family_id,
+          role: assignment.role,
+          status: assignment.status,
+          notes: assignment.notes || '',
+          createdAt: assignment.created_at,
+          carePlan: {
+            id: 'admin_match',
+            title: `Manual Assignment - ${familyProfile?.full_name || 'Family'}`,
+            description: assignment.notes || 'Admin manual assignment',
+            status: 'active',
+            familyId: assignment.family_id,
+            familyProfile: familyProfile ? {
+              id: familyProfile.id,
+              fullName: familyProfile.full_name,
+              avatarUrl: familyProfile.avatar_url,
+              phoneNumber: familyProfile.phone_number
+            } : undefined
+          }
+        };
+      });
+
+      // Combine all assignments
+      const allTransformedAssignments = [...transformedRegularAssignments, ...transformedAdminAssignments];
+
+      console.log("Transformed regular assignments:", transformedRegularAssignments);
+      console.log("Transformed admin assignments:", transformedAdminAssignments);
+      console.log("All transformed assignments:", allTransformedAssignments);
+      console.log("Total assignments:", allTransformedAssignments.length);
       
-      setCarePlanAssignments(transformedAssignments);
+      setCarePlanAssignments(allTransformedAssignments);
     } catch (error) {
       console.error("Error fetching care plan assignments:", error);
       toast.error("Failed to load care plan assignments");
