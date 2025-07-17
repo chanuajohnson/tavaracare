@@ -91,6 +91,7 @@ export const EnhancedAdminMatchingInterface: React.FC<EnhancedAdminMatchingInter
   const [showBulkInterface, setShowBulkInterface] = useState(false);
   const [currentMode, setCurrentMode] = useState<'single' | 'bulk'>(mode);
   const [matchValidation, setMatchValidation] = useState<any>(null);
+  const [allowOverride, setAllowOverride] = useState<boolean>(false);
 
   useEffect(() => {
     if (familyUserId) {
@@ -291,20 +292,25 @@ export const EnhancedAdminMatchingInterface: React.FC<EnhancedAdminMatchingInter
     };
   };
 
-  const handleValidateMatch = async (caregiverId: string) => {
+  const handleValidateMatch = async (caregiverId: string, override: boolean = false) => {
     if (!familyUserId) return;
     
     const validation = await MatchQualityValidator.validateMatch(
       familyUserId,
       caregiverId,
-      minMatchScore
+      minMatchScore,
+      override
     );
     
     setMatchValidation(validation);
     
-    if (!validation.isValid) {
+    if (!validation.isValid && !override) {
       toast.error(`Match validation failed: ${validation.issues.join(', ')}`);
       return false;
+    }
+    
+    if (override && validation.issues.length > 0) {
+      toast.warning(`Match validation overridden with ${validation.issues.length} issues`);
     }
     
     return true;
@@ -316,8 +322,8 @@ export const EnhancedAdminMatchingInterface: React.FC<EnhancedAdminMatchingInter
       return;
     }
 
-    // Validate match quality
-    const isValidMatch = await handleValidateMatch(selectedCaregiver);
+    // Validate match quality with override capability
+    const isValidMatch = await handleValidateMatch(selectedCaregiver, allowOverride);
     if (!isValidMatch) return;
 
     setLoading(true);
@@ -706,6 +712,29 @@ export const EnhancedAdminMatchingInterface: React.FC<EnhancedAdminMatchingInter
               onChange={(e) => setNotes(e.target.value)}
             />
           </div>
+
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              id="allowOverride"
+              checked={allowOverride}
+              onCheckedChange={(checked) => setAllowOverride(checked === true)}
+            />
+            <Label htmlFor="allowOverride" className="text-sm">
+              Override validation warnings and proceed with assignment
+            </Label>
+          </div>
+          
+          {allowOverride && (
+            <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+              <div className="flex items-center gap-2 text-yellow-800">
+                <AlertTriangle className="h-4 w-4" />
+                <span className="text-sm font-medium">Override Mode Enabled</span>
+              </div>
+              <p className="text-xs text-yellow-700 mt-1">
+                This will bypass validation checks and allow the assignment despite compatibility issues.
+              </p>
+            </div>
+          )}
         </CardContent>
       </Card>
 

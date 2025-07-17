@@ -11,7 +11,8 @@ export class MatchQualityValidator {
   static async validateMatch(
     familyId: string,
     caregiverId: string,
-    minScore: number = 60
+    minScore: number = 60,
+    allowOverride: boolean = false
   ): Promise<MatchValidationResult> {
     const result: MatchValidationResult = {
       isValid: true,
@@ -103,9 +104,13 @@ export class MatchQualityValidator {
         workloadScore
       );
 
-      // Final validation
-      if (result.issues.length > 0) {
+      // Final validation - allow override for manual matches
+      if (result.issues.length > 0 && !allowOverride) {
         result.isValid = false;
+      } else if (allowOverride && result.issues.length > 0) {
+        // For override cases, mark as valid but keep the issues as warnings
+        result.isValid = true;
+        result.recommendations.unshift('⚠️ This match was manually overridden despite validation issues');
       }
 
     } catch (error) {
