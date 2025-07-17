@@ -4548,6 +4548,10 @@ export type Database = {
         Args: { plan_id: string; new_status: string }
         Returns: undefined
       }
+      update_user_profile: {
+        Args: { profile_data: Json }
+        Returns: Json
+      }
       update_video_availability: {
         Args: { user_id_param: string; available: boolean }
         Returns: undefined

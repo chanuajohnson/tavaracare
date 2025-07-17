@@ -380,13 +380,14 @@ const FamilyRegistration = () => {
       const fullName = `${firstName} ${lastName}`.trim();
       const updates = {
         id: user.id,
+        first_name: firstName,
+        last_name: lastName,
         full_name: fullName,
         avatar_url: uploadedAvatarUrl,
         phone_number: phoneNumber,
         location: location,
         address: address,
         role: 'family' as const,
-        updated_at: new Date().toISOString(),
         care_recipient_name: careRecipientName,
         relationship: relationship,
         care_types: careTypes || [],
@@ -402,10 +403,10 @@ const FamilyRegistration = () => {
 
       console.log('Updating family profile with data:', updates);
       
-      const { error } = await supabase
-        .from('profiles')
-        .update(updates)
-        .eq('id', user.id);
+      // Use the safe profile update function to avoid RLS infinite recursion
+      const { data, error } = await supabase.rpc('update_user_profile', {
+        profile_data: updates
+      });
       
       if (error) throw error;
       
