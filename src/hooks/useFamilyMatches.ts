@@ -504,7 +504,7 @@ export const useFamilyMatches = (showOnlyBestMatch: boolean = false) => {
       
       return () => clearTimeout(timer);
     }
-  }, [user, loadFamilies]);
+  }, [user?.id, showOnlyBestMatch]); // Remove loadFamilies from dependencies to fix infinite loop
 
   return {
     families,

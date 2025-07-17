@@ -15,6 +15,8 @@ interface ChatRequest {
   initial_message: string;
   status: 'pending' | 'accepted' | 'declined';
   created_at: string;
+  accepted_at?: string;
+  declined_at?: string;
   family_profile?: {
     full_name: string;
     avatar_url: string | null;
@@ -421,14 +423,29 @@ export const ChatRequestsSection = () => {
               </div>
             )}
 
-            {/* Recent Responses */}
-            {respondedRequests.length > 0 && (
+            {/* Recent Responses - Only show recent ones (last 7 days) */}
+            {respondedRequests.filter(req => {
+              const responseDate = new Date(req.accepted_at || req.declined_at || req.created_at);
+              const sevenDaysAgo = new Date();
+              sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+              return responseDate >= sevenDaysAgo;
+            }).length > 0 && (
               <div className={pendingRequests.length > 0 ? "pt-4 border-t" : ""}>
                 <h3 className="font-medium text-sm text-gray-700 mb-3">
-                  Recent Responses ({respondedRequests.length})
+                  Recent Responses ({respondedRequests.filter(req => {
+                    const responseDate = new Date(req.accepted_at || req.declined_at || req.created_at);
+                    const sevenDaysAgo = new Date();
+                    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+                    return responseDate >= sevenDaysAgo;
+                  }).length})
                 </h3>
                 <div className="space-y-2">
-                  {respondedRequests.slice(0, 3).map((request) => (
+                  {respondedRequests.filter(req => {
+                    const responseDate = new Date(req.accepted_at || req.declined_at || req.created_at);
+                    const sevenDaysAgo = new Date();
+                    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+                    return responseDate >= sevenDaysAgo;
+                  }).slice(0, 3).map((request) => (
                     <div
                       key={request.id}
                       className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
