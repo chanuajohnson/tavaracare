@@ -383,13 +383,12 @@ const ProfessionalRegistration = () => {
       
       const updates = {
         id: user.id,
-        first_name: firstName,
-        last_name: lastName,
         full_name: fullName,
         avatar_url: uploadedAvatarUrl,
         phone_number: phoneNumber,
         address: address,
         role: 'professional' as const,
+        updated_at: new Date().toISOString(),
         professional_type: finalProfessionalType,
         years_of_experience: yearsOfExperience,
         care_services: specialties || [], // Updated: Map specialties to care_services column
@@ -407,10 +406,10 @@ const ProfessionalRegistration = () => {
 
       console.log('Updating professional profile with data:', updates);
       
-      // Use the safe profile update function to avoid RLS infinite recursion
-      const { data, error } = await supabase.rpc('update_user_profile', {
-        profile_data: updates
-      });
+      const { error } = await supabase
+        .from('profiles')
+        .update(updates)
+        .eq('id', user.id);
       
       if (error) throw error;
       
