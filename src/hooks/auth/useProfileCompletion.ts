@@ -17,6 +17,7 @@ export const useProfileCompletion = (
       
       if (error) {
         console.error('[AuthProvider] Error checking profile completion:', error);
+        console.error('[AuthProvider] Error details:', error.message, error.code);
         // Don't throw error - be resilient and assume incomplete profile
         setUserRole(null);
         setIsProfileComplete(false);
@@ -39,6 +40,15 @@ export const useProfileCompletion = (
         } else {
           profileComplete = !!(profile.full_name || (profile.first_name && profile.last_name));
         }
+        console.log('[AuthProvider] Profile data:', {
+          full_name: profile.full_name,
+          first_name: profile.first_name,
+          last_name: profile.last_name,
+          role: profile.role,
+          profileComplete
+        });
+      } else {
+        console.log('[AuthProvider] No profile data found');
       }
       
       console.log('[AuthProvider] Profile complete:', profileComplete);

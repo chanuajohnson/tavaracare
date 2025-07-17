@@ -8,7 +8,7 @@ export const isRegistrationComplete = (profile: FamilyProfileData | null): boole
   }
   
   const hasRequiredFields = !!(
-    profile.full_name &&
+    (profile.full_name || (profile.first_name && profile.last_name)) &&
     profile.phone_number &&
     profile.address &&
     profile.care_recipient_name &&
@@ -17,6 +17,8 @@ export const isRegistrationComplete = (profile: FamilyProfileData | null): boole
   
   console.log(`✅ Family Registration Complete: ${hasRequiredFields}`, {
     fullName: !!profile.full_name,
+    firstName: !!profile.first_name,
+    lastName: !!profile.last_name,
     phoneNumber: !!profile.phone_number,
     address: !!profile.address,
     careRecipientName: !!profile.care_recipient_name,
