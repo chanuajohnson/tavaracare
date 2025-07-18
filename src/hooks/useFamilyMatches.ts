@@ -215,34 +215,12 @@ export const useFamilyMatches = (showOnlyBestMatch: boolean = false) => {
       const professionalCareSchedule = parseCareSchedule(professionalScheduleData.care_schedule);
       console.log('Professional care schedule:', professionalCareSchedule);
 
-      // Fetch both family users and admin manual matches for this professional
-      const [familyUsersResult, adminMatchesResult] = await Promise.all([
-        // General family users
-        supabase
-          .from('profiles')
-          .select('*')
-          .eq('role', 'family')
-          .limit(showOnlyBestMatch ? 3 : 10),
-        
-        // Admin manual matches where this professional is assigned
-        supabase
-          .from('admin_match_interventions')
-          .select(`
-            *,
-            family_profile:profiles!admin_match_interventions_family_user_id_fkey(*)
-          `)
-          .eq('caregiver_id', user.id)
-          .eq('status', 'active')
-      ]);
-
-      const { data: familyUsers, error: familyError } = familyUsersResult;
-      const { data: adminMatches, error: adminMatchError } = adminMatchesResult;
-
-      if (adminMatchError) {
-        console.warn("Error fetching admin matches:", adminMatchError);
-      }
-
-      console.log("Admin matches for professional:", adminMatches);
+      // Try to fetch real family data first
+      const { data: familyUsers, error: familyError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('role', 'family')
+        .limit(showOnlyBestMatch ? 3 : 10);
       
       if (familyError) {
         console.warn("Error fetching family users:", familyError);
@@ -313,59 +291,8 @@ export const useFamilyMatches = (showOnlyBestMatch: boolean = false) => {
         return;
       }
 
-      // Process admin matches first (they get priority)
-      const adminMatchedFamilies: Family[] = (adminMatches || []).map((match) => {
-        const familyProfile = match.family_profile;
-        
-        if (!familyProfile) {
-          console.warn("No family profile found for admin match:", match);
-          return null;
-        }
-
-        let careTypes: string[] = ['General Care'];
-        if (familyProfile.care_types) {
-          if (typeof familyProfile.care_types === 'string') {
-            try {
-              careTypes = JSON.parse(familyProfile.care_types);
-            } catch {
-              careTypes = [familyProfile.care_types];
-            }
-          } else if (Array.isArray(familyProfile.care_types)) {
-            careTypes = familyProfile.care_types;
-          }
-        }
-
-        // Parse family's care schedule
-        const familySchedule = parseCareSchedule(familyProfile.care_schedule);
-        
-        // Calculate shift compatibility
-        const shiftCompatibility = calculateShiftCompatibility(professionalCareSchedule, familySchedule);
-        const matchExplanation = generateMatchExplanation(shiftCompatibility, professionalCareSchedule, familySchedule);
-        const scheduleOverlapDetails = generateScheduleOverlapDetails(professionalCareSchedule, familySchedule);
-        
-        // Admin matches get high priority score
-        const adminMatchScore = match.admin_match_score || 95;
-        
-        return {
-          id: familyProfile.id,
-          full_name: familyProfile.full_name || `${familyProfile.care_recipient_name || ''} Family`,
-          avatar_url: familyProfile.avatar_url,
-          location: familyProfile.location || 'Trinidad and Tobago',
-          care_types: careTypes,
-          special_needs: familyProfile.special_needs || [],
-          care_schedule: familyProfile.care_schedule || 'Weekdays',
-          match_score: adminMatchScore,
-          is_premium: true, // Admin matches are treated as premium
-          distance: parseFloat((Math.random() * 19 + 1).toFixed(1)),
-          budget_preferences: familyProfile.budget_preferences || '$15-30/hr',
-          shift_compatibility_score: shiftCompatibility,
-          match_explanation: `Manual Assignment: ${matchExplanation}`,
-          schedule_overlap_details: scheduleOverlapDetails
-        };
-      }).filter(family => family !== null) as Family[];
-
-      // Process regular family data with enhanced compatibility scoring
-      const regularFamilies: Family[] = familyUsers.map((family, index) => {
+      // Process real family data with enhanced compatibility scoring
+      const realFamilies: Family[] = familyUsers.map((family, index) => {
         const hashCode = (str: string) => {
           let hash = 0;
           for (let i = 0; i < str.length; i++) {
@@ -421,29 +348,20 @@ export const useFamilyMatches = (showOnlyBestMatch: boolean = false) => {
           schedule_overlap_details: scheduleOverlapDetails
         };
       });
-
-      // Filter out families that are already in admin matches to avoid duplicates
-      const adminMatchedFamilyIds = new Set(adminMatchedFamilies.map(f => f.id));
-      const filteredRegularFamilies = regularFamilies.filter(family => !adminMatchedFamilyIds.has(family.id));
       
-      // Combine admin matches first (priority), then regular families
-      const allFamilies = [...adminMatchedFamilies, ...filteredRegularFamilies];
-      
-      // Sort by final match score (admin matches will be at the top due to higher scores)
-      allFamilies.sort((a, b) => b.match_score - a.match_score);
+      // Sort by final match score (which includes compatibility) descending
+      realFamilies.sort((a, b) => b.match_score - a.match_score);
       
       // Cache the processed families
-      processedFamiliesRef.current = allFamilies;
+      processedFamiliesRef.current = realFamilies;
       
-      console.log("Admin matched families:", adminMatchedFamilies.length);
-      console.log("Regular families after filtering:", filteredRegularFamilies.length);
-      console.log("Total families:", allFamilies.length);
+      console.log("Loaded real family users with shift compatibility:", realFamilies.length);
 
       let finalFamilies: Family[];
       if (showOnlyBestMatch) {
-        finalFamilies = allFamilies.slice(0, 1);
+        finalFamilies = realFamilies.slice(0, 1);
       } else {
-        finalFamilies = allFamilies;
+        finalFamilies = realFamilies;
       }
 
       await trackEngagement('family_matches_view', {
@@ -504,7 +422,7 @@ export const useFamilyMatches = (showOnlyBestMatch: boolean = false) => {
       
       return () => clearTimeout(timer);
     }
-  }, [user?.id, showOnlyBestMatch]); // Remove loadFamilies from dependencies to fix infinite loop
+  }, [user, loadFamilies]);
 
   return {
     families,

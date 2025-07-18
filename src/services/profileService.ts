@@ -110,14 +110,16 @@ export class ProfileService {
   }
   
   /**
-   * Update an existing profile using safe update function
+   * Update an existing profile
    */
   private async updateProfile(id: string, updates: Partial<DbProfileInsert>): Promise<Profile> {
     try {
-      // Use the safe profile update function to avoid RLS infinite recursion
-      const { data, error } = await supabase.rpc('update_user_profile', {
-        profile_data: { ...updates, id }
-      });
+      const { data, error } = await supabase
+        .from('profiles')
+        .update(updates as any) // Cast to any to fix type error
+        .eq('id', id)
+        .select()
+        .single();
       
       if (error) {
         console.error("[ProfileService] updateProfile error:", error);
@@ -128,8 +130,7 @@ export class ProfileService {
         throw new Error(`Updated profile with ID ${id} not found`);
       }
       
-      // Cast the JSON response to DbProfile type
-      return adaptProfileFromDb(data as unknown as DbProfile);
+      return adaptProfileFromDb(data);
     } catch (error) {
       console.error("[ProfileService] updateProfile exception:", error);
       throw error;

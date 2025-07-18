@@ -15,24 +15,10 @@ export const fetchFamilyProfile = async (userId: string): Promise<FamilyProfileD
 
     if (error) {
       console.error('❌ Error fetching family profile:', error);
-      console.error('❌ Error details:', error.message, error.code);
-      return null;
+      throw error;
     }
 
     console.log('✅ Family profile fetched:', data);
-    if (data) {
-      console.log('✅ Family profile key fields:', {
-        id: data.id,
-        full_name: data.full_name,
-        first_name: data.first_name,
-        last_name: data.last_name,
-        phone_number: data.phone_number,
-        address: data.address,
-        care_recipient_name: data.care_recipient_name,
-        relationship: data.relationship,
-        role: data.role
-      });
-    }
     return data;
   } catch (error) {
     console.error('❌ Failed to fetch family profile:', error);
@@ -52,19 +38,10 @@ export const fetchCareAssessment = async (userId: string): Promise<CareAssessmen
 
     if (error) {
       console.error('❌ Error fetching care assessment:', error);
-      console.error('❌ Error details:', error.message, error.code);
-      return null;
+      throw error;
     }
 
     console.log('✅ Care assessment fetched:', data);
-    if (data) {
-      console.log('✅ Care assessment key fields:', {
-        id: data.id,
-        profile_id: data.profile_id,
-        care_recipient_name: data.care_recipient_name,
-        primary_contact_name: data.primary_contact_name
-      });
-    }
     return data;
   } catch (error) {
     console.error('❌ Failed to fetch care assessment:', error);
@@ -84,19 +61,10 @@ export const fetchCareRecipientProfile = async (userId: string): Promise<CareRec
 
     if (error) {
       console.error('❌ Error fetching care recipient profile:', error);
-      console.error('❌ Error details:', error.message, error.code);
-      return null;
+      throw error;
     }
 
     console.log('✅ Care recipient profile fetched:', data);
-    if (data) {
-      console.log('✅ Care recipient key fields:', {
-        id: data.id,
-        user_id: data.user_id,
-        full_name: data.full_name,
-        birth_year: data.birth_year
-      });
-    }
     return data;
   } catch (error) {
     console.error('❌ Failed to fetch care recipient profile:', error);

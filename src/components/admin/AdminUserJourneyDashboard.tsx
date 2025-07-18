@@ -28,19 +28,52 @@ export function AdminUserJourneyDashboard() {
     try {
       setLoading(true);
       
-      // Use the new admin function that bypasses RLS
+      // Query only columns that exist in the profiles table
       const { data: profiles, error: profilesError } = await supabase
-        .rpc('admin_get_all_profiles');
+        .from('profiles')
+        .select(`
+          id,
+          full_name,
+          role,
+          created_at,
+          updated_at,
+          avatar_url,
+          location,
+          phone_number,
+          professional_type,
+          years_of_experience,
+          care_types,
+          specialized_care
+        `)
+        .order('created_at', { ascending: false });
 
       if (profilesError) {
         console.error('Error fetching profiles:', profilesError);
         return;
       }
 
+      // Get auth users data to get email addresses
+      const { data: authData, error: authError } = await supabase.auth.admin.listUsers();
+      
+      if (authError) {
+        console.error('Error fetching auth users:', authError);
+        // Continue without email data if auth query fails
+      }
+
+      // Create a map of user emails from auth data
+      const emailMap = new Map<string, string>();
+      if (authData?.users) {
+        (authData.users as AuthUser[]).forEach((user: AuthUser) => {
+          if (user.id && user.email) {
+            emailMap.set(user.id, user.email);
+          }
+        });
+      }
+
       // Transform the data to match our interface
       const transformedUsers: UserWithProgress[] = (profiles || []).map(profile => ({
         id: profile.id,
-        email: profile.email || 'No email available',
+        email: emailMap.get(profile.id) || 'No email available',
         full_name: profile.full_name || 'Unknown User',
         role: profile.role || 'family',
         email_verified: false, // Default since we don't have this in profiles
@@ -52,8 +85,7 @@ export function AdminUserJourneyDashboard() {
         professional_type: profile.professional_type,
         years_of_experience: profile.years_of_experience,
         care_types: profile.care_types,
-        specialized_care: profile.specialized_care,
-        available_for_matching: profile.available_for_matching
+        specialized_care: profile.specialized_care
       }));
 
       setUsers(transformedUsers);

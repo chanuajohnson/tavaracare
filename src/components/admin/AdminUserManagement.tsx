@@ -67,10 +67,9 @@ export const AdminUserManagement = () => {
   const fetchProfiles = async () => {
     try {
       console.log('Fetching profiles...');
-      
-      // Use the new admin function that bypasses RLS
       const { data: profilesData, error: profilesError } = await supabase
-        .rpc('admin_get_all_profiles');
+        .from('profiles')
+        .select('*');
 
       if (profilesError) {
         console.error('Error fetching profiles:', profilesError);
@@ -84,9 +83,9 @@ export const AdminUserManagement = () => {
       // Convert profiles to users format for display
       const profileUsers: UserWithProfile[] = safeProfiles.map(profile => ({
         id: profile.id,
-        email: profile.email || 'No email available',
+        email: 'Profile data only', // Fallback for profile-only data
         created_at: profile.created_at || new Date().toISOString(),
-        last_sign_in_at: profile.updated_at,
+        last_sign_in_at: profile.last_login_at,
         profile
       }));
 

@@ -17,38 +17,20 @@ export const useProfileCompletion = (
       
       if (error) {
         console.error('[AuthProvider] Error checking profile completion:', error);
-        console.error('[AuthProvider] Error details:', error.message, error.code);
-        // Don't throw error - be resilient and assume incomplete profile
-        setUserRole(null);
-        setIsProfileComplete(false);
-        return false;
+        throw error;
       }
       
       if (profile?.role) {
         console.log('[AuthProvider] Setting user role from profile:', profile.role);
         setUserRole(profile.role);
-      } else {
-        console.log('[AuthProvider] No role found in profile, setting to null');
-        setUserRole(null);
       }
       
-      let profileComplete = false;
+      let profileComplete = true;
       
-      if (profile) {
-        if (profile.role === 'professional' || profile.role === 'community') {
-          profileComplete = !!(profile.full_name || (profile.first_name && profile.last_name));
-        } else {
-          profileComplete = !!(profile.full_name || (profile.first_name && profile.last_name));
-        }
-        console.log('[AuthProvider] Profile data:', {
-          full_name: profile.full_name,
-          first_name: profile.first_name,
-          last_name: profile.last_name,
-          role: profile.role,
-          profileComplete
-        });
+      if (profile?.role === 'professional' || profile?.role === 'community') {
+        profileComplete = !!(profile?.full_name || (profile?.first_name && profile?.last_name));
       } else {
-        console.log('[AuthProvider] No profile data found');
+        profileComplete = !!(profile?.full_name || (profile?.first_name && profile?.last_name));
       }
       
       console.log('[AuthProvider] Profile complete:', profileComplete);
@@ -56,9 +38,6 @@ export const useProfileCompletion = (
       return profileComplete;
     } catch (error) {
       console.error('[AuthProvider] Error checking profile completion:', error);
-      // Be resilient - set safe defaults
-      setUserRole(null);
-      setIsProfileComplete(false);
       return false;
     }
   };
