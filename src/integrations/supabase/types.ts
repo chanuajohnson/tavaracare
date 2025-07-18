@@ -4431,6 +4431,37 @@ export type Database = {
         Args: { target_user_id: string }
         Returns: undefined
       }
+      admin_get_all_profiles: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          id: string
+          created_at: string
+          updated_at: string
+          role: Database["public"]["Enums"]["user_role"]
+          full_name: string
+          avatar_url: string
+          phone_number: string
+          address: string
+          location: string
+          professional_type: string
+          years_of_experience: string
+          care_types: string[]
+          specialized_care: string[]
+          available_for_matching: boolean
+          email: string
+        }[]
+      }
+      admin_get_user_journey_progress: {
+        Args: { target_user_id: string }
+        Returns: {
+          user_id: string
+          role: string
+          current_step: number
+          total_steps: number
+          completion_percentage: number
+          last_activity_at: string
+        }[]
+      }
       calculate_customer_health_score: {
         Args: { target_user_id: string }
         Returns: undefined
