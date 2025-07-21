@@ -17,10 +17,22 @@ interface Profile {
   role: string;
   full_name?: string;
   created_at: string;
+  updated_at: string;
   last_login_at?: string;
   phone_number?: string;
   email?: string;
   available_for_matching?: boolean;
+  ready_for_admin_scheduling?: boolean;
+  visit_scheduling_status?: string;
+  visit_payment_status?: string;
+  onboarding_completed?: boolean;
+  location?: string;
+  professional_type?: string;
+  years_of_experience?: string;
+  care_types?: string[];
+  specialized_care?: string[];
+  avatar_url?: string;
+  address?: string;
 }
 
 interface UserWithProfile {
@@ -70,7 +82,7 @@ export const AdminUserManagement = () => {
       
       // Use admin function instead of direct table query to avoid RLS recursion
       const { data: profilesData, error: profilesError } = await supabase
-        .rpc('admin_get_all_profiles');
+        .rpc('admin_get_all_profiles' as any);
 
       if (profilesError) {
         console.error('Error fetching profiles:', profilesError);

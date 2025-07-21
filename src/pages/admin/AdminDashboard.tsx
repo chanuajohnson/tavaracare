@@ -17,7 +17,7 @@ export default function AdminDashboard() {
     try {
       // Use admin function instead of direct table query to avoid RLS recursion
       const { data: profiles, error } = await supabase
-        .rpc('admin_get_all_profiles');
+        .rpc('admin_get_all_profiles' as any);
 
       if (error) throw error;
       

@@ -219,12 +219,10 @@ export const useEnhancedJourneyProgress = () => {
     try {
       setLoading(true);
       
-      // Fetch profile data
+      // Fetch profile data using security definer function to avoid RLS recursion
       const { data: profileData, error: profileError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .maybeSingle();
+        .rpc('get_current_user_complete_profile' as any)
+        .single();
 
       if (profileError) {
         console.error('Error fetching profile:', profileError);
