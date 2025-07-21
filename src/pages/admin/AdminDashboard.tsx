@@ -15,14 +15,19 @@ export default function AdminDashboard() {
 
   const fetchPendingSchedulingCount = async () => {
     try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('id', { count: 'exact' })
-        .eq('ready_for_admin_scheduling', true)
-        .eq('visit_scheduling_status', 'ready_to_schedule');
+      // Use admin function instead of direct table query to avoid RLS recursion
+      const { data: profiles, error } = await supabase
+        .rpc('admin_get_all_profiles');
 
       if (error) throw error;
-      setPendingSchedulingCount(data?.length || 0);
+      
+      // Filter profiles for those ready for admin scheduling
+      const pendingCount = profiles?.filter(profile => 
+        profile.ready_for_admin_scheduling === true && 
+        profile.visit_scheduling_status === 'ready_to_schedule'
+      ).length || 0;
+      
+      setPendingSchedulingCount(pendingCount);
     } catch (error) {
       console.error('Error fetching pending scheduling count:', error);
     }

@@ -130,19 +130,52 @@ export const useCaregiverMatches = (showOnlyBestMatch: boolean = true) => {
       const familyCareSchedule = parseCareSchedule(familyScheduleData.care_schedule);
       console.log('Family care schedule:', familyCareSchedule);
 
-      // Fetch available professionals AND check for admin overrides
-      const [professionalUsersResult, adminOverridesResult] = await Promise.all([
-        // Get professionals marked as available for matching
-        supabase
+      // Check if current user is admin to use different data access method
+      let professionalUsers = [];
+      let adminOverrides = [];
+
+      try {
+        // First check if user is admin to determine data access method
+        const { data: currentUserProfile, error: userError } = await supabase
           .from('profiles')
-          .select('*')
-          .eq('role', 'professional')
-          .eq('available_for_matching', true)
-          .not('full_name', 'is', null)
-          .limit(showOnlyBestMatch ? 5 : 15), // Fetch more to account for overrides
+          .select('role')
+          .eq('id', user.id)
+          .single();
+
+        if (!userError && currentUserProfile?.role === 'admin') {
+          console.log('Admin user detected, using admin function');
+          // Admin can use admin function to get all profiles
+          const { data: allProfiles, error: adminError } = await supabase
+            .rpc('admin_get_all_profiles');
+
+          if (adminError) {
+            console.error("Error fetching profiles via admin function:", adminError);
+            throw adminError;
+          }
+
+          // Filter for professionals only
+          professionalUsers = allProfiles?.filter(profile => profile.role === 'professional') || [];
+        } else {
+          console.log('Non-admin user, using regular profile access');
+          // Regular users: fetch professionals through normal RLS
+          const { data: regularProfiles, error: regularError } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('role', 'professional')
+            .eq('available_for_matching', true)
+            .not('full_name', 'is', null)
+            .limit(showOnlyBestMatch ? 5 : 15);
+
+          if (regularError) {
+            console.error("Error fetching professional profiles:", regularError);
+            throw regularError;
+          }
+
+          professionalUsers = regularProfiles || [];
+        }
         
         // Get admin-assigned caregivers for this family (overrides availability)
-        supabase
+        const { data: adminOverridesResult, error: overrideError } = await supabase
           .from('admin_match_interventions')
           .select(`
             caregiver_id,
@@ -152,24 +185,19 @@ export const useCaregiverMatches = (showOnlyBestMatch: boolean = true) => {
             caregiver:profiles!admin_match_interventions_caregiver_id_fkey(*)
           `)
           .eq('family_user_id', user.id)
-          .eq('status', 'active')
-      ]);
-
-      const { data: professionalUsers, error: professionalError } = professionalUsersResult;
-      const { data: adminOverrides, error: overrideError } = adminOverridesResult;
-      
-      if (professionalError) {
-        console.error("Error fetching professional users:", professionalError);
+          .eq('status', 'active');
+        
+        if (!overrideError) {
+          adminOverrides = adminOverridesResult || [];
+        }
+      } catch (fetchError) {
+        console.error("Error in data fetching:", fetchError);
         setError("Unable to load caregiver matches. Please try again.");
         return;
       }
 
-      if (overrideError) {
-        console.warn("Error fetching admin overrides:", overrideError);
-      }
-
       // Merge available professionals with admin overrides
-      const allProfessionals = [...(professionalUsers || [])];
+      const allProfessionals = [...professionalUsers];
       const adminOverrideIds = new Set();
       
       // Add admin-assigned caregivers (even if not available_for_matching)
