@@ -166,7 +166,7 @@ export const useAdminAssignments = () => {
   // Get existing assignments for a family user
   const getExistingAssignments = useCallback(async (familyUserId: string) => {
     try {
-      const [automaticResult, adminResult] = await Promise.all([
+      const [automaticResult, adminResult, manualResult, careTeamResult] = await Promise.all([
         // Get automatic assignments
         supabase
           .from('automatic_assignments')
@@ -186,21 +186,52 @@ export const useAdminAssignments = () => {
             admin:profiles!admin_match_interventions_admin_id_fkey(id, full_name)
           `)
           .eq('family_user_id', familyUserId)
+          .eq('status', 'active'),
+        
+        // Get manual assignments
+        supabase
+          .from('manual_caregiver_assignments')
+          .select(`
+            *,
+            caregiver:profiles!manual_caregiver_assignments_caregiver_id_fkey(id, full_name, location),
+            assigned_by:profiles!manual_caregiver_assignments_assigned_by_admin_id_fkey(id, full_name)
+          `)
+          .eq('family_user_id', familyUserId)
+          .eq('is_active', true),
+        
+        // Get care team members
+        supabase
+          .from('care_team_members')
+          .select(`
+            *,
+            caregiver:profiles!care_team_members_caregiver_id_fkey(id, full_name, location)
+          `)
+          .eq('family_id', familyUserId)
           .eq('status', 'active')
       ]);
 
       return {
         automatic: automaticResult.data || [],
         admin: adminResult.data || [],
+        manual: manualResult.data || [],
+        careTeam: careTeamResult.data || [],
         errors: {
           automatic: automaticResult.error,
-          admin: adminResult.error
+          admin: adminResult.error,
+          manual: manualResult.error,
+          careTeam: careTeamResult.error
         }
       };
     } catch (error) {
       console.error('Error in getExistingAssignments:', error);
       setError(error instanceof Error ? error.message : 'Unknown error');
-      return { automatic: [], admin: [], errors: { automatic: null, admin: null } };
+      return { 
+        automatic: [], 
+        admin: [], 
+        manual: [], 
+        careTeam: [], 
+        errors: { automatic: null, admin: null, manual: null, careTeam: null } 
+      };
     }
   }, []);
 

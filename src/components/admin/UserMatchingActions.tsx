@@ -18,7 +18,7 @@ interface UserMatchingActionsProps {
 
 interface AssignmentData {
   id: string;
-  type: 'automatic' | 'manual' | 'intervention';
+  type: 'automatic' | 'manual' | 'intervention' | 'team_member';
   caregiver_name: string;
   caregiver_email: string;
   match_score: number;
@@ -29,6 +29,9 @@ interface AssignmentData {
   match_explanation?: string;
   intervention_type?: string;
   reason?: string;
+  role?: string;
+  regular_rate?: number;
+  overtime_rate?: number;
 }
 
 interface StaleAssignment {
@@ -46,6 +49,7 @@ export const UserMatchingActions: React.FC<UserMatchingActionsProps> = ({
   const [manualAssignments, setManualAssignments] = useState<any[]>([]);
   const [interventions, setInterventions] = useState<any[]>([]);
   const [automaticAssignments, setAutomaticAssignments] = useState<any[]>([]);
+  const [careTeamMembers, setCareTeamMembers] = useState<any[]>([]);
   const [staleAssignments, setStaleAssignments] = useState<StaleAssignment[]>([]);
   const [showMatchingInterface, setShowMatchingInterface] = useState(false);
   const [showResetDialog, setShowResetDialog] = useState(false);
@@ -65,7 +69,7 @@ export const UserMatchingActions: React.FC<UserMatchingActionsProps> = ({
         .from('manual_caregiver_assignments')
         .select(`
           *,
-          caregiver:profiles!caregiver_id(full_name, email),
+          caregiver:profiles!caregiver_id(full_name),
           admin:profiles!assigned_by_admin_id(full_name)
         `)
         .eq('family_user_id', user.id)
@@ -79,7 +83,7 @@ export const UserMatchingActions: React.FC<UserMatchingActionsProps> = ({
         .from('admin_match_interventions')
         .select(`
           *,
-          caregiver:profiles!caregiver_id(full_name, email),
+          caregiver:profiles!caregiver_id(full_name),
           admin:profiles!admin_id(full_name)
         `)
         .eq('family_user_id', user.id)
@@ -93,7 +97,7 @@ export const UserMatchingActions: React.FC<UserMatchingActionsProps> = ({
         .from('automatic_assignments')
         .select(`
           *,
-          caregiver:profiles!caregiver_id(full_name, email)
+          caregiver:profiles!caregiver_id(full_name)
         `)
         .eq('family_user_id', user.id)
         .eq('is_active', true)
@@ -101,6 +105,19 @@ export const UserMatchingActions: React.FC<UserMatchingActionsProps> = ({
 
       if (automaticError) throw automaticError;
       setAutomaticAssignments(automaticData || []);
+
+      // Fetch care team members
+      const { data: careTeamData, error: careTeamError } = await supabase
+        .from('care_team_members')
+        .select(`
+          *,
+          caregiver:profiles!caregiver_id(full_name)
+        `)
+        .eq('family_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (careTeamError) throw careTeamError;
+      setCareTeamMembers(careTeamData || []);
 
       // Fetch stale assignments
       const { data: staleData, error: staleError } = await supabase
@@ -203,7 +220,7 @@ export const UserMatchingActions: React.FC<UserMatchingActionsProps> = ({
         id: assignment.id,
         type: 'automatic',
         caregiver_name: assignment.caregiver?.full_name || 'Unknown',
-        caregiver_email: assignment.caregiver?.email || '',
+        caregiver_email: '',
         match_score: assignment.match_score,
         status: assignment.is_active ? 'Active' : 'Inactive',
         created_at: assignment.created_at,
@@ -217,7 +234,7 @@ export const UserMatchingActions: React.FC<UserMatchingActionsProps> = ({
         id: assignment.id,
         type: 'manual',
         caregiver_name: assignment.caregiver?.full_name || 'Unknown',
-        caregiver_email: assignment.caregiver?.email || '',
+        caregiver_email: '',
         match_score: assignment.match_score,
         status: assignment.is_active ? 'Active' : 'Inactive',
         created_at: assignment.created_at,
@@ -232,13 +249,29 @@ export const UserMatchingActions: React.FC<UserMatchingActionsProps> = ({
         id: intervention.id,
         type: 'intervention',
         caregiver_name: intervention.caregiver?.full_name || 'Unknown',
-        caregiver_email: intervention.caregiver?.email || '',
+        caregiver_email: '',
         match_score: intervention.admin_match_score || 0,
         status: intervention.status,
         created_at: intervention.created_at,
         admin_name: intervention.admin?.full_name,
         intervention_type: intervention.intervention_type,
         reason: intervention.reason
+      });
+    });
+
+    // Add care team members
+    careTeamMembers.forEach(member => {
+      allAssignments.push({
+        id: member.id,
+        type: 'team_member',
+        caregiver_name: member.caregiver?.full_name || 'Unknown',
+        caregiver_email: '',
+        match_score: 100, // Team members are considered perfect matches
+        status: member.status || 'active',
+        created_at: member.created_at,
+        role: member.role,
+        regular_rate: member.regular_rate,
+        overtime_rate: member.overtime_rate
       });
     });
 
@@ -308,13 +341,17 @@ export const UserMatchingActions: React.FC<UserMatchingActionsProps> = ({
                     <p className="font-medium">{assignment.caregiver_name}</p>
                     <Badge variant={
                       assignment.type === 'automatic' ? 'secondary' : 
-                      assignment.type === 'manual' ? 'default' : 'outline'
+                      assignment.type === 'manual' ? 'default' : 
+                      assignment.type === 'team_member' ? 'default' : 'outline'
                     }>
                       {assignment.type === 'automatic' ? 'Algorithm' : 
-                       assignment.type === 'manual' ? 'Manual' : 'Override'}
+                       assignment.type === 'manual' ? 'Manual' : 
+                       assignment.type === 'team_member' ? 'Team Member' : 'Override'}
                     </Badge>
                   </div>
-                  <p className="text-sm text-gray-600">{assignment.caregiver_email}</p>
+                  {assignment.caregiver_email && (
+                    <p className="text-sm text-gray-600">{assignment.caregiver_email}</p>
+                  )}
                   <div className="flex items-center gap-2 mt-1">
                     <Badge variant="outline">
                       Score: {assignment.match_score}%
@@ -334,6 +371,12 @@ export const UserMatchingActions: React.FC<UserMatchingActionsProps> = ({
                   )}
                   {assignment.reason && (
                     <p className="text-xs text-gray-500 mt-1">{assignment.reason}</p>
+                  )}
+                  {assignment.role && (
+                    <p className="text-xs text-gray-500 mt-1">Role: {assignment.role}</p>
+                  )}
+                  {assignment.regular_rate && (
+                    <p className="text-xs text-gray-500 mt-1">Rate: ${assignment.regular_rate}/hr</p>
                   )}
                 </div>
                 <div className="flex gap-2">
@@ -403,6 +446,7 @@ export const UserMatchingActions: React.FC<UserMatchingActionsProps> = ({
               <br />• {automaticAssignments.length} automatic assignments
               <br />• {manualAssignments.length} manual assignments  
               <br />• {interventions.filter(i => i.status === 'active').length} active interventions
+              <br />• {careTeamMembers.length} care team members
               <br /><br />
               This action cannot be undone. Are you sure you want to continue?
             </AlertDialogDescription>

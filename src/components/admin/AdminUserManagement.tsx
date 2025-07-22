@@ -17,22 +17,10 @@ interface Profile {
   role: string;
   full_name?: string;
   created_at: string;
-  updated_at: string;
   last_login_at?: string;
   phone_number?: string;
   email?: string;
   available_for_matching?: boolean;
-  ready_for_admin_scheduling?: boolean;
-  visit_scheduling_status?: string;
-  visit_payment_status?: string;
-  onboarding_completed?: boolean;
-  location?: string;
-  professional_type?: string;
-  years_of_experience?: string;
-  care_types?: string[];
-  specialized_care?: string[];
-  avatar_url?: string;
-  address?: string;
 }
 
 interface UserWithProfile {
@@ -78,11 +66,10 @@ export const AdminUserManagement = () => {
 
   const fetchProfiles = async () => {
     try {
-      console.log('Fetching profiles using admin function...');
-      
-      // Use admin function instead of direct table query to avoid RLS recursion
+      console.log('Fetching profiles...');
       const { data: profilesData, error: profilesError } = await supabase
-        .rpc('admin_get_all_profiles' as any);
+        .from('profiles')
+        .select('*');
 
       if (profilesError) {
         console.error('Error fetching profiles:', profilesError);
@@ -96,13 +83,10 @@ export const AdminUserManagement = () => {
       // Convert profiles to users format for display
       const profileUsers: UserWithProfile[] = safeProfiles.map(profile => ({
         id: profile.id,
-        email: profile.email || 'Profile data only', // Use email from admin function
+        email: 'Profile data only', // Fallback for profile-only data
         created_at: profile.created_at || new Date().toISOString(),
         last_sign_in_at: profile.last_login_at,
-        profile: {
-          ...profile,
-          last_login_at: profile.last_login_at
-        }
+        profile
       }));
 
       setUsers(profileUsers);
@@ -113,14 +97,68 @@ export const AdminUserManagement = () => {
     }
   };
 
+  const enhanceWithAuthData = async (profiles: Profile[]) => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        console.log('No session found, skipping auth enhancement');
+        return;
+      }
+
+      console.log('Attempting to enhance with auth data...');
+      const response = await fetch(`https://cpdfmyemjrefnhddyrck.supabase.co/functions/v1/admin-users?action=list-users`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        console.log('Auth enhancement failed, continuing with profile data only');
+        return;
+      }
+
+      const responseData = await response.json();
+      const authUsers = Array.isArray(responseData.users) ? responseData.users : [];
+      
+      console.log('Auth users fetched:', authUsers.length);
+
+      // Only enhance if we actually got auth users data
+      if (authUsers.length > 0) {
+        // Merge auth data with profiles
+        const enhancedUsers = authUsers.map((authUser: any) => {
+          const profile = profiles.find(p => p.id === authUser.id);
+          return {
+            ...authUser,
+            profile
+          };
+        });
+
+        setUsers(enhancedUsers);
+        toast.success(`Enhanced with auth data: ${enhancedUsers.length} users`);
+      } else {
+        console.log('No auth users returned, keeping profile data');
+        toast.info(`Using profile data: ${profiles.length} users`);
+      }
+    } catch (error: any) {
+      console.error('Auth enhancement failed:', error);
+      toast.info(`Using profile data: ${profiles.length} users`);
+      // Don't throw error, just continue with profile data
+    }
+  };
+
   const fetchUsers = async () => {
     try {
       setLoading(true);
       setError(null);
       
-      // Fetch profiles using admin function (no auth enhancement needed since admin function includes email)
+      // First, always fetch profiles as our primary data source
       const profiles = await fetchProfiles();
-      toast.success(`Loaded ${profiles.length} user profiles`);
+      
+      // Then try to enhance with auth data if possible
+      // This will only replace users if auth data is successfully retrieved
+      await enhanceWithAuthData(profiles);
       
     } catch (error: any) {
       console.error('Error fetching users:', error);
@@ -142,12 +180,23 @@ export const AdminUserManagement = () => {
     }
 
     try {
-      const { error } = await supabase.rpc('admin_delete_user', {
-        target_user_id: userId
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        toast.error('Not authenticated');
+        return;
+      }
+
+      const response = await fetch(`https://cpdfmyemjrefnhddyrck.supabase.co/functions/v1/admin-users?action=delete-user&userId=${userId}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json',
+        },
       });
 
-      if (error) {
-        throw new Error(error.message || 'Failed to delete user');
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to delete user');
       }
 
       toast.success('User deleted successfully');
