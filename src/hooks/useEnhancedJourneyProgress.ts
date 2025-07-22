@@ -15,6 +15,7 @@ export const useEnhancedJourneyProgress = () => {
   const [careRecipient, setCareRecipient] = useState<any>(null);
   const [visitDetails, setVisitDetails] = useState<any>(null);
   const [trialPayments, setTrialPayments] = useState<any[]>([]);
+  const [journeyProgress, setJourneyProgress] = useState<any>(null);
   
   // Modal states
   const [showScheduleModal, setShowScheduleModal] = useState(false);
@@ -241,8 +242,12 @@ export const useEnhancedJourneyProgress = () => {
 
         if (journeyError) {
           console.log('No journey progress data found:', journeyError);
+          setJourneyProgress(null);
         } else if (journeyData) {
           console.log('Journey progress data loaded:', journeyData);
+          setJourneyProgress(journeyData);
+        } else {
+          setJourneyProgress(null);
         }
       }
 
@@ -629,9 +634,18 @@ export const useEnhancedJourneyProgress = () => {
   const steps_calculated = calculateSteps();
   const completedSteps = steps_calculated.filter(step => step.completed).length;
   const totalSteps = steps_calculated.length;
-  const completionPercentage = totalSteps > 0 ? Math.round((completedSteps / totalSteps) * 100) : 0;
-  const nextStep = steps_calculated.find(step => !step.completed && step.accessible);
-  const currentStage = 'foundation'; // Default stage
+  
+  // Use stored completion percentage if available, otherwise calculate from steps
+  const completionPercentage = journeyProgress?.completion_percentage != null 
+    ? Math.round(journeyProgress.completion_percentage)
+    : (totalSteps > 0 ? Math.round((completedSteps / totalSteps) * 100) : 0);
+    
+  // Use stored current step if available
+  const nextStep = journeyProgress?.current_step != null
+    ? steps_calculated.find(step => step.step_number === journeyProgress.current_step && !step.completed)
+    : steps_calculated.find(step => !step.completed && step.accessible);
+    
+  const currentStage = journeyProgress?.role === 'family' ? 'foundation' : 'foundation'; // Default stage
 
   // Create paths with proper JourneyPath interface properties
   const paths = [
