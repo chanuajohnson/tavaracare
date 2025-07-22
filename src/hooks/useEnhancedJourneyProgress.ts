@@ -219,7 +219,7 @@ export const useEnhancedJourneyProgress = () => {
     try {
       setLoading(true);
       
-      // Fetch profile data
+      // Fetch profile data directly (own profile access is allowed)
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .select('*')
@@ -231,6 +231,19 @@ export const useEnhancedJourneyProgress = () => {
       } else {
         setProfile(profileData);
         console.log('Profile data loaded:', profileData);
+
+        // Also try to get journey progress from the dedicated table
+        const { data: journeyData, error: journeyError } = await supabase
+          .from('user_journey_progress')
+          .select('*')
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+        if (journeyError) {
+          console.log('No journey progress data found:', journeyError);
+        } else if (journeyData) {
+          console.log('Journey progress data loaded:', journeyData);
+        }
       }
 
       // Fetch care plans

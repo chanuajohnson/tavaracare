@@ -11,6 +11,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from "sonner";
 import { RoleBasedUserGrid } from './RoleBasedUserGrid';
 import { UserWithProgress } from '@/types/adminTypes';
+import { useAdminProfiles } from '@/hooks/useAdminProfiles';
 
 interface Profile {
   id: string;
@@ -32,147 +33,48 @@ interface UserWithProfile {
 }
 
 export const AdminUserManagement = () => {
-  const [users, setUsers] = useState<UserWithProfile[]>([]);
-  const [profiles, setProfiles] = useState<Profile[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { profiles, loading, error, refetch } = useAdminProfiles();
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState<string>('all');
   const [viewMode, setViewMode] = useState<'table' | 'grid'>('grid');
-  const [error, setError] = useState<string | null>(null);
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
 
-  // Transform users to UserWithProgress format for the grid
-  const transformedUsers: UserWithProgress[] = users.map(user => {
-    // Get email from either user object or profile, with fallback
-    const userEmail = user.email || user.profile?.email || 'No email';
-    
-    return {
-      id: user.id,
-      email: userEmail,
-      full_name: user.profile?.full_name || 'Unnamed User',
-      role: (user.profile?.role || 'family') as 'family' | 'professional' | 'community' | 'admin',
-      email_verified: true, // Assume verified for existing users
-      last_login_at: user.last_sign_in_at || user.profile?.last_login_at || user.created_at,
-      created_at: user.created_at,
-      phone_number: user.profile?.phone_number,
-      location: undefined, // Add if available in your data
-      professional_type: undefined, // Add if available in your data
-      years_of_experience: undefined, // Add if available in your data
-      care_types: [], // Add if available in your data
-      specialized_care: [], // Add if available in your data
-      available_for_matching: user.profile?.available_for_matching
-    };
-  });
+  // Transform admin profiles to UserWithProgress format for the grid
+  const transformedUsers: UserWithProgress[] = profiles.map(profile => ({
+    id: profile.id,
+    email: profile.email || 'No email',
+    full_name: profile.full_name || 'Unnamed User',
+    role: profile.role as 'family' | 'professional' | 'community' | 'admin',
+    email_verified: true, // Assume verified for existing users
+    last_login_at: profile.updated_at || profile.created_at,
+    created_at: profile.created_at,
+    phone_number: profile.phone_number,
+    location: profile.location,
+    professional_type: profile.professional_type,
+    years_of_experience: profile.years_of_experience,
+    care_types: profile.care_types || [],
+    specialized_care: profile.specialized_care || [],
+    available_for_matching: profile.available_for_matching
+  }));
 
-  const fetchProfiles = async () => {
-    try {
-      console.log('Fetching profiles...');
-      const { data: profilesData, error: profilesError } = await supabase
-        .from('profiles')
-        .select('*');
-
-      if (profilesError) {
-        console.error('Error fetching profiles:', profilesError);
-        throw profilesError;
-      }
-
-      console.log('Profiles fetched successfully:', profilesData?.length || 0);
-      const safeProfiles = Array.isArray(profilesData) ? profilesData : [];
-      setProfiles(safeProfiles);
-      
-      // Convert profiles to users format for display
-      const profileUsers: UserWithProfile[] = safeProfiles.map(profile => ({
-        id: profile.id,
-        email: 'Profile data only', // Fallback for profile-only data
-        created_at: profile.created_at || new Date().toISOString(),
-        last_sign_in_at: profile.last_login_at,
-        profile
-      }));
-
-      setUsers(profileUsers);
-      return safeProfiles;
-    } catch (error: any) {
-      console.error('Error in fetchProfiles:', error);
-      throw error;
+  // Also create users array in old format for compatibility
+  const users: UserWithProfile[] = profiles.map(profile => ({
+    id: profile.id,
+    email: profile.email || 'No email',
+    created_at: profile.created_at,
+    last_sign_in_at: profile.updated_at,
+    profile: {
+      id: profile.id,
+      role: profile.role,
+      full_name: profile.full_name,
+      created_at: profile.created_at,
+      last_login_at: profile.updated_at,
+      phone_number: profile.phone_number,
+      email: profile.email,
+      available_for_matching: profile.available_for_matching
     }
-  };
+  }));
 
-  const enhanceWithAuthData = async (profiles: Profile[]) => {
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        console.log('No session found, skipping auth enhancement');
-        return;
-      }
-
-      console.log('Attempting to enhance with auth data...');
-      const response = await fetch(`https://cpdfmyemjrefnhddyrck.supabase.co/functions/v1/admin-users?action=list-users`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        console.log('Auth enhancement failed, continuing with profile data only');
-        return;
-      }
-
-      const responseData = await response.json();
-      const authUsers = Array.isArray(responseData.users) ? responseData.users : [];
-      
-      console.log('Auth users fetched:', authUsers.length);
-
-      // Only enhance if we actually got auth users data
-      if (authUsers.length > 0) {
-        // Merge auth data with profiles
-        const enhancedUsers = authUsers.map((authUser: any) => {
-          const profile = profiles.find(p => p.id === authUser.id);
-          return {
-            ...authUser,
-            profile
-          };
-        });
-
-        setUsers(enhancedUsers);
-        toast.success(`Enhanced with auth data: ${enhancedUsers.length} users`);
-      } else {
-        console.log('No auth users returned, keeping profile data');
-        toast.info(`Using profile data: ${profiles.length} users`);
-      }
-    } catch (error: any) {
-      console.error('Auth enhancement failed:', error);
-      toast.info(`Using profile data: ${profiles.length} users`);
-      // Don't throw error, just continue with profile data
-    }
-  };
-
-  const fetchUsers = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      
-      // First, always fetch profiles as our primary data source
-      const profiles = await fetchProfiles();
-      
-      // Then try to enhance with auth data if possible
-      // This will only replace users if auth data is successfully retrieved
-      await enhanceWithAuthData(profiles);
-      
-    } catch (error: any) {
-      console.error('Error fetching users:', error);
-      setError(error.message);
-      toast.error(`Failed to load users: ${error.message}`);
-      
-      // Ensure we always have some data to display
-      if (users.length === 0) {
-        setUsers([]);
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleDeleteUser = async (userId: string) => {
     if (!confirm('Are you sure you want to delete this user? This action cannot be undone.')) {
@@ -200,7 +102,7 @@ export const AdminUserManagement = () => {
       }
 
       toast.success('User deleted successfully');
-      fetchUsers(); // Refresh the list
+      refetch(); // Refresh the list
     } catch (error: any) {
       console.error('Error deleting user:', error);
       toast.error(`Failed to delete user: ${error.message}`);
@@ -223,9 +125,6 @@ export const AdminUserManagement = () => {
     console.log('Role filter updated to:', newFilter);
   };
 
-  useEffect(() => {
-    fetchUsers();
-  }, []);
 
   // Safe filtering logic
   const filteredUsers = users.filter(user => {
@@ -263,7 +162,7 @@ export const AdminUserManagement = () => {
 
   // Calculate role statistics
   const roleStats = {
-    total: users.length,
+    total: profiles.length,
     admin: profiles.filter(p => p.role === 'admin').length,
     professional: profiles.filter(p => p.role === 'professional').length,
     family: profiles.filter(p => p.role === 'family').length,
@@ -336,7 +235,7 @@ export const AdminUserManagement = () => {
               <Grid3X3 className="h-4 w-4" />
             </Button>
           </div>
-          <Button onClick={fetchUsers} variant="outline">
+          <Button onClick={refetch} variant="outline">
             <Filter className="h-4 w-4 mr-2" />
             Refresh
           </Button>
@@ -433,7 +332,7 @@ export const AdminUserManagement = () => {
             users={filteredTransformedUsers}
             selectedUsers={selectedUsers}
             onUserSelect={handleUserSelect}
-            onRefresh={fetchUsers}
+            onRefresh={refetch}
           />
         ) : (
           <div className="border rounded-lg overflow-hidden">

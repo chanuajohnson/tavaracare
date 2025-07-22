@@ -29,6 +29,19 @@ export const useCurrentAssignments = () => {
         setLoading(true);
         setError(null);
 
+        // Get accessible family profiles first using the security definer function
+        const { data: familyProfiles, error: familyError } = await supabase
+          .rpc('get_professional_accessible_family_profiles', {
+            professional_id: user.id
+          });
+
+        if (familyError) throw familyError;
+
+        // Create a map for quick profile lookup
+        const profileMap = new Map(
+          familyProfiles?.map(p => [p.id, p]) || []
+        );
+
         // Fetch manual assignments from admin_match_interventions
         const { data: manualMatches, error: manualError } = await supabase
           .from('admin_match_interventions')
@@ -38,11 +51,7 @@ export const useCurrentAssignments = () => {
             admin_match_score,
             created_at,
             status,
-            notes,
-            profiles!admin_match_interventions_family_user_id_fkey (
-              id,
-              full_name
-            )
+            notes
           `)
           .eq('caregiver_id', user.id)
           .eq('status', 'active');
@@ -59,10 +68,6 @@ export const useCurrentAssignments = () => {
             status,
             notes,
             care_plan_id,
-            profiles!care_team_members_family_id_fkey (
-              id,
-              full_name
-            ),
             care_plans!care_team_members_care_plan_id_fkey (
               id,
               title
@@ -82,11 +87,7 @@ export const useCurrentAssignments = () => {
             match_score,
             created_at,
             is_active,
-            match_explanation,
-            profiles!automatic_assignments_family_user_id_fkey (
-              id,
-              full_name
-            )
+            match_explanation
           `)
           .eq('caregiver_id', user.id)
           .eq('is_active', true);
@@ -99,37 +100,40 @@ export const useCurrentAssignments = () => {
         console.log('Raw query results:', {
           manualMatches,
           careTeamAssignments,
-          automaticAssignments
+          automaticAssignments,
+          familyProfiles
         });
 
         // Add manual matches (highest priority)
         manualMatches?.forEach(match => {
           console.log('Processing manual match:', match);
-          if (match.profiles) {
+          const familyProfile = profileMap.get(match.family_user_id);
+          if (familyProfile) {
             allAssignments.push({
               id: match.id,
               type: 'manual',
               familyId: match.family_user_id,
-              familyName: match.profiles.full_name || 'Unknown Family',
+              familyName: familyProfile.full_name || 'Unknown Family',
               assignmentDate: match.created_at,
               status: match.status,
               matchScore: match.admin_match_score,
               notes: match.notes
             });
           } else {
-            console.warn('Manual match missing profiles:', match);
+            console.warn('Manual match missing family profile:', match);
           }
         });
 
         // Add care team assignments
         careTeamAssignments?.forEach(assignment => {
           console.log('Processing care team assignment:', assignment);
-          if (assignment.profiles) {
+          const familyProfile = profileMap.get(assignment.family_id);
+          if (familyProfile) {
             allAssignments.push({
               id: assignment.id,
               type: 'care_team',
               familyId: assignment.family_id,
-              familyName: assignment.profiles.full_name || 'Unknown Family',
+              familyName: familyProfile.full_name || 'Unknown Family',
               carePlanId: assignment.care_plan_id,
               carePlanTitle: assignment.care_plans?.title,
               assignmentDate: assignment.created_at,
@@ -137,26 +141,27 @@ export const useCurrentAssignments = () => {
               notes: assignment.notes
             });
           } else {
-            console.warn('Care team assignment missing profiles:', assignment);
+            console.warn('Care team assignment missing family profile:', assignment);
           }
         });
 
         // Add automatic assignments (lowest priority)
         automaticAssignments?.forEach(assignment => {
           console.log('Processing automatic assignment:', assignment);
-          if (assignment.profiles) {
+          const familyProfile = profileMap.get(assignment.family_user_id);
+          if (familyProfile) {
             allAssignments.push({
               id: assignment.id,
               type: 'automatic',
               familyId: assignment.family_user_id,
-              familyName: assignment.profiles.full_name || 'Unknown Family',
+              familyName: familyProfile.full_name || 'Unknown Family',
               assignmentDate: assignment.created_at,
               status: 'active',
               matchScore: assignment.match_score,
               notes: assignment.match_explanation
             });
           } else {
-            console.warn('Automatic assignment missing profiles:', assignment);
+            console.warn('Automatic assignment missing family profile:', assignment);
           }
         });
 
