@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { supabase } from '@/lib/supabase';
 import { useNavigate } from 'react-router-dom';
+import { useStoredJourneyProgress } from '@/hooks/useStoredJourneyProgress';
 import { getDocumentNavigationLink, getProfessionalRegistrationLink, getButtonText } from '../../../hooks/professional/stepDefinitions';
 
 interface ProfessionalStep {
@@ -32,6 +33,10 @@ export const useProfessionalProgress = (): ProfessionalProgressData => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
+  
+  // Use stored progress as primary source
+  const storedProgress = useStoredJourneyProgress(user?.id || '', 'professional');
+  
   const [steps, setSteps] = useState<ProfessionalStep[]>([
     { 
       id: 1, 
@@ -143,10 +148,9 @@ export const useProfessionalProgress = (): ProfessionalProgressData => {
 
       const updatedSteps = steps.map(step => {
         let completed = step.completed;
-        let accessible = step.accessible;
         let stepLink = step.link;
         
-        // Check completion status
+        // Check completion status for step details (but use stored overall percentage)
         if (step.id === 1) {
           completed = true; // Account creation
         } else if (step.id === 2) {
@@ -157,6 +161,7 @@ export const useProfessionalProgress = (): ProfessionalProgressData => {
           completed = !!(profile && profile.care_schedule && profile.care_schedule.length > 0);
         } else if (step.id === 4) {
           completed = !!(documents && documents.length > 0);
+          stepLink = getDocumentNavigationLink(completed);
         } else if (step.id === 5) {
           completed = !!(assignments && assignments.length > 0);
         } else if (step.id === 6) {
@@ -164,6 +169,7 @@ export const useProfessionalProgress = (): ProfessionalProgressData => {
         }
         
         // Check accessibility - Step 5 is only accessible if steps 1-4 are completed
+        let accessible = true;
         if (step.id === 5) {
           const step1Complete = true; // Account always complete for logged in users
           const step2Complete = !!(profile && profile.full_name);
@@ -171,11 +177,6 @@ export const useProfessionalProgress = (): ProfessionalProgressData => {
           const step4Complete = !!(documents && documents.length > 0);
           
           accessible = step1Complete && step2Complete && step3Complete && step4Complete;
-        }
-
-        // Update document step link dynamically
-        if (step.id === 4) {
-          stepLink = getDocumentNavigationLink(completed);
         }
 
         // Create a base step object for the getButtonText function
@@ -213,12 +214,30 @@ export const useProfessionalProgress = (): ProfessionalProgressData => {
     }
   }, [user]);
 
-  const completedSteps = steps.filter(step => step.completed).length;
+  // Use stored completion percentage if available, otherwise calculate from steps
+  const calculatedCompletedSteps = steps.filter(step => step.completed).length;
+  const calculatedCompletionPercentage = Math.round((calculatedCompletedSteps / steps.length) * 100);
+  
+  console.log('🔍 TAV Professional Progress Data:', {
+    userId: user?.id,
+    storedPercentage: storedProgress.completionPercentage,
+    calculatedPercentage: calculatedCompletionPercentage,
+    usingStored: storedProgress.completionPercentage > 0
+  });
+
+  // Prioritize stored progress over calculated
+  const completionPercentage = storedProgress.completionPercentage > 0 
+    ? storedProgress.completionPercentage 
+    : calculatedCompletionPercentage;
+    
+  const completedSteps = storedProgress.completionPercentage > 0
+    ? Math.round((storedProgress.completionPercentage / 100) * steps.length)
+    : calculatedCompletedSteps;
+    
   const totalSteps = steps.length;
-  const completionPercentage = Math.round((completedSteps / totalSteps) * 100);
   const nextStep = steps.find(step => !step.completed && step.accessible);
 
-  // Determine current stage based on completed steps
+  // Determine current stage based on stored or calculated progress
   const getCurrentStage = () => {
     if (completionPercentage === 100) return 'training';
     if (completedSteps >= 5) return 'active'; //  Step 5 is now assignments (active stage)
@@ -234,6 +253,6 @@ export const useProfessionalProgress = (): ProfessionalProgressData => {
     currentStage: getCurrentStage(),
     completedSteps,
     totalSteps,
-    loading
+    loading: loading || storedProgress.loading
   };
 };

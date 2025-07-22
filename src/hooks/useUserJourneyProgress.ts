@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useSharedFamilyJourneyData } from '@/hooks/useSharedFamilyJourneyData';
+import { useStoredJourneyProgress } from '@/hooks/useStoredJourneyProgress';
 import type { UserRole } from '@/types/userRoles';
 
 interface JourneyStep {
@@ -23,14 +24,25 @@ interface UserJourneyData {
 }
 
 export const useUserJourneyProgress = (userId: string, userRole: UserRole): UserJourneyData => {
-  // Use shared family data for family users
+  // Use stored progress as primary source for all roles
+  const storedProgress = useStoredJourneyProgress(userId, userRole);
+  
+  // Use shared family data for family users (as fallback for detailed steps)
   const familyProgress = useSharedFamilyJourneyData(userRole === 'family' ? userId : '');
   
   const [loading, setLoading] = useState(true);
   const [steps, setSteps] = useState<JourneyStep[]>([]);
   const [journeyStage, setJourneyStage] = useState<string>('foundation');
 
-  // If this is a family user, return the shared family data
+  console.log('🔍 User Journey Progress Data:', {
+    userId,
+    userRole,
+    storedPercentage: storedProgress.completionPercentage,
+    familyPercentage: familyProgress.completionPercentage,
+    usingStored: storedProgress.completionPercentage > 0
+  });
+
+  // If this is a family user, return the shared family data with stored progress if available
   if (userRole === 'family') {
     const convertedSteps = familyProgress.steps.map(step => ({
       ...step,
@@ -48,19 +60,24 @@ export const useUserJourneyProgress = (userId: string, userRole: UserRole): User
             step.id === 12 ? "/family/schedule-visit" : "/dashboard"
     }));
 
+    // Use stored completion percentage if available, otherwise use calculated
+    const completionPercentage = storedProgress.completionPercentage > 0 
+      ? storedProgress.completionPercentage 
+      : familyProgress.completionPercentage;
+
     return {
       steps: convertedSteps,
-      completionPercentage: familyProgress.completionPercentage,
+      completionPercentage,
       nextStep: familyProgress.nextStep ? {
         ...familyProgress.nextStep,
         link: convertedSteps.find(s => s.id === familyProgress.nextStep?.id)?.link || "/dashboard"
       } : undefined,
-      loading: familyProgress.loading,
+      loading: familyProgress.loading || storedProgress.loading,
       journeyStage: familyProgress.journeyStage
     };
   }
 
-  // For non-family users, keep the existing logic
+  // For non-family users, use stored progress primarily and supplement with calculated data
   const getStepsForRole = (role: UserRole): JourneyStep[] => {
     switch (role) {
       case 'professional':
@@ -144,15 +161,21 @@ export const useUserJourneyProgress = (userId: string, userRole: UserRole): User
     }
   }, [userId, userRole]);
 
-  const completedSteps = steps.filter(step => step.completed).length;
-  const completionPercentage = steps.length > 0 ? Math.round((completedSteps / steps.length) * 100) : 0;
+  const calculatedCompletedSteps = steps.filter(step => step.completed).length;
+  const calculatedCompletionPercentage = steps.length > 0 ? Math.round((calculatedCompletedSteps / steps.length) * 100) : 0;
+  
+  // Use stored completion percentage if available, otherwise calculate from steps
+  const completionPercentage = storedProgress.completionPercentage > 0 
+    ? storedProgress.completionPercentage 
+    : calculatedCompletionPercentage;
+    
   const nextStep = steps.find(step => !step.completed);
 
   return {
     steps,
     completionPercentage,
     nextStep,
-    loading,
+    loading: loading || storedProgress.loading,
     journeyStage
   };
 };

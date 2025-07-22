@@ -1,8 +1,8 @@
-
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { supabase } from '@/lib/supabase';
 import { useNavigate } from 'react-router-dom';
+import { useStoredJourneyProgress } from '@/hooks/useStoredJourneyProgress';
 import { getDocumentNavigationLink, getProfessionalRegistrationLink } from './professional/stepDefinitions';
 
 export interface ProfessionalJourneyStage {
@@ -48,6 +48,15 @@ export const useEnhancedProfessionalProgress = (): ProfessionalProgressData => {
   const [loading, setLoading] = useState(true);
   const [profileData, setProfileData] = useState<any>(null);
   const [documentsData, setDocumentsData] = useState<any[]>([]);
+
+  // Use stored progress as primary source
+  const storedProgress = useStoredJourneyProgress(user?.id || '', 'professional');
+
+  console.log('🔍 Enhanced Professional Progress Data:', {
+    userId: user?.id,
+    storedPercentage: storedProgress.completionPercentage,
+    usingStored: storedProgress.completionPercentage > 0
+  });
 
   // Define journey stages
   const stages: ProfessionalJourneyStage[] = [
@@ -281,20 +290,17 @@ export const useEnhancedProfessionalProgress = (): ProfessionalProgressData => {
     try {
       setLoading(true);
       
-      // Fetch profile data
       const { data: profile } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', user.id)
         .maybeSingle();
 
-      // Fetch documents
       const { data: documents } = await supabase
         .from('professional_documents')
         .select('*')
         .eq('user_id', user.id);
 
-      // Fetch care team assignments
       const { data: assignments } = await supabase
         .from('care_team_members')
         .select('*')
@@ -307,31 +313,22 @@ export const useEnhancedProfessionalProgress = (): ProfessionalProgressData => {
         let completed = false;
         let stepLink = baseStep.link;
 
-        switch (baseStep.id) {
-          case 1: // Account creation
-            completed = !!user;
-            break;
-          case 2: // Professional profile
-            completed = !!(profile?.full_name);
-            // Use dynamic link based on completion status
-            stepLink = getProfessionalRegistrationLink(completed);
-            break;
-          case 3: // Availability
-            completed = !!(profile?.care_schedule && profile.care_schedule.length > 0);
-            break;
-          case 4: // Documents upload
-            completed = (documents?.length || 0) > 0;
-            stepLink = getDocumentNavigationLink(completed);
-            break;
-          case 5: // Assignments
-            completed = (assignments?.length || 0) > 0;
-            break;
-          case 6: // Training modules
-            completed = !!(profile?.professional_type && profile?.certifications && profile.certifications.length > 0);
-            break;
+        if (baseStep.id === 1) {
+          completed = !!user;
+        } else if (baseStep.id === 2) {
+          completed = !!(profile?.full_name);
+          stepLink = getProfessionalRegistrationLink(completed);
+        } else if (baseStep.id === 3) {
+          completed = !!(profile?.care_schedule && profile.care_schedule.length > 0);
+        } else if (baseStep.id === 4) {
+          completed = (documents?.length || 0) > 0;
+          stepLink = getDocumentNavigationLink(completed);
+        } else if (baseStep.id === 5) {
+          completed = (assignments?.length || 0) > 0;
+        } else if (baseStep.id === 6) {
+          completed = !!(profile?.professional_type && profile?.certifications && profile.certifications.length > 0);
         }
 
-        // Determine accessibility - Step 5 is only accessible if steps 1-4 are completed
         let accessible = true;
         if (baseStep.id === 5) {
           const step1Complete = !!user;
@@ -352,7 +349,6 @@ export const useEnhancedProfessionalProgress = (): ProfessionalProgressData => {
         };
       });
 
-      // Calculate stage completion
       const updatedStages = currentStages.map(stage => {
         const stageSteps = steps.filter(step => step.stage === stage.id);
         const completedStageSteps = stageSteps.filter(step => step.completed);
@@ -403,12 +399,20 @@ export const useEnhancedProfessionalProgress = (): ProfessionalProgressData => {
     }
   }, [user]);
 
-  const completedSteps = steps.filter(step => step.completed).length;
+  const calculatedCompletedSteps = steps.filter(step => step.completed).length;
+  const calculatedOverallProgress = Math.round((calculatedCompletedSteps / steps.length) * 100);
+  
+  const overallProgress = storedProgress.completionPercentage > 0 
+    ? storedProgress.completionPercentage 
+    : calculatedOverallProgress;
+    
+  const completedSteps = storedProgress.completionPercentage > 0
+    ? Math.round((storedProgress.completionPercentage / 100) * steps.length)
+    : calculatedCompletedSteps;
+    
   const totalSteps = steps.length;
-  const overallProgress = Math.round((completedSteps / totalSteps) * 100);
   const nextStep = steps.find(step => !step.completed && step.accessible);
   
-  // Determine current stage
   const currentStage = currentStages.find(stage => stage.isActive)?.id || 
                      (overallProgress === 100 ? 'active' : 'foundation');
 
@@ -420,7 +424,7 @@ export const useEnhancedProfessionalProgress = (): ProfessionalProgressData => {
     nextStep,
     completedSteps,
     totalSteps,
-    loading,
+    loading: loading || storedProgress.loading,
     refreshProgress
   };
 };
