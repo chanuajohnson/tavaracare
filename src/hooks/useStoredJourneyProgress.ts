@@ -18,6 +18,7 @@ export const useStoredJourneyProgress = (userId: string, userRole: string): Stor
 
   useEffect(() => {
     if (!userId || !userRole) {
+      console.log('🚫 useStoredJourneyProgress: Missing userId or userRole', { userId, userRole });
       setLoading(false);
       return;
     }
@@ -25,23 +26,28 @@ export const useStoredJourneyProgress = (userId: string, userRole: string): Stor
     const fetchStoredProgress = async () => {
       try {
         setLoading(true);
-        console.log('🔍 useStoredJourneyProgress: Fetching stored progress for', { userId, userRole });
+        console.log('🔍 useStoredJourneyProgress: Fetching stored progress using secure function for', { userId, userRole });
         
-        // First, try to get stored progress from user_journey_progress table
+        // Use the security definer function to get journey progress without RLS issues
         const { data: journeyProgress, error: journeyError } = await supabase
-          .from('user_journey_progress')
-          .select('*')
-          .eq('user_id', userId)
-          .maybeSingle();
+          .rpc('get_user_journey_progress_secure', { target_user_id: userId });
 
         if (journeyError) {
-          console.log('No stored journey progress found:', journeyError);
+          console.error('❌ Error fetching stored journey progress:', journeyError);
           setStoredProgress(null);
-        } else if (journeyProgress) {
-          console.log('✅ Found stored journey progress:', journeyProgress);
-          setStoredProgress(journeyProgress);
+        } else if (journeyProgress && journeyProgress.length > 0) {
+          const progress = journeyProgress[0];
+          console.log('✅ Found stored journey progress via secure function:', {
+            userId,
+            userRole,
+            completionPercentage: progress.completion_percentage,
+            currentStep: progress.current_step,
+            totalSteps: progress.total_steps,
+            lastActivity: progress.last_activity_at
+          });
+          setStoredProgress(progress);
         } else {
-          console.log('No stored progress data available');
+          console.log('⚠️ No stored progress data available for user:', { userId, userRole });
           setStoredProgress(null);
         }
       } catch (error) {
@@ -66,7 +72,8 @@ export const useStoredJourneyProgress = (userId: string, userRole: string): Stor
       userRole,
       completionPercentage,
       currentStep,
-      totalSteps
+      totalSteps,
+      lastActivity: storedProgress.last_activity_at
     });
 
     // Create basic step structure for compatibility

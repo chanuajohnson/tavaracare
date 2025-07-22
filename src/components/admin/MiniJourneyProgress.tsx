@@ -12,7 +12,19 @@ interface MiniJourneyProgressProps {
 }
 
 export const MiniJourneyProgress: React.FC<MiniJourneyProgressProps> = ({ userId, userRole }) => {
+  console.log('🎯 MiniJourneyProgress rendering for:', { userId, userRole });
+  
   const { loading, completionPercentage, nextStep, steps, currentStage } = useStoredJourneyProgress(userId, userRole);
+
+  console.log('📊 MiniJourneyProgress data received:', {
+    userId,
+    userRole,
+    loading,
+    completionPercentage,
+    stepsCount: steps.length,
+    currentStage,
+    nextStepTitle: nextStep?.title
+  });
 
   if (loading) {
     return (
@@ -78,6 +90,13 @@ export const MiniJourneyProgress: React.FC<MiniJourneyProgressProps> = ({ userId
       {completionPercentage === 0 && (
         <div className="text-xs text-gray-400">
           No progress recorded yet
+        </div>
+      )}
+      
+      {/* Debug info in development */}
+      {process.env.NODE_ENV === 'development' && (
+        <div className="text-xs text-blue-500 border border-blue-200 rounded p-1">
+          Debug: userId={userId.slice(0,8)}..., role={userRole}, progress={completionPercentage}%
         </div>
       )}
     </div>

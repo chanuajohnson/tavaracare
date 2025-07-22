@@ -37,6 +37,13 @@ export const useProfessionalProgress = (): ProfessionalProgressData => {
   // Use stored progress as primary source
   const storedProgress = useStoredJourneyProgress(user?.id || '', 'professional');
   
+  console.log('🔍 TAV Professional Progress Data:', {
+    userId: user?.id,
+    storedPercentage: storedProgress.completionPercentage,
+    storedLoading: storedProgress.loading,
+    usingStored: storedProgress.completionPercentage > 0
+  });
+
   const [steps, setSteps] = useState<ProfessionalStep[]>([
     { 
       id: 1, 
@@ -218,13 +225,6 @@ export const useProfessionalProgress = (): ProfessionalProgressData => {
   const calculatedCompletedSteps = steps.filter(step => step.completed).length;
   const calculatedCompletionPercentage = Math.round((calculatedCompletedSteps / steps.length) * 100);
   
-  console.log('🔍 TAV Professional Progress Data:', {
-    userId: user?.id,
-    storedPercentage: storedProgress.completionPercentage,
-    calculatedPercentage: calculatedCompletionPercentage,
-    usingStored: storedProgress.completionPercentage > 0
-  });
-
   // Prioritize stored progress over calculated
   const completionPercentage = storedProgress.completionPercentage > 0 
     ? storedProgress.completionPercentage 
@@ -245,6 +245,14 @@ export const useProfessionalProgress = (): ProfessionalProgressData => {
     if (completedSteps >= 3) return 'foundation'; // Steps 1-3 are foundation
     return 'foundation';
   };
+
+  console.log('📊 Final TAV Professional Progress:', {
+    userId: user?.id,
+    storedPercentage: storedProgress.completionPercentage,
+    calculatedPercentage: calculatedCompletionPercentage,
+    finalPercentage: completionPercentage,
+    usingStored: storedProgress.completionPercentage > 0
+  });
 
   return {
     steps,
