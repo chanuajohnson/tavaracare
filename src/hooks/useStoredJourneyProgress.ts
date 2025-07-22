@@ -28,14 +28,14 @@ export const useStoredJourneyProgress = (userId: string, userRole: string): Stor
         setLoading(true);
         console.log('🔍 useStoredJourneyProgress: Fetching stored progress using secure function for', { userId, userRole });
         
-        // Use the security definer function to get journey progress without RLS issues
+        // Use the existing admin function to get journey progress
         const { data: journeyProgress, error: journeyError } = await supabase
-          .rpc('get_user_journey_progress_secure', { target_user_id: userId });
+          .rpc('admin_get_user_journey_progress', { target_user_id: userId });
 
         if (journeyError) {
           console.error('❌ Error fetching stored journey progress:', journeyError);
           setStoredProgress(null);
-        } else if (journeyProgress && journeyProgress.length > 0) {
+        } else if (journeyProgress && Array.isArray(journeyProgress) && journeyProgress.length > 0) {
           const progress = journeyProgress[0];
           console.log('✅ Found stored journey progress via secure function:', {
             userId,
