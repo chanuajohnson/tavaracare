@@ -26,26 +26,50 @@ export const useStoredJourneyProgress = (userId: string, userRole: string): Stor
     const fetchStoredProgress = async () => {
       try {
         setLoading(true);
-        console.log('🔍 useStoredJourneyProgress: Fetching stored progress using secure function for', { userId, userRole });
+        console.log('🔍 useStoredJourneyProgress: Fetching stored progress for', { userId, userRole });
         
-        // Use the existing admin function to get journey progress
-        const { data: journeyProgress, error: journeyError } = await supabase
-          .rpc('admin_get_user_journey_progress', { target_user_id: userId });
+        // Try direct query first (for users accessing their own data)
+        const { data: directProgress, error: directError } = await supabase
+          .from('user_journey_progress')
+          .select('*')
+          .eq('user_id', userId)
+          .single();
 
-        if (journeyError) {
-          console.error('❌ Error fetching stored journey progress:', journeyError);
-          setStoredProgress(null);
-        } else if (journeyProgress && Array.isArray(journeyProgress) && journeyProgress.length > 0) {
-          const progress = journeyProgress[0];
-          console.log('✅ Found stored journey progress via secure function:', {
+        if (directError) {
+          console.log('⚠️ Direct query failed, trying admin function:', directError.message);
+          
+          // Fallback to admin function if direct query fails
+          const { data: journeyProgress, error: journeyError } = await supabase
+            .rpc('admin_get_user_journey_progress', { target_user_id: userId });
+
+          if (journeyError) {
+            console.error('❌ Admin function also failed:', journeyError);
+            setStoredProgress(null);
+          } else if (journeyProgress && Array.isArray(journeyProgress) && journeyProgress.length > 0) {
+            const progress = journeyProgress[0];
+            console.log('✅ Found stored journey progress via admin function:', {
+              userId,
+              userRole,
+              completionPercentage: progress.completion_percentage,
+              currentStep: progress.current_step,
+              totalSteps: progress.total_steps,
+              lastActivity: progress.last_activity_at
+            });
+            setStoredProgress(progress);
+          } else {
+            console.log('⚠️ No progress data from admin function for user:', { userId, userRole });
+            setStoredProgress(null);
+          }
+        } else if (directProgress) {
+          console.log('✅ Found stored journey progress via direct query:', {
             userId,
             userRole,
-            completionPercentage: progress.completion_percentage,
-            currentStep: progress.current_step,
-            totalSteps: progress.total_steps,
-            lastActivity: progress.last_activity_at
+            completionPercentage: directProgress.completion_percentage,
+            currentStep: directProgress.current_step,
+            totalSteps: directProgress.total_steps,
+            lastActivity: directProgress.last_activity_at
           });
-          setStoredProgress(progress);
+          setStoredProgress(directProgress);
         } else {
           console.log('⚠️ No stored progress data available for user:', { userId, userRole });
           setStoredProgress(null);
