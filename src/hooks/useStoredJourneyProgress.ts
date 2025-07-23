@@ -29,53 +29,74 @@ export const useStoredJourneyProgress = (userId: string, userRole: string): Stor
         console.log('🔍 useStoredJourneyProgress: Fetching stored progress for', { userId, userRole });
         
         // Try direct query first (for users accessing their own data)
-        const { data: directProgress, error: directError } = await supabase
-          .from('user_journey_progress')
-          .select('*')
-          .eq('user_id', userId)
-          .single();
+        let progressData = null;
+        
+        try {
+          const { data: directProgress, error: directError } = await supabase
+            .from('user_journey_progress')
+            .select('*')
+            .eq('user_id', userId)
+            .maybeSingle(); // Use maybeSingle instead of single to avoid errors when no data exists
 
-        if (directError) {
-          console.log('⚠️ Direct query failed, trying admin function:', directError.message);
-          
-          // Fallback to admin function if direct query fails
-          const { data: journeyProgress, error: journeyError } = await supabase
-            .rpc('admin_get_user_journey_progress', { target_user_id: userId });
-
-          if (journeyError) {
-            console.error('❌ Admin function also failed:', journeyError);
-            setStoredProgress(null);
-          } else if (journeyProgress && Array.isArray(journeyProgress) && journeyProgress.length > 0) {
-            const progress = journeyProgress[0];
-            console.log('✅ Found stored journey progress via admin function:', {
+          if (directError) {
+            // Check if it's an RLS error specifically
+            if (directError.code === '42P17' || directError.message?.includes('infinite recursion')) {
+              console.log('🔄 RLS infinite recursion detected, using fallback approach');
+              throw new Error('RLS_RECURSION');
+            } else {
+              console.log('⚠️ Direct query failed, trying admin function:', directError.message);
+              throw directError;
+            }
+          } else if (directProgress) {
+            progressData = directProgress;
+            console.log('✅ Found stored journey progress via direct query:', {
               userId,
               userRole,
-              completionPercentage: progress.completion_percentage,
-              currentStep: progress.current_step,
-              totalSteps: progress.total_steps,
-              lastActivity: progress.last_activity_at
+              completionPercentage: progressData.completion_percentage,
+              currentStep: progressData.current_step,
+              totalSteps: progressData.total_steps,
+              lastActivity: progressData.last_activity_at
             });
-            setStoredProgress(progress);
-          } else {
-            console.log('⚠️ No progress data from admin function for user:', { userId, userRole });
-            setStoredProgress(null);
           }
-        } else if (directProgress) {
-          console.log('✅ Found stored journey progress via direct query:', {
-            userId,
-            userRole,
-            completionPercentage: directProgress.completion_percentage,
-            currentStep: directProgress.current_step,
-            totalSteps: directProgress.total_steps,
-            lastActivity: directProgress.last_activity_at
-          });
-          setStoredProgress(directProgress);
-        } else {
-          console.log('⚠️ No stored progress data available for user:', { userId, userRole });
-          setStoredProgress(null);
+        } catch (error: any) {
+          console.log('⚠️ Direct query failed, trying admin function:', error.message);
+          
+          // Fallback to admin function if direct query fails
+          try {
+            const { data: journeyProgress, error: journeyError } = await supabase
+              .rpc('admin_get_user_journey_progress', { target_user_id: userId });
+
+            if (journeyError) {
+              console.error('❌ Admin function also failed:', journeyError);
+              // Don't throw here, continue to use fallback data
+            } else if (journeyProgress && Array.isArray(journeyProgress) && journeyProgress.length > 0) {
+              progressData = journeyProgress[0];
+              console.log('✅ Found stored journey progress via admin function:', {
+                userId,
+                userRole,
+                completionPercentage: progressData.completion_percentage,
+                currentStep: progressData.current_step,
+                totalSteps: progressData.total_steps,
+                lastActivity: progressData.last_activity_at
+              });
+            } else {
+              console.log('⚠️ No progress data from admin function for user:', { userId, userRole });
+            }
+          } catch (adminError) {
+            console.error('❌ Admin function call failed:', adminError);
+            // Continue to fallback
+          }
         }
+
+        // Set the progress data (could be null, which triggers fallback)
+        setStoredProgress(progressData);
+        
+        if (!progressData) {
+          console.log('⚠️ No stored progress data available for user, using calculated fallback:', { userId, userRole });
+        }
+        
       } catch (error) {
-        console.error('❌ Error fetching stored progress:', error);
+        console.error('❌ Critical error fetching stored progress:', error);
         setStoredProgress(null);
       } finally {
         setLoading(false);
@@ -138,13 +159,24 @@ export const useStoredJourneyProgress = (userId: string, userRole: string): Stor
   // Fallback: return basic structure when no stored data
   console.log('⚠️ No stored progress found, using fallback data for:', { userId, userRole });
   
+  // Return minimal functional data that won't break the UI
+  const fallbackSteps = Array.from({ length: 6 }, (_, index) => ({
+    id: index + 1,
+    step_number: index + 1,
+    title: `Step ${index + 1}`,
+    description: `Journey step ${index + 1}`,
+    completed: false,
+    accessible: index === 0, // Only first step accessible
+    category: index < 2 ? 'foundation' : index < 4 ? 'scheduling' : 'conversion'
+  }));
+  
   return {
-    steps: [],
+    steps: fallbackSteps,
     completionPercentage: 0,
-    nextStep: undefined,
+    nextStep: fallbackSteps[0],
     currentStage: 'foundation',
     loading,
-    totalSteps: 0,
+    totalSteps: 6,
     completedSteps: 0
   };
 };
