@@ -241,12 +241,25 @@ export const useEnhancedJourneyProgress = () => {
           .maybeSingle();
 
         if (journeyError) {
-          console.log('No journey progress data found:', journeyError);
+          console.log('❌ Error fetching journey progress data:', journeyError);
           setJourneyProgress(null);
         } else if (journeyData) {
-          console.log('Journey progress data loaded:', journeyData);
-          setJourneyProgress(journeyData);
+          console.log('✅ Journey progress data loaded from database:', {
+            completion_percentage: journeyData.completion_percentage,
+            current_step: journeyData.current_step,
+            total_steps: journeyData.total_steps,
+            completed_steps: journeyData.completed_steps
+          });
+          
+          // Check if the stored data is outdated (all zeros)
+          if (journeyData.completion_percentage === 0 && journeyData.current_step <= 1) {
+            console.log('⚠️ Stored progress data appears outdated, will use calculated fallback');
+            setJourneyProgress(null); // Force fallback to step calculation
+          } else {
+            setJourneyProgress(journeyData);
+          }
         } else {
+          console.log('ℹ️ No journey progress data found in database, will calculate from steps');
           setJourneyProgress(null);
         }
       }
@@ -332,9 +345,21 @@ export const useEnhancedJourneyProgress = () => {
   // Enhanced registration completion logic using correct database field names
   const calculateRegistrationCompletion = () => {
     if (!profile || !user) {
-      console.log('Registration completion: No profile data');
+      console.log('🔍 Registration completion: No profile data', { hasProfile: !!profile, hasUser: !!user });
       return false;
     }
+
+    console.log('🔍 Profile data being analyzed:', {
+      full_name: profile.full_name,
+      phone_number: profile.phone_number,
+      address: profile.address,
+      care_recipient_name: profile.care_recipient_name,
+      relationship: profile.relationship,
+      care_types: profile.care_types,
+      care_schedule: profile.care_schedule,
+      budget_preferences: profile.budget_preferences,
+      caregiver_type: profile.caregiver_type
+    });
 
     // Core required fields (must have all)
     const requiredFields = {
@@ -348,7 +373,9 @@ export const useEnhancedJourneyProgress = () => {
     const hasAllRequiredFields = Object.entries(requiredFields).every(([field, value]) => {
       const hasValue = !!(value && String(value).trim());
       if (!hasValue) {
-        console.log(`Registration completion: Missing required field ${field}`);
+        console.log(`❌ Registration completion: Missing required field ${field}:`, value);
+      } else {
+        console.log(`✅ Registration completion: Has required field ${field}:`, value);
       }
       return hasValue;
     });
@@ -363,11 +390,11 @@ export const useEnhancedJourneyProgress = () => {
 
     const hasEnhancedData = Object.values(enhancedFields).some(Boolean);
 
-    console.log('Registration completion check:', {
+    console.log('🔍 Registration completion check:', {
       hasAllRequiredFields,
       hasEnhancedData,
-      requiredFields,
-      enhancedFields,
+      requiredFieldsStatus: requiredFields,
+      enhancedFieldsStatus: enhancedFields,
       finalResult: hasAllRequiredFields && hasEnhancedData
     });
 
@@ -444,7 +471,15 @@ export const useEnhancedJourneyProgress = () => {
         step_number: 2,
         title: "Complete Initial Care Assessment",
         description: "Help us understand your care needs better",
-        completed: !!careAssessment?.id,
+        completed: (() => {
+          const completed = !!careAssessment?.id;
+          console.log('🔍 Step 2 (Care Assessment) completion check:', {
+            careAssessment,
+            hasId: !!careAssessment?.id,
+            completed
+          });
+          return completed;
+        })(),
         accessible: true,
         category: 'foundation',
         icon_name: 'FileCheck',
@@ -462,7 +497,16 @@ export const useEnhancedJourneyProgress = () => {
         step_number: 3,
         title: "Complete Your Loved One's Legacy Story",
         description: "Honor the voices, memories, and wisdom of those we care for",
-        completed: !!(careRecipient?.id && careRecipient?.full_name),
+        completed: (() => {
+          const completed = !!(careRecipient?.id && careRecipient?.full_name);
+          console.log('🔍 Step 3 (Care Recipient) completion check:', {
+            careRecipient,
+            hasId: !!careRecipient?.id,
+            hasFullName: !!careRecipient?.full_name,
+            completed
+          });
+          return completed;
+        })(),
         accessible: true,
         category: 'foundation',
         icon_name: 'Heart',
@@ -635,10 +679,30 @@ export const useEnhancedJourneyProgress = () => {
   const completedSteps = steps_calculated.filter(step => step.completed).length;
   const totalSteps = steps_calculated.length;
   
+  // Log detailed step completion info
+  console.log('📊 Step Completion Analysis:', {
+    totalSteps,
+    completedSteps,
+    completedStepIds: steps_calculated.filter(step => step.completed).map(step => ({ id: step.id, title: step.title })),
+    incompleteSteps: steps_calculated.filter(step => !step.completed).map(step => ({ id: step.id, title: step.title }))
+  });
+  
   // Use stored completion percentage if available, otherwise calculate from steps
-  const completionPercentage = journeyProgress?.completion_percentage != null 
+  const calculatedPercentage = totalSteps > 0 ? Math.round((completedSteps / totalSteps) * 100) : 0;
+  const storedPercentage = journeyProgress?.completion_percentage != null 
     ? Math.round(journeyProgress.completion_percentage)
-    : (totalSteps > 0 ? Math.round((completedSteps / totalSteps) * 100) : 0);
+    : null;
+    
+  const completionPercentage = storedPercentage !== null && storedPercentage > 0
+    ? storedPercentage 
+    : calculatedPercentage;
+    
+  console.log('📈 Progress Calculation:', {
+    storedPercentage,
+    calculatedPercentage,
+    finalPercentage: completionPercentage,
+    usingStored: storedPercentage !== null && storedPercentage > 0
+  });
     
   // Use stored current step if available
   const nextStep = journeyProgress?.current_step != null
