@@ -4482,6 +4482,10 @@ export type Database = {
           last_activity_at: string
         }[]
       }
+      calculate_and_update_journey_progress: {
+        Args: { target_user_id: string }
+        Returns: undefined
+      }
       calculate_customer_health_score: {
         Args: { target_user_id: string }
         Returns: undefined
@@ -4580,6 +4584,10 @@ export type Database = {
       increment_verification_attempts: {
         Args: { phone_input: string }
         Returns: undefined
+      }
+      recalculate_all_journey_progress: {
+        Args: Record<PropertyKey, never>
+        Returns: string
       }
       reschedule_visit_booking: {
         Args: {
