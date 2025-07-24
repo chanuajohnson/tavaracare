@@ -80,6 +80,16 @@ export const TavaraAssistantPanel: React.FC = () => {
   const getProgressContext = (): ProgressContext => {
     if (state.currentRole === 'professional') {
       const { overallProgress, nextStep, currentStage, completedSteps, totalSteps } = professionalProgress;
+      
+      console.log('TAV: Creating professional progress context:', {
+        overallProgress,
+        nextStep: nextStep?.title,
+        currentStage,
+        completedSteps,
+        totalSteps,
+        professionalProgressLoading: professionalProgress.loading
+      });
+      
       return {
         role: 'professional',
         completionPercentage: overallProgress || 0,
@@ -204,7 +214,29 @@ export const TavaraAssistantPanel: React.FC = () => {
     markNudgesAsRead();
   };
 
-  const progressContext = getProgressContext();
+  // Make progress context reactive to professional progress changes
+  const [progressContext, setProgressContext] = useState<ProgressContext>(() => getProgressContext());
+  
+  // Update progress context when professional progress changes
+  useEffect(() => {
+    const newContext = getProgressContext();
+    console.log('TAV: Progress context updated:', {
+      previousCompletion: progressContext.completionPercentage,
+      newCompletion: newContext.completionPercentage,
+      role: newContext.role,
+      professionalOverallProgress: professionalProgress.overallProgress,
+      professionalLoading: professionalProgress.loading
+    });
+    setProgressContext(newContext);
+  }, [
+    professionalProgress.overallProgress, 
+    professionalProgress.currentStage, 
+    professionalProgress.nextStep,
+    professionalProgress.completedSteps,
+    professionalProgress.totalSteps,
+    professionalProgress.loading,
+    state.currentRole
+  ]);
 
   // Enhanced greeting message with LOUD MODE support and form detection context and professional intelligence
   const getContextualGreeting = () => {
