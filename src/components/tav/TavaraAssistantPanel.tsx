@@ -76,7 +76,7 @@ export const TavaraAssistantPanel: React.FC = () => {
     }
   }, [user]);
 
-  // Create progress context only for guest/default roles (removed family processing)
+  // Create progress context for all user roles
   const getProgressContext = (): ProgressContext => {
     if (state.currentRole === 'professional') {
       const { overallProgress, nextStep, currentStage, completedSteps, totalSteps } = professionalProgress;
@@ -101,7 +101,31 @@ export const TavaraAssistantPanel: React.FC = () => {
       };
     }
     
-    // Default fallback for guest or other roles (removed family processing)
+    if (state.currentRole === 'family') {
+      const { completionPercentage, nextStep, steps } = familyJourneyProgress;
+      const completedSteps = steps?.filter(step => step.completed).length || 0;
+      const totalSteps = steps?.length || 12;
+      
+      console.log('TAV: Creating family progress context:', {
+        completionPercentage,
+        nextStep: nextStep?.title,
+        completedSteps,
+        totalSteps,
+        familyProgressLoading: familyJourneyProgress.loading
+      });
+      
+      return {
+        role: 'family',
+        completionPercentage: completionPercentage || 0,
+        currentStep: nextStep?.title || 'Complete your family profile',
+        nextAction: nextStep?.description || 'Add your care requirements',
+        journeyStage: 'foundation', // Use fixed stage for now
+        completedSteps,
+        totalSteps
+      };
+    }
+    
+    // Default fallback for guest or other roles
     return {
       role: state.currentRole || 'guest',
       completionPercentage: 0,
@@ -217,7 +241,7 @@ export const TavaraAssistantPanel: React.FC = () => {
   // Make progress context reactive to professional progress changes
   const [progressContext, setProgressContext] = useState<ProgressContext>(() => getProgressContext());
   
-  // Update progress context when professional progress changes
+  // Update progress context when professional or family progress changes
   useEffect(() => {
     const newContext = getProgressContext();
     console.log('TAV: Progress context updated:', {
@@ -225,7 +249,9 @@ export const TavaraAssistantPanel: React.FC = () => {
       newCompletion: newContext.completionPercentage,
       role: newContext.role,
       professionalOverallProgress: professionalProgress.overallProgress,
-      professionalLoading: professionalProgress.loading
+      professionalLoading: professionalProgress.loading,
+      familyCompletionPercentage: familyJourneyProgress.completionPercentage,
+      familyLoading: familyJourneyProgress.loading
     });
     setProgressContext(newContext);
   }, [
@@ -235,6 +261,10 @@ export const TavaraAssistantPanel: React.FC = () => {
     professionalProgress.completedSteps,
     professionalProgress.totalSteps,
     professionalProgress.loading,
+    familyJourneyProgress.completionPercentage,
+    familyJourneyProgress.nextStep,
+    familyJourneyProgress.steps,
+    familyJourneyProgress.loading,
     state.currentRole
   ]);
 
