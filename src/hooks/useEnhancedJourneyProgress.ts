@@ -3,10 +3,15 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { toast } from 'sonner';
+import { useStoredJourneyProgress } from './useStoredJourneyProgress';
 
 export const useEnhancedJourneyProgress = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  
+  // Use stored progress as primary source (like admin dashboard)
+  const storedProgress = useStoredJourneyProgress(user?.id || '', user?.user_metadata?.role || 'family');
+  
   const [loading, setLoading] = useState(true);
   const [steps, setSteps] = useState<any[]>([]);
   const [profile, setProfile] = useState<any>(null);
@@ -687,21 +692,22 @@ export const useEnhancedJourneyProgress = () => {
     incompleteSteps: steps_calculated.filter(step => !step.completed).map(step => ({ id: step.id, title: step.title }))
   });
   
-  // Use stored completion percentage if available, otherwise calculate from steps
+  // Use stored progress as primary source (like admin dashboard)
   const calculatedPercentage = totalSteps > 0 ? Math.round((completedSteps / totalSteps) * 100) : 0;
-  const storedPercentage = journeyProgress?.completion_percentage != null 
-    ? Math.round(journeyProgress.completion_percentage)
-    : null;
+  
+  // Primary source: stored progress (matches admin dashboard logic)
+  const finalCompletionPercentage = storedProgress.loading 
+    ? 0 
+    : storedProgress.completionPercentage > 0 
+      ? storedProgress.completionPercentage 
+      : calculatedPercentage;
     
-  const completionPercentage = storedPercentage !== null && storedPercentage > 0
-    ? storedPercentage 
-    : calculatedPercentage;
-    
-  console.log('📈 Progress Calculation:', {
-    storedPercentage,
+  console.log('📈 Family Dashboard Progress Calculation:', {
+    storedProgressLoading: storedProgress.loading,
+    storedCompletionPercentage: storedProgress.completionPercentage,
     calculatedPercentage,
-    finalPercentage: completionPercentage,
-    usingStored: storedPercentage !== null && storedPercentage > 0
+    finalCompletionPercentage,
+    usingStoredProgress: !storedProgress.loading && storedProgress.completionPercentage > 0
   });
     
   // Use stored current step if available
@@ -788,7 +794,7 @@ export const useEnhancedJourneyProgress = () => {
     careAssessment,
     careRecipient,
     visitDetails,
-    completionPercentage,
+    completionPercentage: finalCompletionPercentage,
     nextStep,
     currentStage,
     showScheduleModal,
