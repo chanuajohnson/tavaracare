@@ -13,7 +13,6 @@ export const useEnhancedJourneyProgress = () => {
   const storedProgress = useStoredJourneyProgress(user?.id || '', user?.user_metadata?.role || 'family');
   
   const [loading, setLoading] = useState(true);
-  const [steps, setSteps] = useState<any[]>([]);
   const [profile, setProfile] = useState<any>(null);
   const [carePlans, setCarePlans] = useState<any[]>([]);
   const [careAssessment, setCareAssessment] = useState<any>(null);
@@ -346,6 +345,52 @@ export const useEnhancedJourneyProgress = () => {
   useEffect(() => {
     fetchUserData();
   }, [user?.id]);
+
+  // Prioritize stored progress data over calculated steps
+  const getStepsData = () => {
+    // If we have valid stored progress, use it
+    if (!storedProgress.loading && storedProgress.steps && storedProgress.steps.length > 0) {
+      console.log('✅ Using stored progress data:', {
+        totalSteps: storedProgress.totalSteps,
+        completedSteps: storedProgress.completedSteps,
+        completionPercentage: storedProgress.completionPercentage
+      });
+      
+      return {
+        steps: storedProgress.steps,
+        completionPercentage: storedProgress.completionPercentage,
+        totalSteps: storedProgress.totalSteps,
+        completedSteps: storedProgress.completedSteps,
+        nextStep: storedProgress.nextStep,
+        currentStage: storedProgress.currentStage,
+        loading: storedProgress.loading
+      };
+    }
+
+    // Fallback to calculated steps for anonymous users or when stored data is unavailable
+    const calculatedSteps = calculateSteps();
+    const totalSteps = calculatedSteps.length;
+    const completedSteps = calculatedSteps.filter(step => step.completed).length;
+    const completionPercentage = totalSteps > 0 ? Math.round((completedSteps / totalSteps) * 100) : 0;
+    const nextStep = calculatedSteps.find(step => !step.completed);
+    
+    console.log('📊 Using calculated steps as fallback:', {
+      totalSteps,
+      completedSteps,
+      completionPercentage,
+      nextStepId: nextStep?.id
+    });
+
+    return {
+      steps: calculatedSteps,
+      completionPercentage,
+      totalSteps,
+      completedSteps,
+      nextStep,
+      currentStage: 'foundation',
+      loading: false
+    };
+  };
 
   // Enhanced registration completion logic using correct database field names
   const calculateRegistrationCompletion = () => {
@@ -785,18 +830,23 @@ export const useEnhancedJourneyProgress = () => {
 
   const isAnonymous = !user;
 
+  // Get the final steps data using prioritized logic
+  const stepsData = getStepsData();
+
   return {
-    loading,
-    steps: steps_calculated,
+    loading: stepsData.loading || loading,
+    steps: stepsData.steps,
     paths,
     profile,
     carePlans,
     careAssessment,
     careRecipient,
     visitDetails,
-    completionPercentage: finalCompletionPercentage,
-    nextStep,
-    currentStage,
+    completionPercentage: stepsData.completionPercentage,
+    totalSteps: stepsData.totalSteps,
+    completedSteps: stepsData.completedSteps,
+    nextStep: stepsData.nextStep,
+    currentStage: stepsData.currentStage,
     showScheduleModal,
     setShowScheduleModal,
     showInternalScheduleModal,
