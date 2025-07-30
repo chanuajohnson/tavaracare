@@ -381,25 +381,35 @@ export const useEnhancedJourneyProgress = () => {
           accessible: step.accessible || false,
           completed: storedCompletionMap.get(step.id) || step.completed,
             action: () => {
+              const isCompleted = storedCompletionMap.get(step.id) || step.completed;
+              console.log(`🔘 Action triggered for step ${step.id}, completed: ${isCompleted}`);
               // Basic navigation logic based on step
-              switch(step.id) {
-                case 1:
-                  // Add edit parameter if step is completed to trigger prefill
-                  const editParam = step.completed ? '?edit=true' : '';
-                  navigate(`/registration/family${editParam}`);
-                  break;
-                case 2:
-                  // Add edit parameter if step is completed to trigger prefill
-                  const assessmentEditParam = step.completed ? '?mode=edit' : '';
-                  navigate(`/family/care-assessment${assessmentEditParam}`);
-                  break;
-            case 3:
-              // Add edit parameter if step is completed to trigger prefill
-              const storyEditParam = step.completed ? '?edit=true' : '';
-              navigate(`/family/story${storyEditParam}`);
-              break;
-                default:
-                  console.log(`Action for step ${step.id}`);
+              try {
+                switch(step.id) {
+                  case 1:
+                    // Add edit parameter if step is completed to trigger prefill
+                    const editParam = isCompleted ? '?edit=true' : '';
+                    console.log(`🚀 Navigating to: /registration/family${editParam}`);
+                    navigate(`/registration/family${editParam}`);
+                    break;
+                  case 2:
+                    // Add edit parameter if step is completed to trigger prefill
+                    const assessmentEditParam = isCompleted ? '?mode=edit' : '';
+                    console.log(`🚀 Navigating to: /family/care-assessment${assessmentEditParam}`);
+                    navigate(`/family/care-assessment${assessmentEditParam}`);
+                    break;
+                  case 3:
+                    // Add edit parameter if step is completed to trigger prefill
+                    const storyEditParam = isCompleted ? '?edit=true' : '';
+                    console.log(`🚀 Navigating to: /family/story${storyEditParam}`);
+                    navigate(`/family/story${storyEditParam}`);
+                    break;
+                  default:
+                    console.log(`No navigation defined for step ${step.id}`);
+                }
+              } catch (error) {
+                console.error(`❌ Navigation error for step ${step.id}:`, error);
+                toast.error('Navigation failed. Please try again.');
               }
             }
         }));
@@ -433,25 +443,34 @@ export const useEnhancedJourneyProgress = () => {
         is_optional: step.optional || false,
         accessible: step.accessible || false,
         action: () => {
+          console.log(`🔘 Action triggered for step ${step.id}, completed: ${step.completed}`);
           // Basic navigation logic based on step
-          switch(step.id) {
-            case 1:
-              // Add edit parameter if step is completed to trigger prefill
-              const editParam = step.completed ? '?edit=true' : '';
-              navigate(`/registration/family${editParam}`);
-              break;
-            case 2:
-              // Add edit parameter if step is completed to trigger prefill
-              const assessmentEditParam = step.completed ? '?mode=edit' : '';
-              navigate(`/family/care-assessment${assessmentEditParam}`);
-              break;
-            case 3:
-              // Add edit parameter if step is completed to trigger prefill
-              const storyEditParam = step.completed ? '?edit=true' : '';
-              navigate(`/family/story${storyEditParam}`);
-              break;
-            default:
-              console.log(`Action for step ${step.id}`);
+          try {
+            switch(step.id) {
+              case 1:
+                // Add edit parameter if step is completed to trigger prefill
+                const editParam = step.completed ? '?edit=true' : '';
+                console.log(`🚀 Navigating to: /registration/family${editParam}`);
+                navigate(`/registration/family${editParam}`);
+                break;
+              case 2:
+                // Add edit parameter if step is completed to trigger prefill
+                const assessmentEditParam = step.completed ? '?mode=edit' : '';
+                console.log(`🚀 Navigating to: /family/care-assessment${assessmentEditParam}`);
+                navigate(`/family/care-assessment${assessmentEditParam}`);
+                break;
+              case 3:
+                // Add edit parameter if step is completed to trigger prefill
+                const storyEditParam = step.completed ? '?edit=true' : '';
+                console.log(`🚀 Navigating to: /family/story${storyEditParam}`);
+                navigate(`/family/story${storyEditParam}`);
+                break;
+              default:
+                console.log(`No navigation defined for step ${step.id}`);
+            }
+          } catch (error) {
+            console.error(`❌ Navigation error for step ${step.id}:`, error);
+            toast.error('Navigation failed. Please try again.');
           }
         }
       }));

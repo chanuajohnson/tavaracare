@@ -156,6 +156,15 @@ export const JourneyStageCard: React.FC<JourneyStageCardProps> = ({
   };
 
   const handleStepAction = (step: JourneyStep) => {
+    console.log(`🎯 handleStepAction called for step:`, {
+      id: step.id,
+      step_number: step.step_number,
+      title: step.title,
+      completed: step.completed,
+      hasAction: !!step.action,
+      isAnonymous
+    });
+
     if (isAnonymous) {
       // Check if this is a high-value step that should trigger lead capture
       const highValueSteps = ['View Matches', 'Start Assessment', 'Share Your Loved Ones Story', 'View Care Giver Matches'];
@@ -185,7 +194,15 @@ export const JourneyStageCard: React.FC<JourneyStageCardProps> = ({
     }
 
     if (step.action) {
-      step.action();
+      console.log(`🚀 Calling step.action() for step ${step.step_number}`);
+      try {
+        step.action();
+      } catch (error) {
+        console.error(`❌ Error calling action for step ${step.step_number}:`, error);
+        toast.error('Action failed. Please try again.');
+      }
+    } else {
+      console.warn(`⚠️ No action defined for step ${step.step_number}`);
     }
   };
 
