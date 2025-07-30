@@ -4,6 +4,7 @@ import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { toast } from 'sonner';
 import { useStoredJourneyProgress } from './useStoredJourneyProgress';
+import { useSharedFamilyJourneyData } from './useSharedFamilyJourneyData';
 
 export const useEnhancedJourneyProgress = () => {
   const { user } = useAuth();
@@ -11,6 +12,7 @@ export const useEnhancedJourneyProgress = () => {
   
   // Use stored progress as primary source (like admin dashboard)
   const storedProgress = useStoredJourneyProgress(user?.id || '', user?.user_metadata?.role || 'family');
+  const sharedJourneyData = useSharedFamilyJourneyData(user?.id || '');
   
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<any>(null);
@@ -346,28 +348,114 @@ export const useEnhancedJourneyProgress = () => {
     fetchUserData();
   }, [user?.id]);
 
-  // Prioritize stored progress data over calculated steps
+  // Merge shared journey data (rich step definitions) with stored progress completion data
   const getStepsData = () => {
-    // If we have valid stored progress, use it
-    if (!storedProgress.loading && storedProgress.steps && storedProgress.steps.length > 0) {
-      console.log('✅ Using stored progress data:', {
-        totalSteps: storedProgress.totalSteps,
-        completedSteps: storedProgress.completedSteps,
-        completionPercentage: storedProgress.completionPercentage
+    // If we have shared journey data with rich step definitions, use those as the base
+    if (!sharedJourneyData.loading && sharedJourneyData.steps && sharedJourneyData.steps.length > 0) {
+      const richSteps = sharedJourneyData.steps;
+      
+      // If we also have stored progress data, merge the completion states
+      if (!storedProgress.loading && storedProgress.steps && storedProgress.steps.length > 0) {
+        console.log('✅ Merging rich step definitions with stored progress completion:', {
+          richStepsCount: richSteps.length,
+          storedCompletionPercentage: storedProgress.completionPercentage,
+          storedCompletedSteps: storedProgress.completedSteps
+        });
+        
+        // Create a map of completion status from stored progress
+        const storedCompletionMap = new Map();
+        storedProgress.steps.forEach((step, index) => {
+          storedCompletionMap.set(index + 1, step.completed);
+        });
+        
+        // Merge rich step definitions with stored completion status
+        const mergedSteps = richSteps.map(step => ({
+          ...step,
+          id: String(step.id),
+          step_number: step.id,
+          icon_name: 'User',
+          tooltip_content: step.description,
+          detailed_explanation: step.description,
+          time_estimate_minutes: 15,
+          is_optional: step.optional || false,
+          accessible: step.accessible || false,
+          completed: storedCompletionMap.get(step.id) || step.completed,
+          action: () => {
+            // Basic navigation logic based on step
+            switch(step.id) {
+              case 1:
+                navigate('/registration/family');
+                break;
+              case 2:
+                navigate('/family/care-assessment');
+                break;
+              case 3:
+                navigate('/family/story');
+                break;
+              default:
+                console.log(`Action for step ${step.id}`);
+            }
+          }
+        }));
+        
+        return {
+          steps: mergedSteps,
+          completionPercentage: storedProgress.completionPercentage,
+          totalSteps: richSteps.length,
+          completedSteps: storedProgress.completedSteps,
+          nextStep: mergedSteps.find(step => !step.completed && step.accessible),
+          currentStage: sharedJourneyData.journeyStage,
+          loading: false
+        };
+      }
+      
+      // Use shared journey data directly if no stored progress
+      console.log('📋 Using shared journey data directly:', {
+        totalSteps: richSteps.length,
+        completionPercentage: sharedJourneyData.completionPercentage
       });
       
+      // Add required properties to rich steps for components
+      const enhancedRichSteps = richSteps.map(step => ({
+        ...step,
+        id: String(step.id),
+        step_number: step.id,
+        icon_name: 'User',
+        tooltip_content: step.description,
+        detailed_explanation: step.description,
+        time_estimate_minutes: 15,
+        is_optional: step.optional || false,
+        accessible: step.accessible || false,
+        action: () => {
+          // Basic navigation logic based on step
+          switch(step.id) {
+            case 1:
+              navigate('/registration/family');
+              break;
+            case 2:
+              navigate('/family/care-assessment');
+              break;
+            case 3:
+              navigate('/family/story');
+              break;
+            default:
+              console.log(`Action for step ${step.id}`);
+          }
+        }
+      }));
+
       return {
-        steps: storedProgress.steps,
-        completionPercentage: storedProgress.completionPercentage,
-        totalSteps: storedProgress.totalSteps,
-        completedSteps: storedProgress.completedSteps,
-        nextStep: storedProgress.nextStep,
-        currentStage: storedProgress.currentStage,
-        loading: storedProgress.loading
+        steps: enhancedRichSteps,
+        completionPercentage: sharedJourneyData.completionPercentage,
+        totalSteps: richSteps.length,
+        completedSteps: richSteps.filter(step => step.completed).length,
+        nextStep: sharedJourneyData.nextStep,
+        currentStage: sharedJourneyData.journeyStage,
+        loading: false
       };
     }
 
-    // Fallback to calculated steps for anonymous users or when stored data is unavailable
+    // Fallback to calculated steps for anonymous users or when both hooks are unavailable
     const calculatedSteps = calculateSteps();
     const totalSteps = calculatedSteps.length;
     const completedSteps = calculatedSteps.filter(step => step.completed).length;
@@ -834,7 +922,7 @@ export const useEnhancedJourneyProgress = () => {
   const stepsData = getStepsData();
 
   return {
-    loading: stepsData.loading || loading,
+    loading: stepsData.loading || loading || sharedJourneyData.loading,
     steps: stepsData.steps,
     paths,
     profile,
