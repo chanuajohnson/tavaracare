@@ -25,6 +25,14 @@ const FamilyRegistration = () => {
   const [searchParams] = useSearchParams();
   const isEditMode = searchParams.get('edit') === 'true';
   
+  console.log('🔍 URL and Edit Mode Debug:', {
+    fullURL: window.location.href,
+    searchParams: Object.fromEntries(searchParams.entries()),
+    editParam: searchParams.get('edit'),
+    isEditMode,
+    pathname: window.location.pathname
+  });
+  
   const [loading, setLoading] = useState(false);
   const [dataLoading, setDataLoading] = useState(true);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
@@ -56,13 +64,29 @@ const FamilyRegistration = () => {
 
   // Function to fetch existing profile data
   const fetchExistingProfileData = async () => {
+    console.log('🔍 fetchExistingProfileData called:', {
+      userId: user?.id,
+      isEditMode,
+      userEmail: user?.email
+    });
+
     if (!user?.id || !isEditMode) {
+      console.log('⚠️ Skipping profile fetch:', { 
+        hasUserId: !!user?.id, 
+        isEditMode,
+        reason: !user?.id ? 'No user ID' : 'Not in edit mode'
+      });
       setDataLoading(false);
       return;
     }
 
     try {
-      console.log('Fetching existing profile data for edit mode...');
+      console.log('📡 Fetching existing profile data for edit mode...');
+      console.log('🔍 Query details:', {
+        table: 'profiles',
+        userId: user.id,
+        userEmail: user.email
+      });
       
       const { data: profile, error } = await supabase
         .from('profiles')
@@ -71,14 +95,23 @@ const FamilyRegistration = () => {
         .maybeSingle();
 
       if (error) {
-        console.error('Error fetching profile:', error);
+        console.error('❌ Error fetching profile:', error);
+        console.error('❌ Error details:', {
+          message: error.message,
+          code: error.code,
+          details: error.details,
+          hint: error.hint
+        });
         toast.error('Failed to load existing profile data');
         setDataLoading(false);
         return;
       }
 
+      console.log('📊 Profile query result:', { profile, hasProfile: !!profile });
+
       if (profile) {
-        console.log('Found existing profile data:', profile);
+        console.log('✅ Found existing profile data:', profile);
+        console.log('📝 Populating form fields...');
         
         // Populate basic info
         setFirstName(profile.full_name?.split(' ')[0] || '');
@@ -109,6 +142,34 @@ const FamilyRegistration = () => {
         setCaregiverPreferences(profile.caregiver_preferences || '');
         setAdditionalNotes(profile.additional_notes || '');
         setPreferredContactMethod(profile.preferred_contact_method || '');
+        
+        console.log('✅ Form populated with profile data');
+      } else {
+        console.log('⚠️ No profile data found in database');
+        console.log('🔄 Attempting fallback to user metadata for basic info...');
+        
+        // Fallback: populate basic info from user metadata if available
+        if (user?.user_metadata) {
+          const metadata = user.user_metadata;
+          console.log('📊 User metadata available:', metadata);
+          
+          if (metadata.first_name) {
+            setFirstName(metadata.first_name);
+            console.log('✅ Set firstName from metadata:', metadata.first_name);
+          }
+          if (metadata.last_name) {
+            setLastName(metadata.last_name);
+            console.log('✅ Set lastName from metadata:', metadata.last_name);
+          }
+          if (metadata.full_name && !metadata.first_name && !metadata.last_name) {
+            const nameParts = metadata.full_name.split(' ');
+            setFirstName(nameParts[0] || '');
+            setLastName(nameParts.slice(1).join(' ') || '');
+            console.log('✅ Set name from full_name:', { first: nameParts[0], last: nameParts.slice(1).join(' ') });
+          }
+        } else {
+          console.log('⚠️ No user metadata available either');
+        }
       }
     } catch (error) {
       console.error('Error in fetchExistingProfileData:', error);
