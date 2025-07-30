@@ -62,7 +62,7 @@ const FamilyRegistration = () => {
   const formRef = useRef<HTMLFormElement>(null);
   const navigate = useNavigate();
 
-  // Function to fetch existing profile data
+  // Function to fetch existing profile data using secure function
   const fetchExistingProfileData = async () => {
     console.log('🔍 fetchExistingProfileData called:', {
       userId: user?.id,
@@ -81,18 +81,16 @@ const FamilyRegistration = () => {
     }
 
     try {
-      console.log('📡 Fetching existing profile data for edit mode...');
+      console.log('📡 Fetching existing profile data using secure function...');
       console.log('🔍 Query details:', {
-        table: 'profiles',
+        function: 'get_user_profile_secure',
         userId: user.id,
         userEmail: user.email
       });
       
-      const { data: profile, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .maybeSingle();
+      const { data, error } = await supabase.rpc('get_user_profile_secure', {
+        target_user_id: user.id
+      });
 
       if (error) {
         console.error('❌ Error fetching profile:', error);
@@ -107,15 +105,16 @@ const FamilyRegistration = () => {
         return;
       }
 
-      console.log('📊 Profile query result:', { profile, hasProfile: !!profile });
+      console.log('📊 Profile query result:', { data, hasData: !!data });
 
-      if (profile) {
+      if (data && data.length > 0) {
+        const profile = data[0];
         console.log('✅ Found existing profile data:', profile);
         console.log('📝 Populating form fields...');
         
         // Populate basic info
-        setFirstName(profile.full_name?.split(' ')[0] || '');
-        setLastName(profile.full_name?.split(' ').slice(1).join(' ') || '');
+        setFirstName(profile.first_name || profile.full_name?.split(' ')[0] || '');
+        setLastName(profile.last_name || profile.full_name?.split(' ').slice(1).join(' ') || '');
         setPhoneNumber(profile.phone_number || '');
         setLocation(profile.location || '');
         setAddress(profile.address || '');
