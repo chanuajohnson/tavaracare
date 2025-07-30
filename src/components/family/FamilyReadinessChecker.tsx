@@ -76,7 +76,7 @@ export const FamilyReadinessChecker = () => {
     });
     
     if (user) {
-      checkReadiness();
+      checkReadiness(true); // Force refresh to pick up fixed data fetching
     } else {
       setIsLoading(false);
     }
