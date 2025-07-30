@@ -4494,6 +4494,10 @@ export type Database = {
         Args: { target_user_id: string }
         Returns: undefined
       }
+      can_access_professional_data: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
       cancel_visit_booking: {
         Args: { booking_id: string; reason?: string }
         Returns: undefined
@@ -4633,6 +4637,10 @@ export type Database = {
       increment_verification_attempts: {
         Args: { phone_input: string }
         Returns: undefined
+      }
+      is_current_user_admin: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
       }
       recalculate_all_journey_progress: {
         Args: Record<PropertyKey, never>
