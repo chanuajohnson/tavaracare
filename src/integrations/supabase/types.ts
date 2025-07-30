@@ -4577,6 +4577,51 @@ export type Database = {
           role: Database["public"]["Enums"]["user_role"]
         }[]
       }
+      get_user_profile_secure: {
+        Args: { target_user_id: string }
+        Returns: {
+          id: string
+          created_at: string
+          updated_at: string
+          full_name: string
+          avatar_url: string
+          phone_number: string
+          address: string
+          role: Database["public"]["Enums"]["user_role"]
+          professional_type: string
+          years_of_experience: string
+          care_services: string[]
+          certifications: string[]
+          care_schedule: string
+          custom_schedule: string
+          preferred_work_locations: string
+          hourly_rate: string
+          commute_mode: string
+          languages: string[]
+          emergency_contact: string
+          background_check: boolean
+          additional_notes: string
+          first_name: string
+          last_name: string
+          care_recipient_name: string
+          relationship: string
+          care_types: string[]
+          special_needs: string[]
+          budget_preferences: string
+          caregiver_type: string
+          caregiver_preferences: string
+          preferred_contact_method: string
+          location: string
+          specialized_care: string[]
+          available_for_matching: boolean
+          video_available: boolean
+          visit_scheduling_status: string
+          visit_payment_status: string
+          visit_payment_reference: string
+          visit_notes: string
+          last_login_at: string
+        }[]
+      }
       has_user_voted_for_feature: {
         Args: { feature_id: string; user_id: string }
         Returns: boolean
