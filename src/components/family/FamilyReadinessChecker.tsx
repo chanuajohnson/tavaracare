@@ -82,17 +82,7 @@ export const FamilyReadinessChecker = () => {
     }
   }, [user]);
 
-  // Add periodic refresh to catch data changes that may have happened elsewhere
-  useEffect(() => {
-    if (!user?.id) return;
-    
-    const interval = setInterval(() => {
-      console.log('⏰ [FamilyReadinessChecker] Periodic readiness check');
-      checkReadiness(true);
-    }, 30000); // Check every 30 seconds
-    
-    return () => clearInterval(interval);
-  }, [user?.id]);
+  // Remove aggressive periodic refresh - now only checks on mount and user changes
 
   // Show loading state while checking readiness
   if (isLoading) {
