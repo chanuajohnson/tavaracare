@@ -378,7 +378,7 @@ const FamilyRegistration = () => {
       }
 
       const fullName = `${firstName} ${lastName}`.trim();
-      const updates = {
+      const profileData = {
         id: user.id,
         full_name: fullName,
         avatar_url: uploadedAvatarUrl,
@@ -386,7 +386,6 @@ const FamilyRegistration = () => {
         location: location,
         address: address,
         role: 'family' as const,
-        updated_at: new Date().toISOString(),
         care_recipient_name: careRecipientName,
         relationship: relationship,
         care_types: careTypes || [],
@@ -400,12 +399,12 @@ const FamilyRegistration = () => {
         preferred_contact_method: preferredContactMethod || ''
       };
 
-      console.log('Updating family profile with data:', updates);
+      console.log('Updating family profile with data:', profileData);
       
-      const { error } = await supabase
-        .from('profiles')
-        .update(updates)
-        .eq('id', user.id);
+      // Use SECURITY DEFINER function to bypass RLS and prevent recursion
+      const { data, error } = await supabase.rpc('update_user_profile', {
+        profile_data: profileData
+      });
       
       if (error) throw error;
       
