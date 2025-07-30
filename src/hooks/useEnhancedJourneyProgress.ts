@@ -393,9 +393,11 @@ export const useEnhancedJourneyProgress = () => {
                   const assessmentEditParam = step.completed ? '?mode=edit' : '';
                   navigate(`/family/care-assessment${assessmentEditParam}`);
                   break;
-                case 3:
-                  navigate('/family/story');
-                  break;
+            case 3:
+              // Add edit parameter if step is completed to trigger prefill
+              const storyEditParam = step.completed ? '?edit=true' : '';
+              navigate(`/family/story${storyEditParam}`);
+              break;
                 default:
                   console.log(`Action for step ${step.id}`);
               }
@@ -444,7 +446,9 @@ export const useEnhancedJourneyProgress = () => {
               navigate(`/family/care-assessment${assessmentEditParam}`);
               break;
             case 3:
-              navigate('/family/story');
+              // Add edit parameter if step is completed to trigger prefill
+              const storyEditParam = step.completed ? '?edit=true' : '';
+              navigate(`/family/story${storyEditParam}`);
               break;
             default:
               console.log(`Action for step ${step.id}`);

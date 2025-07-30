@@ -1,5 +1,6 @@
 
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 
 interface JourneyStep {
@@ -21,6 +22,7 @@ interface SharedFamilyJourneyData {
 }
 
 export const useSharedFamilyJourneyData = (userId: string): SharedFamilyJourneyData => {
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [journeyStage, setJourneyStage] = useState<'foundation' | 'scheduling' | 'trial' | 'conversion'>('foundation');
 
@@ -198,6 +200,12 @@ export const useSharedFamilyJourneyData = (userId: string): SharedFamilyJourneyD
         .eq('user_id', userId)
         .maybeSingle();
 
+      console.log('🔍 SharedFamilyJourneyData step completion check:', {
+        profileComplete: calculateRegistrationCompletion(profile),
+        careAssessment: !!careAssessment,
+        careRecipient: !!(careRecipient && careRecipient.full_name)
+      });
+
       // Check care plans
       const { data: carePlansData } = await supabase
         .from('care_plans')
@@ -284,7 +292,32 @@ export const useSharedFamilyJourneyData = (userId: string): SharedFamilyJourneyD
             break;
         }
         
-        return { ...step, completed, accessible };
+        // Add action functions for steps 1, 2, and 3 with consistent edit logic
+        let action;
+        switch (step.id) {
+          case 1:
+            action = () => {
+              const isCompleted = calculateRegistrationCompletion(profile);
+              navigate(isCompleted ? '/registration/family?edit=true' : '/registration/family');
+            };
+            break;
+          case 2:
+            action = () => {
+              const isCompleted = !!careAssessment;
+              navigate(isCompleted ? '/family/care-assessment?mode=edit' : '/family/care-assessment');
+            };
+            break;
+          case 3:
+            action = () => {
+              const isCompleted = !!(careRecipient && careRecipient.full_name);
+              navigate(isCompleted ? '/family/story?edit=true' : '/family/story');
+            };
+            break;
+          default:
+            action = undefined;
+        }
+        
+        return { ...step, completed, accessible, action };
       });
       
       setSteps(updatedSteps);
