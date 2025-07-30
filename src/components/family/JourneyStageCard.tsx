@@ -7,6 +7,7 @@ import { JourneyStepTooltip } from "./JourneyStepTooltip";
 import { SubscriptionTrackingButton } from "@/components/subscription/SubscriptionTrackingButton";
 import { useIsMobile, useIsSmallMobile } from "@/hooks/use-mobile";
 import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 import * as LucideIcons from "lucide-react";
 
 interface JourneyStep {
@@ -169,6 +170,17 @@ export const JourneyStageCard: React.FC<JourneyStageCardProps> = ({
       if (step.step_number === 4 && onCaregiverModalTrigger) {
         onCaregiverModalTrigger();
         return;
+      }
+    }
+
+    // Add user feedback for edit actions
+    if (step.completed && !isAnonymous) {
+      if (step.step_number === 1) {
+        toast.info('Opening your profile for editing...');
+      } else if (step.step_number === 2) {
+        toast.info('Loading your care assessment for editing...');
+      } else if (step.step_number === 3) {
+        toast.info('Loading your loved one\'s story for editing...');
       }
     }
 

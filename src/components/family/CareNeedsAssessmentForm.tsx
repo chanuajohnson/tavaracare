@@ -151,6 +151,11 @@ export const CareNeedsAssessmentForm = () => {
           ...initialFormData,
           ...data,
         });
+        
+        // Show feedback when data is loaded for editing
+        if (isEditMode) {
+          toast.success('Care assessment loaded for editing');
+        }
       }
     } catch (error) {
       console.error("Error loading assessment:", error);

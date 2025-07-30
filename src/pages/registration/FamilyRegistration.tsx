@@ -144,6 +144,11 @@ const FamilyRegistration = () => {
         setPreferredContactMethod(profile.preferred_contact_method || '');
         
         console.log('✅ Form populated with profile data');
+        
+        // Show feedback when data is loaded for editing
+        if (isEditMode) {
+          toast.success('Profile data loaded for editing');
+        }
       } else {
         console.log('⚠️ No profile data found in database');
         console.log('🔄 Attempting fallback to user metadata for basic info...');
