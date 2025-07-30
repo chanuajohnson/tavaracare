@@ -4486,6 +4486,10 @@ export type Database = {
         Args: { target_user_id: string }
         Returns: undefined
       }
+      calculate_and_update_journey_progress_fixed: {
+        Args: { target_user_id: string }
+        Returns: undefined
+      }
       calculate_customer_health_score: {
         Args: { target_user_id: string }
         Returns: undefined
