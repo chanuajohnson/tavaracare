@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
+import { useSearchParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -115,6 +116,8 @@ const initialFormData: CareNeedsFormData = {
 
 export const CareNeedsAssessmentForm = () => {
   const { user } = useAuth();
+  const [searchParams] = useSearchParams();
+  const isEditMode = searchParams.get('mode') === 'edit';
   const [formData, setFormData] = useState<CareNeedsFormData>(initialFormData);
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -296,10 +299,13 @@ export const CareNeedsAssessmentForm = () => {
           <div className="mb-8">
             <h1 className="text-3xl font-bold text-primary-900 mb-2 flex items-center gap-2">
               <Brain className="h-8 w-8 text-primary" />
-              Client Care Needs Breakdown
+              {isEditMode ? 'Edit Care Needs Assessment' : 'Client Care Needs Breakdown'}
             </h1>
             <p className="text-lg text-gray-600">
-              Help us understand your loved one's specific care requirements to match you with the right caregiver.
+              {isEditMode 
+                ? 'Update your loved one\'s care requirements and preferences.'
+                : 'Help us understand your loved one\'s specific care requirements to match you with the right caregiver.'
+              }
             </p>
           </div>
 
