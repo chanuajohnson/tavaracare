@@ -381,14 +381,13 @@ const ProfessionalRegistration = () => {
       const fullName = `${firstName} ${lastName}`.trim();
       const finalProfessionalType = professionalType === 'other' ? otherProfessionalType : professionalType;
       
-      const updates = {
+      const profileData = {
         id: user.id,
         full_name: fullName,
         avatar_url: uploadedAvatarUrl,
         phone_number: phoneNumber,
         address: address,
         role: 'professional' as const,
-        updated_at: new Date().toISOString(),
         professional_type: finalProfessionalType,
         years_of_experience: yearsOfExperience,
         care_services: specialties || [], // Updated: Map specialties to care_services column
@@ -404,12 +403,12 @@ const ProfessionalRegistration = () => {
         additional_notes: additionalNotes || '' // Changed from additional_info to additional_notes
       };
 
-      console.log('Updating professional profile with data:', updates);
+      console.log('Updating professional profile with data:', profileData);
       
-      const { error } = await supabase
-        .from('profiles')
-        .update(updates)
-        .eq('id', user.id);
+      // Use SECURITY DEFINER function to bypass RLS and prevent recursion
+      const { data, error } = await supabase.rpc('update_user_profile', {
+        profile_data: profileData
+      });
       
       if (error) throw error;
       
