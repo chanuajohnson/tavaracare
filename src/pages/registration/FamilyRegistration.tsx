@@ -68,7 +68,6 @@ const FamilyRegistration = () => {
         .from('profiles')
         .select('*')
         .eq('id', user.id)
-        .eq('role', 'family')
         .maybeSingle();
 
       if (error) {
