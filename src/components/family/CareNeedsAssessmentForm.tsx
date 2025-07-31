@@ -12,6 +12,7 @@ import { useAuth } from "@/components/providers/AuthProvider";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import { Brain, User, Phone, Heart, AlertCircle, Calendar, Home, Car, Sparkles } from "lucide-react";
+import { applyPrefillDataToForm } from '@/utils/chat/prefillReader';
 
 interface CareNeedsFormData {
   // Header fields
@@ -122,12 +123,40 @@ export const CareNeedsAssessmentForm = () => {
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [existingAssessment, setExistingAssessment] = useState(false);
+  const [prefillApplied, setPrefillApplied] = useState(false);
 
   useEffect(() => {
     if (user) {
       loadExistingAssessment();
     }
   }, [user]);
+
+  // Apply prefill data from chat sessions
+  useEffect(() => {
+    if (!prefillApplied && user) {
+      console.log('Checking for care assessment prefill data...');
+      
+      const setFormValue = (field: string, value: any) => {
+        console.log(`Setting care assessment field ${field} to:`, value);
+        setFormData(prev => ({ ...prev, [field]: value }));
+      };
+      
+      const hasPrefill = applyPrefillDataToForm(
+        setFormValue, 
+        { 
+          logDataReceived: true,
+          formType: 'care_assessment'
+        }
+      );
+      
+      if (hasPrefill) {
+        console.log('Successfully applied prefill data to care assessment form');
+        toast.success('Your chat information has been applied to this form');
+      }
+      
+      setPrefillApplied(true);
+    }
+  }, [prefillApplied, user]);
 
   const loadExistingAssessment = async () => {
     if (!user) return;

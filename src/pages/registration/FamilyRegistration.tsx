@@ -300,7 +300,8 @@ const FamilyRegistration = () => {
               formRef.current.requestSubmit();
             }
           },
-          formRef: formRef
+          formRef: formRef,
+          formType: 'registration'
         }
       );
       

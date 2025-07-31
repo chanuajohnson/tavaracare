@@ -18,6 +18,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { BookOpen, Sparkles, Heart, Award, Calendar, Briefcase, Users, Brain, LifeBuoy } from "lucide-react";
+import { applyPrefillDataToForm } from '@/utils/chat/prefillReader';
 
 const personalityTraits = [
   { id: "meticulous", label: "Meticulous" },
@@ -115,6 +116,7 @@ const FamilyStoryPage = () => {
   const [searchParams] = useSearchParams();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [prefillApplied, setPrefillApplied] = useState(false);
   
   const isEditMode = searchParams.get('edit') === 'true';
   
@@ -198,6 +200,45 @@ const FamilyStoryPage = () => {
 
     fetchExistingData();
   }, [user, isEditMode, form]);
+
+  // Apply prefill data from chat sessions
+  useEffect(() => {
+    if (!prefillApplied && user && !isEditMode) {
+      console.log('Checking for story prefill data...');
+      
+      const setFormValue = (field: string, value: any) => {
+        console.log(`Setting story field ${field} to:`, value);
+        
+        // Map fields to react-hook-form setValue calls
+        if (field === 'fullName' || field === 'full_name' || field === 'care_recipient_name') {
+          form.setValue('fullName', value);
+        } else if (field === 'lifeStory' || field === 'life_story') {
+          form.setValue('lifeStory', value);
+        } else if (field === 'joyfulThings' || field === 'joyful_things') {
+          form.setValue('joyfulThings', value);
+        } else if (field === 'uniqueFacts' || field === 'unique_facts') {
+          form.setValue('uniqueFacts', value);
+        } else if (field === 'culturalPreferences' || field === 'cultural_preferences') {
+          form.setValue('culturalPreferences', value);
+        }
+      };
+      
+      const hasPrefill = applyPrefillDataToForm(
+        setFormValue, 
+        { 
+          logDataReceived: true,
+          formType: 'story'
+        }
+      );
+      
+      if (hasPrefill) {
+        console.log('Successfully applied prefill data to story form');
+        toast.success('Your chat information has been applied to this form');
+      }
+      
+      setPrefillApplied(true);
+    }
+  }, [prefillApplied, user, isEditMode, form]);
 
   const onSubmit = async (data: FormValues) => {
     if (!user) {

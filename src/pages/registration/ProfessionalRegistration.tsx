@@ -201,7 +201,8 @@ const ProfessionalRegistration = () => {
               formRef.current.requestSubmit();
             }
           },
-          formRef: formRef
+          formRef: formRef,
+          formType: 'professional'
         }
       );
       
@@ -223,46 +224,49 @@ const ProfessionalRegistration = () => {
     }
   }, [prefillApplied, shouldAutoSubmit, user]);
 
-  // Add these functions at line 216 (before handleCareScheduleChange)
+  // Fetch complete profile data using secure RPC function
   const fetchCompleteProfileData = async () => {
     try {
-      const { data: profile, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .single();
+      const { data: profile, error } = await supabase.rpc('get_user_profile_secure', {
+        target_user_id: user.id
+      });
       
       if (error) throw error;
       
-      if (profile) {
+      if (profile && profile.length > 0) {
+        const profileData = profile[0];
         // Pre-fill all form fields with database data
-        setFirstName(profile.first_name || '');
-        setLastName(profile.last_name || '');
-        setPhoneNumber(profile.phone_number || '');
-        setAddress(profile.address || '');
-        setProfessionalType(profile.professional_type || '');
+        setFirstName(profileData.first_name || '');
+        setLastName(profileData.last_name || '');
+        setPhoneNumber(profileData.phone_number || '');
+        setAddress(profileData.address || '');
+        setProfessionalType(profileData.professional_type || '');
         // Handle other professional type - if professional_type doesn't match predefined values, it's likely a custom "other" type
         const predefinedTypes = ['agency', 'nurse', 'hha', 'cna', 'special_needs', 'therapist', 'nutritionist', 'medication', 'elderly', 'holistic', 'gapp'];
-        if (profile.professional_type && !predefinedTypes.includes(profile.professional_type)) {
+        if (profileData.professional_type && !predefinedTypes.includes(profileData.professional_type)) {
           setProfessionalType('other');
-          setOtherProfessionalType(profile.professional_type);
+          setOtherProfessionalType(profileData.professional_type);
         }
-        setYearsOfExperience(profile.years_of_experience || '');
-        setSpecialties(profile.care_services || []);
-        setCertifications(profile.certifications || []);
-        setCareSchedule(profile.care_schedule ? profile.care_schedule.split(',') : []);
-        setCustomAvailability(profile.custom_schedule || '');
-        setPreferredLocations(profile.preferred_work_locations || '');
-        setHourlyRate(profile.hourly_rate || '');
-        setTransportation(profile.commute_mode || '');
-        setLanguages(profile.languages || []);
-        setEmergencyContact(profile.emergency_contact || '');
-        setBackgroundCheck(profile.background_check ? 'yes' : '');
-        setAdditionalNotes(profile.additional_notes || '');
-        setAvatarUrl(profile.avatar_url || null);
+        setYearsOfExperience(profileData.years_of_experience || '');
+        setSpecialties(profileData.care_services || []);
+        setCertifications(profileData.certifications || []);
+        setCareSchedule(profileData.care_schedule ? profileData.care_schedule.split(',') : []);
+        setCustomAvailability(profileData.custom_schedule || '');
+        setPreferredLocations(profileData.preferred_work_locations || '');
+        setHourlyRate(profileData.hourly_rate || '');
+        setTransportation(profileData.commute_mode || '');
+        setLanguages(profileData.languages || []);
+        setEmergencyContact(profileData.emergency_contact || '');
+        setBackgroundCheck(profileData.background_check ? 'yes' : '');
+        setAdditionalNotes(profileData.additional_notes || '');
+        setAvatarUrl(profileData.avatar_url || null);
+        
+        console.log('Successfully loaded profile data for editing');
+        toast.success('Your profile has been loaded for editing');
       }
     } catch (error) {
       console.error('Error fetching profile data:', error);
+      toast.error('Failed to load existing profile data');
       // Fall back to auth metadata if database fetch fails
       populateFromAuthMetadata();
     } finally {
