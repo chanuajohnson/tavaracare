@@ -30,6 +30,15 @@ const ProfessionalRegistration = () => {
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
+  
+  // Debug logging for name state changes
+  useEffect(() => {
+    console.log('🔥 firstName state changed to:', firstName);
+  }, [firstName]);
+  
+  useEffect(() => {
+    console.log('🔥 lastName state changed to:', lastName);
+  }, [lastName]);
   const [phoneNumber, setPhoneNumber] = useState('');
   const [email, setEmail] = useState('');
   const [address, setAddress] = useState('');
@@ -102,23 +111,23 @@ const ProfessionalRegistration = () => {
   // Pre-populate user data from auth context or database
   useEffect(() => {
     if (user && !userDataPopulated) {
-      console.log('Pre-populating user data:', user);
+      console.log('🚀 Pre-populating user data:', user);
       
       // Check if this is edit mode from dashboard
       const urlParams = new URLSearchParams(window.location.search);
       const isEditMode = urlParams.get('edit') === 'true';
       
       if (isEditMode) {
-        console.log('Edit mode detected - fetching profile from database');
+        console.log('📝 Edit mode detected - fetching profile from database');
         // In edit mode, fetch complete profile data from database
         fetchCompleteProfileData();
       } else {
-        console.log('Registration mode detected - using auth metadata');
+        console.log('👤 Registration mode detected - using auth metadata');
         // Regular registration, use auth metadata
         populateFromAuthMetadata();
       }
       
-      console.log('User data population initiated');
+      console.log('✅ User data population initiated');
     }
   }, [user, userDataPopulated]);
 
@@ -287,8 +296,13 @@ const ProfessionalRegistration = () => {
   };
 
   const populateFromAuthMetadata = () => {
+    console.log('🔍 populateFromAuthMetadata called with user:', user);
+    console.log('📧 User email:', user.email);
+    console.log('📝 User metadata:', user.user_metadata);
+    
     // Extract email
     if (user.email) {
+      console.log('Setting email to:', user.email);
       setEmail(user.email);
     }
     
@@ -300,30 +314,47 @@ const ProfessionalRegistration = () => {
       const possibleFirstNames = ['first_name', 'firstName', 'given_name'];
       const possibleLastNames = ['last_name', 'lastName', 'family_name', 'surname'];
       
+      let foundFirstName = null;
+      let foundLastName = null;
+      
       for (const field of possibleFirstNames) {
         if (metadata[field]) {
-          setFirstName(metadata[field]);
+          foundFirstName = metadata[field];
+          console.log(`✅ Found first name from ${field}:`, foundFirstName);
+          setFirstName(foundFirstName);
           break;
         }
       }
       
       for (const field of possibleLastNames) {
         if (metadata[field]) {
-          setLastName(metadata[field]);
+          foundLastName = metadata[field];
+          console.log(`✅ Found last name from ${field}:`, foundLastName);
+          setLastName(foundLastName);
           break;
         }
       }
       
       // If we have a full_name but no separate first/last, try to split it
-      if (!firstName && !lastName && metadata.full_name) {
+      if (!foundFirstName && !foundLastName && metadata.full_name) {
         const nameParts = metadata.full_name.split(' ');
         if (nameParts.length >= 2) {
-          setFirstName(nameParts[0]);
-          setLastName(nameParts.slice(1).join(' '));
+          const splitFirstName = nameParts[0];
+          const splitLastName = nameParts.slice(1).join(' ');
+          console.log(`🔄 Splitting full_name "${metadata.full_name}" into:`, { splitFirstName, splitLastName });
+          setFirstName(splitFirstName);
+          setLastName(splitLastName);
         }
       }
+      
+      // Log final state
+      console.log('📊 Final name state will be:', { 
+        firstName: foundFirstName || (metadata.full_name ? metadata.full_name.split(' ')[0] : null),
+        lastName: foundLastName || (metadata.full_name ? metadata.full_name.split(' ').slice(1).join(' ') : null)
+      });
     }
     
+    console.log('✅ populateFromAuthMetadata completed');
     setUserDataPopulated(true);
   };
 
