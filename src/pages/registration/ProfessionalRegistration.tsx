@@ -109,16 +109,18 @@ const ProfessionalRegistration = () => {
       const isEditMode = urlParams.get('edit') === 'true';
       
       if (isEditMode) {
+        console.log('Edit mode detected - fetching profile from database');
         // In edit mode, fetch complete profile data from database
         fetchCompleteProfileData();
       } else {
+        console.log('Registration mode detected - using auth metadata');
         // Regular registration, use auth metadata
         populateFromAuthMetadata();
       }
       
       console.log('User data population initiated');
     }
-  }, [user, userDataPopulated, firstName, lastName]);
+  }, [user, userDataPopulated]);
 
   const setFormValue = (field: string, value: any) => {
     console.log(`Setting form field ${field} to:`, value);
@@ -185,10 +187,20 @@ const ProfessionalRegistration = () => {
     }
   };
 
-  // Apply prefill data when available
+  // Apply prefill data when available (only if NOT in edit mode)
   useEffect(() => {
-    if (!prefillApplied) {
+    if (!prefillApplied && userDataPopulated) {
       console.log('Checking for prefill data...');
+      
+      // Check if this is edit mode - if so, skip chat prefill
+      const urlParams = new URLSearchParams(window.location.search);
+      const isEditMode = urlParams.get('edit') === 'true';
+      
+      if (isEditMode) {
+        console.log('Edit mode detected - skipping chat prefill');
+        setPrefillApplied(true);
+        return;
+      }
       
       const hasPrefill = applyPrefillDataToForm(
         setFormValue, 
@@ -222,7 +234,7 @@ const ProfessionalRegistration = () => {
       
       setPrefillApplied(true);
     }
-  }, [prefillApplied, shouldAutoSubmit, user]);
+  }, [prefillApplied, shouldAutoSubmit, user, userDataPopulated]);
 
   // Fetch complete profile data using secure RPC function
   const fetchCompleteProfileData = async () => {
