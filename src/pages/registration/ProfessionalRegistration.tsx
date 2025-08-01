@@ -37,7 +37,6 @@ const ProfessionalRegistration = () => {
   });
   
   const [loading, setLoading] = useState(false);
-  const [dataLoading, setDataLoading] = useState(true);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [firstName, setFirstName] = useState('');
@@ -120,9 +119,9 @@ const ProfessionalRegistration = () => {
     };
   }, []);
 
-  // Professional Registration initialization - fetch profile data for edit mode or populate basic info for new registration
+  // Initialize professional registration data
   useEffect(() => {
-    if (user && dataLoading) {
+    if (user && !userDataPopulated) {
       console.log('🔍 Initializing professional registration:', {
         userId: user?.id,
         isEditMode,
@@ -133,12 +132,21 @@ const ProfessionalRegistration = () => {
         console.log('📝 Edit mode detected - fetching profile from database');
         fetchCompleteProfileData();
       } else {
-        console.log('👤 Registration mode detected - using auth metadata');
-        populateFromAuthMetadata();
-        setDataLoading(false);
+        console.log('👤 Registration mode detected - setting from auth metadata immediately');
+        // Set form values immediately from auth metadata like family registration
+        if (user.user_metadata?.first_name) {
+          setFirstName(user.user_metadata.first_name);
+        }
+        if (user.user_metadata?.last_name) {
+          setLastName(user.user_metadata.last_name);
+        }
+        if (user.email) {
+          setEmail(user.email);
+        }
+        setUserDataPopulated(true);
       }
     }
-  }, [user, isEditMode, dataLoading]);
+  }, [user, isEditMode, userDataPopulated]);
 
   const setFormValue = (field: string, value: any) => {
     console.log(`Setting form field ${field} to:`, value);
@@ -300,7 +308,7 @@ const ProfessionalRegistration = () => {
       // Fall back to auth metadata if database fetch fails
       populateFromAuthMetadata();
     } finally {
-      setDataLoading(false);
+      setUserDataPopulated(true);
     }
   };
 
@@ -364,7 +372,7 @@ const ProfessionalRegistration = () => {
     }
     
     console.log('✅ populateFromAuthMetadata completed');
-    setDataLoading(false);
+    setUserDataPopulated(true);
   };
 
   const handleCareScheduleChange = (value: string) => {
