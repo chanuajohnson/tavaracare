@@ -248,26 +248,41 @@ const ProfessionalRegistration = () => {
   // Fetch complete profile data using secure RPC function
   const fetchCompleteProfileData = async () => {
     try {
+      console.log('🔍 Fetching profile data for user:', user.id);
       const { data: profile, error } = await supabase.rpc('get_user_profile_secure', {
         target_user_id: user.id
       });
       
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Database error:', error);
+        throw error;
+      }
+      
+      console.log('📊 Raw profile data received:', profile);
       
       if (profile && profile.length > 0) {
         const profileData = profile[0];
+        console.log('✅ Found existing profile, populating form fields...');
+        console.log('Professional type from DB:', profileData.professional_type);
+        console.log('Years of experience from DB:', profileData.years_of_experience);
+        
         // Pre-fill all form fields with database data
         setFirstName(profileData.first_name || '');
         setLastName(profileData.last_name || '');
         setPhoneNumber(profileData.phone_number || '');
         setAddress(profileData.address || '');
+        
+        // Professional fields
         setProfessionalType(profileData.professional_type || '');
+        
         // Handle other professional type - if professional_type doesn't match predefined values, it's likely a custom "other" type
         const predefinedTypes = ['agency', 'nurse', 'hha', 'cna', 'special_needs', 'therapist', 'nutritionist', 'medication', 'elderly', 'holistic', 'gapp'];
         if (profileData.professional_type && !predefinedTypes.includes(profileData.professional_type)) {
+          console.log('🔧 Setting custom professional type:', profileData.professional_type);
           setProfessionalType('other');
           setOtherProfessionalType(profileData.professional_type);
         }
+        
         setYearsOfExperience(profileData.years_of_experience || '');
         setSpecialties(profileData.care_services || []);
         setCertifications(profileData.certifications || []);
@@ -282,15 +297,20 @@ const ProfessionalRegistration = () => {
         setAdditionalNotes(profileData.additional_notes || '');
         setAvatarUrl(profileData.avatar_url || null);
         
-        console.log('Successfully loaded profile data for editing');
+        console.log('✅ Successfully populated all form fields from database');
         toast.success('Your profile has been loaded for editing');
+        setUserDataPopulated(true);
+      } else {
+        console.log('⚠️ No existing profile found, falling back to auth metadata');
+        // No existing profile, fall back to auth metadata
+        populateFromAuthMetadata();
+        setUserDataPopulated(true);
       }
     } catch (error) {
-      console.error('Error fetching profile data:', error);
+      console.error('❌ Error fetching profile data:', error);
       toast.error('Failed to load existing profile data');
       // Fall back to auth metadata if database fetch fails
       populateFromAuthMetadata();
-    } finally {
       setUserDataPopulated(true);
     }
   };
