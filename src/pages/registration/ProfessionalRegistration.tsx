@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { v4 as uuidv4 } from 'uuid';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { supabase, ensureStorageBuckets, ensureAuthContext } from '../../lib/supabase';
@@ -25,7 +25,19 @@ import { STANDARDIZED_SHIFT_OPTIONS } from '../../data/chatRegistrationFlows';
 
 const ProfessionalRegistration = () => {
   const { user, isLoading: authLoading } = useAuth();
+  const [searchParams] = useSearchParams();
+  const isEditMode = searchParams.get('edit') === 'true';
+  
+  console.log('🔍 Professional Registration Debug:', {
+    fullURL: window.location.href,
+    searchParams: Object.fromEntries(searchParams.entries()),
+    editParam: searchParams.get('edit'),
+    isEditMode,
+    pathname: window.location.pathname
+  });
+  
   const [loading, setLoading] = useState(false);
+  const [dataLoading, setDataLoading] = useState(true);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [firstName, setFirstName] = useState('');
@@ -108,28 +120,25 @@ const ProfessionalRegistration = () => {
     };
   }, []);
 
-  // Pre-populate user data from auth context or database
+  // Professional Registration initialization - fetch profile data for edit mode or populate basic info for new registration
   useEffect(() => {
-    if (user && !userDataPopulated) {
-      console.log('🚀 Pre-populating user data:', user);
-      
-      // Check if this is edit mode from dashboard
-      const urlParams = new URLSearchParams(window.location.search);
-      const isEditMode = urlParams.get('edit') === 'true';
-      
+    if (user && dataLoading) {
+      console.log('🔍 Initializing professional registration:', {
+        userId: user?.id,
+        isEditMode,
+        userEmail: user?.email
+      });
+
       if (isEditMode) {
         console.log('📝 Edit mode detected - fetching profile from database');
-        // In edit mode, fetch complete profile data from database
         fetchCompleteProfileData();
       } else {
         console.log('👤 Registration mode detected - using auth metadata');
-        // Regular registration, use auth metadata
         populateFromAuthMetadata();
+        setDataLoading(false);
       }
-      
-      console.log('✅ User data population initiated');
     }
-  }, [user, userDataPopulated]);
+  }, [user, isEditMode, dataLoading]);
 
   const setFormValue = (field: string, value: any) => {
     console.log(`Setting form field ${field} to:`, value);
@@ -291,7 +300,7 @@ const ProfessionalRegistration = () => {
       // Fall back to auth metadata if database fetch fails
       populateFromAuthMetadata();
     } finally {
-      setUserDataPopulated(true);
+      setDataLoading(false);
     }
   };
 
@@ -355,7 +364,7 @@ const ProfessionalRegistration = () => {
     }
     
     console.log('✅ populateFromAuthMetadata completed');
-    setUserDataPopulated(true);
+    setDataLoading(false);
   };
 
   const handleCareScheduleChange = (value: string) => {
