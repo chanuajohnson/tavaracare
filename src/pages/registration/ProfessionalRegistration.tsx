@@ -119,34 +119,17 @@ const ProfessionalRegistration = () => {
     };
   }, []);
 
-  // Initialize professional registration data
+  // Initialize professional registration data - always try to fetch existing profile first
   useEffect(() => {
     if (user && !userDataPopulated) {
-      console.log('🔍 Initializing professional registration:', {
-        userId: user?.id,
-        isEditMode,
-        userEmail: user?.email
-      });
-
-      if (isEditMode) {
-        console.log('📝 Edit mode detected - fetching profile from database');
-        fetchCompleteProfileData();
-      } else {
-        console.log('👤 Registration mode detected - setting from auth metadata immediately');
-        // Set form values immediately from auth metadata like family registration
-        if (user.user_metadata?.first_name) {
-          setFirstName(user.user_metadata.first_name);
-        }
-        if (user.user_metadata?.last_name) {
-          setLastName(user.user_metadata.last_name);
-        }
-        if (user.email) {
-          setEmail(user.email);
-        }
-        setUserDataPopulated(true);
-      }
+      console.log('🔍 Initializing professional registration for user:', user.id);
+      
+      // Always attempt to fetch existing profile data first, regardless of edit vs registration mode
+      // This ensures existing users get their complete profile data populated
+      console.log('📊 Attempting to fetch existing profile data from database...');
+      fetchCompleteProfileData();
     }
-  }, [user, isEditMode, userDataPopulated]);
+  }, [user, userDataPopulated]);
 
   const setFormValue = (field: string, value: any) => {
     console.log(`Setting form field ${field} to:`, value);
