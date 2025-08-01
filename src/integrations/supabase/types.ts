@@ -916,6 +916,69 @@ export type Database = {
           },
         ]
       }
+      caregiver_assignments: {
+        Row: {
+          admin_override_score: number | null
+          algorithm_version: string | null
+          assigned_by_admin_id: string | null
+          assignment_reason: string | null
+          assignment_type: string
+          care_plan_id: string | null
+          caregiver_id: string
+          created_at: string
+          family_user_id: string
+          id: string
+          is_active: boolean
+          match_explanation: string | null
+          match_score: number
+          notes: string | null
+          priority_level: number | null
+          shift_compatibility_score: number | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          admin_override_score?: number | null
+          algorithm_version?: string | null
+          assigned_by_admin_id?: string | null
+          assignment_reason?: string | null
+          assignment_type: string
+          care_plan_id?: string | null
+          caregiver_id: string
+          created_at?: string
+          family_user_id: string
+          id?: string
+          is_active?: boolean
+          match_explanation?: string | null
+          match_score?: number
+          notes?: string | null
+          priority_level?: number | null
+          shift_compatibility_score?: number | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          admin_override_score?: number | null
+          algorithm_version?: string | null
+          assigned_by_admin_id?: string | null
+          assignment_reason?: string | null
+          assignment_type?: string
+          care_plan_id?: string | null
+          caregiver_id?: string
+          created_at?: string
+          family_user_id?: string
+          id?: string
+          is_active?: boolean
+          match_explanation?: string | null
+          match_score?: number
+          notes?: string | null
+          priority_level?: number | null
+          shift_compatibility_score?: number | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       caregiver_chat_messages: {
         Row: {
           content: string
@@ -4440,6 +4503,10 @@ export type Database = {
         Args: { target_user_id: string }
         Returns: undefined
       }
+      calculate_unified_match_score: {
+        Args: { target_family_user_id: string; target_caregiver_id: string }
+        Returns: Json
+      }
       can_access_professional_data: {
         Args: Record<PropertyKey, never>
         Returns: boolean
@@ -4475,6 +4542,18 @@ export type Database = {
           calculated_shift_compatibility_score?: number
           assignment_explanation?: string
           algorithm_version_param?: string
+        }
+        Returns: string
+      }
+      create_unified_assignment: {
+        Args: {
+          target_family_user_id: string
+          target_caregiver_id: string
+          assignment_type_param: string
+          admin_override_score_param?: number
+          assignment_reason_param?: string
+          assignment_notes_param?: string
+          care_plan_id_param?: string
         }
         Returns: string
       }

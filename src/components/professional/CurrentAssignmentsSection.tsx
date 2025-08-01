@@ -2,7 +2,7 @@ import { motion } from "framer-motion";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { useCurrentAssignments } from "@/hooks/useCurrentAssignments";
+import { useUnifiedMatches } from "@/hooks/useUnifiedMatches";
 import { Users, Calendar, Star, MessageSquare, Eye } from "lucide-react";
 import { Link } from "react-router-dom";
 
@@ -36,10 +36,10 @@ const getAssignmentTypeConfig = (type: string) => {
 };
 
 export const CurrentAssignmentsSection = () => {
-  const { assignments, loading, error } = useCurrentAssignments();
+  const { assignments, isLoading, error } = useUnifiedMatches('professional');
 
   // Only render if there are active assignments
-  if (loading || error || assignments.length === 0) {
+  if (isLoading || error || assignments.length === 0) {
     return null;
   }
 
@@ -62,7 +62,7 @@ export const CurrentAssignmentsSection = () => {
         <CardContent>
           <div className="space-y-4">
             {assignments.map((assignment) => {
-              const config = getAssignmentTypeConfig(assignment.type);
+              const config = getAssignmentTypeConfig(assignment.assignment_type);
               const IconComponent = config.icon;
               
               return (
@@ -77,26 +77,24 @@ export const CurrentAssignmentsSection = () => {
                     <div>
                       <div className="flex items-center gap-2 mb-1">
                         <h4 className="font-medium text-gray-900">
-                          {assignment.familyName}
+                          {assignment.family_name}
                         </h4>
                         <Badge className={config.color}>
                           {config.label}
                         </Badge>
                       </div>
-                      {assignment.carePlanTitle && (
+                      {assignment.care_plan_title && (
                         <p className="text-sm text-gray-600 mb-1">
-                          Care Plan: {assignment.carePlanTitle}
+                          Care Plan: {assignment.care_plan_title}
                         </p>
                       )}
                       <div className="flex items-center gap-4 text-xs text-gray-500">
                         <span>
-                          Assigned: {new Date(assignment.assignmentDate).toLocaleDateString()}
+                          Assigned: {new Date(assignment.created_at).toLocaleDateString()}
                         </span>
-                        {assignment.matchScore && (
-                          <span>
-                            Match Score: {Math.round(assignment.matchScore)}%
-                          </span>
-                        )}
+                        <span>
+                          Match Score: {Math.round(assignment.match_score)}%
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -108,8 +106,8 @@ export const CurrentAssignmentsSection = () => {
                         View Details
                       </Button>
                     </Link>
-                    {assignment.type === 'care_team' && assignment.carePlanId && (
-                      <Link to={`/professional/care-plans/${assignment.carePlanId}`}>
+                    {assignment.assignment_type === 'care_team' && assignment.care_plan_id && (
+                      <Link to={`/professional/care-plans/${assignment.care_plan_id}`}>
                         <Button variant="outline" size="sm">
                           <MessageSquare className="h-4 w-4 mr-1" />
                           Care Plan

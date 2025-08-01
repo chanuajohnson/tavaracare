@@ -5,14 +5,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Users, Sparkles, Calendar, MessageCircle } from "lucide-react";
 import { SubscriptionFeatureLink } from "@/components/subscription/SubscriptionFeatureLink";
-import { useCaregiverMatches } from "@/hooks/useCaregiverMatches";
+import { useUnifiedMatches } from "@/hooks/useUnifiedMatches";
 import { CaregiverMatchCard } from "./CaregiverMatchCard";
 import { CaregiverChatModal } from "./CaregiverChatModal";
 import { CaregiverMatchingModal } from "./CaregiverMatchingModal";
 
 export const DashboardCaregiverMatches = () => {
   const { user } = useAuth();
-  const { caregivers, isLoading: hookLoading } = useCaregiverMatches(true);
+  const { matches, isLoading: hookLoading } = useUnifiedMatches('family', true);
   const [showChatModal, setShowChatModal] = useState(false);
   const [showMatchingModal, setShowMatchingModal] = useState(false);
   
@@ -37,7 +37,7 @@ export const DashboardCaregiverMatches = () => {
     return null;
   }
 
-  const bestMatch = caregivers[0];
+  const bestMatch = matches[0];
 
   const getCompatibilityColor = (score: number) => {
     if (score >= 80) return "text-green-600";
