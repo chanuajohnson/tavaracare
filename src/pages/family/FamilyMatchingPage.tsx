@@ -1,57 +1,51 @@
 
 import { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Shield, Sparkles, MessageCircle } from "lucide-react";
+import { MessageCircle, Eye } from "lucide-react";
 import { SubscriptionFeatureLink } from "@/components/subscription/SubscriptionFeatureLink";
 import { MatchingTracker } from "@/components/tracking/MatchingTracker";
-import { useCaregiverMatches } from "@/hooks/useCaregiverMatches";
-import { CaregiverMatchCard } from "@/components/family/CaregiverMatchCard";
+import { useUnifiedMatches } from "@/hooks/useUnifiedMatches";
+import { SimpleMatchCard } from "@/components/family/SimpleMatchCard";
 import { CaregiverChatModal } from "@/components/family/CaregiverChatModal";
-
-const MAGICAL_MESSAGES = [
-  { text: "Hold on, we are finding your perfect match! ✨", subtext: "Analyzing your care needs and preferences..." },
-  { text: "Reviewing caregiver profiles in your area 🔍", subtext: "Checking availability and experience..." },
-  { text: "Almost there! Matching you with the best caregiver 🎯", subtext: "Ensuring the perfect fit for your family..." }
-];
+import { MatchBrowserModal } from "@/components/family/MatchBrowserModal";
+import { MatchDetailModal } from "@/components/family/MatchDetailModal";
+import { MatchLoadingState } from "@/components/ui/match-loading-state";
 
 const FamilyMatchingPage = () => {
   const [isLoading, setIsLoading] = useState(true);
-  const [currentMessageIndex, setCurrentMessageIndex] = useState(0);
   const [showChatModal, setShowChatModal] = useState(false);
-  const { caregivers, dataLoaded } = useCaregiverMatches(true); // Show only best match
-
-  useEffect(() => {
-    console.log('FamilyMatchingPage loaded');
-    setIsLoading(true);
-    setCurrentMessageIndex(0);
-    
-    // Cycle through magical messages every 1.5 seconds
-    const messageInterval = setInterval(() => {
-      setCurrentMessageIndex(prev => (prev + 1) % MAGICAL_MESSAGES.length);
-    }, 1500);
-
-    // Show the magical loading for 4.5 seconds total (3 messages)
-    const loadingTimer = setTimeout(() => {
-      setIsLoading(false);
-      console.log('FamilyMatchingPage loading complete');
-    }, 4500);
-
-    return () => {
-      clearInterval(messageInterval);
-      clearTimeout(loadingTimer);
-    };
-  }, []);
+  const [showBrowserModal, setShowBrowserModal] = useState(false);
+  const [showDetailModal, setShowDetailModal] = useState(false);
+  const [selectedCaregiver, setSelectedCaregiver] = useState<any>(null);
+  const { matches } = useUnifiedMatches('family', true);
 
   const breadcrumbItems = [
     { label: "Family Dashboard", path: "/dashboard/family" },
     { label: "Caregiver Matching", path: "/family/matching" },
   ];
 
-  const bestMatch = caregivers[0]; // Get the single best match
-  const currentMessage = MAGICAL_MESSAGES[currentMessageIndex];
+  const bestMatch = matches[0];
+
+  const handleStartChat = (caregiverId?: string) => {
+    const caregiver = caregiverId 
+      ? matches.find(m => m.id === caregiverId) || bestMatch
+      : bestMatch;
+    setSelectedCaregiver(caregiver);
+    setShowChatModal(true);
+  };
+
+  const handleViewDetails = (caregiverId: string) => {
+    const caregiver = matches.find(m => m.id === caregiverId);
+    setSelectedCaregiver(caregiver);
+    setShowDetailModal(true);
+  };
+
+  const handleLoadingComplete = () => {
+    setIsLoading(false);
+  };
 
   if (isLoading) {
     return (
@@ -65,39 +59,11 @@ const FamilyMatchingPage = () => {
             transition={{ duration: 0.5 }}
             className="space-y-6 mt-8"
           >
-            <div className="text-center space-y-6 py-12">
-              <h1 className="text-3xl font-bold">Finding Your Perfect Match</h1>
-              
-              <div className="flex flex-col items-center space-y-6">
-                {/* Enhanced magical loading circle with more sparkles */}
-                <div className="relative">
-                  <div className="animate-spin rounded-full h-20 w-20 border-4 border-blue-200 border-t-blue-600"></div>
-                  <Sparkles className="absolute -top-2 -right-2 h-6 w-6 text-blue-500 animate-pulse" />
-                  <Sparkles className="absolute -bottom-2 -left-2 h-5 w-5 text-purple-500 animate-pulse delay-150" />
-                  <Sparkles className="absolute top-1/2 -left-4 h-4 w-4 text-pink-500 animate-pulse delay-300" />
-                  <Sparkles className="absolute top-1/4 -right-3 h-3 w-3 text-green-500 animate-pulse delay-450" />
-                  <Sparkles className="absolute bottom-1/4 -left-3 h-3 w-3 text-yellow-500 animate-pulse delay-600" />
-                </div>
-                
-                <AnimatePresence mode="wait">
-                  <motion.div
-                    key={currentMessageIndex}
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.9 }}
-                    transition={{ duration: 0.3 }}
-                    className="text-center space-y-2"
-                  >
-                    <p className="text-2xl font-semibold text-blue-600">
-                      {currentMessage.text}
-                    </p>
-                    <p className="text-lg text-gray-600">
-                      {currentMessage.subtext}
-                    </p>
-                  </motion.div>
-                </AnimatePresence>
-              </div>
-            </div>
+            <MatchLoadingState 
+              title="Finding Your Perfect Match"
+              duration={2000}
+              onComplete={handleLoadingComplete}
+            />
           </motion.div>
         </div>
       </div>
@@ -161,35 +127,31 @@ const FamilyMatchingPage = () => {
               </CardHeader>
               
               <CardContent className="p-6">
-                <CaregiverMatchCard
+                <SimpleMatchCard
                   caregiver={bestMatch}
-                  returnPath="/family/matching"
-                  referringPagePath="/family/matching"
-                  referringPageLabel="Caregiver Matching"
-                  showUnlockButton={false}
-                  onStartChat={() => setShowChatModal(true)}
+                  variant="modal"
+                  onChatClick={() => handleStartChat()}
+                  onViewDetails={() => handleViewDetails(bestMatch.id)}
                 />
                 
                 <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <Button 
                     variant="default" 
                     className="w-full bg-green-600 hover:bg-green-700"
-                    onClick={() => setShowChatModal(true)}
+                    onClick={() => handleStartChat()}
                   >
                     <MessageCircle className="h-4 w-4 mr-2" />
                     Start Conversation
                   </Button>
                   
-                  <SubscriptionFeatureLink
-                    featureType="Premium Match Features"
-                    returnPath="/family/matching"
-                    referringPagePath="/family/matching"
-                    referringPageLabel="Caregiver Matching"
+                  <Button
                     variant="outline"
                     className="w-full"
+                    onClick={() => setShowBrowserModal(true)}
                   >
+                    <Eye className="h-4 w-4 mr-2" />
                     Browse All Matches
-                  </SubscriptionFeatureLink>
+                  </Button>
                 </div>
               </CardContent>
             </Card>
@@ -218,13 +180,32 @@ const FamilyMatchingPage = () => {
       </div>
 
       {/* Chat Modal */}
-      {bestMatch && (
+      {selectedCaregiver && (
         <CaregiverChatModal
           open={showChatModal}
           onOpenChange={setShowChatModal}
-          caregiver={bestMatch}
+          caregiver={selectedCaregiver}
         />
       )}
+
+      {/* Browse All Matches Modal */}
+      <MatchBrowserModal
+        open={showBrowserModal}
+        onOpenChange={setShowBrowserModal}
+        onSelectMatch={handleViewDetails}
+        onStartChat={handleStartChat}
+      />
+
+      {/* Match Detail Modal */}
+      <MatchDetailModal
+        open={showDetailModal}
+        onOpenChange={setShowDetailModal}
+        caregiver={selectedCaregiver}
+        onStartChat={() => {
+          setShowDetailModal(false);
+          setShowChatModal(true);
+        }}
+      />
     </div>
   );
 };
