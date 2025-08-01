@@ -7,6 +7,7 @@ import { TavaraStateProvider } from "@/components/tav/hooks/TavaraStateContext";
 import { BrowserRouter } from "react-router-dom";
 import { ScrollToTop } from "@/components/common/ScrollToTop";
 import { RedirectHandler } from "@/components/routing/RedirectHandler";
+import { ProviderErrorBoundary } from "@/components/common/ProviderErrorBoundary";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -21,19 +22,29 @@ const queryClient = new QueryClient({
 
 export function AppProviders({ children }: { children: React.ReactNode }) {
   return (
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Sonner />
-        <BrowserRouter>
-          <ScrollToTop />
-          <RedirectHandler />
-          <AuthProvider>
-            <TavaraStateProvider>
-              {children}
-            </TavaraStateProvider>
-          </AuthProvider>
-        </BrowserRouter>
-      </TooltipProvider>
-    </QueryClientProvider>
+    <ProviderErrorBoundary providerName="QueryClient">
+      <QueryClientProvider client={queryClient}>
+        <ProviderErrorBoundary providerName="TooltipProvider">
+          <TooltipProvider>
+            <Sonner />
+            <ProviderErrorBoundary providerName="Router">
+              <BrowserRouter>
+                <ScrollToTop />
+                <RedirectHandler />
+                <ProviderErrorBoundary providerName="AuthProvider">
+                  <AuthProvider>
+                    <ProviderErrorBoundary providerName="TavaraStateProvider">
+                      <TavaraStateProvider>
+                        {children}
+                      </TavaraStateProvider>
+                    </ProviderErrorBoundary>
+                  </AuthProvider>
+                </ProviderErrorBoundary>
+              </BrowserRouter>
+            </ProviderErrorBoundary>
+          </TooltipProvider>
+        </ProviderErrorBoundary>
+      </QueryClientProvider>
+    </ProviderErrorBoundary>
   );
 }
