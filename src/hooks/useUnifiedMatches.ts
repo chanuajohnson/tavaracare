@@ -43,6 +43,7 @@ export const useUnifiedMatches = (userRole: 'family' | 'professional', showOnlyB
 
   const loadMatches = useCallback(async () => {
     if (!user?.id) {
+      console.log('useUnifiedMatches: No user ID found');
       setIsLoading(false);
       return;
     }
@@ -50,50 +51,64 @@ export const useUnifiedMatches = (userRole: 'family' | 'professional', showOnlyB
     try {
       setIsLoading(true);
       setError(null);
+      console.log('useUnifiedMatches: Loading matches for user:', user.id, 'role:', userRole);
 
       if (userRole === 'family') {
-        // For families: get their assigned caregivers
+        // For families: get their assigned caregivers with manual join
+        console.log('useUnifiedMatches: Fetching assignments for family user:', user.id);
+        
         const { data: assignmentData, error: assignmentError } = await supabase
           .from('caregiver_assignments')
-          .select(`
-            id,
-            assignment_type,
-            match_score,
-            shift_compatibility_score,
-            match_explanation,
-            status,
-            created_at,
-            care_plan_id,
-            notes,
-            caregiver_id,
-            profiles!inner(
-              id,
-              full_name,
-              avatar_url,
-              location,
-              care_types,
-              years_of_experience
-            )
-          `)
+          .select('*')
           .eq('family_user_id', user.id)
           .eq('is_active', true)
-          .order('assignment_type', { ascending: true }) // manual first, then care_team, then automatic
+          .order('assignment_type', { ascending: true })
           .order('match_score', { ascending: false });
 
-        if (assignmentError) throw assignmentError;
+        console.log('useUnifiedMatches: Assignment query result:', { assignmentData, assignmentError });
+        
+        if (assignmentError) {
+          console.error('useUnifiedMatches: Assignment query error:', assignmentError);
+          throw assignmentError;
+        }
+
+        if (!assignmentData || assignmentData.length === 0) {
+          console.log('useUnifiedMatches: No assignments found for family user:', user.id);
+          setMatches([]);
+          setIsLoading(false);
+          return;
+        }
+
+        // Get caregiver profiles for the assignments
+        const caregiverIds = assignmentData.map(a => a.caregiver_id);
+        console.log('useUnifiedMatches: Fetching caregiver profiles for IDs:', caregiverIds);
+        
+        const { data: caregiverProfiles, error: profileError } = await supabase
+          .from('profiles')
+          .select('id, full_name, avatar_url, location, care_types, years_of_experience')
+          .in('id', caregiverIds);
+
+        console.log('useUnifiedMatches: Caregiver profiles query result:', { caregiverProfiles, profileError });
+        
+        if (profileError) {
+          console.error('useUnifiedMatches: Profile query error:', profileError);
+          throw profileError;
+        }
 
         // Transform assignment data to match format
         const processedMatches: UnifiedMatch[] = (assignmentData || []).map((assignment: any) => {
-          const caregiver = assignment.profiles;
+          const caregiver = caregiverProfiles?.find(p => p.id === assignment.caregiver_id);
           const hash = Math.abs(assignment.id.split('').reduce((a: number, b: string) => (a << 5) - a + b.charCodeAt(0), 0));
           
+          console.log('useUnifiedMatches: Processing assignment:', assignment.id, 'caregiver:', caregiver);
+          
           return {
-            id: caregiver.id,
-            full_name: caregiver.full_name || 'Professional Caregiver',
-            avatar_url: caregiver.avatar_url,
-            location: caregiver.location || 'Trinidad and Tobago',
-            care_types: caregiver.care_types || ['General Care'],
-            years_of_experience: caregiver.years_of_experience || '2+ years',
+            id: caregiver?.id || assignment.caregiver_id,
+            full_name: caregiver?.full_name || 'Professional Caregiver',
+            avatar_url: caregiver?.avatar_url || null,
+            location: caregiver?.location || 'Trinidad and Tobago',
+            care_types: caregiver?.care_types || ['General Care'],
+            years_of_experience: caregiver?.years_of_experience || '2+ years',
             match_score: assignment.match_score,
             shift_compatibility_score: assignment.shift_compatibility_score,
             match_explanation: assignment.match_explanation,
@@ -103,7 +118,9 @@ export const useUnifiedMatches = (userRole: 'family' | 'professional', showOnlyB
           };
         });
 
+        console.log('useUnifiedMatches: Processed matches:', processedMatches);
         const finalMatches = showOnlyBestMatch ? processedMatches.slice(0, 1) : processedMatches;
+        console.log('useUnifiedMatches: Final matches to display:', finalMatches);
         setMatches(finalMatches);
 
       } else if (userRole === 'professional') {
