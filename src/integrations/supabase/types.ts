@@ -1594,20 +1594,6 @@ export type Database = {
             foreignKeyName: "feature_votes_feature_id_fkey"
             columns: ["feature_id"]
             isOneToOne: false
-            referencedRelation: "feature_lookup"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "feature_votes_feature_id_fkey"
-            columns: ["feature_id"]
-            isOneToOne: false
-            referencedRelation: "feature_statistics"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "feature_votes_feature_id_fkey"
-            columns: ["feature_id"]
-            isOneToOne: false
             referencedRelation: "features"
             referencedColumns: ["id"]
           },
@@ -4384,47 +4370,7 @@ export type Database = {
       }
     }
     Views: {
-      daily_pmf_metrics: {
-        Row: {
-          daily_retained_users: number | null
-          date: string | null
-          family_active_users: number | null
-          family_dashboard_views: number | null
-          family_new_signups: number | null
-          matching_clicks_family: number | null
-          professional_active_users: number | null
-          professional_new_signups: number | null
-          subscription_clicks_family: number | null
-          unlock_clicks_family: number | null
-        }
-        Relationships: []
-      }
-      feature_lookup: {
-        Row: {
-          id: string | null
-          title: string | null
-        }
-        Insert: {
-          id?: string | null
-          title?: string | null
-        }
-        Update: {
-          id?: string | null
-          title?: string | null
-        }
-        Relationships: []
-      }
-      feature_statistics: {
-        Row: {
-          description: string | null
-          id: string | null
-          status: Database["public"]["Enums"]["feature_status"] | null
-          title: string | null
-          vote_count: number | null
-          voted_users: string[] | null
-        }
-        Relationships: []
-      }
+      [_ in never]: never
     }
     Functions: {
       admin_delete_user: {
