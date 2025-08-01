@@ -10,9 +10,15 @@ export const useEnhancedJourneyProgress = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   
-  // Use stored progress as primary source (like admin dashboard)
-  const storedProgress = useStoredJourneyProgress(user?.id || '', user?.user_metadata?.role || 'family');
-  const sharedJourneyData = useSharedFamilyJourneyData(user?.id || '');
+  // Check if user is anonymous early
+  const isAnonymous = !user?.id;
+  
+  // Use stored progress as primary source (like admin dashboard) - only if not anonymous
+  const storedProgress = useStoredJourneyProgress(
+    isAnonymous ? '' : (user?.id || ''), 
+    isAnonymous ? 'family' : (user?.user_metadata?.role || 'family')
+  );
+  const sharedJourneyData = useSharedFamilyJourneyData(isAnonymous ? '' : (user?.id || ''));
   
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<any>(null);
@@ -218,7 +224,7 @@ export const useEnhancedJourneyProgress = () => {
 
   const fetchUserData = async () => {
     // Handle anonymous users immediately
-    if (!user?.id) {
+    if (isAnonymous) {
       setLoading(false);
       return;
     }
@@ -350,6 +356,20 @@ export const useEnhancedJourneyProgress = () => {
 
   // Merge shared journey data (rich step definitions) with stored progress completion data
   const getStepsData = () => {
+    // For anonymous users, return mock data immediately
+    if (isAnonymous) {
+      const mockSteps = generateMockStepsForAnonymous();
+      return {
+        steps: mockSteps,
+        completionPercentage: 8, // 1 completed step out of 12
+        totalSteps: 12,
+        completedSteps: 1,
+        nextStep: mockSteps.find(step => !step.completed && step.accessible) || mockSteps[1],
+        currentStage: 'foundation',
+        loading: false
+      };
+    }
+    
     // If we have shared journey data with rich step definitions, use those as the base
     if (!sharedJourneyData.loading && sharedJourneyData.steps && sharedJourneyData.steps.length > 0) {
       const richSteps = sharedJourneyData.steps;
@@ -947,13 +967,13 @@ export const useEnhancedJourneyProgress = () => {
     console.log(`Step ${stepId} action: ${action}`);
   };
 
-  const isAnonymous = !user;
+  
 
   // Get the final steps data using prioritized logic
   const stepsData = getStepsData();
 
   return {
-    loading: stepsData.loading || loading || sharedJourneyData.loading,
+    loading: isAnonymous ? false : (stepsData.loading || loading || sharedJourneyData.loading),
     steps: stepsData.steps,
     paths,
     profile,
