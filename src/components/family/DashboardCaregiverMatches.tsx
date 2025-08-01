@@ -24,7 +24,7 @@ export const DashboardCaregiverMatches = () => {
     return null;
   }
 
-  const displayMatches = matches.slice(0, 3); // Show top 3 matches on dashboard
+  const displayMatches = matches.slice(0, 6); // Show top 6 matches on dashboard
   const bestMatch = matches[0];
 
   const handleStartChat = () => {
