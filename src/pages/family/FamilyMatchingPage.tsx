@@ -13,6 +13,7 @@ import { CaregiverChatModal } from "@/components/family/CaregiverChatModal";
 import { MatchBrowserModal } from "@/components/family/MatchBrowserModal";
 import { MatchDetailModal } from "@/components/family/MatchDetailModal";
 import { MatchLoadingState } from "@/components/ui/match-loading-state";
+import { FamilyMatchGrid } from "@/components/family/FamilyMatchGrid";
 
 const FamilyMatchingPage = () => {
   const [isLoading, setIsLoading] = useState(true);
@@ -20,7 +21,7 @@ const FamilyMatchingPage = () => {
   const [showBrowserModal, setShowBrowserModal] = useState(false);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [selectedCaregiver, setSelectedCaregiver] = useState<any>(null);
-  const { matches } = useUnifiedMatches('family', true);
+  const { matches } = useUnifiedMatches('family', false); // Show all matches
 
   const breadcrumbItems = [
     { label: "Family Dashboard", path: "/dashboard/family" },
@@ -84,9 +85,9 @@ const FamilyMatchingPage = () => {
           className="space-y-6 mt-8"
         >
           <div className="text-center space-y-4">
-            <h1 className="text-3xl font-bold">Your Perfect Caregiver Match</h1>
+            <h1 className="text-3xl font-bold">Your Caregiver Matches</h1>
             <p className="text-muted-foreground max-w-2xl mx-auto">
-              We've found a carefully screened caregiver based on your specific care needs and preferences.
+              We've found {matches.length} carefully screened caregiver{matches.length === 1 ? '' : 's'} based on your specific care needs and preferences.
             </p>
           </div>
 
@@ -114,52 +115,13 @@ const FamilyMatchingPage = () => {
             </CardContent>
           </Card>
 
-          {/* Caregiver Match - Only show when magical loading is done */}
-          {bestMatch ? (
-            <Card className="overflow-hidden">
-              <CardHeader className="bg-gradient-to-r from-green-50 to-emerald-50">
-                <div className="flex items-center justify-between">
-                  <div className="space-y-1">
-                    <CardTitle className="text-xl">Your Perfect Match</CardTitle>
-                    <CardDescription className="text-base">Start chatting to learn more about their experience</CardDescription>
-                  </div>
-                </div>
-              </CardHeader>
-              
-              <CardContent className="p-6">
-                <SimpleMatchCard
-                  caregiver={bestMatch}
-                  variant="modal"
-                  onChatClick={() => handleStartChat()}
-                  onViewDetails={() => handleViewDetails(bestMatch.id)}
-                />
-                
-                <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <Button 
-                    variant="default" 
-                    className="w-full bg-green-600 hover:bg-green-700"
-                    onClick={() => handleStartChat()}
-                  >
-                    <MessageCircle className="h-4 w-4 mr-2" />
-                    Start Conversation
-                  </Button>
-                  
-                  <Button
-                    variant="outline"
-                    className="w-full"
-                    onClick={() => setShowBrowserModal(true)}
-                  >
-                    <Eye className="h-4 w-4 mr-2" />
-                    Browse All Matches
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="text-center py-6">
-              <p className="text-gray-500 mb-4">No caregiver matches found</p>
-            </div>
-          )}
+          {/* Caregiver Matches Grid */}
+          <FamilyMatchGrid
+            matches={matches}
+            onChatClick={handleStartChat}
+            onViewDetails={handleViewDetails}
+            onViewAll={() => setShowBrowserModal(true)}
+          />
 
           {/* Why Only One Match Notice */}
           <Card className="bg-amber-50 border-amber-200">

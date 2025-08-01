@@ -13,7 +13,7 @@ import { MatchLoadingState } from "@/components/ui/match-loading-state";
 
 export const DashboardCaregiverMatches = () => {
   const { user } = useAuth();
-  const { matches, isLoading } = useUnifiedMatches('family', true);
+  const { matches, isLoading } = useUnifiedMatches('family', false); // Show all matches
   const [showChatModal, setShowChatModal] = useState(false);
   const [showBrowserModal, setShowBrowserModal] = useState(false);
   const [showDetailModal, setShowDetailModal] = useState(false);
@@ -24,6 +24,7 @@ export const DashboardCaregiverMatches = () => {
     return null;
   }
 
+  const displayMatches = matches.slice(0, 3); // Show top 3 matches on dashboard
   const bestMatch = matches[0];
 
   const handleStartChat = () => {
@@ -42,11 +43,11 @@ export const DashboardCaregiverMatches = () => {
         <CardHeader className="flex flex-row items-center justify-between pb-2">
           <div>
             <CardTitle className="text-xl flex items-center gap-2">
-              Your Caregiver Match
+              Your Caregiver Matches
               <MessageCircle className="h-5 w-5 text-blue-600" />
             </CardTitle>
             <p className="text-sm text-gray-500">
-              1 caregiver matches your care needs and schedule
+              {matches.length} caregiver{matches.length === 1 ? '' : 's'} match your care needs and schedule
             </p>
           </div>
           <Button variant="outline" onClick={() => setShowBrowserModal(true)}>
@@ -61,14 +62,31 @@ export const DashboardCaregiverMatches = () => {
               duration={2000}
               onComplete={() => setIsLoadingComplete(true)}
             />
-          ) : bestMatch ? (
+          ) : displayMatches.length > 0 ? (
             <div className="space-y-4">
-              <SimpleMatchCard
-                caregiver={bestMatch}
-                variant="dashboard"
-                onChatClick={handleStartChat}
-                onViewDetails={handleViewDetails}
-              />
+              <div className="grid gap-4">
+                {displayMatches.map((match, index) => (
+                  <div key={match.id} className="relative">
+                    {index === 0 && (
+                      <div className="absolute -top-2 -right-2 bg-primary text-primary-foreground text-xs px-2 py-1 rounded-full z-10">
+                        Best Match
+                      </div>
+                    )}
+                    <SimpleMatchCard
+                      caregiver={match}
+                      variant="dashboard"
+                      onChatClick={() => {
+                        setSelectedCaregiver(match);
+                        setShowChatModal(true);
+                      }}
+                      onViewDetails={() => {
+                        setSelectedCaregiver(match);
+                        setShowDetailModal(true);
+                      }}
+                    />
+                  </div>
+                ))}
+              </div>
               
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <Button 
@@ -77,7 +95,7 @@ export const DashboardCaregiverMatches = () => {
                   onClick={handleStartChat}
                 >
                   <MessageCircle className="h-4 w-4 mr-2" />
-                  Chat with Match
+                  Chat with Best Match
                 </Button>
                 
                 <Button 
@@ -86,7 +104,7 @@ export const DashboardCaregiverMatches = () => {
                   onClick={() => setShowBrowserModal(true)}
                 >
                   <Eye className="h-4 w-4 mr-2" />
-                  Browse All Matches
+                  View All {matches.length} Matches
                 </Button>
               </div>
             </div>
