@@ -63,6 +63,7 @@ interface SimpleMatchCardProps {
   onChatClick?: () => void;
   onViewDetails?: () => void;
   showChatButton?: boolean;
+  isBestMatch?: boolean;
   className?: string;
 }
 
@@ -72,6 +73,7 @@ export const SimpleMatchCard = ({
   onChatClick,
   onViewDetails,
   showChatButton = true,
+  isBestMatch = false,
   className = ""
 }: SimpleMatchCardProps) => {
   const isCompact = variant === 'dashboard';
@@ -81,9 +83,21 @@ export const SimpleMatchCard = ({
   
   return (
     <Card className={`relative ${caregiver.is_premium ? 'border-amber-300' : 'border-border'} ${className}`}>
+      {/* Best Match Badge - Top Left */}
+      {isBestMatch && (
+        <div className="absolute -top-2 -left-2 z-20">
+          <Badge className="bg-primary text-primary-foreground font-bold px-2 py-1 flex items-center gap-1">
+            <Star className="h-3 w-3" />
+            Best Match
+          </Badge>
+        </div>
+      )}
+      
+      {/* Premium Badge - Top Right, adjusted for action buttons */}
       {caregiver.is_premium && (
-        <div className="absolute top-0 right-0">
-          <Badge className="bg-amber-500 text-white font-bold rounded-tl-none rounded-tr-sm rounded-br-none rounded-bl-sm px-2">
+        <div className={`absolute -top-2 ${showChatButton ? '-right-16' : '-right-2'} z-10`}>
+          <Badge className="bg-amber-500 text-white font-bold px-2 py-1 flex items-center gap-1">
+            <Award className="h-3 w-3" />
             Premium
           </Badge>
         </div>
@@ -211,7 +225,7 @@ export const SimpleMatchCard = ({
           
           {/* Actions Section */}
           {(showChatButton || onViewDetails) && (
-            <div className={`flex ${isCompact ? 'flex-col gap-1' : 'flex-col justify-center gap-2'} ${isCompact ? 'w-20' : 'w-32'}`}>
+            <div className={`flex ${isCompact ? 'flex-col gap-1' : 'flex-col justify-center gap-2'} ${isCompact ? 'w-20' : 'w-32'} relative z-30`}>
               {showChatButton && onChatClick && (
                 <Button
                   size={isCompact ? "sm" : "default"}

@@ -66,25 +66,20 @@ export const DashboardCaregiverMatches = () => {
             <div className="space-y-4">
               <div className="grid gap-4">
                 {displayMatches.map((match, index) => (
-                  <div key={match.id} className="relative">
-                    {index === 0 && (
-                      <div className="absolute -top-2 -right-2 bg-primary text-primary-foreground text-xs px-2 py-1 rounded-full z-10">
-                        Best Match
-                      </div>
-                    )}
-                    <SimpleMatchCard
-                      caregiver={match}
-                      variant="dashboard"
-                      onChatClick={() => {
-                        setSelectedCaregiver(match);
-                        setShowChatModal(true);
-                      }}
-                      onViewDetails={() => {
-                        setSelectedCaregiver(match);
-                        setShowDetailModal(true);
-                      }}
-                    />
-                  </div>
+                  <SimpleMatchCard
+                    key={match.id}
+                    caregiver={match}
+                    variant="dashboard"
+                    isBestMatch={index === 0}
+                    onChatClick={() => {
+                      setSelectedCaregiver(match);
+                      setShowChatModal(true);
+                    }}
+                    onViewDetails={() => {
+                      setSelectedCaregiver(match);
+                      setShowDetailModal(true);
+                    }}
+                  />
                 ))}
               </div>
               
