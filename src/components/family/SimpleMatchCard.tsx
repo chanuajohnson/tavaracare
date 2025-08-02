@@ -93,10 +93,10 @@ export const SimpleMatchCard = ({
         </div>
       )}
       
-      {/* Premium Badge - Top Right, adjusted for action buttons */}
+      {/* Premium Badge - Top Right, mobile-first positioning */}
       {caregiver.is_premium && (
-        <div className={`absolute -top-2 ${showChatButton ? '-right-16' : '-right-2'} z-10`}>
-          <Badge className="bg-amber-500 text-white font-bold px-2 py-1 flex items-center gap-1">
+        <div className="absolute -top-2 right-2 z-10">
+          <Badge className="bg-amber-500 text-white font-bold px-2 py-1 flex items-center gap-1 text-xs">
             <Award className="h-3 w-3" />
             Premium
           </Badge>
