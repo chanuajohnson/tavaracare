@@ -2,7 +2,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { MapPin, Star, MessageCircle, Users, Heart, Clock, MapPin as LocationIcon, Award } from "lucide-react";
+import { MapPin, Star, MessageCircle, Users, Heart, Clock, MapPin as LocationIcon } from "lucide-react";
 
 interface EnhancedMatchData {
   overall_score: number;
@@ -82,7 +82,7 @@ export const SimpleMatchCard = ({
   const displayScore = enhancedData?.overall_score || caregiver.match_score;
   
   return (
-    <Card className={`relative ${caregiver.is_premium ? 'border-amber-300' : 'border-border'} ${className}`}>
+    <Card className={`relative border-border ${className}`}>
       {/* Best Match Badge - Top Left */}
       {isBestMatch && (
         <div className="absolute -top-2 -left-2 z-20">
@@ -93,15 +93,6 @@ export const SimpleMatchCard = ({
         </div>
       )}
       
-      {/* Premium Badge - Top Right, mobile-first positioning */}
-      {caregiver.is_premium && (
-        <div className="absolute -top-2 right-2 z-10">
-          <Badge className="bg-amber-500 text-white font-bold px-2 py-1 flex items-center gap-1 text-xs">
-            <Award className="h-3 w-3" />
-            Premium
-          </Badge>
-        </div>
-      )}
       
       <CardContent className={`${isCompact ? 'p-4' : 'p-6'}`}>
         <div className={`flex ${isCompact ? 'gap-3' : 'gap-4'} ${isCompact ? 'flex-row' : 'flex-col sm:flex-row'}`}>
@@ -179,7 +170,7 @@ export const SimpleMatchCard = ({
                       variant={getScoreBadgeVariant(enhancedData.experience_score)} 
                       className="text-xs flex items-center gap-1"
                     >
-                      <Award className="h-3 w-3" />
+                      <Star className="h-3 w-3" />
                       Experience {enhancedData.experience_score}%
                     </Badge>
                   )}
