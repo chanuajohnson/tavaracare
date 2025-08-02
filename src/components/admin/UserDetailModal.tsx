@@ -576,7 +576,7 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
                             <div><strong>Budget Preferences:</strong> {comprehensiveData.profile.budget_preferences || 'Not specified'}</div>
                             <div><strong>Caregiver Type:</strong> {comprehensiveData.profile.caregiver_type || 'Not specified'}</div>
                             <div><strong>Caregiver Preferences:</strong> {comprehensiveData.profile.caregiver_preferences || 'Not specified'}</div>
-                            <div><strong>Custom Care Schedule:</strong> {comprehensiveData.profile.custom_care_schedule || 'Not specified'}</div>
+                            <div><strong>Custom Care Schedule:</strong> {comprehensiveData.profile.custom_schedule || 'Not specified'}</div>
                             <div><strong>Additional Notes:</strong> {comprehensiveData.profile.additional_notes || 'None provided'}</div>
                           </div>
                         </Card>

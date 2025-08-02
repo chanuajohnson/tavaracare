@@ -69,6 +69,7 @@ export function adaptProfileToDb(profile: Partial<Profile>): DbProfileInsert {
     caregiver_type: profile.caregiverType,
     preferred_contact_method: profile.preferredContactMethod,
     care_schedule: parseCareSchedule(profile.careSchedule), // Ensure consistent format
+    custom_schedule: profile.customSchedule,
     budget_preferences: profile.budgetPreferences,
     caregiver_preferences: profile.caregiverPreferences,
     additional_notes: profile.additionalNotes,
@@ -141,6 +142,7 @@ export function adaptProfileFromDb(dbProfile: DbProfile): Profile {
     caregiverType: dbProfile.caregiver_type,
     preferredContactMethod: dbProfile.preferred_contact_method,
     careSchedule: dbProfile.care_schedule, // Keep as string for consistency
+    customSchedule: dbProfile.custom_schedule,
     budgetPreferences: dbProfile.budget_preferences,
     caregiverPreferences: dbProfile.caregiver_preferences,
     additionalNotes: dbProfile.additional_notes,

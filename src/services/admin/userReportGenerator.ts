@@ -158,7 +158,7 @@ export const generateUserReportPDF = async (
     familyDetails.push(['Budget Preferences', profile.budget_preferences || 'Not specified']);
     familyDetails.push(['Caregiver Type', profile.caregiver_type || 'Not specified']);
     familyDetails.push(['Caregiver Preferences', profile.caregiver_preferences || 'Not specified']);
-    familyDetails.push(['Custom Care Schedule', profile.custom_care_schedule || 'Not specified']);
+    familyDetails.push(['Custom Care Schedule', profile.custom_schedule || 'Not specified']);
     familyDetails.push(['Additional Notes', profile.additional_notes || 'None provided']);
 
     autoTable(doc, {

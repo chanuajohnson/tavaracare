@@ -157,7 +157,7 @@ const applyPrefillDataToFormDirect = (
       'first_name', 'last_name', 'email', 'phone', 'location', 'address',
       'care_recipient_name', 'relationship', 'care_types', 'special_needs',
       'care_schedule', 'budget_preferences', 'caregiver_type', 'caregiver_preferences',
-      'preferred_contact_method', 'additional_notes', 'custom_care_schedule'
+      'preferred_contact_method', 'additional_notes', 'custom_schedule'
     ],
     professional: [
       'first_name', 'last_name', 'email', 'phone', 'location', 'address',
