@@ -4698,8 +4698,10 @@ export type Database = {
         Returns: undefined
       }
       update_user_profile: {
-        Args: { profile_data: Json }
-        Returns: Json
+        Args:
+          | { profile_data: Json }
+          | { user_id_param: string; profile_data: Json }
+        Returns: undefined
       }
       update_video_availability: {
         Args: { user_id_param: string; available: boolean }
