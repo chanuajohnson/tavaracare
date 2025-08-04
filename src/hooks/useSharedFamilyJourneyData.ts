@@ -289,7 +289,6 @@ export const useSharedFamilyJourneyData = (userId: string): SharedFamilyJourneyD
           case 12: // Rate & choose path
             completed = !!visitNotes?.care_model;
             accessible = profile?.visit_scheduling_status === 'completed' || hasTrialPayment;
-
             break;
         }
         
@@ -313,15 +312,12 @@ export const useSharedFamilyJourneyData = (userId: string): SharedFamilyJourneyD
               const isCompleted = !!(careRecipient && careRecipient.full_name);
               navigate(isCompleted ? '/family/story?edit=true' : '/family/story');
             };
-
             break;
           default:
             action = undefined;
         }
         
-
         return { ...step, completed, accessible, action };
-
       });
       
       setSteps(updatedSteps);

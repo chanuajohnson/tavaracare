@@ -219,9 +219,7 @@ export const LeadCaptureModal: React.FC<LeadCaptureModalProps> = ({
         title: "Start Your Professional Journey",
         description: "Join our network of qualified caregivers and connect with families in need.",
         submitButtonText: "Get Professional Access 💙",
-
         skipButtonText: "Skip for now, book in-person onboarding",
-
         successTitle: "Ready to Join Our Professional Network! 💙",
         successDescription: "Now complete your sign in to start connecting with families."
       };
@@ -293,9 +291,7 @@ export const LeadCaptureModal: React.FC<LeadCaptureModalProps> = ({
                 required
                 className="focus:ring-primary focus:border-primary"
               />
-
               <p className="text-xs text-gray-500 leading-relaxed">
-
                 {isProfessionalContext 
                   ? "We'll send you professional opportunities and updates via WhatsApp"
                   : "We'll send you care updates and caregiver matches via WhatsApp"
@@ -317,9 +313,7 @@ export const LeadCaptureModal: React.FC<LeadCaptureModalProps> = ({
                 required
                 className="focus:ring-primary focus:border-primary"
               />
-
               <p className="text-xs text-gray-500 leading-relaxed">
-
                 {isProfessionalContext 
                   ? "For professional opportunities, training, and important updates"
                   : "For care plans, scheduling, and important updates"
@@ -341,9 +335,8 @@ export const LeadCaptureModal: React.FC<LeadCaptureModalProps> = ({
                   type="button"
                   variant="ghost"
                   onClick={handleProfessionalSkip}
-
                   className="w-full text-sm text-gray-600 hover:text-gray-800 whitespace-normal h-auto py-2 px-3"
-     >
+                >
                   {content.skipButtonText}
                 </Button>
               ) : (

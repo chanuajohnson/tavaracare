@@ -109,9 +109,7 @@ export function MatchingStatusToggle({
             </DialogHeader>
             <div className="space-y-4">
               <p className="text-sm text-gray-600">
-
                 This will remove {userFullName} from matching results. They won't be available for matching.
-
               </p>
               <div className="space-y-2">
                 <Label htmlFor="notes">Reason (optional)</Label>
@@ -167,10 +165,8 @@ export function MatchingStatusToggle({
             </p>
             <p className="text-sm text-gray-600">
               {currentStatus 
-
                 ? 'This user will appear in matching results'
                 : 'This user is hidden from matching results'
-
               }
             </p>
           </div>
@@ -187,10 +183,8 @@ export function MatchingStatusToggle({
             <div className="text-sm">
               <p className="font-medium text-blue-900">Admin Control</p>
               <p className="text-blue-700">
-
                 Use this toggle to manage which users appear in matching results. 
                 Unavailable users won't be shown in matching searches.
-
               </p>
             </div>
           </div>
@@ -206,9 +200,7 @@ export function MatchingStatusToggle({
             </DialogHeader>
             <div className="space-y-4">
               <p className="text-sm text-gray-600">
-
                 This will remove {userFullName} from matching results. They won't be available for matching.
-
               </p>
               <div className="space-y-2">
                 <Label htmlFor="notes">Reason (optional)</Label>

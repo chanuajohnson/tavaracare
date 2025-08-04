@@ -3,9 +3,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { supabase } from '@/lib/supabase';
 import { useNavigate } from 'react-router-dom';
-
 import { useStoredJourneyProgress } from '@/hooks/useStoredJourneyProgress';
-
 import { getDocumentNavigationLink, getProfessionalRegistrationLink, getButtonText } from '../../../hooks/professional/stepDefinitions';
 
 interface ProfessionalStep {
@@ -187,8 +185,6 @@ export const useProfessionalProgress = (): ProfessionalProgressData => {
           
           accessible = step1Complete && step2Complete && step3Complete && step4Complete;
         }
-
-
 
         // Create a base step object for the getButtonText function
         const baseStep = {

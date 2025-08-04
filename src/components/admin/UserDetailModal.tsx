@@ -6,18 +6,15 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-
 import { Switch } from '@/components/ui/switch';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { User, Mail, Phone, MapPin, Calendar, Users, Activity, CheckCircle2, Clock, Circle, FileText, Download, Share, Shield, Eye } from 'lucide-react';
-
 import { UserMatchingActions } from './UserMatchingActions';
 import { MatchingStatusToggle } from './MatchingStatusToggle';
 import { useSharedFamilyJourneyData } from '@/hooks/useSharedFamilyJourneyData';
 import { useSpecificUserProfessionalProgress } from '@/hooks/useSpecificUserProfessionalProgress';
 import { useUserSpecificProgress } from '@/hooks/useUserSpecificProgress';
-
 import { useComprehensiveUserData } from '@/hooks/admin/useComprehensiveUserData';
 import { downloadUserReport, type ReportOptions } from '@/services/admin/userReportGenerator';
 import type { UserRole } from '@/types/userRoles';
@@ -61,7 +58,6 @@ const formatBoolean = (value: boolean | null | undefined): string => {
   return value ? 'Yes' : 'No';
 };
 
-
 interface UserDetailModalProps {
   user: any;
   isOpen: boolean;
@@ -77,10 +73,8 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
 }) => {
   const [careNeeds, setCareNeeds] = useState<any>(null);
   const [loading, setLoading] = useState(false);
-
   const [reportLoading, setReportLoading] = useState(false);
   const [anonymousReport, setAnonymousReport] = useState(false);
-
 
   // Only call hooks when user and role are valid
   const shouldCallFamilyHook = user?.role === 'family' && user?.id;
@@ -93,14 +87,12 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
   const otherProgress = useUserSpecificProgress(
     shouldCallOtherHook ? user.id : '', 
     shouldCallOtherHook ? (user.role as UserRole) : 'family'
-
   );
 
   // Comprehensive user data for reports
   const { data: comprehensiveData, loading: dataLoading } = useComprehensiveUserData(
     user?.id || '', 
     user?.role
-
   );
 
   // Safely choose the appropriate progress data with comprehensive null checks
@@ -124,7 +116,6 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
     }
 
     if (user.role === 'professional' && professionalProgress) {
-
       return {
         loading: professionalProgress.loading || false,
         completionPercentage: professionalProgress.completionPercentage || 0,
@@ -192,7 +183,6 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
     if (percentage >= 50) return 'text-blue-600';
     if (percentage > 0) return 'text-yellow-600';
     return 'text-gray-600';
-
   };
 
   const getStatusIcon = () => {
@@ -279,17 +269,13 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
         </DialogHeader>
 
         <Tabs defaultValue="profile" className="space-y-4">
-
           <TabsList className="grid w-full grid-cols-5">
-
             <TabsTrigger value="profile">Profile</TabsTrigger>
             <TabsTrigger value="journey">Journey</TabsTrigger>
             {user.role === 'family' && (
               <TabsTrigger value="matching">Matching</TabsTrigger>
             )}
-
             <TabsTrigger value="reports">Reports</TabsTrigger>
-
             <TabsTrigger value="activity">Activity</TabsTrigger>
           </TabsList>
 
@@ -376,10 +362,8 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
               </Card>
             )}
 
-
             {/* Matching Status for Professional and Family Users */}
             {(user.role === 'professional' || user.role === 'family') && (
-
               <MatchingStatusToggle
                 userId={user.id}
                 currentStatus={user.available_for_matching ?? true}
@@ -414,7 +398,6 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
                               {steps.filter(s => s?.completed).length} of {steps.length} steps completed
                             </p>
                           </div>
-
                         </div>
                         <Badge variant="outline" className="text-lg px-3 py-1">
                           {completionPercentage}%
@@ -466,7 +449,6 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
                             );
                           })}
                         </div>
-
                       </div>
                     ) : (
                       <div className="text-center py-8 text-gray-500">
@@ -506,7 +488,6 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
               <UserMatchingActions user={user} onUserUpdate={onUserUpdate} />
             </TabsContent>
           )}
-
 
           <TabsContent value="reports" className="space-y-4">
             <Card>
@@ -718,7 +699,6 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
               <CardHeader>
                 <CardTitle>Recent Activity</CardTitle>
               </CardHeader>
-
               <CardContent>
                 <p className="text-gray-600">Activity tracking coming soon...</p>
               </CardContent>

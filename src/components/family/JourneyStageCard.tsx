@@ -156,7 +156,6 @@ export const JourneyStageCard: React.FC<JourneyStageCardProps> = ({
   };
 
   const handleStepAction = (step: JourneyStep) => {
-
     console.log(`🎯 handleStepAction called for step:`, {
       id: step.id,
       step_number: step.step_number,
@@ -165,7 +164,6 @@ export const JourneyStageCard: React.FC<JourneyStageCardProps> = ({
       hasAction: !!step.action,
       isAnonymous
     });
-
 
     if (isAnonymous) {
       // Check if this is a high-value step that should trigger lead capture
@@ -183,7 +181,6 @@ export const JourneyStageCard: React.FC<JourneyStageCardProps> = ({
         return;
       }
     }
-
 
     // Add user feedback for edit actions
     if (step.completed && !isAnonymous) {
@@ -206,7 +203,6 @@ export const JourneyStageCard: React.FC<JourneyStageCardProps> = ({
       }
     } else {
       console.warn(`⚠️ No action defined for step ${step.step_number}`);
-
     }
   };
 

@@ -4519,7 +4519,6 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
-
       cleanup_stale_assignments: {
         Args: Record<PropertyKey, never>
         Returns: string
@@ -4558,7 +4557,6 @@ export type Database = {
         }
         Returns: string
       }
-
       detect_medication_conflicts: {
         Args: {
           p_medication_id: string
@@ -4574,7 +4572,6 @@ export type Database = {
           notes: string
         }[]
       }
-
       detect_stale_assignments: {
         Args: Record<PropertyKey, never>
         Returns: {
@@ -4585,7 +4582,6 @@ export type Database = {
           issue: string
         }[]
       }
-
       format_whatsapp_number: {
         Args: { phone_input: string; country_code_input?: string }
         Returns: string
@@ -4667,7 +4663,6 @@ export type Database = {
         Args: { phone_input: string }
         Returns: undefined
       }
-
       is_current_user_admin: {
         Args: Record<PropertyKey, never>
         Returns: boolean
@@ -4676,7 +4671,6 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: string
       }
-
       reschedule_visit_booking: {
         Args: {
           booking_id: string
@@ -4703,14 +4697,12 @@ export type Database = {
         Args: { plan_id: string; new_status: string }
         Returns: undefined
       }
-
       update_user_profile: {
         Args:
           | { profile_data: Json }
           | { user_id_param: string; profile_data: Json }
         Returns: undefined
       }
-
       update_video_availability: {
         Args: { user_id_param: string; available: boolean }
         Returns: undefined

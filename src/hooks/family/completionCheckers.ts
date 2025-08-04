@@ -2,7 +2,6 @@
 import { FamilyProfileData, CareAssessmentData, CareRecipientData } from './types';
 
 export const isRegistrationComplete = (profile: FamilyProfileData | null): boolean => {
-
   if (!profile) {
     console.log('❌ Family Registration: No profile data');
     return false;
@@ -44,7 +43,6 @@ export const isRegistrationComplete = (profile: FamilyProfileData | null): boole
   });
   
   return isComplete;
-
 };
 
 export const isCareAssessmentComplete = (assessment: CareAssessmentData | null): boolean => {
@@ -87,22 +85,18 @@ export const getFamilyReadinessStatus = (
   const careAssessmentComplete = isCareAssessmentComplete(assessment);
   const storyComplete = isStoryComplete(story);
   
-
   // User is ready if they have registration AND assessment complete
   // Story is optional but recommended
-
   const allReady = registrationComplete && careAssessmentComplete;
   
   console.log('📊 Family Readiness Status:', {
     registrationComplete,
     careAssessmentComplete,
     storyComplete,
-
     allReady,
     profile: profile ? 'exists' : 'null',
     assessment: assessment ? 'exists' : 'null',
     story: story ? 'exists' : 'null'
-
   });
   
   return {

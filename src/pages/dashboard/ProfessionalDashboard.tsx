@@ -4,10 +4,8 @@ import { EnhancedProfessionalNextStepsPanel } from "@/components/professional/En
 import { CaregiverHealthCard } from "@/components/professional/CaregiverHealthCard";
 import { TrainingProgressTracker } from "@/components/professional/TrainingProgressTracker";
 import { ProfessionalShortcutMenuBar } from "@/components/professional/ProfessionalShortcutMenuBar";
-
 import { ManualMatchNotification } from "@/components/professional/ManualMatchNotification";
 import { CurrentAssignmentsSection } from "@/components/professional/CurrentAssignmentsSection";
-
 import { useAuth } from "@/components/providers/AuthProvider";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";

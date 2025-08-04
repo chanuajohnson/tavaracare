@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { toast } from 'sonner';
-
 import { useStoredJourneyProgress } from './useStoredJourneyProgress';
 import { useSharedFamilyJourneyData } from './useSharedFamilyJourneyData';
 
@@ -22,17 +21,13 @@ export const useEnhancedJourneyProgress = () => {
   const sharedJourneyData = useSharedFamilyJourneyData(isAnonymous ? '' : (user?.id || ''));
   
   const [loading, setLoading] = useState(true);
-
-
   const [profile, setProfile] = useState<any>(null);
   const [carePlans, setCarePlans] = useState<any[]>([]);
   const [careAssessment, setCareAssessment] = useState<any>(null);
   const [careRecipient, setCareRecipient] = useState<any>(null);
   const [visitDetails, setVisitDetails] = useState<any>(null);
   const [trialPayments, setTrialPayments] = useState<any[]>([]);
-
   const [journeyProgress, setJourneyProgress] = useState<any>(null);
-
   
   // Modal states
   const [showScheduleModal, setShowScheduleModal] = useState(false);
@@ -229,9 +224,7 @@ export const useEnhancedJourneyProgress = () => {
 
   const fetchUserData = async () => {
     // Handle anonymous users immediately
-
     if (isAnonymous) {
-
       setLoading(false);
       return;
     }
@@ -239,9 +232,7 @@ export const useEnhancedJourneyProgress = () => {
     try {
       setLoading(true);
       
-
       // Fetch profile data directly (own profile access is allowed)
-
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .select('*')
@@ -253,7 +244,6 @@ export const useEnhancedJourneyProgress = () => {
       } else {
         setProfile(profileData);
         console.log('Profile data loaded:', profileData);
-
 
         // Also try to get journey progress from the dedicated table
         const { data: journeyData, error: journeyError } = await supabase
@@ -284,7 +274,6 @@ export const useEnhancedJourneyProgress = () => {
           console.log('ℹ️ No journey progress data found in database, will calculate from steps');
           setJourneyProgress(null);
         }
-
       }
 
       // Fetch care plans
@@ -352,7 +341,6 @@ export const useEnhancedJourneyProgress = () => {
         console.error('Error fetching trial payments:', trialPaymentsError);
       } else {
         setTrialPayments(trialPaymentsData || []);
-
       }
 
     } catch (error) {
@@ -516,9 +504,7 @@ export const useEnhancedJourneyProgress = () => {
         currentStage: sharedJourneyData.journeyStage,
         loading: false
       };
-
     }
-
 
     // Fallback to calculated steps for anonymous users or when both hooks are unavailable
     const calculatedSteps = calculateSteps();
@@ -545,11 +531,9 @@ export const useEnhancedJourneyProgress = () => {
     };
   };
 
-
   // Enhanced registration completion logic using correct database field names
   const calculateRegistrationCompletion = () => {
     if (!profile || !user) {
-
       console.log('🔍 Registration completion: No profile data', { hasProfile: !!profile, hasUser: !!user });
       return false;
     }
@@ -566,7 +550,6 @@ export const useEnhancedJourneyProgress = () => {
       caregiver_type: profile.caregiver_type
     });
 
-
     // Core required fields (must have all)
     const requiredFields = {
       full_name: profile.full_name,
@@ -579,11 +562,9 @@ export const useEnhancedJourneyProgress = () => {
     const hasAllRequiredFields = Object.entries(requiredFields).every(([field, value]) => {
       const hasValue = !!(value && String(value).trim());
       if (!hasValue) {
-
         console.log(`❌ Registration completion: Missing required field ${field}:`, value);
       } else {
         console.log(`✅ Registration completion: Has required field ${field}:`, value);
-
       }
       return hasValue;
     });
@@ -598,13 +579,11 @@ export const useEnhancedJourneyProgress = () => {
 
     const hasEnhancedData = Object.values(enhancedFields).some(Boolean);
 
-
     console.log('🔍 Registration completion check:', {
       hasAllRequiredFields,
       hasEnhancedData,
       requiredFieldsStatus: requiredFields,
       enhancedFieldsStatus: enhancedFields,
-
       finalResult: hasAllRequiredFields && hasEnhancedData
     });
 
@@ -681,7 +660,6 @@ export const useEnhancedJourneyProgress = () => {
         step_number: 2,
         title: "Complete Initial Care Assessment",
         description: "Help us understand your care needs better",
-
         completed: (() => {
           const completed = !!careAssessment?.id;
           console.log('🔍 Step 2 (Care Assessment) completion check:', {
@@ -691,7 +669,6 @@ export const useEnhancedJourneyProgress = () => {
           });
           return completed;
         })(),
-
         accessible: true,
         category: 'foundation',
         icon_name: 'FileCheck',
@@ -709,7 +686,6 @@ export const useEnhancedJourneyProgress = () => {
         step_number: 3,
         title: "Complete Your Loved One's Legacy Story",
         description: "Honor the voices, memories, and wisdom of those we care for",
-
         completed: (() => {
           const completed = !!(careRecipient?.id && careRecipient?.full_name);
           console.log('🔍 Step 3 (Care Recipient) completion check:', {
@@ -720,7 +696,6 @@ export const useEnhancedJourneyProgress = () => {
           });
           return completed;
         })(),
-
         accessible: true,
         category: 'foundation',
         icon_name: 'Heart',
@@ -831,7 +806,6 @@ export const useEnhancedJourneyProgress = () => {
         is_optional: true,
         action: () => {
           toast.info("Trial scheduling will be available after your visit is confirmed");
-
         }
       },
       {
@@ -869,7 +843,6 @@ export const useEnhancedJourneyProgress = () => {
         }
       },
       {
-
         id: "12",
         step_number: 12,
         title: "Rate & Choose Your Path",
@@ -894,7 +867,6 @@ export const useEnhancedJourneyProgress = () => {
   const steps_calculated = calculateSteps();
   const completedSteps = steps_calculated.filter(step => step.completed).length;
   const totalSteps = steps_calculated.length;
-
   
   // Log detailed step completion info
   console.log('📊 Step Completion Analysis:', {
@@ -928,7 +900,6 @@ export const useEnhancedJourneyProgress = () => {
     : steps_calculated.find(step => !step.completed && step.accessible);
     
   const currentStage = journeyProgress?.role === 'family' ? 'foundation' : 'foundation'; // Default stage
-
 
   // Create paths with proper JourneyPath interface properties
   const paths = [
@@ -980,7 +951,6 @@ export const useEnhancedJourneyProgress = () => {
     toast.success('Visit scheduled successfully!');
     if (user) {
       fetchUserData(); // Only refresh data for authenticated users
-
     }
   };
 
@@ -1005,20 +975,17 @@ export const useEnhancedJourneyProgress = () => {
   return {
     loading: isAnonymous ? false : (stepsData.loading || loading || sharedJourneyData.loading),
     steps: stepsData.steps,
-
     paths,
     profile,
     carePlans,
     careAssessment,
     careRecipient,
     visitDetails,
-
     completionPercentage: stepsData.completionPercentage,
     totalSteps: stepsData.totalSteps,
     completedSteps: stepsData.completedSteps,
     nextStep: stepsData.nextStep,
     currentStage: stepsData.currentStage,
-
     showScheduleModal,
     setShowScheduleModal,
     showInternalScheduleModal,
