@@ -116,7 +116,9 @@ const FamilyStoryPage = () => {
   const [searchParams] = useSearchParams();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+
   const [prefillApplied, setPrefillApplied] = useState(false);
+
   
   const isEditMode = searchParams.get('edit') === 'true';
   
@@ -201,6 +203,7 @@ const FamilyStoryPage = () => {
     fetchExistingData();
   }, [user, isEditMode, form]);
 
+
   // Apply prefill data from chat sessions
   useEffect(() => {
     if (!prefillApplied && user && !isEditMode) {
@@ -239,6 +242,7 @@ const FamilyStoryPage = () => {
       setPrefillApplied(true);
     }
   }, [prefillApplied, user, isEditMode, form]);
+
 
   const onSubmit = async (data: FormValues) => {
     if (!user) {

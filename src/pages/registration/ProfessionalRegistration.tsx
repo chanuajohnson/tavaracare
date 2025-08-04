@@ -267,6 +267,7 @@ const ProfessionalRegistration = () => {
         console.log('Years of experience from DB:', profileData.years_of_experience);
         
         // Pre-fill all form fields with database data
+
         setFirstName(profileData.first_name || '');
         setLastName(profileData.last_name || '');
         setPhoneNumber(profileData.phone_number || '');
@@ -305,6 +306,7 @@ const ProfessionalRegistration = () => {
         // No existing profile, fall back to auth metadata
         populateFromAuthMetadata();
         setUserDataPopulated(true);
+
       }
     } catch (error) {
       console.error('❌ Error fetching profile data:', error);
@@ -448,13 +450,17 @@ const ProfessionalRegistration = () => {
       const fullName = `${firstName} ${lastName}`.trim();
       const finalProfessionalType = professionalType === 'other' ? otherProfessionalType : professionalType;
       
+
       const profileData = {
+
         id: user.id,
         full_name: fullName,
         avatar_url: uploadedAvatarUrl,
         phone_number: phoneNumber,
         address: address,
         role: 'professional' as const,
+
+
         professional_type: finalProfessionalType,
         years_of_experience: yearsOfExperience,
         care_services: specialties || [], // Updated: Map specialties to care_services column

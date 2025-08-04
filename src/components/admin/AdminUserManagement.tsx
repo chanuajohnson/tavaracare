@@ -39,6 +39,7 @@ export const AdminUserManagement = () => {
   const [viewMode, setViewMode] = useState<'table' | 'grid'>('grid');
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
 
+
   // Transform admin profiles to UserWithProgress format for the grid
   const transformedUsers: UserWithProgress[] = profiles.map(profile => ({
     id: profile.id,
@@ -72,6 +73,61 @@ export const AdminUserManagement = () => {
       phone_number: profile.phone_number,
       email: profile.email,
       available_for_matching: profile.available_for_matching
+=======
+  // Transform users to UserWithProgress format for the grid
+  const transformedUsers: UserWithProgress[] = users.map(user => {
+    // Get email from either user object or profile, with fallback
+    const userEmail = user.email || user.profile?.email || 'No email';
+    
+    return {
+      id: user.id,
+      email: userEmail,
+      full_name: user.profile?.full_name || 'Unnamed User',
+      role: (user.profile?.role || 'family') as 'family' | 'professional' | 'community' | 'admin',
+      email_verified: true, // Assume verified for existing users
+      last_login_at: user.last_sign_in_at || user.profile?.last_login_at || user.created_at,
+      created_at: user.created_at,
+      phone_number: user.profile?.phone_number,
+      location: undefined, // Add if available in your data
+      professional_type: undefined, // Add if available in your data
+      years_of_experience: undefined, // Add if available in your data
+      care_types: [], // Add if available in your data
+      specialized_care: [], // Add if available in your data
+      available_for_matching: user.profile?.available_for_matching
+    };
+  });
+
+  const fetchProfiles = async () => {
+    try {
+      console.log('Fetching profiles...');
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('profiles')
+        .select('*');
+
+      if (profilesError) {
+        console.error('Error fetching profiles:', profilesError);
+        throw profilesError;
+      }
+
+      console.log('Profiles fetched successfully:', profilesData?.length || 0);
+      const safeProfiles = Array.isArray(profilesData) ? profilesData : [];
+      setProfiles(safeProfiles);
+      
+      // Convert profiles to users format for display
+      const profileUsers: UserWithProfile[] = safeProfiles.map(profile => ({
+        id: profile.id,
+        email: 'Profile data only', // Fallback for profile-only data
+        created_at: profile.created_at || new Date().toISOString(),
+        last_sign_in_at: profile.last_login_at,
+        profile
+      }));
+
+      setUsers(profileUsers);
+      return safeProfiles;
+    } catch (error: any) {
+      console.error('Error in fetchProfiles:', error);
+      throw error;
+
     }
   }));
 

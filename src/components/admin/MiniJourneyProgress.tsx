@@ -12,9 +12,11 @@ interface MiniJourneyProgressProps {
 }
 
 export const MiniJourneyProgress: React.FC<MiniJourneyProgressProps> = ({ userId, userRole }) => {
+
   console.log('🎯 MiniJourneyProgress rendering for:', { userId, userRole });
   
   const { loading, completionPercentage, nextStep, steps, currentStage } = useStoredJourneyProgress(userId, userRole);
+
 
   console.log('📊 MiniJourneyProgress data received:', {
     userId,

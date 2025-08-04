@@ -112,8 +112,10 @@ export function RoleBasedUserGrid({ users, selectedUsers, onUserSelect, onRefres
             userRole={user.role as any}
           />
           
+
           {/* Matching Status for Professionals and Families */}
           {(user.role === 'professional' || user.role === 'family') && (
+
             <div className="pt-2 border-t">
               <MatchingStatusToggle
                 userId={user.id}

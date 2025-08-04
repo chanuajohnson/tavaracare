@@ -6,15 +6,18 @@ export const fetchFamilyProfile = async (userId: string): Promise<FamilyProfileD
   try {
     console.log('🔍 Fetching family profile for user:', userId);
     
+
     // Use secure function to bypass RLS recursion issues
     const { data, error } = await supabase
       .rpc('get_user_profile_secure', { target_user_id: userId })
+
       .maybeSingle();
 
     if (error) {
       console.error('❌ Error fetching family profile:', error);
       throw error;
     }
+
 
     // Filter to only family role profiles
     if (data && data.role === 'family') {
@@ -24,6 +27,7 @@ export const fetchFamilyProfile = async (userId: string): Promise<FamilyProfileD
       console.log('⚠️ No family profile found for user:', userId);
       return null;
     }
+
   } catch (error) {
     console.error('❌ Failed to fetch family profile:', error);
     return null;

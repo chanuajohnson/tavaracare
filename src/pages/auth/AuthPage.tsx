@@ -132,14 +132,18 @@ if (action === 'verification-pending') {
         
         // Send Facebook Conversions API event for family signups (only on production)
         if (userRole === 'family' && window.location.hostname === 'tavara.care') {
+
           console.log('[AuthPage] Triggering Facebook CAPI for family user immediate signup');
+
           try {
             await supabase.functions.invoke('facebook-conversions-api', {
               body: { email: data.user.email }
             });
+
             console.log('[AuthPage] Facebook CAPI CompleteRegistration event sent for family immediate signup');
           } catch (error) {
             console.error('[AuthPage] Failed to send Facebook CAPI event:', error);
+
             // Don't block the signup flow for CAPI failures
           }
         }

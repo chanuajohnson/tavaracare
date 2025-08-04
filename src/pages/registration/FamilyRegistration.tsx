@@ -24,7 +24,7 @@ const FamilyRegistration = () => {
   const { user } = useAuth();
   const [searchParams] = useSearchParams();
   const isEditMode = searchParams.get('edit') === 'true';
-  
+
   console.log('🔍 URL and Edit Mode Debug:', {
     fullURL: window.location.href,
     searchParams: Object.fromEntries(searchParams.entries()),
@@ -33,6 +33,7 @@ const FamilyRegistration = () => {
     pathname: window.location.pathname
   });
   
+
   const [loading, setLoading] = useState(false);
   const [dataLoading, setDataLoading] = useState(true);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
@@ -100,10 +101,12 @@ const FamilyRegistration = () => {
           details: error.details,
           hint: error.hint
         });
+
         toast.error('Failed to load existing profile data');
         setDataLoading(false);
         return;
       }
+
 
       console.log('📊 Profile query result:', { data, hasData: !!data });
 
@@ -115,6 +118,7 @@ const FamilyRegistration = () => {
         // Populate basic info
         setFirstName(profile.first_name || profile.full_name?.split(' ')[0] || '');
         setLastName(profile.last_name || profile.full_name?.split(' ').slice(1).join(' ') || '');
+
         setPhoneNumber(profile.phone_number || '');
         setLocation(profile.location || '');
         setAddress(profile.address || '');
@@ -141,6 +145,7 @@ const FamilyRegistration = () => {
         setCaregiverPreferences(profile.caregiver_preferences || '');
         setAdditionalNotes(profile.additional_notes || '');
         setPreferredContactMethod(profile.preferred_contact_method || '');
+
         
         console.log('✅ Form populated with profile data');
         
@@ -174,6 +179,7 @@ const FamilyRegistration = () => {
         } else {
           console.log('⚠️ No user metadata available either');
         }
+
       }
     } catch (error) {
       console.error('Error in fetchExistingProfileData:', error);

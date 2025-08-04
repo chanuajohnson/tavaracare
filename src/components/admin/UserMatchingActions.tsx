@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -11,10 +12,12 @@ import { Users, Eye, Calendar, UserCheck, RotateCcw, AlertTriangle, Settings, Da
 import { AdminMatchingInterface } from './AdminMatchingInterface';
 import { EnhancedAdminMatchingInterface } from './enhanced/EnhancedAdminMatchingInterface';
 
+
 interface UserMatchingActionsProps {
   user: any;
   onUserUpdate: () => void;
 }
+
 
 interface AssignmentData {
   id: string;
@@ -42,18 +45,21 @@ interface StaleAssignment {
   issue: string;
 }
 
+
 export const UserMatchingActions: React.FC<UserMatchingActionsProps> = ({
   user,
   onUserUpdate
 }) => {
   const [manualAssignments, setManualAssignments] = useState<any[]>([]);
   const [interventions, setInterventions] = useState<any[]>([]);
+
   const [automaticAssignments, setAutomaticAssignments] = useState<any[]>([]);
   const [careTeamMembers, setCareTeamMembers] = useState<any[]>([]);
   const [staleAssignments, setStaleAssignments] = useState<StaleAssignment[]>([]);
   const [showMatchingInterface, setShowMatchingInterface] = useState(false);
   const [showResetDialog, setShowResetDialog] = useState(false);
   const [showStaleDialog, setShowStaleDialog] = useState(false);
+
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -69,7 +75,9 @@ export const UserMatchingActions: React.FC<UserMatchingActionsProps> = ({
         .from('manual_caregiver_assignments')
         .select(`
           *,
+
           caregiver:profiles!caregiver_id(full_name),
+
           admin:profiles!assigned_by_admin_id(full_name)
         `)
         .eq('family_user_id', user.id)
@@ -83,7 +91,9 @@ export const UserMatchingActions: React.FC<UserMatchingActionsProps> = ({
         .from('admin_match_interventions')
         .select(`
           *,
+
           caregiver:profiles!caregiver_id(full_name),
+
           admin:profiles!admin_id(full_name)
         `)
         .eq('family_user_id', user.id)
@@ -91,6 +101,7 @@ export const UserMatchingActions: React.FC<UserMatchingActionsProps> = ({
 
       if (interventionError) throw interventionError;
       setInterventions(interventionData || []);
+
 
       // Fetch automatic assignments
       const { data: automaticData, error: automaticError } = await supabase
@@ -131,6 +142,7 @@ export const UserMatchingActions: React.FC<UserMatchingActionsProps> = ({
         ) || [];
         setStaleAssignments(userStaleAssignments);
       }
+
     } catch (error) {
       console.error('Error fetching matching data:', error);
     }
@@ -146,6 +158,7 @@ export const UserMatchingActions: React.FC<UserMatchingActionsProps> = ({
       toast.error('Failed to schedule visit');
     }
   };
+
 
   const handleResetAssignments = async () => {
     try {
@@ -189,6 +202,7 @@ export const UserMatchingActions: React.FC<UserMatchingActionsProps> = ({
     }
   };
 
+
   const handleDeactivateAssignment = async (assignmentId: string) => {
     try {
       setLoading(true);
@@ -209,6 +223,7 @@ export const UserMatchingActions: React.FC<UserMatchingActionsProps> = ({
       setLoading(false);
     }
   };
+
 
   // Combine all assignments for comprehensive view
   const getAllAssignments = (): AssignmentData[] => {
@@ -281,18 +296,22 @@ export const UserMatchingActions: React.FC<UserMatchingActionsProps> = ({
     );
   };
 
+
   if (user?.role !== 'family') {
     return null;
   }
+
 
   const allAssignments = getAllAssignments();
   const hasAnyAssignments = allAssignments.length > 0;
   const hasStaleAssignments = staleAssignments.length > 0;
 
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-medium">Caregiver Matching</h3>
+
         <div className="text-sm text-muted-foreground">
           User ID: {user.id} | Email: {user.email}
         </div>
@@ -352,10 +371,12 @@ export const UserMatchingActions: React.FC<UserMatchingActionsProps> = ({
                   {assignment.caregiver_email && (
                     <p className="text-sm text-gray-600">{assignment.caregiver_email}</p>
                   )}
+
                   <div className="flex items-center gap-2 mt-1">
                     <Badge variant="outline">
                       Score: {assignment.match_score}%
                     </Badge>
+
                     <Badge variant={assignment.status === 'Active' || assignment.status === 'active' ? 'default' : 'secondary'}>
                       {assignment.status}
                     </Badge>
@@ -384,6 +405,7 @@ export const UserMatchingActions: React.FC<UserMatchingActionsProps> = ({
                     {new Date(assignment.created_at).toLocaleDateString()}
                   </p>
                   {assignment.type === 'manual' && !assignment.visit_scheduled && (
+
                     <Button 
                       size="sm" 
                       variant="outline"
@@ -393,6 +415,7 @@ export const UserMatchingActions: React.FC<UserMatchingActionsProps> = ({
                       Schedule
                     </Button>
                   )}
+
                   {assignment.type === 'manual' && (
                     <Button 
                       size="sm" 
@@ -403,12 +426,15 @@ export const UserMatchingActions: React.FC<UserMatchingActionsProps> = ({
                       Deactivate
                     </Button>
                   )}
+
                 </div>
               </div>
             ))}
           </CardContent>
         </Card>
+
       ) : (
+
         <Card>
           <CardContent className="py-6 text-center">
             <UserCheck className="h-8 w-8 mx-auto mb-2 text-gray-400" />
@@ -424,7 +450,9 @@ export const UserMatchingActions: React.FC<UserMatchingActionsProps> = ({
           <DialogHeader>
             <DialogTitle>Manual Caregiver Matching</DialogTitle>
           </DialogHeader>
+
           <EnhancedAdminMatchingInterface
+
             familyUserId={user.id}
             onClose={() => setShowMatchingInterface(false)}
             onMatchAssigned={() => {
@@ -435,6 +463,7 @@ export const UserMatchingActions: React.FC<UserMatchingActionsProps> = ({
           />
         </DialogContent>
       </Dialog>
+
 
       {/* Reset Assignments Dialog */}
       <AlertDialog open={showResetDialog} onOpenChange={setShowResetDialog}>
@@ -492,6 +521,7 @@ export const UserMatchingActions: React.FC<UserMatchingActionsProps> = ({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
     </div>
   );
 };

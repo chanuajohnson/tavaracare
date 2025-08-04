@@ -13,6 +13,7 @@ export const FamilyReadinessChecker = () => {
   const [showModal, setShowModal] = useState(false);
 
   const checkReadiness = async (forceRefresh = false) => {
+
     if (!user?.id) {
       setIsLoading(false);
       return;
@@ -21,18 +22,20 @@ export const FamilyReadinessChecker = () => {
     try {
       setIsLoading(true);
       
+
       console.log('🔍 [FamilyReadinessChecker] Starting readiness check', {
         userId: user.id,
         forceRefresh,
         timestamp: new Date().toISOString()
       });
-      
+
       // Fetch family data in parallel
       const [profile, assessment, story] = await Promise.all([
         fetchFamilyProfile(user.id),
         fetchCareAssessment(user.id),
         fetchCareRecipientProfile(user.id)
       ]);
+
 
       console.log('📊 [FamilyReadinessChecker] Data fetched', {
         profile: profile ? 'exists' : 'null',
@@ -44,16 +47,20 @@ export const FamilyReadinessChecker = () => {
       const status = getFamilyReadinessStatus(profile, assessment, story);
       
       console.log('✅ [FamilyReadinessChecker] Readiness status determined:', {
+
         userId: user.id,
         registrationComplete: status.registrationComplete,
         careAssessmentComplete: status.careAssessmentComplete,
         storyComplete: status.storyComplete,
+
         allReady: status.allReady,
         shouldShowModal: !status.allReady
+
       });
       
       setIsReady(status.allReady);
       setShowModal(!status.allReady);
+
       
       // If user is ready but modal was showing, log successful transition
       if (status.allReady && showModal) {
@@ -61,6 +68,7 @@ export const FamilyReadinessChecker = () => {
       }
     } catch (error) {
       console.error('❌ [FamilyReadinessChecker] Error checking family readiness:', error);
+
       setIsReady(false);
       setShowModal(true);
     } finally {
@@ -83,6 +91,7 @@ export const FamilyReadinessChecker = () => {
   }, [user]);
 
   // Remove aggressive periodic refresh - now only checks on mount and user changes
+
 
   // Show loading state while checking readiness
   if (isLoading) {
