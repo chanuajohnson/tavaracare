@@ -46,20 +46,14 @@ export class TAVAIService {
         { role: 'user', content: message }
       ];
 
-      // Call the existing chat-gpt edge function
-      const { data, error } = await supabase.functions.invoke('chat-gpt', {
+      // Use enhanced TAV service for better responses
+      const { data, error } = await supabase.functions.invoke('tav-chat-enhanced', {
         body: {
-          messages,
-          sessionId: context.sessionId,
-          userRole: context.userRole,
-          temperature: 0.7,
-          maxTokens: 200,
-          fieldContext: {
-            currentPage: context.currentPage,
-            currentForm: context.currentForm,
-            formFields: context.formFields,
-            caregiverContext: context.caregiverContext
-          }
+          message,
+          context,
+          conversationHistory,
+          enableStreaming: false,
+          enableMemory: true
         }
       });
 
