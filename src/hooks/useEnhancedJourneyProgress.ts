@@ -721,12 +721,17 @@ export const useEnhancedJourneyProgress = () => {
         detailed_explanation: 'View and connect with potential caregivers',
         time_estimate_minutes: 30,
         is_optional: false,
-        action: () => setShowCaregiverMatchingModal(true)
+        action: () => {
+          const element = document.getElementById('caregiver-matches-section');
+          if (element) {
+            element.scrollIntoView({ behavior: 'smooth' });
+          }
+        }
       },
       {
         id: "5",
         step_number: 5,
-        title: "Set Up Medication Management",
+        title: "Edit Medication Management",
         description: "Add medications and set up schedules",
         completed: !!(carePlans && carePlans.length > 0), // Simplified for now
         accessible: true,
@@ -736,12 +741,12 @@ export const useEnhancedJourneyProgress = () => {
         detailed_explanation: 'Set up medication schedules and tracking',
         time_estimate_minutes: 15,
         is_optional: false,
-        action: () => navigate('/family/medication-management')
+        action: () => navigate('/family/care-management')
       },
       {
         id: "6",
         step_number: 6,
-        title: "Set Up Meal Management",
+        title: "Edit Meal Management",
         description: "Plan meals and create grocery lists",
         completed: !!(carePlans && carePlans.length > 0), // Simplified for now
         accessible: true,
@@ -751,7 +756,7 @@ export const useEnhancedJourneyProgress = () => {
         detailed_explanation: 'Set up meal planning and grocery management',
         time_estimate_minutes: 15,
         is_optional: false,
-        action: () => navigate('/family/meal-management')
+        action: () => navigate('/family/care-management')
       },
       {
         id: "7",

@@ -39,7 +39,7 @@ export const DashboardCaregiverMatches = () => {
 
   return (
     <>
-      <Card className="mb-8 border-l-4 border-l-primary">
+      <Card id="caregiver-matches-section" className="mb-8 border-l-4 border-l-primary">
         <CardHeader className="flex flex-row items-center justify-between pb-2">
           <div>
             <CardTitle className="text-xl flex items-center gap-2">
