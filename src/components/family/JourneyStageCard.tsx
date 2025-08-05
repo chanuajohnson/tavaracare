@@ -113,11 +113,11 @@ export const JourneyStageCard: React.FC<JourneyStageCardProps> = ({
     }
     
     if (step.step_number === 5) {
-      return step.completed ? "Edit Care Assessment" : "Start Assessment";
+      return step.completed ? "Edit Medication Management" : "Edit Medication Management";
     }
     
     if (step.step_number === 6) {
-      return step.completed ? "Share Your Loved Ones Story" : "Share Your Loved Ones Story";
+      return step.completed ? "Edit Meal Management" : "Edit Meal Management";
     }
     
     if (step.step_number === 7) {
