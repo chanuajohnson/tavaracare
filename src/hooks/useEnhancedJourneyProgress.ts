@@ -591,35 +591,20 @@ export const useEnhancedJourneyProgress = () => {
     return hasAllRequiredFields && hasEnhancedData;
   };
 
-  // Calculate if caregiver matches are accessible (more permissive for Step 4)
+  // Calculate if caregiver matches are accessible
   const calculateCaregiverMatchesAccessible = () => {
-    if (!user) {
-      console.log('🚫 Caregiver matches not accessible: No user');
-      return false;
-    }
+    if (!user) return false;
     
-    // For Step 4, we only need basic profile completion - not full registration
-    // This allows users to see matches earlier in their journey
-    const hasBasicProfile = !!(
-      profile?.full_name && 
-      profile?.care_recipient_name
-    );
+    const registrationComplete = calculateRegistrationCompletion();
+    const hasAssessment = !!careAssessment?.id;
     
-    console.log('🔍 Caregiver matches accessibility check (Step 4):', {
-      userId: user?.id,
-      hasBasicProfile,
-      full_name: profile?.full_name,
-      care_recipient_name: profile?.care_recipient_name,
-      accessible: hasBasicProfile
+    console.log('Caregiver matches accessibility:', {
+      registrationComplete,
+      hasAssessment,
+      accessible: registrationComplete && hasAssessment
     });
     
-    if (hasBasicProfile) {
-      console.log('✅ Caregiver matches accessible: Basic profile complete');
-      return true;
-    }
-    
-    console.log('❌ Caregiver matches not accessible: Missing basic profile info');
-    return false;
+    return registrationComplete && hasAssessment;
   };
 
   // Calculate if trial steps are accessible
