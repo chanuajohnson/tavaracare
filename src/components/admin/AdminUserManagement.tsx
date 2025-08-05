@@ -97,26 +97,33 @@ export const AdminUserManagement = () => {
         throw error;
       }
 
-      // Handle response from the SQL function - cast data to any to access properties
-      const result = data as any;
-      if (result?.success) {
-        toast.success(`User ${userName} deleted successfully`);
-        refetch(); // Refresh the list
+      // The admin_delete_user function returns a text message
+      // Success messages start with "Successfully deleted", error messages are descriptive
+      if (data && typeof data === 'string') {
+        if (data.startsWith('Successfully deleted')) {
+          toast.success(`User ${userName} deleted successfully`);
+          refetch(); // Refresh the list
+        } else {
+          // Any other message is treated as an error
+          throw new Error(data);
+        }
       } else {
-        throw new Error(result?.error || 'Failed to delete user');
+        throw new Error('Unexpected response from server');
       }
     } catch (error: any) {
       console.error('Error deleting user:', error);
       
-      // Handle specific error codes from the SQL function
-      if (error.message?.includes('INSUFFICIENT_PERMISSIONS')) {
+      // Handle specific error messages from the SQL function
+      const errorMessage = error.message || 'Unknown error';
+      
+      if (errorMessage.includes('Access denied') || errorMessage.includes('Admin privileges required')) {
         toast.error('You do not have permission to delete users');
-      } else if (error.message?.includes('SELF_DELETION_PREVENTED')) {
+      } else if (errorMessage.includes('Cannot delete your own account')) {
         toast.error('You cannot delete your own account');
-      } else if (error.message?.includes('USER_NOT_FOUND')) {
+      } else if (errorMessage.includes('User not found') || errorMessage.includes('No user found')) {
         toast.error('User not found');
       } else {
-        toast.error(`Failed to delete user: ${error.message}`);
+        toast.error(`Failed to delete user: ${errorMessage}`);
       }
     }
   };
