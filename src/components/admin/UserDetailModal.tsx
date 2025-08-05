@@ -9,7 +9,7 @@ import { Progress } from '@/components/ui/progress';
 import { Switch } from '@/components/ui/switch';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { User, Mail, Phone, MapPin, Calendar, Users, Activity, CheckCircle2, Clock, Circle, FileText, Download, Share, Shield, Eye } from 'lucide-react';
+import { User, Mail, Phone, MapPin, Calendar, Users, Activity, CheckCircle2, Clock, Circle, FileText, Download, Share, Shield, Eye, Trash2 } from 'lucide-react';
 import { UserMatchingActions } from './UserMatchingActions';
 import { MatchingStatusToggle } from './MatchingStatusToggle';
 import { useSharedFamilyJourneyData } from '@/hooks/useSharedFamilyJourneyData';
@@ -75,6 +75,7 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
   const [loading, setLoading] = useState(false);
   const [reportLoading, setReportLoading] = useState(false);
   const [anonymousReport, setAnonymousReport] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   // Only call hooks when user and role are valid
   const shouldCallFamilyHook = user?.role === 'family' && user?.id;
@@ -250,6 +251,60 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
     }
   };
 
+  const handleDeleteUser = async () => {
+    if (!user?.id) {
+      toast.error('User ID not available');
+      return;
+    }
+
+    const userName = user.full_name || 'this user';
+    const userRole = user.role || 'unknown';
+    
+    // Enhanced confirmation dialog with user details
+    const confirmMessage = `Are you sure you want to permanently delete ${userName} (${userRole})?\n\nThis action cannot be undone and will remove all associated data.`;
+    
+    if (!confirm(confirmMessage)) {
+      return;
+    }
+
+    setDeleteLoading(true);
+    try {
+      // Use the new SQL function for safe deletion
+      const { data, error } = await supabase.rpc('admin_delete_user', {
+        target_user_id: user.id
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      // Handle response from the SQL function - cast data to any to access properties
+      const result = data as any;
+      if (result?.success) {
+        toast.success(`User ${userName} deleted successfully`);
+        onClose(); // Close the modal
+        onUserUpdate(); // Refresh the list
+      } else {
+        throw new Error(result?.error || 'Failed to delete user');
+      }
+    } catch (error: any) {
+      console.error('Error deleting user:', error);
+      
+      // Handle specific error codes from the SQL function
+      if (error.message?.includes('INSUFFICIENT_PERMISSIONS')) {
+        toast.error('You do not have permission to delete users');
+      } else if (error.message?.includes('SELF_DELETION_PREVENTED')) {
+        toast.error('You cannot delete your own account');
+      } else if (error.message?.includes('USER_NOT_FOUND')) {
+        toast.error('User not found');
+      } else {
+        toast.error(`Failed to delete user: ${error.message}`);
+      }
+    } finally {
+      setDeleteLoading(false);
+    }
+  };
+
   if (!user) return null;
 
   // Safely access steps with comprehensive null checks
@@ -371,6 +426,46 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
                 onStatusChange={onUserUpdate}
               />
             )}
+
+            {/* Admin Actions */}
+            <Card className="border-red-200 bg-red-50">
+              <CardHeader>
+                <CardTitle className="text-red-800 flex items-center gap-2">
+                  <Shield className="h-5 w-5" />
+                  Admin Actions
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  <p className="text-sm text-red-700">
+                    Danger Zone: These actions cannot be undone.
+                  </p>
+                  <Button
+                    variant="destructive"
+                    onClick={handleDeleteUser}
+                    disabled={user.role === 'admin' || deleteLoading}
+                    className="w-full"
+                  >
+                    {deleteLoading ? (
+                      <div className="flex items-center gap-2">
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                        Deleting...
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <Trash2 className="h-4 w-4" />
+                        Delete User Permanently
+                      </div>
+                    )}
+                  </Button>
+                  {user.role === 'admin' && (
+                    <p className="text-xs text-gray-500">
+                      Admin users cannot be deleted for security reasons.
+                    </p>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
           </TabsContent>
 
           <TabsContent value="journey" className="space-y-4">

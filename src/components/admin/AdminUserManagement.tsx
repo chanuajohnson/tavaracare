@@ -76,36 +76,48 @@ export const AdminUserManagement = () => {
   }));
 
 
-  const handleDeleteUser = async (userId: string) => {
-    if (!confirm('Are you sure you want to delete this user? This action cannot be undone.')) {
+  const handleDeleteUser = async (userId: string, userProfile?: Profile) => {
+    const userName = userProfile?.full_name || 'this user';
+    const userRole = userProfile?.role || 'unknown';
+    
+    // Enhanced confirmation dialog with user details
+    const confirmMessage = `Are you sure you want to permanently delete ${userName} (${userRole})?\n\nThis action cannot be undone and will remove all associated data.`;
+    
+    if (!confirm(confirmMessage)) {
       return;
     }
 
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        toast.error('Not authenticated');
-        return;
-      }
-
-      const response = await fetch(`https://cpdfmyemjrefnhddyrck.supabase.co/functions/v1/admin-users?action=delete-user&userId=${userId}`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`,
-          'Content-Type': 'application/json',
-        },
+      // Use the new SQL function for safe deletion
+      const { data, error } = await supabase.rpc('admin_delete_user', {
+        target_user_id: userId
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to delete user');
+      if (error) {
+        throw error;
       }
 
-      toast.success('User deleted successfully');
-      refetch(); // Refresh the list
+      // Handle response from the SQL function - cast data to any to access properties
+      const result = data as any;
+      if (result?.success) {
+        toast.success(`User ${userName} deleted successfully`);
+        refetch(); // Refresh the list
+      } else {
+        throw new Error(result?.error || 'Failed to delete user');
+      }
     } catch (error: any) {
       console.error('Error deleting user:', error);
-      toast.error(`Failed to delete user: ${error.message}`);
+      
+      // Handle specific error codes from the SQL function
+      if (error.message?.includes('INSUFFICIENT_PERMISSIONS')) {
+        toast.error('You do not have permission to delete users');
+      } else if (error.message?.includes('SELF_DELETION_PREVENTED')) {
+        toast.error('You cannot delete your own account');
+      } else if (error.message?.includes('USER_NOT_FOUND')) {
+        toast.error('User not found');
+      } else {
+        toast.error(`Failed to delete user: ${error.message}`);
+      }
     }
   };
 
@@ -333,6 +345,15 @@ export const AdminUserManagement = () => {
             selectedUsers={selectedUsers}
             onUserSelect={handleUserSelect}
             onRefresh={refetch}
+            onDeleteUser={(userId, user) => handleDeleteUser(userId, {
+              id: user.id,
+              role: user.role,
+              full_name: user.full_name,
+              created_at: user.created_at,
+              phone_number: user.phone_number,
+              email: user.email,
+              available_for_matching: user.available_for_matching
+            })}
           />
         ) : (
           <div className="border rounded-lg overflow-hidden">
@@ -381,9 +402,10 @@ export const AdminUserManagement = () => {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => handleDeleteUser(user.id)}
-                        className="text-red-600 hover:text-red-700"
+                        onClick={() => handleDeleteUser(user.id, user.profile)}
+                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
                         disabled={user.profile?.role === 'admin'}
+                        title={user.profile?.role === 'admin' ? 'Cannot delete admin users' : `Delete ${user.profile?.full_name || 'user'}`}
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
