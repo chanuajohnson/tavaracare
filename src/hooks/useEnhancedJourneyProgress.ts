@@ -593,18 +593,32 @@ export const useEnhancedJourneyProgress = () => {
 
   // Calculate if caregiver matches are accessible
   const calculateCaregiverMatchesAccessible = () => {
-    if (!user) return false;
+    if (!user) {
+      console.log('🚫 Caregiver matches not accessible: No user');
+      return false;
+    }
     
     const registrationComplete = calculateRegistrationCompletion();
     const hasAssessment = !!careAssessment?.id;
     
-    console.log('Caregiver matches accessibility:', {
+    console.log('🔍 Caregiver matches accessibility check:', {
+      userId: user?.id,
       registrationComplete,
       hasAssessment,
+      careAssessmentData: careAssessment ? 'exists' : 'null',
+      careAssessmentId: careAssessment?.id,
       accessible: registrationComplete && hasAssessment
     });
     
-    return registrationComplete && hasAssessment;
+    // For debugging: Let's be more permissive with Step 4 since it's the caregiver matches view
+    // Users should be able to see matches even if they haven't completed the full assessment
+    if (registrationComplete) {
+      console.log('✅ Caregiver matches accessible: Registration complete');
+      return true;
+    }
+    
+    console.log('❌ Caregiver matches not accessible: Registration incomplete');
+    return false;
   };
 
   // Calculate if trial steps are accessible
