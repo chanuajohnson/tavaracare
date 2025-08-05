@@ -97,18 +97,13 @@ export const AdminUserManagement = () => {
         throw error;
       }
 
-      // The admin_delete_user function returns a text message
-      // Success messages start with "Successfully deleted", error messages are descriptive
-      if (data && typeof data === 'string') {
-        if (data.startsWith('Successfully deleted')) {
-          toast.success(`User ${userName} deleted successfully`);
-          refetch(); // Refresh the list
-        } else {
-          // Any other message is treated as an error
-          throw new Error(data);
-        }
+      // Handle response from the SQL function - the admin_delete_user function returns JSONB
+      const result = data as any;
+      if (result?.success) {
+        toast.success(`User ${userName} deleted successfully`);
+        refetch(); // Refresh the list
       } else {
-        throw new Error('Unexpected response from server');
+        throw new Error(result?.error || 'Failed to delete user');
       }
     } catch (error: any) {
       console.error('Error deleting user:', error);
