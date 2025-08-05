@@ -4685,6 +4685,10 @@ export type Database = {
         Args: { target_family_user_id: string }
         Returns: undefined
       }
+      sync_admin_role_to_jwt: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
       trigger_automatic_assignment_process: {
         Args: { target_family_user_id?: string }
         Returns: string
