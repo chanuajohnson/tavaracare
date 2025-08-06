@@ -88,35 +88,39 @@ export const AdminUserManagement = () => {
     }
 
     try {
-      // Use the new SQL function for safe deletion
-      const { data, error } = await supabase.rpc('admin_delete_user', {
-        target_user_id: userId
+      // Use the existing admin-users Edge Function for complete deletion
+      const { data, error } = await supabase.functions.invoke('admin-users', {
+        method: 'DELETE',
+        body: new URLSearchParams({
+          action: 'delete-user',
+          userId: userId
+        }).toString(),
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        }
       });
 
       if (error) {
         throw error;
       }
 
-      // Handle response from the SQL function - the admin_delete_user function returns JSONB
-      const result = data as any;
-      if (result?.success) {
+      // Handle response from the Edge Function
+      if (data?.success) {
         toast.success(`User ${userName} deleted successfully`);
         refetch(); // Refresh the list
       } else {
-        throw new Error(result?.error || 'Failed to delete user');
+        throw new Error(data?.error || 'Failed to delete user');
       }
     } catch (error: any) {
       console.error('Error deleting user:', error);
       
-      // Handle specific error messages from the SQL function
+      // Handle specific error messages
       const errorMessage = error.message || 'Unknown error';
       
-      if (errorMessage.includes('Access denied') || errorMessage.includes('Admin privileges required')) {
+      if (errorMessage.includes('Unauthorized') || errorMessage.includes('Admin access required')) {
         toast.error('You do not have permission to delete users');
-      } else if (errorMessage.includes('Cannot delete your own account')) {
-        toast.error('You cannot delete your own account');
-      } else if (errorMessage.includes('User not found') || errorMessage.includes('No user found')) {
-        toast.error('User not found');
+      } else if (errorMessage.includes('User ID required')) {
+        toast.error('Invalid user ID');
       } else {
         toast.error(`Failed to delete user: ${errorMessage}`);
       }
