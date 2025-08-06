@@ -3013,6 +3013,7 @@ export type Database = {
           list_in_community_directory: boolean | null
           list_in_directory: boolean | null
           location: string | null
+          manual_match_assigned: boolean | null
           medical_conditions_experience: string[] | null
           onboarding_progress: Json | null
           other_certification: string | null
@@ -3106,6 +3107,7 @@ export type Database = {
           list_in_community_directory?: boolean | null
           list_in_directory?: boolean | null
           location?: string | null
+          manual_match_assigned?: boolean | null
           medical_conditions_experience?: string[] | null
           onboarding_progress?: Json | null
           other_certification?: string | null
@@ -3199,6 +3201,7 @@ export type Database = {
           list_in_community_directory?: boolean | null
           list_in_directory?: boolean | null
           location?: string | null
+          manual_match_assigned?: boolean | null
           medical_conditions_experience?: string[] | null
           onboarding_progress?: Json | null
           other_certification?: string | null
