@@ -325,6 +325,25 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           }
           
           if (event === 'SIGNED_IN' && !isPasswordResetConfirmRoute && !passwordResetCompleteRef.current) {
+            console.log('[AuthProvider] SIGNED_IN event - Email verification signup path detected');
+            
+            // Send Facebook Conversions API event for family signups via email verification (only on production)
+            if (newSession.user.user_metadata?.role === 'family' && window.location.hostname === 'tavara.care') {
+              console.log('[AuthProvider] Triggering Facebook CAPI for family user email verification signup');
+              try {
+                supabase.functions.invoke('facebook-conversions-api', {
+                  body: { email: newSession.user.email }
+                }).then(() => {
+                  console.log('[AuthProvider] Facebook CAPI CompleteRegistration event sent for family email verification signup');
+                }).catch(error => {
+                  console.error('[AuthProvider] Failed to send Facebook CAPI event:', error);
+                  // Don't block the signup flow for CAPI failures
+                });
+              } catch (error) {
+                console.error('[AuthProvider] Failed to invoke Facebook CAPI function:', error);
+              }
+            }
+            
             toast.success('You have successfully logged in!');
           }
         }

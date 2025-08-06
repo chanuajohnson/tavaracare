@@ -2,23 +2,47 @@
 import { FamilyProfileData, CareAssessmentData, CareRecipientData } from './types';
 
 export const isRegistrationComplete = (profile: FamilyProfileData | null): boolean => {
-  const hasRequiredFields = !!(
-    profile?.full_name &&
-    profile?.phone_number &&
-    profile?.address &&
-    profile?.care_recipient_name &&
-    profile?.relationship
-  );
-  
-  console.log(`✅ Family Registration Complete: ${hasRequiredFields}`, {
-    fullName: !!profile?.full_name,
-    phoneNumber: !!profile?.phone_number,
-    address: !!profile?.address,
-    careRecipientName: !!profile?.care_recipient_name,
-    relationship: !!profile?.relationship
+  if (!profile) {
+    console.log('❌ Family Registration: No profile data');
+    return false;
+  }
+
+  // Core required fields (must have all)
+  const requiredFields = {
+    full_name: profile.full_name,
+    phone_number: profile.phone_number,
+    address: profile.address,
+    care_recipient_name: profile.care_recipient_name,
+    relationship: profile.relationship
+  };
+
+  const hasAllRequiredFields = Object.entries(requiredFields).every(([field, value]) => {
+    const hasValue = !!(value && String(value).trim());
+    if (!hasValue) {
+      console.log(`❌ Registration: Missing required field ${field}:`, value);
+    }
+    return hasValue;
+  });
+
+  // Enhanced completion indicators (at least one should be present for comprehensive registration)
+  const enhancedFields = {
+    care_types: profile.care_types && Array.isArray(profile.care_types) && profile.care_types.length > 0,
+    care_schedule: profile.care_schedule && String(profile.care_schedule).trim(),
+    budget_preferences: profile.budget_preferences && String(profile.budget_preferences).trim(),
+    caregiver_type: profile.caregiver_type && String(profile.caregiver_type).trim()
+  };
+
+  const hasEnhancedData = Object.values(enhancedFields).some(Boolean);
+  const isComplete = hasAllRequiredFields && hasEnhancedData;
+
+  console.log(`✅ Family Registration Complete: ${isComplete}`, {
+    hasAllRequiredFields,
+    hasEnhancedData,
+    requiredFields: Object.entries(requiredFields).map(([k, v]) => [k, !!v]),
+    enhancedFields: Object.entries(enhancedFields).map(([k, v]) => [k, !!v])
   });
   
-  return hasRequiredFields;
+  return isComplete;
 };
 
 export const isCareAssessmentComplete = (assessment: CareAssessmentData | null): boolean => {
@@ -61,13 +85,18 @@ export const getFamilyReadinessStatus = (
   const careAssessmentComplete = isCareAssessmentComplete(assessment);
   const storyComplete = isStoryComplete(story);
   
+  // User is ready if they have registration AND assessment complete
+  // Story is optional but recommended
   const allReady = registrationComplete && careAssessmentComplete;
   
   console.log('📊 Family Readiness Status:', {
     registrationComplete,
     careAssessmentComplete,
     storyComplete,
-    allReady
+    allReady,
+    profile: profile ? 'exists' : 'null',
+    assessment: assessment ? 'exists' : 'null',
+    story: story ? 'exists' : 'null'
   });
   
   return {

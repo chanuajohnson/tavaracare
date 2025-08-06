@@ -7,6 +7,7 @@ import { JourneyStepTooltip } from "./JourneyStepTooltip";
 import { SubscriptionTrackingButton } from "@/components/subscription/SubscriptionTrackingButton";
 import { useIsMobile, useIsSmallMobile } from "@/hooks/use-mobile";
 import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 import * as LucideIcons from "lucide-react";
 
 interface JourneyStep {
@@ -112,11 +113,11 @@ export const JourneyStageCard: React.FC<JourneyStageCardProps> = ({
     }
     
     if (step.step_number === 5) {
-      return step.completed ? "Edit Care Assessment" : "Start Assessment";
+      return step.completed ? "Edit Medication Management" : "Edit Medication Management";
     }
     
     if (step.step_number === 6) {
-      return step.completed ? "Share Your Loved Ones Story" : "Share Your Loved Ones Story";
+      return step.completed ? "Edit Meal Management" : "Edit Meal Management";
     }
     
     if (step.step_number === 7) {
@@ -155,6 +156,15 @@ export const JourneyStageCard: React.FC<JourneyStageCardProps> = ({
   };
 
   const handleStepAction = (step: JourneyStep) => {
+    console.log(`🎯 handleStepAction called for step:`, {
+      id: step.id,
+      step_number: step.step_number,
+      title: step.title,
+      completed: step.completed,
+      hasAction: !!step.action,
+      isAnonymous
+    });
+
     if (isAnonymous) {
       // Check if this is a high-value step that should trigger lead capture
       const highValueSteps = ['View Matches', 'Start Assessment', 'Share Your Loved Ones Story', 'View Care Giver Matches'];
@@ -172,8 +182,27 @@ export const JourneyStageCard: React.FC<JourneyStageCardProps> = ({
       }
     }
 
+    // Add user feedback for edit actions
+    if (step.completed && !isAnonymous) {
+      if (step.step_number === 1) {
+        toast.info('Opening your profile for editing...');
+      } else if (step.step_number === 2) {
+        toast.info('Loading your care assessment for editing...');
+      } else if (step.step_number === 3) {
+        toast.info('Loading your loved one\'s story for editing...');
+      }
+    }
+
     if (step.action) {
-      step.action();
+      console.log(`🚀 Calling step.action() for step ${step.step_number}`);
+      try {
+        step.action();
+      } catch (error) {
+        console.error(`❌ Error calling action for step ${step.step_number}:`, error);
+        toast.error('Action failed. Please try again.');
+      }
+    } else {
+      console.warn(`⚠️ No action defined for step ${step.step_number}`);
     }
   };
 

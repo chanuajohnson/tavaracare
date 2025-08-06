@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { v4 as uuidv4 } from 'uuid';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { supabase, ensureStorageBuckets, ensureAuthContext } from '../../lib/supabase';
@@ -25,11 +25,31 @@ import { STANDARDIZED_SHIFT_OPTIONS } from '../../data/chatRegistrationFlows';
 
 const ProfessionalRegistration = () => {
   const { user, isLoading: authLoading } = useAuth();
+  const [searchParams] = useSearchParams();
+  const isEditMode = searchParams.get('edit') === 'true';
+  
+  console.log('🔍 Professional Registration Debug:', {
+    fullURL: window.location.href,
+    searchParams: Object.fromEntries(searchParams.entries()),
+    editParam: searchParams.get('edit'),
+    isEditMode,
+    pathname: window.location.pathname
+  });
+  
   const [loading, setLoading] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
+  
+  // Debug logging for name state changes
+  useEffect(() => {
+    console.log('🔥 firstName state changed to:', firstName);
+  }, [firstName]);
+  
+  useEffect(() => {
+    console.log('🔥 lastName state changed to:', lastName);
+  }, [lastName]);
   const [phoneNumber, setPhoneNumber] = useState('');
   const [email, setEmail] = useState('');
   const [address, setAddress] = useState('');
@@ -99,26 +119,17 @@ const ProfessionalRegistration = () => {
     };
   }, []);
 
-  // Pre-populate user data from auth context or database
+  // Initialize professional registration data - always try to fetch existing profile first
   useEffect(() => {
     if (user && !userDataPopulated) {
-      console.log('Pre-populating user data:', user);
+      console.log('🔍 Initializing professional registration for user:', user.id);
       
-      // Check if this is edit mode from dashboard
-      const urlParams = new URLSearchParams(window.location.search);
-      const isEditMode = urlParams.get('edit') === 'true';
-      
-      if (isEditMode) {
-        // In edit mode, fetch complete profile data from database
-        fetchCompleteProfileData();
-      } else {
-        // Regular registration, use auth metadata
-        populateFromAuthMetadata();
-      }
-      
-      console.log('User data population initiated');
+      // Always attempt to fetch existing profile data first, regardless of edit vs registration mode
+      // This ensures existing users get their complete profile data populated
+      console.log('📊 Attempting to fetch existing profile data from database...');
+      fetchCompleteProfileData();
     }
-  }, [user, userDataPopulated, firstName, lastName]);
+  }, [user, userDataPopulated]);
 
   const setFormValue = (field: string, value: any) => {
     console.log(`Setting form field ${field} to:`, value);
@@ -185,10 +196,20 @@ const ProfessionalRegistration = () => {
     }
   };
 
-  // Apply prefill data when available
+  // Apply prefill data when available (only if NOT in edit mode)
   useEffect(() => {
-    if (!prefillApplied) {
+    if (!prefillApplied && userDataPopulated) {
       console.log('Checking for prefill data...');
+      
+      // Check if this is edit mode - if so, skip chat prefill
+      const urlParams = new URLSearchParams(window.location.search);
+      const isEditMode = urlParams.get('edit') === 'true';
+      
+      if (isEditMode) {
+        console.log('Edit mode detected - skipping chat prefill');
+        setPrefillApplied(true);
+        return;
+      }
       
       const hasPrefill = applyPrefillDataToForm(
         setFormValue, 
@@ -201,7 +222,8 @@ const ProfessionalRegistration = () => {
               formRef.current.requestSubmit();
             }
           },
-          formRef: formRef
+          formRef: formRef,
+          formType: 'professional'
         }
       );
       
@@ -221,58 +243,86 @@ const ProfessionalRegistration = () => {
       
       setPrefillApplied(true);
     }
-  }, [prefillApplied, shouldAutoSubmit, user]);
+  }, [prefillApplied, shouldAutoSubmit, user, userDataPopulated]);
 
-  // Add these functions at line 216 (before handleCareScheduleChange)
+  // Fetch complete profile data using secure RPC function
   const fetchCompleteProfileData = async () => {
     try {
-      const { data: profile, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .single();
+      console.log('🔍 Fetching profile data for user:', user.id);
+      const { data: profile, error } = await supabase.rpc('get_user_profile_secure', {
+        target_user_id: user.id
+      });
       
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Database error:', error);
+        throw error;
+      }
       
-      if (profile) {
+      console.log('📊 Raw profile data received:', profile);
+      
+      if (profile && profile.length > 0) {
+        const profileData = profile[0];
+        console.log('✅ Found existing profile, populating form fields...');
+        console.log('Professional type from DB:', profileData.professional_type);
+        console.log('Years of experience from DB:', profileData.years_of_experience);
+        
         // Pre-fill all form fields with database data
-        setFirstName(profile.first_name || '');
-        setLastName(profile.last_name || '');
-        setPhoneNumber(profile.phone_number || '');
-        setAddress(profile.address || '');
-        setProfessionalType(profile.professional_type || '');
+        setFirstName(profileData.first_name || '');
+        setLastName(profileData.last_name || '');
+        setPhoneNumber(profileData.phone_number || '');
+        setAddress(profileData.address || '');
+        
+        // Professional fields
+        setProfessionalType(profileData.professional_type || '');
+        
         // Handle other professional type - if professional_type doesn't match predefined values, it's likely a custom "other" type
         const predefinedTypes = ['agency', 'nurse', 'hha', 'cna', 'special_needs', 'therapist', 'nutritionist', 'medication', 'elderly', 'holistic', 'gapp'];
-        if (profile.professional_type && !predefinedTypes.includes(profile.professional_type)) {
+        if (profileData.professional_type && !predefinedTypes.includes(profileData.professional_type)) {
+          console.log('🔧 Setting custom professional type:', profileData.professional_type);
           setProfessionalType('other');
-          setOtherProfessionalType(profile.professional_type);
+          setOtherProfessionalType(profileData.professional_type);
         }
-        setYearsOfExperience(profile.years_of_experience || '');
-        setSpecialties(profile.care_services || []);
-        setCertifications(profile.certifications || []);
-        setCareSchedule(profile.care_schedule ? profile.care_schedule.split(',') : []);
-        setCustomAvailability(profile.custom_schedule || '');
-        setPreferredLocations(profile.preferred_work_locations || '');
-        setHourlyRate(profile.hourly_rate || '');
-        setTransportation(profile.commute_mode || '');
-        setLanguages(profile.languages || []);
-        setEmergencyContact(profile.emergency_contact || '');
-        setBackgroundCheck(profile.background_check ? 'yes' : '');
-        setAdditionalNotes(profile.additional_notes || '');
-        setAvatarUrl(profile.avatar_url || null);
+        
+        setYearsOfExperience(profileData.years_of_experience || '');
+        setSpecialties(profileData.care_services || []);
+        setCertifications(profileData.certifications || []);
+        setCareSchedule(profileData.care_schedule ? profileData.care_schedule.split(',') : []);
+        setCustomAvailability(profileData.custom_schedule || '');
+        setPreferredLocations(profileData.preferred_work_locations || '');
+        setHourlyRate(profileData.hourly_rate || '');
+        setTransportation(profileData.commute_mode || '');
+        setLanguages(profileData.languages || []);
+        setEmergencyContact(profileData.emergency_contact || '');
+        setBackgroundCheck(profileData.background_check ? 'yes' : '');
+        setAdditionalNotes(profileData.additional_notes || '');
+        setAvatarUrl(profileData.avatar_url || null);
+        
+        console.log('✅ Successfully populated all form fields from database');
+        toast.success('Your profile has been loaded for editing');
+        setUserDataPopulated(true);
+      } else {
+        console.log('⚠️ No existing profile found, falling back to auth metadata');
+        // No existing profile, fall back to auth metadata
+        populateFromAuthMetadata();
+        setUserDataPopulated(true);
       }
     } catch (error) {
-      console.error('Error fetching profile data:', error);
+      console.error('❌ Error fetching profile data:', error);
+      toast.error('Failed to load existing profile data');
       // Fall back to auth metadata if database fetch fails
       populateFromAuthMetadata();
-    } finally {
       setUserDataPopulated(true);
     }
   };
 
   const populateFromAuthMetadata = () => {
+    console.log('🔍 populateFromAuthMetadata called with user:', user);
+    console.log('📧 User email:', user.email);
+    console.log('📝 User metadata:', user.user_metadata);
+    
     // Extract email
     if (user.email) {
+      console.log('Setting email to:', user.email);
       setEmail(user.email);
     }
     
@@ -284,30 +334,47 @@ const ProfessionalRegistration = () => {
       const possibleFirstNames = ['first_name', 'firstName', 'given_name'];
       const possibleLastNames = ['last_name', 'lastName', 'family_name', 'surname'];
       
+      let foundFirstName = null;
+      let foundLastName = null;
+      
       for (const field of possibleFirstNames) {
         if (metadata[field]) {
-          setFirstName(metadata[field]);
+          foundFirstName = metadata[field];
+          console.log(`✅ Found first name from ${field}:`, foundFirstName);
+          setFirstName(foundFirstName);
           break;
         }
       }
       
       for (const field of possibleLastNames) {
         if (metadata[field]) {
-          setLastName(metadata[field]);
+          foundLastName = metadata[field];
+          console.log(`✅ Found last name from ${field}:`, foundLastName);
+          setLastName(foundLastName);
           break;
         }
       }
       
       // If we have a full_name but no separate first/last, try to split it
-      if (!firstName && !lastName && metadata.full_name) {
+      if (!foundFirstName && !foundLastName && metadata.full_name) {
         const nameParts = metadata.full_name.split(' ');
         if (nameParts.length >= 2) {
-          setFirstName(nameParts[0]);
-          setLastName(nameParts.slice(1).join(' '));
+          const splitFirstName = nameParts[0];
+          const splitLastName = nameParts.slice(1).join(' ');
+          console.log(`🔄 Splitting full_name "${metadata.full_name}" into:`, { splitFirstName, splitLastName });
+          setFirstName(splitFirstName);
+          setLastName(splitLastName);
         }
       }
+      
+      // Log final state
+      console.log('📊 Final name state will be:', { 
+        firstName: foundFirstName || (metadata.full_name ? metadata.full_name.split(' ')[0] : null),
+        lastName: foundLastName || (metadata.full_name ? metadata.full_name.split(' ').slice(1).join(' ') : null)
+      });
     }
     
+    console.log('✅ populateFromAuthMetadata completed');
     setUserDataPopulated(true);
   };
 
@@ -381,14 +448,13 @@ const ProfessionalRegistration = () => {
       const fullName = `${firstName} ${lastName}`.trim();
       const finalProfessionalType = professionalType === 'other' ? otherProfessionalType : professionalType;
       
-      const updates = {
+      const profileData = {
         id: user.id,
         full_name: fullName,
         avatar_url: uploadedAvatarUrl,
         phone_number: phoneNumber,
         address: address,
         role: 'professional' as const,
-        updated_at: new Date().toISOString(),
         professional_type: finalProfessionalType,
         years_of_experience: yearsOfExperience,
         care_services: specialties || [], // Updated: Map specialties to care_services column
@@ -404,12 +470,12 @@ const ProfessionalRegistration = () => {
         additional_notes: additionalNotes || '' // Changed from additional_info to additional_notes
       };
 
-      console.log('Updating professional profile with data:', updates);
+      console.log('Updating professional profile with data:', profileData);
       
-      const { error } = await supabase
-        .from('profiles')
-        .update(updates)
-        .eq('id', user.id);
+      // Use SECURITY DEFINER function to bypass RLS and prevent recursion
+      const { data, error } = await supabase.rpc('update_user_profile', {
+        profile_data: profileData
+      });
       
       if (error) throw error;
       

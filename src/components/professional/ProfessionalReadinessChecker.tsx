@@ -12,16 +12,20 @@ export const ProfessionalReadinessChecker = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
 
-  const checkReadiness = async () => {
+  const checkReadiness = async (forceRefresh = false) => {
     if (!user?.id) {
-      console.log('[ProfessionalReadinessChecker] No user ID, setting loading to false');
+      console.log('🔍 [ProfessionalReadinessChecker] No user ID, setting loading to false');
       setIsLoading(false);
       return;
     }
 
     try {
       setIsLoading(true);
-      console.log('[ProfessionalReadinessChecker] Starting readiness check for user:', user.id);
+      console.log('🔍 [ProfessionalReadinessChecker] Starting readiness check', {
+        userId: user.id,
+        forceRefresh,
+        timestamp: new Date().toISOString()
+      });
       
       // Fetch profile and documents data in parallel
       const [profile, documents] = await Promise.all([
@@ -29,9 +33,10 @@ export const ProfessionalReadinessChecker = () => {
         fetchDocuments(user.id)
       ]);
 
-      console.log('[ProfessionalReadinessChecker] Fetched data:', {
+      console.log('📊 [ProfessionalReadinessChecker] Data fetched:', {
         profile: profile ? 'exists' : 'null',
-        documentsCount: documents ? documents.length : 0
+        documentsCount: documents ? documents.length : 0,
+        documentTypes: documents?.map(d => d.document_type) || []
       });
 
       // Use completionCheckers.ts to determine readiness
@@ -40,25 +45,31 @@ export const ProfessionalReadinessChecker = () => {
       
       const ready = profileComplete && documentsUploaded;
       
-      console.log('[ProfessionalReadinessChecker] Readiness check results:', {
+      console.log('✅ [ProfessionalReadinessChecker] Readiness status determined:', {
         userId: user.id,
         profileComplete,
         documentsUploaded,
-        ready
+        ready,
+        shouldShowModal: !ready
       });
       
       setIsReady(ready);
       
       // Show modal if NOT ready - immediate display without delay
       if (!ready) {
-        console.log('[ProfessionalReadinessChecker] User not ready, showing modal immediately');
+        console.log('❌ [ProfessionalReadinessChecker] User not ready, showing modal immediately');
         setShowModal(true);
       } else {
-        console.log('[ProfessionalReadinessChecker] User is ready, hiding modal');
+        console.log('🎉 [ProfessionalReadinessChecker] User is ready, hiding modal');
         setShowModal(false);
+        
+        // If user just became ready, log successful transition
+        if (showModal) {
+          console.log('🎉 [ProfessionalReadinessChecker] User became ready! Modal will hide.');
+        }
       }
     } catch (error) {
-      console.error('[ProfessionalReadinessChecker] Error checking professional readiness:', error);
+      console.error('❌ [ProfessionalReadinessChecker] Error checking professional readiness:', error);
       setIsReady(false);
       setShowModal(true); // Show modal on error to be safe
     } finally {
@@ -66,15 +77,32 @@ export const ProfessionalReadinessChecker = () => {
     }
   };
 
+  // Check readiness on mount and when user changes
   useEffect(() => {
-    console.log('[ProfessionalReadinessChecker] Effect triggered, user:', user?.id);
+    console.log('🔄 [ProfessionalReadinessChecker] useEffect triggered', {
+      hasUser: !!user,
+      userId: user?.id
+    });
+    
     if (user) {
       checkReadiness();
     } else {
-      console.log('[ProfessionalReadinessChecker] No user, setting loading to false');
+      console.log('🔍 [ProfessionalReadinessChecker] No user, setting loading to false');
       setIsLoading(false);
     }
   }, [user]);
+
+  // Add periodic refresh to catch data changes that may have happened elsewhere
+  useEffect(() => {
+    if (!user?.id) return;
+    
+    const interval = setInterval(() => {
+      console.log('⏰ [ProfessionalReadinessChecker] Periodic readiness check');
+      checkReadiness(true);
+    }, 30000); // Check every 30 seconds
+    
+    return () => clearInterval(interval);
+  }, [user?.id]);
 
   console.log('[ProfessionalReadinessChecker] Render state:', {
     isLoading,

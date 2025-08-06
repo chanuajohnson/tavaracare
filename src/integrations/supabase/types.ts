@@ -344,6 +344,60 @@ export type Database = {
         }
         Relationships: []
       }
+      automatic_assignments: {
+        Row: {
+          algorithm_version: string | null
+          caregiver_id: string
+          created_at: string | null
+          family_user_id: string
+          id: string
+          is_active: boolean | null
+          match_explanation: string | null
+          match_score: number
+          shift_compatibility_score: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          algorithm_version?: string | null
+          caregiver_id: string
+          created_at?: string | null
+          family_user_id: string
+          id?: string
+          is_active?: boolean | null
+          match_explanation?: string | null
+          match_score: number
+          shift_compatibility_score?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          algorithm_version?: string | null
+          caregiver_id?: string
+          created_at?: string | null
+          family_user_id?: string
+          id?: string
+          is_active?: boolean | null
+          match_explanation?: string | null
+          match_score?: number
+          shift_compatibility_score?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "automatic_assignments_caregiver_id_fkey"
+            columns: ["caregiver_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "automatic_assignments_family_user_id_fkey"
+            columns: ["family_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       calendar_events: {
         Row: {
           calendar_id: string
@@ -861,6 +915,69 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      caregiver_assignments: {
+        Row: {
+          admin_override_score: number | null
+          algorithm_version: string | null
+          assigned_by_admin_id: string | null
+          assignment_reason: string | null
+          assignment_type: string
+          care_plan_id: string | null
+          caregiver_id: string
+          created_at: string
+          family_user_id: string
+          id: string
+          is_active: boolean
+          match_explanation: string | null
+          match_score: number
+          notes: string | null
+          priority_level: number | null
+          shift_compatibility_score: number | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          admin_override_score?: number | null
+          algorithm_version?: string | null
+          assigned_by_admin_id?: string | null
+          assignment_reason?: string | null
+          assignment_type: string
+          care_plan_id?: string | null
+          caregiver_id: string
+          created_at?: string
+          family_user_id: string
+          id?: string
+          is_active?: boolean
+          match_explanation?: string | null
+          match_score?: number
+          notes?: string | null
+          priority_level?: number | null
+          shift_compatibility_score?: number | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          admin_override_score?: number | null
+          algorithm_version?: string | null
+          assigned_by_admin_id?: string | null
+          assignment_reason?: string | null
+          assignment_type?: string
+          care_plan_id?: string | null
+          caregiver_id?: string
+          created_at?: string
+          family_user_id?: string
+          id?: string
+          is_active?: boolean
+          match_explanation?: string | null
+          match_score?: number
+          notes?: string | null
+          priority_level?: number | null
+          shift_compatibility_score?: number | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       caregiver_chat_messages: {
         Row: {
@@ -1536,20 +1653,6 @@ export type Database = {
           user_type?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "feature_votes_feature_id_fkey"
-            columns: ["feature_id"]
-            isOneToOne: false
-            referencedRelation: "feature_lookup"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "feature_votes_feature_id_fkey"
-            columns: ["feature_id"]
-            isOneToOne: false
-            referencedRelation: "feature_statistics"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "feature_votes_feature_id_fkey"
             columns: ["feature_id"]
@@ -2910,6 +3013,7 @@ export type Database = {
           list_in_community_directory: boolean | null
           list_in_directory: boolean | null
           location: string | null
+          manual_match_assigned: boolean | null
           medical_conditions_experience: string[] | null
           onboarding_progress: Json | null
           other_certification: string | null
@@ -3003,6 +3107,7 @@ export type Database = {
           list_in_community_directory?: boolean | null
           list_in_directory?: boolean | null
           location?: string | null
+          manual_match_assigned?: boolean | null
           medical_conditions_experience?: string[] | null
           onboarding_progress?: Json | null
           other_certification?: string | null
@@ -3096,6 +3201,7 @@ export type Database = {
           list_in_community_directory?: boolean | null
           list_in_directory?: boolean | null
           location?: string | null
+          manual_match_assigned?: boolean | null
           medical_conditions_experience?: string[] | null
           onboarding_progress?: Json | null
           other_certification?: string | null
@@ -4330,56 +4436,83 @@ export type Database = {
       }
     }
     Views: {
-      daily_pmf_metrics: {
-        Row: {
-          daily_retained_users: number | null
-          date: string | null
-          family_active_users: number | null
-          family_dashboard_views: number | null
-          family_new_signups: number | null
-          matching_clicks_family: number | null
-          professional_active_users: number | null
-          professional_new_signups: number | null
-          subscription_clicks_family: number | null
-          unlock_clicks_family: number | null
-        }
-        Relationships: []
-      }
-      feature_lookup: {
-        Row: {
-          id: string | null
-          title: string | null
-        }
-        Insert: {
-          id?: string | null
-          title?: string | null
-        }
-        Update: {
-          id?: string | null
-          title?: string | null
-        }
-        Relationships: []
-      }
-      feature_statistics: {
-        Row: {
-          description: string | null
-          id: string | null
-          status: Database["public"]["Enums"]["feature_status"] | null
-          title: string | null
-          vote_count: number | null
-          voted_users: string[] | null
-        }
-        Relationships: []
-      }
+      [_ in never]: never
     }
     Functions: {
       admin_delete_user: {
+        Args: { target_user_id: string }
+        Returns: Json
+      }
+      admin_get_all_profiles: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          id: string
+          created_at: string
+          updated_at: string
+          role: Database["public"]["Enums"]["user_role"]
+          full_name: string
+          avatar_url: string
+          phone_number: string
+          address: string
+          location: string
+          professional_type: string
+          years_of_experience: string
+          care_types: string[]
+          specialized_care: string[]
+          available_for_matching: boolean
+          email: string
+        }[]
+      }
+      admin_get_all_profiles_secure: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          id: string
+          created_at: string
+          updated_at: string
+          role: Database["public"]["Enums"]["user_role"]
+          full_name: string
+          avatar_url: string
+          phone_number: string
+          address: string
+          location: string
+          professional_type: string
+          years_of_experience: string
+          care_types: string[]
+          specialized_care: string[]
+          available_for_matching: boolean
+          email: string
+        }[]
+      }
+      admin_get_user_journey_progress: {
+        Args: { target_user_id: string }
+        Returns: {
+          user_id: string
+          role: string
+          current_step: number
+          total_steps: number
+          completion_percentage: number
+          last_activity_at: string
+        }[]
+      }
+      calculate_and_update_journey_progress: {
+        Args: { target_user_id: string }
+        Returns: undefined
+      }
+      calculate_and_update_journey_progress_fixed: {
         Args: { target_user_id: string }
         Returns: undefined
       }
       calculate_customer_health_score: {
         Args: { target_user_id: string }
         Returns: undefined
+      }
+      calculate_unified_match_score: {
+        Args: { target_family_user_id: string; target_caregiver_id: string }
+        Returns: Json
+      }
+      can_access_professional_data: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
       }
       cancel_visit_booking: {
         Args: { booking_id: string; reason?: string }
@@ -4388,6 +4521,44 @@ export type Database = {
       cleanup_expired_whatsapp_codes: {
         Args: Record<PropertyKey, never>
         Returns: undefined
+      }
+      cleanup_stale_assignments: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
+      create_admin_assignment: {
+        Args: {
+          target_family_user_id: string
+          target_caregiver_id: string
+          calculated_match_score: number
+          admin_override_score?: number
+          assignment_reason?: string
+          assignment_notes?: string
+        }
+        Returns: string
+      }
+      create_automatic_assignment: {
+        Args: {
+          target_family_user_id: string
+          target_caregiver_id: string
+          calculated_match_score: number
+          calculated_shift_compatibility_score?: number
+          assignment_explanation?: string
+          algorithm_version_param?: string
+        }
+        Returns: string
+      }
+      create_unified_assignment: {
+        Args: {
+          target_family_user_id: string
+          target_caregiver_id: string
+          assignment_type_param: string
+          admin_override_score_param?: number
+          assignment_reason_param?: string
+          assignment_notes_param?: string
+          care_plan_id_param?: string
+        }
+        Returns: string
       }
       detect_medication_conflicts: {
         Args: {
@@ -4402,6 +4573,16 @@ export type Database = {
           administered_by_role: string
           status: string
           notes: string
+        }[]
+      }
+      detect_stale_assignments: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          assignment_type: string
+          assignment_id: string
+          family_user_id: string
+          caregiver_id: string
+          issue: string
         }[]
       }
       format_whatsapp_number: {
@@ -4424,6 +4605,59 @@ export type Database = {
         Args: { feature_id: string }
         Returns: number
       }
+      get_professional_accessible_family_profiles: {
+        Args: { professional_id: string }
+        Returns: {
+          id: string
+          full_name: string
+          role: Database["public"]["Enums"]["user_role"]
+        }[]
+      }
+      get_user_profile_secure: {
+        Args: { target_user_id: string }
+        Returns: {
+          id: string
+          created_at: string
+          updated_at: string
+          full_name: string
+          avatar_url: string
+          phone_number: string
+          address: string
+          role: Database["public"]["Enums"]["user_role"]
+          professional_type: string
+          years_of_experience: string
+          care_services: string[]
+          certifications: string[]
+          care_schedule: string
+          custom_schedule: string
+          preferred_work_locations: string
+          hourly_rate: string
+          commute_mode: string
+          languages: string[]
+          emergency_contact: string
+          background_check: boolean
+          additional_notes: string
+          first_name: string
+          last_name: string
+          care_recipient_name: string
+          relationship: string
+          care_types: string[]
+          special_needs: string[]
+          budget_preferences: string
+          caregiver_type: string
+          caregiver_preferences: string
+          preferred_contact_method: string
+          location: string
+          specialized_care: string[]
+          available_for_matching: boolean
+          video_available: boolean
+          visit_scheduling_status: string
+          visit_payment_status: string
+          visit_payment_reference: string
+          visit_notes: string
+          last_login_at: string
+        }[]
+      }
       has_user_voted_for_feature: {
         Args: { feature_id: string; user_id: string }
         Returns: boolean
@@ -4431,6 +4665,14 @@ export type Database = {
       increment_verification_attempts: {
         Args: { phone_input: string }
         Returns: undefined
+      }
+      is_current_user_admin: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
+      recalculate_all_journey_progress: {
+        Args: Record<PropertyKey, never>
+        Returns: string
       }
       reschedule_visit_booking: {
         Args: {
@@ -4442,12 +4684,30 @@ export type Database = {
         }
         Returns: undefined
       }
+      reset_user_assignments: {
+        Args: { target_family_user_id: string }
+        Returns: undefined
+      }
+      sync_admin_role_to_jwt: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
+      trigger_automatic_assignment_process: {
+        Args: { target_family_user_id?: string }
+        Returns: string
+      }
       update_care_plan_status: {
         Args: { plan_id: string; new_status: string }
         Returns: undefined
       }
       update_site_visit_status: {
         Args: { plan_id: string; new_status: string }
+        Returns: undefined
+      }
+      update_user_profile: {
+        Args:
+          | { profile_data: Json }
+          | { user_id_param: string; profile_data: Json }
         Returns: undefined
       }
       update_video_availability: {

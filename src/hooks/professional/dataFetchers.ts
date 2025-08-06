@@ -3,30 +3,55 @@ import { supabase } from '@/lib/supabase';
 import { ProfessionalDocument, CareTeamAssignment, ProfileData } from './types';
 
 export const fetchProfileData = async (userId: string): Promise<ProfileData | null> => {
-  console.log('🔍 Fetching profile data for userId:', userId);
+  console.log('🔍 Fetching profile data for userId (using secure function):', userId);
   
-  const { data: profile, error: profileError } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('id', userId)
-    .maybeSingle();
+  try {
+    // Use the secure function to bypass RLS recursion
+    const { data: profilesData, error: profileError } = await supabase
+      .rpc('get_user_profile_secure', { target_user_id: userId });
 
-  if (profileError) {
-    console.error('❌ Profile fetch error:', profileError);
-    throw profileError;
+    if (profileError) {
+      console.error('❌ Profile fetch error:', profileError);
+      throw profileError;
+    }
+
+    // The RPC returns an array, get the first item
+    const profile = profilesData && profilesData.length > 0 ? profilesData[0] : null;
+
+    console.log('👤 Profile data fetched via secure function:', {
+      hasProfile: !!profile,
+      professionalType: profile?.professional_type,
+      yearsExperience: profile?.years_of_experience,
+      certificationsArray: profile?.certifications,
+      certificationsCount: profile?.certifications?.length || 0,
+      careScheduleArray: profile?.care_schedule,
+      careScheduleLength: profile?.care_schedule?.length || 0
+    });
+
+    return profile;
+  } catch (error) {
+    console.error('❌ Secure profile fetch failed, trying fallback:', error);
+    
+    // Fallback to direct table access (in case function fails)
+    const { data: profile, error: fallbackError } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', userId)
+      .maybeSingle();
+
+    if (fallbackError) {
+      console.error('❌ Fallback profile fetch error:', fallbackError);
+      throw fallbackError;
+    }
+
+    console.log('👤 Profile data fetched via fallback:', {
+      hasProfile: !!profile,
+      professionalType: profile?.professional_type,
+      yearsExperience: profile?.years_of_experience
+    });
+
+    return profile;
   }
-
-  console.log('👤 Profile data fetched:', {
-    hasProfile: !!profile,
-    professionalType: profile?.professional_type,
-    yearsExperience: profile?.years_of_experience,
-    certificationsArray: profile?.certifications,
-    certificationsCount: profile?.certifications?.length || 0,
-    careScheduleArray: profile?.care_schedule,
-    careScheduleLength: profile?.care_schedule?.length || 0
-  });
-
-  return profile;
 };
 
 export const fetchDocuments = async (userId: string): Promise<ProfessionalDocument[]> => {

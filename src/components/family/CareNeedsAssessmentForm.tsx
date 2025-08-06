@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
+import { useSearchParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -11,6 +12,7 @@ import { useAuth } from "@/components/providers/AuthProvider";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import { Brain, User, Phone, Heart, AlertCircle, Calendar, Home, Car, Sparkles } from "lucide-react";
+import { applyPrefillDataToForm } from '@/utils/chat/prefillReader';
 
 interface CareNeedsFormData {
   // Header fields
@@ -115,16 +117,46 @@ const initialFormData: CareNeedsFormData = {
 
 export const CareNeedsAssessmentForm = () => {
   const { user } = useAuth();
+  const [searchParams] = useSearchParams();
+  const isEditMode = searchParams.get('mode') === 'edit';
   const [formData, setFormData] = useState<CareNeedsFormData>(initialFormData);
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [existingAssessment, setExistingAssessment] = useState(false);
+  const [prefillApplied, setPrefillApplied] = useState(false);
 
   useEffect(() => {
     if (user) {
       loadExistingAssessment();
     }
   }, [user]);
+
+  // Apply prefill data from chat sessions
+  useEffect(() => {
+    if (!prefillApplied && user) {
+      console.log('Checking for care assessment prefill data...');
+      
+      const setFormValue = (field: string, value: any) => {
+        console.log(`Setting care assessment field ${field} to:`, value);
+        setFormData(prev => ({ ...prev, [field]: value }));
+      };
+      
+      const hasPrefill = applyPrefillDataToForm(
+        setFormValue, 
+        { 
+          logDataReceived: true,
+          formType: 'care_assessment'
+        }
+      );
+      
+      if (hasPrefill) {
+        console.log('Successfully applied prefill data to care assessment form');
+        toast.success('Your chat information has been applied to this form');
+      }
+      
+      setPrefillApplied(true);
+    }
+  }, [prefillApplied, user]);
 
   const loadExistingAssessment = async () => {
     if (!user) return;
@@ -148,6 +180,11 @@ export const CareNeedsAssessmentForm = () => {
           ...initialFormData,
           ...data,
         });
+        
+        // Show feedback when data is loaded for editing
+        if (isEditMode) {
+          toast.success('Care assessment loaded for editing');
+        }
       }
     } catch (error) {
       console.error("Error loading assessment:", error);
@@ -296,10 +333,13 @@ export const CareNeedsAssessmentForm = () => {
           <div className="mb-8">
             <h1 className="text-3xl font-bold text-primary-900 mb-2 flex items-center gap-2">
               <Brain className="h-8 w-8 text-primary" />
-              Client Care Needs Breakdown
+              {isEditMode ? 'Edit Care Needs Assessment' : 'Client Care Needs Breakdown'}
             </h1>
             <p className="text-lg text-gray-600">
-              Help us understand your loved one's specific care requirements to match you with the right caregiver.
+              {isEditMode 
+                ? 'Update your loved one\'s care requirements and preferences.'
+                : 'Help us understand your loved one\'s specific care requirements to match you with the right caregiver.'
+              }
             </p>
           </div>
 

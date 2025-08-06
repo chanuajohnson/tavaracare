@@ -3,15 +3,18 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { MessageSquare, Users, Calendar, TrendingUp, BarChart, Clock, Video, MessageCircle, Settings } from "lucide-react";
+import { MessageSquare, Users, Calendar, TrendingUp, BarChart, Clock, Video, MessageCircle, Settings, UserCheck } from "lucide-react";
 import { AdminUserManagement } from "@/components/admin/AdminUserManagement";
 import { FeatureInterestTracker } from "@/components/admin/FeatureInterestTracker";
 import { FeedbackManagement } from "@/components/admin/FeedbackManagement";
+import { UnifiedMatchingInterface } from "@/components/admin/UnifiedMatchingInterface";
 import { supabase } from '@/integrations/supabase/client';
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
   const [pendingSchedulingCount, setPendingSchedulingCount] = useState(0);
+  const [showMatchingInterface, setShowMatchingInterface] = useState(false);
+  const [pendingMatchesCount, setPendingMatchesCount] = useState(0);
 
   const fetchPendingSchedulingCount = async () => {
     try {
@@ -28,11 +31,30 @@ export default function AdminDashboard() {
     }
   };
 
+  const fetchPendingMatchesCount = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id', { count: 'exact' })
+        .eq('role', 'family')
+        .is('manual_match_assigned', false);
+
+      if (error) throw error;
+      setPendingMatchesCount(data?.length || 0);
+    } catch (error) {
+      console.error('Error fetching pending matches count:', error);
+    }
+  };
+
   useEffect(() => {
     fetchPendingSchedulingCount();
+    fetchPendingMatchesCount();
     
-    // Refresh count every 30 seconds
-    const interval = setInterval(fetchPendingSchedulingCount, 30000);
+    // Refresh counts every 30 seconds
+    const interval = setInterval(() => {
+      fetchPendingSchedulingCount();
+      fetchPendingMatchesCount();
+    }, 30000);
     return () => clearInterval(interval);
   }, []);
 
@@ -69,6 +91,10 @@ export default function AdminDashboard() {
     navigate('/admin/shift-management');
   };
 
+  const handleMatchingClick = () => {
+    setShowMatchingInterface(true);
+  };
+
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="mb-8">
@@ -79,7 +105,20 @@ export default function AdminDashboard() {
       </div>
 
       {/* Quick Actions */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-7 gap-4 mb-8">
+        <Button
+          onClick={handleMatchingClick}
+          className="h-20 flex flex-col items-center justify-center gap-2 relative"
+          variant="outline"
+        >
+          <UserCheck className="h-6 w-6" />
+          <span className="text-sm font-medium text-center leading-tight">Caregiver Matching</span>
+          {pendingMatchesCount > 0 && (
+            <div className="absolute -top-1 -right-1 bg-blue-500 text-white text-xs rounded-full w-6 h-6 flex items-center justify-center">
+              {pendingMatchesCount}
+            </div>
+          )}
+        </Button>
         <Button
           onClick={handleHeroVideoClick}
           className="h-20 flex flex-col items-center justify-center gap-2"
@@ -200,6 +239,17 @@ export default function AdminDashboard() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Unified Matching Interface Modal */}
+      {showMatchingInterface && (
+        <UnifiedMatchingInterface
+          onClose={() => setShowMatchingInterface(false)}
+          onMatchAssigned={() => {
+            setShowMatchingInterface(false);
+            fetchPendingMatchesCount();
+          }}
+        />
+      )}
     </div>
   );
 }

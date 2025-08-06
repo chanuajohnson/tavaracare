@@ -3,9 +3,7 @@ import React from 'react';
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { CheckCircle2, Clock, Circle } from "lucide-react";
-import { useUserSpecificProgress } from "@/hooks/useUserSpecificProgress";
-import { useSharedFamilyJourneyData } from "@/hooks/useSharedFamilyJourneyData";
-import { useSpecificUserProfessionalProgress } from "@/hooks/useSpecificUserProfessionalProgress";
+import { useStoredJourneyProgress } from "@/hooks/useStoredJourneyProgress";
 import type { UserRole } from "@/types/userRoles";
 
 interface MiniJourneyProgressProps {
@@ -14,79 +12,93 @@ interface MiniJourneyProgressProps {
 }
 
 export const MiniJourneyProgress: React.FC<MiniJourneyProgressProps> = ({ userId, userRole }) => {
-  // Use user-specific hooks that take userId parameter
-  const familyProgress = useSharedFamilyJourneyData(userRole === 'family' ? userId : '');
-  const professionalProgress = useSpecificUserProfessionalProgress(userRole === 'professional' ? userId : '');
-  const otherProgress = useUserSpecificProgress(
-    userRole !== 'family' && userRole !== 'professional' ? userId : '', 
-    userRole
-  );
+  console.log('🎯 MiniJourneyProgress rendering for:', { userId, userRole });
+  
+  const { loading, completionPercentage, nextStep, steps, currentStage } = useStoredJourneyProgress(userId, userRole);
 
-  // Choose the appropriate progress data based on user role
-  const progressData = userRole === 'family' 
-    ? familyProgress 
-    : userRole === 'professional'
-    ? {
-        loading: professionalProgress.loading,
-        completionPercentage: professionalProgress.completionPercentage,
-        nextStep: professionalProgress.nextStep,
-        steps: professionalProgress.steps
-      }
-    : otherProgress;
-
-  const { loading, completionPercentage, nextStep, steps } = progressData;
+  console.log('📊 MiniJourneyProgress data received:', {
+    userId,
+    userRole,
+    loading,
+    completionPercentage,
+    stepsCount: steps.length,
+    currentStage,
+    nextStepTitle: nextStep?.title
+  });
 
   if (loading) {
     return (
       <div className="space-y-2">
-        <div className="flex justify-between items-center text-sm">
-          <span className="text-gray-500">Loading progress...</span>
+        <div className="flex justify-between items-center">
+          <span className="text-sm text-gray-500">Loading progress...</span>
+          <div className="h-4 w-12 bg-gray-200 rounded animate-pulse"></div>
         </div>
-        <Progress value={0} className="h-2" />
+        <div className="h-2 w-full bg-gray-200 rounded animate-pulse"></div>
       </div>
     );
   }
 
-  const getStatusColor = () => {
-    if (completionPercentage >= 100) return 'text-green-600';
-    if (completionPercentage >= 50) return 'text-blue-600';
-    if (completionPercentage > 0) return 'text-yellow-600';
-    return 'text-gray-600';
+  const getStageColor = (stage: string) => {
+    switch (stage) {
+      case 'foundation': return 'bg-blue-500';
+      case 'scheduling': return 'bg-yellow-500';
+      case 'trial': return 'bg-orange-500';
+      case 'conversion': return 'bg-green-500';
+      default: return 'bg-gray-500';
+    }
   };
 
-  const getStatusIcon = () => {
-    if (completionPercentage >= 100) return <CheckCircle2 className="h-4 w-4 text-green-600" />;
-    if (completionPercentage >= 50) return <Clock className="h-4 w-4 text-blue-600" />;
-    return <Circle className="h-4 w-4 text-yellow-600" />;
+  const getStageLabel = (stage: string) => {
+    switch (stage) {
+      case 'foundation': return 'Foundation';
+      case 'scheduling': return 'Scheduling';
+      case 'trial': return 'Trial';
+      case 'conversion': return 'Active';
+      default: return 'Starting';
+    }
   };
-
-  const getProgressLabel = () => {
-    if (completionPercentage >= 100) return "Journey Complete";
-    if (nextStep) return nextStep.title;
-    return "Getting Started";
-  };
-
-  const completedSteps = steps.filter(step => step.completed).length;
-  const totalSteps = steps.length;
 
   return (
     <div className="space-y-2">
-      <div className="flex items-center justify-between text-sm">
+      <div className="flex justify-between items-center">
         <div className="flex items-center gap-2">
-          {getStatusIcon()}
-          <span className={getStatusColor()}>
-            {getProgressLabel()}
+          <Badge variant="secondary" className={`${getStageColor(currentStage)} text-white`}>
+            {getStageLabel(currentStage)}
+          </Badge>
+          <span className="text-sm text-gray-600">
+            {completionPercentage}% Complete
           </span>
         </div>
-        <Badge variant="outline" className="text-xs">
-          {completedSteps}/{totalSteps}
-        </Badge>
+        <div className="flex items-center gap-1 text-xs text-gray-500">
+          {completionPercentage > 0 ? (
+            <CheckCircle2 className="h-3 w-3 text-green-500" />
+          ) : (
+            <Clock className="h-3 w-3 text-gray-400" />
+          )}
+          {steps.length > 0 ? `${steps.filter(s => s.completed).length}/${steps.length} steps` : 'In Progress'}
+        </div>
       </div>
+      
       <Progress value={completionPercentage} className="h-2" />
-      <div className="flex items-center justify-between text-xs text-muted-foreground">
-        <span>{completionPercentage}% complete</span>
-        <span className="capitalize">{userRole} Journey</span>
-      </div>
+      
+      {nextStep && (
+        <div className="text-xs text-gray-500">
+          Next: {nextStep.title}
+        </div>
+      )}
+      
+      {completionPercentage === 0 && (
+        <div className="text-xs text-gray-400">
+          No progress recorded yet
+        </div>
+      )}
+      
+      {/* Debug info in development */}
+      {process.env.NODE_ENV === 'development' && (
+        <div className="text-xs text-blue-500 border border-blue-200 rounded p-1">
+          Debug: userId={userId.slice(0,8)}..., role={userRole}, progress={completionPercentage}%
+        </div>
+      )}
     </div>
   );
 };

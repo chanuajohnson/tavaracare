@@ -12,7 +12,7 @@ export const FamilyReadinessChecker = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
 
-  const checkReadiness = async () => {
+  const checkReadiness = async (forceRefresh = false) => {
     if (!user?.id) {
       setIsLoading(false);
       return;
@@ -21,6 +21,12 @@ export const FamilyReadinessChecker = () => {
     try {
       setIsLoading(true);
       
+      console.log('🔍 [FamilyReadinessChecker] Starting readiness check', {
+        userId: user.id,
+        forceRefresh,
+        timestamp: new Date().toISOString()
+      });
+      
       // Fetch family data in parallel
       const [profile, assessment, story] = await Promise.all([
         fetchFamilyProfile(user.id),
@@ -28,21 +34,33 @@ export const FamilyReadinessChecker = () => {
         fetchCareRecipientProfile(user.id)
       ]);
 
+      console.log('📊 [FamilyReadinessChecker] Data fetched', {
+        profile: profile ? 'exists' : 'null',
+        assessment: assessment ? 'exists' : 'null', 
+        story: story ? 'exists' : 'null'
+      });
+
       // Use completion checkers to determine readiness
       const status = getFamilyReadinessStatus(profile, assessment, story);
       
-      console.log('Family readiness check:', {
+      console.log('✅ [FamilyReadinessChecker] Readiness status determined:', {
         userId: user.id,
         registrationComplete: status.registrationComplete,
         careAssessmentComplete: status.careAssessmentComplete,
         storyComplete: status.storyComplete,
-        allReady: status.allReady
+        allReady: status.allReady,
+        shouldShowModal: !status.allReady
       });
       
       setIsReady(status.allReady);
       setShowModal(!status.allReady);
+      
+      // If user is ready but modal was showing, log successful transition
+      if (status.allReady && showModal) {
+        console.log('🎉 [FamilyReadinessChecker] User became ready! Hiding modal.');
+      }
     } catch (error) {
-      console.error('Error checking family readiness:', error);
+      console.error('❌ [FamilyReadinessChecker] Error checking family readiness:', error);
       setIsReady(false);
       setShowModal(true);
     } finally {
@@ -50,11 +68,21 @@ export const FamilyReadinessChecker = () => {
     }
   };
 
+  // Check readiness on mount and when user changes
   useEffect(() => {
+    console.log('🔄 [FamilyReadinessChecker] useEffect triggered', {
+      hasUser: !!user,
+      userId: user?.id
+    });
+    
     if (user) {
-      checkReadiness();
+      checkReadiness(true); // Force refresh to pick up fixed data fetching
+    } else {
+      setIsLoading(false);
     }
   }, [user]);
+
+  // Remove aggressive periodic refresh - now only checks on mount and user changes
 
   // Show loading state while checking readiness
   if (isLoading) {

@@ -1,146 +1,105 @@
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Users, Sparkles, Calendar, MessageCircle } from "lucide-react";
-import { SubscriptionFeatureLink } from "@/components/subscription/SubscriptionFeatureLink";
-import { useCaregiverMatches } from "@/hooks/useCaregiverMatches";
-import { CaregiverMatchCard } from "./CaregiverMatchCard";
+import { ArrowRight, Users, Calendar, MessageCircle, Eye } from "lucide-react";
+import { useUnifiedMatches } from "@/hooks/useUnifiedMatches";
+import { SimpleMatchCard } from "./SimpleMatchCard";
 import { CaregiverChatModal } from "./CaregiverChatModal";
-import { CaregiverMatchingModal } from "./CaregiverMatchingModal";
+import { MatchBrowserModal } from "./MatchBrowserModal";
+import { MatchDetailModal } from "./MatchDetailModal";
+import { MatchLoadingState } from "@/components/ui/match-loading-state";
 
 export const DashboardCaregiverMatches = () => {
   const { user } = useAuth();
-  const { caregivers, isLoading: hookLoading } = useCaregiverMatches(true);
+  const { matches, isLoading } = useUnifiedMatches('family', false); // Show all matches
   const [showChatModal, setShowChatModal] = useState(false);
-  const [showMatchingModal, setShowMatchingModal] = useState(false);
-  
-  // Single loading state that ensures consistent behavior
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    if (user) {
-      setIsLoading(true);
-      
-      // Set minimum loading time of 2.5 seconds to prevent flashing
-      // This ensures we don't show content until the timer completes
-      const loadingTimer = setTimeout(() => {
-        setIsLoading(false);
-      }, 2500);
-
-      return () => clearTimeout(loadingTimer);
-    }
-  }, [user]);
+  const [showBrowserModal, setShowBrowserModal] = useState(false);
+  const [showDetailModal, setShowDetailModal] = useState(false);
+  const [selectedCaregiver, setSelectedCaregiver] = useState<any>(null);
+  const [isLoadingComplete, setIsLoadingComplete] = useState(false);
 
   if (!user) {
     return null;
   }
 
-  const bestMatch = caregivers[0];
+  const displayMatches = matches.slice(0, 6); // Show top 6 matches on dashboard
+  const bestMatch = matches[0];
 
-  const getCompatibilityColor = (score: number) => {
-    if (score >= 80) return "text-green-600";
-    if (score >= 60) return "text-yellow-600";
-    return "text-red-600";
+  const handleStartChat = () => {
+    setSelectedCaregiver(bestMatch);
+    setShowChatModal(true);
   };
 
-  const getCompatibilityIcon = (score: number) => {
-    if (score >= 80) return "🟢";
-    if (score >= 60) return "🟡";
-    return "🔴";
+  const handleViewDetails = () => {
+    setSelectedCaregiver(bestMatch);
+    setShowDetailModal(true);
   };
 
   return (
     <>
-      <Card className="mb-8 border-l-4 border-l-primary">
+      <Card id="caregiver-matches-section" className="mb-8 border-l-4 border-l-primary">
         <CardHeader className="flex flex-row items-center justify-between pb-2">
           <div>
             <CardTitle className="text-xl flex items-center gap-2">
-              Your Caregiver Match
+              Your Caregiver Matches
               <MessageCircle className="h-5 w-5 text-blue-600" />
             </CardTitle>
             <p className="text-sm text-gray-500">
-              1 caregiver matches your care needs and schedule
+              {matches.length} caregiver{matches.length === 1 ? '' : 's'} match your care needs and schedule
             </p>
           </div>
-          <SubscriptionFeatureLink
-            featureType="Premium Match Features"
-            returnPath="/family/matching"
-            referringPagePath="/dashboard/family"
-            referringPageLabel="Family Dashboard"
-            variant="default"
-          >
+          <Button variant="outline" onClick={() => setShowBrowserModal(true)}>
             <span>View All Matches</span>
             <ArrowRight className="ml-2 h-4 w-4" />
-          </SubscriptionFeatureLink>
+          </Button>
         </CardHeader>
         
         <CardContent>
-          {isLoading ? (
-            <div className="flex flex-col justify-center items-center py-8 space-y-4">
-              {/* Magical loading with sparkles */}
-              <div className="relative">
-                <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-200 border-t-blue-600"></div>
-                <Sparkles className="absolute -top-1 -right-1 h-5 w-5 text-blue-500 animate-pulse" />
-                <Sparkles className="absolute -bottom-1 -left-1 h-3 w-3 text-purple-500 animate-pulse delay-150" />
-                <Sparkles className="absolute top-1/2 -left-3 h-2 w-2 text-pink-500 animate-pulse delay-300" />
-              </div>
-              <div className="text-center space-y-1">
-                <p className="text-lg font-semibold text-blue-600">
-                  Finding your perfect match! ✨
-                </p>
-                <p className="text-sm text-gray-600">
-                  Analyzing caregivers and schedule compatibility...
-                </p>
-              </div>
-            </div>
-          ) : bestMatch ? (
+          {(isLoading || !isLoadingComplete) ? (
+            <MatchLoadingState 
+              duration={2000}
+              onComplete={() => setIsLoadingComplete(true)}
+            />
+          ) : displayMatches.length > 0 ? (
             <div className="space-y-4">
-              <CaregiverMatchCard
-                caregiver={bestMatch}
-                returnPath="/family/matching"
-                referringPagePath="/dashboard/family"
-                referringPageLabel="Family Dashboard"
-                showUnlockButton={false}
-                onStartChat={() => setShowChatModal(true)}
-              />
-              
-              {/* Enhanced compatibility display */}
-              {bestMatch.shift_compatibility_score !== undefined && (
-                <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-medium text-blue-800 flex items-center gap-1">
-                      <Calendar className="h-4 w-4" />
-                      Schedule Compatibility
-                    </span>
-                    <span className={`text-sm font-bold ${getCompatibilityColor(bestMatch.shift_compatibility_score)}`}>
-                      {getCompatibilityIcon(bestMatch.shift_compatibility_score)} {bestMatch.shift_compatibility_score}%
-                    </span>
-                  </div>
-                  {bestMatch.match_explanation && (
-                    <p className="text-xs text-blue-700">{bestMatch.match_explanation}</p>
-                  )}
-                </div>
-              )}
+              <div className="grid gap-4">
+                {displayMatches.map((match, index) => (
+                  <SimpleMatchCard
+                    key={match.id}
+                    caregiver={match}
+                    variant="dashboard"
+                    isBestMatch={index === 0}
+                    onChatClick={() => {
+                      setSelectedCaregiver(match);
+                      setShowChatModal(true);
+                    }}
+                    onViewDetails={() => {
+                      setSelectedCaregiver(match);
+                      setShowDetailModal(true);
+                    }}
+                  />
+                ))}
+              </div>
               
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <Button 
                   variant="default" 
                   className="w-full"
-                  onClick={() => setShowChatModal(true)}
+                  onClick={handleStartChat}
                 >
                   <MessageCircle className="h-4 w-4 mr-2" />
-                  Chat with Match
+                  Chat with Best Match
                 </Button>
                 
                 <Button 
                   variant="outline" 
                   className="w-full"
-                  onClick={() => setShowMatchingModal(true)}
+                  onClick={() => setShowBrowserModal(true)}
                 >
-                  View Full Match
-                  <ArrowRight className="ml-2 h-4 w-4" />
+                  <Eye className="h-4 w-4 mr-2" />
+                  View All {matches.length} Matches
                 </Button>
               </div>
             </div>
@@ -151,7 +110,7 @@ export const DashboardCaregiverMatches = () => {
               <p className="text-gray-500 mt-2 mb-4">
                 Complete your care assessment to get personalized caregiver matches.
               </p>
-              <Button variant="outline" onClick={() => setShowMatchingModal(true)}>
+              <Button variant="outline" onClick={() => setShowBrowserModal(true)}>
                 Find Matches
               </Button>
             </div>
@@ -159,21 +118,37 @@ export const DashboardCaregiverMatches = () => {
         </CardContent>
       </Card>
 
-      {/* Chat Modal */}
-      {bestMatch && (
+      {selectedCaregiver && (
         <CaregiverChatModal
           open={showChatModal}
           onOpenChange={setShowChatModal}
-          caregiver={bestMatch}
+          caregiver={selectedCaregiver}
         />
       )}
 
-      {/* Matching Modal */}
-      <CaregiverMatchingModal
-        open={showMatchingModal}
-        onOpenChange={setShowMatchingModal}
-        referringPagePath="/dashboard/family"
-        referringPageLabel="Family Dashboard"
+      <MatchBrowserModal
+        open={showBrowserModal}
+        onOpenChange={setShowBrowserModal}
+        onSelectMatch={(id) => {
+          const caregiver = matches.find(m => m.id === id);
+          setSelectedCaregiver(caregiver);
+          setShowDetailModal(true);
+        }}
+        onStartChat={(id) => {
+          const caregiver = matches.find(m => m.id === id) || bestMatch;
+          setSelectedCaregiver(caregiver);
+          setShowChatModal(true);
+        }}
+      />
+
+      <MatchDetailModal
+        open={showDetailModal}
+        onOpenChange={setShowDetailModal}
+        caregiver={selectedCaregiver}
+        onStartChat={() => {
+          setShowDetailModal(false);
+          setShowChatModal(true);
+        }}
       />
     </>
   );

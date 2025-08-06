@@ -3,18 +3,31 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { toast } from 'sonner';
+import { useStoredJourneyProgress } from './useStoredJourneyProgress';
+import { useSharedFamilyJourneyData } from './useSharedFamilyJourneyData';
 
 export const useEnhancedJourneyProgress = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  
+  // Check if user is anonymous early
+  const isAnonymous = !user?.id;
+  
+  // Use stored progress as primary source (like admin dashboard) - only if not anonymous
+  const storedProgress = useStoredJourneyProgress(
+    isAnonymous ? '' : (user?.id || ''), 
+    isAnonymous ? 'family' : (user?.user_metadata?.role || 'family')
+  );
+  const sharedJourneyData = useSharedFamilyJourneyData(isAnonymous ? '' : (user?.id || ''));
+  
   const [loading, setLoading] = useState(true);
-  const [steps, setSteps] = useState<any[]>([]);
   const [profile, setProfile] = useState<any>(null);
   const [carePlans, setCarePlans] = useState<any[]>([]);
   const [careAssessment, setCareAssessment] = useState<any>(null);
   const [careRecipient, setCareRecipient] = useState<any>(null);
   const [visitDetails, setVisitDetails] = useState<any>(null);
   const [trialPayments, setTrialPayments] = useState<any[]>([]);
+  const [journeyProgress, setJourneyProgress] = useState<any>(null);
   
   // Modal states
   const [showScheduleModal, setShowScheduleModal] = useState(false);
@@ -211,7 +224,7 @@ export const useEnhancedJourneyProgress = () => {
 
   const fetchUserData = async () => {
     // Handle anonymous users immediately
-    if (!user?.id) {
+    if (isAnonymous) {
       setLoading(false);
       return;
     }
@@ -219,7 +232,7 @@ export const useEnhancedJourneyProgress = () => {
     try {
       setLoading(true);
       
-      // Fetch profile data
+      // Fetch profile data directly (own profile access is allowed)
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .select('*')
@@ -231,6 +244,36 @@ export const useEnhancedJourneyProgress = () => {
       } else {
         setProfile(profileData);
         console.log('Profile data loaded:', profileData);
+
+        // Also try to get journey progress from the dedicated table
+        const { data: journeyData, error: journeyError } = await supabase
+          .from('user_journey_progress')
+          .select('*')
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+        if (journeyError) {
+          console.log('❌ Error fetching journey progress data:', journeyError);
+          setJourneyProgress(null);
+        } else if (journeyData) {
+          console.log('✅ Journey progress data loaded from database:', {
+            completion_percentage: journeyData.completion_percentage,
+            current_step: journeyData.current_step,
+            total_steps: journeyData.total_steps,
+            completed_steps: journeyData.completed_steps
+          });
+          
+          // Check if the stored data is outdated (all zeros)
+          if (journeyData.completion_percentage === 0 && journeyData.current_step <= 1) {
+            console.log('⚠️ Stored progress data appears outdated, will use calculated fallback');
+            setJourneyProgress(null); // Force fallback to step calculation
+          } else {
+            setJourneyProgress(journeyData);
+          }
+        } else {
+          console.log('ℹ️ No journey progress data found in database, will calculate from steps');
+          setJourneyProgress(null);
+        }
       }
 
       // Fetch care plans
@@ -311,12 +354,201 @@ export const useEnhancedJourneyProgress = () => {
     fetchUserData();
   }, [user?.id]);
 
+  // Merge shared journey data (rich step definitions) with stored progress completion data
+  const getStepsData = () => {
+    // For anonymous users, return mock data immediately
+    if (isAnonymous) {
+      const mockSteps = generateMockStepsForAnonymous();
+      return {
+        steps: mockSteps,
+        completionPercentage: 8, // 1 completed step out of 12
+        totalSteps: 12,
+        completedSteps: 1,
+        nextStep: mockSteps.find(step => !step.completed && step.accessible) || mockSteps[1],
+        currentStage: 'foundation',
+        loading: false
+      };
+    }
+    
+    // If we have shared journey data with rich step definitions, use those as the base
+    if (!sharedJourneyData.loading && sharedJourneyData.steps && sharedJourneyData.steps.length > 0) {
+      const richSteps = sharedJourneyData.steps;
+      
+      // If we also have stored progress data, merge the completion states
+      if (!storedProgress.loading && storedProgress.steps && storedProgress.steps.length > 0) {
+        console.log('✅ Merging rich step definitions with stored progress completion:', {
+          richStepsCount: richSteps.length,
+          storedCompletionPercentage: storedProgress.completionPercentage,
+          storedCompletedSteps: storedProgress.completedSteps
+        });
+        
+        // Create a map of completion status from stored progress
+        const storedCompletionMap = new Map();
+        storedProgress.steps.forEach((step, index) => {
+          storedCompletionMap.set(index + 1, step.completed);
+        });
+        
+        // Merge rich step definitions with stored completion status
+        const mergedSteps = richSteps.map(step => ({
+          ...step,
+          id: String(step.id),
+          step_number: step.id,
+          icon_name: 'User',
+          tooltip_content: step.description,
+          detailed_explanation: step.description,
+          time_estimate_minutes: 15,
+          is_optional: step.optional || false,
+          accessible: step.accessible || false,
+          completed: storedCompletionMap.get(step.id) || step.completed,
+            action: () => {
+              const isCompleted = storedCompletionMap.get(step.id) || step.completed;
+              console.log(`🔘 Action triggered for step ${step.id}, completed: ${isCompleted}`);
+              // Basic navigation logic based on step
+              try {
+                switch(step.id) {
+                  case 1:
+                    // Add edit parameter if step is completed to trigger prefill
+                    const editParam = isCompleted ? '?edit=true' : '';
+                    console.log(`🚀 Navigating to: /registration/family${editParam}`);
+                    navigate(`/registration/family${editParam}`);
+                    break;
+                  case 2:
+                    // Add edit parameter if step is completed to trigger prefill
+                    const assessmentEditParam = isCompleted ? '?mode=edit' : '';
+                    console.log(`🚀 Navigating to: /family/care-assessment${assessmentEditParam}`);
+                    navigate(`/family/care-assessment${assessmentEditParam}`);
+                    break;
+                  case 3:
+                    // Add edit parameter if step is completed to trigger prefill
+                    const storyEditParam = isCompleted ? '?edit=true' : '';
+                    console.log(`🚀 Navigating to: /family/story${storyEditParam}`);
+                    navigate(`/family/story${storyEditParam}`);
+                    break;
+                  default:
+                    console.log(`No navigation defined for step ${step.id}`);
+                }
+              } catch (error) {
+                console.error(`❌ Navigation error for step ${step.id}:`, error);
+                toast.error('Navigation failed. Please try again.');
+              }
+            }
+        }));
+        
+        return {
+          steps: mergedSteps,
+          completionPercentage: storedProgress.completionPercentage,
+          totalSteps: richSteps.length,
+          completedSteps: storedProgress.completedSteps,
+          nextStep: mergedSteps.find(step => !step.completed && step.accessible),
+          currentStage: sharedJourneyData.journeyStage,
+          loading: false
+        };
+      }
+      
+      // Use shared journey data directly if no stored progress
+      console.log('📋 Using shared journey data directly:', {
+        totalSteps: richSteps.length,
+        completionPercentage: sharedJourneyData.completionPercentage
+      });
+      
+      // Add required properties to rich steps for components
+      const enhancedRichSteps = richSteps.map(step => ({
+        ...step,
+        id: String(step.id),
+        step_number: step.id,
+        icon_name: 'User',
+        tooltip_content: step.description,
+        detailed_explanation: step.description,
+        time_estimate_minutes: 15,
+        is_optional: step.optional || false,
+        accessible: step.accessible || false,
+        action: () => {
+          console.log(`🔘 Action triggered for step ${step.id}, completed: ${step.completed}`);
+          // Basic navigation logic based on step
+          try {
+            switch(step.id) {
+              case 1:
+                // Add edit parameter if step is completed to trigger prefill
+                const editParam = step.completed ? '?edit=true' : '';
+                console.log(`🚀 Navigating to: /registration/family${editParam}`);
+                navigate(`/registration/family${editParam}`);
+                break;
+              case 2:
+                // Add edit parameter if step is completed to trigger prefill
+                const assessmentEditParam = step.completed ? '?mode=edit' : '';
+                console.log(`🚀 Navigating to: /family/care-assessment${assessmentEditParam}`);
+                navigate(`/family/care-assessment${assessmentEditParam}`);
+                break;
+              case 3:
+                // Add edit parameter if step is completed to trigger prefill
+                const storyEditParam = step.completed ? '?edit=true' : '';
+                console.log(`🚀 Navigating to: /family/story${storyEditParam}`);
+                navigate(`/family/story${storyEditParam}`);
+                break;
+              default:
+                console.log(`No navigation defined for step ${step.id}`);
+            }
+          } catch (error) {
+            console.error(`❌ Navigation error for step ${step.id}:`, error);
+            toast.error('Navigation failed. Please try again.');
+          }
+        }
+      }));
+
+      return {
+        steps: enhancedRichSteps,
+        completionPercentage: sharedJourneyData.completionPercentage,
+        totalSteps: richSteps.length,
+        completedSteps: richSteps.filter(step => step.completed).length,
+        nextStep: sharedJourneyData.nextStep,
+        currentStage: sharedJourneyData.journeyStage,
+        loading: false
+      };
+    }
+
+    // Fallback to calculated steps for anonymous users or when both hooks are unavailable
+    const calculatedSteps = calculateSteps();
+    const totalSteps = calculatedSteps.length;
+    const completedSteps = calculatedSteps.filter(step => step.completed).length;
+    const completionPercentage = totalSteps > 0 ? Math.round((completedSteps / totalSteps) * 100) : 0;
+    const nextStep = calculatedSteps.find(step => !step.completed);
+    
+    console.log('📊 Using calculated steps as fallback:', {
+      totalSteps,
+      completedSteps,
+      completionPercentage,
+      nextStepId: nextStep?.id
+    });
+
+    return {
+      steps: calculatedSteps,
+      completionPercentage,
+      totalSteps,
+      completedSteps,
+      nextStep,
+      currentStage: 'foundation',
+      loading: false
+    };
+  };
+
   // Enhanced registration completion logic using correct database field names
   const calculateRegistrationCompletion = () => {
     if (!profile || !user) {
-      console.log('Registration completion: No profile data');
+      console.log('🔍 Registration completion: No profile data', { hasProfile: !!profile, hasUser: !!user });
       return false;
     }
+
+    console.log('🔍 Profile data being analyzed:', {
+      full_name: profile.full_name,
+      phone_number: profile.phone_number,
+      address: profile.address,
+      care_recipient_name: profile.care_recipient_name,
+      relationship: profile.relationship,
+      care_types: profile.care_types,
+      care_schedule: profile.care_schedule,
+      budget_preferences: profile.budget_preferences,
+      caregiver_type: profile.caregiver_type
+    });
 
     // Core required fields (must have all)
     const requiredFields = {
@@ -330,7 +562,9 @@ export const useEnhancedJourneyProgress = () => {
     const hasAllRequiredFields = Object.entries(requiredFields).every(([field, value]) => {
       const hasValue = !!(value && String(value).trim());
       if (!hasValue) {
-        console.log(`Registration completion: Missing required field ${field}`);
+        console.log(`❌ Registration completion: Missing required field ${field}:`, value);
+      } else {
+        console.log(`✅ Registration completion: Has required field ${field}:`, value);
       }
       return hasValue;
     });
@@ -345,11 +579,11 @@ export const useEnhancedJourneyProgress = () => {
 
     const hasEnhancedData = Object.values(enhancedFields).some(Boolean);
 
-    console.log('Registration completion check:', {
+    console.log('🔍 Registration completion check:', {
       hasAllRequiredFields,
       hasEnhancedData,
-      requiredFields,
-      enhancedFields,
+      requiredFieldsStatus: requiredFields,
+      enhancedFieldsStatus: enhancedFields,
       finalResult: hasAllRequiredFields && hasEnhancedData
     });
 
@@ -426,7 +660,15 @@ export const useEnhancedJourneyProgress = () => {
         step_number: 2,
         title: "Complete Initial Care Assessment",
         description: "Help us understand your care needs better",
-        completed: !!careAssessment?.id,
+        completed: (() => {
+          const completed = !!careAssessment?.id;
+          console.log('🔍 Step 2 (Care Assessment) completion check:', {
+            careAssessment,
+            hasId: !!careAssessment?.id,
+            completed
+          });
+          return completed;
+        })(),
         accessible: true,
         category: 'foundation',
         icon_name: 'FileCheck',
@@ -444,7 +686,16 @@ export const useEnhancedJourneyProgress = () => {
         step_number: 3,
         title: "Complete Your Loved One's Legacy Story",
         description: "Honor the voices, memories, and wisdom of those we care for",
-        completed: !!(careRecipient?.id && careRecipient?.full_name),
+        completed: (() => {
+          const completed = !!(careRecipient?.id && careRecipient?.full_name);
+          console.log('🔍 Step 3 (Care Recipient) completion check:', {
+            careRecipient,
+            hasId: !!careRecipient?.id,
+            hasFullName: !!careRecipient?.full_name,
+            completed
+          });
+          return completed;
+        })(),
         accessible: true,
         category: 'foundation',
         icon_name: 'Heart',
@@ -470,12 +721,17 @@ export const useEnhancedJourneyProgress = () => {
         detailed_explanation: 'View and connect with potential caregivers',
         time_estimate_minutes: 30,
         is_optional: false,
-        action: () => setShowCaregiverMatchingModal(true)
+        action: () => {
+          const element = document.getElementById('caregiver-matches-section');
+          if (element) {
+            element.scrollIntoView({ behavior: 'smooth' });
+          }
+        }
       },
       {
         id: "5",
         step_number: 5,
-        title: "Set Up Medication Management",
+        title: "Edit Medication Management",
         description: "Add medications and set up schedules",
         completed: !!(carePlans && carePlans.length > 0), // Simplified for now
         accessible: true,
@@ -485,12 +741,12 @@ export const useEnhancedJourneyProgress = () => {
         detailed_explanation: 'Set up medication schedules and tracking',
         time_estimate_minutes: 15,
         is_optional: false,
-        action: () => navigate('/family/medication-management')
+        action: () => navigate('/family/care-management')
       },
       {
         id: "6",
         step_number: 6,
-        title: "Set Up Meal Management",
+        title: "Edit Meal Management",
         description: "Plan meals and create grocery lists",
         completed: !!(carePlans && carePlans.length > 0), // Simplified for now
         accessible: true,
@@ -500,7 +756,7 @@ export const useEnhancedJourneyProgress = () => {
         detailed_explanation: 'Set up meal planning and grocery management',
         time_estimate_minutes: 15,
         is_optional: false,
-        action: () => navigate('/family/meal-management')
+        action: () => navigate('/family/care-management')
       },
       {
         id: "7",
@@ -616,9 +872,39 @@ export const useEnhancedJourneyProgress = () => {
   const steps_calculated = calculateSteps();
   const completedSteps = steps_calculated.filter(step => step.completed).length;
   const totalSteps = steps_calculated.length;
-  const completionPercentage = totalSteps > 0 ? Math.round((completedSteps / totalSteps) * 100) : 0;
-  const nextStep = steps_calculated.find(step => !step.completed && step.accessible);
-  const currentStage = 'foundation'; // Default stage
+  
+  // Log detailed step completion info
+  console.log('📊 Step Completion Analysis:', {
+    totalSteps,
+    completedSteps,
+    completedStepIds: steps_calculated.filter(step => step.completed).map(step => ({ id: step.id, title: step.title })),
+    incompleteSteps: steps_calculated.filter(step => !step.completed).map(step => ({ id: step.id, title: step.title }))
+  });
+  
+  // Use stored progress as primary source (like admin dashboard)
+  const calculatedPercentage = totalSteps > 0 ? Math.round((completedSteps / totalSteps) * 100) : 0;
+  
+  // Primary source: stored progress (matches admin dashboard logic)
+  const finalCompletionPercentage = storedProgress.loading 
+    ? 0 
+    : storedProgress.completionPercentage > 0 
+      ? storedProgress.completionPercentage 
+      : calculatedPercentage;
+    
+  console.log('📈 Family Dashboard Progress Calculation:', {
+    storedProgressLoading: storedProgress.loading,
+    storedCompletionPercentage: storedProgress.completionPercentage,
+    calculatedPercentage,
+    finalCompletionPercentage,
+    usingStoredProgress: !storedProgress.loading && storedProgress.completionPercentage > 0
+  });
+    
+  // Use stored current step if available
+  const nextStep = journeyProgress?.current_step != null
+    ? steps_calculated.find(step => step.step_number === journeyProgress.current_step && !step.completed)
+    : steps_calculated.find(step => !step.completed && step.accessible);
+    
+  const currentStage = journeyProgress?.role === 'family' ? 'foundation' : 'foundation'; // Default stage
 
   // Create paths with proper JourneyPath interface properties
   const paths = [
@@ -686,20 +972,25 @@ export const useEnhancedJourneyProgress = () => {
     console.log(`Step ${stepId} action: ${action}`);
   };
 
-  const isAnonymous = !user;
+  
+
+  // Get the final steps data using prioritized logic
+  const stepsData = getStepsData();
 
   return {
-    loading,
-    steps: steps_calculated,
+    loading: isAnonymous ? false : (stepsData.loading || loading || sharedJourneyData.loading),
+    steps: stepsData.steps,
     paths,
     profile,
     carePlans,
     careAssessment,
     careRecipient,
     visitDetails,
-    completionPercentage,
-    nextStep,
-    currentStage,
+    completionPercentage: stepsData.completionPercentage,
+    totalSteps: stepsData.totalSteps,
+    completedSteps: stepsData.completedSteps,
+    nextStep: stepsData.nextStep,
+    currentStage: stepsData.currentStage,
     showScheduleModal,
     setShowScheduleModal,
     showInternalScheduleModal,

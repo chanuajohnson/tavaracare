@@ -25,6 +25,14 @@ const FamilyRegistration = () => {
   const [searchParams] = useSearchParams();
   const isEditMode = searchParams.get('edit') === 'true';
   
+  console.log('🔍 URL and Edit Mode Debug:', {
+    fullURL: window.location.href,
+    searchParams: Object.fromEntries(searchParams.entries()),
+    editParam: searchParams.get('edit'),
+    isEditMode,
+    pathname: window.location.pathname
+  });
+  
   const [loading, setLoading] = useState(false);
   const [dataLoading, setDataLoading] = useState(true);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
@@ -54,36 +62,59 @@ const FamilyRegistration = () => {
   const formRef = useRef<HTMLFormElement>(null);
   const navigate = useNavigate();
 
-  // Function to fetch existing profile data
+  // Function to fetch existing profile data using secure function
   const fetchExistingProfileData = async () => {
+    console.log('🔍 fetchExistingProfileData called:', {
+      userId: user?.id,
+      isEditMode,
+      userEmail: user?.email
+    });
+
     if (!user?.id || !isEditMode) {
+      console.log('⚠️ Skipping profile fetch:', { 
+        hasUserId: !!user?.id, 
+        isEditMode,
+        reason: !user?.id ? 'No user ID' : 'Not in edit mode'
+      });
       setDataLoading(false);
       return;
     }
 
     try {
-      console.log('Fetching existing profile data for edit mode...');
+      console.log('📡 Fetching existing profile data using secure function...');
+      console.log('🔍 Query details:', {
+        function: 'get_user_profile_secure',
+        userId: user.id,
+        userEmail: user.email
+      });
       
-      const { data: profile, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .eq('role', 'family')
-        .maybeSingle();
+      const { data, error } = await supabase.rpc('get_user_profile_secure', {
+        target_user_id: user.id
+      });
 
       if (error) {
-        console.error('Error fetching profile:', error);
+        console.error('❌ Error fetching profile:', error);
+        console.error('❌ Error details:', {
+          message: error.message,
+          code: error.code,
+          details: error.details,
+          hint: error.hint
+        });
         toast.error('Failed to load existing profile data');
         setDataLoading(false);
         return;
       }
 
-      if (profile) {
-        console.log('Found existing profile data:', profile);
+      console.log('📊 Profile query result:', { data, hasData: !!data });
+
+      if (data && data.length > 0) {
+        const profile = data[0];
+        console.log('✅ Found existing profile data:', profile);
+        console.log('📝 Populating form fields...');
         
         // Populate basic info
-        setFirstName(profile.full_name?.split(' ')[0] || '');
-        setLastName(profile.full_name?.split(' ').slice(1).join(' ') || '');
+        setFirstName(profile.first_name || profile.full_name?.split(' ')[0] || '');
+        setLastName(profile.last_name || profile.full_name?.split(' ').slice(1).join(' ') || '');
         setPhoneNumber(profile.phone_number || '');
         setLocation(profile.location || '');
         setAddress(profile.address || '');
@@ -110,6 +141,39 @@ const FamilyRegistration = () => {
         setCaregiverPreferences(profile.caregiver_preferences || '');
         setAdditionalNotes(profile.additional_notes || '');
         setPreferredContactMethod(profile.preferred_contact_method || '');
+        
+        console.log('✅ Form populated with profile data');
+        
+        // Show feedback when data is loaded for editing
+        if (isEditMode) {
+          toast.success('Profile data loaded for editing');
+        }
+      } else {
+        console.log('⚠️ No profile data found in database');
+        console.log('🔄 Attempting fallback to user metadata for basic info...');
+        
+        // Fallback: populate basic info from user metadata if available
+        if (user?.user_metadata) {
+          const metadata = user.user_metadata;
+          console.log('📊 User metadata available:', metadata);
+          
+          if (metadata.first_name) {
+            setFirstName(metadata.first_name);
+            console.log('✅ Set firstName from metadata:', metadata.first_name);
+          }
+          if (metadata.last_name) {
+            setLastName(metadata.last_name);
+            console.log('✅ Set lastName from metadata:', metadata.last_name);
+          }
+          if (metadata.full_name && !metadata.first_name && !metadata.last_name) {
+            const nameParts = metadata.full_name.split(' ');
+            setFirstName(nameParts[0] || '');
+            setLastName(nameParts.slice(1).join(' ') || '');
+            console.log('✅ Set name from full_name:', { first: nameParts[0], last: nameParts.slice(1).join(' ') });
+          }
+        } else {
+          console.log('⚠️ No user metadata available either');
+        }
       }
     } catch (error) {
       console.error('Error in fetchExistingProfileData:', error);
@@ -236,7 +300,8 @@ const FamilyRegistration = () => {
               formRef.current.requestSubmit();
             }
           },
-          formRef: formRef
+          formRef: formRef,
+          formType: 'registration'
         }
       );
       
@@ -378,7 +443,7 @@ const FamilyRegistration = () => {
       }
 
       const fullName = `${firstName} ${lastName}`.trim();
-      const updates = {
+      const profileData = {
         id: user.id,
         full_name: fullName,
         avatar_url: uploadedAvatarUrl,
@@ -386,7 +451,6 @@ const FamilyRegistration = () => {
         location: location,
         address: address,
         role: 'family' as const,
-        updated_at: new Date().toISOString(),
         care_recipient_name: careRecipientName,
         relationship: relationship,
         care_types: careTypes || [],
@@ -400,12 +464,12 @@ const FamilyRegistration = () => {
         preferred_contact_method: preferredContactMethod || ''
       };
 
-      console.log('Updating family profile with data:', updates);
+      console.log('Updating family profile with data:', profileData);
       
-      const { error } = await supabase
-        .from('profiles')
-        .update(updates)
-        .eq('id', user.id);
+      // Use SECURITY DEFINER function to bypass RLS and prevent recursion
+      const { data, error } = await supabase.rpc('update_user_profile', {
+        profile_data: profileData
+      });
       
       if (error) throw error;
       

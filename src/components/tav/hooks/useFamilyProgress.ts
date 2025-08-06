@@ -1,5 +1,5 @@
-
 import { useEnhancedJourneyProgress } from '@/hooks/useEnhancedJourneyProgress';
+import { useStoredJourneyProgress } from '@/hooks/useStoredJourneyProgress';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useState, useEffect } from 'react';
@@ -22,8 +22,18 @@ export const useFamilyProgress = () => {
   const userId = user?.id || '';
   const [formStatus, setFormStatus] = useState<FormFieldStatus | null>(null);
   
-  // Use the enhanced journey progress hook for real data
+  // Use stored progress as primary source
+  const storedProgress = useStoredJourneyProgress(userId, 'family');
+  
+  // Use the enhanced journey progress hook for detailed step data
   const enhancedData = useEnhancedJourneyProgress();
+
+  console.log('🔍 TAV Family Progress Data:', {
+    userId,
+    storedPercentage: storedProgress.completionPercentage,
+    enhancedPercentage: enhancedData.completionPercentage,
+    usingStored: storedProgress.completionPercentage > 0
+  });
 
   // Track form field completion for context awareness
   useEffect(() => {
@@ -243,6 +253,11 @@ export const useFamilyProgress = () => {
     }
   };
 
+  // Use stored completion percentage if available, otherwise use enhanced data
+  const completionPercentage = storedProgress.completionPercentage > 0 
+    ? storedProgress.completionPercentage 
+    : enhancedData.completionPercentage;
+
   // Add proper action handlers and button text to the steps
   const enhancedSteps = enhancedData.steps.map(step => ({
     ...step,
@@ -254,6 +269,7 @@ export const useFamilyProgress = () => {
   return {
     ...enhancedData,
     steps: enhancedSteps,
+    completionPercentage, // Use stored or enhanced completion percentage
     formStatus // Add form completion status for contextual awareness
   };
 };

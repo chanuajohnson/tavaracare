@@ -1,6 +1,7 @@
 
 import { Routes, Route } from "react-router-dom";
 import { useAuth } from "@/components/providers/AuthProvider";
+import { RouteErrorBoundary } from "@/components/common/RouteErrorBoundary";
 import Index from "@/pages/Index";
 import AuthPage from "@/pages/auth/AuthPage";
 import ResetPassword from "@/pages/auth/ResetPassword";
@@ -70,7 +71,8 @@ export const AppRoutes = () => {
   const { user } = useAuth();
 
   return (
-    <Routes>
+    <RouteErrorBoundary>
+      <Routes>
       {/* Public Routes */}
       <Route path="/" element={<Index />} />
       <Route path="/auth" element={<AuthPage />} />
@@ -144,8 +146,9 @@ export const AppRoutes = () => {
       {/* Debug Routes */}
       <Route path="/debug/supabase" element={<SupabaseDebugPage />} />
       
-      {/* Catch all route */}
-      <Route path="*" element={<NotFound />} />
-    </Routes>
+        {/* Catch all route */}
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    </RouteErrorBoundary>
   );
 };
