@@ -88,6 +88,28 @@ export const useUnifiedMatches = (userRole: 'family' | 'professional', showOnlyB
 
         if (!assignmentData || assignmentData.length === 0) {
           console.log('useUnifiedMatches: No assignments found for family user:', user.id);
+          console.log('useUnifiedMatches: Triggering automatic assignment creation...');
+          
+          // Trigger automatic assignment creation
+          try {
+            const { data, error } = await supabase.functions.invoke('automatic-caregiver-assignment', {
+              body: { familyUserId: user.id }
+            });
+            
+            if (error) {
+              console.error('useUnifiedMatches: Error triggering automatic assignment:', error);
+            } else {
+              console.log('useUnifiedMatches: Automatic assignment response:', data);
+              // Retry loading matches after creating assignments
+              if (data?.success && data?.assignments?.length > 0) {
+                setTimeout(() => loadMatches(), 1000);
+                return;
+              }
+            }
+          } catch (error) {
+            console.error('useUnifiedMatches: Failed to trigger automatic assignment:', error);
+          }
+          
           setMatches([]);
           setIsLoading(false);
           return;
