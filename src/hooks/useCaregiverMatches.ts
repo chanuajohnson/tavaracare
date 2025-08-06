@@ -92,131 +92,61 @@ export const useCaregiverMatches = (showOnlyBestMatch: boolean = true) => {
       return;
     }
     
-    console.log('Loading real caregivers for user:', user.id);
+    console.log('Loading caregiver assignments for user:', user.id);
     loadingRef.current = true;
     
     try {
       setIsLoading(true);
       setError(null);
 
-      // If we already have processed caregivers, use them
-      if (processedCaregiversRef.current) {
-        const finalCaregivers = showOnlyBestMatch 
-          ? processedCaregiversRef.current.slice(0, 1) 
-          : processedCaregiversRef.current;
-        setCaregivers(finalCaregivers);
-        setIsLoading(false);
-        loadingRef.current = false;
-        return;
-      }
+      // Use the unified caregiver_assignments table
+      const { data: assignments, error: assignmentError } = await supabase
+        .from('caregiver_assignments')
+        .select('*')
+        .eq('family_user_id', user.id)
+        .eq('is_active', true)
+        .order('match_score', { ascending: false });
 
-      // Fetch family's care schedule and preferences
-      let familyScheduleData: FamilyScheduleData = {};
-      try {
-        const { data: familyProfile, error: profileError } = await supabase
-          .from('profiles')
-          .select('care_schedule, care_types, special_needs')
-          .eq('id', user.id)
-          .maybeSingle();
-        
-        if (!profileError && familyProfile) {
-          familyScheduleData = familyProfile;
-        }
-      } catch (profileErr) {
-        console.warn("Could not fetch family profile for schedule matching:", profileErr);
-      }
-
-      // Parse family's care schedule
-      const familyCareSchedule = parseCareSchedule(familyScheduleData.care_schedule);
-      console.log('Family care schedule:', familyCareSchedule);
-
-      // Fetch available professionals AND check for admin overrides
-      const [professionalUsersResult, adminOverridesResult] = await Promise.all([
-        // Get professionals marked as available for matching
-        supabase
-          .from('profiles')
-          .select('*')
-          .eq('role', 'professional')
-          .eq('available_for_matching', true)
-          .not('full_name', 'is', null)
-          .limit(showOnlyBestMatch ? 5 : 15), // Fetch more to account for overrides
-        
-        // Get admin-assigned caregivers for this family (overrides availability)
-        supabase
-          .from('admin_match_interventions')
-          .select(`
-            caregiver_id,
-            admin_match_score,
-            intervention_type,
-            reason,
-            caregiver:profiles!admin_match_interventions_caregiver_id_fkey(*)
-          `)
-          .eq('family_user_id', user.id)
-          .eq('status', 'active')
-      ]);
-
-      const { data: professionalUsers, error: professionalError } = professionalUsersResult;
-      const { data: adminOverrides, error: overrideError } = adminOverridesResult;
-      
-      if (professionalError) {
-        console.error("Error fetching professional users:", professionalError);
+      if (assignmentError) {
+        console.error("Error fetching caregiver assignments:", assignmentError);
         setError("Unable to load caregiver matches. Please try again.");
         return;
       }
 
-      if (overrideError) {
-        console.warn("Error fetching admin overrides:", overrideError);
-      }
-
-      // Merge available professionals with admin overrides
-      const allProfessionals = [...(professionalUsers || [])];
-      const adminOverrideIds = new Set();
-      
-      // Add admin-assigned caregivers (even if not available_for_matching)
-      if (adminOverrides && adminOverrides.length > 0) {
-        console.log('Admin overrides found:', adminOverrides.length);
-        adminOverrides.forEach(override => {
-          if (override.caregiver && override.caregiver.full_name) {
-            // Add to set to track admin interventions
-            adminOverrideIds.add(override.caregiver_id);
-            // Add to professionals list if not already there
-            if (!allProfessionals.some(p => p.id === override.caregiver_id)) {
-              allProfessionals.push(override.caregiver);
-            }
-          }
-        });
-      }
-
-      if (!allProfessionals || allProfessionals.length === 0) {
-        console.log("No professional users found in database");
-        setError("No caregivers are currently available. Please check back later.");
+      if (!assignments || assignments.length === 0) {
+        console.log("No active caregiver assignments found for user");
+        setError("No caregiver matches found. Complete your profile to get matched with caregivers.");
         setCaregivers([]);
         await trackEngagement('caregiver_matches_view', { 
-          data_source: 'real_data',
+          data_source: 'unified_assignments',
           caregiver_count: 0,
           view_context: showOnlyBestMatch ? 'dashboard_widget' : 'matching_page',
-          error: 'no_professionals_found',
-          admin_overrides_count: adminOverrides?.length || 0
+          error: 'no_assignments_found'
         });
         return;
       }
 
-      // Process real caregiver data with admin overrides
-      const realCaregivers: Caregiver[] = allProfessionals.map((professional) => {
-        // Use consistent hash-based scoring for repeatability
-        const hashCode = (str: string) => {
-          let hash = 0;
-          for (let i = 0; i < str.length; i++) {
-            const char = str.charCodeAt(i);
-            hash = ((hash << 5) - hash) + char;
-            hash = hash & hash;
-          }
-          return Math.abs(hash);
-        };
+      // Fetch caregiver profiles separately
+      const caregiverIds = assignments.map(a => a.caregiver_id);
+      const { data: caregiverProfiles, error: profileError } = await supabase
+        .from('profiles')
+        .select('id, full_name, avatar_url, location, care_types, years_of_experience, professional_type')
+        .in('id', caregiverIds);
+
+      if (profileError) {
+        console.error("Error fetching caregiver profiles:", profileError);
+        setError("Unable to load caregiver details. Please try again.");
+        return;
+      }
+
+      // Process assignment data into caregiver format
+      const realCaregivers: Caregiver[] = assignments.map((assignment) => {
+        const professional = caregiverProfiles?.find(p => p.id === assignment.caregiver_id);
         
-        const hash = hashCode(professional.id + user.id);
-        const baseMatchScore = 75 + (hash % 25); // Score between 75-99
-        const isPremium = (hash % 10) < 3; // 30% chance of premium
+        if (!professional) {
+          console.warn('Assignment missing caregiver data:', assignment.id);
+          return null;
+        }
         
         // Parse care_types
         let careTypes: string[] = ['General Care'];
@@ -232,77 +162,38 @@ export const useCaregiverMatches = (showOnlyBestMatch: boolean = true) => {
           }
         }
 
-        // Parse professional's availability schedule
-        const professionalSchedule = parseCareSchedule(professional.care_schedule);
-        
-        // Calculate shift compatibility
-        const shiftCompatibility = calculateShiftCompatibility(familyCareSchedule, professionalSchedule);
-        const matchExplanation = generateMatchExplanation(shiftCompatibility);
-        
-        // Check if this professional has admin override
-        const adminOverride = adminOverrides?.find(o => o.caregiver_id === professional.id);
-        const isAdminOverride = adminOverrideIds.has(professional.id);
-        
-        // Use admin match score if available, otherwise calculate normally
-        const finalMatchScore = adminOverride?.admin_match_score || 
-          Math.round((baseMatchScore * 0.6) + (shiftCompatibility * 0.4));
-        
+        // Determine premium status consistently
+        const hash = professional.id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+        const isPremium = (hash % 10) < 3; // 30% chance of premium
+
         return {
-          id: professional.id, // Real UUID from database
+          id: professional.id,
           full_name: professional.full_name || 'Professional Caregiver',
           avatar_url: professional.avatar_url,
           location: professional.location || 'Trinidad and Tobago',
           care_types: careTypes,
           years_of_experience: professional.years_of_experience || '2+ years',
-          match_score: finalMatchScore,
+          match_score: assignment.match_score || 75,
           is_premium: isPremium,
-          shift_compatibility_score: shiftCompatibility,
-          match_explanation: matchExplanation,
-          availability_schedule: professionalSchedule
+          shift_compatibility_score: assignment.shift_compatibility_score || 70,
+          match_explanation: assignment.match_explanation || 'Good match for your care needs',
+          availability_schedule: []
         };
-      });
+      }).filter(Boolean) as Caregiver[];
       
-      // Family users can now only VIEW their assignments, not create them
-      // Assignment creation is handled by the truly automatic system and admin controls
-      console.log('Displaying caregiver matches from existing assignments and admin overrides');
-      
-      // Check for existing automatic assignments for this family user
-      try {
-        const { data: existingAssignments, error: assignmentError } = await supabase
-          .from('automatic_assignments')
-          .select('*')
-          .eq('family_user_id', user.id)
-          .eq('is_active', true);
-        
-        if (assignmentError) {
-          console.warn('Could not fetch existing assignments:', assignmentError);
-        } else {
-          console.log('Found existing automatic assignments:', existingAssignments?.length || 0);
-        }
-      } catch (fetchError) {
-        console.warn('Error fetching existing assignments:', fetchError);
-      }
-      
-      realCaregivers.sort((a, b) => b.match_score - a.match_score);
-      processedCaregiversRef.current = realCaregivers;
-      
-      console.log("Loaded real professional users:", realCaregivers.length);
+      console.log('Loaded caregiver assignments:', realCaregivers.length);
 
       const finalCaregivers = showOnlyBestMatch 
         ? realCaregivers.slice(0, 1) 
         : realCaregivers;
 
       await trackEngagement('caregiver_matches_view', {
-        data_source: 'real_data_only',
-        real_caregiver_count: finalCaregivers.length,
+        data_source: 'unified_assignments',
+        assignment_count: finalCaregivers.length,
         view_context: showOnlyBestMatch ? 'dashboard_widget' : 'matching_page',
         caregiver_names: finalCaregivers.map(c => c.full_name),
-        shift_compatibility_enabled: true,
-        family_schedule_items: familyCareSchedule.length,
-        admin_overrides_count: adminOverrides?.length || 0,
-        available_professionals_count: professionalUsers?.length || 0,
-        total_professionals_shown: finalCaregivers.length,
-        admin_override_ids: Array.from(adminOverrideIds)
+        assignment_types: assignments.map(a => a.assignment_type),
+        match_scores: assignments.map(a => a.match_score)
       });
       
       setCaregivers(finalCaregivers);

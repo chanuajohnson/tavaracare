@@ -64,21 +64,50 @@ export const UserMatchingActions: React.FC<UserMatchingActionsProps> = ({
 
   const fetchMatchingData = async () => {
     try {
-      // Fetch manual assignments
-      const { data: assignments, error: assignError } = await supabase
-        .from('manual_caregiver_assignments')
-        .select(`
-          *,
-          caregiver:profiles!caregiver_id(full_name),
-          admin:profiles!assigned_by_admin_id(full_name)
-        `)
+      // Fetch unified caregiver assignments (replaces multiple legacy queries)
+      const { data: unifiedAssignments, error: unifiedError } = await supabase
+        .from('caregiver_assignments')
+        .select('*')
         .eq('family_user_id', user.id)
-        .eq('is_active', true);
+        .eq('is_active', true)
+        .order('created_at', { ascending: false });
 
-      if (assignError) throw assignError;
-      setManualAssignments(assignments || []);
+      if (unifiedError) throw unifiedError;
 
-      // Fetch interventions
+      // Fetch caregiver and admin profiles separately for the assignments
+      let caregiverProfiles: any[] = [];
+      let adminProfiles: any[] = [];
+      
+      if (unifiedAssignments && unifiedAssignments.length > 0) {
+        const caregiverIds = [...new Set(unifiedAssignments.map(a => a.caregiver_id))];
+        const adminIds = [...new Set(unifiedAssignments.map(a => a.assigned_by_admin_id).filter(Boolean))];
+        
+        const [caregiverResult, adminResult] = await Promise.all([
+          supabase.from('profiles').select('id, full_name').in('id', caregiverIds),
+          adminIds.length > 0 ? supabase.from('profiles').select('id, full_name').in('id', adminIds) : { data: [], error: null }
+        ]);
+        
+        caregiverProfiles = caregiverResult.data || [];
+        adminProfiles = adminResult.data || [];
+      }
+
+      // Add profile data to assignments
+      const enrichedAssignments = unifiedAssignments?.map(assignment => ({
+        ...assignment,
+        caregiver: caregiverProfiles.find(p => p.id === assignment.caregiver_id),
+        admin: adminProfiles.find(p => p.id === assignment.assigned_by_admin_id)
+      })) || [];
+
+      // Separate assignments by type for display
+      const automaticData = enrichedAssignments.filter(a => a.assignment_type === 'automatic');
+      const manualData = enrichedAssignments.filter(a => a.assignment_type === 'manual');
+      const teamData = enrichedAssignments.filter(a => a.assignment_type === 'care_team');
+
+      setAutomaticAssignments(automaticData);
+      setManualAssignments(manualData);
+      setCareTeamMembers(teamData);
+
+      // Legacy interventions table (kept for compatibility)
       const { data: interventionData, error: interventionError } = await supabase
         .from('admin_match_interventions')
         .select(`
@@ -89,35 +118,12 @@ export const UserMatchingActions: React.FC<UserMatchingActionsProps> = ({
         .eq('family_user_id', user.id)
         .order('created_at', { ascending: false });
 
-      if (interventionError) throw interventionError;
-      setInterventions(interventionData || []);
-
-      // Fetch automatic assignments
-      const { data: automaticData, error: automaticError } = await supabase
-        .from('automatic_assignments')
-        .select(`
-          *,
-          caregiver:profiles!caregiver_id(full_name)
-        `)
-        .eq('family_user_id', user.id)
-        .eq('is_active', true)
-        .order('created_at', { ascending: false });
-
-      if (automaticError) throw automaticError;
-      setAutomaticAssignments(automaticData || []);
-
-      // Fetch care team members
-      const { data: careTeamData, error: careTeamError } = await supabase
-        .from('care_team_members')
-        .select(`
-          *,
-          caregiver:profiles!caregiver_id(full_name)
-        `)
-        .eq('family_id', user.id)
-        .order('created_at', { ascending: false });
-
-      if (careTeamError) throw careTeamError;
-      setCareTeamMembers(careTeamData || []);
+      if (interventionError) {
+        console.warn('Error fetching legacy interventions:', interventionError);
+        setInterventions([]);
+      } else {
+        setInterventions(interventionData || []);
+      }
 
       // Fetch stale assignments
       const { data: staleData, error: staleError } = await supabase
@@ -131,6 +137,13 @@ export const UserMatchingActions: React.FC<UserMatchingActionsProps> = ({
         ) || [];
         setStaleAssignments(userStaleAssignments);
       }
+
+      console.log('Admin panel: Fetched assignments from unified table:', {
+        total: enrichedAssignments.length,
+        automatic: automaticData.length,
+        manual: manualData.length,
+        team: teamData.length
+      });
     } catch (error) {
       console.error('Error fetching matching data:', error);
     }
@@ -193,7 +206,7 @@ export const UserMatchingActions: React.FC<UserMatchingActionsProps> = ({
     try {
       setLoading(true);
       const { error } = await supabase
-        .from('manual_caregiver_assignments')
+        .from('caregiver_assignments')
         .update({ is_active: false })
         .eq('id', assignmentId);
 
