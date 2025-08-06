@@ -110,8 +110,7 @@ export function MatchingStatusToggle({
           updated_at: new Date().toISOString()
         })
         .eq('id', userId)
-        .select('id, available_for_matching, full_name')
-        .single();
+        .select('id, available_for_matching, full_name');
 
       if (updateError) {
         console.error('❌ Database update error:', updateError);
@@ -120,11 +119,16 @@ export function MatchingStatusToggle({
 
       console.log('✅ Update successful! New state:', updatedData);
 
-      // Verify the update was applied
-      if (updatedData.available_for_matching !== newStatus) {
+      // Handle the array response and verify the update was applied
+      const updatedUser = updatedData?.[0];
+      if (!updatedUser) {
+        throw new Error('Update completed but no data returned');
+      }
+
+      if (updatedUser.available_for_matching !== newStatus) {
         console.warn('⚠️ Update didn\'t apply correctly:', {
           expected: newStatus,
-          actual: updatedData.available_for_matching
+          actual: updatedUser.available_for_matching
         });
         throw new Error('Update verification failed - status didn\'t change as expected');
       }
