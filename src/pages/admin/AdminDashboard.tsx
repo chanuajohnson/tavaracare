@@ -8,6 +8,7 @@ import { AdminUserManagement } from "@/components/admin/AdminUserManagement";
 import { FeatureInterestTracker } from "@/components/admin/FeatureInterestTracker";
 import { FeedbackManagement } from "@/components/admin/FeedbackManagement";
 import { UnifiedMatchingInterface } from "@/components/admin/UnifiedMatchingInterface";
+import { MatchRecalculationLog } from '@/components/admin/MatchRecalculationLog';
 import { supabase } from '@/integrations/supabase/client';
 
 export default function AdminDashboard() {
@@ -238,6 +239,9 @@ export default function AdminDashboard() {
             <FeedbackManagement />
           </CardContent>
         </Card>
+
+        {/* Match Recalculation Log */}
+        <MatchRecalculationLog />
       </div>
 
       {/* Unified Matching Interface Modal */}

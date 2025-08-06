@@ -2369,6 +2369,42 @@ export type Database = {
           },
         ]
       }
+      match_recalculation_log: {
+        Row: {
+          assignments_created: number | null
+          assignments_removed: number | null
+          caregiver_id: string
+          created_at: string | null
+          error_message: string | null
+          id: string
+          processed_at: string | null
+          recalculation_type: string
+          status: string | null
+        }
+        Insert: {
+          assignments_created?: number | null
+          assignments_removed?: number | null
+          caregiver_id: string
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          processed_at?: string | null
+          recalculation_type: string
+          status?: string | null
+        }
+        Update: {
+          assignments_created?: number | null
+          assignments_removed?: number | null
+          caregiver_id?: string
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          processed_at?: string | null
+          recalculation_type?: string
+          status?: string | null
+        }
+        Relationships: []
+      }
       meal_plan_items: {
         Row: {
           created_at: string
