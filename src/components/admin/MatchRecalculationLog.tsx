@@ -2,10 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { RefreshCw, CheckCircle, XCircle, Clock, AlertCircle } from 'lucide-react';
+import { RefreshCw, CheckCircle, XCircle, Clock, AlertCircle, Users } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { formatDistanceToNow } from 'date-fns';
+import { backfillAvailableCaregiverMatches } from '@/utils/admin/manualMatchRecalculation';
 
 interface RecalculationLogEntry {
   id: string;
@@ -23,6 +24,7 @@ interface RecalculationLogEntry {
 export const MatchRecalculationLog: React.FC = () => {
   const [logs, setLogs] = useState<RecalculationLogEntry[]>([]);
   const [loading, setLoading] = useState(true);
+  const [backfillLoading, setBackfillLoading] = useState(false);
 
   const fetchLogs = async () => {
     try {
@@ -119,6 +121,24 @@ export const MatchRecalculationLog: React.FC = () => {
     );
   };
 
+  const handleBackfillMatches = async () => {
+    setBackfillLoading(true);
+    try {
+      const result = await backfillAvailableCaregiverMatches();
+      toast.success(`Backfill completed! Processed ${result.processed} caregivers`);
+      
+      // Refresh logs to show new entries
+      setTimeout(() => {
+        fetchLogs();
+      }, 2000);
+    } catch (error) {
+      console.error('Backfill failed:', error);
+      toast.error('Failed to backfill caregiver matches');
+    } finally {
+      setBackfillLoading(false);
+    }
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -129,15 +149,26 @@ export const MatchRecalculationLog: React.FC = () => {
               Track automatic match recalculations triggered by caregiver availability changes
             </CardDescription>
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={fetchLogs}
-            disabled={loading}
-          >
-            <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-            Refresh
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleBackfillMatches}
+              disabled={backfillLoading}
+            >
+              <Users className={`h-4 w-4 mr-2 ${backfillLoading ? 'animate-pulse' : ''}`} />
+              {backfillLoading ? 'Processing...' : 'Backfill Available Caregivers'}
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={fetchLogs}
+              disabled={loading}
+            >
+              <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+              Refresh
+            </Button>
+          </div>
         </div>
       </CardHeader>
       <CardContent>

@@ -10,6 +10,9 @@ import { FeedbackManagement } from "@/components/admin/FeedbackManagement";
 import { UnifiedMatchingInterface } from "@/components/admin/UnifiedMatchingInterface";
 import { MatchRecalculationLog } from '@/components/admin/MatchRecalculationLog';
 import { supabase } from '@/integrations/supabase/client';
+import { backfillAvailableCaregiverMatches } from '@/utils/admin/manualMatchRecalculation';
+import { toast } from 'sonner';
+import { RefreshCw } from 'lucide-react';
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
