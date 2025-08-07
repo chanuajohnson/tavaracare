@@ -57,6 +57,22 @@ export const DashboardCaregiverMatches = () => {
         </CardHeader>
         
         <CardContent>
+          {/* Debug logging without JSX expression */}
+          {(() => {
+            if (matches.length > 0) {
+              console.log('🔍 Debug caregiver data:', matches.slice(0, 3).map((c, i) => ({
+                index: i,
+                id: c.id,
+                full_name: c.full_name,
+                years_of_experience: c.years_of_experience,
+                hourly_rate: (c as any).hourly_rate,
+                expected_rate: (c as any).expected_rate,
+                professional_type: (c as any).professional_type
+              })));
+            }
+            return null;
+          })()}
+          
           {(isLoading || !isLoadingComplete) ? (
             <MatchLoadingState 
               duration={2000}

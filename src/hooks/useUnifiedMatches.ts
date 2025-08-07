@@ -120,6 +120,8 @@ export const useUnifiedMatches = (userRole: 'family' | 'professional', showOnlyB
         console.log('useUnifiedMatches: Fetching caregiver profiles for IDs:', caregiverIds);
         
         if (caregiverIds.length > 0) {
+          console.log('useUnifiedMatches: Querying profiles for caregiver IDs:', caregiverIds);
+          
           const { data: caregiverProfiles, error: profileError } = await supabase
             .from('profiles')
             .select(`
@@ -148,7 +150,8 @@ export const useUnifiedMatches = (userRole: 'family' | 'professional', showOnlyB
               license_number,
               other_certification,
               phone_number,
-              address
+              address,
+              role
             `)
             .in('id', caregiverIds)
             .eq('role', 'professional');
