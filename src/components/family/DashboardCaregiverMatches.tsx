@@ -84,9 +84,29 @@ export const DashboardCaregiverMatches = () => {
                 };
 
                 const formatRate = (rate?: string) => {
-                  if (!rate) return null;
+                  if (!rate) return 'Rate available upon request';
+                  
+                  // Handle various rate formats
+                  if (rate.includes('/hr')) {
+                    const numRate = parseFloat(rate.replace(/[^\d.]/g, ''));
+                    return isNaN(numRate) ? rate : `$${numRate}/hour`;
+                  }
+                  
+                  // Handle "Ambulatory 35/ bedridden patient 45 hourly" format
+                  if (rate.toLowerCase().includes('ambulatory') || rate.toLowerCase().includes('bedridden')) {
+                    const matches = rate.match(/\d+/g);
+                    if (matches && matches.length > 0) {
+                      return `Starting at $${matches[0]}/hour`;
+                    }
+                  }
+                  
+                  // Handle simple number format
                   const numRate = parseFloat(rate.replace(/[^\d.]/g, ''));
-                  return isNaN(numRate) ? rate : `$${numRate}/hour`;
+                  if (!isNaN(numRate)) {
+                    return `$${numRate}/hour`;
+                  }
+                  
+                  return rate;
                 };
 
                 const formatAvailability = (schedule?: string) => {
@@ -108,7 +128,9 @@ export const DashboardCaregiverMatches = () => {
                 };
 
                 const getProfessionalDisplay = () => {
-                  if ((caregiver as any).professional_type) return (caregiver as any).professional_type;
+                  const profType = (caregiver as any).professional_type;
+                  if (profType === 'gapp') return 'GAPP Certified';
+                  if (profType) return profType;
                   if ((caregiver as any).certifications?.length > 0) return (caregiver as any).certifications[0];
                   return 'Professional Caregiver';
                 };
@@ -140,7 +162,7 @@ export const DashboardCaregiverMatches = () => {
                               </div>
                             )}
                             {index === 0 && (
-                              <div className="absolute -top-2 -right-2 bg-primary text-primary-foreground text-xs px-2 py-1 rounded-full">
+                              <div className="absolute -top-2 -right-6 sm:-right-2 bg-primary text-primary-foreground text-xs px-2 py-1 rounded-full whitespace-nowrap z-10">
                                 Best Match
                               </div>
                             )}
@@ -179,7 +201,7 @@ export const DashboardCaregiverMatches = () => {
                               </span>
                             </div>
                             <p className="text-sm text-muted-foreground">
-                              {caregiver.years_of_experience || 5}+ years experience
+                              {caregiver.years_of_experience ? `${caregiver.years_of_experience} years experience` : 'Experience available upon request'}
                             </p>
                           </div>
 
@@ -210,7 +232,7 @@ export const DashboardCaregiverMatches = () => {
 
                           <div className="flex items-center gap-4 text-sm">
                             <span className="flex items-center gap-1">
-                              💰 {formatRate((caregiver as any).hourly_rate) || 'Rate available upon request'}
+                              💰 {formatRate((caregiver as any).hourly_rate || (caregiver as any).expected_rate)}
                             </span>
                           </div>
 
