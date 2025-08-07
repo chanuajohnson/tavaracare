@@ -115,7 +115,7 @@ serve(async (req) => {
 
         // Only apply the exclusion filter if there are existing assignments
         if (excludedFamilyIds.length > 0) {
-          familiesQuery = familiesQuery.not('id', 'in', `(${excludedFamilyIds.map(id => `'${id}'`).join(',')})`)
+          familiesQuery = familiesQuery.not('id', 'in', excludedFamilyIds)
         }
 
         const { data: potentialFamilies, error: familiesError } = await familiesQuery
