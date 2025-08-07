@@ -135,7 +135,9 @@ export const useUnifiedMatches = (userRole: 'family' | 'professional', showOnlyB
             custom_schedule,
             bio,
             hourly_rate,
-            work_type
+            work_type,
+            background_check,
+            legally_authorized
           `)
           .in('id', caregiverIds);
 
@@ -203,7 +205,20 @@ export const useUnifiedMatches = (userRole: 'family' | 'professional', showOnlyB
               assignment_type: assignment.assignment_type as 'automatic' | 'manual' | 'care_team',
               assignment_id: assignment.id,
               is_premium: (hash % 10) < 3, // 30% chance
-              enhanced_match_data: enhancedMatchData
+              enhanced_match_data: enhancedMatchData,
+              // Extended professional information
+              professional_type: caregiver?.professional_type,
+              certifications: caregiver?.certifications,
+              specialized_care: caregiver?.specialized_care,
+              hourly_rate: caregiver?.hourly_rate,
+              work_type: caregiver?.work_type,
+              availability: caregiver?.availability,
+              custom_schedule: caregiver?.custom_schedule,
+              bio: caregiver?.bio,
+              languages: caregiver?.care_types?.filter(type => type.includes('language')), // Extract from care_types if available
+              background_check: caregiver?.background_check,
+              insurance_coverage: caregiver?.legally_authorized, // Map to insurance for display
+              transportation_available: false // Default false since field doesn't exist
             };
           })
         );
