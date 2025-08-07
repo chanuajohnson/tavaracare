@@ -84,16 +84,32 @@ Current context:
       prompt += `\n- Available form fields: ${Object.keys(context.formFields).join(', ')}`;
     }
 
-    // Add caregiver chat specific context
+    // Add enhanced caregiver chat context
     if (context.caregiverContext) {
-      prompt += `\n\nCAREGIVER CHAT MODE - SPECIAL INSTRUCTIONS:
-- You are moderating a conversation between a family (FM) and professional caregiver (PC)
-- NEVER share contact information (phone, email, address, social media)
-- Keep conversations focused on professional caregiving topics only
-- Prevent meeting arrangements or direct contact sharing
-- Be warm but maintain professional boundaries
-- Help families learn about caregiver experience, approach, and availability
-- If users try to share contact info, redirect them to professional topics`;
+      const caregiver = context.caregiverContext;
+      prompt += `\n\nENHANCED CAREGIVER CHAT MODE:
+You are TAV, helping a family connect with this specific professional caregiver:
+
+CAREGIVER PROFILE:
+- Name: ${caregiver.full_name || 'Professional Caregiver'}
+- Location: ${caregiver.location || 'Trinidad and Tobago'}
+- Experience: ${caregiver.years_of_experience || 'Professional experience'}
+- Specialties: ${caregiver.care_types?.join(', ') || 'General care'}
+- Match Score: ${caregiver.match_score || 'High'}% compatibility
+${caregiver.match_explanation ? `- Match Reason: ${caregiver.match_explanation}` : ''}
+${caregiver.shift_compatibility_score ? `- Schedule Compatibility: ${caregiver.shift_compatibility_score}%` : ''}
+
+ENHANCED GUIDELINES:
+- Provide specific, helpful responses about THIS caregiver
+- Draw from their actual profile to answer questions
+- Highlight relevant experience and qualifications
+- Guide toward practical next steps (consultation, rates discussion)
+- Build confidence in this specific match
+- Keep responses warm, informative, and action-oriented
+- Use the caregiver's name when appropriate
+- Reference specific compatibility factors
+- NEVER share contact information - guide through platform instead
+- Focus on professional caregiving topics and this caregiver's strengths`;
     }
 
     prompt += `\n\nGuidelines:
@@ -110,7 +126,12 @@ Current context:
 
   private getFallbackResponse(context: TAVConversationContext): string {
     if (context.caregiverContext) {
-      return "💙 I'm here to help facilitate your conversation with this caregiver. What would you like to know about their professional experience?";
+      const caregiver = context.caregiverContext;
+      const name = caregiver.full_name || 'this caregiver';
+      const experience = caregiver.years_of_experience || 'professional experience';
+      const matchScore = caregiver.match_score || 'excellent';
+      
+      return `💙 I'm here to help you connect with ${name}, who brings ${experience} and a ${matchScore}% match with your family's needs. What would you like to know about their caregiving approach or experience?`;
     }
     
     if (context.currentForm) {

@@ -169,11 +169,24 @@ export const useGuidedCaregiverChat = ({ caregiverId, caregiver }: UseGuidedCare
         timestamp: Date.now()
       }]);
 
-      // Handle the selection with enhanced error reporting
+      // Handle the selection with enhanced error reporting and full caregiver context
+      const enhancedCaregiver = {
+        ...caregiver,
+        // Ensure we have all the enhanced profile data from useUnifiedMatches
+        professional_type: caregiver.professional_type,
+        certifications: caregiver.certifications,
+        specialized_care: caregiver.specialized_care,
+        availability: caregiver.availability,
+        custom_schedule: caregiver.custom_schedule,
+        bio: caregiver.bio,
+        hourly_rate: caregiver.hourly_rate,
+        work_type: caregiver.work_type
+      };
+
       const result = await chatService.handlePromptSelection(
         conversationFlow.session_id,
         promptText,
-        caregiver,
+        enhancedCaregiver,
         currentStage
       );
 
