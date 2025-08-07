@@ -119,91 +119,128 @@ export const useUnifiedMatches = (userRole: 'family' | 'professional', showOnlyB
         const caregiverIds = assignmentData.map(a => a.caregiver_id);
         console.log('useUnifiedMatches: Fetching caregiver profiles for IDs:', caregiverIds);
         
-        const { data: caregiverProfiles, error: profileError } = await supabase
-          .from('profiles')
-          .select(`
-            id, 
-            full_name, 
-            avatar_url, 
-            location, 
-            care_types, 
-            years_of_experience,
-            professional_type,
-            certifications,
-            specialized_care,
-            care_schedule,
-            custom_schedule,
-            bio,
-            hourly_rate,
-            expected_rate,
-            work_type,
-            background_check,
-            legally_authorized,
-            commute_mode,
-            additional_notes,
-            care_services,
-            languages,
-            availability
-          `)
-          .in('id', caregiverIds)
-          .eq('role', 'professional');
+        if (caregiverIds.length > 0) {
+          const { data: caregiverProfiles, error: profileError } = await supabase
+            .from('profiles')
+            .select(`
+              id,
+              full_name,
+              avatar_url,
+              location,
+              professional_type,
+              years_of_experience,
+              certifications,
+              specialized_care,
+              care_types,
+              care_schedule,
+              custom_schedule,
+              bio,
+              hourly_rate,
+              expected_rate,
+              work_type,
+              background_check,
+              legally_authorized,
+              commute_mode,
+              additional_notes,
+              care_services,
+              languages,
+              availability,
+              license_number,
+              other_certification,
+              phone_number,
+              address
+            `)
+            .in('id', caregiverIds)
+            .eq('role', 'professional');
 
-        console.log('useUnifiedMatches: Caregiver profiles query result:', { caregiverProfiles, profileError });
-        
-        if (profileError) {
-          console.error('useUnifiedMatches: Profile query error:', profileError);
-          throw profileError;
-        }
+          console.log('useUnifiedMatches: Caregiver profiles query result:', { 
+            caregiverProfiles: caregiverProfiles?.length || 0, 
+            profileError,
+            fetchedIds: caregiverProfiles?.map(p => p.id),
+            sampleProfile: caregiverProfiles?.[0]
+          });
+          
+          if (profileError) {
+            console.error('Error fetching caregiver profiles:', profileError);
+          }
 
-        // Transform assignment data to match format and fetch enhanced scoring
-        const processedMatches: UnifiedMatch[] = await Promise.all(
-          (assignmentData || []).map(async (assignment: any) => {
-            const caregiver = caregiverProfiles?.find(p => p.id === assignment.caregiver_id);
-            const hash = Math.abs(assignment.id.split('').reduce((a: number, b: string) => (a << 5) - a + b.charCodeAt(0), 0));
+          // Create map of caregiver profiles for quick lookup
+          const caregiverProfileMap = new Map(
+            (caregiverProfiles || []).map(profile => [profile.id, profile])
+          );
+
+          // Transform assignments into matches with enhanced caregiver data
+          const processedMatches = assignmentData.map((assignment: any) => {
+            const caregiverProfile = caregiverProfileMap.get(assignment.caregiver_id);
             
-            console.log('useUnifiedMatches: Processing assignment:', assignment.id, 'caregiver:', caregiver);
+            // Log assignment and caregiver profile mapping
+            console.log('useUnifiedMatches: Processing assignment:', {
+              assignment_id: assignment.id,
+              caregiver_id: assignment.caregiver_id,
+              has_profile: !!caregiverProfile,
+              profile_preview: caregiverProfile ? {
+                id: caregiverProfile.id,
+                name: caregiverProfile.full_name,
+                professional_type: caregiverProfile.professional_type,
+                hourly_rate: caregiverProfile.hourly_rate,
+                expected_rate: caregiverProfile.expected_rate,
+                care_services: caregiverProfile.care_services
+              } : null
+            });
             
-            // Try to get enhanced match data
-            let enhancedMatchData: EnhancedMatchData | undefined;
-            try {
-              const { data: enhancedData, error: enhancedError } = await supabase.rpc('calculate_unified_match_score', {
-                target_family_user_id: user.id,
-                target_caregiver_id: assignment.caregiver_id
-              });
-              
-              if (!enhancedError && enhancedData && typeof enhancedData === 'object') {
-                const data = enhancedData as any;
-                enhancedMatchData = {
-                  overall_score: data.overall_score || assignment.match_score,
-                  care_types_score: data.care_types_score || 0,
-                  schedule_score: data.schedule_score || 0,
-                  experience_score: data.experience_score || 0,
-                  location_score: data.location_score || 0,
-                  match_explanation: data.match_explanation || assignment.match_explanation || '',
-                  care_match_details: data.care_match_details || '',
-                  schedule_match_details: data.schedule_match_details || '',
-                  location_match_details: data.location_match_details || '',
-                  experience_match_details: data.experience_match_details || ''
-                };
-                console.log('useUnifiedMatches: Enhanced match data for caregiver:', assignment.caregiver_id, enhancedMatchData);
+            // Use enhanced match data if available
+            const enhancedMatchData = assignment.enhanced_match_data;
+            
+            if (enhancedMatchData) {
+              try {
+                const parsedEnhanced = typeof enhancedMatchData === 'string' 
+                  ? JSON.parse(enhancedMatchData) 
+                  : enhancedMatchData;
+                
+                console.log('useUnifiedMatches: Enhanced match data for', assignment.caregiver_id, ':', parsedEnhanced);
+              } catch (err) {
+                console.warn('Could not parse enhanced match data:', err);
               }
-            } catch (enhancedError) {
-              console.warn('useUnifiedMatches: Failed to get enhanced match data for caregiver:', assignment.caregiver_id, enhancedError);
             }
+
+            const caregiver = caregiverProfile;
             
-            // Log the caregiver data for debugging
-            console.log('useUnifiedMatches: Caregiver data for', caregiver?.full_name, ':', {
-              id: caregiver?.id,
-              full_name: caregiver?.full_name,
-              professional_type: caregiver?.professional_type,
-              years_of_experience: caregiver?.years_of_experience,
-              hourly_rate: caregiver?.hourly_rate,
-              expected_rate: caregiver?.expected_rate,
-              care_types: caregiver?.care_types,
-              care_services: caregiver?.care_services,
-              care_schedule: caregiver?.care_schedule,
-              commute_mode: caregiver?.commute_mode,
-              location: caregiver?.location
+            // If no caregiver profile found, create a minimal fallback
+            if (!caregiver) {
+              console.warn('useUnifiedMatches: No caregiver profile found for ID:', assignment.caregiver_id);
+              return {
+                id: assignment.caregiver_id,
+                full_name: 'Professional Caregiver',
+                avatar_url: null,
+                location: 'Trinidad and Tobago',
+                care_types: ['General Care'],
+                years_of_experience: 'Experience not specified',
+                match_score: assignment.match_score || 85,
+                shift_compatibility_score: assignment.shift_compatibility_score,
+                match_explanation: assignment.match_explanation || 'Good match based on care needs and caregiver specialization',
+                assignment_type: assignment.assignment_type,
+                assignment_id: assignment.id,
+                is_premium: true,
+                enhanced_match_data: enhancedMatchData
+              };
+            }
+
+            // Log the detailed caregiver data for debugging
+            console.log('useUnifiedMatches: Full caregiver data for', caregiver.full_name, ':', {
+              id: caregiver.id,
+              full_name: caregiver.full_name,
+              professional_type: caregiver.professional_type,
+              years_of_experience: caregiver.years_of_experience,
+              hourly_rate: caregiver.hourly_rate,
+              expected_rate: caregiver.expected_rate,
+              care_types: caregiver.care_types,
+              care_services: caregiver.care_services,
+              care_schedule: caregiver.care_schedule,
+              commute_mode: caregiver.commute_mode,
+              location: caregiver.location,
+              certifications: caregiver.certifications,
+              background_check: caregiver.background_check,
+              languages: caregiver.languages
             });
 
             // Format rate properly - check both hourly_rate and expected_rate
@@ -216,45 +253,65 @@ export const useUnifiedMatches = (userRole: 'family' | 'professional', showOnlyB
               return typeof rate === 'number' ? rate : undefined;
             };
 
-            const finalRate = formatRateValue(caregiver?.hourly_rate) || formatRateValue(caregiver?.expected_rate);
+            const finalRate = formatRateValue(caregiver.hourly_rate) || formatRateValue(caregiver.expected_rate);
+            
+            // Transform professional type for better display
+            const getDisplayProfessionalType = (type: string | null | undefined) => {
+              if (!type) return null;
+              switch (type.toLowerCase()) {
+                case 'gapp': return 'GAPP Certified';
+                case 'nurse': return 'Registered Nurse';
+                case 'cna': return 'Certified Nursing Assistant';
+                case 'aide': return 'Professional Care Aide';
+                default: return type;
+              }
+            };
+
+            // Get primary care services for display
+            const getPrimaryCareServices = (services: string[] | null | undefined, types: string[] | null | undefined) => {
+              const primaryServices = services || types || [];
+              if (!primaryServices || primaryServices.length === 0) return ['General Care'];
+              return primaryServices;
+            };
             
             return {
-              id: caregiver?.id || assignment.caregiver_id,
-              full_name: caregiver?.full_name || 'Professional Caregiver',
-              avatar_url: caregiver?.avatar_url || null,
-              location: caregiver?.location || 'Trinidad and Tobago',
-              care_types: caregiver?.care_services || caregiver?.care_types || ['General Care'],
-              years_of_experience: caregiver?.years_of_experience || 'Experience not specified',
-              match_score: assignment.match_score,
+              id: caregiver.id,
+              full_name: caregiver.full_name,
+              avatar_url: caregiver.avatar_url,
+              location: caregiver.location || 'Trinidad and Tobago',
+              care_types: getPrimaryCareServices(caregiver.care_services, caregiver.care_types),
+              years_of_experience: caregiver.years_of_experience || 'Experience not specified',
+              match_score: assignment.match_score || 85,
               shift_compatibility_score: assignment.shift_compatibility_score,
-              match_explanation: assignment.match_explanation,
-              assignment_type: assignment.assignment_type as 'automatic' | 'manual' | 'care_team',
+              match_explanation: assignment.match_explanation || 'Good match based on care needs and caregiver specialization',
+              assignment_type: assignment.assignment_type,
               assignment_id: assignment.id,
-              is_premium: (hash % 10) < 3, // 30% chance
+              is_premium: true,
               enhanced_match_data: enhancedMatchData,
+              
               // Extended professional information
-              professional_type: caregiver?.professional_type,
-              certifications: caregiver?.certifications,
-              specialized_care: caregiver?.care_services || caregiver?.specialized_care,
+              professional_type: getDisplayProfessionalType(caregiver.professional_type),
+              certifications: caregiver.certifications || [],
+              specialized_care: caregiver.care_services || caregiver.specialized_care || [],
               hourly_rate: finalRate,
-              work_type: caregiver?.work_type,
-              care_schedule: caregiver?.care_schedule,
-              custom_schedule: caregiver?.custom_schedule,
-              bio: caregiver?.bio,
-              languages: caregiver?.languages,
-              background_check: caregiver?.background_check,
-              insurance_coverage: caregiver?.legally_authorized,
-              transportation_available: !!caregiver?.commute_mode,
-              commute_mode: caregiver?.commute_mode,
-              additional_notes: caregiver?.additional_notes
+              work_type: caregiver.work_type,
+              care_schedule: caregiver.care_schedule,
+              custom_schedule: caregiver.custom_schedule,
+              bio: caregiver.bio,
+              languages: caregiver.languages || [],
+              background_check: caregiver.background_check || false,
+              insurance_coverage: caregiver.legally_authorized || false,
+              transportation_available: !!caregiver.commute_mode,
+              commute_mode: caregiver.commute_mode,
+              additional_notes: caregiver.additional_notes
             };
-          })
-        );
+          });
 
-        console.log('useUnifiedMatches: Processed matches:', processedMatches);
-        const finalMatches = showOnlyBestMatch ? processedMatches.slice(0, 1) : processedMatches;
-        console.log('useUnifiedMatches: Final matches to display:', finalMatches);
-        setMatches(finalMatches);
+          console.log('useUnifiedMatches: Processed matches:', processedMatches);
+          const finalMatches = showOnlyBestMatch ? processedMatches.slice(0, 1) : processedMatches;
+          console.log('useUnifiedMatches: Final matches to display:', finalMatches);
+          setMatches(finalMatches);
+        }
 
       } else if (userRole === 'professional') {
         // For professionals: get their assignments with manual joins
@@ -307,7 +364,7 @@ export const useUnifiedMatches = (userRole: 'family' | 'professional', showOnlyB
         setAssignments(processedAssignments);
       }
 
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error loading unified matches:', error);
       setError(error instanceof Error ? error.message : 'Failed to load matches');
       toast.error('Failed to load matches. Please try again.');

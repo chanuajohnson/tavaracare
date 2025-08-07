@@ -112,18 +112,39 @@ export const SimpleMatchCard = ({
     
     return null;
   };
-  
+
+  // Format availability schedule 
+  const formatAvailability = (schedule?: string, customSchedule?: string) => {
+    if (customSchedule) return customSchedule;
+    if (!schedule) return 'Schedule to be arranged';
+    
+    const scheduleItems = schedule.split(',').map(s => s.trim());
+    const formatted = scheduleItems.map(item => {
+      switch (item) {
+        case 'mon_fri_6am_6pm': return 'Mon-Fri 6AM-6PM';
+        case 'sat_sun_6am_6pm': return 'Weekends 6AM-6PM';
+        case 'flexible': return 'Flexible scheduling';
+        case 'weekday_evening_6pm_6am': return 'Weekday evenings';
+        case 'weekend_evening_6pm_6am': return 'Weekend evenings';
+        case '24_7_care': return '24/7 availability';
+        case 'live_in_care': return 'Live-in care';
+        default: return item;
+      }
+    });
+    
+    return formatted.join(', ');
+  };
+
   // Get professional credentials display
   const getProfessionalDisplay = () => {
     if (caregiver.professional_type) {
-      // Transform common professional types
-      const type = caregiver.professional_type.toLowerCase();
-      if (type === 'gapp') return 'GAPP Certified';
-      if (type === 'cna') return 'Certified Nursing Assistant';
-      if (type === 'rn') return 'Registered Nurse';
-      if (type === 'lpn') return 'Licensed Practical Nurse';
-      return caregiver.professional_type.toUpperCase();
+      return caregiver.professional_type; // Already formatted in useUnifiedMatches
     }
+    
+    if (caregiver.certifications && caregiver.certifications.length > 0) {
+      return caregiver.certifications[0]; // Show primary certification
+    }
+    
     return "Professional Caregiver";
   };
   
