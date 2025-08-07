@@ -92,17 +92,33 @@ serve(async (req) => {
         // Caregiver became available - create new assignments
         console.log('Caregiver became available, finding compatible families...')
         
+        // First, get existing family IDs that already have this caregiver assigned
+        const { data: existingAssignments, error: existingError } = await supabaseClient
+          .from('caregiver_assignments')
+          .select('family_user_id')
+          .eq('caregiver_id', caregiver_id)
+          .eq('is_active', true)
+
+        if (existingError) {
+          console.error('Error fetching existing assignments:', existingError)
+          throw existingError
+        }
+
+        const excludedFamilyIds = existingAssignments?.map(a => a.family_user_id) || []
+        console.log(`Found ${excludedFamilyIds.length} families already assigned to this caregiver`)
+
         // Get all family users who don't already have this caregiver assigned
-        const { data: potentialFamilies, error: familiesError } = await supabaseClient
+        let familiesQuery = supabaseClient
           .from('profiles')
           .select('id, full_name, care_types, care_schedule, location')
           .eq('role', 'family')
-          .not('id', 'in', `(
-            SELECT family_user_id 
-            FROM caregiver_assignments 
-            WHERE caregiver_id = '${caregiver_id}' 
-            AND is_active = true
-          )`)
+
+        // Only apply the exclusion filter if there are existing assignments
+        if (excludedFamilyIds.length > 0) {
+          familiesQuery = familiesQuery.not('id', 'in', `(${excludedFamilyIds.map(id => `'${id}'`).join(',')})`)
+        }
+
+        const { data: potentialFamilies, error: familiesError } = await familiesQuery
 
         if (familiesError) {
           console.error('Error fetching potential families:', familiesError)
