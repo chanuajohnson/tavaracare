@@ -135,15 +135,18 @@ export const useUnifiedMatches = (userRole: 'family' | 'professional', showOnlyB
             custom_schedule,
             bio,
             hourly_rate,
+            expected_rate,
             work_type,
             background_check,
             legally_authorized,
             commute_mode,
-            additional_professional_notes,
+            additional_notes,
             care_services,
-            languages
+            languages,
+            availability
           `)
-          .in('id', caregiverIds);
+          .in('id', caregiverIds)
+          .eq('role', 'professional');
 
         console.log('useUnifiedMatches: Caregiver profiles query result:', { caregiverProfiles, profileError });
         
@@ -191,17 +194,36 @@ export const useUnifiedMatches = (userRole: 'family' | 'professional', showOnlyB
             // Log the caregiver data for debugging
             console.log('useUnifiedMatches: Caregiver data for', caregiver?.full_name, ':', {
               id: caregiver?.id,
+              full_name: caregiver?.full_name,
+              professional_type: caregiver?.professional_type,
               years_of_experience: caregiver?.years_of_experience,
+              hourly_rate: caregiver?.hourly_rate,
+              expected_rate: caregiver?.expected_rate,
               care_types: caregiver?.care_types,
+              care_services: caregiver?.care_services,
+              care_schedule: caregiver?.care_schedule,
+              commute_mode: caregiver?.commute_mode,
               location: caregiver?.location
             });
+
+            // Format rate properly - check both hourly_rate and expected_rate
+            const formatRateValue = (rate: any) => {
+              if (!rate) return undefined;
+              if (typeof rate === 'string') {
+                const match = rate.match(/(\d+)/);
+                return match ? parseInt(match[1]) : undefined;
+              }
+              return typeof rate === 'number' ? rate : undefined;
+            };
+
+            const finalRate = formatRateValue(caregiver?.hourly_rate) || formatRateValue(caregiver?.expected_rate);
             
             return {
               id: caregiver?.id || assignment.caregiver_id,
               full_name: caregiver?.full_name || 'Professional Caregiver',
               avatar_url: caregiver?.avatar_url || null,
               location: caregiver?.location || 'Trinidad and Tobago',
-              care_types: caregiver?.care_types || ['General Care'],
+              care_types: caregiver?.care_services || caregiver?.care_types || ['General Care'],
               years_of_experience: caregiver?.years_of_experience || 'Experience not specified',
               match_score: assignment.match_score,
               shift_compatibility_score: assignment.shift_compatibility_score,
@@ -213,8 +235,8 @@ export const useUnifiedMatches = (userRole: 'family' | 'professional', showOnlyB
               // Extended professional information
               professional_type: caregiver?.professional_type,
               certifications: caregiver?.certifications,
-              specialized_care: caregiver?.specialized_care || caregiver?.care_services,
-              hourly_rate: caregiver?.hourly_rate,
+              specialized_care: caregiver?.care_services || caregiver?.specialized_care,
+              hourly_rate: finalRate,
               work_type: caregiver?.work_type,
               care_schedule: caregiver?.care_schedule,
               custom_schedule: caregiver?.custom_schedule,
@@ -224,7 +246,7 @@ export const useUnifiedMatches = (userRole: 'family' | 'professional', showOnlyB
               insurance_coverage: caregiver?.legally_authorized,
               transportation_available: !!caregiver?.commute_mode,
               commute_mode: caregiver?.commute_mode,
-              additional_notes: caregiver?.additional_professional_notes
+              additional_notes: caregiver?.additional_notes
             };
           })
         );

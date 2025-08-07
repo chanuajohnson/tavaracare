@@ -97,9 +97,20 @@ export const SimpleMatchCard = ({
   const displayScore = enhancedData?.overall_score || caregiver.match_score;
   
   // Format hourly rate display
-  const formatRate = (rate?: number) => {
+  const formatRate = (rate?: number | string) => {
     if (!rate) return null;
-    return `$${rate}/hr`;
+    
+    if (typeof rate === 'string') {
+      const match = rate.match(/(\d+)/);
+      if (match) return `$${match[1]}/hr`;
+      return rate;
+    }
+    
+    if (typeof rate === 'number') {
+      return `$${rate}/hr`;
+    }
+    
+    return null;
   };
   
   // Get professional credentials display
