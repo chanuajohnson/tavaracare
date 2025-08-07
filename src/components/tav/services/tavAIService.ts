@@ -46,6 +46,14 @@ export class TAVAIService {
         { role: 'user', content: message }
       ];
 
+      // Add detailed logging
+      console.log('🚀 Calling tav-chat-enhanced function:', {
+        message: message.substring(0, 50) + '...',
+        contextPage: context.currentPage,
+        hasCaregiver: !!context.caregiverContext,
+        caregiverName: context.caregiverContext?.full_name
+      });
+
       // Use enhanced TAV service for better responses
       const { data, error } = await supabase.functions.invoke('tav-chat-enhanced', {
         body: {
@@ -58,11 +66,12 @@ export class TAVAIService {
       });
 
       if (error) {
-        console.error('TAV AI Service error:', error);
+        console.error('❌ TAV AI Service error:', error);
         return this.getFallbackResponse(context);
       }
 
-      return data.message || this.getFallbackResponse(context);
+      console.log('✅ TAV AI Service response received:', data?.message?.substring(0, 100) + '...');
+      return data?.message || this.getFallbackResponse(context);
     } catch (error) {
       console.error('TAV AI Service error:', error);
       return this.getFallbackResponse(context);
@@ -125,13 +134,15 @@ ENHANCED GUIDELINES:
   }
 
   private getFallbackResponse(context: TAVConversationContext): string {
+    console.warn('🔄 Using fallback response due to AI service failure');
+    
     if (context.caregiverContext) {
       const caregiver = context.caregiverContext;
       const name = caregiver.full_name || 'this caregiver';
       const experience = caregiver.years_of_experience || 'professional experience';
-      const matchScore = caregiver.match_score || 'excellent';
+      const rate = caregiver.hourly_rate ? `$${caregiver.hourly_rate}/hour` : 'competitive rates';
       
-      return `💙 I'm here to help you connect with ${name}, who brings ${experience} and a ${matchScore}% match with your family's needs. What would you like to know about their caregiving approach or experience?`;
+      return `💙 I'd love to help you learn more about ${name}! They bring ${experience} years of experience at ${rate}. What specific questions do you have about their availability or caregiving approach?`;
     }
     
     if (context.currentForm) {

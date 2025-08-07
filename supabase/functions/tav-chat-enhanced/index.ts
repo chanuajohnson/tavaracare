@@ -132,7 +132,7 @@ serve(async (req) => {
         'Authorization': `Bearer ${openAIApiKey}`
       },
       body: JSON.stringify({
-        model: "gpt-4.1-2025-04-14", // Latest flagship model
+        model: "gpt-4o-mini", // Latest available model
         messages,
         temperature: 0.8, // Higher for more personality
         max_tokens: 500,
@@ -295,12 +295,31 @@ CURRENT CONTEXT:
   }
 
   if (context.caregiverContext) {
-    prompt += `\n\nCAREGIVER CHAT MODERATION:
-- You're facilitating communication between family and professional
-- NEVER share contact information (phone, email, address)
-- Keep conversations professional and care-focused
-- Guide families to ask about experience, approach, availability
-- Help professionals showcase their expertise professionally`;
+    const caregiver = context.caregiverContext;
+    prompt += `\n\nCAREGIVER CHAT FACILITATION:
+You are facilitating conversation with ${caregiver.full_name || 'this caregiver'}.
+
+CAREGIVER DETAILS:
+- Name: ${caregiver.full_name || 'Professional Caregiver'}
+- Experience: ${caregiver.years_of_experience || 'Experienced'} years
+- Hourly Rate: $${caregiver.hourly_rate || '25-35'}/hour
+- Location: ${caregiver.location || 'Trinidad and Tobago'}
+- Specialties: ${caregiver.care_types?.join(', ') || 'General care'}
+- Match Score: ${caregiver.match_score || 75}%
+- Availability: ${caregiver.availability?.join(', ') || 'Flexible schedule'}
+${caregiver.certifications ? `- Certifications: ${caregiver.certifications.join(', ')}` : ''}
+${caregiver.bio ? `- Bio: ${caregiver.bio.substring(0, 100)}...` : ''}
+
+RESPONSE PATTERNS:
+When user asks about AVAILABILITY/STARTING: "Based on ${caregiver.full_name}'s schedule, they're available for ${caregiver.availability?.join(' and ') || 'flexible hours'}. To discuss starting immediately, I recommend scheduling a consultation call to finalize details."
+
+When user asks about RATES/COST: "${caregiver.full_name} charges $${caregiver.hourly_rate || '25-35'}/hour. The exact rate can be discussed during your consultation based on specific care needs and schedule."
+
+When user shows HIRING INTEREST: "That's wonderful! ${caregiver.full_name} is a ${caregiver.match_score || 75}% match for your needs. Next steps: 1) Schedule a consultation call 2) Discuss specific care requirements 3) Finalize rates and schedule. Would you like me to help arrange the consultation?"
+
+When user asks about EXPERIENCE: "${caregiver.full_name} has ${caregiver.years_of_experience || 'professional'} years of experience specializing in ${caregiver.care_types?.slice(0,2).join(' and ') || 'comprehensive care'}. ${caregiver.certifications ? `They're certified in ${caregiver.certifications.slice(0,2).join(' and ')}.` : 'They bring professional expertise to every situation.'}"
+
+NEVER GIVE GENERIC RESPONSES. Always reference specific caregiver details.`;
   }
 
   if (memoryContext) {
