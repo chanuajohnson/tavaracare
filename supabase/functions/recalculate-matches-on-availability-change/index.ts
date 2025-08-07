@@ -118,8 +118,10 @@ serve(async (req) => {
           // Handle single element case to avoid parsing issues
           familiesQuery = familiesQuery.neq('id', excludedFamilyIds[0])
         } else if (excludedFamilyIds.length > 1) {
-          // Handle multiple elements case
-          familiesQuery = familiesQuery.not('id', 'in', excludedFamilyIds)
+          // Handle multiple elements by chaining individual neq filters
+          excludedFamilyIds.forEach(familyId => {
+            familiesQuery = familiesQuery.neq('id', familyId)
+          })
         }
 
         const { data: potentialFamilies, error: familiesError } = await familiesQuery
