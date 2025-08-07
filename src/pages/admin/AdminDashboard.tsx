@@ -3,6 +3,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { MessageSquare, Users, Calendar, TrendingUp, BarChart, Clock, Video, MessageCircle, Settings, UserCheck } from "lucide-react";
 import { AdminUserManagement } from "@/components/admin/AdminUserManagement";
 import { FeatureInterestTracker } from "@/components/admin/FeatureInterestTracker";
@@ -248,15 +249,17 @@ export default function AdminDashboard() {
       </div>
 
       {/* Unified Matching Interface Modal */}
-      {showMatchingInterface && (
-        <UnifiedMatchingInterface
-          onClose={() => setShowMatchingInterface(false)}
-          onMatchAssigned={() => {
-            setShowMatchingInterface(false);
-            fetchPendingMatchesCount();
-          }}
-        />
-      )}
+      <Dialog open={showMatchingInterface} onOpenChange={setShowMatchingInterface}>
+        <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+          <UnifiedMatchingInterface
+            onClose={() => setShowMatchingInterface(false)}
+            onMatchAssigned={() => {
+              setShowMatchingInterface(false);
+              fetchPendingMatchesCount();
+            }}
+          />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
