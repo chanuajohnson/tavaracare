@@ -114,7 +114,11 @@ serve(async (req) => {
           .eq('role', 'family')
 
         // Only apply the exclusion filter if there are existing assignments
-        if (excludedFamilyIds.length > 0) {
+        if (excludedFamilyIds.length === 1) {
+          // Handle single element case to avoid parsing issues
+          familiesQuery = familiesQuery.neq('id', excludedFamilyIds[0])
+        } else if (excludedFamilyIds.length > 1) {
+          // Handle multiple elements case
           familiesQuery = familiesQuery.not('id', 'in', excludedFamilyIds)
         }
 
