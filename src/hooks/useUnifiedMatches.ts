@@ -131,13 +131,17 @@ export const useUnifiedMatches = (userRole: 'family' | 'professional', showOnlyB
             professional_type,
             certifications,
             specialized_care,
-            availability,
+            care_schedule,
             custom_schedule,
             bio,
             hourly_rate,
             work_type,
             background_check,
-            legally_authorized
+            legally_authorized,
+            commute_mode,
+            additional_professional_notes,
+            care_services,
+            languages
           `)
           .in('id', caregiverIds);
 
@@ -209,16 +213,18 @@ export const useUnifiedMatches = (userRole: 'family' | 'professional', showOnlyB
               // Extended professional information
               professional_type: caregiver?.professional_type,
               certifications: caregiver?.certifications,
-              specialized_care: caregiver?.specialized_care,
+              specialized_care: caregiver?.specialized_care || caregiver?.care_services,
               hourly_rate: caregiver?.hourly_rate,
               work_type: caregiver?.work_type,
-              availability: caregiver?.availability,
+              care_schedule: caregiver?.care_schedule,
               custom_schedule: caregiver?.custom_schedule,
               bio: caregiver?.bio,
-              languages: caregiver?.care_types?.filter(type => type.includes('language')), // Extract from care_types if available
+              languages: caregiver?.languages,
               background_check: caregiver?.background_check,
-              insurance_coverage: caregiver?.legally_authorized, // Map to insurance for display
-              transportation_available: false // Default false since field doesn't exist
+              insurance_coverage: caregiver?.legally_authorized,
+              transportation_available: !!caregiver?.commute_mode,
+              commute_mode: caregiver?.commute_mode,
+              additional_notes: caregiver?.additional_professional_notes
             };
           })
         );

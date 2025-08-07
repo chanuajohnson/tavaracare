@@ -33,13 +33,15 @@ interface Caregiver {
   specialized_care?: string[];
   hourly_rate?: number;
   work_type?: string;
-  availability?: string[];
+  care_schedule?: string;
   custom_schedule?: string;
   bio?: string;
   languages?: string[];
   background_check?: boolean;
   insurance_coverage?: boolean;
   transportation_available?: boolean;
+  commute_mode?: string;
+  additional_notes?: string;
 }
 
 // Utility function to extract initials from full name
@@ -103,9 +105,34 @@ export const SimpleMatchCard = ({
   // Get professional credentials display
   const getProfessionalDisplay = () => {
     if (caregiver.professional_type) {
-      return caregiver.professional_type;
+      // Transform common professional types
+      const type = caregiver.professional_type.toLowerCase();
+      if (type === 'gapp') return 'GAPP Certified';
+      if (type === 'cna') return 'Certified Nursing Assistant';
+      if (type === 'rn') return 'Registered Nurse';
+      if (type === 'lpn') return 'Licensed Practical Nurse';
+      return caregiver.professional_type.toUpperCase();
     }
     return "Professional Caregiver";
+  };
+  
+  // Parse care schedule into readable format
+  const getAvailabilityDisplay = () => {
+    if (!caregiver.care_schedule) return null;
+    
+    const schedule = caregiver.care_schedule.toLowerCase();
+    const parts = schedule.split(',').map(s => s.trim());
+    const readable = parts.map(part => {
+      if (part === 'flexible') return 'Flexible';
+      if (part.includes('mon_fri_6am_6pm')) return 'Weekdays 6AM-6PM';
+      if (part.includes('mon_fri_8am_4pm')) return 'Weekdays 8AM-4PM';
+      if (part.includes('sat_sun_6am_6pm')) return 'Weekends 6AM-6PM';
+      if (part.includes('evening')) return 'Evening shifts';
+      if (part.includes('24_7')) return '24/7 available';
+      return part.replace(/_/g, ' ').replace(/am|pm/gi, match => match.toUpperCase());
+    });
+    
+    return readable.slice(0, 2).join(', ') + (readable.length > 2 ? ` +${readable.length - 2} more` : '');
   };
   
   return (
@@ -318,12 +345,21 @@ export const SimpleMatchCard = ({
                 )}
                 
                 {/* Schedule Availability */}
-                {caregiver.availability && caregiver.availability.length > 0 && (
+                {getAvailabilityDisplay() && (
                   <div className="flex items-center gap-1 text-sm">
                     <Calendar className="h-3 w-3 text-muted-foreground" />
                     <span className="text-muted-foreground">
-                      Available {caregiver.availability.slice(0, 2).join(', ')}
-                      {caregiver.availability.length > 2 && ` +${caregiver.availability.length - 2} more`}
+                      {getAvailabilityDisplay()}
+                    </span>
+                  </div>
+                )}
+                
+                {/* Transportation */}
+                {caregiver.commute_mode && (
+                  <div className="flex items-center gap-1 text-sm">
+                    <MapPin className="h-3 w-3 text-muted-foreground" />
+                    <span className="text-muted-foreground">
+                      Transportation: {caregiver.commute_mode}
                     </span>
                   </div>
                 )}
