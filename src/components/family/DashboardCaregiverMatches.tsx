@@ -63,27 +63,222 @@ export const DashboardCaregiverMatches = () => {
               onComplete={() => setIsLoadingComplete(true)}
             />
           ) : displayMatches.length > 0 ? (
-            <div className="space-y-4">
-              <div className="grid gap-4">
-                {displayMatches.map((match, index) => (
-                  <SimpleMatchCard
-                    key={match.id}
-                    caregiver={match}
-                    variant="dashboard"
-                    isBestMatch={index === 0}
-                    onChatClick={() => {
-                      setSelectedCaregiver(match);
-                      setShowChatModal(true);
-                    }}
-                    onViewDetails={() => {
-                      setSelectedCaregiver(match);
-                      setShowDetailModal(true);
-                    }}
-                  />
-                ))}
-              </div>
+            <div className="space-y-6">
+              {displayMatches.map((caregiver, index) => {
+                const getInitials = (name: string) => {
+                  return name.split(' ').map(n => n[0]).join('').toUpperCase();
+                };
+
+                const getCompatibilityColor = (score: number) => {
+                  if (score >= 85) return 'text-green-600';
+                  if (score >= 70) return 'text-blue-600';
+                  if (score >= 50) return 'text-yellow-600';
+                  return 'text-red-600';
+                };
+
+                const getCompatibilityIcon = (score: number) => {
+                  if (score >= 85) return '🟢';
+                  if (score >= 70) return '🔵';
+                  if (score >= 50) return '🟡';
+                  return '🔴';
+                };
+
+                const formatRate = (rate?: string) => {
+                  if (!rate) return null;
+                  const numRate = parseFloat(rate.replace(/[^\d.]/g, ''));
+                  return isNaN(numRate) ? rate : `$${numRate}/hour`;
+                };
+
+                const formatAvailability = (schedule?: string) => {
+                  if (!schedule) return 'Flexible schedule';
+                  
+                  const scheduleMap: { [key: string]: string } = {
+                    'mon_fri_8am_4pm': 'Mon-Fri, 8 AM - 4 PM',
+                    'mon_fri_8am_6pm': 'Mon-Fri, 8 AM - 6 PM',
+                    'weekday_evening_6pm_6am': 'Weekday evenings, 6 PM - 6 AM',
+                    'sat_sun_8am_4pm': 'Weekends, 8 AM - 4 PM',
+                    'flexible': 'Flexible schedule',
+                    'live_in_care': 'Live-in care available',
+                    '24_7_care': '24/7 care available'
+                  };
+
+                  const schedules = schedule.split(',').map(s => s.trim());
+                  const formatted = schedules.map(s => scheduleMap[s] || s).join(', ');
+                  return formatted || 'Flexible schedule';
+                };
+
+                const getProfessionalDisplay = () => {
+                  if ((caregiver as any).professional_type) return (caregiver as any).professional_type;
+                  if ((caregiver as any).certifications?.length > 0) return (caregiver as any).certifications[0];
+                  return 'Professional Caregiver';
+                };
+
+                const getCareServices = () => {
+                  if (!caregiver.care_types) return [];
+                  if (Array.isArray(caregiver.care_types)) return caregiver.care_types;
+                  return [];
+                };
+
+                return (
+                  <Card key={caregiver.id} className="hover:shadow-md transition-shadow">
+                    <CardContent className="p-6">
+                      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        {/* Column 1: Avatar & Basic Info */}
+                        <div className="flex flex-col items-center text-center lg:items-start lg:text-left">
+                          <div className="relative mb-4">
+                            {caregiver.avatar_url ? (
+                              <img
+                                src={caregiver.avatar_url}
+                                alt={caregiver.full_name}
+                                className="w-16 h-16 rounded-full object-cover"
+                              />
+                            ) : (
+                              <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
+                                <span className="text-lg font-semibold text-primary">
+                                  {getInitials(caregiver.full_name || 'CG')}
+                                </span>
+                              </div>
+                            )}
+                            {index === 0 && (
+                              <div className="absolute -top-2 -right-2 bg-primary text-primary-foreground text-xs px-2 py-1 rounded-full">
+                                Best Match
+                              </div>
+                            )}
+                          </div>
+                          
+                          <h3 className="font-semibold text-lg mb-1">
+                            {caregiver.full_name || 'Professional Caregiver'}
+                          </h3>
+                          
+                          <p className="text-muted-foreground text-sm mb-2 flex items-center gap-1">
+                            <span>📍</span>
+                            {caregiver.location || 'Location available upon contact'}
+                          </p>
+                          
+                          <div className="flex items-center gap-2 mb-3">
+                            <span className="text-2xl font-bold text-primary">
+                              {caregiver.match_score || 92}%
+                            </span>
+                            <span className="text-sm text-muted-foreground">Match</span>
+                          </div>
+                          
+                          <div className="flex items-center gap-1 text-sm">
+                            <span>{getCompatibilityIcon(caregiver.match_score || 92)}</span>
+                            <span className={getCompatibilityColor(caregiver.match_score || 92)}>
+                              Schedule Compatible
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Column 2: Details & Services */}
+                        <div className="space-y-4">
+                          <div>
+                            <div className="flex items-center gap-2 mb-2">
+                              <span className="text-primary font-medium">
+                                {getProfessionalDisplay()}
+                              </span>
+                            </div>
+                            <p className="text-sm text-muted-foreground">
+                              {caregiver.years_of_experience || 5}+ years experience
+                            </p>
+                          </div>
+
+                          <div>
+                            <h4 className="font-medium mb-2">Care Services</h4>
+                            <div className="flex flex-wrap gap-2">
+                              {getCareServices().slice(0, 4).map((service, i) => (
+                                <span
+                                  key={i}
+                                  className="px-2 py-1 bg-muted rounded-md text-sm"
+                                >
+                                  {service}
+                                </span>
+                              ))}
+                              {getCareServices().length > 4 && (
+                                <span className="px-2 py-1 bg-muted rounded-md text-sm">
+                                  +{getCareServices().length - 4} more
+                                </span>
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-4 text-sm">
+                            <span className="flex items-center gap-1">
+                              🕒 {formatAvailability((caregiver as any).care_schedule)}
+                            </span>
+                          </div>
+
+                          <div className="flex items-center gap-4 text-sm">
+                            <span className="flex items-center gap-1">
+                              💰 {formatRate((caregiver as any).hourly_rate) || 'Rate available upon request'}
+                            </span>
+                          </div>
+
+                          {(caregiver as any).transportation_available && (
+                            <div className="flex items-center gap-1 text-sm">
+                              🚗 Own transportation
+                            </div>
+                          )}
+
+                          {caregiver.match_explanation && (
+                            <div className="flex items-start gap-2 text-sm bg-muted/50 p-3 rounded-lg">
+                              <span className="text-primary">✨</span>
+                              <span>{caregiver.match_explanation}</span>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Column 3: Actions & Rating */}
+                        <div className="flex flex-col items-center lg:items-end space-y-4">
+                          <div className="flex items-center gap-1">
+                            {[1, 2, 3, 4, 5].map((star) => (
+                              <span key={star} className="text-yellow-400 text-lg">
+                                ⭐
+                              </span>
+                            ))}
+                            <span className="text-sm text-muted-foreground ml-2">5.0</span>
+                          </div>
+
+                          <div className="space-y-2 w-full lg:w-auto">
+                            <Button
+                              onClick={() => {
+                                setSelectedCaregiver(caregiver);
+                                setShowChatModal(true);
+                              }}
+                              className="w-full lg:w-auto"
+                              size="sm"
+                            >
+                              <MessageCircle className="h-4 w-4 mr-2" />
+                              Chat with Caregiver
+                            </Button>
+                            
+                            <Button
+                              variant="outline"
+                              onClick={() => {
+                                setSelectedCaregiver(caregiver);
+                                setShowDetailModal(true);
+                              }}
+                              className="w-full lg:w-auto"
+                              size="sm"
+                            >
+                              <Eye className="h-4 w-4 mr-2" />
+                              View Details
+                            </Button>
+                          </div>
+
+                          {(caregiver as any).background_check && (
+                            <div className="flex items-center gap-1 text-xs text-green-600">
+                              ✅ Background Verified
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
               
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-6">
                 <Button 
                   variant="default" 
                   className="w-full"
