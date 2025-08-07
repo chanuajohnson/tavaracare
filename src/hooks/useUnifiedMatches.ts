@@ -121,7 +121,22 @@ export const useUnifiedMatches = (userRole: 'family' | 'professional', showOnlyB
         
         const { data: caregiverProfiles, error: profileError } = await supabase
           .from('profiles')
-          .select('id, full_name, avatar_url, location, care_types, years_of_experience')
+          .select(`
+            id, 
+            full_name, 
+            avatar_url, 
+            location, 
+            care_types, 
+            years_of_experience,
+            professional_type,
+            certifications,
+            specialized_care,
+            availability,
+            custom_schedule,
+            bio,
+            hourly_rate,
+            work_type
+          `)
           .in('id', caregiverIds);
 
         console.log('useUnifiedMatches: Caregiver profiles query result:', { caregiverProfiles, profileError });
@@ -167,13 +182,21 @@ export const useUnifiedMatches = (userRole: 'family' | 'professional', showOnlyB
               console.warn('useUnifiedMatches: Failed to get enhanced match data for caregiver:', assignment.caregiver_id, enhancedError);
             }
             
+            // Log the caregiver data for debugging
+            console.log('useUnifiedMatches: Caregiver data for', caregiver?.full_name, ':', {
+              id: caregiver?.id,
+              years_of_experience: caregiver?.years_of_experience,
+              care_types: caregiver?.care_types,
+              location: caregiver?.location
+            });
+            
             return {
               id: caregiver?.id || assignment.caregiver_id,
               full_name: caregiver?.full_name || 'Professional Caregiver',
               avatar_url: caregiver?.avatar_url || null,
               location: caregiver?.location || 'Trinidad and Tobago',
               care_types: caregiver?.care_types || ['General Care'],
-              years_of_experience: caregiver?.years_of_experience || '2+ years',
+              years_of_experience: caregiver?.years_of_experience || 'Experience not specified',
               match_score: assignment.match_score,
               shift_compatibility_score: assignment.shift_compatibility_score,
               match_explanation: assignment.match_explanation,
