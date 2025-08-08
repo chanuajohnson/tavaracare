@@ -4649,6 +4649,21 @@ export type Database = {
           role: Database["public"]["Enums"]["user_role"]
         }[]
       }
+      get_public_professional_profiles: {
+        Args: { ids: string[] }
+        Returns: {
+          id: string
+          full_name: string
+          avatar_url: string
+          location: string
+          professional_type: string
+          years_of_experience: string
+          hourly_rate: string
+          expected_rate: string
+          care_schedule: string
+          care_types: string[]
+        }[]
+      }
       get_user_profile_secure: {
         Args: { target_user_id: string }
         Returns: {

@@ -185,50 +185,61 @@ export const useUnifiedMatches = (userRole: 'family' | 'professional', showOnlyB
             console.error('Error fetching caregiver profiles:', profileError);
           }
 
-          // Create map of caregiver profiles for quick lookup
+          // Build map of caregiver profiles for quick lookup
           const caregiverProfileMap = new Map(
             (caregiverProfiles || []).map(profile => [profile.id, profile])
           );
 
+          // NEW: Fallback to SECURITY DEFINER RPC for RLS-safe public fields
+          const missingIds = caregiverIds.filter(id => !caregiverProfileMap.has(id));
+          if (missingIds.length) {
+            console.log('useUnifiedMatches: Falling back to RPC for missing professional profiles:', missingIds);
+            const { data: publicProfiles, error: rpcErr } = await supabase
+              .rpc('get_public_professional_profiles', { ids: missingIds });
+
+            if (rpcErr) {
+              console.warn('[useUnifiedMatches] RPC get_public_professional_profiles error:', rpcErr);
+            } else {
+              console.log('[useUnifiedMatches] RPC returned profiles count:', publicProfiles?.length || 0);
+              (publicProfiles || []).forEach((p: any) => caregiverProfileMap.set(p.id, p));
+            }
+          }
+
           // Transform assignments into matches with enhanced caregiver data
           const processedMatches = assignmentData.map((assignment: any) => {
-            const caregiverProfile = caregiverProfileMap.get(assignment.caregiver_id);
+            const caregiver = caregiverProfileMap.get(assignment.caregiver_id);
             
             // Log assignment and caregiver profile mapping
             console.log('useUnifiedMatches: Processing assignment:', {
               assignment_id: assignment.id,
               caregiver_id: assignment.caregiver_id,
-              has_profile: !!caregiverProfile,
-              profile_preview: caregiverProfile ? {
-                id: caregiverProfile.id,
-                name: caregiverProfile.full_name,
-                professional_type: caregiverProfile.professional_type,
-                hourly_rate: caregiverProfile.hourly_rate,
-                expected_rate: caregiverProfile.expected_rate,
-                care_services: caregiverProfile.care_services
+              has_profile: !!caregiver,
+              profile_preview: caregiver ? {
+                id: caregiver.id,
+                name: caregiver.full_name,
+                professional_type: caregiver.professional_type,
+                hourly_rate: caregiver.hourly_rate,
+                expected_rate: caregiver.expected_rate,
+                care_services: caregiver.care_services
               } : null
             });
             
             // Use enhanced match data if available
             const enhancedMatchData = assignment.enhanced_match_data;
-            
             if (enhancedMatchData) {
               try {
                 const parsedEnhanced = typeof enhancedMatchData === 'string' 
                   ? JSON.parse(enhancedMatchData) 
                   : enhancedMatchData;
-                
                 console.log('useUnifiedMatches: Enhanced match data for', assignment.caregiver_id, ':', parsedEnhanced);
               } catch (err) {
                 console.warn('Could not parse enhanced match data:', err);
               }
             }
 
-            const caregiver = caregiverProfile;
-            
-            // If no caregiver profile found, create a minimal fallback
+            // If no caregiver profile found even after RPC, create a minimal fallback
             if (!caregiver) {
-              console.warn('useUnifiedMatches: No caregiver profile found for ID:', assignment.caregiver_id);
+              console.warn('useUnifiedMatches: No caregiver profile found for ID (after RPC):', assignment.caregiver_id);
               return {
                 id: assignment.caregiver_id,
                 full_name: 'Professional Caregiver',
@@ -246,24 +257,6 @@ export const useUnifiedMatches = (userRole: 'family' | 'professional', showOnlyB
               };
             }
 
-            // Log the detailed caregiver data for debugging
-            console.log('useUnifiedMatches: Full caregiver data for', caregiver.full_name, ':', {
-              id: caregiver.id,
-              full_name: caregiver.full_name,
-              professional_type: caregiver.professional_type,
-              years_of_experience: caregiver.years_of_experience,
-              hourly_rate: caregiver.hourly_rate,
-              expected_rate: caregiver.expected_rate,
-              care_types: caregiver.care_types,
-              care_services: caregiver.care_services,
-              care_schedule: caregiver.care_schedule,
-              commute_mode: caregiver.commute_mode,
-              location: caregiver.location,
-              certifications: caregiver.certifications,
-              background_check: caregiver.background_check,
-              languages: caregiver.languages
-            });
-
             // Format rate properly - check both hourly_rate and expected_rate
             const formatRateValue = (rate: any) => {
               if (!rate) return undefined;
@@ -275,8 +268,6 @@ export const useUnifiedMatches = (userRole: 'family' | 'professional', showOnlyB
             };
 
             const finalRate = formatRateValue(caregiver.hourly_rate) || formatRateValue(caregiver.expected_rate);
-            
-            // Transform professional type for better display
             const getDisplayProfessionalType = (type: string | null | undefined) => {
               if (!type) return null;
               switch (type.toLowerCase()) {
@@ -287,8 +278,6 @@ export const useUnifiedMatches = (userRole: 'family' | 'professional', showOnlyB
                 default: return type;
               }
             };
-
-            // Get primary care services for display
             const getPrimaryCareServices = (services: string[] | null | undefined, types: string[] | null | undefined) => {
               const primaryServices = services || types || [];
               if (!primaryServices || primaryServices.length === 0) return ['General Care'];
@@ -310,7 +299,7 @@ export const useUnifiedMatches = (userRole: 'family' | 'professional', showOnlyB
               is_premium: true,
               enhanced_match_data: enhancedMatchData,
               
-              // Extended professional information
+              // Extended professional information (may be undefined for RPC-fetched but UI handles gracefully)
               professional_type: getDisplayProfessionalType(caregiver.professional_type),
               certifications: caregiver.certifications || [],
               specialized_care: caregiver.care_services || caregiver.specialized_care || [],
