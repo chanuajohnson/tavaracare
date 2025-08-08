@@ -44,24 +44,27 @@ export const DashboardCaregiverMatches = () => {
     return "text-red-700 bg-red-50 border-red-200";
   };
 
-  const formatSchedule = (schedule?: string) => {
-    if (!schedule) return null;
-    
-    const scheduleMap: Record<string, string> = {
-      'flexible': 'Flexible Hours',
-      'mon_fri_8am_4pm': 'Mon-Fri 8AM-4PM',
-      'mon_fri_8am_6pm': 'Mon-Fri 8AM-6PM',
-      'mon_fri_6am_6pm': 'Mon-Fri 6AM-6PM',
-      'sat_sun_6am_6pm': 'Weekend 6AM-6PM',
-      'weekday_evening_6pm_6am': 'Weekday Evenings 6PM-6AM',
-      'live_in_care': 'Live-in Care',
-      '24_7_care': '24/7 Care'
-    };
-    
-    const schedules = schedule.split(',').map(s => s.trim());
-    const formatted = schedules.map(s => scheduleMap[s] || s).slice(0, 2);
-    return formatted.join(', ') + (schedules.length > 2 ? ' +more' : '');
-  };
+const scheduleLabels: Record<string, string> = {
+  flexible: "Flexible",
+  mon_fri_6am_6pm: "Mon–Fri, 6 AM–6 PM",
+  sat_sun_6am_6pm: "Sat–Sun, 6 AM–6 PM",
+  weekday_evening_6pm_6am: "Weekday Evenings (6 PM–6 AM)",
+  weekend_evening_6pm_6am: "Weekend Evenings (6 PM–6 AM)",
+  mon_fri_8am_4pm: "Mon–Fri, 8 AM–4 PM",
+  mon_fri_8am_6pm: "Mon–Fri, 8 AM–6 PM",
+  live_in_care: "Live-in Care",
+  "24_7_care": "24/7 Care",
+  // add more known codes as you use them
+};
+
+function formatSchedule(raw?: string | null): string | null {
+  if (!raw) return null;
+  return raw
+    .split(",")
+    .map((p) => p.trim())
+    .map((p) => scheduleLabels[p] ?? p.replace(/_/g, " "))
+    .join(" • ");
+}
 
   const formatRate = (rate?: string | number) => {
     if (!rate) return null;
@@ -152,18 +155,18 @@ export const DashboardCaregiverMatches = () => {
                       {/* MIDDLE: details */}
                       <div className="sm:w-2/4 space-y-2">
                          <div className="flex flex-wrap items-center gap-2 text-sm">
-                           <div className="flex items-center gap-1">
-                             <Calendar className="h-3.5 w-3.5 text-gray-500" />
-                             <span>{formatSchedule(cg?.care_schedule) || "Schedule available upon request"}</span>
-                           </div>
-                           <span className="text-gray-300">|</span>
-                           <div className="flex items-center gap-1">
-                             <DollarSign className="h-3.5 w-3.5 text-gray-500" />
-                             <span>{formatRate(cg?.hourly_rate || cg?.expected_rate) || "Rate available upon request"}</span>
-                           </div>
+                            <div className="flex items-center gap-1">
+                              <Calendar className="h-3.5 w-3.5 text-gray-500" />
+                              <span>{formatSchedule(cg.care_schedule) ?? "Schedule available upon request"}</span>
+                            </div>
+                            <span className="text-gray-300">|</span>
+                            <div className="flex items-center gap-1">
+                              <DollarSign className="h-3.5 w-3.5 text-gray-500" />
+                              <span>{cg.hourly_rate ?? "Rate available upon request"}</span>
+                            </div>
                          </div>
 
-                        {cg?.years_of_experience && (
+                        {cg.years_of_experience && (
                           <div className="text-sm">
                             <span className="font-medium block mb-1">Experience</span>
                             <div className="text-gray-700">{cg.years_of_experience}</div>
