@@ -99,27 +99,36 @@ export const DashboardCaregiverMatches = () => {
                   return '🔴';
                 };
 
-                const formatRate = (rate?: string) => {
+                const formatRate = (rate?: string | number) => {
                   if (!rate) return 'Rate available upon request';
                   
+                  // If it's a number, format as currency
+                  if (typeof rate === 'number') {
+                    return `$${rate}/hour`;
+                  }
+                  
+                  // If it's already formatted with currency, return as is
+                  if (typeof rate === 'string' && rate.includes('$')) {
+                    return rate;
+                  }
+                  
                   // Handle various rate formats
-                  if (rate.includes('/hr')) {
+                  if (typeof rate === 'string' && rate.includes('/hr')) {
                     const numRate = parseFloat(rate.replace(/[^\d.]/g, ''));
                     return isNaN(numRate) ? rate : `$${numRate}/hour`;
                   }
                   
                   // Handle "Ambulatory 35/ bedridden patient 45 hourly" format
-                  if (rate.toLowerCase().includes('ambulatory') || rate.toLowerCase().includes('bedridden')) {
+                  if (typeof rate === 'string' && (rate.toLowerCase().includes('ambulatory') || rate.toLowerCase().includes('bedridden'))) {
                     const matches = rate.match(/\d+/g);
                     if (matches && matches.length > 0) {
                       return `Starting at $${matches[0]}/hour`;
                     }
                   }
                   
-                  // Handle simple number format
-                  const numRate = parseFloat(rate.replace(/[^\d.]/g, ''));
-                  if (!isNaN(numRate)) {
-                    return `$${numRate}/hour`;
+                  // Handle simple number format as string
+                  if (typeof rate === 'string' && /^\d+$/.test(rate)) {
+                    return `$${rate}/hour`;
                   }
                   
                   return rate;
@@ -217,7 +226,11 @@ export const DashboardCaregiverMatches = () => {
                               </span>
                             </div>
                             <p className="text-sm text-muted-foreground">
-                              {caregiver.years_of_experience ? `${caregiver.years_of_experience} years experience` : 'Experience available upon request'}
+                              {caregiver.years_of_experience && caregiver.years_of_experience !== 'Experience not specified' 
+                                ? (caregiver.years_of_experience.includes('year') || caregiver.years_of_experience.includes('experience') 
+                                   ? caregiver.years_of_experience 
+                                   : `${caregiver.years_of_experience} years experience`)
+                                : 'Experience available upon request'}
                             </p>
                           </div>
 
@@ -246,11 +259,11 @@ export const DashboardCaregiverMatches = () => {
                             </span>
                           </div>
 
-                          <div className="flex items-center gap-4 text-sm">
-                            <span className="flex items-center gap-1">
-                              💰 {formatRate((caregiver as any).hourly_rate || (caregiver as any).expected_rate)}
-                            </span>
-                          </div>
+                           <div className="flex items-center gap-4 text-sm">
+                             <span className="flex items-center gap-1">
+                               💰 {formatRate((caregiver as any).hourly_rate || (caregiver as any).expected_rate)}
+                             </span>
+                           </div>
 
                           {(caregiver as any).transportation_available && (
                             <div className="flex items-center gap-1 text-sm">
