@@ -99,42 +99,39 @@ export const DashboardCaregiverMatches = () => {
                   return '🔴';
                 };
 
-                function formatExperience(exp?: string | number | null): string {
-                  if (exp == null || exp === '') return 'Experience available upon request';
-
-                  // If the hook already returns phrases like "6-10 years" or "More than 10 years"
-                  const str = String(exp).trim();
-                  const hasYears = /\byear\b|\byears\b/i.test(str);
-                  // If it already contains "year(s)", show it as-is. Otherwise add "years experience".
-                  return hasYears ? str : `${str} years experience`;
-                }
-
-                function formatRate(
-                  rate?: number | string | null,
-                  currency: string = 'TTD'
-                ): string {
-                  if (rate == null || rate === '') return 'Rate available upon request';
-
-                  // Numeric → "TTD $40/hour"
+                const formatRate = (rate?: string | number) => {
+                  if (!rate) return 'Rate available upon request';
+                  
+                  // If it's a number, format as currency
                   if (typeof rate === 'number') {
-                    return new Intl.NumberFormat(undefined, { style: 'currency', currency }).format(rate) + '/hour';
+                    return `$${rate}/hour`;
                   }
-
-                  // String cases: "40/hr", "$40/hr", "TTD 40", "40"
-                  const raw = rate.trim();
-
-                  // Extract the first number in the string
-                  const match = raw.replace(',', '').match(/(\d+(\.\d+)?)/);
-                  if (match) {
-                    const num = Number(match[1]);
-                    if (!Number.isNaN(num)) {
-                      return new Intl.NumberFormat(undefined, { style: 'currency', currency }).format(num) +
-                        (/\bhour|hr\b/i.test(raw) ? (raw.toLowerCase().includes('hr') ? '/hr' : '/hour') : '/hour');
+                  
+                  // If it's already formatted with currency, return as is
+                  if (typeof rate === 'string' && rate.includes('$')) {
+                    return rate;
+                  }
+                  
+                  // Handle various rate formats
+                  if (typeof rate === 'string' && rate.includes('/hr')) {
+                    const numRate = parseFloat(rate.replace(/[^\d.]/g, ''));
+                    return isNaN(numRate) ? rate : `$${numRate}/hour`;
+                  }
+                  
+                  // Handle "Ambulatory 35/ bedridden patient 45 hourly" format
+                  if (typeof rate === 'string' && (rate.toLowerCase().includes('ambulatory') || rate.toLowerCase().includes('bedridden'))) {
+                    const matches = rate.match(/\d+/g);
+                    if (matches && matches.length > 0) {
+                      return `Starting at $${matches[0]}/hour`;
                     }
                   }
-
-                  // Fallback: show original string (already formatted)
-                  return raw;
+                  
+                  // Handle simple number format as string
+                  if (typeof rate === 'string' && /^\d+$/.test(rate)) {
+                    return `$${rate}/hour`;
+                  }
+                  
+                  return rate;
                 };
 
                 const formatAvailability = (schedule?: string) => {
@@ -229,7 +226,11 @@ export const DashboardCaregiverMatches = () => {
                               </span>
                             </div>
                             <p className="text-sm text-muted-foreground">
-                              {formatExperience(caregiver.years_of_experience)}
+                              {caregiver.years_of_experience && caregiver.years_of_experience !== 'Experience not specified' 
+                                ? (caregiver.years_of_experience.includes('year') || caregiver.years_of_experience.includes('experience') 
+                                   ? caregiver.years_of_experience 
+                                   : `${caregiver.years_of_experience} years experience`)
+                                : 'Experience available upon request'}
                             </p>
                           </div>
 
@@ -260,7 +261,7 @@ export const DashboardCaregiverMatches = () => {
 
                            <div className="flex items-center gap-4 text-sm">
                              <span className="flex items-center gap-1">
-                               💰 {formatRate((caregiver as any).hourly_rate, 'TTD')}
+                               💰 {formatRate((caregiver as any).hourly_rate || (caregiver as any).expected_rate)}
                              </span>
                            </div>
 
