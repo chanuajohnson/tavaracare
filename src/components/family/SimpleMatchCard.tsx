@@ -31,7 +31,7 @@ interface Caregiver {
   professional_type?: string;
   certifications?: string[];
   specialized_care?: string[];
-  hourly_rate?: string | number;
+  hourly_rate?: number;
   work_type?: string;
   care_schedule?: string;
   custom_schedule?: string;
