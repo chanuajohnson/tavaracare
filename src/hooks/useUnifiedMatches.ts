@@ -23,9 +23,6 @@ export interface UnifiedMatch {
   location: string | null;
   care_types: string[] | null;
   years_of_experience: string | null;
-  hourly_rate: string | null;
-  care_schedule: string | null;
-  professional_type: string | null;
   match_score: number;
   shift_compatibility_score?: number;
   match_explanation?: string;
@@ -33,6 +30,22 @@ export interface UnifiedMatch {
   assignment_id?: string;
   is_premium: boolean;
   enhanced_match_data?: EnhancedMatchData;
+  // Extended professional information
+  professional_type?: string;
+  certifications?: string[];
+  specialized_care?: string[];
+  hourly_rate?: string | number;
+  expected_rate?: string | number;
+  work_type?: string;
+  care_schedule?: string;
+  custom_schedule?: string;
+  bio?: string;
+  languages?: string[];
+  background_check?: boolean;
+  insurance_coverage?: boolean;
+  transportation_available?: boolean;
+  commute_mode?: string;
+  additional_notes?: string;
 }
 
 export interface UnifiedAssignment {
@@ -221,9 +234,6 @@ export const useUnifiedMatches = (userRole: 'family' | 'professional', showOnlyB
                 location: 'Trinidad and Tobago',
                 care_types: ['General Care'],
                 years_of_experience: 'Experience not specified',
-                hourly_rate: null,
-                care_schedule: null,
-                professional_type: null,
                 match_score: assignment.match_score || 85,
                 shift_compatibility_score: assignment.shift_compatibility_score,
                 match_explanation: assignment.match_explanation || 'Good match based on care needs and caregiver specialization',
@@ -289,10 +299,7 @@ export const useUnifiedMatches = (userRole: 'family' | 'professional', showOnlyB
               avatar_url: caregiver.avatar_url,
               location: caregiver.location || 'Trinidad and Tobago',
               care_types: getPrimaryCareServices(caregiver.care_services, caregiver.care_types),
-              years_of_experience: caregiver?.years_of_experience ?? null,
-              hourly_rate: caregiver?.hourly_rate ?? caregiver?.expected_rate ?? null,
-              care_schedule: caregiver?.care_schedule ?? null,
-              professional_type: getDisplayProfessionalType(caregiver.professional_type),
+              years_of_experience: caregiver.years_of_experience,
               match_score: assignment.match_score || 85,
               shift_compatibility_score: assignment.shift_compatibility_score,
               match_explanation: assignment.match_explanation || 'Good match based on care needs and caregiver specialization',
@@ -302,9 +309,12 @@ export const useUnifiedMatches = (userRole: 'family' | 'professional', showOnlyB
               enhanced_match_data: enhancedMatchData,
               
               // Extended professional information
+              professional_type: getDisplayProfessionalType(caregiver.professional_type),
               certifications: caregiver.certifications || [],
               specialized_care: caregiver.care_services || caregiver.specialized_care || [],
+              hourly_rate: caregiver.hourly_rate || caregiver.expected_rate,
               work_type: caregiver.work_type,
+              care_schedule: caregiver.care_schedule,
               custom_schedule: caregiver.custom_schedule,
               bio: caregiver.bio,
               languages: caregiver.languages || [],

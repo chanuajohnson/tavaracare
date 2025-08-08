@@ -17,6 +17,11 @@ interface Caregiver {
   years_of_experience: string | null;
   match_score: number;
   is_premium: boolean;
+  hourly_rate?: string | number;
+  expected_rate?: string | number;
+  professional_type?: string;
+  certifications?: string[];
+  care_schedule?: string;
 }
 
 interface CaregiverMatchCardProps {
