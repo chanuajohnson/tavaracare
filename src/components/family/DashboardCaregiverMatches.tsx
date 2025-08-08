@@ -130,7 +130,7 @@ export const DashboardCaregiverMatches = () => {
                             ) : (
                               <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
                                 <span className="text-lg font-semibold text-primary">
-                                  {getInitials(caregiver.full_name || 'CG')}
+                                  {getInitials(getProfessionalDisplay())}
                                 </span>
                               </div>
                             )}
@@ -142,8 +142,11 @@ export const DashboardCaregiverMatches = () => {
                           </div>
                           
                           <h3 className="font-semibold text-lg mb-1">
-                            {caregiver.full_name || 'Professional Caregiver'}
+                            {getProfessionalDisplay()}
                           </h3>
+                          <div className="text-xs text-blue-600">
+                            * Name protected until subscription
+                          </div>
                           
                           <p className="text-muted-foreground text-sm mb-2 flex items-center gap-1">
                             <span>📍</span>
