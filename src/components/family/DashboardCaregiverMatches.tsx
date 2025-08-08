@@ -99,61 +99,6 @@ export const DashboardCaregiverMatches = () => {
                   return '🔴';
                 };
 
-                const formatExperience = (exp?: string | number | null): string => {
-                  if (exp == null || exp === '') return 'Experience available upon request';
-
-                  // If the hook already returns phrases like "6-10 years" or "More than 10 years"
-                  const str = String(exp).trim();
-                  const hasYears = /\byear\b|\byears\b/i.test(str);
-                  // If it already contains "year(s)", show it as-is. Otherwise add "years experience".
-                  return hasYears ? str : `${str} years experience`;
-                };
-
-                const formatRate = (
-                  rate?: number | string | null,
-                  currency: string = 'TTD'
-                ): string => {
-                  if (rate == null || rate === '') return 'Rate available upon request';
-
-                  // Numeric → "TTD $40/hour"
-                  if (typeof rate === 'number') {
-                    return new Intl.NumberFormat(undefined, { style: 'currency', currency }).format(rate) + '/hour';
-                  }
-
-                  // String cases: "40/hr", "$40/hr", "TTD 40", "40"
-                  const raw = rate.trim();
-
-                  // Extract the first number in the string
-                  const match = raw.replace(',', '').match(/(\d+(\.\d+)?)/);
-                  if (match) {
-                    const num = Number(match[1]);
-                    if (!Number.isNaN(num)) {
-                      return new Intl.NumberFormat(undefined, { style: 'currency', currency }).format(num) +
-                        (/\bhour|hr\b/i.test(raw) ? (raw.toLowerCase().includes('hr') ? '/hr' : '/hour') : '/hour');
-                    }
-                  }
-
-                  // Fallback: show original string (already formatted)
-                  return raw;
-                };
-
-                const formatAvailability = (schedule?: string) => {
-                  if (!schedule) return 'Flexible schedule';
-                  
-                  const scheduleMap: { [key: string]: string } = {
-                    'mon_fri_8am_4pm': 'Mon-Fri, 8 AM - 4 PM',
-                    'mon_fri_8am_6pm': 'Mon-Fri, 8 AM - 6 PM',
-                    'weekday_evening_6pm_6am': 'Weekday evenings, 6 PM - 6 AM',
-                    'sat_sun_8am_4pm': 'Weekends, 8 AM - 4 PM',
-                    'flexible': 'Flexible schedule',
-                    'live_in_care': 'Live-in care available',
-                    '24_7_care': '24/7 care available'
-                  };
-
-                  const schedules = schedule.split(',').map(s => s.trim());
-                  const formatted = schedules.map(s => scheduleMap[s] || s).join(', ');
-                  return formatted || 'Flexible schedule';
-                };
 
                 const getProfessionalDisplay = () => {
                   const profType = (caregiver as any).professional_type;
@@ -229,7 +174,7 @@ export const DashboardCaregiverMatches = () => {
                               </span>
                             </div>
                             <p className="text-sm text-muted-foreground">
-                              {formatExperience(caregiver.years_of_experience)}
+                              {caregiver.years_of_experience || 'Experience available upon request'}
                             </p>
                           </div>
 
@@ -254,14 +199,14 @@ export const DashboardCaregiverMatches = () => {
 
                           <div className="flex items-center gap-4 text-sm">
                             <span className="flex items-center gap-1">
-                              🕒 {formatAvailability((caregiver as any).care_schedule)}
+                              🕒 {(caregiver as any).care_schedule || 'Schedule available upon request'}
                             </span>
                           </div>
 
                            <div className="flex items-center gap-4 text-sm">
-                             <span className="flex items-center gap-1">
-                               💰 {formatRate((caregiver as any).hourly_rate ?? (caregiver as any).expected_rate, 'TTD')}
-                             </span>
+                            <span className="flex items-center gap-1">
+                              💰 {(caregiver as any).hourly_rate || (caregiver as any).expected_rate || 'Rate available upon request'}
+                            </span>
                            </div>
 
                           {(caregiver as any).transportation_available && (
