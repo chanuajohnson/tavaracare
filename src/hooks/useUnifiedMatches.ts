@@ -329,6 +329,18 @@ export const useUnifiedMatches = (userRole: 'family' | 'professional', showOnlyB
           });
 
           console.log('useUnifiedMatches: Processed matches:', processedMatches);
+          
+          // TEMP DEBUG — remove after
+          console.table(
+            processedMatches.slice(0, 1).map(m => ({
+              id: m.id,
+              years_of_experience: m.years_of_experience,
+              hourly_rate: m.hourly_rate,
+              care_schedule: m.care_schedule,
+              care_types: Array.isArray(m.care_types) ? m.care_types.join('|') : m.care_types,
+            }))
+          );
+          
           const finalMatches = showOnlyBestMatch ? processedMatches.slice(0, 1) : processedMatches;
           console.log('useUnifiedMatches: Final matches to display:', finalMatches);
           setMatches(finalMatches);

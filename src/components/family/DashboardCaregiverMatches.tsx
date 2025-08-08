@@ -97,6 +97,8 @@ function formatSchedule(raw?: string | null): string | null {
             <MatchLoadingState duration={1200} onComplete={() => setIsLoadingComplete(true)} />
           ) : displayMatches.length ? (
             <div className="space-y-4">
+              {/* TEMP DEBUG — remove after */}
+              {(() => { console.debug('[CG matches in card]', displayMatches.slice(0, 1)[0]); return null; })()}
               {displayMatches.map((cg, idx) => {
                 const label = professionalLabel(cg);
                 const matchScore = cg?.match_score ?? 90;
@@ -166,12 +168,10 @@ function formatSchedule(raw?: string | null): string | null {
                             </div>
                          </div>
 
-                        {cg.years_of_experience && (
-                          <div className="text-sm">
-                            <span className="font-medium block mb-1">Experience</span>
-                            <div className="text-gray-700">{cg.years_of_experience}</div>
-                          </div>
-                        )}
+                        <div className="text-sm">
+                          <span className="font-medium block mb-1">Experience</span>
+                          <div className="text-gray-700">{cg.years_of_experience ?? 'Experience not specified'}</div>
+                        </div>
 
                         {Array.isArray(cg?.care_types) && cg.care_types.length > 0 && (
                           <div className="text-sm">
