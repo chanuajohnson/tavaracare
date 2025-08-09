@@ -1,120 +1,98 @@
 
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+// deno-lint-ignore-file no-explicit-any
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, x-client-env, x-app-version, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-}
+const cors = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, x-client-env, x-app-version, apikey, content-type",
+};
 
-serve(async (req) => {
-  // Handle CORS preflight requests
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
-  }
+const url = Deno.env.get("SUPABASE_URL")!;
+const anon = Deno.env.get("SUPABASE_ANON_KEY")!;
+const service = Deno.env.get("SERVICE_ROLE_KEY")!;
+
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
 
   try {
-    // Create admin client with service role key
-    const supabaseAdmin = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
-      {
-        auth: {
-          autoRefreshToken: false,
-          persistSession: false
-        }
-      }
-    )
+    // 1) bind the caller's auth so we can check role
+    const authHeader = req.headers.get("Authorization") ?? "";
+    const supa = createClient(url, anon, { global: { headers: { Authorization: authHeader } } });
 
-    // Verify the user making the request is an admin
-    const authHeader = req.headers.get('Authorization')!
-    const token = authHeader.replace('Bearer ', '')
-    
-    const { data: { user } } = await supabaseAdmin.auth.getUser(token)
-    
-    if (!user) {
-      return new Response(
-        JSON.stringify({ error: 'Unauthorized' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    }
+    // 2) admin client (SERVICE ROLE) for privileged ops
+    const admin = createClient(url, service);
 
-    // Check if user is admin
-    const { data: profile } = await supabaseAdmin
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single()
-
-    if (profile?.role !== 'admin') {
-      return new Response(
-        JSON.stringify({ error: 'Admin access required' }),
-        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    }
-
-    // Accept params from body OR query string for flexibility
-    const url = new URL(req.url)
-    let body: any = {}
+    // 3) read body (we standardized on body for invoke)
+    let body: any = {};
     try {
-      if (req.headers.get('content-type')?.includes('application/json')) {
-        body = await req.json()
-      }
+      body = await req.json();
     } catch {
-      // ignore parse errors
+      /* no body or invalid json */
     }
 
-    // Helper to get params from either body or query
-    const get = (key: string) => body?.[key] ?? url.searchParams.get(key)
+    const action = (body.action ?? new URL(req.url).searchParams.get("action")) ?? "";
+    if (!action) throw new Error("Missing 'action'");
 
-    const action = get('action') || 'list-users'
-    const userId = get('user_id') || get('userId')
+    // 4) verify caller is an admin
+    const { data: userData, error: userErr } = await supa.auth.getUser();
+    if (userErr || !userData?.user) throw new Error("Unauthenticated");
+    
+    // Check admin role from user metadata or profiles table
+    let isAdmin = false;
+    const metadata = userData.user.user_metadata || userData.user.app_metadata;
+    if (metadata?.role === 'admin') {
+      isAdmin = true;
+    } else {
+      // Fallback: check profiles table
+      const { data: profile } = await admin
+        .from('profiles')
+        .select('role')
+        .eq('id', userData.user.id)
+        .single();
+      isAdmin = profile?.role === 'admin';
+    }
+    
+    if (!isAdmin) throw new Error("Forbidden: admin only");
 
-    switch (action) {
-      case 'list-users':
-        const { data: users, error: usersError } = await supabaseAdmin.auth.admin.listUsers()
-        
-        if (usersError) {
-          throw usersError
-        }
+    // 5) route actions
+    if (action === "delete-user") {
+      const user_id =
+        body.user_id ?? new URL(req.url).searchParams.get("user_id");
+      if (!user_id) throw new Error("Missing 'user_id'");
 
-        return new Response(
-          JSON.stringify({ users }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        )
+      console.log(`Admin ${userData.user.id} attempting to delete user ${user_id}`);
 
-      case 'delete-user':
-        if (!userId) {
-          return new Response(
-            JSON.stringify({ error: 'User ID required' }),
-            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-          )
-        }
+      // delete auth user (requires service role)
+      const { error: delErr } = await admin.auth.admin.deleteUser(user_id);
+      if (delErr) {
+        console.error('Delete user error:', delErr);
+        throw delErr;
+      }
 
-        const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(userId)
-        
-        if (deleteError) {
-          throw deleteError
-        }
-
-        return new Response(
-          JSON.stringify({ success: true }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        )
-
-      default:
-        return new Response(
-          JSON.stringify({ error: 'Invalid action' }),
-          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        )
+      console.log(`Successfully deleted user ${user_id}`);
+      return new Response(JSON.stringify({ ok: true }), {
+        headers: { ...cors, "content-type": "application/json" },
+      });
     }
 
-  } catch (error) {
-    console.error('Admin users function error:', error)
+    if (action === "list-users") {
+      const { data: users, error } = await admin.auth.admin.listUsers();
+      if (error) throw error;
+
+      return new Response(JSON.stringify({ ok: true, users }), {
+        headers: { ...cors, "content-type": "application/json" },
+      });
+    }
+
+    throw new Error(`Unknown action '${action}'`);
+  } catch (err) {
+    console.error('Admin users function error:', err);
+    // always return JSON + CORS so the client surfaces a readable message
     return new Response(
-      JSON.stringify({ error: error.message }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    )
+      JSON.stringify({ ok: false, error: String(err) }),
+      { status: 400, headers: { ...cors, "content-type": "application/json" } },
+    );
   }
-})
+});
