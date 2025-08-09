@@ -22,6 +22,7 @@ export interface CaregiverChatMessage {
   is_tav_moderated: boolean;
   message_type: 'chat' | 'system' | 'warning' | 'upsell';
   created_at: string;
+  sender?: string;
 }
 
 export interface Caregiver {
@@ -169,7 +170,8 @@ export class CaregiverChatService {
           content: message,
           is_user: true,
           is_tav_moderated: true,
-          message_type: 'chat'
+          message_type: 'chat',
+          sender: 'family'
         });
 
       // Get TAV response
@@ -183,7 +185,8 @@ export class CaregiverChatService {
           content: tavResponse,
           is_user: false,
           is_tav_moderated: true,
-          message_type: 'chat'
+          message_type: 'chat',
+          sender: 'tav'
         });
 
       // Update message count

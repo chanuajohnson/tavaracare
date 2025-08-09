@@ -9,6 +9,7 @@ import { MessageCircle, Send, Shield, Crown, Loader2 } from "lucide-react";
 import { SubscriptionFeatureLink } from "@/components/subscription/SubscriptionFeatureLink";
 import { CaregiverChatService, CaregiverChatMessage, Caregiver } from "@/components/tav/services/caregiverChatService";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
 
 interface CaregiverChatModalProps {
   open: boolean;
@@ -22,10 +23,11 @@ export const CaregiverChatModal = ({ open, onOpenChange, caregiver }: CaregiverC
   const [isLoading, setIsLoading] = useState(false);
   const [canSend, setCanSend] = useState(true);
   const [remainingMessages, setRemainingMessages] = useState(3);
-  const [isTyping, setIsTyping] = useState(false);
-  
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const chatService = useRef(new CaregiverChatService());
+const [isTyping, setIsTyping] = useState(false);
+const [sessionId, setSessionId] = useState<string | null>(null);
+ 
+const scrollRef = useRef<HTMLDivElement>(null);
+const chatService = useRef(new CaregiverChatService());
 
   // Load messages and check limits when modal opens
   useEffect(() => {
@@ -41,13 +43,41 @@ export const CaregiverChatModal = ({ open, onOpenChange, caregiver }: CaregiverC
     }
   }, [messages]);
 
+  // Realtime subscription for new messages in this session
+  useEffect(() => {
+    if (!open || !sessionId) return;
+
+    const channel = supabase
+      .channel(`caregiver-chat-${sessionId}`)
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'caregiver_chat_messages', filter: `session_id=eq.${sessionId}` },
+        (payload) => {
+          const newMsg = payload.new as any;
+          setMessages((prev) => [
+            ...prev,
+            {
+              ...newMsg,
+              message_type: newMsg.message_type as 'chat' | 'system' | 'warning' | 'upsell',
+            } as CaregiverChatMessage,
+          ]);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [open, sessionId]);
+
   const loadChatData = async () => {
     setIsLoading(true);
     try {
-      // Check message limits
-      const { canSend: canSendMsg, remaining } = await chatService.current.canSendMessage(caregiver.id);
+// Check message limits
+      const { canSend: canSendMsg, remaining, session } = await chatService.current.canSendMessage(caregiver.id);
       setCanSend(canSendMsg);
       setRemainingMessages(remaining);
+      setSessionId(session?.id || null);
 
       // Load existing messages
       const existingMessages = await chatService.current.getChatMessages(caregiver.id);
@@ -209,7 +239,7 @@ You have ${remaining} messages today to get to know each other professionally. F
                         "text-xs mt-1 opacity-70",
                         message.is_user ? "text-blue-100" : "text-gray-500"
                       )}>
-                        {message.is_user ? "You" : "TAV"} • {new Date(message.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        {message.is_user ? "You" : (message.sender === 'caregiver' ? caregiver.full_name : 'TAV')} • {new Date(message.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </div>
                     </div>
                   </div>
