@@ -3,7 +3,8 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-app-version, x-client-env',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
 }
 
 interface Database {
@@ -37,6 +38,9 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders })
   }
 
+  // Track request-scoped data for error reporting
+  let requestFamilyUserId: string | undefined;
+
   try {
     console.log('=== AUTOMATIC CAREGIVER ASSIGNMENT FUNCTION STARTED ===')
     console.log('Request method:', req.method)
@@ -58,10 +62,13 @@ serve(async (req) => {
       throw new Error('Invalid JSON in request body')
     }
 
-    const { familyUserId } = requestBody
-    
+    // Support both camelCase and snake_case keys from clients
+    const familyUserId: string | undefined = requestBody.familyUserId ?? requestBody.family_user_id;
+    // Save for error reporting
+    requestFamilyUserId = familyUserId;
+
     if (!familyUserId) {
-      console.error('No familyUserId provided in request')
+      console.error('No familyUserId provided in request (accepted keys: familyUserId or family_user_id)')
       throw new Error('familyUserId is required')
     }
     
@@ -195,9 +202,9 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         success: false,
-        error: error.message,
+        error: (error as Error)?.message ?? String(error),
         timestamp: new Date().toISOString(),
-        familyUserId: familyUserId || 'unknown'
+        familyUserId: requestFamilyUserId || 'unknown'
       }),
       { 
         status: 500,
