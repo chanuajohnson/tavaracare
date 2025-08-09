@@ -8,6 +8,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
+import { ProfessionalCaregiverChatModal } from "@/components/professional/ProfessionalCaregiverChatModal";
 
 interface ChatRequest {
   id: string;
