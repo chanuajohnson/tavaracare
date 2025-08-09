@@ -5,6 +5,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-app-version',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
 }
 
 serve(async (req) => {
@@ -53,8 +54,22 @@ serve(async (req) => {
       )
     }
 
+    // Accept params from body OR query string for flexibility
     const url = new URL(req.url)
-    const action = url.searchParams.get('action')
+    let body: any = {}
+    try {
+      if (req.headers.get('content-type')?.includes('application/json')) {
+        body = await req.json()
+      }
+    } catch {
+      // ignore parse errors
+    }
+
+    // Helper to get params from either body or query
+    const get = (key: string) => body?.[key] ?? url.searchParams.get(key)
+
+    const action = get('action') || 'list-users'
+    const userId = get('user_id') || get('userId')
 
     switch (action) {
       case 'list-users':
@@ -70,7 +85,6 @@ serve(async (req) => {
         )
 
       case 'delete-user':
-        const userId = url.searchParams.get('userId')
         if (!userId) {
           return new Response(
             JSON.stringify({ error: 'User ID required' }),

@@ -89,11 +89,12 @@ export const AdminUserManagement = () => {
 
     try {
       // Use the existing admin-users Edge Function for complete deletion
-      const url = new URL('https://cpdfmyemjrefnhddyrck.supabase.co/functions/v1/admin-users');
-      url.searchParams.set('action', 'delete-user');
-      url.searchParams.set('userId', userId);
-      
-      const { data, error } = await supabase.functions.invoke('admin-users?' + url.searchParams.toString());
+      const { data, error } = await supabase.functions.invoke('admin-users', {
+        body: {
+          action: 'delete-user',
+          user_id: userId
+        }
+      });
 
       if (error) {
         throw error;
