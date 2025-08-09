@@ -141,40 +141,83 @@ export const useUnifiedMatches = (userRole: 'family' | 'professional', showOnlyB
           console.log('useUnifiedMatches: No assignments found for family user:', user.id);
           console.log('useUnifiedMatches: Triggering automatic assignment creation...');
           
-          // Trigger automatic assignment creation
+          // Trigger automatic assignment creation with enhanced debugging and retry logic
           console.log('useUnifiedMatches: Attempting to trigger automatic assignment for user:', user.id);
-          try {
-            const functionCall = await supabase.functions.invoke('automatic-caregiver-assignment', {
-              body: { familyUserId: user.id }
-            });
-            
-            console.log('useUnifiedMatches: Edge function response:', functionCall);
-            
-            if (functionCall.error) {
-              console.error('useUnifiedMatches: Edge function error:', functionCall.error);
-              setError(`Failed to create assignments: ${functionCall.error.message}`);
-              toast.error('Failed to create caregiver assignments. Please contact support.');
-            } else {
-              console.log('useUnifiedMatches: Edge function data:', functionCall.data);
+          
+          const triggerAssignmentWithRetry = async (attempt = 1, maxAttempts = 3) => {
+            try {
+              console.log(`useUnifiedMatches: Assignment attempt ${attempt}/${maxAttempts} for user:`, user.id);
               
-              if (functionCall.data?.success) {
-                console.log('useUnifiedMatches: Assignment creation successful, retrying in 2 seconds...');
-                // Retry loading matches after creating assignments
-                setTimeout(() => {
-                  console.log('useUnifiedMatches: Retrying to load matches after assignment creation...');
-                  loadMatches();
-                }, 2000);
-                return;
+              // Enhanced logging for debugging network issues
+              console.log('useUnifiedMatches: Supabase client config check:', {
+                clientExists: !!supabase,
+                functionsMethod: typeof supabase.functions?.invoke,
+                timestamp: new Date().toISOString()
+              });
+              
+              const functionCall = await supabase.functions.invoke('automatic-caregiver-assignment', {
+                body: { familyUserId: user.id },
+                headers: {
+                  'Content-Type': 'application/json'
+                }
+              });
+              
+              console.log(`useUnifiedMatches: Edge function response (attempt ${attempt}):`, functionCall);
+              
+              if (functionCall.error) {
+                console.error(`useUnifiedMatches: Edge function error (attempt ${attempt}):`, functionCall.error);
+                
+                // Check if it's a network error that might succeed on retry
+                const isNetworkError = functionCall.error.message?.includes('Failed to fetch') || 
+                                     functionCall.error.message?.includes('network') ||
+                                     functionCall.error.message?.includes('timeout');
+                
+                if (isNetworkError && attempt < maxAttempts) {
+                  console.log(`useUnifiedMatches: Network error detected, retrying in ${attempt * 2} seconds...`);
+                  setTimeout(() => triggerAssignmentWithRetry(attempt + 1, maxAttempts), attempt * 2000);
+                  return;
+                }
+                
+                setError(`Failed to create assignments: ${functionCall.error.message}`);
+                toast.error('Failed to create caregiver assignments. Please contact support.');
               } else {
-                console.warn('useUnifiedMatches: Assignment creation was not successful:', functionCall.data);
-                setError(functionCall.data?.message || 'No suitable caregivers found');
+                console.log(`useUnifiedMatches: Edge function data (attempt ${attempt}):`, functionCall.data);
+                
+                if (functionCall.data?.success) {
+                  console.log('useUnifiedMatches: Assignment creation successful, retrying matches in 2 seconds...');
+                  toast.success('Caregiver assignments created successfully!');
+                  // Retry loading matches after creating assignments
+                  setTimeout(() => {
+                    console.log('useUnifiedMatches: Retrying to load matches after assignment creation...');
+                    loadMatches();
+                  }, 2000);
+                  return;
+                } else {
+                  console.warn('useUnifiedMatches: Assignment creation was not successful:', functionCall.data);
+                  setError(functionCall.data?.message || 'No suitable caregivers found');
+                  toast.warning(functionCall.data?.message || 'No suitable caregivers found at this time');
+                }
               }
+            } catch (error) {
+              console.error(`useUnifiedMatches: Exception during automatic assignment trigger (attempt ${attempt}):`, error);
+              
+              // Check if it's worth retrying for certain error types
+              const isRetryableError = error.message?.includes('fetch') || 
+                                     error.message?.includes('network') ||
+                                     error.message?.includes('timeout');
+              
+              if (isRetryableError && attempt < maxAttempts) {
+                console.log(`useUnifiedMatches: Retryable error detected, retrying in ${attempt * 2} seconds...`);
+                setTimeout(() => triggerAssignmentWithRetry(attempt + 1, maxAttempts), attempt * 2000);
+                return;
+              }
+              
+              setError(`System error while creating assignments: ${error.message}`);
+              toast.error(`System error while creating caregiver assignments: ${error.message}`);
             }
-          } catch (error) {
-            console.error('useUnifiedMatches: Exception during automatic assignment trigger:', error);
-            setError(`System error while creating assignments: ${error.message}`);
-            toast.error('System error while creating caregiver assignments. Please try again.');
-          }
+          };
+          
+          await triggerAssignmentWithRetry();
           
           setMatches([]);
           setIsLoading(false);
