@@ -90,10 +90,10 @@ export const AdminUserManagement = () => {
     try {
       // Use the existing admin-users Edge Function for complete deletion
       const { data, error } = await supabase.functions.invoke('admin-users', {
-        body: {
+        body: new URLSearchParams({
           action: 'delete-user',
           userId: userId
-        }
+        })
       });
 
       if (error) {
