@@ -8,11 +8,14 @@ import { CaregiverChatModal } from "./CaregiverChatModal";
 import { MatchBrowserModal } from "./MatchBrowserModal";
 import { MatchDetailModal } from "./MatchDetailModal";
 import { MatchLoadingState } from "@/components/ui/match-loading-state";
+import { FamilyCaregiverLiveChatModal } from "./FamilyCaregiverLiveChatModal";
+import { checkLiveChatEligibilityForFamily } from "@/services/chat/chatEligibility";
 
 export const DashboardCaregiverMatches = () => {
   const { user } = useAuth();
   const { matches, isLoading } = useUnifiedMatches("family", false);
   const [showChatModal, setShowChatModal] = useState(false);
+  const [showLiveChatModal, setShowLiveChatModal] = useState(false);
   const [showBrowserModal, setShowBrowserModal] = useState(false);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [selectedCaregiver, setSelectedCaregiver] = useState<any>(null);
@@ -212,9 +215,14 @@ function formatSchedule(raw?: string | null): string | null {
 
                         <Button
                           className="w-full flex items-center gap-2"
-                          onClick={() => {
+                          onClick={async () => {
                             setSelectedCaregiver(cg);
-                            setShowChatModal(true);
+                            const eligible = await checkLiveChatEligibilityForFamily(cg.id);
+                            if (eligible) {
+                              setShowLiveChatModal(true);
+                            } else {
+                              setShowChatModal(true);
+                            }
                           }}
                         >
                           <MessageCircle className="h-4 w-4" />
