@@ -86,10 +86,11 @@ export const useUnifiedMatches = (userRole: 'family' | 'professional', showOnlyB
       console.log('useUnifiedMatches: Loading matches for user:', user.id, 'role:', userRole);
 
       if (userRole === 'family') {
-        // For families: get their assigned caregivers with manual join
+        // For families: get their assigned caregivers from both assignment tables
         console.log('useUnifiedMatches: Fetching assignments for family user:', user.id);
         
-        const { data: assignmentData, error: assignmentError } = await supabase
+        // Query caregiver_assignments table
+        const { data: caregiverAssignmentData, error: caregiverAssignmentError } = await supabase
           .from('caregiver_assignments')
           .select('*')
           .eq('family_user_id', user.id)
@@ -97,13 +98,45 @@ export const useUnifiedMatches = (userRole: 'family' | 'professional', showOnlyB
           .order('assignment_type', { ascending: true })
           .order('match_score', { ascending: false });
 
-        console.log('useUnifiedMatches: Assignment query result:', { assignmentData, assignmentError });
+        // Query manual_caregiver_assignments table 
+        const { data: manualAssignmentData, error: manualAssignmentError } = await supabase
+          .from('manual_caregiver_assignments')
+          .select('*')
+          .eq('family_user_id', user.id)
+          .eq('is_active', true)
+          .order('match_score', { ascending: false });
+
+        console.log('useUnifiedMatches: Assignment query results:', { 
+          caregiverAssignmentData, 
+          caregiverAssignmentError,
+          manualAssignmentData,
+          manualAssignmentError
+        });
         
-        if (assignmentError) {
-          console.error('useUnifiedMatches: Assignment query error:', assignmentError);
-          throw assignmentError;
+        if (caregiverAssignmentError) {
+          console.error('useUnifiedMatches: Caregiver assignment query error:', caregiverAssignmentError);
+          throw caregiverAssignmentError;
+        }
+        
+        if (manualAssignmentError) {
+          console.error('useUnifiedMatches: Manual assignment query error:', manualAssignmentError);
+          throw manualAssignmentError;
         }
 
+        // Combine and normalize assignment data
+        const combinedAssignments = [
+          ...(caregiverAssignmentData || []),
+          ...(manualAssignmentData || []).map(manual => ({
+            ...manual,
+            assignment_type: 'manual' as const,
+            shift_compatibility_score: undefined, // manual assignments don't have this field
+            match_explanation: manual.assignment_reason || 'Manual assignment by administrator'
+          }))
+        ];
+
+        const assignmentData = combinedAssignments;
+        console.log('useUnifiedMatches: Combined assignments:', assignmentData);
+        
         if (!assignmentData || assignmentData.length === 0) {
           console.log('useUnifiedMatches: No assignments found for family user:', user.id);
           console.log('useUnifiedMatches: Triggering automatic assignment creation...');
