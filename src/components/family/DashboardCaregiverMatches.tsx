@@ -217,7 +217,13 @@ function formatSchedule(raw?: string | null): string | null {
                           className="w-full flex items-center gap-2"
                           onClick={async () => {
                             setSelectedCaregiver(cg);
+                            const override = new URLSearchParams(window.location.search).get('chat');
+                            console.debug('[DashboardCaregiverMatches] chat override:', override);
+                            if (override === 'live') { setShowLiveChatModal(true); return; }
+                            if (override === 'legacy') { setShowChatModal(true); return; }
+
                             const eligible = await checkLiveChatEligibilityForFamily(cg.id);
+                            console.debug('[DashboardCaregiverMatches] live eligibility:', { caregiverId: cg.id, eligible });
                             if (eligible) {
                               setShowLiveChatModal(true);
                             } else {
@@ -275,6 +281,10 @@ function formatSchedule(raw?: string | null): string | null {
         onStartChat={async (id) => {
           const cg = matches.find((m) => m.id === id) || bestMatch;
           setSelectedCaregiver(cg);
+          const override = new URLSearchParams(window.location.search).get('chat');
+          console.debug('[DashboardCaregiverMatches] chat override:', override);
+          if (override === 'live') { setShowLiveChatModal(true); return; }
+          if (override === 'legacy') { setShowChatModal(true); return; }
           const eligible = await checkLiveChatEligibilityForFamily(cg.id);
           if (eligible) {
             setShowLiveChatModal(true);
@@ -291,6 +301,10 @@ function formatSchedule(raw?: string | null): string | null {
         onStartChat={async () => {
           setShowDetailModal(false);
           if (selectedCaregiver) {
+            const override = new URLSearchParams(window.location.search).get('chat');
+            console.debug('[DashboardCaregiverMatches] chat override:', override);
+            if (override === 'live') { setShowLiveChatModal(true); return; }
+            if (override === 'legacy') { setShowChatModal(true); return; }
             const eligible = await checkLiveChatEligibilityForFamily(selectedCaregiver.id);
             if (eligible) setShowLiveChatModal(true);
             else setShowChatModal(true);

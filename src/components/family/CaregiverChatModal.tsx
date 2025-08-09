@@ -9,7 +9,7 @@ import { MessageCircle, Send, Shield, Crown, Loader2 } from "lucide-react";
 import { SubscriptionFeatureLink } from "@/components/subscription/SubscriptionFeatureLink";
 import { CaregiverChatService, CaregiverChatMessage, Caregiver } from "@/components/tav/services/caregiverChatService";
 import { cn } from "@/lib/utils";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, isDevelopment } from "@/integrations/supabase/client";
 
 interface CaregiverChatModalProps {
   open: boolean;
@@ -29,6 +29,33 @@ const [sessionId, setSessionId] = useState<string | null>(null);
 const scrollRef = useRef<HTMLDivElement>(null);
 const chatService = useRef(new CaregiverChatService());
 
+  const isDev = isDevelopment();
+  const isLimitOverridden = () => localStorage.getItem('tavara_legacy_limit_override') === 'true';
+  const applyLimitState = (can: boolean, remaining: number) => {
+    if (isLimitOverridden()) {
+      setCanSend(true);
+      setRemainingMessages(999);
+    } else {
+      setCanSend(can);
+      setRemainingMessages(remaining);
+    }
+  };
+  const handleDevReset = () => {
+    localStorage.setItem('tavara_legacy_limit_override', 'true');
+    applyLimitState(true, 999);
+    setMessages(prev => [
+      ...prev,
+      {
+        id: 'dev-reset-' + Date.now(),
+        session_id: 'temp',
+        content: 'Dev: Legacy chat daily limit has been overridden (this browser only).',
+        is_user: false,
+        is_tav_moderated: true,
+        message_type: 'system',
+        created_at: new Date().toISOString()
+      }
+    ]);
+  };
   // Load messages and check limits when modal opens
   useEffect(() => {
     if (open) {
@@ -75,13 +102,11 @@ const chatService = useRef(new CaregiverChatService());
     try {
 // Check message limits
       const { canSend: canSendMsg, remaining, session } = await chatService.current.canSendMessage(caregiver.id);
-      setCanSend(canSendMsg);
-      setRemainingMessages(remaining);
+      applyLimitState(canSendMsg, remaining);
       setSessionId(session?.id || null);
-
       // Load existing messages
       const existingMessages = await chatService.current.getChatMessages(caregiver.id);
-      
+      const remainingDisplay = isLimitOverridden() ? 'unlimited' : remaining;
       // Add welcome message if this is the first conversation
       if (existingMessages.length === 0) {
         const welcomeMessage: CaregiverChatMessage = {
@@ -89,7 +114,7 @@ const chatService = useRef(new CaregiverChatService());
           session_id: 'temp',
           content: `💙 Hi! I'm TAV, your care coordinator. I'll help facilitate your conversation with this professional caregiver while keeping everyone safe and focused on caregiving topics.
 
-You have ${remaining} messages today to get to know each other professionally. Feel free to ask about their experience, approach to care, or availability!`,
+You have ${remainingDisplay} messages today to get to know each other professionally. Feel free to ask about their experience, approach to care, or availability!`,
           is_user: false,
           is_tav_moderated: true,
           message_type: 'system',
@@ -124,11 +149,9 @@ You have ${remaining} messages today to get to know each other professionally. F
         
         // Update limits
         const { canSend: newCanSend, remaining } = await chatService.current.canSendMessage(caregiver.id);
-        setCanSend(newCanSend);
-        setRemainingMessages(remaining);
-        
+        applyLimitState(newCanSend, remaining);
         // Show upgrade prompt if limit reached
-        if (!newCanSend && remaining === 0) {
+        if (!isLimitOverridden() && !newCanSend && remaining === 0) {
           setTimeout(() => {
             const upgradeMessage: CaregiverChatMessage = {
               id: 'upgrade-prompt',
@@ -198,6 +221,13 @@ You have ${remaining} messages today to get to know each other professionally. F
               <div className="text-xs text-gray-500">
                 {remainingMessages === 999 ? 'Unlimited' : `${remainingMessages} msgs left today`}
               </div>
+              {isDev && (
+                <div className="mt-2">
+                  <Button variant="outline" size="sm" onClick={handleDevReset}>
+                    Reset today's limit
+                  </Button>
+                </div>
+              )}
             </div>
           </div>
         </DialogHeader>

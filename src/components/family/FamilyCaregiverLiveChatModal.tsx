@@ -216,14 +216,15 @@ export const FamilyCaregiverLiveChatModal = ({ open, onOpenChange, caregiver }: 
                 <MessageCircle className="h-5 w-5 text-blue-600" />
                 Chat with Professional Caregiver
               </DialogTitle>
-              <DialogDescription>
-                Real-time, TAV-moderated conversation. Keep it professional and caregiving-focused.
-              </DialogDescription>
-              <div className="flex items-center gap-2 text-sm text-gray-600">
-                <Shield className="h-4 w-4" />
-                <span>Moderation enabled</span>
-                {caregiver?.full_name && <Badge variant="secondary">{caregiver.full_name}</Badge>}
-              </div>
+                <DialogDescription>
+                  Live chat — direct, real-time messages. Safety monitoring is active.
+                </DialogDescription>
+                <div className="flex items-center gap-2 text-sm text-gray-600">
+                  <Badge variant="default">Live</Badge>
+                  <Shield className="h-4 w-4" />
+                  <span>Safety monitoring on</span>
+                  {caregiver?.full_name && <Badge variant="secondary">{caregiver.full_name}</Badge>}
+                </div>
             </div>
             <div className="text-right">
               <div className="text-xs text-gray-500">{checkingSession ? "Preparing chat..." : sessionId ? "Session active" : "Starting..."}</div>

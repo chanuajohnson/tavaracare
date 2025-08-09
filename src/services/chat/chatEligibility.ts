@@ -15,6 +15,8 @@ export async function checkLiveChatEligibilityForFamily(caregiverId: string) {
     const currentUserId = authData?.user?.id;
     if (!currentUserId) return false;
 
+    console.debug('[chatEligibility] checking', { caregiverId, currentUserId });
+
     // 1) Check accepted requests for this family-caregiver pair
     const { data: requests } = await supabase
       .from("caregiver_chat_requests")
@@ -23,7 +25,10 @@ export async function checkLiveChatEligibilityForFamily(caregiverId: string) {
       .eq("family_user_id", currentUserId)
       .eq("status", "accepted");
 
-    if (requests && requests.length > 0) return true;
+    if (requests && requests.length > 0) {
+      console.debug('[chatEligibility] eligible: accepted request');
+      return true;
+    }
 
     // 2) Check active assignments for this family-caregiver pair
     const { data: assignments } = await supabase
@@ -33,7 +38,10 @@ export async function checkLiveChatEligibilityForFamily(caregiverId: string) {
       .eq("family_user_id", currentUserId)
       .eq("is_active", true);
 
-    if (assignments && assignments.length > 0) return true;
+    if (assignments && assignments.length > 0) {
+      console.debug('[chatEligibility] eligible: active assignment');
+      return true;
+    }
 
     // 3) Check existing session for today for this pair
     const today = new Date().toISOString().split("T")[0];
@@ -45,9 +53,13 @@ export async function checkLiveChatEligibilityForFamily(caregiverId: string) {
       .eq("session_date", today)
       .maybeSingle();
 
-    if (session?.id) return true;
+    if (session?.id) {
+      console.debug('[chatEligibility] eligible: session exists today');
+      return true;
+    }
   } catch (e) {
     console.warn("[chatEligibility] eligibility check failed", e);
   }
+  console.debug('[chatEligibility] not eligible');
   return false;
 }
