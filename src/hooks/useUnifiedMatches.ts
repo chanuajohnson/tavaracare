@@ -109,23 +109,38 @@ export const useUnifiedMatches = (userRole: 'family' | 'professional', showOnlyB
           console.log('useUnifiedMatches: Triggering automatic assignment creation...');
           
           // Trigger automatic assignment creation
+          console.log('useUnifiedMatches: Attempting to trigger automatic assignment for user:', user.id);
           try {
-            const { data, error } = await supabase.functions.invoke('automatic-caregiver-assignment', {
+            const functionCall = await supabase.functions.invoke('automatic-caregiver-assignment', {
               body: { familyUserId: user.id }
             });
             
-            if (error) {
-              console.error('useUnifiedMatches: Error triggering automatic assignment:', error);
+            console.log('useUnifiedMatches: Edge function response:', functionCall);
+            
+            if (functionCall.error) {
+              console.error('useUnifiedMatches: Edge function error:', functionCall.error);
+              setError(`Failed to create assignments: ${functionCall.error.message}`);
+              toast.error('Failed to create caregiver assignments. Please contact support.');
             } else {
-              console.log('useUnifiedMatches: Automatic assignment response:', data);
-              // Retry loading matches after creating assignments
-              if (data?.success && data?.assignments?.length > 0) {
-                setTimeout(() => loadMatches(), 1000);
+              console.log('useUnifiedMatches: Edge function data:', functionCall.data);
+              
+              if (functionCall.data?.success) {
+                console.log('useUnifiedMatches: Assignment creation successful, retrying in 2 seconds...');
+                // Retry loading matches after creating assignments
+                setTimeout(() => {
+                  console.log('useUnifiedMatches: Retrying to load matches after assignment creation...');
+                  loadMatches();
+                }, 2000);
                 return;
+              } else {
+                console.warn('useUnifiedMatches: Assignment creation was not successful:', functionCall.data);
+                setError(functionCall.data?.message || 'No suitable caregivers found');
               }
             }
           } catch (error) {
-            console.error('useUnifiedMatches: Failed to trigger automatic assignment:', error);
+            console.error('useUnifiedMatches: Exception during automatic assignment trigger:', error);
+            setError(`System error while creating assignments: ${error.message}`);
+            toast.error('System error while creating caregiver assignments. Please try again.');
           }
           
           setMatches([]);
@@ -388,8 +403,10 @@ export const useUnifiedMatches = (userRole: 'family' | 'professional', showOnlyB
 
     } catch (error: any) {
       console.error('Error loading unified matches:', error);
-      setError(error instanceof Error ? error.message : 'Failed to load matches');
-      toast.error('Failed to load matches. Please try again.');
+      console.error('Error stack:', error.stack);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to load matches';
+      setError(errorMessage);
+      toast.error(`Failed to load matches: ${errorMessage}`);
     } finally {
       setIsLoading(false);
     }
