@@ -258,7 +258,10 @@ function formatSchedule(raw?: string | null): string | null {
       </Card>
 
       {selectedCaregiver && (
-        <CaregiverChatModal open={showChatModal} onOpenChange={setShowChatModal} caregiver={selectedCaregiver} />
+        <>
+          <CaregiverChatModal open={showChatModal} onOpenChange={setShowChatModal} caregiver={selectedCaregiver} />
+          <FamilyCaregiverLiveChatModal open={showLiveChatModal} onOpenChange={setShowLiveChatModal} caregiver={selectedCaregiver} />
+        </>
       )}
 
       <MatchBrowserModal
@@ -269,10 +272,15 @@ function formatSchedule(raw?: string | null): string | null {
           setSelectedCaregiver(cg);
           setShowDetailModal(true);
         }}
-        onStartChat={(id) => {
+        onStartChat={async (id) => {
           const cg = matches.find((m) => m.id === id) || bestMatch;
           setSelectedCaregiver(cg);
-          setShowChatModal(true);
+          const eligible = await checkLiveChatEligibilityForFamily(cg.id);
+          if (eligible) {
+            setShowLiveChatModal(true);
+          } else {
+            setShowChatModal(true);
+          }
         }}
       />
 
@@ -280,9 +288,13 @@ function formatSchedule(raw?: string | null): string | null {
         open={showDetailModal}
         onOpenChange={setShowDetailModal}
         caregiver={selectedCaregiver}
-        onStartChat={() => {
+        onStartChat={async () => {
           setShowDetailModal(false);
-          setShowChatModal(true);
+          if (selectedCaregiver) {
+            const eligible = await checkLiveChatEligibilityForFamily(selectedCaregiver.id);
+            if (eligible) setShowLiveChatModal(true);
+            else setShowChatModal(true);
+          }
         }}
       />
     </>
