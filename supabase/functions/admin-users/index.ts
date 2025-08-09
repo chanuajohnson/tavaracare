@@ -64,17 +64,115 @@ Deno.serve(async (req) => {
 
       console.log(`Admin ${userData.user.id} attempting to delete user ${user_id}`);
 
-      // delete auth user (requires service role)
-      const { error: delErr } = await admin.auth.admin.deleteUser(user_id);
-      if (delErr) {
-        console.error('Delete user error:', delErr);
-        throw delErr;
-      }
+      try {
+        // Step 1: Clean up related data that has foreign key constraints
+        console.log('Cleaning up related data...');
+        
+        // Delete caregiver chat sessions (both as caregiver and family user)
+        const { error: chatSessionsError } = await admin
+          .from('caregiver_chat_sessions')
+          .delete()
+          .or(`family_user_id.eq.${user_id},caregiver_id.eq.${user_id}`);
+        
+        if (chatSessionsError) {
+          console.error('Error deleting chat sessions:', chatSessionsError);
+        } else {
+          console.log('Successfully cleaned up chat sessions');
+        }
 
-      console.log(`Successfully deleted user ${user_id}`);
-      return new Response(JSON.stringify({ ok: true }), {
-        headers: { ...cors, "content-type": "application/json" },
-      });
+        // Delete caregiver chat messages for sessions involving this user
+        const { error: chatMessagesError } = await admin
+          .from('caregiver_chat_messages')
+          .delete()
+          .in('session_id', 
+            admin.from('caregiver_chat_sessions')
+              .select('id')
+              .or(`family_user_id.eq.${user_id},caregiver_id.eq.${user_id}`)
+          );
+        
+        if (chatMessagesError) {
+          console.error('Error deleting chat messages:', chatMessagesError);
+        } else {
+          console.log('Successfully cleaned up chat messages');
+        }
+
+        // Delete caregiver notifications
+        const { error: notificationsError } = await admin
+          .from('caregiver_notifications')
+          .delete()
+          .eq('caregiver_id', user_id);
+        
+        if (notificationsError) {
+          console.error('Error deleting notifications:', notificationsError);
+        } else {
+          console.log('Successfully cleaned up notifications');
+        }
+
+        // Delete automatic assignments
+        const { error: assignmentsError } = await admin
+          .from('automatic_assignments')
+          .delete()
+          .or(`family_user_id.eq.${user_id},caregiver_id.eq.${user_id}`);
+        
+        if (assignmentsError) {
+          console.error('Error deleting automatic assignments:', assignmentsError);
+        } else {
+          console.log('Successfully cleaned up automatic assignments');
+        }
+
+        // Delete care team memberships
+        const { error: careTeamError } = await admin
+          .from('care_team_members')
+          .delete()
+          .or(`family_id.eq.${user_id},caregiver_id.eq.${user_id}`);
+        
+        if (careTeamError) {
+          console.error('Error deleting care team members:', careTeamError);
+        } else {
+          console.log('Successfully cleaned up care team memberships');
+        }
+
+        // Delete admin communications
+        const { error: communicationsError } = await admin
+          .from('admin_communications')
+          .delete()
+          .or(`admin_id.eq.${user_id},target_user_id.eq.${user_id}`);
+        
+        if (communicationsError) {
+          console.error('Error deleting admin communications:', communicationsError);
+        } else {
+          console.log('Successfully cleaned up admin communications');
+        }
+
+        // Delete user profile (this should cascade to other related tables)
+        const { error: profileError } = await admin
+          .from('profiles')
+          .delete()
+          .eq('id', user_id);
+        
+        if (profileError) {
+          console.error('Error deleting profile:', profileError);
+        } else {
+          console.log('Successfully deleted user profile');
+        }
+
+        console.log('All related data cleanup completed');
+
+        // Step 2: Now delete the auth user (requires service role)
+        const { error: delErr } = await admin.auth.admin.deleteUser(user_id);
+        if (delErr) {
+          console.error('Delete user error:', delErr);
+          throw delErr;
+        }
+
+        console.log(`Successfully deleted user ${user_id}`);
+        return new Response(JSON.stringify({ ok: true }), {
+          headers: { ...cors, "content-type": "application/json" },
+        });
+      } catch (cleanupError) {
+        console.error('Error during user deletion cleanup:', cleanupError);
+        throw cleanupError;
+      }
     }
 
     if (action === "list-users") {
