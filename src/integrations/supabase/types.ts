@@ -987,6 +987,7 @@ export type Database = {
           is_tav_moderated: boolean
           is_user: boolean
           message_type: string
+          sender: string
           session_id: string
         }
         Insert: {
@@ -996,6 +997,7 @@ export type Database = {
           is_tav_moderated?: boolean
           is_user: boolean
           message_type?: string
+          sender?: string
           session_id: string
         }
         Update: {
@@ -1005,6 +1007,7 @@ export type Database = {
           is_tav_moderated?: boolean
           is_user?: boolean
           message_type?: string
+          sender?: string
           session_id?: string
         }
         Relationships: [
