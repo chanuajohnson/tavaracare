@@ -45,32 +45,36 @@ serve(async (req) => {
     console.log('=== AUTOMATIC CAREGIVER ASSIGNMENT FUNCTION STARTED ===')
     console.log('Request method:', req.method)
     
-    // ---- DEBUG: start ----
-    console.log('[server] headers:', Object.fromEntries(req.headers.entries()));
-    console.log('[server] content-length=', req.headers.get('content-length'));
-    // read raw first (won't throw on empty)
-    const rawText = await req.text();
-    console.log('[server] raw body length=', rawText?.length ?? 0);
-    console.log('[server] raw body sample=', rawText?.slice(0, 200));
-    // try parse
-    let body: any = {};
-    try {
-      if (rawText) body = JSON.parse(rawText);
-    } catch (e) {
-      console.log('[server] JSON parse failed:', e);
-    }
-    // also allow query/header for debugging
-    const url = new URL(req.url);
-    const fromQuery = url.searchParams.get('familyUserId') ?? url.searchParams.get('family_user_id');
-    const fromHeader = req.headers.get('x-family-user-id') ?? undefined;
-    const familyUserId =
-      body?.familyUserId ??
-      body?.family_user_id ??
-      fromQuery ??
-      fromHeader;
+    // Enhanced logging for debugging
+    console.log('[auto-assign] method:', req.method);
+    console.log('[auto-assign] hdr: ct=%s cl=%s',
+      req.headers.get('content-type'),
+      req.headers.get('content-length')
+    );
 
-    console.log('[server] derived familyUserId=', familyUserId);
-    // ---- DEBUG: end ----
+    // Safe JSON parsing to prevent crashes on empty bodies
+    const safeParseJson = async (request: Request) => {
+      try {
+        const raw = await request.text();
+        console.log('[auto-assign] raw.len=', raw.length);
+        return raw ? JSON.parse(raw) : {};
+      } catch {
+        return {};
+      }
+    };
+
+    const body = await safeParseJson(req);
+    const url = new URL(req.url);
+    
+    // Parameter resolution priority: body first, then query params
+    const familyUserId =
+      body.familyUserId ??
+      body.family_user_id ??
+      url.searchParams.get('family_user_id') ??
+      url.searchParams.get('familyUserId') ??
+      undefined;
+
+    console.log('[auto-assign] derived familyUserId=', familyUserId);
     
     const supabaseClient = createClient<Database>(
       Deno.env.get('SUPABASE_URL') ?? '',

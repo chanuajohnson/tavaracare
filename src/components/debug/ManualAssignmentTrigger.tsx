@@ -30,7 +30,8 @@ export const ManualAssignmentTrigger: React.FC = () => {
       });
       
       // ---- DEBUG: start ----
-      const payload = { familyUserId: String(userId ?? '') };
+      const id = String(userId ?? '');
+      const payload = { familyUserId: id };
       const json = JSON.stringify(payload);
       console.log(
         '[manual-assign][client] invoking',
@@ -43,10 +44,11 @@ export const ManualAssignmentTrigger: React.FC = () => {
       
       const startTime = Date.now();
       
-      const functionCall = await supabase.functions.invoke('automatic-caregiver-assignment', {
+      // Dual-path: send in both body and query string for robustness
+      const funcName = `automatic-caregiver-assignment?family_user_id=${encodeURIComponent(id)}`;
+      const functionCall = await supabase.functions.invoke(funcName, {
         body: payload,
         headers: {
-          'Content-Type': 'application/json',
           'X-Test-Origin': 'ManualAssignmentTrigger'
         }
       });

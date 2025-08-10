@@ -149,7 +149,8 @@ export const useUnifiedMatches = (userRole: 'family' | 'professional', showOnlyB
               console.log(`useUnifiedMatches: Assignment attempt ${attempt}/${maxAttempts} for user:`, user.id);
               
               // ---- DEBUG: start ----
-              const payload = { familyUserId: String(user?.id ?? '') };
+              const id = String(user?.id ?? '');
+              const payload = { familyUserId: id };
               try {
                 const json = JSON.stringify(payload);
                 console.log(
@@ -164,11 +165,11 @@ export const useUnifiedMatches = (userRole: 'family' | 'professional', showOnlyB
               }
               // ---- DEBUG: end ----
               
-              const functionCall = await supabase.functions.invoke('automatic-caregiver-assignment', {
-                body: payload,
-                headers: {
-                  'Content-Type': 'application/json'
-                }
+              // Dual-path: send in both body and query string for robustness
+              const funcName = `automatic-caregiver-assignment?family_user_id=${encodeURIComponent(id)}`;
+              const functionCall = await supabase.functions.invoke(funcName, {
+                body: payload
+                // Remove manual Content-Type header - let supabase-js handle it
               });
               
               console.log('[auto-assign][client] invoke result:', { data: functionCall.data, error: functionCall.error });
