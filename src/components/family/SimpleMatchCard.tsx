@@ -19,19 +19,19 @@ interface EnhancedMatchData {
 
 interface Caregiver {
   id: string;
-  full_name: string;
-  avatar_url: string | null;
-  location: string | null;
-  care_types: string[] | null;
-  years_of_experience: string | null;
+  full_name?: string | null;
+  avatar_url?: string | null;
+  location?: string | null;
+  care_types?: string[] | null;
+  years_of_experience?: string | null;
   match_score: number;
-  is_premium: boolean;
+  is_premium?: boolean;
   enhanced_match_data?: EnhancedMatchData;
   // Extended professional information
   professional_type?: string;
   certifications?: string[];
   specialized_care?: string[];
-  hourly_rate?: number;
+  hourly_rate?: string | number;
   work_type?: string;
   care_schedule?: string;
   custom_schedule?: string;

@@ -8,6 +8,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
+import { ProfessionalCaregiverChatModal } from "@/components/professional/ProfessionalCaregiverChatModal";
 
 interface ChatRequest {
   id: string;
@@ -31,6 +32,9 @@ export const ChatRequestsSection = () => {
   const [processingRequest, setProcessingRequest] = useState<string | null>(null);
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
   const [authDebugInfo, setAuthDebugInfo] = useState<any>(null);
+  // Chat modal state
+  const [chatOpen, setChatOpen] = useState(false);
+  const [activeFamily, setActiveFamily] = useState<{ id: string; full_name: string; avatar_url?: string | null } | null>(null);
 
   // ENHANCED: Debug auth state for troubleshooting
   useEffect(() => {
@@ -201,6 +205,12 @@ export const ChatRequestsSection = () => {
     loadChatRequests(false);
   };
 
+  // Open chat with accepted family request
+  const openChatWithFamily = (request: ChatRequest) => {
+    const fullName = request.family_profile?.full_name || 'Family Member';
+    setActiveFamily({ id: request.family_user_id, full_name: fullName, avatar_url: request.family_profile?.avatar_url ?? null });
+    setChatOpen(true);
+  };
   // ENHANCED: Effect to load requests when auth is ready
   useEffect(() => {
     console.log('[ChatRequestsSection] *** AUTH STATE CHANGE ***', {
@@ -466,17 +476,34 @@ export const ChatRequestsSection = () => {
                           </p>
                         </div>
                       </div>
-                      <Badge 
-                        className={request.status === 'accepted' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}
-                      >
-                        {request.status}
-                      </Badge>
+                      <div className="flex items-center gap-2">
+                        <Badge 
+                          className={request.status === 'accepted' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}
+                        >
+                          {request.status}
+                        </Badge>
+                        {request.status === 'accepted' && (
+                          <Button size="sm" variant="secondary" onClick={() => openChatWithFamily(request)}>
+                            Open Chat
+                          </Button>
+                        )}
+                      </div>
                     </div>
                   ))}
                 </div>
               </div>
             )}
           </div>
+        )}
+        {activeFamily && (
+          <ProfessionalCaregiverChatModal
+            open={chatOpen}
+            onOpenChange={(o) => {
+              setChatOpen(o);
+              if (!o) setActiveFamily(null);
+            }}
+            family={activeFamily}
+          />
         )}
       </CardContent>
     </Card>

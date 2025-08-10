@@ -987,6 +987,7 @@ export type Database = {
           is_tav_moderated: boolean
           is_user: boolean
           message_type: string
+          sender: string
           session_id: string
         }
         Insert: {
@@ -996,6 +997,7 @@ export type Database = {
           is_tav_moderated?: boolean
           is_user: boolean
           message_type?: string
+          sender?: string
           session_id: string
         }
         Update: {
@@ -1005,6 +1007,7 @@ export type Database = {
           is_tav_moderated?: boolean
           is_user?: boolean
           message_type?: string
+          sender?: string
           session_id?: string
         }
         Relationships: [
@@ -4647,6 +4650,21 @@ export type Database = {
           id: string
           full_name: string
           role: Database["public"]["Enums"]["user_role"]
+        }[]
+      }
+      get_public_professional_profiles: {
+        Args: { ids: string[] }
+        Returns: {
+          id: string
+          full_name: string
+          avatar_url: string
+          location: string
+          professional_type: string
+          years_of_experience: string
+          hourly_rate: string
+          expected_rate: string
+          care_schedule: string
+          care_types: string[]
         }[]
       }
       get_user_profile_secure: {

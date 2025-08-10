@@ -3,7 +3,8 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-app-version, x-client-env',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
 }
 
 interface Database {
@@ -37,23 +38,72 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders })
   }
 
+  // Track request-scoped data for error reporting
+  let requestFamilyUserId: string | undefined;
+
   try {
+    console.log('=== AUTOMATIC CAREGIVER ASSIGNMENT FUNCTION STARTED ===')
+    console.log('Request method:', req.method)
+    console.log('Request headers:', req.headers)
+    
     const supabaseClient = createClient<Database>(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    const { familyUserId } = await req.json()
+    console.log('Supabase client created successfully')
     
-    console.log('Automatic assignment request for family user:', familyUserId)
+    let requestBody
+    try {
+      requestBody = await req.json()
+      console.log('Request body parsed:', requestBody)
+    } catch (e) {
+      console.error('Failed to parse request body:', e)
+      throw new Error('Invalid JSON in request body')
+    }
+
+    // Support both camelCase and snake_case keys from clients
+    const familyUserId: string | undefined = requestBody.familyUserId ?? requestBody.family_user_id;
+    // Save for error reporting
+    requestFamilyUserId = familyUserId;
+
+    if (!familyUserId) {
+      console.error('No familyUserId provided in request (accepted keys: familyUserId or family_user_id)')
+      throw new Error('familyUserId is required')
+    }
+    
+    console.log('=== Processing automatic assignment for family user:', familyUserId, '===')
+
+    // Verify family user exists first
+    console.log('Verifying family user exists...')
+    const { data: familyUser, error: familyUserError } = await supabaseClient
+      .from('profiles')
+      .select('id, full_name, role')
+      .eq('id', familyUserId)
+      .eq('role', 'family')
+      .single()
+
+    if (familyUserError || !familyUser) {
+      console.error('Family user not found or error:', familyUserError)
+      return new Response(
+        JSON.stringify({ success: false, message: 'Family user not found or not valid family role' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    console.log('Family user verified:', familyUser)
 
     // Get available professional caregivers
+    console.log('Fetching available professional caregivers...')
     const { data: caregivers, error: caregiversError } = await supabaseClient
       .from('profiles')
-      .select('id, professional_type, years_of_experience, care_types')
+      .select('id, full_name, professional_type, years_of_experience, care_types, available_for_matching')
       .eq('role', 'professional')
       .eq('available_for_matching', true)
       .limit(5)
+
+    console.log('Caregivers query result:', { count: caregivers?.length, error: caregiversError })
+    console.log('Available caregivers:', caregivers)
 
     if (caregiversError) {
       console.error('Error fetching caregivers:', caregiversError)
@@ -69,11 +119,18 @@ serve(async (req) => {
     }
 
     // Check if user already has assignments
+    console.log('Checking for existing assignments...')
     const { data: existingAssignments, error: assignmentError } = await supabaseClient
       .from('caregiver_assignments')
-      .select('id')
+      .select('id, assignment_type, caregiver_id, match_score')
       .eq('family_user_id', familyUserId)
       .eq('is_active', true)
+
+    console.log('Existing assignments check result:', { 
+      count: existingAssignments?.length, 
+      assignments: existingAssignments,
+      error: assignmentError 
+    })
 
     if (assignmentError) {
       console.error('Error checking existing assignments:', assignmentError)
@@ -81,49 +138,74 @@ serve(async (req) => {
     }
 
     if (existingAssignments && existingAssignments.length > 0) {
-      console.log('User already has assignments:', existingAssignments.length)
+      console.log('User already has', existingAssignments.length, 'active assignments')
       return new Response(
-        JSON.stringify({ success: true, message: 'User already has assignments', assignmentCount: existingAssignments.length }),
+        JSON.stringify({ 
+          success: true, 
+          message: 'User already has assignments', 
+          assignmentCount: existingAssignments.length,
+          assignments: existingAssignments
+        }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
     // Create automatic assignments for top 3 caregivers
-    const assignmentsToCreate = caregivers.slice(0, 3).map((caregiver, index) => ({
-      family_user_id: familyUserId,
-      caregiver_id: caregiver.id,
-      assignment_type: 'automatic' as const,
-      match_score: 85 - (index * 5), // Descending scores: 85, 80, 75
-      match_explanation: `Automatic match based on care needs and caregiver availability (rank ${index + 1})`,
-      status: 'active',
-      is_active: true
-    }))
+    console.log('Creating assignments for top 3 caregivers...')
+    const assignmentsToCreate = caregivers.slice(0, 3).map((caregiver, index) => {
+      const assignment = {
+        family_user_id: familyUserId,
+        caregiver_id: caregiver.id,
+        assignment_type: 'automatic' as const,
+        match_score: 85 - (index * 5), // Descending scores: 85, 80, 75
+        match_explanation: `Automatic match based on care needs and caregiver availability (rank ${index + 1})`,
+        status: 'active',
+        is_active: true
+      }
+      console.log(`Assignment ${index + 1}:`, assignment)
+      return assignment
+    })
+
+    console.log('Assignments to create:', assignmentsToCreate)
 
     const { data: createdAssignments, error: createError } = await supabaseClient
       .from('caregiver_assignments')
       .insert(assignmentsToCreate)
       .select()
 
+    console.log('Assignment creation result:', { createdAssignments, createError })
+
     if (createError) {
       console.error('Error creating assignments:', createError)
       throw createError
     }
 
-    console.log('Created automatic assignments:', createdAssignments)
+    console.log('Successfully created', createdAssignments?.length || 0, 'automatic assignments')
 
+    console.log('=== AUTOMATIC ASSIGNMENT FUNCTION COMPLETED SUCCESSFULLY ===')
     return new Response(
       JSON.stringify({ 
         success: true, 
         message: `Created ${createdAssignments?.length || 0} automatic assignments`,
-        assignments: createdAssignments
+        assignments: createdAssignments,
+        familyUserId: familyUserId,
+        timestamp: new Date().toISOString()
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
 
   } catch (error) {
-    console.error('Error in automatic-caregiver-assignment function:', error)
+    console.error('=== AUTOMATIC ASSIGNMENT FUNCTION ERROR ===')
+    console.error('Error details:', error)
+    console.error('Error stack:', error.stack)
+    
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ 
+        success: false,
+        error: (error as Error)?.message ?? String(error),
+        timestamp: new Date().toISOString(),
+        familyUserId: requestFamilyUserId || 'unknown'
+      }),
       { 
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
