@@ -17,11 +17,6 @@ interface Caregiver {
   shift_compatibility_score?: number;
   match_explanation?: string;
   availability_schedule?: string[] | null;
-  hourly_rate?: string | number;
-  expected_rate?: string | number;
-  professional_type?: string;
-  certifications?: string[];
-  care_schedule?: string;
 }
 
 interface FamilyScheduleData {

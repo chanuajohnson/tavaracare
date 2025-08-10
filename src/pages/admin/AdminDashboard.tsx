@@ -10,7 +10,6 @@ import { FeatureInterestTracker } from "@/components/admin/FeatureInterestTracke
 import { FeedbackManagement } from "@/components/admin/FeedbackManagement";
 import { UnifiedMatchingInterface } from "@/components/admin/UnifiedMatchingInterface";
 import { MatchRecalculationLog } from '@/components/admin/MatchRecalculationLog';
-import { ManualAssignmentTrigger } from '@/components/debug/ManualAssignmentTrigger';
 import { supabase } from '@/integrations/supabase/client';
 import { backfillAvailableCaregiverMatches } from '@/utils/admin/manualMatchRecalculation';
 import { toast } from 'sonner';
@@ -247,16 +246,6 @@ export default function AdminDashboard() {
 
         {/* Match Recalculation Log */}
         <MatchRecalculationLog />
-
-        {/* Debug Assignment Function */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Debug Assignment Function</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ManualAssignmentTrigger />
-          </CardContent>
-        </Card>
       </div>
 
       {/* Unified Matching Interface Modal */}

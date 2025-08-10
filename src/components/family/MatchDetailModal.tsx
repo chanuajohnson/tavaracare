@@ -20,13 +20,13 @@ import { SubscriptionFeatureLink } from "@/components/subscription/SubscriptionF
 
 interface Caregiver {
   id: string;
-  full_name?: string | null;
-  avatar_url?: string | null;
-  location?: string | null;
-  care_types?: string[] | null;
-  years_of_experience?: string | null;
+  full_name: string;
+  avatar_url: string | null;
+  location: string | null;
+  care_types: string[] | null;
+  years_of_experience: string | null;
   match_score: number;
-  is_premium?: boolean;
+  is_premium: boolean;
 }
 
 interface MatchDetailModalProps {

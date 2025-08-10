@@ -10,18 +10,13 @@ import { toast } from "sonner";
 
 interface Caregiver {
   id: string;
-  full_name?: string | null;
-  avatar_url?: string | null;
-  location?: string | null;
-  care_types?: string[] | null;
-  years_of_experience?: string | null;
+  full_name: string;
+  avatar_url: string | null;
+  location: string | null;
+  care_types: string[] | null;
+  years_of_experience: string | null;
   match_score: number;
-  is_premium?: boolean;
-  hourly_rate?: string | number;
-  expected_rate?: string | number;
-  professional_type?: string;
-  certifications?: string[];
-  care_schedule?: string;
+  is_premium: boolean;
 }
 
 interface CaregiverMatchCardProps {

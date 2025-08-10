@@ -38,7 +38,6 @@ export const AdminUserManagement = () => {
   const [roleFilter, setRoleFilter] = useState<string>('all');
   const [viewMode, setViewMode] = useState<'table' | 'grid'>('grid');
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
-  const [deleteLoading, setDeleteLoading] = useState<string | null>(null);
 
   // Transform admin profiles to UserWithProgress format for the grid
   const transformedUsers: UserWithProgress[] = profiles.map(profile => ({
@@ -76,6 +75,7 @@ export const AdminUserManagement = () => {
     }
   }));
 
+
   const handleDeleteUser = async (userId: string, userProfile?: Profile) => {
     const userName = userProfile?.full_name || 'this user';
     const userRole = userProfile?.role || 'unknown';
@@ -87,57 +87,43 @@ export const AdminUserManagement = () => {
       return;
     }
 
-    setDeleteLoading(userId);
-
     try {
-      console.log(`Attempting to delete user ${userId} (${userName})`);
-      
-      // Use the admin-users Edge Function for complete deletion
+      // Use the existing admin-users Edge Function for complete deletion
       const { data, error } = await supabase.functions.invoke('admin-users', {
-        body: {
+        method: 'DELETE',
+        body: new URLSearchParams({
           action: 'delete-user',
-          user_id: userId
+          userId: userId
+        }).toString(),
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
         }
       });
 
-      console.log('Delete user response:', { data, error });
-
       if (error) {
-        console.error('Edge function error:', error);
         throw error;
       }
 
-      // Check if the response indicates success
-      if (data?.ok === true) {
-        toast.success(`Successfully deleted ${userName}`);
-        console.log(`User ${userName} (${userId}) deleted successfully`);
-        
-        // Refresh the user list
-        refetch();
+      // Handle response from the Edge Function
+      if (data?.success) {
+        toast.success(`User ${userName} deleted successfully`);
+        refetch(); // Refresh the list
       } else {
-        const errorMessage = data?.error || 'Unknown error occurred';
-        console.error('Delete operation failed:', errorMessage);
-        throw new Error(errorMessage);
+        throw new Error(data?.error || 'Failed to delete user');
       }
     } catch (error: any) {
       console.error('Error deleting user:', error);
       
       // Handle specific error messages
-      const errorMessage = error.message || error.toString() || 'Unknown error';
+      const errorMessage = error.message || 'Unknown error';
       
-      if (errorMessage.includes('Forbidden') || errorMessage.includes('admin only')) {
+      if (errorMessage.includes('Unauthorized') || errorMessage.includes('Admin access required')) {
         toast.error('You do not have permission to delete users');
-      } else if (errorMessage.includes('User not found')) {
-        toast.error('User not found or already deleted');
-        // Still refresh the list in case the user was already deleted
-        refetch();
-      } else if (errorMessage.includes('supabaseKey is required')) {
-        toast.error('Admin configuration error. Please check SERVICE_ROLE_KEY is configured.');
+      } else if (errorMessage.includes('User ID required')) {
+        toast.error('Invalid user ID');
       } else {
         toast.error(`Failed to delete user: ${errorMessage}`);
       }
-    } finally {
-      setDeleteLoading(null);
     }
   };
 
@@ -156,6 +142,7 @@ export const AdminUserManagement = () => {
     setSelectedUsers([]); // Clear selection when filtering
     console.log('Role filter updated to:', newFilter);
   };
+
 
   // Safe filtering logic
   const filteredUsers = users.filter(user => {
@@ -423,14 +410,10 @@ export const AdminUserManagement = () => {
                         size="sm"
                         onClick={() => handleDeleteUser(user.id, user.profile)}
                         className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                        disabled={user.profile?.role === 'admin' || deleteLoading === user.id}
+                        disabled={user.profile?.role === 'admin'}
                         title={user.profile?.role === 'admin' ? 'Cannot delete admin users' : `Delete ${user.profile?.full_name || 'user'}`}
                       >
-                        {deleteLoading === user.id ? (
-                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-600"></div>
-                        ) : (
-                          <Trash2 className="h-4 w-4" />
-                        )}
+                        <Trash2 className="h-4 w-4" />
                       </Button>
                     </TableCell>
                   </TableRow>

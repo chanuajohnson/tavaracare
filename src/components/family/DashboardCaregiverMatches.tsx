@@ -1,296 +1,389 @@
+
 import { useState } from "react";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, MessageCircle, Eye, Calendar, MapPin, DollarSign, Sparkles, Star } from "lucide-react";
+import { ArrowRight, Users, Calendar, MessageCircle, Eye } from "lucide-react";
 import { useUnifiedMatches } from "@/hooks/useUnifiedMatches";
+import { SimpleMatchCard } from "./SimpleMatchCard";
 import { CaregiverChatModal } from "./CaregiverChatModal";
 import { MatchBrowserModal } from "./MatchBrowserModal";
 import { MatchDetailModal } from "./MatchDetailModal";
 import { MatchLoadingState } from "@/components/ui/match-loading-state";
-import { FamilyCaregiverLiveChatModal } from "./FamilyCaregiverLiveChatModal";
-import { checkLiveChatEligibilityForFamily } from "@/services/chat/chatEligibility";
 
 export const DashboardCaregiverMatches = () => {
   const { user } = useAuth();
-  const { matches, isLoading } = useUnifiedMatches("family", false);
+  const { matches, isLoading } = useUnifiedMatches('family', false); // Show all matches
   const [showChatModal, setShowChatModal] = useState(false);
-  const [showLiveChatModal, setShowLiveChatModal] = useState(false);
   const [showBrowserModal, setShowBrowserModal] = useState(false);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [selectedCaregiver, setSelectedCaregiver] = useState<any>(null);
   const [isLoadingComplete, setIsLoadingComplete] = useState(false);
 
-  if (!user) return null;
+  if (!user) {
+    return null;
+  }
 
-  const displayMatches = matches.slice(0, 3); // same "preview" feel as Family card
+  const displayMatches = matches.slice(0, 6); // Show top 6 matches on dashboard
   const bestMatch = matches[0];
 
-  const initials = (name: string) =>
-    name
-      .split(" ")
-      .map((n) => n[0])
-      .join("")
-      .toUpperCase();
-
-  const professionalLabel = (cg: any) => {
-    if (cg?.professional_type === "gapp") return "GAPP Certified";
-    if (cg?.professional_type) return cg.professional_type;
-    if (cg?.certifications?.length) return cg.certifications[0];
-    return "Professional Caregiver";
+  const handleStartChat = () => {
+    setSelectedCaregiver(bestMatch);
+    setShowChatModal(true);
   };
 
-  const pillClass = (score?: number) => {
-    const s = score ?? 0;
-    if (s >= 80) return "text-green-700 bg-green-50 border-green-200";
-    if (s >= 60) return "text-yellow-700 bg-yellow-50 border-yellow-200";
-    return "text-red-700 bg-red-50 border-red-200";
-  };
-
-const scheduleLabels: Record<string, string> = {
-  flexible: "Flexible",
-  mon_fri_6am_6pm: "Mon–Fri, 6 AM–6 PM",
-  sat_sun_6am_6pm: "Sat–Sun, 6 AM–6 PM",
-  weekday_evening_6pm_6am: "Weekday Evenings (6 PM–6 AM)",
-  weekend_evening_6pm_6am: "Weekend Evenings (6 PM–6 AM)",
-  mon_fri_8am_4pm: "Mon–Fri, 8 AM–4 PM",
-  mon_fri_8am_6pm: "Mon–Fri, 8 AM–6 PM",
-  live_in_care: "Live-in Care",
-  "24_7_care": "24/7 Care",
-  // add more known codes as you use them
-};
-
-function formatSchedule(raw?: string | null): string | null {
-  if (!raw) return null;
-  return raw
-    .split(",")
-    .map((p) => p.trim())
-    .map((p) => scheduleLabels[p] ?? p.replace(/_/g, " "))
-    .join(" • ");
-}
-
-  const formatRate = (rate?: string | number) => {
-    if (!rate) return null;
-    if (typeof rate === 'number') return `$${rate}/hr`;
-    if (typeof rate === 'string') {
-      const match = rate.match(/(\d+)/);
-      return match ? `$${match[1]}/hr` : rate;
-    }
-    return rate;
+  const handleViewDetails = () => {
+    setSelectedCaregiver(bestMatch);
+    setShowDetailModal(true);
   };
 
   return (
     <>
-      <Card className="mb-8 border-l-4 border-l-primary">
+      <Card id="caregiver-matches-section" className="mb-8 border-l-4 border-l-primary">
         <CardHeader className="flex flex-row items-center justify-between pb-2">
           <div>
-            <CardTitle className="text-xl">Your Caregiver Matches</CardTitle>
+            <CardTitle className="text-xl flex items-center gap-2">
+              Your Caregiver Matches
+              <MessageCircle className="h-5 w-5 text-blue-600" />
+            </CardTitle>
             <p className="text-sm text-gray-500">
-              {matches.length} caregiver{matches.length === 1 ? "" : "s"} match your care needs and schedule
+              {matches.length} caregiver{matches.length === 1 ? '' : 's'} match your care needs and schedule
             </p>
           </div>
           <Button variant="outline" onClick={() => setShowBrowserModal(true)}>
-            View All Matches
+            <span>View All Matches</span>
             <ArrowRight className="ml-2 h-4 w-4" />
           </Button>
         </CardHeader>
-
+        
         <CardContent>
-          {isLoading || !isLoadingComplete ? (
-            <MatchLoadingState duration={1200} onComplete={() => setIsLoadingComplete(true)} />
-          ) : displayMatches.length ? (
-            <div className="space-y-4">
-              {/* TEMP DEBUG — remove after */}
-              {(() => { console.debug('[CG matches in card]', displayMatches.slice(0, 1)[0]); return null; })()}
-              {displayMatches.map((cg, idx) => {
-                const label = professionalLabel(cg);
-                const matchScore = cg?.match_score ?? 90;
+          {/* Debug logging without JSX expression */}
+          {(() => {
+            if (matches.length > 0) {
+              console.log('🔍 Debug caregiver data:', matches.slice(0, 3).map((c, i) => ({
+                index: i,
+                id: c.id,
+                full_name: c.full_name,
+                years_of_experience: c.years_of_experience,
+                hourly_rate: (c as any).hourly_rate,
+                expected_rate: (c as any).expected_rate,
+                professional_type: (c as any).professional_type
+              })));
+            }
+            return null;
+          })()}
+          
+          {(isLoading || !isLoadingComplete) ? (
+            <MatchLoadingState 
+              duration={2000}
+              onComplete={() => setIsLoadingComplete(true)}
+            />
+          ) : displayMatches.length > 0 ? (
+            <div className="space-y-6">
+              {displayMatches.map((caregiver, index) => {
+                const getInitials = (name: string) => {
+                  return name.split(' ').map(n => n[0]).join('').toUpperCase();
+                };
+
+                const getCompatibilityColor = (score: number) => {
+                  if (score >= 85) return 'text-green-600';
+                  if (score >= 70) return 'text-blue-600';
+                  if (score >= 50) return 'text-yellow-600';
+                  return 'text-red-600';
+                };
+
+                const getCompatibilityIcon = (score: number) => {
+                  if (score >= 85) return '🟢';
+                  if (score >= 70) return '🔵';
+                  if (score >= 50) return '🟡';
+                  return '🔴';
+                };
+
+                const formatRate = (rate?: string | number) => {
+                  if (!rate) return 'Rate available upon request';
+                  
+                  // If it's a number, format as currency
+                  if (typeof rate === 'number') {
+                    return `$${rate}/hour`;
+                  }
+                  
+                  // If it's already formatted with currency, return as is
+                  if (typeof rate === 'string' && rate.includes('$')) {
+                    return rate;
+                  }
+                  
+                  // Handle various rate formats
+                  if (typeof rate === 'string' && rate.includes('/hr')) {
+                    const numRate = parseFloat(rate.replace(/[^\d.]/g, ''));
+                    return isNaN(numRate) ? rate : `$${numRate}/hour`;
+                  }
+                  
+                  // Handle "Ambulatory 35/ bedridden patient 45 hourly" format
+                  if (typeof rate === 'string' && (rate.toLowerCase().includes('ambulatory') || rate.toLowerCase().includes('bedridden'))) {
+                    const matches = rate.match(/\d+/g);
+                    if (matches && matches.length > 0) {
+                      return `Starting at $${matches[0]}/hour`;
+                    }
+                  }
+                  
+                  // Handle simple number format as string
+                  if (typeof rate === 'string' && /^\d+$/.test(rate)) {
+                    return `$${rate}/hour`;
+                  }
+                  
+                  return rate;
+                };
+
+                const formatAvailability = (schedule?: string) => {
+                  if (!schedule) return 'Flexible schedule';
+                  
+                  const scheduleMap: { [key: string]: string } = {
+                    'mon_fri_8am_4pm': 'Mon-Fri, 8 AM - 4 PM',
+                    'mon_fri_8am_6pm': 'Mon-Fri, 8 AM - 6 PM',
+                    'weekday_evening_6pm_6am': 'Weekday evenings, 6 PM - 6 AM',
+                    'sat_sun_8am_4pm': 'Weekends, 8 AM - 4 PM',
+                    'flexible': 'Flexible schedule',
+                    'live_in_care': 'Live-in care available',
+                    '24_7_care': '24/7 care available'
+                  };
+
+                  const schedules = schedule.split(',').map(s => s.trim());
+                  const formatted = schedules.map(s => scheduleMap[s] || s).join(', ');
+                  return formatted || 'Flexible schedule';
+                };
+
+                const getProfessionalDisplay = () => {
+                  const profType = (caregiver as any).professional_type;
+                  if (profType === 'gapp') return 'GAPP Certified';
+                  if (profType) return profType;
+                  if ((caregiver as any).certifications?.length > 0) return (caregiver as any).certifications[0];
+                  return 'Professional Caregiver';
+                };
+
+                const getCareServices = () => {
+                  if (!caregiver.care_types) return [];
+                  if (Array.isArray(caregiver.care_types)) return caregiver.care_types;
+                  return [];
+                };
 
                 return (
-                  <div
-                    key={cg.id}
-                    className={`p-4 rounded-lg border ${cg?.is_premium ? "border-amber-300" : "border-gray-200"} relative`}
-                  >
-                    {idx === 0 && (
-                      <div className="absolute -top-2 -right-2 bg-primary text-primary-foreground text-xs px-2 py-1 rounded-full">
-                        Best Match
-                      </div>
-                    )}
-
-                    <div className="flex flex-col sm:flex-row gap-4">
-                      {/* LEFT: avatar + identity + match */}
-                      <div className="flex flex-col items-center sm:items-start sm:w-1/4">
-                        <div className="h-16 w-16 rounded-full border-2 border-primary/20 bg-primary/10 flex items-center justify-center overflow-hidden">
-                          {cg?.avatar_url ? (
-                            <img
-                              src={cg.avatar_url}
-                              alt={label}
-                              className="h-full w-full object-cover rounded-full"
-                            />
-                          ) : (
-                            <span className="text-lg font-semibold text-primary">{initials(label)}</span>
-                          )}
+                  <Card key={caregiver.id} className="hover:shadow-md transition-shadow">
+                    <CardContent className="p-6">
+                      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        {/* Column 1: Avatar & Basic Info */}
+                        <div className="flex flex-col items-center text-center lg:items-start lg:text-left">
+                          <div className="relative mb-4">
+                            {caregiver.avatar_url ? (
+                              <img
+                                src={caregiver.avatar_url}
+                                alt={caregiver.full_name}
+                                className="w-16 h-16 rounded-full object-cover"
+                              />
+                            ) : (
+                              <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
+                                <span className="text-lg font-semibold text-primary">
+                                  {getInitials(caregiver.full_name || 'CG')}
+                                </span>
+                              </div>
+                            )}
+                            {index === 0 && (
+                              <div className="absolute -top-2 -right-6 sm:-right-2 bg-primary text-primary-foreground text-xs px-2 py-1 rounded-full whitespace-nowrap z-10">
+                                Best Match
+                              </div>
+                            )}
+                          </div>
+                          
+                          <h3 className="font-semibold text-lg mb-1">
+                            {caregiver.full_name || 'Professional Caregiver'}
+                          </h3>
+                          
+                          <p className="text-muted-foreground text-sm mb-2 flex items-center gap-1">
+                            <span>📍</span>
+                            {caregiver.location || 'Location available upon contact'}
+                          </p>
+                          
+                          <div className="flex items-center gap-2 mb-3">
+                            <span className="text-2xl font-bold text-primary">
+                              {caregiver.match_score || 92}%
+                            </span>
+                            <span className="text-sm text-muted-foreground">Match</span>
+                          </div>
+                          
+                          <div className="flex items-center gap-1 text-sm">
+                            <span>{getCompatibilityIcon(caregiver.match_score || 92)}</span>
+                            <span className={getCompatibilityColor(caregiver.match_score || 92)}>
+                              Schedule Compatible
+                            </span>
+                          </div>
                         </div>
 
-                        <div className="mt-2 text-center sm:text-left">
-                          <h3 className="font-semibold">{label}</h3>
-                          <div className="text-xs text-blue-600 mt-1">* Name protected until subscription</div>
-
-                          <div className="flex items-center justify-center sm:justify-start gap-1 text-sm text-gray-500 mt-1">
-                            <MapPin className="h-3.5 w-3.5" />
-                            <span>{cg?.location || "Trinidad and Tobago"}</span>
-                          </div>
-
-                          <div className="mt-1 bg-primary-50 rounded px-2 py-1 text-center">
-                            <span className="text-sm font-medium text-primary-700">{matchScore}% Match</span>
-                          </div>
-
-                          {/* schedule compatibility pill to mirror family UI */}
-                          {typeof cg?.shift_compatibility_score === "number" && (
-                            <div className={`mt-1 rounded px-2 py-1 text-center border ${pillClass(cg.shift_compatibility_score)}`}>
-                              <span className="text-xs font-medium flex items-center justify-center gap-1">
-                                <Calendar className="h-3 w-3" />
-                                Schedule Compatible
+                        {/* Column 2: Details & Services */}
+                        <div className="space-y-4">
+                          <div>
+                            <div className="flex items-center gap-2 mb-2">
+                              <span className="text-primary font-medium">
+                                {getProfessionalDisplay()}
                               </span>
                             </div>
-                          )}
-                        </div>
-                      </div>
+                            <p className="text-sm text-muted-foreground">
+                              {caregiver.years_of_experience && caregiver.years_of_experience !== 'Experience not specified' 
+                                ? (caregiver.years_of_experience.includes('year') || caregiver.years_of_experience.includes('experience') 
+                                   ? caregiver.years_of_experience 
+                                   : `${caregiver.years_of_experience} years experience`)
+                                : 'Experience available upon request'}
+                            </p>
+                          </div>
 
-                      {/* MIDDLE: details */}
-                      <div className="sm:w-2/4 space-y-2">
-                         <div className="flex flex-wrap items-center gap-2 text-sm">
-                            <div className="flex items-center gap-1">
-                              <Calendar className="h-3.5 w-3.5 text-gray-500" />
-                              <span>{formatSchedule(cg.care_schedule) ?? "Schedule available upon request"}</span>
-                            </div>
-                            <span className="text-gray-300">|</span>
-                            <div className="flex items-center gap-1">
-                              <DollarSign className="h-3.5 w-3.5 text-gray-500" />
-                              <span>{cg.hourly_rate ?? "Rate available upon request"}</span>
-                            </div>
-                         </div>
-
-                        <div className="text-sm">
-                          <span className="font-medium block mb-1">Experience</span>
-                          <div className="text-gray-700">{cg.years_of_experience ?? 'Experience not specified'}</div>
-                        </div>
-
-                        {Array.isArray(cg?.care_types) && cg.care_types.length > 0 && (
-                          <div className="text-sm">
-                            <span className="font-medium block mb-1">Care Services</span>
-                            <div className="flex flex-wrap gap-1">
-                              {cg.care_types.slice(0, 6).map((t: string, i: number) => (
-                                <span key={i} className="px-2 py-1 rounded border bg-gray-50 text-gray-700">
-                                  {t}
+                          <div>
+                            <h4 className="font-medium mb-2">Care Services</h4>
+                            <div className="flex flex-wrap gap-2">
+                              {getCareServices().slice(0, 4).map((service, i) => (
+                                <span
+                                  key={i}
+                                  className="px-2 py-1 bg-muted rounded-md text-sm"
+                                >
+                                  {service}
                                 </span>
                               ))}
-                              {cg.care_types.length > 6 && (
-                                <span className="px-2 py-1 rounded border bg-gray-50 text-gray-700">
-                                  +{cg.care_types.length - 6} more
+                              {getCareServices().length > 4 && (
+                                <span className="px-2 py-1 bg-muted rounded-md text-sm">
+                                  +{getCareServices().length - 4} more
                                 </span>
                               )}
                             </div>
                           </div>
-                        )}
 
-                        {cg?.match_explanation && (
-                          <div className="text-sm p-2 bg-blue-50 rounded border border-blue-200">
-                            <span className="text-blue-700 flex items-center gap-1">
-                              <Sparkles className="h-3 w-3" />
-                              {cg.match_explanation}
+                          <div className="flex items-center gap-4 text-sm">
+                            <span className="flex items-center gap-1">
+                              🕒 {formatAvailability((caregiver as any).care_schedule)}
                             </span>
                           </div>
-                        )}
-                      </div>
 
-                      {/* RIGHT: rating + CTAs */}
-                      <div className="sm:w-1/4 flex flex-col justify-center space-y-3">
-                        <div className="flex">
-                          {[1, 2, 3, 4, 5].map((n) => (
-                            <Star key={n} className="h-4 w-4 text-amber-400" />
-                          ))}
-                          <span className="text-sm text-gray-500 ml-2">5.0</span>
+                           <div className="flex items-center gap-4 text-sm">
+                             <span className="flex items-center gap-1">
+                               💰 {formatRate((caregiver as any).hourly_rate || (caregiver as any).expected_rate)}
+                             </span>
+                           </div>
+
+                          {(caregiver as any).transportation_available && (
+                            <div className="flex items-center gap-1 text-sm">
+                              🚗 Own transportation
+                            </div>
+                          )}
+
+                          {caregiver.match_explanation && (
+                            <div className="flex items-start gap-2 text-sm bg-muted/50 p-3 rounded-lg">
+                              <span className="text-primary">✨</span>
+                              <span>{caregiver.match_explanation}</span>
+                            </div>
+                          )}
                         </div>
 
-                        <Button
-                          className="w-full flex items-center gap-2"
-                          onClick={async () => {
-                            setSelectedCaregiver(cg);
-                            const override = new URLSearchParams(window.location.search).get('chat');
-                            console.debug('[DashboardCaregiverMatches] chat override:', override);
-                            if (override === 'live') { setShowLiveChatModal(true); return; }
-                            if (override === 'legacy') { setShowChatModal(true); return; }
+                        {/* Column 3: Actions & Rating */}
+                        <div className="flex flex-col items-center lg:items-end space-y-4">
+                          <div className="flex items-center gap-1">
+                            {[1, 2, 3, 4, 5].map((star) => (
+                              <span key={star} className="text-yellow-400 text-lg">
+                                ⭐
+                              </span>
+                            ))}
+                            <span className="text-sm text-muted-foreground ml-2">5.0</span>
+                          </div>
 
-                            const eligible = await checkLiveChatEligibilityForFamily(cg.id);
-                            console.debug('[DashboardCaregiverMatches] live eligibility:', { caregiverId: cg.id, eligible });
-                            if (eligible) {
-                              setShowLiveChatModal(true);
-                            } else {
-                              setShowChatModal(true);
-                            }
-                          }}
-                        >
-                          <MessageCircle className="h-4 w-4" />
-                          Chat with Caregiver
-                        </Button>
+                          <div className="space-y-2 w-full lg:w-auto">
+                            <Button
+                              onClick={() => {
+                                setSelectedCaregiver(caregiver);
+                                setShowChatModal(true);
+                              }}
+                              className="w-full lg:w-auto"
+                              size="sm"
+                            >
+                              <MessageCircle className="h-4 w-4 mr-2" />
+                              Chat with Caregiver
+                            </Button>
+                            
+                            <Button
+                              variant="outline"
+                              onClick={() => {
+                                setSelectedCaregiver(caregiver);
+                                setShowDetailModal(true);
+                              }}
+                              className="w-full lg:w-auto"
+                              size="sm"
+                            >
+                              <Eye className="h-4 w-4 mr-2" />
+                              View Details
+                            </Button>
+                          </div>
 
-                        <Button
-                          variant="outline"
-                          className="w-full flex items-center gap-2"
-                          onClick={() => {
-                            setSelectedCaregiver(cg);
-                            setShowDetailModal(true);
-                          }}
-                        >
-                          <Eye className="h-4 w-4" />
-                          View Details
-                        </Button>
+                          {(caregiver as any).background_check && (
+                            <div className="flex items-center gap-1 text-xs text-green-600">
+                              ✅ Background Verified
+                            </div>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  </div>
+                    </CardContent>
+                  </Card>
                 );
               })}
-
-              <Button variant="outline" className="w-full mt-2" onClick={() => setShowBrowserModal(true)}>
-                View All {matches.length} Matches
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
+              
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-6">
+                <Button 
+                  variant="default" 
+                  className="w-full"
+                  onClick={handleStartChat}
+                >
+                  <MessageCircle className="h-4 w-4 mr-2" />
+                  Chat with Best Match
+                </Button>
+                
+                <Button 
+                  variant="outline" 
+                  className="w-full"
+                  onClick={() => setShowBrowserModal(true)}
+                >
+                  <Eye className="h-4 w-4 mr-2" />
+                  View All {matches.length} Matches
+                </Button>
+              </div>
             </div>
           ) : (
-            <div className="text-center py-6 text-gray-500">No caregiver matches found</div>
+            <div className="text-center py-6">
+              <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-xl font-medium text-gray-600">No Matches Found</h3>
+              <p className="text-gray-500 mt-2 mb-4">
+                Complete your care assessment to get personalized caregiver matches.
+              </p>
+              <Button variant="outline" onClick={() => setShowBrowserModal(true)}>
+                Find Matches
+              </Button>
+            </div>
           )}
         </CardContent>
       </Card>
 
       {selectedCaregiver && (
-        <>
-          <CaregiverChatModal open={showChatModal} onOpenChange={setShowChatModal} caregiver={selectedCaregiver} />
-          <FamilyCaregiverLiveChatModal open={showLiveChatModal} onOpenChange={setShowLiveChatModal} caregiver={selectedCaregiver} />
-        </>
+        <CaregiverChatModal
+          open={showChatModal}
+          onOpenChange={setShowChatModal}
+          caregiver={selectedCaregiver}
+        />
       )}
 
       <MatchBrowserModal
         open={showBrowserModal}
         onOpenChange={setShowBrowserModal}
         onSelectMatch={(id) => {
-          const cg = matches.find((m) => m.id === id);
-          setSelectedCaregiver(cg);
+          const caregiver = matches.find(m => m.id === id);
+          setSelectedCaregiver(caregiver);
           setShowDetailModal(true);
         }}
-        onStartChat={async (id) => {
-          const cg = matches.find((m) => m.id === id) || bestMatch;
-          setSelectedCaregiver(cg);
-          const override = new URLSearchParams(window.location.search).get('chat');
-          console.debug('[DashboardCaregiverMatches] chat override:', override);
-          if (override === 'live') { setShowLiveChatModal(true); return; }
-          if (override === 'legacy') { setShowChatModal(true); return; }
-          const eligible = await checkLiveChatEligibilityForFamily(cg.id);
-          if (eligible) {
-            setShowLiveChatModal(true);
-          } else {
-            setShowChatModal(true);
-          }
+        onStartChat={(id) => {
+          const caregiver = matches.find(m => m.id === id) || bestMatch;
+          setSelectedCaregiver(caregiver);
+          setShowChatModal(true);
         }}
       />
 
@@ -298,17 +391,9 @@ function formatSchedule(raw?: string | null): string | null {
         open={showDetailModal}
         onOpenChange={setShowDetailModal}
         caregiver={selectedCaregiver}
-        onStartChat={async () => {
+        onStartChat={() => {
           setShowDetailModal(false);
-          if (selectedCaregiver) {
-            const override = new URLSearchParams(window.location.search).get('chat');
-            console.debug('[DashboardCaregiverMatches] chat override:', override);
-            if (override === 'live') { setShowLiveChatModal(true); return; }
-            if (override === 'legacy') { setShowChatModal(true); return; }
-            const eligible = await checkLiveChatEligibilityForFamily(selectedCaregiver.id);
-            if (eligible) setShowLiveChatModal(true);
-            else setShowChatModal(true);
-          }
+          setShowChatModal(true);
         }}
       />
     </>
