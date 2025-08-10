@@ -53,13 +53,32 @@ serve(async (req) => {
 
     console.log('Supabase client created successfully')
     
-    let requestBody
-    try {
-      requestBody = await req.json()
-      console.log('Request body parsed:', requestBody)
-    } catch (e) {
-      console.error('Failed to parse request body:', e)
-      throw new Error('Invalid JSON in request body')
+    // Enhanced request body parsing with tolerance for empty bodies
+    let requestBody: any = {};
+    const rawBody = await req.text();
+    console.log('Raw request body length:', rawBody.length);
+    console.log('Raw request body content:', rawBody || '(empty)');
+    
+    if (rawBody) {
+      try {
+        requestBody = JSON.parse(rawBody);
+        console.log('Request body parsed successfully:', requestBody);
+      } catch (e) {
+        console.error('Failed to parse JSON from body:', e);
+        return new Response(
+          JSON.stringify({ 
+            success: false, 
+            error: 'Invalid JSON in request body',
+            receivedBody: rawBody 
+          }),
+          { 
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          }
+        );
+      }
+    } else {
+      console.log('Empty request body received');
     }
 
     // Support both camelCase and snake_case keys from clients
@@ -69,7 +88,19 @@ serve(async (req) => {
 
     if (!familyUserId) {
       console.error('No familyUserId provided in request (accepted keys: familyUserId or family_user_id)')
-      throw new Error('familyUserId is required')
+      console.error('Available request body keys:', Object.keys(requestBody));
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: 'familyUserId is required',
+          acceptedKeys: ['familyUserId', 'family_user_id'],
+          receivedKeys: Object.keys(requestBody)
+        }),
+        { 
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
     }
     
     console.log('=== Processing automatic assignment for family user:', familyUserId, '===')
