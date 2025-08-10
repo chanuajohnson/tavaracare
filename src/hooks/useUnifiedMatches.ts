@@ -148,19 +148,30 @@ export const useUnifiedMatches = (userRole: 'family' | 'professional', showOnlyB
             try {
               console.log(`useUnifiedMatches: Assignment attempt ${attempt}/${maxAttempts} for user:`, user.id);
               
-              // Enhanced logging for debugging network issues
-              console.log('useUnifiedMatches: Supabase client config check:', {
-                clientExists: !!supabase,
-                functionsMethod: typeof supabase.functions?.invoke,
-                timestamp: new Date().toISOString()
-              });
+              // ---- DEBUG: start ----
+              const payload = { familyUserId: String(user?.id ?? '') };
+              try {
+                const json = JSON.stringify(payload);
+                console.log(
+                  '[auto-assign][client] about to invoke',
+                  'payload=', payload,
+                  'jsonLen=', json.length,
+                  'user.id=', user?.id,
+                  'typeof user.id=', typeof user?.id
+                );
+              } catch (e) {
+                console.log('[auto-assign][client] JSON stringify failed:', e, 'payload=', payload);
+              }
+              // ---- DEBUG: end ----
               
               const functionCall = await supabase.functions.invoke('automatic-caregiver-assignment', {
-                body: { familyUserId: user.id },
+                body: payload,
                 headers: {
                   'Content-Type': 'application/json'
                 }
               });
+              
+              console.log('[auto-assign][client] invoke result:', { data: functionCall.data, error: functionCall.error });
               
               console.log(`useUnifiedMatches: Edge function response (attempt ${attempt}):`, functionCall);
               

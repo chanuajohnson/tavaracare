@@ -44,7 +44,33 @@ serve(async (req) => {
   try {
     console.log('=== AUTOMATIC CAREGIVER ASSIGNMENT FUNCTION STARTED ===')
     console.log('Request method:', req.method)
-    console.log('Request headers:', req.headers)
+    
+    // ---- DEBUG: start ----
+    console.log('[server] headers:', Object.fromEntries(req.headers.entries()));
+    console.log('[server] content-length=', req.headers.get('content-length'));
+    // read raw first (won't throw on empty)
+    const rawText = await req.text();
+    console.log('[server] raw body length=', rawText?.length ?? 0);
+    console.log('[server] raw body sample=', rawText?.slice(0, 200));
+    // try parse
+    let body: any = {};
+    try {
+      if (rawText) body = JSON.parse(rawText);
+    } catch (e) {
+      console.log('[server] JSON parse failed:', e);
+    }
+    // also allow query/header for debugging
+    const url = new URL(req.url);
+    const fromQuery = url.searchParams.get('familyUserId') ?? url.searchParams.get('family_user_id');
+    const fromHeader = req.headers.get('x-family-user-id') ?? undefined;
+    const familyUserId =
+      body?.familyUserId ??
+      body?.family_user_id ??
+      fromQuery ??
+      fromHeader;
+
+    console.log('[server] derived familyUserId=', familyUserId);
+    // ---- DEBUG: end ----
     
     const supabaseClient = createClient<Database>(
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -52,49 +78,17 @@ serve(async (req) => {
     )
 
     console.log('Supabase client created successfully')
-    
-    // Enhanced request body parsing with tolerance for empty bodies
-    let requestBody: any = {};
-    const rawBody = await req.text();
-    console.log('Raw request body length:', rawBody.length);
-    console.log('Raw request body content:', rawBody || '(empty)');
-    
-    if (rawBody) {
-      try {
-        requestBody = JSON.parse(rawBody);
-        console.log('Request body parsed successfully:', requestBody);
-      } catch (e) {
-        console.error('Failed to parse JSON from body:', e);
-        return new Response(
-          JSON.stringify({ 
-            success: false, 
-            error: 'Invalid JSON in request body',
-            receivedBody: rawBody 
-          }),
-          { 
-            status: 400,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-          }
-        );
-      }
-    } else {
-      console.log('Empty request body received');
-    }
-
-    // Support both camelCase and snake_case keys from clients
-    const familyUserId: string | undefined = requestBody.familyUserId ?? requestBody.family_user_id;
-    // Save for error reporting
-    requestFamilyUserId = familyUserId;
+    requestFamilyUserId = familyUserId
 
     if (!familyUserId) {
-      console.error('No familyUserId provided in request (accepted keys: familyUserId or family_user_id)')
-      console.error('Available request body keys:', Object.keys(requestBody));
       return new Response(
         JSON.stringify({ 
           success: false, 
           error: 'familyUserId is required',
           acceptedKeys: ['familyUserId', 'family_user_id'],
-          receivedKeys: Object.keys(requestBody)
+          receivedKeys: Object.keys(body),
+          queryParams: Object.fromEntries(url.searchParams.entries()),
+          headers: Object.fromEntries(req.headers.entries())
         }),
         { 
           status: 400,

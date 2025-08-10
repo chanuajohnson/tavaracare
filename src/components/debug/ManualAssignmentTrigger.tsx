@@ -29,15 +29,29 @@ export const ManualAssignmentTrigger: React.FC = () => {
         invokeMethod: typeof supabase.functions?.invoke
       });
       
+      // ---- DEBUG: start ----
+      const payload = { familyUserId: String(userId ?? '') };
+      const json = JSON.stringify(payload);
+      console.log(
+        '[manual-assign][client] invoking',
+        'payload=', payload,
+        'jsonLen=', json.length,
+        'userId=', userId,
+        'typeof userId=', typeof userId
+      );
+      // ---- DEBUG: end ----
+      
       const startTime = Date.now();
       
       const functionCall = await supabase.functions.invoke('automatic-caregiver-assignment', {
-        body: { familyUserId: userId },
+        body: payload,
         headers: {
           'Content-Type': 'application/json',
           'X-Test-Origin': 'ManualAssignmentTrigger'
         }
       });
+      
+      console.log('[manual-assign][client] invoke result:', { data: functionCall.data, error: functionCall.error });
       
       const endTime = Date.now();
       const duration = endTime - startTime;
