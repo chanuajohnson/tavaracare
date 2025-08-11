@@ -154,28 +154,25 @@ export function ProfessionalShortcutMenuBar() {
             </Button>
           </Link>
           
-          <Button 
-            variant="outline" 
-            size="sm" 
-            className="flex items-center gap-1 bg-green-50 border-green-200 text-green-700 hover:bg-green-100 relative"
-            onClick={() => {
-              handleTrackButtonClick('navigation_click', 'messages');
-              // Scroll to chat sections on dashboard
-              const chatSection = document.querySelector('[data-section="active-chats"]');
-              if (chatSection) {
-                chatSection.scrollIntoView({ behavior: 'smooth' });
-              }
-            }}
+          <Link 
+            to="/professional/message-board"
+            onClick={() => handleTrackButtonClick('navigation_click', 'messages')}
           >
-            <MessageCircle className="h-4 w-4" />
-            <span>Messages</span>
-            {unreadMessages > 0 && (
-              <Badge className="ml-1 bg-green-500 text-white text-xs h-5 w-5 p-0 flex items-center justify-center">
-                {unreadMessages > 9 ? '9+' : unreadMessages}
-              </Badge>
-            )}
-            <ArrowRight className="h-3 w-3" />
-          </Button>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="flex items-center gap-1 bg-green-50 border-green-200 text-green-700 hover:bg-green-100 relative"
+            >
+              <MessageCircle className="h-4 w-4" />
+              <span>Messages</span>
+              {unreadMessages > 0 && (
+                <Badge className="ml-1 bg-green-500 text-white text-xs h-5 w-5 p-0 flex items-center justify-center">
+                  {unreadMessages > 9 ? '9+' : unreadMessages}
+                </Badge>
+              )}
+              <ArrowRight className="h-3 w-3" />
+            </Button>
+          </Link>
           
           <Link 
             to="/caregiver/health"
