@@ -2,8 +2,9 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Container } from "@/components/ui/container";
-import { ClipboardEdit, ArrowRight, UserCircle, HandHeart } from "lucide-react";
+import { ClipboardEdit, ArrowRight, UserCircle, HandHeart, MessageCircle } from "lucide-react";
 import { useAuth } from "@/components/providers/AuthProvider";
 import { toast } from "sonner";
 import { useTracking } from "@/hooks/useTracking";
@@ -14,6 +15,7 @@ export function ProfessionalShortcutMenuBar() {
   const { trackEngagement } = useTracking();
   const [profileComplete, setProfileComplete] = useState(false);
   const [checkingProfile, setCheckingProfile] = useState(true);
+  const [unreadMessages, setUnreadMessages] = useState(0);
   
   const handleAuthRequired = (e: React.MouseEvent<HTMLAnchorElement>) => {
     if (!user && !isLoading) {
@@ -57,9 +59,64 @@ export function ProfessionalShortcutMenuBar() {
     }
   };
 
+  const checkUnreadMessages = async () => {
+    if (!user?.id) return;
+    
+    try {
+      // Get user's chat sessions
+      const { data: sessions } = await supabase
+        .from('caregiver_chat_sessions')
+        .select('id')
+        .eq('caregiver_id', user.id);
+
+      if (!sessions || sessions.length === 0) {
+        setUnreadMessages(0);
+        return;
+      }
+
+      // Count unread messages across all sessions
+      let totalUnread = 0;
+      for (const session of sessions) {
+        const { count } = await supabase
+          .from('caregiver_chat_messages')
+          .select('*', { count: 'exact', head: true })
+          .eq('session_id', session.id)
+          .eq('is_user', false)
+          .gte('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString());
+        
+        totalUnread += count || 0;
+      }
+      
+      setUnreadMessages(totalUnread);
+    } catch (error) {
+      console.error('Error checking unread messages:', error);
+    }
+  };
+
   useEffect(() => {
     if (user) {
       checkProfileCompletion();
+      checkUnreadMessages();
+      
+      // Set up real-time subscription for new messages
+      const channel = supabase
+        .channel('professional-unread-messages')
+        .on(
+          'postgres_changes',
+          { 
+            event: 'INSERT', 
+            schema: 'public', 
+            table: 'caregiver_chat_messages'
+          },
+          () => {
+            checkUnreadMessages();
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
     }
   }, [user]);
   
@@ -96,6 +153,29 @@ export function ProfessionalShortcutMenuBar() {
               <ArrowRight className="h-3 w-3" />
             </Button>
           </Link>
+          
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="flex items-center gap-1 bg-green-50 border-green-200 text-green-700 hover:bg-green-100 relative"
+            onClick={() => {
+              handleTrackButtonClick('navigation_click', 'messages');
+              // Scroll to chat sections on dashboard
+              const chatSection = document.querySelector('[data-section="active-chats"]');
+              if (chatSection) {
+                chatSection.scrollIntoView({ behavior: 'smooth' });
+              }
+            }}
+          >
+            <MessageCircle className="h-4 w-4" />
+            <span>Messages</span>
+            {unreadMessages > 0 && (
+              <Badge className="ml-1 bg-green-500 text-white text-xs h-5 w-5 p-0 flex items-center justify-center">
+                {unreadMessages > 9 ? '9+' : unreadMessages}
+              </Badge>
+            )}
+            <ArrowRight className="h-3 w-3" />
+          </Button>
           
           <Link 
             to="/caregiver/health"
