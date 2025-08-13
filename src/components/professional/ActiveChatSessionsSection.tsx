@@ -40,8 +40,14 @@ export const ActiveChatSessionsSection = () => {
   useEffect(() => {
     if (user) {
       fetchActiveSessions();
+    }
+  }, [user]);
+
+  useEffect(() => {
+    // Set up real-time subscription after sessions are loaded
+    if (user && sessions.length > 0) {
+      console.log('[ActiveChatSessions] Setting up real-time subscription for sessions:', sessions.map(s => s.id));
       
-      // Set up real-time subscription for new messages
       const channel = supabase
         .channel('professional-chat-updates')
         .on(
@@ -52,17 +58,19 @@ export const ActiveChatSessionsSection = () => {
             table: 'caregiver_chat_messages',
             filter: `session_id=in.(${sessions.map(s => s.id).join(',')})`
           },
-          () => {
+          (payload) => {
+            console.log('[ActiveChatSessions] New message received:', payload);
             fetchActiveSessions(); // Refresh sessions when new messages arrive
           }
         )
         .subscribe();
 
       return () => {
+        console.log('[ActiveChatSessions] Cleaning up real-time subscription');
         supabase.removeChannel(channel);
       };
     }
-  }, [user]);
+  }, [user, sessions]);
 
   const fetchActiveSessions = async () => {
     if (!user?.id) return;
