@@ -69,6 +69,7 @@ export const ActiveChatSessionsSection = () => {
     
     try {
       setLoading(true);
+      console.log('[ActiveChatSessions] Fetching sessions for caregiver:', user.id);
       
       // Get active chat sessions for this caregiver
       const { data: sessionsData, error: sessionsError } = await supabase
@@ -89,7 +90,10 @@ export const ActiveChatSessionsSection = () => {
         return;
       }
 
+      console.log('[ActiveChatSessions] Found sessions:', sessionsData?.length || 0);
+
       if (!sessionsData || sessionsData.length === 0) {
+        console.log('[ActiveChatSessions] No sessions found');
         setSessions([]);
         return;
       }
@@ -98,12 +102,16 @@ export const ActiveChatSessionsSection = () => {
       const enrichedSessions: ActiveSession[] = [];
       
       for (const session of sessionsData) {
+        console.log('[ActiveChatSessions] Processing session:', session.id, 'for family:', session.family_user_id);
+        
         // Get family profile
         const { data: familyProfile } = await supabase
           .from('profiles')
           .select('id, full_name, avatar_url')
           .eq('id', session.family_user_id)
           .single();
+
+        console.log('[ActiveChatSessions] Family profile found:', familyProfile?.full_name || 'None');
 
         // Get latest message for this session
         const { data: latestMessage } = await supabase
@@ -114,13 +122,18 @@ export const ActiveChatSessionsSection = () => {
           .limit(1)
           .maybeSingle();
 
+        console.log('[ActiveChatSessions] Latest message:', latestMessage?.content?.substring(0, 50) || 'None');
+
         // Count unread messages (messages from family that caregiver hasn't seen)
+        // Fix: Family messages have is_user: true, not false
         const { count: unreadCount } = await supabase
           .from('caregiver_chat_messages')
           .select('*', { count: 'exact', head: true })
           .eq('session_id', session.id)
-          .eq('is_user', false)
+          .eq('is_user', true) // Changed from false to true - family messages have is_user: true
           .gte('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()); // Last 24 hours
+
+        console.log('[ActiveChatSessions] Unread count for session:', session.id, '=', unreadCount);
 
         enrichedSessions.push({
           ...session,
@@ -129,6 +142,8 @@ export const ActiveChatSessionsSection = () => {
           unread_count: unreadCount || 0
         });
       }
+
+      console.log('[ActiveChatSessions] Enriched sessions:', enrichedSessions.length);
 
       // Filter out sessions with no messages and sort by latest activity
       const activeSessions = enrichedSessions
@@ -139,6 +154,7 @@ export const ActiveChatSessionsSection = () => {
           return new Date(bTime).getTime() - new Date(aTime).getTime();
         });
 
+      console.log('[ActiveChatSessions] Active sessions after filtering:', activeSessions.length);
       setSessions(activeSessions);
     } catch (error) {
       console.error('Error fetching active sessions:', error);
