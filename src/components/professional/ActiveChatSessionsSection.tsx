@@ -72,6 +72,7 @@ export const ActiveChatSessionsSection = () => {
       console.log('[ActiveChatSessions] Fetching sessions for caregiver:', user.id);
       
       // Get active chat sessions for this caregiver
+      // Fix: Convert user.id (UUID) to string to match caregiver_id (text) field
       const { data: sessionsData, error: sessionsError } = await supabase
         .from('caregiver_chat_sessions')
         .select(`
@@ -82,7 +83,7 @@ export const ActiveChatSessionsSection = () => {
           max_daily_messages,
           is_premium
         `)
-        .eq('caregiver_id', user.id)
+        .eq('caregiver_id', user.id.toString())
         .order('session_date', { ascending: false });
 
       if (sessionsError) {
