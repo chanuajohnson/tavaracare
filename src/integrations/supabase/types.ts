@@ -7,7 +7,7 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instanciate createClient with right options
+  // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "12.2.3 (519615d)"
@@ -4485,52 +4485,52 @@ export type Database = {
       admin_get_all_profiles: {
         Args: Record<PropertyKey, never>
         Returns: {
-          id: string
-          created_at: string
-          updated_at: string
-          role: Database["public"]["Enums"]["user_role"]
-          full_name: string
-          avatar_url: string
-          phone_number: string
           address: string
-          location: string
-          professional_type: string
-          years_of_experience: string
-          care_types: string[]
-          specialized_care: string[]
           available_for_matching: boolean
+          avatar_url: string
+          care_types: string[]
+          created_at: string
           email: string
+          full_name: string
+          id: string
+          location: string
+          phone_number: string
+          professional_type: string
+          role: Database["public"]["Enums"]["user_role"]
+          specialized_care: string[]
+          updated_at: string
+          years_of_experience: string
         }[]
       }
       admin_get_all_profiles_secure: {
         Args: Record<PropertyKey, never>
         Returns: {
-          id: string
-          created_at: string
-          updated_at: string
-          role: Database["public"]["Enums"]["user_role"]
-          full_name: string
-          avatar_url: string
-          phone_number: string
           address: string
-          location: string
-          professional_type: string
-          years_of_experience: string
-          care_types: string[]
-          specialized_care: string[]
           available_for_matching: boolean
+          avatar_url: string
+          care_types: string[]
+          created_at: string
           email: string
+          full_name: string
+          id: string
+          location: string
+          phone_number: string
+          professional_type: string
+          role: Database["public"]["Enums"]["user_role"]
+          specialized_care: string[]
+          updated_at: string
+          years_of_experience: string
         }[]
       }
       admin_get_user_journey_progress: {
         Args: { target_user_id: string }
         Returns: {
-          user_id: string
-          role: string
-          current_step: number
-          total_steps: number
           completion_percentage: number
+          current_step: number
           last_activity_at: string
+          role: string
+          total_steps: number
+          user_id: string
         }[]
       }
       calculate_and_update_journey_progress: {
@@ -4546,7 +4546,7 @@ export type Database = {
         Returns: undefined
       }
       calculate_unified_match_score: {
-        Args: { target_family_user_id: string; target_caregiver_id: string }
+        Args: { target_caregiver_id: string; target_family_user_id: string }
         Returns: Json
       }
       can_access_professional_data: {
@@ -4567,65 +4567,65 @@ export type Database = {
       }
       create_admin_assignment: {
         Args: {
-          target_family_user_id: string
-          target_caregiver_id: string
-          calculated_match_score: number
           admin_override_score?: number
-          assignment_reason?: string
           assignment_notes?: string
+          assignment_reason?: string
+          calculated_match_score: number
+          target_caregiver_id: string
+          target_family_user_id: string
         }
         Returns: string
       }
       create_automatic_assignment: {
         Args: {
-          target_family_user_id: string
-          target_caregiver_id: string
+          algorithm_version_param?: string
+          assignment_explanation?: string
           calculated_match_score: number
           calculated_shift_compatibility_score?: number
-          assignment_explanation?: string
-          algorithm_version_param?: string
+          target_caregiver_id: string
+          target_family_user_id: string
         }
         Returns: string
       }
       create_unified_assignment: {
         Args: {
-          target_family_user_id: string
-          target_caregiver_id: string
-          assignment_type_param: string
           admin_override_score_param?: number
-          assignment_reason_param?: string
           assignment_notes_param?: string
+          assignment_reason_param?: string
+          assignment_type_param: string
           care_plan_id_param?: string
+          target_caregiver_id: string
+          target_family_user_id: string
         }
         Returns: string
       }
       detect_medication_conflicts: {
         Args: {
-          p_medication_id: string
           p_administered_at: string
+          p_medication_id: string
           p_time_window_hours?: number
         }
         Returns: {
-          id: string
           administered_at: string
           administered_by: string
           administered_by_role: string
-          status: string
+          id: string
           notes: string
+          status: string
         }[]
       }
       detect_stale_assignments: {
         Args: Record<PropertyKey, never>
         Returns: {
-          assignment_type: string
           assignment_id: string
-          family_user_id: string
+          assignment_type: string
           caregiver_id: string
+          family_user_id: string
           issue: string
         }[]
       }
       format_whatsapp_number: {
-        Args: { phone_input: string; country_code_input?: string }
+        Args: { country_code_input?: string; phone_input: string }
         Returns: string
       }
       generate_admin_configured_slots: {
@@ -4647,69 +4647,69 @@ export type Database = {
       get_professional_accessible_family_profiles: {
         Args: { professional_id: string }
         Returns: {
-          id: string
           full_name: string
+          id: string
           role: Database["public"]["Enums"]["user_role"]
         }[]
       }
       get_public_professional_profiles: {
         Args: { ids: string[] }
         Returns: {
-          id: string
-          full_name: string
           avatar_url: string
+          care_schedule: string
+          care_types: string[]
+          expected_rate: string
+          full_name: string
+          hourly_rate: string
+          id: string
           location: string
           professional_type: string
           years_of_experience: string
-          hourly_rate: string
-          expected_rate: string
-          care_schedule: string
-          care_types: string[]
         }[]
       }
       get_user_profile_secure: {
         Args: { target_user_id: string }
         Returns: {
-          id: string
-          created_at: string
-          updated_at: string
-          full_name: string
-          avatar_url: string
-          phone_number: string
-          address: string
-          role: Database["public"]["Enums"]["user_role"]
-          professional_type: string
-          years_of_experience: string
-          care_services: string[]
-          certifications: string[]
-          care_schedule: string
-          custom_schedule: string
-          preferred_work_locations: string
-          hourly_rate: string
-          commute_mode: string
-          languages: string[]
-          emergency_contact: string
-          background_check: boolean
           additional_notes: string
-          first_name: string
-          last_name: string
-          care_recipient_name: string
-          relationship: string
-          care_types: string[]
-          special_needs: string[]
-          budget_preferences: string
-          caregiver_type: string
-          caregiver_preferences: string
-          preferred_contact_method: string
-          location: string
-          specialized_care: string[]
+          address: string
           available_for_matching: boolean
-          video_available: boolean
-          visit_scheduling_status: string
-          visit_payment_status: string
-          visit_payment_reference: string
-          visit_notes: string
+          avatar_url: string
+          background_check: boolean
+          budget_preferences: string
+          care_recipient_name: string
+          care_schedule: string
+          care_services: string[]
+          care_types: string[]
+          caregiver_preferences: string
+          caregiver_type: string
+          certifications: string[]
+          commute_mode: string
+          created_at: string
+          custom_schedule: string
+          emergency_contact: string
+          first_name: string
+          full_name: string
+          hourly_rate: string
+          id: string
+          languages: string[]
           last_login_at: string
+          last_name: string
+          location: string
+          phone_number: string
+          preferred_contact_method: string
+          preferred_work_locations: string
+          professional_type: string
+          relationship: string
+          role: Database["public"]["Enums"]["user_role"]
+          special_needs: string[]
+          specialized_care: string[]
+          updated_at: string
+          video_available: boolean
+          visit_notes: string
+          visit_payment_reference: string
+          visit_payment_status: string
+          visit_scheduling_status: string
+          years_of_experience: string
         }[]
       }
       has_user_voted_for_feature: {
@@ -4731,8 +4731,8 @@ export type Database = {
       reschedule_visit_booking: {
         Args: {
           booking_id: string
-          new_slot_id: string
           new_date: string
+          new_slot_id: string
           new_time: string
           reason?: string
         }
@@ -4751,28 +4751,28 @@ export type Database = {
         Returns: string
       }
       update_care_plan_status: {
-        Args: { plan_id: string; new_status: string }
+        Args: { new_status: string; plan_id: string }
         Returns: undefined
       }
       update_site_visit_status: {
-        Args: { plan_id: string; new_status: string }
+        Args: { new_status: string; plan_id: string }
         Returns: undefined
       }
       update_user_profile: {
         Args:
           | { profile_data: Json }
-          | { user_id_param: string; profile_data: Json }
+          | { profile_data: Json; user_id_param: string }
         Returns: undefined
       }
       update_video_availability: {
-        Args: { user_id_param: string; available: boolean }
+        Args: { available: boolean; user_id_param: string }
         Returns: undefined
       }
       update_visit_payment_status: {
         Args: {
-          user_id_param: string
-          payment_status_param: string
           payment_reference_param?: string
+          payment_status_param: string
+          user_id_param: string
         }
         Returns: undefined
       }
