@@ -2,11 +2,11 @@ import { supabase } from "@/integrations/supabase/client";
 
 /**
  * Simplified Tinder-style chat eligibility based on user journey progress.
- * If user has completed foundation steps 1-3 and has matches, they can chat.
+ * Uses the SAME logic as the readiness checker for consistency.
  * 
  * Journey-based rules:
- * - Complete foundation steps 1-3 (profile, assessment, story)
- * - Have caregiver matches available
+ * - Complete foundation steps 1-2 (profile, assessment)
+ * - Story is optional but recommended
  * - Single "Chat" button that system decides type internally
  */
 export async function checkChatEligibilityForFamily(): Promise<boolean> {
@@ -15,51 +15,55 @@ export async function checkChatEligibilityForFamily(): Promise<boolean> {
     const currentUserId = authData?.user?.id;
     if (!currentUserId) return false;
 
-    // Check foundation steps completion
+    // Check foundation steps completion - MATCHES readiness checker logic exactly
     const { data: profile } = await supabase
       .from('profiles')
-      .select('full_name, phone_number, address, care_recipient_name, relationship')
+      .select('full_name, phone_number, address, care_recipient_name, relationship, care_types, care_schedule, budget_preferences, caregiver_type')
       .eq('id', currentUserId)
       .maybeSingle();
 
-    // Step 1: Profile completion
-    const profileComplete = profile && 
+    // Step 1: Profile completion (matches isRegistrationComplete logic)
+    const requiredFields = profile && 
       profile.full_name && 
       profile.phone_number && 
       profile.address && 
       profile.care_recipient_name && 
       profile.relationship;
 
+    const enhancedFields = profile && (
+      (profile.care_types && Array.isArray(profile.care_types) && profile.care_types.length > 0) ||
+      (profile.care_schedule && String(profile.care_schedule).trim()) ||
+      (profile.budget_preferences && String(profile.budget_preferences).trim()) ||
+      (profile.caregiver_type && String(profile.caregiver_type).trim())
+    );
+
+    const profileComplete = requiredFields && enhancedFields;
+
     if (!profileComplete) {
-      console.debug('[chatEligibility] not eligible: profile incomplete');
+      console.debug('[chatEligibility] not eligible: profile incomplete', {
+        requiredFields: !!requiredFields,
+        enhancedFields: !!enhancedFields
+      });
       return false;
     }
 
-    // Step 2: Care assessment
+    // Step 2: Care assessment (matches isCareAssessmentComplete logic)
     const { data: careAssessment } = await supabase
       .from('care_needs_family')
-      .select('id')
+      .select('id, care_recipient_name, primary_contact_name')
       .eq('profile_id', currentUserId)
       .maybeSingle();
 
-    if (!careAssessment) {
+    const assessmentComplete = careAssessment?.id && 
+      (careAssessment?.care_recipient_name || careAssessment?.primary_contact_name);
+
+    if (!assessmentComplete) {
       console.debug('[chatEligibility] not eligible: no care assessment');
       return false;
     }
 
-    // Step 3: Care recipient story
-    const { data: careRecipient } = await supabase
-      .from('care_recipient_profiles')
-      .select('id, full_name')
-      .eq('user_id', currentUserId)
-      .maybeSingle();
-
-    if (!careRecipient?.full_name) {
-      console.debug('[chatEligibility] not eligible: no care recipient story');
-      return false;
-    }
-
-    console.debug('[chatEligibility] eligible: journey steps 1-3 completed');
+    // Story is OPTIONAL - matches readiness checker logic
+    console.debug('[chatEligibility] eligible: registration + assessment completed (story optional)');
     return true;
 
   } catch (e) {
