@@ -290,7 +290,7 @@ export const CaregiverMatchingModal = ({
                               onClick={() => setShowChatModal(true)}
                             >
                               <MessageCircle className="h-4 w-4 mr-2" />
-                              Start Guided Chat
+                              Chat
                             </Button>
                             
                             <SubscriptionFeatureLink

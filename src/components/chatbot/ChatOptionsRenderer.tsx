@@ -27,7 +27,7 @@ export const ChatOptionsRenderer: React.FC<ChatOptionsRendererProps> = ({
     } else {
       setSelectedOptions([]);
     }
-  }, [multiSelectionStatus]);
+  }, [multiSelectionStatus.active, multiSelectionStatus.selections]);
   
   // Check if this is a transition button set (e.g. single "Continue" button)
   const isTransitionButtonSet = options.length === 1 && 
