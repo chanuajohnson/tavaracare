@@ -75,6 +75,9 @@ export async function checkChatEligibilityForFamily(): Promise<boolean> {
 /**
  * Determines if a specific caregiver relationship should use direct live chat
  * vs guided TAV chat based on existing relationship history.
+ * 
+ * CONSISTENCY FIX: Always return false for new users to ensure TAV-guided experience.
+ * Only established relationships (active assignments/accepted requests) get live chat.
  */
 export async function shouldUseLiveChatForCaregiver(caregiverId: string): Promise<boolean> {
   try {
@@ -82,6 +85,18 @@ export async function shouldUseLiveChatForCaregiver(caregiverId: string): Promis
     const currentUserId = authData?.user?.id;
     if (!currentUserId) return false;
 
+    // CONSISTENCY: For now, all new users get TAV-guided chat
+    // This ensures consistent experience across all entry points
+    console.debug('[chatEligibility] forcing TAV-guided chat for consistency', { 
+      caregiverId,
+      userId: currentUserId,
+      result: false
+    });
+
+    return false;
+
+    // TODO: Re-enable relationship checking once chat consistency is verified
+    /*
     // Check if they have an established relationship (assignment or accepted request)
     const { data: assignments } = await supabase
       .from("caregiver_assignments")
@@ -108,6 +123,7 @@ export async function shouldUseLiveChatForCaregiver(caregiverId: string): Promis
     });
 
     return hasEstablishedRelationship;
+    */
 
   } catch (e) {
     console.warn("[chatEligibility] relationship check failed", e);
