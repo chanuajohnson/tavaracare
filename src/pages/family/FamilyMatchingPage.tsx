@@ -10,14 +10,18 @@ import { MatchingTracker } from "@/components/tracking/MatchingTracker";
 import { useUnifiedMatches } from "@/hooks/useUnifiedMatches";
 import { SimpleMatchCard } from "@/components/family/SimpleMatchCard";
 import { CaregiverChatModal } from "@/components/family/CaregiverChatModal";
+import { FamilyCaregiverLiveChatModal } from "@/components/family/FamilyCaregiverLiveChatModal";
 import { MatchBrowserModal } from "@/components/family/MatchBrowserModal";
 import { MatchDetailModal } from "@/components/family/MatchDetailModal";
 import { MatchLoadingState } from "@/components/ui/match-loading-state";
 import { FamilyMatchGrid } from "@/components/family/FamilyMatchGrid";
+import { checkChatEligibilityForFamily, shouldUseLiveChatForCaregiver } from "@/services/chat/chatEligibility";
+import { toast } from "sonner";
 
 const FamilyMatchingPage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [showChatModal, setShowChatModal] = useState(false);
+  const [showLiveChatModal, setShowLiveChatModal] = useState(false);
   const [showBrowserModal, setShowBrowserModal] = useState(false);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [selectedCaregiver, setSelectedCaregiver] = useState<any>(null);
@@ -30,12 +34,34 @@ const FamilyMatchingPage = () => {
 
   const bestMatch = matches[0];
 
-  const handleStartChat = (caregiverId?: string) => {
+  const handleStartChat = async (caregiverId?: string) => {
     const caregiver = caregiverId 
       ? matches.find(m => m.id === caregiverId) || bestMatch
       : bestMatch;
+    
+    if (!caregiver) return;
+    
     setSelectedCaregiver(caregiver);
-    setShowChatModal(true);
+    
+    // Use unified chat eligibility logic - same as dashboard
+    const canChat = await checkChatEligibilityForFamily();
+    if (!canChat) {
+      toast.error('Complete your profile and care assessment to start chatting');
+      return;
+    }
+
+    // System decides chat type based on relationship
+    const useLiveChat = await shouldUseLiveChatForCaregiver(caregiver.id);
+    console.debug('[FamilyMatchingPage] chat routing:', { 
+      caregiverId: caregiver.id, 
+      useLiveChat 
+    });
+    
+    if (useLiveChat) {
+      setShowLiveChatModal(true);
+    } else {
+      setShowChatModal(true);
+    }
   };
 
   const handleViewDetails = (caregiverId: string) => {
@@ -141,13 +167,20 @@ const FamilyMatchingPage = () => {
         </motion.div>
       </div>
 
-      {/* Chat Modal */}
+      {/* Chat Modals - Unified System */}
       {selectedCaregiver && (
-        <CaregiverChatModal
-          open={showChatModal}
-          onOpenChange={setShowChatModal}
-          caregiver={selectedCaregiver}
-        />
+        <>
+          <CaregiverChatModal
+            open={showChatModal}
+            onOpenChange={setShowChatModal}
+            caregiver={selectedCaregiver}
+          />
+          <FamilyCaregiverLiveChatModal
+            open={showLiveChatModal}
+            onOpenChange={setShowLiveChatModal}
+            caregiver={selectedCaregiver}
+          />
+        </>
       )}
 
       {/* Browse All Matches Modal */}
@@ -163,9 +196,23 @@ const FamilyMatchingPage = () => {
         open={showDetailModal}
         onOpenChange={setShowDetailModal}
         caregiver={selectedCaregiver}
-        onStartChat={() => {
+        onStartChat={async () => {
           setShowDetailModal(false);
-          setShowChatModal(true);
+          if (selectedCaregiver) {
+            // Use unified chat eligibility logic - same as dashboard
+            const canChat = await checkChatEligibilityForFamily();
+            if (!canChat) {
+              toast.error('Complete your profile and care assessment to start chatting');
+              return;
+            }
+
+            const useLiveChat = await shouldUseLiveChatForCaregiver(selectedCaregiver.id);
+            if (useLiveChat) {
+              setShowLiveChatModal(true);
+            } else {
+              setShowChatModal(true);
+            }
+          }
         }}
       />
     </div>
