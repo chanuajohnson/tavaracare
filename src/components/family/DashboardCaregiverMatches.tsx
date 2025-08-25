@@ -226,18 +226,18 @@ function formatSchedule(raw?: string | null): string | null {
                               return;
                             }
 
-                            // System decides chat type based on relationship
+                            // CONSISTENCY FIX: Force TAV-guided chat for all users
                             const useLiveChat = await shouldUseLiveChatForCaregiver(cg.id);
-                            console.debug('[DashboardCaregiverMatches] chat routing:', { 
+                            console.debug('[DashboardCaregiverMatches] BEFORE consistency override:', { 
                               caregiverId: cg.id, 
-                              useLiveChat 
+                              useLiveChat,
+                              timestamp: new Date().toISOString(),
+                              component: 'DashboardCaregiverMatches'
                             });
                             
-                            if (useLiveChat) {
-                              setShowLiveChatModal(true);
-                            } else {
-                              setShowChatModal(true);
-                            }
+                            // FORCE TAV-guided chat for consistency
+                            console.debug('[DashboardCaregiverMatches] FORCING TAV-guided chat for consistency');
+                            setShowChatModal(true); // Always use structured chat
                           }}
                         >
                           <MessageCircle className="h-4 w-4" />
@@ -297,12 +297,16 @@ function formatSchedule(raw?: string | null): string | null {
             return;
           }
 
+          // CONSISTENCY FIX: Force TAV-guided chat for all users
           const useLiveChat = await shouldUseLiveChatForCaregiver(cg.id);
-          if (useLiveChat) {
-            setShowLiveChatModal(true);
-          } else {
-            setShowChatModal(true);
-          }
+          console.debug('[DashboardCaregiverMatches] Browser modal chat routing BEFORE override:', { 
+            caregiverId: cg.id, 
+            useLiveChat,
+            component: 'DashboardCaregiverMatches-BrowserModal'
+          });
+          
+          // FORCE TAV-guided chat for consistency
+          setShowChatModal(true); // Always use structured chat
         }}
       />
 
@@ -319,9 +323,16 @@ function formatSchedule(raw?: string | null): string | null {
               return;
             }
 
+            // CONSISTENCY FIX: Force TAV-guided chat for all users
             const useLiveChat = await shouldUseLiveChatForCaregiver(selectedCaregiver.id);
-            if (useLiveChat) setShowLiveChatModal(true);
-            else setShowChatModal(true);
+            console.debug('[DashboardCaregiverMatches] Detail modal chat routing BEFORE override:', { 
+              caregiverId: selectedCaregiver.id, 
+              useLiveChat,
+              component: 'DashboardCaregiverMatches-DetailModal'
+            });
+            
+            // FORCE TAV-guided chat for consistency
+            setShowChatModal(true); // Always use structured chat
           }
         }}
       />

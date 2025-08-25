@@ -50,18 +50,18 @@ const FamilyMatchingPage = () => {
       return;
     }
 
-    // System decides chat type based on relationship
+    // CONSISTENCY FIX: Force TAV-guided chat for all users
     const useLiveChat = await shouldUseLiveChatForCaregiver(caregiver.id);
-    console.debug('[FamilyMatchingPage] chat routing:', { 
+    console.debug('[FamilyMatchingPage] BEFORE consistency override:', { 
       caregiverId: caregiver.id, 
-      useLiveChat 
+      useLiveChat,
+      timestamp: new Date().toISOString(),
+      component: 'FamilyMatchingPage'
     });
     
-    if (useLiveChat) {
-      setShowLiveChatModal(true);
-    } else {
-      setShowChatModal(true);
-    }
+    // FORCE TAV-guided chat for consistency
+    console.debug('[FamilyMatchingPage] FORCING TAV-guided chat for consistency');
+    setShowChatModal(true); // Always use structured chat
   };
 
   const handleViewDetails = (caregiverId: string) => {
@@ -206,12 +206,16 @@ const FamilyMatchingPage = () => {
               return;
             }
 
+            // CONSISTENCY FIX: Force TAV-guided chat for all users
             const useLiveChat = await shouldUseLiveChatForCaregiver(selectedCaregiver.id);
-            if (useLiveChat) {
-              setShowLiveChatModal(true);
-            } else {
-              setShowChatModal(true);
-            }
+            console.debug('[FamilyMatchingPage] Detail modal chat routing BEFORE override:', { 
+              caregiverId: selectedCaregiver.id, 
+              useLiveChat,
+              component: 'FamilyMatchingPage-DetailModal'
+            });
+            
+            // FORCE TAV-guided chat for consistency
+            setShowChatModal(true); // Always use structured chat
           }
         }}
       />
