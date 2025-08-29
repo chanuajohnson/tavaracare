@@ -176,13 +176,27 @@ const MessageBoardPage = () => {
   };
 
   const handleReplyToChat = (session: ActiveChatSession) => {
+    console.log('[MessageBoard] Reply button clicked for session:', session.id);
+    console.log('[MessageBoard] Session data:', {
+      sessionId: session.id,
+      familyUserId: session.family_user_id,
+      familyProfile: session.family_profile,
+      lastMessage: session.last_message,
+      unreadCount: session.unread_count
+    });
+    
     if (session.family_profile) {
+      console.log('[MessageBoard] Setting selected family:', session.family_profile);
       setSelectedFamily({
         id: session.family_profile.id,
         full_name: session.family_profile.full_name,
         avatar_url: session.family_profile.avatar_url
       });
+      console.log('[MessageBoard] Opening chat modal...');
       setChatModalOpen(true);
+    } else {
+      console.error('[MessageBoard] No family profile found in session:', session);
+      toast.error('Unable to open chat - family profile not found');
     }
   };
 

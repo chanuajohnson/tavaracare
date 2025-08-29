@@ -34,6 +34,8 @@ interface ProfessionalCaregiverChatModalProps {
 }
 
 export const ProfessionalCaregiverChatModal = ({ open, onOpenChange, family }: ProfessionalCaregiverChatModalProps) => {
+  console.log('[ProfessionalCaregiverChatModal] Component rendered:', { open, family });
+  
   const { user } = useAuth();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [currentMessage, setCurrentMessage] = useState("");
@@ -46,7 +48,9 @@ export const ProfessionalCaregiverChatModal = ({ open, onOpenChange, family }: P
   const today = useMemo(() => new Date().toISOString().split("T")[0], []);
 
   useEffect(() => {
+    console.log('[ProfessionalCaregiverChatModal] useEffect triggered:', { open, familyId: family?.id, userId: user?.id });
     if (open) {
+      console.log('[ProfessionalCaregiverChatModal] Initializing session and messages...');
       initSessionAndMessages();
     }
   }, [open, family.id, user?.id]);
@@ -86,9 +90,27 @@ export const ProfessionalCaregiverChatModal = ({ open, onOpenChange, family }: P
   }, [open, sessionId]);
 
   const initSessionAndMessages = async () => {
-    if (!user?.id) return;
+    console.log('[ProfessionalCaregiverChatModal] initSessionAndMessages called');
+    console.log('[ProfessionalCaregiverChatModal] User:', user?.id, 'Family:', family?.id, 'Today:', today);
+    
+    if (!user?.id) {
+      console.error('[ProfessionalCaregiverChatModal] No user ID available');
+      return;
+    }
+    
+    if (!family?.id) {
+      console.error('[ProfessionalCaregiverChatModal] No family ID available');
+      return;
+    }
+    
     setCheckingSession(true);
     try {
+      console.log('[ProfessionalCaregiverChatModal] Looking for session with query:', {
+        caregiver_id: user.id,
+        family_user_id: family.id,
+        session_date: today
+      });
+      
       // Locate existing session for caregiver (current user) and target family for today
       const { data: session, error } = await supabase
         .from("caregiver_chat_sessions")
@@ -97,6 +119,8 @@ export const ProfessionalCaregiverChatModal = ({ open, onOpenChange, family }: P
         .eq("family_user_id", family.id)
         .eq("session_date", today)
         .maybeSingle();
+      
+      console.log('[ProfessionalCaregiverChatModal] Session query result:', { session, error });
 
       if (error) {
         // Do not block UI entirely; just note no session
