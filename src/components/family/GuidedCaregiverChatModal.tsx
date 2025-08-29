@@ -43,14 +43,14 @@ export const GuidedCaregiverChatModal = ({ open, onOpenChange, caregiver }: Guid
     caregiver
   });
 
-  // Initialize conversation when modal opens - FIXED with proper dependencies
+  // Initialize conversation when modal opens - FIXED: removed conversationFlow dependency
   useEffect(() => {
-    if (open && isValidCaregiver && !isInitialized && !conversationFlow) {
+    if (open && isValidCaregiver && !isInitialized) {
       console.log('[GuidedCaregiverChatModal] INIT: Starting initialization...');
       setIsInitialized(true);
       initializeConversation();
     }
-  }, [open, isValidCaregiver, isInitialized, conversationFlow, initializeConversation]);
+  }, [open, isValidCaregiver, isInitialized, initializeConversation]);
 
   // Reset initialization when modal closes
   useEffect(() => {
